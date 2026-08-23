@@ -19,12 +19,12 @@
 **Доступы и окружение** — общий чек-лист в [README.md](README.md). Дополнительно для BE:
 
 - [ ] Docker CLI/Compose доступен; Go build/test/codegen на Windows host не запускается.
-- [ ] Поднят локальный стек: `docker compose --env-file .env.local -f docker-compose.local.yml up --build` → UI на `http://localhost:8080`, dev-login работает.
+- [ ] Поднят локальный стек: `docker compose -f docker-compose.local.yml up -d` → UI на `http://localhost:8080`, dev-login работает.
 - [ ] Демо-данные: `curl -X POST http://localhost:8080/api/dev/seed`.
-- [ ] Знаешь текущую runtime-правду: canonical `/qa-gate` target `backend-unit`
-  должен исполняться только через task-owned limited Docker outer launcher.
-  Launcher пока `NOT_READY`, поэтому runtime остаётся `NOT_RUN`; прямые
-  `go generate`/`go build`/`go test` на host или legacy runner не являются fallback.
+- [ ] Знаешь текущую runtime-правду: единственный QA-вызов для `backend-unit` —
+  `docker compose -f docker-compose.local.yml run --rm backend-unit`.
+  До фактического запуска статус остаётся `NOT_RUN`; host-команды Go и
+  удалённые legacy runners не являются fallback.
 
 **Что прочитать (в этом порядке):**
 
@@ -41,15 +41,14 @@
 - [ ] Пройди код одного домена насквозь: `backend/internal/tracker/` — handler → service → repository → ent-схема (`backend/ent/schema/`) — и его genuine units в `backend/tests/tracker/`.
 - [ ] Разберись с платформенными пакетами: `internal/platform/` (errors, middleware, http-helpers, outbox, nats) — они используются везде.
 - [ ] **Первая задача (good-first):** маленький фикс или тест в одном домене — например, добить error-path тестом существующий сервис или закрыть мелкий пункт из `.planning/AUDIT-*.md`. Согласуй с тимлидом; план на ≤200–300 строк.
-- [ ] Первый handoff: task-ветка → `backend-unit` evidence из canonical Docker launcher; пока launcher `NOT_READY`, честно передай `NOT_READY`/`NOT_RUN`, не заявляя green.
+- [ ] Первый handoff: task-ветка → evidence `backend-unit`; до фактического запуска честно передай `NOT_RUN`, не заявляя green.
 
 ## Инструменты и команды
 
-Единственный принимаемый execution path — target `backend-unit` через sole
-versioned `/qa-gate` outer launcher в task-owned limited Docker. Он должен владеть
-image, resources, timeout, isolated report и cleanup. Пока launcher `NOT_READY`,
-результат равен `NOT_RUN`; host Go, прямой `docker run`/Compose и legacy `hubtest`
-не допускаются как fallback.
+Единственный принимаемый execution path —
+`docker compose -f docker-compose.local.yml run --rm backend-unit`. До фактического
+evidence результат равен `NOT_RUN`; host Go и удалённые legacy runners не допускаются
+как fallback.
 
 **Запрещённые паттерны (блокеры ревью):**
 
@@ -78,7 +77,7 @@ Acceptance targets: coverage нового кода и security-пакетов п
 ## Чек-лист готовности
 
 - [ ] Локальный стек поднят, dev-login работает, seed прошёл.
-- [ ] Понимаю status boundary: launcher `NOT_READY`, runtime `NOT_RUN`; host/legacy fallback запрещён, green без canonical evidence не заявляется.
+- [ ] Понимаю status boundary: без actual evidence runtime `NOT_RUN`; host/legacy fallback запрещён, green без actual evidence не заявляется.
 - [ ] Прочитаны: architecture, system_specification, code_style_guide, security_guidelines, tz_constraints, playbook backend.md.
 - [ ] Понимаю layering и таблицу запрещённых паттернов.
 - [ ] Знаю QA-конвейер: юниты пишу я, integration/E2E — QA по верифицированным TC.

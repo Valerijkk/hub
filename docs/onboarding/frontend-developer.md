@@ -19,11 +19,11 @@
 **Доступы и окружение** — общий чек-лист в [README.md](README.md). Дополнительно для FE:
 
 - [ ] Docker CLI/Compose доступен; Node/Vite/tsc/Biome/Vitest/Playwright на Windows host не запускаются.
-- [ ] Поднят полный стек: `docker compose --env-file .env.local -f docker-compose.local.yml up --build` → UI `http://localhost:8080`, dev-login (`DEV_MODE=true`) работает.
-- [ ] Знаешь текущую runtime-правду: canonical `/qa-gate` target `frontend-unit`
-  должен исполняться только через task-owned limited Docker outer launcher.
-  Launcher пока `NOT_READY`, поэтому runtime остаётся `NOT_RUN`; `npm install`,
-  `tsc`, Biome, Vitest, Vite и Playwright на host или через legacy runner не fallback.
+- [ ] Поднят полный стек: `docker compose -f docker-compose.local.yml up -d` → UI `http://localhost:8080`, dev-login (`DEV_MODE=true`) работает.
+- [ ] Знаешь текущую runtime-правду: единственный QA-вызов для `frontend-unit` —
+  `docker compose -f docker-compose.local.yml run --rm frontend-unit`.
+  До фактического запуска статус остаётся `NOT_RUN`; `npm install`, `tsc`, Biome,
+  Vitest, Vite и Playwright на host или через удалённый legacy runner не fallback.
 
 **Что прочитать (в этом порядке):**
 
@@ -41,16 +41,16 @@
 - [ ] Изучи один модуль насквозь: роут в `src/routes/` → компоненты → хуки/запросы (TanStack Query) → store (Zustand) → его genuine units в `frontend/tests/{domain}/`.
 - [ ] Разберись с общими элементами: `render.tsx` (TestRenderer), Shadcn-обёртки, токены темы.
 - [ ] **Первая задача (good-first):** мелкий UI-фикс или тест — например, состояние empty/skeleton для существующего списка или a11y-фикс (aria-метки, focus). Согласуй с тимлидом; если задача видима пользователю — сначала проверь, есть ли дизайн-спека.
-- [ ] Первый handoff: task-ветка → `frontend-unit` evidence из canonical Docker launcher; пока launcher `NOT_READY`, честно передай `NOT_READY`/`NOT_RUN`, не заявляя green.
+- [ ] Первый handoff: task-ветка → evidence `frontend-unit`; до фактического запуска честно передай `NOT_RUN`, не заявляя green.
 
 ## Инструменты и команды
 
 Единственный принимаемый execution path для genuine frontend units — target
-`frontend-unit` через sole versioned `/qa-gate` outer launcher в task-owned
-limited Docker. Python E2E будет запускаться отдельными targets
+`frontend-unit` через `docker compose -f docker-compose.local.yml run --rm frontend-unit`.
+Python E2E будет запускаться отдельными fixed services
 `python-e2e-smoke`/`python-e2e-full`, а TypeScript Playwright не портируется.
-Пока launcher `NOT_READY`, runtime `NOT_RUN`; host npm/npx, прямой Docker/Compose
-и legacy runners не допускаются как fallback.
+До actual evidence runtime `NOT_RUN`; host npm/npx и удалённые legacy runners
+не допускаются как fallback.
 
 **Правила, за которые заворачивает ревью:**
 
@@ -77,7 +77,7 @@ limited Docker. Python E2E будет запускаться отдельным�
 ## Чек-лист готовности
 
 - [ ] Стек поднят, dev-login работает, продукт прощупан руками.
-- [ ] Понимаю status boundary: launcher `NOT_READY`, runtime `NOT_RUN`; host/legacy fallback запрещён, green без canonical evidence не заявляется.
+- [ ] Понимаю status boundary: без actual evidence runtime `NOT_RUN`; host/legacy fallback запрещён, green без actual evidence не заявляется.
 - [ ] Прочитаны: frontend.md, design.md, code_style_guide, SHORTCUTS.
 - [ ] Понимаю дизайн-систему `--hub-*` и границы Shadcn.
 - [ ] Знаю Rules of Hooks и таблицу «нельзя/нужно».

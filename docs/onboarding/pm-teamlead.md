@@ -9,7 +9,7 @@
 
 - Ведёшь roadmap и планирование: волны, приоритеты, scope, готовность milestone.
 - Оркеструешь AI-команду (32 агента) вместе с владельцем: декомпозиция → волна → интеграция → приёмка.
-- Держишь ворота качества: регрессия у исполнителей, верификация `*-ver`, полный `/qa-gate` на интеграции волны, docs-sync.
+- Держишь ворота качества: регрессия у исполнителей, верификация `*-ver`, fixed Compose service на интеграции волны, docs-sync.
 - Следишь за границами scope (`docs/tz_constraints.md` — mandatory/forbidden) и бюджетом CI-минут (~3000/мес).
 - Ведёшь protected-master lifecycle: новая Codex-задача стартует в `codex/<task>` от refreshed `master`; после Docker-only evidence, независимого review и docs-sync интегрируешь routine accepted result в `master`, push-ишь его и удаляешь merged branch. `master` не является заявлением production-ready. Security/auth, DB migrations, deploy/CI и ADR требуют founder review до integration.
 
@@ -17,7 +17,7 @@
 
 **Доступы и окружение** — общий чек-лист в [README.md](README.md). Код собирать не обязательно, но продукт подними:
 
-- [ ] Локальный стек: `docker compose --env-file .env.local -f docker-compose.local.yml up --build` → `http://localhost:8080`, dev-login, seed.
+- [ ] Локальный стек: `docker compose -f docker-compose.local.yml up -d` → `http://localhost:8080`, dev-login, seed.
 - [ ] Доступ к GitHub (PR, Actions), инстансу Hub.
 
 **Что прочитать (в этом порядке):**
@@ -49,13 +49,14 @@ git log --oneline master..codex/<task>
 gh pr list && gh pr checks <n>
 
 # Полный гейт на интеграции волны (через агента или локально)
-# см. .cursor/skills/qa-gate/SKILL.md
+docker compose -f docker-compose.local.yml run --rm <exact-service>
 ```
 
 **Модель волн (roadmap 2026-07-03):** волна ≤4 агента (мягкий лимит), планы атомарные ≤200–300 строк, границы файлов между параллельными потоками назначаются заранее. Ворота каждой волны:
 
 1. Максимальная декомпозиция до старта (tech-lead → приёмка team-lead).
-2. Исполнитель гоняет регрессию своего домена; полный `/qa-gate` — один раз на интеграции волны.
+2. Исполнитель гоняет регрессию своего домена; team-lead выбирает один из восьми fixed services
+   на интеграции волны и сохраняет actual evidence, иначе `NOT_RUN`.
 3. QA-конвейер: TC → qa-manual-ver → автотесты → qa-auto-ver; юниты пишут be/fe.
 4. Coverage нового кода ≥82% (security-critical ≥80%).
 5. Docs-sync в той же волне.
@@ -93,7 +94,7 @@ gh pr list && gh pr checks <n>
 ### Деплой
 
 - **Dev:** Docker Compose (`docker-compose.local.yml`); **Prod:** K3s + Caddy (reverse proxy — не nginx). Манифесты: `deployments/`.
-- CI/CD: GitHub Actions (`.github/workflows/ci.yml`, `deploy.yml`); деплой гейтится на зелёный CI. `DEV_MODE=true` в проде запрещён.
+- CI/CD: GitHub Actions (`.github/workflows/ci.yml`, `deploy.yml`); production deploy запускается только вручную на текущем Docker-verified SHA `master` после `FA-06/PG-03` и CTO sign-off. Сам merge деплой не запускает. `DEV_MODE=true` в проде запрещён.
 - Инфра-сервисы: PostgreSQL 17, MongoDB 8, Redis 7, NATS + JetStream, LiveKit, SeaweedFS (пиновать версию, не `latest`).
 
 ### Секреты

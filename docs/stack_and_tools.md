@@ -11,8 +11,8 @@
 |-----------|---------------|----------|------------|
 | Go | **1.25.0** | `backend/go.mod` | Backend, CLI, hub-mail |
 | TypeScript | **~5.7** | `frontend/package.json` | Frontend |
-| Node.js | **22** (CI), 20+ (local) | `.github/workflows/ci.yml` | Сборка, Vitest, Playwright |
-| Python | **3.12+ target** (локально bundled 3.12.13) | Phase 129 / `testframework/PACKAGE-CONTRACT.md` | Structure-only scaffold commit `22035c45`; package bootstrap, dependencies, executable suites и runtime ещё `NOT_READY`/`NOT_RUN` |
+| Node.js | **22** (QA image), 20+ (local) | `testframework/docker/Dockerfile.qa`, `frontend/package.json` | Frontend build and Vitest inside Docker |
+| Python | **3.12+ target** (локально bundled 3.12.13) | `testframework/pyproject.toml`, `testframework/uv.lock`, `testframework/PACKAGE-CONTRACT.md` | Package install и 181/181 framework selftests Docker-verified; API/integration/e2e/load остаются `NOT_RUN` и вне minimal merge gate |
 
 ---
 
@@ -75,9 +75,7 @@ job. Его внутренние шаги — Ent generation и Go release build
 
 Таблица целиком — current legacy inventory, не инструкция для агента. Host
 Vite/build/lint/test процессы запрещены; target checks будут вызываться только
-через versioned launcher API из `testframework/runner/**`, чей private source
-candidate существует, но имеет только статический review и
-`/qa-gate` является единственным outer consumer.
+через root Compose QA API: `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
 
 | Команда | Действие |
 |---------|----------|
@@ -89,8 +87,7 @@ candidate существует, но имеет только статическ�
 | `npm run test:e2e` | Legacy TypeScript Playwright entrypoint; delete в TASK-219 |
 
 Эти scripts не запускаются агентами на host: после binding и независимой
-acceptance все target checks выполняются единственным launcher API из
-`testframework/runner/**`.
+все target checks выполняются только root Compose exact services.
 TypeScript
 Playwright entrypoints не входят в target и удаляются exact-manifest batch в
 TASK-219 без parity/dual-run. Greenfield Python E2E получает только launcher
@@ -108,13 +105,11 @@ profiles по Phase 137–141, не отдельные Docker entrypoints.
 | SeaweedFS | `chrislusf/seaweedfs:3.97` | 9333, 8333 | Files (S3), recordings |
 | NATS JetStream | `nats:2.11` | 4222, 8222 | Pub/sub, outbox, notifications |
 
-Файлы compose перечислены только как inventory: `docker-compose.local.yml`
-(корень), `deployments/docker-compose.prod.yml`,
-`deployments/docker-compose.test.yml`. Target service profiles вызываются
-только через launcher API из `testframework/runner/**`, который обязан
-применять immutable execution assets из `testframework/docker/**`,
-CPU/RAM/PID/time budgets и exact cleanup. Прямой Compose/`docker run` fallback
-не разрешён; target launcher пока `NOT_READY`.
+Для QA используется только root `docker-compose.local.yml`: `docker compose -f
+docker-compose.local.yml run --rm <exact-service>`. Восемь QA services profile-explicit
+и disposable; integration/e2e используют изолированную инфраструктуру.
+Исторические legacy QA entrypoints архивны. Единственный интерфейс запуска:
+`docker compose -f docker-compose.local.yml run --rm <service>`.
 
 ---
 
@@ -136,8 +131,8 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 | Docker Compose | dev / prod | `docker-compose.local.yml`, `deployments/*.yml` | ✅ |
 | Caddy | prod/dev | `deployments/Caddyfile*` | ✅ reverse proxy, WS, HTTPS |
 | K3s | prod (planned) | — | ⚠️ частично: `deployments/k3s/monitoring/networkpolicy-metrics.yaml`; полного deployment-набора нет |
-| GitHub Actions | CI/CD | `.github/workflows/ci.yml`, `deploy.yml` | ✅ |
-| GitLab CI | mirror | `.gitlab-ci.yml` | ✅ |
+| GitHub Actions | manual only | `.github/workflows/ci.yml`, `deploy.yml` | automatic CI/PR triggers disabled; local Docker is canonical |
+| GitLab CI | disabled | `.gitlab-ci.yml` | pipelines disabled |
 | Monitoring | optional | `deployments/docker-compose.monitoring.yml` | Prometheus, Loki, Grafana (pinned); Tempo via `--profile otel` (A14-009) |
 
 ### Caddy routing (prod)
@@ -151,41 +146,28 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 
 ---
 
-## CI/CD (GitHub Actions — current legacy inventory)
+## QA and deploy (local Docker canonical)
 
-Файл: `.github/workflows/ci.yml` · Ветка: `master` · Concurrency:
-cancel-in-progress. Таблица ниже фиксирует существующий до-cutover workflow, но
-не является target execution contract и не разрешает host/inline Docker запуск.
+GitHub CI и PR Guard доступны только вручную: автоматические запуски на
+`push`/`pull_request` отключены, чтобы не расходовать GitHub Actions minutes.
+GitLab pipelines отключены. Каноническая проверка выполняется только через
+task-owned root Compose; host test/build/validator команды не являются
+execution authority.
 
-| Job | Что делает | Timeout |
-|-----|------------|---------|
-| `backend-test` | `go generate ./ent`, `go vet -tags hubtest`, `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` | 25 min |
-| `frontend-test` | `npm ci`, link testframework deps, `tsc --noEmit`, `vitest run`, `npm run lint` (Biome **gate**) | default |
-| `build` | `go build -tags release`, `npm ci && npm run build` | default |
-| `e2e-smoke` | Playwright frontend-only: login, a11y, critical-gate | после frontend-test |
-| `e2e-full` | Docker infra + native backend (`DEV_MODE`) + 20 spec paths | 30 min |
-| `coverage-gate` | `go test -coverpkg=./internal/...` ≥82% | master push only |
-| `lighthouse` | Lighthouse login page artifact | non-blocking |
-
-**Deploy** (`.github/workflows/deploy.yml`): только после **успешного CI** на push в `master` (`workflow_run`):
+**Deploy** (`.github/workflows/deploy.yml`): отдельный manual-only
+`workflow_dispatch` на текущем `master` после документированного локального
+Docker evidence, `FA-06/PG-03`, CTO sign-off и `confirm_production`. Обычный
+merge не деплоит; если `master` продвинулся после dispatch, SSH job завершится
+fail-closed до изменения checkout:
 
 1. Build & push GHCR images (SHA tag)
 2. SSH deploy: `docker compose up` backend, livekit, frontend, caddy
 3. Post-deploy health curl
 4. **Без** `DEV_MODE=true` в workflow
 
-E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/domains/` · `frontend/scripts/link-testframework-node-modules.mjs` · Infra: `scripts/ci-e2e-backend.sh`.
-
-**Private runner source candidate: `STATIC_SOURCE_REVIEWED`; target launcher:
-`NOT_READY`; `PS5.1_PARSE_NOT_RUN`; `PRIVATE_CONTRACT_NOT_RUN`; runtime:
-`NOT_RUN`.** `testframework/runner/**` — единственный launcher owner;
-`testframework/docker/**` предоставляет ему только immutable execution
-assets/contracts. Required `images.lock.v3.json` и dependency bytes отсутствуют.
-После приёмки GitHub jobs и `/qa-gate` вызывают только этот launcher:
-task-owned names, immutable image provenance, CPU/RAM/swap/PID/network limits,
-outer timeout, first-exit preservation, `reports/<task-run>/` owner marker и
-exact cleanup в `finally`. Legacy jobs и скрипты выше
-удаляются/переключаются по cutover manifest, без dual-run/parity.
+**Current QA authority:** root Compose `run --rm <exact-service>`; this document
+does not claim a session result. QA services are disposable and integration/e2e
+infrastructure is isolated. Legacy jobs and scripts remain archival inventory only.
 
 ---
 
@@ -201,22 +183,19 @@ exact cleanup в `finally`. Legacy jobs и скрипты выше
 
 ## Линтеры и quality gates
 
-До binding и независимой parser/private-contract/Docker приёмки
-`testframework/runner/**` target launcher имеет статус `NOT_READY`,
-`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`. Immutable
-execution assets принадлежат `testframework/docker/**`, но сами по себе не дают
-runtime authority. Команды старого CI ниже — только инвентарный снимок, а не
-разрешённый fallback. После cutover каждый retained job вызывает единственный
-launcher с task-owned report, ограничениями ресурсов и unconditional cleanup.
+Команды старого CI ниже — только инвентарный снимок, а не разрешённый fallback.
+Current authority is root Compose `run --rm <exact-service>`; host checks forbidden.
 
 | Целевой job | Область | Исполнение | Статус |
 |-------------|---------|------------|--------|
-| `backend-unit` | genuine Go units + backend static gates | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
-| `frontend-unit` | genuine Vitest/RTL units + TS/Biome/build gates | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
-| `python-contract` / `python-api` / `python-integration` | greenfield pytest suites | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
-| `python-e2e-smoke` / `python-e2e-full` | greenfield Playwright Python journeys | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
-| `python-load` | bounded Locust profiles | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
-| dependabot | weekly go/npm/actions | вне test runner | не настроен |
+| `backend-unit` | genuine Go units + backend static gates | root Compose exact service | PASS: build/vet/unit/race |
+| `frontend-unit` | genuine Vitest/RTL units + TypeScript | root Compose exact service | PASS: 338/338 suites, 419/419 tests |
+| `python-contract` | install/package/framework contracts | root Compose exact service | PASS: 181/181 framework selftests; SUT product tests removed |
+| `python-api` | future/public API behavior | outside minimal merge gate | `NOT_RUN` |
+| `python-integration` | future boundary behavior | outside minimal merge gate | `NOT_RUN` |
+| `python-e2e-smoke` / `python-e2e-full` | future journeys | outside minimal merge gate | `NOT_RUN` |
+| `python-load` | future load profiles | outside minimal merge gate | `NOT_RUN` |
+| dependabot | weekly go/npm/actions | вне test service | не настроен |
 
 ---
 
@@ -260,28 +239,31 @@ hub/
 ├── frontend/tests/<domain>/ # только Vitest/RTL unit tests
 ├── frontend/tests/support/ # frontend setup/render/fixtures
 └── testframework/          # один Python QA-проект, без python/ nesting
-    ├── PACKAGE-CONTRACT.md   # docs-only future package/bootstrap contract
+    ├── PACKAGE-CONTRACT.md   # package/bootstrap contract
     ├── src/hub_testkit/      # reusable installed framework package
-    │   └── py.typed          # future typed-package marker; NOT_READY
+    │   └── py.typed          # typed-package marker
     ├── tests/
-    │   └── {contract,api,integration,e2e}/ # executable pytest suites
+    │   ├── {contract,api,integration}/ # existing pytest source suites
+    │   └── e2e/              # absent; not implemented yet
     ├── selftests/            # framework contracts only
     ├── cases/                # TC intent + risk links
     ├── schemas/              # closed case/run contracts
     ├── policies/             # marker/environment/redaction/profile policy
-    ├── load/                 # separate Locust lifecycle
-    ├── docker/               # immutable execution assets only
-    ├── runner/               # sole launcher boundary; private static candidate exists
+    ├── load/                 # README-only; executable Locust profile absent
+    ├── docker/               # QA image/config source for root Compose
     ├── reports/<task-run>/   # owner-marked generated evidence
-    ├── pyproject.toml        # future package/tool authority; NOT_READY
-    └── uv.lock               # future exact resolution; NOT_READY
+    ├── pyproject.toml        # package/tool authority
+    └── uv.lock               # exact dependency resolution
 ```
 
-Structure/boundary scaffold в commit `22035c45` уже существует. Private runner
-source candidate добавлен отдельно и имеет только статический review; scaffold
-не включает future package files или executable suites. Reusable imports и suite
-roots физически разделены; direct root `core/api/integration/contract/e2e`
-packages не являются target.
+Structure/boundary scaffold в commit `22035c45` уже существует. Root Compose
+service definitions, Python QA image and package files are present.
+`backend-unit`, `frontend-unit` and framework-only `python-contract` have fresh
+Docker PASS evidence for the minimal slice. API/integration/e2e/load are
+`NOT_RUN` and are not merge gates for this slice. This does not claim product
+or production readiness.
+Reusable imports и suite roots физически разделены; direct root
+`core/api/integration/contract/e2e` packages не являются target.
 
 Live ledger на pinned revision `b9f690da`: **1,049** rows / **4,246** declared;
 **832** Go / **3,674** tests (legacy root 831/3,672 + server 1/2;
@@ -320,4 +302,4 @@ legacy Go/Vitest/TS E2E и их entrypoints удаляются.
 См. `docs/tz_constraints.md`: Fiber, NATS, SeaweedFS SDK, TanStack Router, Shadcn, Caddy, Compose/K3s — без ADR.
 
 ---
-*Последнее обновление: 2026-08-09 — package/suite roots, structure-only scaffold и runner/docker ownership.*
+*Последнее обновление: 2026-08-09 — package/suite roots, structure-only scaffold и service/docker ownership.*

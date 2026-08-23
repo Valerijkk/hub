@@ -1,7 +1,7 @@
 # Онбординг — QA-автоматизатор
 
 > Роль: автоматизация тестов Hub **по верифицированным тест-кейсам**.
-> Legacy Go component/API/integration, static-contract Vitest и Playwright-TS — исторические и не портируются. Целевой greenfield стек: **Python pytest + allure-pytest + httpx + playwright-python + Locust**; package/launcher пока `NOT_READY`, runtime `NOT_RUN`.
+> Legacy Go component/API/integration, static-contract Vitest и Playwright-TS — исторические и не портируются. Текущий минимальный merge slice принимает framework selftests; API/integration/e2e/load остаются future work со статусом `NOT_RUN`.
 > Главные документы: `.cursor/playbooks/testing.md` + `docs/testframework_strategy.md` · Индекс: [README.md](README.md)
 
 ---
@@ -22,11 +22,11 @@
 
 - [ ] Docker CLI/Compose доступен; Go/Node/Python test tooling на Windows host не запускается.
 - [ ] Локальный стек поднят, dev-login работает, seed прогнан.
-- [ ] Знаешь fixed `/qa-gate` targets: `python-contract`, `python-api`,
+- [ ] Знаешь fixed QA services: `python-contract`, `python-api`,
   `python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load`.
-  Они должны исполняться только sole versioned outer launcher в task-owned
-  limited Docker. Launcher `NOT_READY`, runtime `NOT_RUN`; direct Go/Vitest/
-  Playwright/pytest/Locust host commands и legacy runners не fallback.
+  Каждый запускается только как `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
+  Статус берётся из actual per-target evidence; direct Go/Vitest/Playwright/
+  pytest/Locust host commands и удалённые legacy runners не fallback.
 
 **Что прочитать (в этом порядке):**
 
@@ -40,24 +40,24 @@
 
 - [ ] Изучи целевой package contract `testframework/PACKAGE-CONTRACT.md`, структуру `testframework/src/hub_testkit/**` и suites `testframework/tests/{contract,api,integration,e2e}/**`; legacy roots не копируй.
 - [ ] Разбери, как один verified TC превращается в автотест: найди пару «TC-строка в TESTING.md ↔ Go/Playwright-тест» и проследи привязку (имя, `AS_ID`).
-- [ ] Изучи контракт Allure/TMS (`POST /projects/:id/tms/allure/import`); runtime-цикл не заявляй выполненным до появления canonical launcher evidence.
+- [ ] Изучи контракт Allure/TMS (`POST /projects/:id/tms/allure/import`); runtime-цикл не заявляй выполненным до actual fixed-service evidence.
 - [ ] Пойми целевое ownership по Python suites и `hub_testkit`; один файл — один writer, legacy Go/Vitest/TS Playwright не портируются.
-- [ ] **Первая задача (good-first):** автоматизируй 1–2 verified TC в целевой Python suite. Полный цикл требует canonical target evidence; если launcher всё ещё `NOT_READY`, handoff остаётся `NOT_READY`/`NOT_RUN`, а не green.
+- [ ] **Первая задача (good-first):** автоматизируй 1–2 verified TC в целевой Python suite. Полный цикл требует actual fixed-service evidence; без него handoff остаётся `NOT_RUN`, а не green.
 
 ## Инструменты и команды
 
 | Слой | Fixed target | Текущий статус |
 |---|---|---|
-| Contract | `python-contract` | launcher `NOT_READY`, runtime `NOT_RUN` |
-| API | `python-api` | launcher `NOT_READY`, runtime `NOT_RUN` |
-| Integration | `python-integration` | launcher `NOT_READY`, runtime `NOT_RUN` |
-| E2E | `python-e2e-smoke`, `python-e2e-full` | launcher `NOT_READY`, runtime `NOT_RUN` |
-| Load | `python-load` | launcher `NOT_READY`, runtime `NOT_RUN` |
+| Framework | `python-contract` | PASS: 181/181 framework selftests; no SUT product tests |
+| API | `python-api` | `NOT_RUN`; outside the minimal merge gate |
+| Integration | `python-integration` | `NOT_RUN`; outside the minimal merge gate |
+| E2E | `python-e2e-smoke`, `python-e2e-full` | `NOT_RUN`; outside the minimal merge gate |
+| Load | `python-load` | `NOT_RUN`; outside the minimal merge gate |
 
-Прямые host-команды и прямой Docker/Compose запрещены как fallback. Принимается
-только task-owned limited Docker evidence sole `/qa-gate` outer launcher.
+Прямые host-команды запрещены. Принимается только evidence от фиксированного
+`docker compose -f docker-compose.local.yml run --rm <exact-service>`.
 
-**Целевой стек:** pytest + allure-pytest + httpx (API), playwright-python (E2E, POM), pytest-xdist (параллелизм), **Locust** (`testframework/load/`). До готовности package/launcher нет допустимого legacy fallback; детали и структура — в `testframework/PACKAGE-CONTRACT.md` и плане rebase.
+**Целевой стек:** pytest + allure-pytest + httpx (API), playwright-python (E2E, POM), pytest-xdist (параллелизм), **Locust** (`testframework/load/`). Legacy fallback недопустим; детали и структура — в `testframework/PACKAGE-CONTRACT.md` и плане rebase.
 
 **Железные правила слоя:**
 
@@ -85,7 +85,7 @@ qa-manual (TC) → qa-manual-ver → ТЫ (автотесты по verified TC) 
 
 ## Чек-лист готовности
 
-- [ ] Понимаю status boundary: package/launcher `NOT_READY`, runtime `NOT_RUN`; host/legacy fallback запрещён, green без canonical evidence не заявляется.
+- [ ] Понимаю status boundary: PASS имеют только фактически запущенные `backend-unit`, `frontend-unit` и framework-only `python-contract`; API/integration/e2e/load остаются `NOT_RUN`; host/legacy fallback запрещён.
 - [ ] Прочитаны testing.md (целиком) и testframework_strategy.md.
 - [ ] Понимаю конвейер: работаю только по verified TC, юниты — не моя зона.
 - [ ] Понимаю привязку TC↔автотест и Allure-матчинг (AS_ID/tms-link).

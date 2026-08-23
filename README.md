@@ -162,10 +162,10 @@ SeaweedFS    LiveKit      Prometheus    testframework/
 
 | Технология | Назначение |
 |---|---|
-| Docker Compose | Dev (`docker-compose.local.yml`) + test (`deployments/docker-compose.test.yml`) |
+| Docker Compose | Dev and QA (`docker-compose.local.yml`); QA uses exact disposable services |
 | K3s | Production Kubernetes (namespaces per-service, NetworkPolicy) |
 | Caddy | Reverse proxy, авто-HTTPS, WS, route-flip при выносе сервисов |
-| GitHub Actions | CI/CD: release build, race-тесты, E2E, coverage-gate, deploy по green CI |
+| GitHub Actions | CI/PR automation manual-only; local root Compose is canonical; production deploy is a separate manual gate |
 | Prometheus + Grafana + Loki + OTel | Observability stack |
 
 Полный стек с версиями и обоснованием решений: [docs/stack_and_tools.md](docs/stack_and_tools.md)
@@ -184,8 +184,14 @@ git clone <repo-url> hub && cd hub
 docker compose -f docker-compose.local.yml up -d
 ```
 
-Это dev stack, а не QA evidence. Test/build/lint/validator jobs через него не
-запускаются; применимые проверки маршрутизируются только через `/qa-gate`.
+Это dev stack. Для QA используется только `docker compose -f docker-compose.local.yml
+run --rm <exact-service>`; допустимы восемь exact services: `backend-unit`,
+`frontend-unit`, `python-contract`, `python-api`, `python-integration`,
+`python-e2e-smoke`, `python-e2e-full`, `python-load`. QA services disposable;
+integration/e2e используют изолированную инфраструктуру.
+Для текущего минимального merge-gate обязательны только `backend-unit`,
+`frontend-unit` и framework-only `python-contract`; остальные Python targets
+имеют статус `NOT_RUN` и не являются gate этого slice.
 
 | Сервис | URL |
 |---|---|
@@ -196,7 +202,7 @@ docker compose -f docker-compose.local.yml up -d
 
 ### Dev-вход
 
-В dev-режиме (`DEV_MODE=true`) доступен упрощённый вход без реальной отправки email — magic-link код выводится в лог backend. В production-сборке (`go build -tags release`) все `/dev/*` маршруты исключены из бинарника.
+В dev-режиме (`DEV_MODE=true`) ответ magic-link может содержать одноразовый код для локальной отладки; OTP никогда не пишется в логи. Пустой `RESEND_API_KEY` лишь отключает доставку и при `DEV_MODE=false` не раскрывает код в ответе. В production-сборке (`go build -tags release`) все `/dev/*` маршруты исключены из бинарника.
 
 Подробнее: [docs/wiki/QUICKSTART.md](docs/wiki/QUICKSTART.md) · горячие клавиши: [docs/wiki/SHORTCUTS.md](docs/wiki/SHORTCUTS.md)
 
@@ -209,7 +215,7 @@ cd deployments
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
-- Деплой запускается **только после успешного CI** на push в `master` (GHCR-образы с SHA-тегом, SSH deploy, post-deploy health check).
+- Merge/push в `master` не деплоит. Production workflow запускается вручную только на текущем Docker-verified SHA `master` после `FA-06/PG-03`, CTO sign-off и `confirm_production`; stale SHA отклоняется до изменения checkout.
 - Никаких `DEV_MODE=true` и hardcoded-секретов в prod-конфигурации — секреты только через env / K8s Secrets.
 - Caddy-маршрутизация: `/api/*` → backend, `/ws` → backend (upgrade), `/lk/*` → LiveKit, `/*` → frontend static.
 
@@ -230,7 +236,7 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 Качество и ворота:
 
 - Исторические coverage и legacy PASS остаются baseline-инвентарём, а не текущим release/acceptance gate.
-- **`/qa-gate`** — единственная публичная точка маршрутизации применимых target jobs. Сейчас launcher/package `NOT_READY`, runtime `NOT_RUN`; прямой runner, host-команды и inline Docker/Compose не являются fallback.
+- **QA execution:** единственный публичный API — `docker compose -f docker-compose.local.yml run --rm <service>` для восьми перечисленных services. Исторические legacy QA entrypoints архивны и не являются fallback.
 - **QA-конвейер:** тест-кейсы (TC-\*) → верификация → автотесты по TC → верификация автотестов; трассируемость TC↔автотест через Allure, результаты заливаются в собственный TMS Hub.
 
 Стратегия тестового фреймворка: [docs/testframework_strategy.md](docs/testframework_strategy.md) · тест-план: [docs/test_plan.md](docs/test_plan.md) · карта pipeline: [testframework/PIPELINE.md](testframework/PIPELINE.md)
@@ -239,7 +245,7 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 Hub разрабатывается **ростером из 32 файлов агентов: 31 operational + 1 deprecated redirect** с ролями, зеркалящими реальную продуктовую команду:
 
-- **Оркестрация:** только root `team-lead` использует GPT-5.6 Sol / Max. Анализ, декомпозиция и review маршрутизируются на GPT-5.6 Terra с явным effort; атомарный код — на 5.3 Codex Spark / XHigh по замороженному контракту. `team-lead-opus` — deprecated redirect, не escalation authority.
+- **Оркестрация:** только root `team-lead` использует GPT-5.6 Sol / Max. Все downstream-задачи маршрутизируются на GPT-5.6 Terra с явным effort; атомарный код по замороженному контракту — Terra / XHigh. `codex-micro` сохраняется только как legacy ID роли. `team-lead-opus` — deprecated redirect, не escalation authority.
 - **Потоки:** дублированные роли (ba1/ba2, sa1/sa2, be1/be2, fe1/fe2, qa-auto1/qa-auto2) работают параллельно с разделением по модулям и взаимным кросс-ревью.
 - **Верификаторы:** у каждого артефакта персональный `*-ver` (ba-ver, sa-ver, arch-ver, designer-ver, be-ver, fe-ver, qa-manual-ver, qa-auto-ver) — `verified: true` только при green-регрессии с приложенным логом.
 - **Cross-cutting:** devops-engineer, security-auditor, debugger, code-reviewer, docs-writer.
@@ -333,8 +339,10 @@ Playwright + Locust**. Каталоги `testframework/` в `backend/` и `front
 | 135 | Нагрузочные на Locust — новый слой |
 | 136 | CI и удаление старого фреймворка |
 
-Замеры на 2026-07-29: 824 Go-файла в `backend/testframework/`, 0 юнитов рядом с
-кодом, 0 юнитов во фронте, покрытие 81.9%.
+Historical measurement from 2026-07-29: 824 Go files in the legacy
+`backend/testframework/`, zero colocated units, and 81.9% coverage. The
+Variant A cutover subsequently removed all tracked legacy test files; current
+backend units live only in `backend/tests/**`.
 
 ### Трек 2 — вынос монолита в микросервисы
 

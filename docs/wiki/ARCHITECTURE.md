@@ -177,7 +177,7 @@ Telegram — **только** bind для notify: `POST /notifications/telegram/
 | Dev infra | `deployments/docker-compose.yml` |
 | Production | `deployments/docker-compose.prod.yml` |
 | Monitoring | `deployments/docker-compose.monitoring.yml` |
-| CI tests | `deployments/docker-compose.test.yml` |
+| QA tests | root `docker-compose.local.yml` | exact disposable services; integration/e2e infra isolated |
 
 Observability configs: `deployments/monitoring/` (Prometheus, Loki, Grafana, Alertmanager). K3s: `deployments/k3s/` (partial).
 

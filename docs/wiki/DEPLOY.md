@@ -179,23 +179,23 @@ curl -X POST http://localhost:3000/api/dev/seed
 
 ### CI — `.github/workflows/ci.yml`
 
-Триггеры: push/PR на `master`, `workflow_dispatch`.
+Триггер: только ручной `workflow_dispatch`; автоматические push/PR jobs отключены.
 
 | Job | Шаги |
 |-----|------|
-| `backend-test` | Go 1.25, Mongo 8 service, `go generate`, `go vet`, `go test -tags hubtest -race` 600s |
-| `frontend-test` | Node 22, `npm ci`, `tsc`, `vitest run`, `biome check` |
-| `build` | `go build -tags release`, `npm run build` |
-| `e2e-smoke` | Playwright без backend: login, a11y, critical-gate |
-| `e2e-full` | Infra script + backend + 16 E2E specs |
+| `backend-test` | Ручной mirror локального `backend-unit` |
+| `frontend-test` | Ручной mirror локального `frontend-unit` |
+| `python-contract` | Ручной mirror framework-only `python-contract` |
 
-Артефакты при FAIL: `playwright-report`, `backend-e2e-log` (7 дней).
+Канонический minimal merge gate запускается локально через три exact root-Compose
+service: `backend-unit`, `frontend-unit`, `python-contract`. `python-api`, `python-integration`, e2e и load остаются `NOT_RUN` и не блокируют этот merge.
 
 ### Deploy — `.github/workflows/deploy.yml`
 
-- Запуск: `workflow_run` после **успешного CI** на push в `master`
+- Запуск: только ручной `workflow_dispatch` на текущем `master` с `confirm_production`, после локального Docker evidence для выбранного SHA, `FA-06/PG-03` и CTO sign-off
 - GHCR images: `backend:SHA`, `frontend:SHA`
-- SSH на сервер → `git reset --hard SHA` → `docker compose up --force-recreate`
+- Перед изменением сервера workflow повторно сверяет remote `master` с dispatch SHA и fail-closed останавливается при расхождении
+- SSH на сервер → exact `git reset --hard SHA` → `docker compose up --force-recreate`
 - Post-deploy health check
 - **Нет** `DEV_MODE=true` в workflow env
 

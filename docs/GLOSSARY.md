@@ -110,10 +110,10 @@
 
 | Термин | Значение |
 |--------|----------|
-| **testframework** | Каталог `testframework/` — карта тестов по стадиям CI (`PIPELINE.md`); Go-тесты физически в `backend/testframework/` |
-| **hubtest** | Build-тег Go для интеграционных тестов: `go test -tags hubtest` |
-| **e2e-smoke / e2e-full** | CI-джобы: smoke — 3 спеки (быстрый гейт на PR); full — все домены (перед релизом/волной) |
-| **coverage-gate** | Джоба-гейт по порогу покрытия |
+| **testframework** | Root greenfield QA project and launcher assets. Current Go units live only in `backend/tests/**`; see `testframework/PIPELINE.md`. |
+| **hubtest** | Historical Go build tag from the removed legacy test files; it is not a current QA entry point. |
+| **e2e-smoke / e2e-full** | Root Compose Python service targets; в minimal slice оба `NOT_RUN` и не являются merge gates. |
+| **coverage-gate** | Historical CI job; текущий minimal merge не использует coverage parity как gate. |
 | **Test triage** | Обязательный протокол при падении теста: сверить функционал с докой → решить `ROOT=code` или `ROOT=test` → чинить минимальный слой (`.cursor/skills/test-triage/`) |
 | **Flaky** | Недетерминированный тест (проходит/падает без изменений кода). Ретрай — не фикс |
 | **Allure** | Формат отчётности тестов |

@@ -40,12 +40,12 @@ backend/internal/<module>/
 ├── repository.go       # Interface
 ├── ent_repository.go   # Ent implementation
 ├── dto.go              # Request/Response structs
-└── export_hooks.go     # legacy inventory; delete after exact protected-unit cutover
+└── export_hooks.go     # hubtest exports retained only for genuine unit-test consumers
 ```
 
-Target genuine unit tests: `backend/tests/<module>/**`. Старый
-`backend/testframework/<module>/**` — legacy inventory, delete-not-port и не
-является authoring path.
+Target genuine unit tests: `backend/tests/<module>/**`. The Variant A cutover
+removed all tracked legacy test files from `backend/testframework/**`; that
+location is not an authoring path, compatibility layer, or fallback.
 
 **Запрещено:** `*ent.Client` в Handler или Service — только через Repository interface.
 
@@ -281,10 +281,10 @@ const CallsRoom = lazy(() => import('./modules/calls/CallsRoom'))
 
 ## Git и pre-commit
 
-См. `.cursor/rules/50-git.mdc`. Применимые проверки запрашиваются только как
-fixed targets через `/qa-gate`; прямые host-команды, direct runner и inline
-Docker/Compose не являются допустимым pre-commit fallback. Пока target
-`NOT_READY`, фиксируется `NOT_RUN`, а не выдуманный green.
+См. `.cursor/rules/50-git.mdc`. Применимые проверки выполняются только как
+exact services через `docker compose -f docker-compose.local.yml run --rm <exact-service>`;
+host-команды не являются допустимым pre-commit fallback. Не заявляйте green без
+фактического evidence.
 
 **Не коммитить:** `.env`, coverage dumps (`backend/cov*`), secrets.
 

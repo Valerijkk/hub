@@ -14,7 +14,7 @@
 
 ```bash
 cp .env.local.example .env.local   # опционально: Resend, Telegram notify
-docker compose --env-file .env.local -f docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up -d
 # UI: http://localhost:8080
 # Демо-данные (только DEV_MODE):
 curl -X POST http://localhost:8080/api/dev/seed
@@ -37,7 +37,7 @@ curl -X POST http://localhost:8080/api/dev/seed
 
 Уже аутентифицированный пользователь на `/login` уходит в `/projects` (или `/onboarding`, если онбординг не завершён). `/onboarding` без сессии редиректит на `/login`; при `onboarding_completed` — на `/projects` (`beforeLoad` в stub-роутах).
 
-В dev-режиме (`DEV_MODE=true`) доступен **dev-login** для E2E и локальной отладки без почты.
+В dev-режиме (`DEV_MODE=true`) доступен **dev-login** для E2E и локальной отладки без почты. Для magic-link только этот явный флаг разрешает вернуть одноразовый код в HTTP-ответе; OTP никогда не записывается в логи. Пустой `RESEND_API_KEY` отключает email-доставку, но при `DEV_MODE=false` код в ответ не попадает.
 
 ### Telegram
 
@@ -90,11 +90,12 @@ Telegram **не используется для входа**. Только:
 
 ## Проверка перед коммитом
 
-Единственная публичная точка маршрутизации применимых target jobs — skill
-`/qa-gate` (см. `docs/test_plan.md`). Он принимает только fixed target identity;
-host test/build/lint, direct runner и inline Docker/Compose не являются fallback.
-Текущий launcher/package `NOT_READY`, поэтому недоступная проверка остаётся
-`NOT_READY`/`NOT_RUN` до отдельной приёмки, без ложного green.
+Единственная QA-команда использует один из восьми fixed services:
+`docker compose -f docker-compose.local.yml run --rm <exact-service>`.
+Допустимы только `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full` и `python-load`.
+Host test/build/lint и удалённые runners не являются fallback. До фактического
+evidence проверка остаётся `NOT_RUN`, без ложного green.
 
 ---
 

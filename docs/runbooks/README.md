@@ -26,7 +26,7 @@
 | Сайт не открывается | [incident-response](incident-response.md) §2 → [monitoring-and-alerts](monitoring-and-alerts.md) `HubBackendMetricsDown` |
 | 5xx на части запросов | [monitoring-and-alerts](monitoring-and-alerts.md) `HubHighHTTP5xxRate` |
 | Всё медленно | [monitoring-and-alerts](monitoring-and-alerts.md) `HubHighHTTPLatencyP95` |
-| Задеплоили и стало хуже | [deploy-and-rollback](deploy-and-rollback.md) §4 «Откат» |
+| Задеплоили и стало хуже | [deploy-and-rollback](deploy-and-rollback.md) §5 «Откат» |
 | Не приходят письма/уведомления | [fa06-secret-rotation](fa06-secret-rotation.md) (проверить ключи) + [incident-response](incident-response.md) §5 |
 | Кончилось место / БД не пишет | [database-operations](database-operations.md) §5 |
 | Утёк секрет | [fa06-secret-rotation](fa06-secret-rotation.md) немедленно |
@@ -38,7 +38,7 @@
 
 **Мониторинг** (`deployments/docker-compose.monitoring.yml`, overlay): `prometheus`, `alertmanager`, `loki`, `promtail`, `grafana`.
 
-**Деплой:** GitHub Actions `.github/workflows/deploy.yml` — сборка и push образов, затем SSH-деплой на хост. Каталог приложения на сервере: `/opt/hub` (см. `scripts/deploy-preflight.sh`).
+**Деплой:** GitHub Actions `.github/workflows/deploy.yml` — manual-only запуск на текущем `master` после локального Docker evidence для выбранного SHA, `FA-06/PG-03` и CTO sign-off; мерж сам по себе production-действий не запускает. Если `master` продвинулся после dispatch, deploy fail-closed останавливается до смены checkout. Workflow собирает и push-ит образы, затем выполняет SSH-деплой на хост. Каталог приложения на сервере: `/opt/hub` (см. `scripts/deploy-preflight.sh`).
 
 **Health-эндпоинты:** `/api/health` (backend, проверяется в preflight), `/metrics` (Prometheus-метрики, `backend/internal/platform/observability/prometheus.go`).
 

@@ -8,7 +8,6 @@
 |----------------|------------|
 | `docker-compose.yml` | Инфраструктура для локальной разработки (БД, Redis, NATS, SeaweedFS, LiveKit, Caddy) |
 | `docker-compose.prod.yml` | Полный production-стек: инфра + backend + hub-mail + frontend + Caddy |
-| `docker-compose.test.yml` | Минимальный стек для интеграционных тестов (CI/local); CPU/RAM ограничены, overrides — `HUB_TEST_*_CPUS` / `HUB_TEST_*_MEMORY` |
 | `docker-compose.monitoring.yml` | Overlay: Prometheus, Loki, Promtail, Alertmanager, Grafana |
 | `Caddyfile` | Reverse proxy для dev (localhost) |
 | `Caddyfile.prod` | Reverse proxy для production с TLS |
@@ -21,16 +20,13 @@
 
 ## Локальная разработка
 
-1. Поднять инфраструктуру:
+1. Поднять полный локальный стек, включая backend и frontend:
 
 ```bash
-cd deployments
-docker compose -f docker-compose.yml up -d
+docker compose -f docker-compose.local.yml up -d
 ```
 
-2. Backend и frontend запускаются отдельно на хосте (см. корневой `Makefile` или `docs/wiki/QUICKSTART.md`).
-
-3. Caddy проксирует:
+2. Caddy проксирует:
    - `/api/*`, `/ws` → backend `:3000`
    - `/livekit/*` → LiveKit `:7880`
    - остальное → Vite `:5173`
@@ -60,6 +56,7 @@ docker compose \
 ```
 
 **Важно:**
+- Production workflow `.github/workflows/deploy.yml` запускается только вручную на текущем `master` после локального Docker evidence для выбранного SHA, `FA-06/PG-03` и CTO sign-off; обычный merge не деплоит, а stale dispatch останавливается до смены checkout.
 - `DEV_MODE` в prod всегда `false` (задаётся в compose).
 - LiveKit-ключи только через `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — не коммитьте `livekit-prod.yaml` с plaintext-секретами.
 - SeaweedFS S3 identity — из `S3_ACCESS_KEY` / `S3_SECRET_KEY` (не committed `hub`/`hubsecret`).

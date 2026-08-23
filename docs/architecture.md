@@ -158,7 +158,7 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | Development (full stack) | `docker-compose.local.yml` (корень репо) | Caddy :8080 | DEV_MODE, hot reload |
 | Development (infra only) | `deployments/docker-compose.yml` | direct | PG, Mongo, Redis, NATS, S3, LiveKit |
 | Production | `deployments/docker-compose.prod.yml` | Caddy | Replicas, secrets via env |
-| CI tests | `deployments/docker-compose.test.yml` | — | testcontainers-compatible |
+| QA tests | root `docker-compose.local.yml` | `run --rm <exact-service>` | 8 disposable QA services; integration/e2e infra isolated |
 | Monitoring (optional) | `deployments/docker-compose.monitoring.yml` | — | Prometheus, Loki, Grafana |
 
 **K3s:** частичные манифесты в `deployments/k3s/`; полный prod stack — Compose-first.

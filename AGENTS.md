@@ -1,19 +1,18 @@
 # Hub — AI Agent Workspace
 
-> **FOUNDER MODEL ROUTING LOCK (2026-08-11; highest precedence):** only the
+> **FOUNDER MODEL ROUTING LOCK (amended 2026-08-22; highest precedence):** only the
 > root `team-lead`/orchestrator may use `gpt-5.6-sol`, always with `max`
 > reasoning. Every subagent dispatch MUST set both `model` and
 > `reasoning_effort` explicitly; omitted values and `inherit` are invalid.
-> Analysis, decomposition, coordination and review use `gpt-5.6-terra` with
+> All downstream work uses `gpt-5.6-terra` with
 > task-routed effort: `low` for deterministic mechanics/hash/provenance,
 > `medium` for ordinary analysis/authoring, `high` for independent review, and
-> `xhigh` for unusually complex downstream audits. Atomic code implementation
-> uses `gpt-5.3-codex` (Codex UI label: **5.3 Codex Spark**) with `xhigh` only
-> after root/Terra freezes the contract. Spark may use its full official
-> 400,000-token context window when relevant, while still owning one function,
-> small module, or single behaviour with exact files, tests and acceptance
-> criteria; architecture/security/product choices
-> remain with root/Terra. If the task does not fit, it returns `BLOCKED` for
+> `xhigh` for unusually complex downstream audits and every atomic code
+> implementation. Atomic implementation starts only after root/Terra freezes
+> the contract and remains limited to one function, small module, or single
+> behaviour with exact files, tests and acceptance criteria;
+> architecture/security/product choices remain with root/Terra. If the task
+> does not fit, the Terra implementer returns `BLOCKED` for
 > further decomposition. Sol is forbidden for subagents. Unavailable runtime
 > means `UNKNOWN/BLOCKED`; silent model or effort fallback is forbidden.
 
@@ -35,7 +34,7 @@
 |--------|--------|------|--------|
 | `backend-unit` | unit | `backend/tests/{domain}/` | только genuine isolated Go units |
 | `frontend-unit` | unit | `frontend/tests/{domain}/`, `frontend/tests/support/` | только genuine Vitest/RTL units |
-| `python-contract` | contract | `testframework/tests/contract/` | API/schema/event/source contracts |
+| `python-contract` | framework | `testframework/selftests/` | install/package/framework contracts; no SUT product behavior in the minimal slice |
 | `python-api` | API | `testframework/tests/api/` | публичное поведение backend/frontend BFF |
 | `python-integration` | integration | `testframework/tests/integration/` | DB/broker/storage boundaries |
 | `python-e2e-smoke/full` | e2e | `testframework/tests/e2e/` | `smoke` is a pytest marker; `full` is a launcher profile |
@@ -101,11 +100,11 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (G
 ## AI-команда (32 файла агентов)
 
 > Реорганизована 2026-07-02 под параллельную разработку. Ростер: **`.cursor/playbooks/README.md`** · RACI: `.cursor/playbooks/team-workflow.md` · модели: **`.planning/decisions/ADR-MODELS-GPT56-2026.md`**.
-> **Модели (founder lock, amended 2026-08-11):** `team-lead` — единственный **GPT-5.6 Sol / Max** слот (`model: gpt-5.6-sol`). Terra (`gpt-5.6-terra`, `low|medium|high|xhigh`) анализирует, декомпозирует и проверяет; **5.3 Codex Spark** (`gpt-5.3-codex`, всегда `xhigh`) пишет атомарный код по замороженному контракту и при необходимости использует полное официальное окно 400k. Каждый downstream dispatch обязан явно задать model+effort; `inherit`, пропуск параметра, Sol-субагенты и silent fallback запрещены. Полная матрица и dispatch guard: **`.cursor/playbooks/model-routing.md`**. `team-lead-opus` — deprecated redirect.
+> **Модели (founder lock, amended 2026-08-22):** `team-lead` — единственный **GPT-5.6 Sol / Max** слот (`model: gpt-5.6-sol`). Все downstream-задачи явно используют Terra (`gpt-5.6-terra`, `low|medium|high|xhigh`): анализ/декомпозиция/авторинг получают task-routed effort, независимый review — `high`, а атомарный код по замороженному контракту — всегда `xhigh`. Каждый downstream dispatch обязан явно задать model+effort; `inherit`, пропуск параметра, Sol-субагенты и silent fallback запрещены. `codex-micro` сохраняется только как стабильный legacy ID роли и также запускается на `gpt-5.6-terra` / `xhigh`. Полная матрица и dispatch guard: **`.cursor/playbooks/model-routing.md`**. `team-lead-opus` — deprecated redirect.
 > **Live runtime inventory (2026-08-08):** `.cursor/agents/` = **32 файла: 31 operational + 1 deprecated redirect**; GSD runtime = **34 typed agents** (`~/.codex/agents/gsd-*.toml`) + **71 skills** (`~/.agents/skills/gsd-*`). Superpowers установлен как workflow plugin, но не является агентом/authority. Claude Code Opus 5 остаётся отдельным founder-operated worker только для `pro-qa-ai/**`.
 
 ### Лидерство / продукт
-`team-lead` (оркестратор, Sol / Max), `tech-lead` (Terra / High–XHigh), `product` + `product-ver`, `codex-micro` (5.3 Codex Spark / XHigh, атомарный код)
+`team-lead` (оркестратор, Sol / Max), `tech-lead` (Terra / High–XHigh), `product` + `product-ver`, `codex-micro` (legacy role ID; Terra / XHigh, атомарный код)
 
 ### Аналитика / архитектура / дизайн (потоки + верификаторы)
 
@@ -157,7 +156,7 @@ limits. Host используется лишь для чтения/редакт�
 
 ---
 
-## Текущий статус (2026-08-14)
+## Текущий статус (2026-08-22)
 
 > July Rebuild planning · LiveKit канон · метрики ниже = baseline master (без регрессии).
 >
@@ -178,7 +177,7 @@ limits. Host используется лишь для чтения/редакт�
 | Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
 | AI quality layer / GSD / portable kit | **Touchstone** `0.4.0-beta.3` foundation-ready pre-release · workflow contracts `30f75a25` · `STRUCTURAL_PASS` · paired eval **NOT_RUN** |
-| Test architecture rebase (Ph 128–141) | 🚧 **CURRENT RECOVERY TRUTH (2026-08-14):** Option A preserves bulk commits `794ae3cc`/`7b5d5501`, but Phase 129 is `RECOVERY_BLOCKED`: `STATIC_PATH_MAPPING=PASS`, `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`; 241 legacy deletions are only staged/uncommitted and no runtime evidence exists. See `.planning/audits/test-rebase/RECOVERY-OPTION-A-2026-08-14.md`. |
+| Test architecture rebase (Ph 128–141) | ✅ **MINIMAL MERGE CANDIDATE (2026-08-23):** backend/frontend units and 181 framework selftests pass in Docker; five SUT contract tests/cases were removed by founder direction; API/integration/e2e/load are outside this merge gate; hosted CI is off. Publication still requires final Git/remote verification. |
 
 ### Метрики качества
 
@@ -192,10 +191,10 @@ limits. Host используется лишь для чтения/редакт�
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
 | Test-rebase ledger | **1,049** source rows · SHA-256 `83b6a311…` (source revision `b9f690da`, measured 2026-08-07, ротация 2026-08-13) |
-| Backend tests | **832** total / **3,674** declared: **831 / 3,672** в legacy `backend/testframework/` + **1 / 2** server test; taxonomy total = **595** genuine unit + **237** component (**31** API + **206** integration) |
+| Backend tests | Historical ledger: **832** total / **3,674** declared; the Variant A cutover deleted the remaining **245** hook-dependent legacy `backend/testframework/**/*_test.go` paths. Current runnable units live only under `backend/tests/**` (runtime evidence is tracked separately). |
 | Vitest | **180** files / **519** literal cases: **156** frontend unit + **24** static contract; **3** additional frontend support rows |
 | Playwright E2E | **20** specs / **53** declared cases + **14** E2E support rows |
-| qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
+| FA-10 archived legacy gate | archival record: build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
 
 ### Следующие шаги
 
@@ -206,7 +205,7 @@ limits. Host используется лишь для чтения/редакт�
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **отдельный ops-блокер production cutover; не индикатор готовности MVP** |
-| Test-rebase Phase 128/129 | 🚧 historical TASK-202/203/224/204 evidence remains archival; current Phase 129 cutover is `RECOVERY_BLOCKED` pending independent recovery review, successor authority, ordered deletion handling, CI binding, package/runner implementation and Docker-only runtime |
+| Test-rebase Phase 128/129 | ⏳ `PUBLICATION_PENDING`: local minimal Docker matrix green and deletion receipts accepted; API/integration are not gates for this slice; final fetch/fast-forward verification remains |
 | Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
 | AI-layer prompt research / paired pilot / portable release | ⏳ `0.4.0-beta.3` on Hub + Desktop, `STRUCTURAL_PASS`; paired effectiveness/ROI eval NOT_RUN |
@@ -230,8 +229,8 @@ limits. Host используется лишь для чтения/редакт�
 4. Цикл качества нового + регрессия старого (rule 56) — до green
 5. Docs sync (STATE + domain docs)
 6. *-ver → верификация (verified: true в skill)
-7. qa → применимые target jobs `/qa-gate` (Docker-only)
-8. /qa-gate → финальный чек
+7. qa → применимые exact Compose services (Docker-only)
+8. evidence/triage → финальный чек
 ```
 
 `team-lead` делегирует субагентам **только** по шаблону §5 (`team-lead.md` / `team-workflow.md` §5.3.1).
@@ -242,21 +241,14 @@ limits. Host используется лишь для чтения/редакт�
 ## Команды
 
 - Dev stack: `docker compose -f docker-compose.local.yml up -d`.
-- Все test/build/lint/validator jobs запускаются только через `/qa-gate` и единый
-  versioned outer launcher API, принадлежащий только
-  `testframework/runner/**`: task-owned names, CPU/RAM/PID limits,
-  wall-clock timeout, isolated `testframework/reports/<task-run>/` с owner marker
-  и unconditional exact-resource cleanup в `finally`. `testframework/docker/**`
-  хранит только immutable execution assets и не владеет launcher code.
-- Structure-only scaffold зафиксирован commit `22035c45`; private runner source
-  candidate уже существует в `testframework/runner/run-task.ps1` и прошёл только
-  принятые статические C1/P2/P4 review. `images.lock.v3.json`, dependency bytes,
-  `pyproject.toml`, `uv.lock`, `src/hub_testkit/py.typed` и target suites отсутствуют.
-  Поэтому package/launcher status остаётся `NOT_READY`, `PS5.1_PARSE_NOT_RUN`,
-  `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`.
-  Прямые `docker run`/`compose up` snippets и legacy
-  `hubtest`/Vitest/TS Playwright runners не являются допустимым fallback.
+- Единственный QA API: `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
+  Разрешены только `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+  `python-integration`, `python-e2e-smoke`, `python-e2e-full` и `python-load`.
+  QA services profile-explicit и disposable; integration/e2e используют изолированную
+  `qa-internal` инфраструктуру. Host не запускает test/build/lint/validator процессы.
+- Historical legacy QA entrypoints are archived and are not a fallback. Use only
+  `docker compose -f docker-compose.local.yml run --rm <service>` with an exact listed service.
 
 ---
 
-*Обновлено: 2026-08-14 — Option A preserves bulk commits `794ae3cc`/`7b5d5501`; Phase 129 is `RECOVERY_BLOCKED`, 241 legacy deletions remain staged/uncommitted, runtime `NOT_RUN`.*
+*Обновлено: 2026-08-23 — минимальный unit/framework slice проверен в Docker; hosted CI выключен; публикация зависит только от финального Git/remote fast-forward audit.*

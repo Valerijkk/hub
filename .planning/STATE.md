@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: test-rebase-founder-greenfield-cutover
-stopped_at: Option A recovery packet independently re-reviewed; successor authority is pending and Phase 129 bulk history is not accepted
-last_updated: "2026-08-14T00:00:00.000Z"
-last_activity: 2026-08-14 · independent re-review accepted the Option A recovery observation packet only; successor authority remains pending and Phase 129 remains RECOVERY_BLOCKED
+status: test-rebase-minimal-merge-candidate
+stopped_at: final Git audit and remote fast-forward publication
+last_updated: "2026-08-23T00:00:00.000+03:00"
+last_activity: 2026-08-23 · minimal Docker gates PASS; hosted CI off; publication pending
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -130,6 +130,21 @@ spec_coverage:
     measured: "2026-07-27"
     source: .planning/audits/planning-audit-2026-07/SPEC-COVERAGE.md
 ---
+
+## Current test-rebase override — 2026-08-23
+
+This section supersedes older recovery/pre-merge blocker notes below for the
+minimal founder-approved merge slice. Fresh sequential Docker evidence:
+`backend-unit` PASS (build/vet/unit/race), `frontend-unit` PASS (TypeScript
+plus Vitest 338/338 suites and 419/419 tests), and `python-contract` PASS
+(181/181 framework selftests). The five SUT contract tests and their five
+case records were explicitly removed; Python API, integration, e2e and load
+are `NOT_RUN` and are not merge gates for this slice. Hosted CI/PR automation
+is disabled and GitLab pipelines are off. Production deploy remains manual
+and separately gated by FA-06/PG-03 plus CTO sign-off. The 14 and 241 legacy
+deletion batches have accepted receipts; protected Mail/Calendar paths are
+outside this merge. This is framework/unit evidence, not product readiness.
+
 
 # Состояние проекта Hub
 
