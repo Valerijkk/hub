@@ -33,6 +33,9 @@ func (repository *MailboxEntRepository) ClaimMailboxSyncStep(ctx context.Context
 		if err != nil {
 			return err
 		}
+		if account.SyncAttempts < 0 || account.SyncAttempts >= mailboxEntMaxSyncAttempts {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
 		if !request.LeaseUntil.After(databaseWallClock) {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
@@ -200,6 +203,10 @@ func (repository *MailboxEntRepository) ResolveMailboxSyncStep(ctx context.Conte
 		if !leaseValid || !hasLease || persistedFence != request.Fence || !account.SyncLeaseUntil.After(databaseWallClock) {
 			return nil
 		}
+		nextLeaseEpoch, ok := mailboxEntNextEpoch(account.SyncLeaseEpoch)
+		if !ok {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
 		if account.SyncAttempts < 0 || account.SyncAttempts >= mailboxEntMaxSyncAttempts {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
@@ -208,6 +215,7 @@ func (repository *MailboxEntRepository) ResolveMailboxSyncStep(ctx context.Conte
 		update := account.Update().
 			SetProjectionState(mailaccount.ProjectionState("degraded")).
 			SetSyncAttempts(account.SyncAttempts + 1).
+			SetSyncLeaseEpoch(nextLeaseEpoch).
 			SetNextSyncAt(request.NextAttemptAt).
 			SetSyncScheduleUpdatedAt(databaseWallClock).
 			ClearSyncLeaseToken().
