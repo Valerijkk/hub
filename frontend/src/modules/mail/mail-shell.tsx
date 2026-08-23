@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -99,10 +100,33 @@ export function MailShell({ children }: MailShellProps) {
 		queryFn: getMailAccountStatus,
 		retry: false,
 	});
+	const stateResultRef = useRef<HTMLDivElement>(null);
+	const retryIntentRef = useRef(false);
+	const retryControlVisible =
+		!accountQuery.isPending &&
+		(accountQuery.isError ||
+			!accountQuery.data ||
+			(accountQuery.data.status !== "active" &&
+				accountStateCopy(accountQuery.data.status).canRetry));
 
 	const retryAccount = () => {
+		retryIntentRef.current = true;
 		void accountQuery.refetch();
 	};
+
+	useEffect(() => {
+		if (!retryIntentRef.current) return;
+
+		if (!retryControlVisible) {
+			stateResultRef.current?.focus();
+			retryIntentRef.current = false;
+			return;
+		}
+
+		if (accountQuery.fetchStatus === "idle") {
+			retryIntentRef.current = false;
+		}
+	}, [accountQuery.fetchStatus, retryControlVisible]);
 
 	let content: ReactNode;
 	if (accountQuery.isPending) {
@@ -153,7 +177,9 @@ export function MailShell({ children }: MailShellProps) {
 				<h1 className="mb-6 text-2xl font-bold tracking-tight text-t1">
 					{t("title")}
 				</h1>
-				<div aria-live="polite">{content}</div>
+				<div ref={stateResultRef} tabIndex={-1} aria-live="polite">
+					{content}
+				</div>
 			</div>
 		</main>
 	);
