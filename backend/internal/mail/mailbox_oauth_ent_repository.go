@@ -306,9 +306,6 @@ func (repository *MailboxEntRepository) DisconnectMailboxOAuth(ctx context.Conte
 		if !mailboxEntOAuthCredentialIdentityValid(credential, account.ID) || credential.IssuerOrigin != issuerOrigin {
 			return mailboxOAuthError(MailboxOAuthErrorUnavailable)
 		}
-		if credential.Status == mailoauthcredential.Status("disconnected") {
-			return nil
-		}
 		if credential.CredentialGeneration == int64(^uint64(0)>>1) || credential.Version == int(^uint(0)>>1) {
 			return mailboxOAuthError(MailboxOAuthErrorConflict)
 		}
@@ -352,18 +349,12 @@ func mailboxEntOAuthAccountForUpdate(ctx context.Context, transaction *ent.Tx, s
 	if transaction == nil || !validMailboxOAuthScope(scope) {
 		return nil, mailboxOAuthError(MailboxOAuthErrorInvalid)
 	}
-	account, err := transaction.MailAccount.Query().
+	organizationRow, err := transaction.Organization.Query().
 		Where(
-			mailaccount.IDEQ(scope.AccountID),
-			mailaccount.OrganizationIDEQ(scope.OrganizationID),
-			mailaccount.UserIDEQ(scope.ActorID),
-			mailaccount.StatusEQ(mailaccount.StatusActive),
-			mailaccount.DesiredEnabledEQ(true),
-			mailaccount.EngineAccountIDNotNil(),
-			mailaccount.HasUserWith(
+			organization.IDEQ(scope.OrganizationID),
+			organization.HasUsersWith(
 				user.IDEQ(scope.ActorID),
 				user.StatusEQ(user.StatusActive),
-				user.HasOrganizationWith(organization.IDEQ(scope.OrganizationID)),
 			),
 		).
 		ForUpdate().
@@ -374,7 +365,38 @@ func mailboxEntOAuthAccountForUpdate(ctx context.Context, transaction *ent.Tx, s
 	if err != nil {
 		return nil, mailboxEntOAuthSafeError(err)
 	}
-	if account.ID != scope.AccountID || account.OrganizationID != scope.OrganizationID || account.UserID != scope.ActorID || account.EngineAccountID == nil || !validMailboxOAuthOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) {
+	actor, err := transaction.User.Query().
+		Where(
+			user.IDEQ(scope.ActorID),
+			user.StatusEQ(user.StatusActive),
+			user.HasOrganizationWith(organization.IDEQ(organizationRow.ID)),
+		).
+		ForUpdate().
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, mailboxOAuthError(MailboxOAuthErrorNotFound)
+	}
+	if err != nil {
+		return nil, mailboxEntOAuthSafeError(err)
+	}
+	account, err := transaction.MailAccount.Query().
+		Where(
+			mailaccount.IDEQ(scope.AccountID),
+			mailaccount.OrganizationIDEQ(organizationRow.ID),
+			mailaccount.UserIDEQ(actor.ID),
+			mailaccount.StatusEQ(mailaccount.StatusActive),
+			mailaccount.DesiredEnabledEQ(true),
+			mailaccount.EngineAccountIDNotNil(),
+		).
+		ForUpdate().
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, mailboxOAuthError(MailboxOAuthErrorNotFound)
+	}
+	if err != nil {
+		return nil, mailboxEntOAuthSafeError(err)
+	}
+	if organizationRow.ID != scope.OrganizationID || actor.ID != scope.ActorID || account.ID != scope.AccountID || account.OrganizationID != organizationRow.ID || account.UserID != actor.ID || account.EngineAccountID == nil || !validMailboxOAuthOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) {
 		return nil, mailboxOAuthError(MailboxOAuthErrorNotFound)
 	}
 	return account, nil

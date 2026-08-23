@@ -28,12 +28,15 @@ const (
 	mailboxOAuthRefreshLifetime       = 7 * 24 * time.Hour
 	mailboxOAuthRefreshSafetySkew     = 60 * time.Second
 	mailboxOAuthBrowserBindingBytes   = 32
+	mailboxOAuthBrowserBindingEncoded = 43
 	mailboxOAuthCiphertextMinimum     = 32
 	mailboxOAuthCiphertextMaximum     = 16384
 	mailboxOAuthIssuerMaximum         = 2048
 	mailboxOAuthAuthorizationMaximum  = 8192
 	mailboxOAuthCodeMaximum           = 8192
-	mailboxOAuthTokenMaximum          = 12288
+	// 16,384 base64 bytes decode to at most 12,288 bytes; AES-GCM consumes
+	// another 12-byte nonce and 16-byte authentication tag.
+	mailboxOAuthTokenMaximum          = 12260
 	mailboxOAuthEncryptionFormat      = int32(1)
 )
 
@@ -277,6 +280,9 @@ func (service *MailboxOAuthService) BeginMailboxOAuth(ctx context.Context, scope
 func (service *MailboxOAuthService) CompleteMailboxOAuth(ctx context.Context, scope MailboxOAuthScope, state, code, browserCookie string) (MailboxOAuthConnectionResult, error) {
 	if !service.valid() || ctx == nil || !validMailboxOAuthScope(scope) || !validMailboxOAuthOpaque(code, mailboxOAuthCodeMaximum) {
 		return MailboxOAuthConnectionResult{}, mailboxOAuthError(MailboxOAuthErrorInvalid)
+	}
+	if !validMailboxOAuthBase64URL(browserCookie, mailboxOAuthBrowserBindingEncoded) {
+		return MailboxOAuthConnectionResult{}, mailboxOAuthError(MailboxOAuthErrorStateInvalid)
 	}
 	bindingRaw, err := base64.RawURLEncoding.DecodeString(browserCookie)
 	if err != nil || len(bindingRaw) != mailboxOAuthBrowserBindingBytes {

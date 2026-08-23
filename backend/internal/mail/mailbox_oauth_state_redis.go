@@ -29,6 +29,11 @@ local payload = redis.call('GET', KEYS[1])
 if not payload then
   return {0}
 end
+local maximum = tonumber(ARGV[2])
+if not maximum or maximum < 1 or maximum > 4096 or string.len(payload) > maximum then
+  redis.call('DEL', KEYS[1])
+  return {-1}
+end
 local decoded_ok, decoded = pcall(cjson.decode, payload)
 if not decoded_ok or type(decoded) ~= 'table' or decoded['binding_hash'] ~= ARGV[1] then
   if not decoded_ok or type(decoded) ~= 'table' then
@@ -96,7 +101,7 @@ func (store *MailboxOAuthRedisStateStore) ConsumeMailboxOAuthState(ctx context.C
 		return MailboxOAuthPendingState{}, mailboxOAuthError(MailboxOAuthErrorStateInvalid)
 	}
 	expected := base64.RawURLEncoding.EncodeToString(expectedBindingHash[:])
-	result, err := consumeMailboxOAuthStateScript.Run(ctx, store.client, []string{mailboxOAuthStateRedisKey(state)}, expected).Result()
+	result, err := consumeMailboxOAuthStateScript.Run(ctx, store.client, []string{mailboxOAuthStateRedisKey(state)}, expected, strconv.Itoa(mailboxOAuthStateJSONMaximum)).Result()
 	if err != nil {
 		return MailboxOAuthPendingState{}, mailboxOAuthError(MailboxOAuthErrorUnavailable)
 	}
