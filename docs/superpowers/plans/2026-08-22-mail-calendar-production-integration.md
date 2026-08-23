@@ -933,7 +933,7 @@ public-private orchestrator above. 6C1F is statically accepted through `81a6a33b
 review and perform no account query/lock/fence action. Generation, build, database, Docker, tests,
 and runtime evidence remain `NOT_RUN`.
 
-- [ ] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
+- [x] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_apply.go`
@@ -955,6 +955,12 @@ pre-existing same-lease proof whose hash, hash version, phase, next attempt, or 
 from this canonical request returns the existing content-free invalid repository error with zero
 writes; it is never overwritten or re-applied. Expose only the existing
 `MailboxSyncRepository.ApplyMailboxSyncPage` ABI and perform no network I/O.
+
+Task 6C2 is statically accepted through source `e20fa860` and corrections `fc25ca93`,
+`f7996092`, and `d6184d7a`. Independent final review reports C/I/M `0/0/0`: exact rollback-only
+lost/replay paths, one post-lock database clock, phase-correct durable position, same-lease proof,
+canonical outbox, and the 6C1 call are present. Ent generation, compilation, database/SQL, Docker,
+tests, and runtime evidence remain `NOT_RUN`.
 
 - [ ] **Step 10: Keep provider I/O outside transactions**
 

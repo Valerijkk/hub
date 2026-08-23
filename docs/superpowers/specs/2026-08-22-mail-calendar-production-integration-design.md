@@ -286,7 +286,9 @@ envelopes cross the boundary; state ownership does not.
    statically accepted through `749bfad8`, message-link persistence through `559dade8`, and
    attachment persistence through `bfa07ae7`. Message/thread/tombstone persistence is statically
    accepted through `8d2bbb3c` and `5f28ad37`, aggregates through `0bb0a7e8`, and the 6C1
-   orchestrator through `7ad57e85`. The next active persistence packet is 6C2.
+   orchestrator through `7ad57e85`. The fenced 6C2 transaction/proof/outbox composition is
+   statically accepted through `e20fa860`, `fc25ca93`, `f7996092`, and `d6184d7a`.
+   Executable evidence remains `NOT_RUN`; the next active source packets are 7A, 7B, and 7C.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
