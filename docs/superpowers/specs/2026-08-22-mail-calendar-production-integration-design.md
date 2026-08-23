@@ -284,8 +284,9 @@ envelopes cross the boundary; state ownership does not.
    reviewed PASS in the implementation plan. Its source is split into folder, membership,
    attachment, message/thread/tombstone, aggregate, and orchestrator atoms; folder persistence is
    statically accepted through `749bfad8`, message-link persistence through `559dade8`, and
-   attachment persistence through `bfa07ae7`. The next active order remains 6C1M, 6C1A, 6C1O,
-   then 6C2.
+   attachment persistence through `bfa07ae7`. Message/thread/tombstone persistence is statically
+   accepted through `8d2bbb3c` and `5f28ad37`, aggregates through `0bb0a7e8`, and the 6C1
+   orchestrator through `7ad57e85`. The next active persistence packet is 6C2.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.

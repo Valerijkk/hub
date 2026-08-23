@@ -808,7 +808,7 @@ validation/budget/deep-copy boundaries, concrete delta semantics, v2 TLV tags/do
 fail-closed v1 proof handling. No test, build, generation, format, lint, migration, SQL/DB, Docker,
 or runtime action is authorized; all executable evidence remains `NOT_RUN`.
 
-- [ ] **Step 8: Implement Task 6C1 bounded projection and aggregate helpers**
+- [x] **Step 8: Implement Task 6C1 bounded projection and aggregate helpers**
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_projection.go`
@@ -928,9 +928,10 @@ projection consuming those two helpers; 6C1A folder/thread aggregates; then 6C1O
 public-private orchestrator above. 6C1F is statically accepted through `81a6a33b`, correction
 `da78cf0b`, and Ent delete-arity correction `749bfad8`; 6C1L is statically accepted through
 `2749a5dc` and account-ownership correction `559dade8`; 6C1X is statically accepted through
-`bfa07ae7`. These atoms perform no account query/lock/fence action. The contract itself passed
-independent static architecture re-review on
-2026-08-23; source, generation, build, database, Docker, and runtime evidence remain `NOT_RUN`.
+`bfa07ae7`; 6C1M through `8d2bbb3c` and concrete-empty correction `5f28ad37`; 6C1A through
+`0bb0a7e8`; and 6C1O through `7ad57e85`. The source atoms and contract passed independent static
+review and perform no account query/lock/fence action. Generation, build, database, Docker, tests,
+and runtime evidence remain `NOT_RUN`.
 
 - [ ] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
 
