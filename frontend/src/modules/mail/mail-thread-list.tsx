@@ -83,6 +83,22 @@ export function MailThreadList() {
 				</Button>
 			</div>
 		);
+	} else if (threadsQuery.isError && threads.length === 0) {
+		content = (
+			<div className="space-y-3 bg-[var(--amber)]/10 px-4 py-6" role="alert">
+				<p className="text-sm text-t2">{t("threadList.partialUnavailable")}</p>
+				<p className="text-xs leading-5 text-t3">
+					{t("threadList.partialEmpty")}
+				</p>
+				<Button
+					size="sm"
+					variant="outline"
+					onClick={() => void threadsQuery.refetch()}
+				>
+					{t("retry")}
+				</Button>
+			</div>
+		);
 	} else if (threads.length === 0) {
 		content = (
 			<div className="px-4 py-10 text-center">

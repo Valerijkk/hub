@@ -58,6 +58,7 @@
 		"loading": "Loading conversations…",
 		"unavailable": "Conversations are unavailable right now.",
 		"partialUnavailable": "Some conversations may not be current. Your loaded conversations are still shown.",
+		"partialEmpty": "The previously loaded empty result may be out of date.",
 		"empty": "No conversations yet",
 		"emptyDescription": "New mail will appear here after it has been synchronized.",
 		"loadMore": "Load more",
