@@ -151,16 +151,16 @@ func mailboxOwnerFromRecord(actorID uuid.UUID, record MailboxOwnerRecord) (Mailb
 		return MailboxOwner{}, mailboxServiceError(MailboxServiceErrorNotFound)
 	}
 
-	if record.State == MailboxOwnerDeleting {
-		return MailboxOwner{}, mailboxServiceError(MailboxServiceErrorDeleting)
-	}
-
 	owner, valid := mailboxOwnerSnapshot(record)
 	if !valid {
 		return MailboxOwner{}, mailboxServiceError(MailboxServiceErrorNotFound)
 	}
 
 	switch record.State {
+	case MailboxOwnerDeleting:
+		if owner.hasEngineAccountID || owner.hasRecoveryCode {
+			return MailboxOwner{}, mailboxServiceError(MailboxServiceErrorNotFound)
+		}
 	case MailboxOwnerActive:
 		if !owner.hasEngineAccountID || !owner.hasPrimaryAddress || owner.hasRecoveryCode {
 			return MailboxOwner{}, mailboxServiceError(MailboxServiceErrorNotFound)

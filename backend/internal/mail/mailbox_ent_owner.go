@@ -83,7 +83,7 @@ func mailboxEntResolveOwnerForUpdate(ctx context.Context, transaction *ent.Tx, a
 		return MailboxOwnerRecord{}, mailboxServiceError(MailboxServiceErrorNotFound)
 	}
 	if MailboxOwnerState(account.Status) == MailboxOwnerDeleting {
-		return MailboxOwnerRecord{}, mailboxServiceError(MailboxServiceErrorDeleting)
+		return mailboxEntDeletingOwnerRecord(actor.ID, organizationRow.ID, account)
 	}
 
 	identities, err := transaction.MailIdentity.Query().
@@ -106,6 +106,26 @@ func mailboxEntResolveOwnerForUpdate(ctx context.Context, transaction *ent.Tx, a
 	}
 
 	return mailboxEntOwnerRecordFromRows(actor.ID, organizationRow.ID, account, identity)
+}
+
+func mailboxEntDeletingOwnerRecord(actorID, organizationID uuid.UUID, account *ent.MailAccount) (MailboxOwnerRecord, error) {
+	if actorID == uuid.Nil || organizationID == uuid.Nil || account == nil || account.ID == uuid.Nil || account.UserID != actorID || account.OrganizationID != organizationID {
+		return MailboxOwnerRecord{}, mailboxServiceError(MailboxServiceErrorNotFound)
+	}
+
+	state := MailboxOwnerState(account.Status)
+	projectionState := MailboxProjectionState(account.ProjectionState)
+	if state != MailboxOwnerDeleting || !validMailboxProjectionState(projectionState) {
+		return MailboxOwnerRecord{}, mailboxServiceError(MailboxServiceErrorNotFound)
+	}
+
+	return mailboxEntOwnerRecordCopy(MailboxOwnerRecord{
+		ActorID:         actorID,
+		OrganizationID:  organizationID,
+		AccountID:       account.ID,
+		State:           MailboxOwnerDeleting,
+		ProjectionState: projectionState,
+	}), nil
 }
 
 func mailboxEntOwnerRecordFromRows(actorID, organizationID uuid.UUID, account *ent.MailAccount, identity *ent.MailIdentity) (MailboxOwnerRecord, error) {
