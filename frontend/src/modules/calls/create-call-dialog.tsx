@@ -517,7 +517,7 @@ export function CreateCallDialog({
 
 	const meetingInterval = useMemo(
 		() => parseMeetingInterval(date, time, duration, timezone),
-		[date, time, duration],
+		[date, time, duration, timezone],
 	);
 	const attendeeUserIds = useMemo(
 		() =>
@@ -571,7 +571,7 @@ export function CreateCallDialog({
 		isSuccess: availabilitySuccess,
 		refetch: refetchAvailability,
 	} = useQuery({
-		queryKey: ["calendar-availability", availabilityRequest],
+		queryKey: ["calendar-availability", dialogSession, availabilityRequest],
 		queryFn: () => {
 			if (!availabilityRequest) {
 				throw new Error("calendar availability request is unavailable");
@@ -596,7 +596,14 @@ export function CreateCallDialog({
 	);
 
 	useEffect(() => {
-		if (!availabilityQueryEnabled || !availabilityFingerprint) return;
+		if (
+			!open ||
+			dialogSession !== dialogSessionRef.current ||
+			!availabilityQueryEnabled ||
+			!availabilityFingerprint
+		) {
+			return;
+		}
 		const kind = availabilityError
 			? "error"
 			: availabilitySuccess && availabilityAssessment === "busy"
@@ -608,7 +615,7 @@ export function CreateCallDialog({
 			if (availabilitySuccess) availabilityToastRef.current = "";
 			return;
 		}
-		const toastKey = `${kind}:${availabilityFingerprint}`;
+		const toastKey = `${dialogSession}:${kind}:${availabilityFingerprint}`;
 		if (availabilityToastRef.current === toastKey) return;
 		availabilityToastRef.current = toastKey;
 		toast.error(
@@ -622,6 +629,8 @@ export function CreateCallDialog({
 		availabilityFingerprint,
 		availabilityQueryEnabled,
 		availabilitySuccess,
+		dialogSession,
+		open,
 	]);
 
 	const filteredMembers = useMemo(() => {
