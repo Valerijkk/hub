@@ -5,23 +5,31 @@
 > **Current state:** all product/test packets are model-blocked; generation/runtime packets
 > also require the accepted launcher and their named founder/external gates.
 
-## P3-A…P3-E inbound source freeze — not an executable packet
+## P3-A accepted sealed port; P3-B next pending — not an executable packet
 
-`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. This section supersedes prior 147-02D/02E Calendar
-ingestion packets only: they must not use `GetMessage`, full body/MIME parsing, direct MailEngine or
-Mail Ent, provider IDs/raw locator, or legacy event `engine_message_id`. Do not dispatch a fallback.
+P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `05f87f87f6dc30bd57648030026faf5912add3e7`
+(`feat(mail): add sealed calendar part port`) for exactly `calendar_part_source.go`, `mailbox_engine.go`,
+`mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; independent Contract/high and
+Security/xhigh are APPROVED C/I/M `0/0/0`. It accepts sealed ABI/port only, not concrete source/I-O,
+MIME/provider, Ent, NATS, wiring, or runtime. P3-B is the sole next
+`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN` atom; P3-C-E remain pending/blocked. This section
+supersedes prior 147-02D/02E Calendar ingestion packets only: they must not use `GetMessage`, full
+body/MIME parsing, direct MailEngine or Mail Ent, provider IDs/raw locator, or legacy event
+`engine_message_id`. Do not dispatch a fallback.
 
-P3-A exact files are `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`,
-`mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`. P3-B exact files are
-`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and new
-`event_service_inbound_message.go`, policy/ports only with no generated Ent. P3-C, after Mail
-generation, is new `backend/internal/mail/mailbox_ent_calendar_part.go` plus
-`mailbox_ent_repository.go`; Stalwart is separately Phase-145-blocked. P3-D, after Calendar
-generation, is new `mail_inbound_repository.go`, `mail_inbound_service.go`, `mail_inbound_due_worker.go`,
-`event_ent_transaction.go`, and new `event_ent_inbound_message.go`. P3-E, after concrete engine/source,
-is `backend/internal/platform/nats/client.go`, new Mail `calendar_inbound_consumer.go`, server `main.go`,
-and `wiring_calendar_mail.go`. Mail validates v1 and sends sanitized delivery to an injected Calendar
-sink; Calendar never subscribes to the full envelope. On no durable disposition use
+P3-A accepted files are `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`,
+`mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; no concrete source/read behavior is
+accepted. P3-B next exact files are `backend/internal/calendar/event_repository.go`,
+`event_service_inbound_reply.go`, and new `event_service_inbound_message.go`, policy/ports only with no
+generated Ent. P3-C remains pending after Mail generation: new
+`backend/internal/mail/mailbox_ent_calendar_part.go` plus `mailbox_ent_repository.go`; it owns concrete
+source/I-O, byte/five-second bound, and durable pre/post behavior. Stalwart is separately
+Phase-145-blocked. P3-D remains pending after Calendar generation: new `mail_inbound_repository.go`,
+`mail_inbound_service.go`, `mail_inbound_due_worker.go`, `event_ent_transaction.go`, and new
+`event_ent_inbound_message.go`. P3-E remains pending after concrete engine/source: it is
+`backend/internal/platform/nats/client.go`, new Mail `calendar_inbound_consumer.go`, server `main.go`,
+and `wiring_calendar_mail.go`. Its future Mail decoder validates v1 and sends sanitized delivery to an
+injected Calendar sink; Calendar never subscribes to the full envelope. On no durable disposition use
 `NakWithDelay(65s)`, MaxDeliver20, retained EVENTS plus one content-free degraded/manual-replay signal;
 semantic durable disposition ACKs. No source, test, generation, migration, SQL, build, lint/gofmt,
 parser/validator, Docker, runtime, merge, product, or readiness authority.
@@ -29,7 +37,7 @@ parser/validator, Docker, runtime, merge, product, or readiness authority.
 The exact opaque `package mail` request/result/delivery/sink and `package calendar`
 claim/scope/completion transaction signatures are in CONTRACT §2.6 and ENGINE-CONTRACT-0.1.8. V1 identity
 binds canonical private locator plus SHA-256 of decoded bounded iTIP bytes; `engine_version` is private
-before/after TOCTOU state only. A Mail source recomputes returned-byte hash before accepting it.
+before/after TOCTOU state only. P3-C, not accepted P3-A, recomputes returned-byte hash before accepting it.
 
 ## Common execution envelope
 

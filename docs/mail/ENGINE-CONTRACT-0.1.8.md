@@ -115,8 +115,13 @@ Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 
 For the future P3 Mail-to-Calendar source only, the owner is `backend/internal/mail` (`package mail`):
 Calendar may import its exported sealed port/types but Mail never imports Calendar. Add
-`MailEngine.ReadCalendarPart` rather than widening Calendar's view of `GetMessage`. The exact future
-compile shape in `package mail` is:
+`MailEngine.ReadCalendarPart` rather than widening Calendar's view of `GetMessage`. P3-A is
+`STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `05f87f87f6dc30bd57648030026faf5912add3e7`
+(`feat(mail): add sealed calendar part port`) for exactly `calendar_part_source.go`, `mailbox_engine.go`,
+`mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; independent Contract/high and
+Security/xhigh reviews are APPROVED C/I/M `0/0/0`. That acceptance covers the sealed ABI/port only, not
+a concrete source, engine/provider I/O, MIME/locator handling, Ent, NATS, wiring, or runtime. The P3-A
+static accepted compile shape in `package mail` is:
 
 ```go
 type CalendarPartReadRequest struct { /* unexported fields */ }
@@ -161,33 +166,32 @@ func (e *CalendarPartSourceError) Kind() CalendarPartSourceErrorKind
 func CalendarPartSourceErrorKindOf(error) (CalendarPartSourceErrorKind, bool)
 ```
 
-`CalendarPartSource.ReadCalendarPart` returns only this concrete family. Its constructor is unexported to
-`package mail`; engine/provider errors are mapped inside `CalendarPartSource`; `KindOf` uses `errors.As`.
+P3-A accepts this ABI only. A concrete P3-C `CalendarPartSource.ReadCalendarPart` remains pending and must
+return only this family; its constructor is unexported to `package mail`, and it maps engine/provider
+errors inside the source. `KindOf` uses `errors.As`.
 The error has no `Unwrap`, retains no provider/SQL/body/cause value, and returns the same constant
 content-free `Error()` text for every kind. No engine/provider ID, raw locator, raw MIME, `MailEngine`,
 or Mail Ent value crosses the source boundary.
 
-`MailEngine.ReadCalendarPart` is exported only for Go interface implementation, but engine-private
-semantically: only Mail `CalendarPartSource` may call it, never Calendar/server. Its request carries
-private account/message IDs, expected `Version`, hash/method/max bytes; its result is one copied iTIP
-part plus hash. The adapter enumerates private MIME parts, canonicalizes locator internally, decodes
-bounded iTIP bytes, recomputes hashes, and accepts exactly one match (zero `part_unavailable`, multiple
-`invalid`); raw locator never leaves the adapter. `maxBytes` is exactly 1..1,048,576 and the Mail source
-owns a five-second full-operation context cap; over-limit produces `payload_too_large` with no partial
-prefix. V1 locator hash is exactly
+P3-A accepts the `MailEngine.ReadCalendarPart` signature only; it is exported for Go interface
+implementation but engine-private: only a future Mail source may call it, never Calendar/server. P3-C is
+the pending concrete source atom after Mail generation. It owns private account/message IDs, expected
+`Version`/hash/method/max bytes, one copied iTIP result, exact-one canonical private MIME locator match,
+and `maxBytes=1..1,048,576` with a five-second full-operation cap and whole-result
+`payload_too_large`. V1 locator hash is exactly
 `SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || engine_account_id || u32be(len(engine_message_id)) || engine_message_id || u32be(len(canonical_private_part_locator)) || canonical_private_part_locator || u32be(32) || SHA-256(decoded_itip_bytes))`.
-`Version` is excluded from hash identity. The engine recomputes from the returned exact decoded iTIP bytes
-and private canonical locator and compares the result to the requested hash; body substitution is an
-integrity failure. Changing the formula requires a versioned schema/event amendment. Prior 147-02D
+`Version` is excluded from hash identity. P3-C must recompute from returned exact decoded iTIP bytes and
+private canonical locator and compare to requested hash; body substitution is an integrity failure.
+Changing the formula requires a versioned schema/event amendment. Prior 147-02D
 Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy `engine_message_id` is
 `CONSUMED/HISTORICAL`; those are forbidden Calendar fallbacks, not a removal of unrelated Mail reads.
-Mail snapshot/recheck requires the same private `engine_version` before/after engine I/O for TOCTOU, but
+P3-C snapshot/recheck requires the same private `engine_version` before/after engine I/O for TOCTOU, but
 an engine-version-only flag/folder change neither changes the hash nor loses the existing delivery.
-Provider/projection recomputes the hash only when canonical locator or decoded iTIP bytes change. Mail
-content is immutable: a mismatch maps to `invalid`, durable `quarantined/internal_error`, and a
+Provider/projection must recompute the hash only when canonical locator or decoded iTIP bytes change.
+Mail content is immutable: a P3-C mismatch maps to `invalid`, durable `quarantined/internal_error`, and a
 content-free integrity-degraded signal, never processing/relabeling an old event.
 
-For P3-B, the exact future `package calendar` transaction port is:
+P3-B is the next exact pending atom. Its future `package calendar` transaction port is:
 
 ```go
 type CalendarInboundMessageClaim struct { ReceiptID, LeaseToken uuid.UUID; LeaseGeneration int64 }
@@ -223,15 +227,16 @@ terminal no-op with no Calendar mutation.
 `ApplyInboundITIPReply` stays a thin `WithEventTransaction` wrapper around
 `applyInboundITIPReplyInTransaction(ctx, tx, input)`.
 
-For P3-E, only Mail's strict v1 decoder constructs opaque `CalendarInboundDelivery`; there is no public
+P3-E remains pending after concrete engine/source. Only its future Mail strict v1 decoder constructs opaque `CalendarInboundDelivery`; there is no public
 arbitrary-field constructor. The Mail-owned decoder validates the full compatibility envelope, drops
 `engine_message_id`, and constructs the delivery without it before invoking the injected
 Calendar-implemented `CalendarInboundSink`; Calendar never receives that field or provider data. A nil
 sink result means the durable Calendar disposition committed and is ACKed. A content-free/provider-free
 sink error means no durable disposition and uses `NakWithDelay(65s)`/MaxDeliver20; no Calendar package
 subscribes to v1.
-P3 is `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; the concrete Stalwart adapter remains blocked on
-Phase 145 authority.
+P3-B onward remains `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; the concrete Stalwart adapter remains
+blocked on Phase 145 authority. Generated Ent, migration, SQL, build, tests, lint/gofmt, parser/validator,
+Docker, and runtime remain `NOT_RUN`.
 
 ### Closed request and page representation
 

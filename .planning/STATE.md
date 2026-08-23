@@ -6,24 +6,24 @@ mail_calendar_inbound_prerequisites_2026_08_23: >-
   APPROVED C/I/M 0/0/0 at 4b7f322b629dd269cac7e05ba61f7ca03e45d96c; P2 Mail durable schema,
   projection carrier, and event/durable/V2/V3 proof are APPROVED C/I/M 0/0/0 at
   fc5dfe195b89963601e3f365e593469f73bed94f, 1ebbb129d62aeca695a2b028822101af9c77687f,
-  and a61edbb086df8535349429438155fad015b29615. P3 and Task 10 consumer/repository/service/
-  wiring remain pending. Generated Ent artifacts are absent/uncommitted; generation, migration,
+  and a61edbb086df8535349429438155fad015b29615. P3-A sealed port is STATIC_ACCEPTED / STATIC_SOURCE_ONLY
+  at 05f87f87f6dc30bd57648030026faf5912add3e7 (Contract/high and Security/xhigh APPROVED C/I/M 0/0/0);
+  P3-B and Task 10 consumer/repository/service/wiring remain pending. Generated Ent artifacts are absent/uncommitted; generation, migration,
   SQL, compile/build, tests, lint/gofmt, parser/validator, Docker, and runtime are NOT_RUN. No
   NATS/worker, migration, merge, product, or readiness claim follows.
 mail_calendar_inbound_p3_source_freeze_2026_08_23: >-
-  P3 contract frozen only: UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN. P0-P2 remain accepted; P3-A
-  is sealed `package mail` CalendarPartSource/private engine-only ReadCalendarPart with
-  locator-plus-decoded-iTIP identity and private engine-version TOCTOU recheck, P3-B is receipt-first EventTransaction
-  REPLY factor, P3-C Mail Ent after generation, P3-D receipt/object-state/service/due worker after
-  generation, and P3-E NATS/wiring after concrete engine. Historic 147-02D/02E GetMessage/full-body/
-  MIME/direct-engine/provider/legacy-engine_message_id Calendar-ingestion wording is
-  CONSUMED/HISTORICAL with no fallback. Stalwart remains blocked on Phase 145 authority. Generated
-  Ent artifacts are absent/uncommitted; generation, migration, SQL, build, tests, lint/gofmt,
-  parser/validator, Docker and runtime are NOT_RUN. P3-E is Mail-owned sanitized delivery, not a
-  Calendar full-envelope subscription; Calendar receives only Mail-decoded opaque delivery through its
-  sink. A nil sink result ACKs durable disposition; a content-free/provider-free no-disposition error uses
-  `NakWithDelay(65s)`/MaxDeliver20 with retained EVENTS degraded manual replay. No worker, NATS,
-  merge, product, or readiness claim follows.
+  P3-A is STATIC_ACCEPTED / STATIC_SOURCE_ONLY at 05f87f87f6dc30bd57648030026faf5912add3e7
+  (`feat(mail): add sealed calendar part port`) for exact five files calendar_part_source.go,
+  mailbox_engine.go, mailbox_types.go, mailbox_errors.go, mailbox_fake.go; independent Contract/high and
+  Security/xhigh are APPROVED C/I/M 0/0/0. It accepts sealed `package mail` ABI/port only: no concrete
+  CalendarPartSource, engine/provider/MIME/locator I/O, Ent, NATS, wiring, or runtime. P3-B is next exact
+  UNIMPLEMENTED / PENDING atom for receipt-first EventTransaction REPLY factor. P3-C-E remain pending/
+  blocked: P3-C after Mail generation owns concrete source plus five-second/pre-post semantics; P3-D
+  follows Calendar generation; P3-E follows concrete engine/source. Historic 147-02D/02E GetMessage/full-
+  body/MIME/direct-engine/provider/legacy-engine_message_id Calendar-ingestion wording is
+  CONSUMED/HISTORICAL with no fallback. Stalwart remains blocked on Phase 145 authority. Generated Ent
+  artifacts are absent/uncommitted; generation, migration, SQL, build, tests, lint/gofmt, parser/validator,
+  Docker and runtime are NOT_RUN. No worker, NATS, merge, product, or readiness claim follows.
 mail_144_task_6b_ent_sync_prepare: >-
   STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN at effective HEAD 431022ed after source
   6e788cc7 and live-thread correction 431022ed. The exact effective manifest is

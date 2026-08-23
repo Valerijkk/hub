@@ -256,31 +256,34 @@ class enum string, and tag 11 optional raw 32-byte locator hash using the regist
 encoding. v1 remains fail-closed; a v2 proof is neither overwritten nor reinterpreted as v3.
 Canonical validation proves projection/carrier equality and method/locator pairing.
 
-P3 remains future: no P3 Mail consumer, sanitized Calendar sink/service, repository, or NATS subscription,
-or worker is accepted. Generated Ent artifacts are absent/uncommitted; migration, SQL,
-compile/build, test, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
+P3-A alone is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`05f87f87f6dc30bd57648030026faf5912add3e7` after independent Contract/high and Security/xhigh APPROVED
+C/I/M `0/0/0`. P3-B is the next exact pending atom; no P3-B Mail consumer, sanitized Calendar
+sink/service, repository, NATS subscription, or worker is accepted. P3-C-E remain pending/blocked.
+Generated Ent artifacts are absent/uncommitted; migration, SQL, compile/build, test, lint/gofmt,
+parser/validator, Docker, and runtime remain `NOT_RUN`.
 
 ### P3-A sealed inbound source freeze
 
-P3 is contract-frozen only, `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Its owner is
-`backend/internal/mail` (`package mail`): Calendar may use exported sealed Mail port/types and Mail
-never imports Calendar. `CalendarPartReadRequest`/Result are opaque structs with exported validated
-constructor/accessors. Calendar receives only Hub org/mailbox/message UUIDs, `[32]byte` locator hash,
-and exact `maxBytes=1..1_048_576`, returning only owner ID, normalized sender, method, authentication
-class, and defensive-copy iTIP. The source owns five seconds and whole-result `payload_too_large`.
-`MailEngine.ReadCalendarPart` is Go-exported only for interface implementation and engine-private:
-only Mail source calls it with engine account/message IDs, expected engine version/hash/method/max bytes.
-The adapter canonicalizes private MIME locators, hashes decoded bounded iTIP bytes, and requires exactly
-one match; V1 identity binds that canonical locator plus decoded iTIP bytes, while engine version is
-private before/after TOCTOU state only and never receipt identity.
+P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at immutable
+`05f87f87f6dc30bd57648030026faf5912add3e7` (`feat(mail): add sealed calendar part port`) for exactly
+`backend/internal/mail/calendar_part_source.go`, `mailbox_engine.go`, `mailbox_types.go`,
+`mailbox_errors.go`, and `mailbox_fake.go`; Contract/high and Security/xhigh are APPROVED C/I/M `0/0/0`.
+It accepts only the `package mail` sealed opaque port/types/error ABI: Calendar may use exported types but
+Mail never imports Calendar. No concrete `CalendarPartSource`, engine/provider I/O, MIME/locator handling,
+Ent, NATS, wiring, or runtime follows. P3-C remains pending after Mail generation for exact
+`maxBytes=1..1_048_576`, five-second whole-result behavior, private engine read, canonical MIME-locator/
+decoded-iTIP hash, and durable pre/post TOCTOU recheck. These are P3-C contract semantics, not P3-A
+runtime evidence.
 raw locator/version never leaves Mail. The V1 formula and snapshot/recheck are normative in CONTRACT §2.6.
 
 Historic 147-02D `GetMessage`/full-body/MIME parsing and legacy event `engine_message_id` wording is
-`CONSUMED/HISTORICAL` for Calendar ingestion only; none is a fallback. P3-B factors existing REPLY
-application into one receipt-first `EventTransaction` with opaque claim/scope/completion and its closed
-observed/error-code constructor ABI, preserving reply receipt/outbox behavior and no nested transaction
-or duplicate logic; P3-C/D await the respective Mail/Calendar generation. P3-E is Mail-owned consumer
-code: its strict decoder validates the full compatibility `mail.received.v1` envelope, drops
+`CONSUMED/HISTORICAL` for Calendar ingestion only; none is a fallback. P3-B is the next exact pending
+atom: it will factor existing REPLY application into one receipt-first `EventTransaction` with opaque
+claim/scope/completion and its closed observed/error-code constructor ABI, preserving reply receipt/outbox
+behavior and no nested transaction or duplicate logic. P3-C/D remain pending after their respective
+Mail/Calendar generation. P3-E remains pending after concrete engine/source: its future Mail-owned decoder
+validates the full compatibility `mail.received.v1` envelope, drops
 `engine_message_id`, constructs the only opaque sanitized `CalendarInboundDelivery` without that field,
 and invokes an injected Calendar-implemented sink. Calendar does not subscribe to the full envelope or
 receive the field. A nil sink result means durable disposition then ACK; a content-free, provider-free
@@ -374,8 +377,8 @@ cross the boundary; state ownership does not.
    Calendar GET, canonical mutations, and the Mail account route once. Task 7A stays blocked on
    Phase 145 founder auth/gateway gates and inaccessible private engine interfaces; Task 8B provider
    and worker lifecycle remains pending/blocked. No item in this paragraph is runtime evidence.
-5. P0-P2 Mail-to-Calendar prerequisite sources are statically accepted; P3 remains the later
-   sealed-source/transaction/repository/worker/NATS sequence (P3-A through P3-E), followed by
+5. P0-P2 Mail-to-Calendar prerequisite sources and the P3-A sealed port ABI are statically accepted;
+   P3-B through P3-E remain the later transaction/source/repository/worker/NATS sequence, followed by
    the separate Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
 7. Docker generation, build, focused verification, migration replay, and runtime

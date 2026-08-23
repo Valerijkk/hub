@@ -10,24 +10,28 @@ first, owns only its allowed files, makes no commit, and returns `BLOCKED` when 
 model, generation or external gate is missing. Assemble the Common envelope plus exactly
 one matching section from `DISPATCH-PACKETS.md`.
 
-## P3 inbound source boundary — contract frozen, no dispatch
+## P3 inbound source boundary — P3-A accepted, P3-B next pending
 
-P0-P2 remain accepted. P3-A through P3-E are `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; this
-freeze selects no executable packet. Calendar's only future Mail ingress is sealed
-`CalendarPartSource`: opaque Hub org/mailbox/message UUIDs, `[32]byte` locator hash and 1..1,048,576
-bytes in; owner ID, normalized sender, method, authentication class and defensive-copy iTIP out.
+P0-P2 remain accepted. P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`05f87f87f6dc30bd57648030026faf5912add3e7` (`feat(mail): add sealed calendar part port`) for exactly
+`calendar_part_source.go`, `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and
+`mailbox_fake.go`; independent Contract/high and Security/xhigh are APPROVED C/I/M `0/0/0`. It accepts
+only sealed `package mail` port/types/error ABI, not a concrete `CalendarPartSource`, I/O, MIME/locator,
+Ent, NATS, wiring, or runtime. P3-B is the only next `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN` atom;
+P3-C-E remain pending/blocked.
 The exact opaque `package mail` request/result/delivery/sink and `package calendar`
 claim/scope/completion signatures are frozen in CONTRACT §2.6 and ENGINE-CONTRACT-0.1.8. V1 identity
 binds canonical private locator and decoded bounded iTIP bytes; `engine_version` is private TOCTOU state
 only, never receipt identity.
-The Mail-owned five-second read cap, private `ReadCalendarPart`, V1 locator-hash formula, durable
-preflight/recheck, exact safe errors, and receipt/ACK policy are normative in CONTRACT §2.6.
+P3-C alone remains pending for concrete Mail source/I-O, five-second read cap, V1 locator calculation,
+and durable preflight/recheck. P3-B has the next exact Calendar policy/transaction port; receipt/ACK
+transport remains later P3-D/E.
 
 For Calendar ingestion, all earlier 147-02D/02E `GetMessage`, full-body/MIME parsing, direct engine,
 provider/locator, and legacy `engine_message_id` paths are `CONSUMED/HISTORICAL`; they must not be
-dispatched as a fallback. Future atom order is P3-A abstract Mail port/fake/engine/types/errors;
-P3-B exact Calendar policy/port files are `event_repository.go`, `event_service_inbound_reply.go`, and
-new `event_service_inbound_message.go`; P3-C exact Mail Ent files after generation are new
+dispatched as a fallback. P3-B is next with exact Calendar policy/port files `event_repository.go`,
+`event_service_inbound_reply.go`, and new `event_service_inbound_message.go`; P3-C exact Mail Ent files
+after generation are new
 `mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D exact Calendar generated-Ent
 files are new `mail_inbound_repository.go`, `mail_inbound_service.go`, `mail_inbound_due_worker.go`,
 `event_ent_transaction.go`, and new `event_ent_inbound_message.go`; P3-E exact files after concrete
@@ -88,11 +92,11 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-02C | Atomic Ent ingest/receipt transaction | `backend/internal/calendar/event_ent_repository_inbound_invite.go`; no Go DB test | claim/object/event/exception/outbox/final receipt atomic; Python integration handoff; lease recovery | 02B + accepted 143 repository base |
 | 147-02D | `CONSUMED/HISTORICAL — superseded by P3-A..E` | historical source/GetMessage route retained only as record | non-dispatchable; no Calendar ingestion fallback | none |
 | 147-02E | `CONSUMED/HISTORICAL — superseded by P3-A..E` | historical Calendar consumer/bare-NAK route retained only as record | non-dispatchable; no Calendar full-envelope subscription | none |
-| P3-A | Sealed Mail calendar-part source | `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go` | opaque request/result, closed errors, locator-plus-decoded-iTIP hash and private-version TOCTOU read | P0-P2; no source dispatch yet |
-| P3-B | Calendar transaction-aware REPLY policy/ports | `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, `event_service_inbound_message.go` (new) | receipt-first single transaction; no generated Ent | P3-A; no source dispatch yet |
-| P3-C | Mail Ent calendar-part source | `backend/internal/mail/mailbox_ent_calendar_part.go` (new), `mailbox_ent_repository.go` | after Mail generated Ent; Stalwart excluded | P3-B + generation |
-| P3-D | Calendar inbound repository/service/due worker | `backend/internal/calendar/mail_inbound_repository.go` (new), `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`, `event_ent_inbound_message.go` (new) | after Calendar generated Ent | P3-C + generation |
-| P3-E | Mail sanitized ingress consumer and wiring | `backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go` (new), `backend/cmd/server/main.go`, `backend/cmd/server/wiring_calendar_mail.go` | Mail validates v1 then sink; durable disposition ACK, 65s no-durable NAK | P3-D + concrete engine/source |
+| P3-A | Sealed Mail calendar-part port | `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go` | `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` `05f87f87f6dc30bd57648030026faf5912add3e7`; ABI/port only, no concrete source/I-O | Contract/high + Security/xhigh APPROVED C/I/M 0/0/0 |
+| P3-B | Calendar transaction-aware REPLY policy/ports | `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, `event_service_inbound_message.go` (new) | `NEXT / UNIMPLEMENTED / PENDING`; receipt-first single transaction; no generated Ent | P3-A accepted; exact next route only |
+| P3-C | Mail Ent concrete calendar-part source | `backend/internal/mail/mailbox_ent_calendar_part.go` (new), `mailbox_ent_repository.go` | `PENDING/BLOCKED`; concrete source/I-O, five-second/pre-post; Stalwart excluded | P3-B + Mail generation |
+| P3-D | Calendar inbound repository/service/due worker | `backend/internal/calendar/mail_inbound_repository.go` (new), `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`, `event_ent_inbound_message.go` (new) | `PENDING/BLOCKED` after Calendar generated Ent | P3-C + Calendar generation |
+| P3-E | Mail sanitized ingress consumer and wiring | `backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go` (new), `backend/cmd/server/main.go`, `backend/cmd/server/wiring_calendar_mail.go` | `PENDING/BLOCKED`; Mail v1 decoder/sink, durable ACK policy | P3-D + concrete engine/source |
 | 147-03A | External REPLY delivery state machine and sender port | `backend/internal/calendar/reply_delivery.go`, `backend/tests/calendar/reply_delivery_test.go` | stable draft/send keys; unknown reconciles; permanent/transient split | 01C/E + accepted 143 RSVP/serializer |
 | 147-03B | Mailbox reply adapter and bounded worker | `backend/internal/mail/calendar_reply_adapter.go`, `backend/internal/calendar/reply_worker.go`, narrow `backend/cmd/server/wiring_calendar_mail.go`, `backend/tests/mail/calendar_reply_adapter_test.go`, `backend/tests/calendar/reply_worker_test.go` | genuine fake-port units; hidden draft + one submission; no blind retry; attendee status reflects ledger | 03A + accepted 144 draft/submission + engine availability |
 | 147-04A | Pure busy/free interval and occurrence normalization | `backend/internal/calendar/availability_policy.go`, `backend/tests/calendar/availability_policy_test.go` | half-open range; DST/all-day; merge/complement/bounds; no private fields | accepted 143 temporal/recurrence policy |

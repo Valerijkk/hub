@@ -1195,33 +1195,39 @@ event/durable/V2/V3 proof are respectively approved C/I/M `0/0/0` at
 `fc5dfe195b89963601e3f365e593469f73bed94f`, `1ebbb129d62aeca695a2b028822101af9c77687f`, and
 `a61edbb086df8535349429438155fad015b29615`.
 
-- [ ] **P3: Later Mail inbound delivery and Calendar sink/service/repository packet**
+- [x] **P3-A: Sealed Mail calendar-part port — STATIC_ACCEPTED / STATIC_SOURCE_ONLY**
 
-**Contract frozen only — `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`.** P3 owns no source in this
-task and remains the explicit Task 10 dependency. Historical 147-02D/02E `GetMessage`, full-body/MIME,
-and legacy `engine_message_id` Calendar-ingestion wording is `CONSUMED/HISTORICAL`; no such fallback is
-permitted.
+P3-A is statically accepted at `05f87f87f6dc30bd57648030026faf5912add3e7`
+(`feat(mail): add sealed calendar part port`) for exactly `backend/internal/mail/calendar_part_source.go`,
+`mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; independent
+Contract/high and Security/xhigh are APPROVED C/I/M `0/0/0`. This is sealed ABI/port source only, not a
+concrete `CalendarPartSource`, Ent, MIME/provider I/O, NATS, wiring, or runtime claim. P3-B is the next
+exact pending atom; P3-C-E remain pending/blocked and Task 10 remains dependent on all P3 atoms.
+Historical 147-02D/02E `GetMessage`, full-body/MIME, and legacy `engine_message_id` Calendar-ingestion
+wording is `CONSUMED/HISTORICAL`; no such fallback is permitted.
 
-- **P3-A — abstract Mail port/fake/engine/types/errors:** exact future
+- [x] **P3-A — abstract Mail port/fake/engine/types/errors — STATIC_ACCEPTED / STATIC_SOURCE_ONLY:**
+  exact accepted
   `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`,
-  `mailbox_errors.go`, and `mailbox_fake.go`. `package mail` owns sealed opaque request/result,
-  closed concrete source-error ABI, private engine-only `ReadCalendarPart`, five-second/snapshot boundary and
-  locator-plus-decoded-iTIP hash identity; `engine_version` is private TOCTOU state only. Calendar may
-  import exported Mail types but Mail never imports Calendar.
-- **P3-B — Calendar transaction port and REPLY factor:** exact future
+  `mailbox_errors.go`, and `mailbox_fake.go`. `package mail` owns sealed opaque request/result and closed
+  source-error ABI; Calendar may import exported Mail types but Mail never imports Calendar. No concrete
+  source/read, five-second cap, MIME/locator, provider, or pre/post behavior is accepted here.
+- [ ] **P3-B — Calendar transaction port and REPLY factor — NEXT / PENDING:** exact future
   `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and
   `event_service_inbound_message.go` (new). It is transaction-aware policy/ports only: no generated
   Ent references, nested transaction, repository bypass, or duplicate REPLY logic. Its opaque completion
   constructors enforce the closed Phase 147 observed/error-code pairings; repository time/lease handling
   remains behind `CompleteCalendarInboundMessageReceipt`.
-- **P3-C — Mail Ent source:** after Mail generation only, exact future
+- [ ] **P3-C — Mail Ent concrete calendar-part source — PENDING/BLOCKED:** after Mail generation only,
+  exact future
   `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`.
-  Stalwart is separately Phase-145-blocked and is not P3-C.
-- **P3-D — Calendar receipt/object-state repository, service, and due worker:** after Calendar
+  It owns concrete source I/O, exact byte/five-second bound, MIME/locator hash and durable pre/post
+  recheck; Stalwart is separately Phase-145-blocked and is not P3-C.
+- [ ] **P3-D — Calendar receipt/object-state repository, service, and due worker — PENDING/BLOCKED:** after Calendar
   generation only, exact future `backend/internal/calendar/mail_inbound_repository.go` (new),
   `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`,
   and `event_ent_inbound_message.go` (new); 30-second scan, batch 50, concurrency 4.
-- **P3-E — Mail NATS consumer and server wiring:** after concrete engine/source only, exact future
+- [ ] **P3-E — Mail NATS consumer and server wiring — PENDING/BLOCKED:** after concrete engine/source only, exact future
   `backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go`
   (new), `backend/cmd/server/main.go`, and `backend/cmd/server/wiring_calendar_mail.go`. Mail validates
   the full compatibility v1 envelope, drops `engine_message_id`, constructs sanitized delivery without it,

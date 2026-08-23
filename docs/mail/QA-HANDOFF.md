@@ -8,17 +8,17 @@ plus pairing fix `5a253d166f83ce37e695566f1396ee16fe00b224`, P1 receipt schema
 projection carrier, and event/durable/V2/V3 proof `fc5dfe195b89963601e3f365e593469f73bed94f`,
 `1ebbb129d62aeca695a2b028822101af9c77687f`, and
 `a61edbb086df8535349429438155fad015b29615` are independently approved C/I/M `0/0/0`.
-P3 and Task 10 consumer/repository/service/wiring remain pending; no NATS/worker readiness follows.
+P3-B through P3-E and Task 10 consumer/repository/service/wiring remain pending; no NATS/worker readiness follows.
 Generated Ent artifacts are absent/uncommitted and generation, migration, SQL, compile/build,
 tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 
 ## Inbound Mail-to-Calendar P3 source freeze (2026-08-23)
 
-`CONTRACT_FROZEN_ONLY / UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`: `backend/internal/mail`
+`P3-A STATIC_ACCEPTED / STATIC_SOURCE_ONLY / RUNTIME_NOT_RUN`: immutable source `05f87f87f6dc30bd57648030026faf5912add3e7` (`feat(mail): add sealed calendar part port`) accepts exactly `calendar_part_source.go`, `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; independent Contract/high and Security/xhigh reviews are APPROVED C/I/M `0/0/0`. This is the sealed Mail ABI/port surface only, not concrete source, Ent, MIME/provider I/O, NATS, wiring, or runtime. `P3-B` is the next exact pending Calendar transaction atom; P3-C onward remains unimplemented/blocked as frozen.
 (`package mail`) owns sealed `CalendarPartSource` opaque constructor/accessors and engine-private
 `ReadCalendarPart`; Calendar can use exported Mail types but never MailEngine/Mail Ent/provider IDs/raw
 locator/raw MIME. V1 binds private canonical locator plus decoded bounded iTIP bytes; `engine_version`
-is private before/after TOCTOU state only, never receipt identity. Exact 1..1,048,576-byte/five-second preflight/recheck,
+is private before/after TOCTOU state only, never receipt identity. Exact 1..1,048,576-byte/five-second preflight/recheck belongs only to pending P3-C after Mail Ent generation,
 safe errors and defensive-copy iTIP are in CONTRACT §2.6. Future P3-E is Mail-owned sanitized v1
 consumer-to-sink delivery: its Mail-owned decoder validates the full compatibility envelope, drops
 `engine_message_id`, and constructs opaque delivery without it; Calendar never receives the field or full
