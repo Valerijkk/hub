@@ -114,7 +114,7 @@ export function MailSidebar() {
 	const segments = pathname.split("/").filter(Boolean);
 	const activeFolderKey =
 		segments[0] === "mail" ? (segments[1] ?? "all").toLowerCase() : "all";
-	const threadOpen = segments[0] === "mail" && segments[2] === "thread" && Boolean(segments[3]);
+	const folderOpen = segments[0] === "mail" && Boolean(segments[1]);
 	const foldersQuery = useQuery({
 		queryKey: mailKeys.folders(),
 		queryFn: getMailFolders,
@@ -163,7 +163,7 @@ export function MailSidebar() {
 		<aside
 			className={cn(
 				"w-full shrink-0 border-b border-b1 bg-raised/40 px-3 py-4 md:w-64 md:border-r md:border-b-0",
-				threadOpen && "hidden md:block",
+				folderOpen && "hidden md:block",
 			)}
 			aria-labelledby="mail-folders-heading"
 		>

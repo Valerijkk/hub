@@ -73,7 +73,8 @@
 	"folder": {
 		"invalidTitle": "This folder is unavailable",
 		"invalidDescription": "The folder address is invalid or no longer available.",
-		"backToAll": "Back to All Mail"
+		"backToAll": "Back to All Mail",
+		"backToFolders": "Back to folders"
 	},
 	"reader": {
 		"title": "Conversation",
@@ -83,11 +84,12 @@
 		"loading": "Loading conversation metadata…",
 		"unavailable": "This conversation is unavailable right now.",
 		"partialUnavailable": "Some conversation metadata may be out of date. Loaded messages remain visible.",
+		"partialEmpty": "The previously loaded empty conversation may be out of date.",
 		"noMessagesTitle": "No message metadata is available",
 		"noMessagesDescription": "Messages will appear here after mailbox synchronization finishes.",
-		"loadMore": "Load earlier messages",
-		"loadingMore": "Loading earlier messages…",
-		"end": "You have reached the beginning of this conversation.",
+		"loadMore": "Load newer messages",
+		"loadingMore": "Loading newer messages…",
+		"end": "You have reached the latest message in this conversation.",
 		"invalidTitle": "This conversation is unavailable",
 		"invalidDescription": "The conversation address is invalid or no longer available.",
 		"from": "From",

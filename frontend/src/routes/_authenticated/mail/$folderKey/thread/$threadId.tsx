@@ -210,7 +210,7 @@ function ThreadReader({
 	} else if (detailQuery.isError && messages.length === 0) {
 		content = (
 			<div className="space-y-3 bg-[var(--amber)]/10 p-6" role="alert">
-				<p className="text-sm text-t2">{t("reader.partialUnavailable")}</p>
+				<p className="text-sm text-t2">{t("reader.partialEmpty")}</p>
 				<Button variant="outline" size="sm" onClick={() => void detailQuery.refetch()}>
 					{t("retry")}
 				</Button>

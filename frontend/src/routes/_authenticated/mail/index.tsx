@@ -6,7 +6,7 @@ function MailIndex() {
 	const { t } = useTranslation("mail");
 
 	return (
-		<div className="flex min-h-[32rem] min-w-0 overflow-hidden rounded-[var(--r3)] border border-b1 bg-card">
+		<div className="hidden min-h-[32rem] min-w-0 overflow-hidden rounded-[var(--r3)] border border-b1 bg-card md:flex">
 			<MailThreadList folderKey="all" />
 			<section
 				aria-labelledby="mail-reader-empty-heading"

@@ -4,6 +4,7 @@ import {
 	Outlet,
 	useRouterState,
 } from "@tanstack/react-router";
+import { ChevronLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +47,15 @@ function FolderRoute() {
 	const normalizedFolderKey =
 		folderKey === "all" ? "all" : folderKey.toLowerCase();
 	return (
-		<div className="flex min-h-[32rem] min-w-0 overflow-hidden rounded-[var(--r3)] border border-b1 bg-card">
+		<div className="min-h-[32rem] min-w-0 overflow-hidden rounded-[var(--r3)] border border-b1 bg-card md:flex">
+			<div className="border-b border-b1 bg-card p-2 md:hidden">
+				<Button asChild variant="ghost" className="min-h-11 justify-start">
+					<Link to="/mail">
+						<ChevronLeft aria-hidden="true" className="h-4 w-4" />
+						{t("folder.backToFolders")}
+					</Link>
+				</Button>
+			</div>
 			<MailThreadList folderKey={normalizedFolderKey} />
 			<section
 				aria-labelledby="mail-folder-reader-empty-heading"
