@@ -1201,8 +1201,14 @@ P3-A is statically accepted at `05f87f87f6dc30bd57648030026faf5912add3e7`
 (`feat(mail): add sealed calendar part port`) for exactly `backend/internal/mail/calendar_part_source.go`,
 `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; independent
 Contract/high and Security/xhigh are APPROVED C/I/M `0/0/0`. This is sealed ABI/port source only, not a
-concrete `CalendarPartSource`, Ent, MIME/provider I/O, NATS, wiring, or runtime claim. P3-B is the next
-exact pending atom; P3-C-E remain pending/blocked and Task 10 remains dependent on all P3 atoms.
+concrete `CalendarPartSource`, Ent, MIME/provider I/O, NATS, wiring, or runtime claim. P3-B is
+`STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `43a6c42af88524be2951966bdbfc83b422ecb7f9` for exactly
+`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and new
+`event_service_inbound_message.go`: transaction ABI only, after Contract/high and Security/xhigh
+APPROVED C/I/M `0/0/0`. P3-C is the sole next pending atom, blocked on Mail Ent generation, for exactly
+new `backend/internal/mail/mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D/E remain
+pending/blocked. All generation, migration, SQL, build, test, lint/gofmt, parser/validator, Docker, and
+runtime evidence remains `NOT_RUN`; no merge, product, or readiness claim follows.
 Historical 147-02D/02E `GetMessage`, full-body/MIME, and legacy `engine_message_id` Calendar-ingestion
 wording is `CONSUMED/HISTORICAL`; no such fallback is permitted.
 
@@ -1212,13 +1218,13 @@ wording is `CONSUMED/HISTORICAL`; no such fallback is permitted.
   `mailbox_errors.go`, and `mailbox_fake.go`. `package mail` owns sealed opaque request/result and closed
   source-error ABI; Calendar may import exported Mail types but Mail never imports Calendar. No concrete
   source/read, five-second cap, MIME/locator, provider, or pre/post behavior is accepted here.
-- [ ] **P3-B — Calendar transaction port and REPLY factor — NEXT / PENDING:** exact future
+- [x] **P3-B — Calendar transaction port and REPLY factor — STATIC_ACCEPTED / STATIC_SOURCE_ONLY:** exact
   `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and
   `event_service_inbound_message.go` (new). It is transaction-aware policy/ports only: no generated
   Ent references, nested transaction, repository bypass, or duplicate REPLY logic. Its opaque completion
   constructors enforce the closed Phase 147 observed/error-code pairings; repository time/lease handling
   remains behind `CompleteCalendarInboundMessageReceipt`.
-- [ ] **P3-C — Mail Ent concrete calendar-part source — PENDING/BLOCKED:** after Mail generation only,
+- [ ] **P3-C — Mail Ent concrete calendar-part source — sole NEXT / PENDING/BLOCKED:** after Mail generation only,
   exact future
   `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`.
   It owns concrete source I/O, exact byte/five-second bound, MIME/locator hash and durable pre/post

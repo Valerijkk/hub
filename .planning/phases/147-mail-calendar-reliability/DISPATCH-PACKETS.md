@@ -5,14 +5,21 @@
 > **Current state:** all product/test packets are model-blocked; generation/runtime packets
 > also require the accepted launcher and their named founder/external gates.
 
-## P3-A accepted sealed port; P3-B next pending — not an executable packet
+## P3-A/P3-B accepted static source; P3-C sole next — not an executable packet
 
 P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `05f87f87f6dc30bd57648030026faf5912add3e7`
 (`feat(mail): add sealed calendar part port`) for exactly `calendar_part_source.go`, `mailbox_engine.go`,
 `mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; independent Contract/high and
 Security/xhigh are APPROVED C/I/M `0/0/0`. It accepts sealed ABI/port only, not concrete source/I-O,
-MIME/provider, Ent, NATS, wiring, or runtime. P3-B is the sole next
-`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN` atom; P3-C-E remain pending/blocked. This section
+MIME/provider, Ent, NATS, wiring, or runtime. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9` for exactly
+`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and new
+`event_service_inbound_message.go`: transaction ABI only, with Contract/high and Security/xhigh APPROVED
+C/I/M `0/0/0`. P3-C is the sole next `UNIMPLEMENTED / PENDING / BLOCKED` atom, awaiting Mail Ent
+generation for exactly new `backend/internal/mail/mailbox_ent_calendar_part.go` and
+`mailbox_ent_repository.go`; P3-D/E remain pending/blocked. All generation, migration, SQL, build, test,
+lint/gofmt, parser/validator, Docker, and runtime evidence remains `NOT_RUN`; no merge, product, or
+readiness claim follows. This section
 supersedes prior 147-02D/02E Calendar ingestion packets only: they must not use `GetMessage`, full
 body/MIME parsing, direct MailEngine or Mail Ent, provider IDs/raw locator, or legacy event
 `engine_message_id`. Do not dispatch a fallback.

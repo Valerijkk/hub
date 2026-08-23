@@ -258,8 +258,14 @@ Canonical validation proves projection/carrier equality and method/locator pairi
 
 P3-A alone is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
 `05f87f87f6dc30bd57648030026faf5912add3e7` after independent Contract/high and Security/xhigh APPROVED
-C/I/M `0/0/0`. P3-B is the next exact pending atom; no P3-B Mail consumer, sanitized Calendar
-sink/service, repository, NATS subscription, or worker is accepted. P3-C-E remain pending/blocked.
+C/I/M `0/0/0`. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9` for exactly
+`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and new
+`event_service_inbound_message.go`: transaction ABI only, after Contract/high and Security/xhigh
+APPROVED C/I/M `0/0/0`. P3-C is the sole next pending atom, blocked on Mail Ent generation, for exactly
+new `backend/internal/mail/mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D/E remain
+pending/blocked. No P3-B Mail consumer, sanitized Calendar sink/service, repository implementation, NATS
+subscription, or worker is accepted.
 Generated Ent artifacts are absent/uncommitted; migration, SQL, compile/build, test, lint/gofmt,
 parser/validator, Docker, and runtime remain `NOT_RUN`.
 

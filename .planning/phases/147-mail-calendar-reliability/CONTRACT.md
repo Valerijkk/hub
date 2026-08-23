@@ -304,7 +304,21 @@ part_unavailable`; `payload_too_large -> terminal resource_limit`; `repository_u
 database_unavailable`; `engine_unavailable -> retry engine_unavailable`. No mapped error contains
 content or provider detail.
 
-P3-B is now the next exact pending atom and has this future `package calendar` transaction port:
+P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9` for exactly
+`backend/internal/calendar/event_repository.go`,
+`backend/internal/calendar/event_service_inbound_reply.go`, and
+`backend/internal/calendar/event_service_inbound_message.go`. It accepts the transaction ABI only:
+one receipt-first `EventTransaction`, opaque claim/scope/completion, and the closed observed/error-code
+constructor ABI, preserving REPLY receipt/outbox behavior with no nested transaction or duplicate logic.
+Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`.
+P3-C is the sole next pending atom, blocked on Mail Ent generation, for exactly
+`backend/internal/mail/mailbox_ent_calendar_part.go` and `backend/internal/mail/mailbox_ent_repository.go`.
+P3-D and P3-E remain pending/blocked. Generated Ent artifacts, migration, SQL, compile/build, tests,
+lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; this static acceptance makes no
+merge, product, or readiness claim. The earlier P3-B-next wording below is `CONSUMED/HISTORICAL`.
+
+The frozen P3-B `package calendar` transaction port is:
 
 ```go
 type CalendarInboundMessageClaim struct { ReceiptID, LeaseToken uuid.UUID; LeaseGeneration int64 }
