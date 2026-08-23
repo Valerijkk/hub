@@ -519,6 +519,15 @@ type EngineDraftReconciliation struct {
 	MaxContentBytes int64
 }
 
+// EngineDraftDeletion — request-only точное удаление черновика.
+type EngineDraftDeletion struct {
+	AccountID       string
+	DraftKey        string
+	MessageID       string
+	ExpectedVersion string
+	MutationID      string
+}
+
 // EngineDraftResult — закрытый результат сверки черновика.
 type EngineDraftResult interface {
 	engineDraftResult()
@@ -536,6 +545,21 @@ type EngineDraftAbsent struct{}
 
 func (EngineDraftAbsent) engineDraftResult() {}
 
+// EngineDraftDeletionResult — закрытый результат сверки удаления черновика.
+type EngineDraftDeletionResult interface {
+	engineDraftDeletionResult()
+}
+
+// EngineDraftDeleted — подтверждённое отсутствие черновика.
+type EngineDraftDeleted struct{}
+
+func (EngineDraftDeleted) engineDraftDeletionResult() {}
+
+// EngineDraftRetainedUnchanged — подтверждённый неизменённый черновик.
+type EngineDraftRetainedUnchanged struct{}
+
+func (EngineDraftRetainedUnchanged) engineDraftDeletionResult() {}
+
 // EngineIndeterminateCode — безопасная причина неопределённого результата.
 type EngineIndeterminateCode string
 
@@ -552,6 +576,13 @@ type EngineDraftIndeterminate struct {
 }
 
 func (EngineDraftIndeterminate) engineDraftResult() {}
+
+// EngineDraftDeletionIndeterminate — неопределённый результат сверки удаления черновика.
+type EngineDraftDeletionIndeterminate struct {
+	Code EngineIndeterminateCode
+}
+
+func (EngineDraftDeletionIndeterminate) engineDraftDeletionResult() {}
 
 // EngineSubmission — request-only ссылочная отправка подтверждённого черновика.
 type EngineSubmission struct {

@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"crypto/sha256"
+	"reflect"
 	"sort"
 	"strconv"
 	"sync"
@@ -43,6 +44,8 @@ const (
 	FakeMailOperationEnumerateProjection  FakeMailOperation = "enumerate_projection"
 	FakeMailOperationSaveDraft            FakeMailOperation = "save_draft"
 	FakeMailOperationReconcileDraft       FakeMailOperation = "reconcile_draft"
+	FakeMailOperationDeleteDraft          FakeMailOperation = "delete_draft"
+	FakeMailOperationReconcileDraftDeletion FakeMailOperation = "reconcile_draft_deletion"
 	FakeMailOperationSubmit               FakeMailOperation = "submit"
 	FakeMailOperationReconcileSubmission  FakeMailOperation = "reconcile_submission"
 	FakeMailOperationMoveMessages         FakeMailOperation = "move_messages"
@@ -898,6 +901,61 @@ func (f *FakeMailEngine) ReconcileDraft(_ context.Context, request EngineDraftRe
 	return EngineDraftApplied{Message: cloneMessage(draft.message)}, nil
 }
 
+func (f *FakeMailEngine) DeleteDraft(_ context.Context, request EngineDraftDeletion) error {
+	if err := validateDraftDeletion(request); err != nil {
+		return err
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	fault, faulted := f.takeFaultLocked(FakeMailOperationDeleteDraft)
+	if faulted && !fault.AfterDispatch {
+		return fakeEngineError(fault.Kind)
+	}
+	draft, exists := f.drafts[request.AccountID][request.DraftKey]
+	if !exists {
+		return fakeEngineError(EngineErrorNotFound)
+	}
+	if draft.message.Projection.MessageID != request.MessageID || draft.message.Projection.Version != request.ExpectedVersion {
+		return fakeEngineError(EngineErrorConflict)
+	}
+	message, exists := f.messages[request.AccountID][request.MessageID]
+	if !exists || !fakeExactDraftDeletion(request, draft, message) {
+		return fakeEngineError(EngineErrorIndeterminate)
+	}
+	delete(f.drafts[request.AccountID], request.DraftKey)
+	delete(f.messages[request.AccountID], request.MessageID)
+	f.changes[request.AccountID] = append(f.changes[request.AccountID], fakeChange{destroyed: request.MessageID})
+	if faulted && fault.AfterDispatch {
+		return fakeEngineError(fault.Kind)
+	}
+	return nil
+}
+
+func (f *FakeMailEngine) ReconcileDraftDeletion(_ context.Context, request EngineDraftDeletion) (EngineDraftDeletionResult, error) {
+	if err := validateDraftDeletion(request); err != nil {
+		return nil, err
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if fault, ok := f.takeFaultLocked(FakeMailOperationReconcileDraftDeletion); ok {
+		switch fault.Kind {
+		case EngineErrorUnavailable, EngineErrorIndeterminate, EngineErrorRestartRequired:
+			return EngineDraftDeletionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+		default:
+			return nil, fakeEngineError(fault.Kind)
+		}
+	}
+	draft, exists := f.drafts[request.AccountID][request.DraftKey]
+	if !exists {
+		return EngineDraftDeleted{}, nil
+	}
+	message, exists := f.messages[request.AccountID][request.MessageID]
+	if !exists || !fakeExactDraftDeletion(request, draft, message) {
+		return EngineDraftDeletionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	return EngineDraftRetainedUnchanged{}, nil
+}
+
 func (f *FakeMailEngine) Submit(_ context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
 	if err := validateSubmission(submission); err != nil {
 		return nil, err
@@ -1400,6 +1458,27 @@ func validateDraftReconciliation(request EngineDraftReconciliation) error {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	return nil
+}
+
+func validateDraftDeletion(request EngineDraftDeletion) error {
+	if !validAccountID(request.AccountID) || !validSafeText(request.DraftKey, MaxEngineOpaqueIDBytes, true) || !validOpaqueID(request.MessageID) || !validOpaqueID(request.ExpectedVersion) || !validSafeText(request.MutationID, MaxEngineOpaqueIDBytes, true) {
+		return fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	return nil
+}
+
+func fakeExactDraftDeletion(request EngineDraftDeletion, draft fakeDraft, message EngineMessage) bool {
+	draftProjection := draft.message.Projection
+	projection := message.Projection
+	return validateEngineMessage(draft.message) == nil &&
+		validateEngineMessage(message) == nil &&
+		reflect.DeepEqual(draftProjection, projection) &&
+		draftProjection.AccountID == request.AccountID &&
+		draftProjection.MessageID == request.MessageID &&
+		draftProjection.Version == request.ExpectedVersion &&
+		draftProjection.Origin == EngineProjectionOriginConfirmedOwnerDraft &&
+		draftProjection.Flags.Draft &&
+		reflect.DeepEqual(draftProjection.FolderIDs, []string{"drafts"})
 }
 
 func validateSubmission(submission EngineSubmission) error {

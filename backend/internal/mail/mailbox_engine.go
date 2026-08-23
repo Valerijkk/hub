@@ -21,6 +21,8 @@ type MailEngine interface {
 	EnumerateProjection(context.Context, EngineEnumerationRequest) (EngineEnumerationPage, error)
 	SaveDraft(context.Context, EngineDraft) (EngineMessage, error)
 	ReconcileDraft(context.Context, EngineDraftReconciliation) (EngineDraftResult, error)
+	DeleteDraft(context.Context, EngineDraftDeletion) error
+	ReconcileDraftDeletion(context.Context, EngineDraftDeletion) (EngineDraftDeletionResult, error)
 	Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 	ReconcileSubmission(context.Context, string, string) (EngineSubmissionResult, error)
 	MoveMessages(context.Context, string, []string, string) error

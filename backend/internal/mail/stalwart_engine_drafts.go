@@ -343,6 +343,86 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 	return EngineDraftApplied{Message: message}, nil
 }
 
+// DeleteDraft destroys exactly one versioned owner draft without adding a
+// deletion marker. A transport result after dispatch is never retried.
+func (engine *StalwartEngine) DeleteDraft(ctx context.Context, request EngineDraftDeletion) error {
+	if ctx == nil || validateDraftDeletion(request) != nil {
+		return stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	draftMarker, err := stalwartOpaqueMarker("draft", request.AccountID, request.DraftKey)
+	if err != nil {
+		return err
+	}
+	folders, _, err := engine.listFolderSnapshot(ctx, request.AccountID)
+	if err != nil {
+		return err
+	}
+	draftsID, err := stalwartExactFolderRole(folders, EngineFolderRoleDrafts)
+	if err != nil {
+		return err
+	}
+	message, found, ambiguous, err := engine.stalwartLookupDraft(ctx, request.AccountID, draftsID, draftMarker, MaxEngineMessageBytes)
+	if err != nil {
+		return err
+	}
+	if ambiguous {
+		return stalwartEngineError(EngineErrorIndeterminate)
+	}
+	if !found {
+		return stalwartEngineError(EngineErrorNotFound)
+	}
+	if message.Projection.MessageID != request.MessageID || message.Projection.Version != request.ExpectedVersion {
+		return stalwartEngineError(EngineErrorConflict)
+	}
+	if !stalwartExactDraftDeletion(message, request, draftsID, draftMarker) {
+		return stalwartEngineError(EngineErrorIndeterminate)
+	}
+	response, err := engine.stalwartBoundedEmailSet(ctx, request.AccountID, stalwartEmailSetArguments{
+		AccountID: request.AccountID,
+		IfInState: request.ExpectedVersion,
+		Destroy:   []string{request.MessageID},
+	})
+	if err != nil {
+		return err
+	}
+	set, err := parseStalwartEmailSetResponse(response, request.AccountID, request.ExpectedVersion)
+	if err != nil {
+		return err
+	}
+	return stalwartEmailOnlyDestroySucceeded(set, []string{request.MessageID})
+}
+
+// ReconcileDraftDeletion observes only the exact stable draft marker. Provider
+// absence proves the desired draft absence, not the actor that caused it.
+func (engine *StalwartEngine) ReconcileDraftDeletion(ctx context.Context, request EngineDraftDeletion) (EngineDraftDeletionResult, error) {
+	if ctx == nil || validateDraftDeletion(request) != nil {
+		return nil, stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	draftMarker, err := stalwartOpaqueMarker("draft", request.AccountID, request.DraftKey)
+	if err != nil {
+		return nil, err
+	}
+	folders, _, err := engine.listFolderSnapshot(ctx, request.AccountID)
+	if err != nil {
+		return stalwartDraftDeletionReconciliationError(err)
+	}
+	draftsID, err := stalwartExactFolderRole(folders, EngineFolderRoleDrafts)
+	if err != nil {
+		return stalwartDraftDeletionReconciliationError(err)
+	}
+	message, found, ambiguous, err := engine.stalwartLookupDraft(ctx, request.AccountID, draftsID, draftMarker, MaxEngineMessageBytes)
+	if err != nil {
+		return stalwartDraftDeletionReconciliationError(err)
+	}
+	if ambiguous || found && !stalwartExactDraftDeletion(message, request, draftsID, draftMarker) {
+		return EngineDraftDeletionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	if !found {
+		return EngineDraftDeleted{}, nil
+	}
+	return EngineDraftRetainedUnchanged{}, nil
+}
+
 // GetDraft reads only the exact owner draft selected by its opaque marker.
 // It never accepts actor or organization scope because the service has already
 // resolved the engine account before calling this provider adapter.
@@ -1243,6 +1323,17 @@ func stalwartDraftReconciliationError(err error) (EngineDraftResult, error) {
 	return nil, err
 }
 
+func stalwartDraftDeletionReconciliationError(err error) (EngineDraftDeletionResult, error) {
+	var engineErr *EngineError
+	if errors.As(err, &engineErr) && engineErr != nil {
+		switch engineErr.Kind {
+		case EngineErrorRejectedPolicy, EngineErrorUnauthorizedAccount, EngineErrorPayloadTooLarge:
+			return nil, err
+		}
+	}
+	return EngineDraftDeletionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+}
+
 func stalwartSubmissionReconciliationError(err error) (EngineSubmissionResult, error) {
 	if stalwartReconciliationIndeterminate(err) {
 		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
@@ -1323,6 +1414,17 @@ func stalwartExactDraftOperation(message EngineMessage, draftsID, draftMarker, m
 		delete(expected, keyword)
 	}
 	return len(expected) == 0
+}
+
+func stalwartExactDraftDeletion(message EngineMessage, request EngineDraftDeletion, draftsID, draftMarker string) bool {
+	projection := message.Projection
+	return projection.AccountID == request.AccountID &&
+		projection.MessageID == request.MessageID &&
+		projection.Version == request.ExpectedVersion &&
+		projection.Flags.Draft &&
+		stalwartExactFolder(projection, draftsID) &&
+		stalwartProjectionHasKeyword(projection, "$draft") &&
+		stalwartProjectionHasKeyword(projection, draftMarker)
 }
 
 func stalwartExactFolder(projection EngineMessageProjection, folderID string) bool {
