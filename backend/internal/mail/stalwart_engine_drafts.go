@@ -138,18 +138,6 @@ type stalwartCreatedSubmission struct {
 	ID string `json:"id"`
 }
 
-type stalwartSubmissionSetResponse struct {
-	AccountID    string                                      `json:"accountId"`
-	OldState     string                                      `json:"oldState"`
-	NewState     string                                      `json:"newState"`
-	Created      map[string]json.RawMessage                  `json:"created"`
-	NotCreated   map[string]stalwartMailboxSetFailure        `json:"notCreated"`
-	Updated      map[string]json.RawMessage                  `json:"updated"`
-	NotUpdated   map[string]stalwartMailboxSetFailure        `json:"notUpdated"`
-	Destroyed    []string                                    `json:"destroyed"`
-	NotDestroyed map[string]stalwartMailboxSetFailure        `json:"notDestroyed"`
-}
-
 type stalwartSubmissionQueryArguments struct {
 	AccountID      string                         `json:"accountId"`
 	CalculateTotal bool                           `json:"calculateTotal"`
@@ -190,6 +178,13 @@ func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) 
 	if err != nil {
 		return EngineMessage{}, err
 	}
+	expectedState := draft.PreviousVersion
+	if draft.MessageID == "" {
+		expectedState, err = engine.stalwartReadEmailState(ctx, draft.AccountID)
+		if err != nil {
+			return EngineMessage{}, err
+		}
+	}
 	folders, _, err := engine.listFolderSnapshot(ctx, draft.AccountID)
 	if err != nil {
 		return EngineMessage{}, err
@@ -223,7 +218,7 @@ func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) 
 	created := stalwartDraftCreate(draft.Message, draftsID, draftMarker, mutationMarker)
 	arguments := stalwartDraftEmailSetArguments{
 		AccountID: draft.AccountID,
-		IfInState: draft.PreviousVersion,
+		IfInState: expectedState,
 		Create: map[string]stalwartDraftEmailCreate{stalwartDraftCreationID: created},
 	}
 	if draft.MessageID != "" {
@@ -231,10 +226,16 @@ func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) 
 	}
 	response, err := engine.stalwartSaveDraftSet(ctx, draft.AccountID, arguments)
 	if err != nil {
+		if draft.MessageID == "" && stalwartErrorHasKind(err, EngineErrorConflict) {
+			return engine.stalwartResolveInitialDraftConflict(ctx, draft, err)
+		}
 		return EngineMessage{}, err
 	}
-	createdID, _, err := stalwartValidateDraftSetResponse(response, draft)
+	createdID, _, err := stalwartValidateDraftSetResponse(response, draft, expectedState)
 	if err != nil {
+		if draft.MessageID == "" && stalwartErrorHasKind(err, EngineErrorConflict) {
+			return engine.stalwartResolveInitialDraftConflict(ctx, draft, err)
+		}
 		return EngineMessage{}, err
 	}
 	message, err := engine.stalwartReadDraftMessage(ctx, draft.AccountID, createdID, draft.MaxContentBytes)
@@ -289,9 +290,34 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 	return EngineDraftApplied{Message: message}, nil
 }
 
-// Submit first records an opaque submission marker with Email/set guarded by
-// the caller's Email state, then creates one EmailSubmission. The marker makes
-// a lost submission response reconcilable without resending the message.
+func (engine *StalwartEngine) stalwartResolveInitialDraftConflict(ctx context.Context, draft EngineDraft, conflict error) (EngineMessage, error) {
+	result, err := engine.ReconcileDraft(ctx, EngineDraftReconciliation{
+		AccountID: draft.AccountID, DraftKey: draft.DraftKey, MutationID: draft.MutationID,
+		MaxContentBytes: draft.MaxContentBytes,
+	})
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	switch reconciled := result.(type) {
+	case EngineDraftApplied:
+		return reconciled.Message, nil
+	case EngineDraftAbsent:
+		return EngineMessage{}, conflict
+	case EngineDraftIndeterminate:
+		return EngineMessage{}, stalwartEngineError(EngineErrorIndeterminate)
+	default:
+		return EngineMessage{}, stalwartEngineError(EngineErrorIndeterminate)
+	}
+}
+
+func stalwartErrorHasKind(err error, kind EngineErrorKind) bool {
+	var engineErr *EngineError
+	return errors.As(err, &engineErr) && engineErr != nil && engineErr.Kind == kind
+}
+
+// Submit prepares an exact locator/binding pair, then records a separate
+// dispatch fence before creating one EmailSubmission. Only a confirmed fence
+// response authorises dispatch; an uncertain fence is never retried.
 func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
 	if ctx == nil || validateSubmission(submission) != nil {
 		return nil, stalwartEngineError(EngineErrorRejectedPolicy)
@@ -301,6 +327,14 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 		return nil, err
 	}
 	submissionMarker, err := stalwartOpaqueMarker("submission", submission.AccountID, submission.SubmissionKey)
+	if err != nil {
+		return nil, err
+	}
+	bindingMarker, err := stalwartOpaqueMarker("submission-binding", submission.AccountID, submission.SubmissionKey, submission.DraftKey, submission.MessageID, submission.ExpectedVersion)
+	if err != nil {
+		return nil, err
+	}
+	dispatchMarker, err := stalwartOpaqueMarker("submission-dispatch", submission.AccountID, submission.SubmissionKey)
 	if err != nil {
 		return nil, err
 	}
@@ -316,44 +350,125 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 	if err != nil {
 		return nil, err
 	}
-	message, found, ambiguous, err := engine.stalwartLookupDraft(ctx, submission.AccountID, draftsID, draftMarker, submission.MaxMessageBytes)
+
+	locatorIDs, locatorAmbiguous, err := engine.stalwartQueryEmailsByMarker(ctx, submission.AccountID, submissionMarker)
 	if err != nil {
 		return nil, err
 	}
-	if ambiguous {
+	if locatorAmbiguous || len(locatorIDs) > 1 {
 		return nil, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	if !found || message.Projection.MessageID != submission.MessageID {
-		return nil, stalwartEngineError(EngineErrorNotFound)
-	}
-	if message.Projection.Version != submission.ExpectedVersion {
-		return nil, stalwartEngineError(EngineErrorConflict)
-	}
-	if stalwartProjectionHasKeyword(message.Projection, submissionMarker) {
+	if len(locatorIDs) == 1 && locatorIDs[0] != submission.MessageID {
 		return nil, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	if message.Projection.SizeBytes > submission.MaxMessageBytes || int64(messageVariableBytes(message)) > submission.MaxMessageBytes {
-		return nil, stalwartEngineError(EngineErrorPayloadTooLarge)
+	dispatchIDs, dispatchAmbiguous, err := engine.stalwartQueryEmailsByMarker(ctx, submission.AccountID, dispatchMarker)
+	if err != nil {
+		return nil, err
 	}
+	if dispatchAmbiguous || len(dispatchIDs) > 1 || len(dispatchIDs) == 1 && (len(locatorIDs) != 1 || dispatchIDs[0] != locatorIDs[0]) {
+		return nil, stalwartEngineError(EngineErrorIndeterminate)
+	}
+
+	var message EngineMessage
+	preparedState := ""
+	needsPrepare := false
+	if len(locatorIDs) == 1 {
+		if len(dispatchIDs) == 1 {
+			projections, _, notFound, projectionErr := engine.stalwartFetchProjections(ctx, submission.AccountID, locatorIDs)
+			if projectionErr != nil || len(notFound) != 0 || len(projections) != 1 ||
+				!stalwartProjectionHasKeyword(projections[0], submissionMarker) ||
+				!stalwartProjectionHasKeyword(projections[0], bindingMarker) ||
+				!stalwartProjectionHasKeyword(projections[0], dispatchMarker) {
+				return nil, stalwartEngineError(EngineErrorIndeterminate)
+			}
+			reconciled, reconcileErr := engine.ReconcileSubmission(ctx, submission.AccountID, submission.SubmissionKey)
+			if reconcileErr != nil {
+				return nil, reconcileErr
+			}
+			if sent, ok := reconciled.(EngineSubmissionSent); ok {
+				return sent, nil
+			}
+			return nil, stalwartEngineError(EngineErrorIndeterminate)
+		}
+		message, err = engine.stalwartReadDraftMessage(ctx, submission.AccountID, locatorIDs[0], submission.MaxMessageBytes)
+		if err != nil {
+			return nil, err
+		}
+		if !stalwartExactPreparedSubmission(message, submission, draftsID, draftMarker, submissionMarker, bindingMarker, dispatchMarker) {
+			return nil, stalwartEngineError(EngineErrorIndeterminate)
+		}
+		preparedState = message.Projection.Version
+	} else {
+		if len(dispatchIDs) != 0 {
+			return nil, stalwartEngineError(EngineErrorIndeterminate)
+		}
+		var found, ambiguous bool
+		message, found, ambiguous, err = engine.stalwartLookupDraft(ctx, submission.AccountID, draftsID, draftMarker, submission.MaxMessageBytes)
+		if err != nil {
+			return nil, err
+		}
+		if ambiguous {
+			return nil, stalwartEngineError(EngineErrorIndeterminate)
+		}
+		if !found || message.Projection.MessageID != submission.MessageID {
+			return nil, stalwartEngineError(EngineErrorNotFound)
+		}
+		if message.Projection.Version != submission.ExpectedVersion {
+			return nil, stalwartEngineError(EngineErrorConflict)
+		}
+		if stalwartProjectionHasKeyword(message.Projection, submissionMarker) ||
+			stalwartProjectionHasKeyword(message.Projection, bindingMarker) ||
+			stalwartProjectionHasKeyword(message.Projection, dispatchMarker) {
+			return nil, stalwartEngineError(EngineErrorIndeterminate)
+		}
+		needsPrepare = true
+	}
+	if err := stalwartValidateSubmissionMessage(message, submission); err != nil {
+		return nil, err
+	}
+
 	identityID, submissionState, err := engine.stalwartResolveSubmissionContext(ctx, submission.AccountID, message.Projection.From.Email)
 	if err != nil {
 		return nil, err
 	}
-	markerResponse, err := engine.stalwartEmailSet(ctx, submission.AccountID, stalwartEmailSetArguments{
+	if needsPrepare {
+		prepareResponse, prepareErr := engine.stalwartBoundedEmailSet(ctx, submission.AccountID, stalwartEmailSetArguments{
+			AccountID: submission.AccountID,
+			IfInState: submission.ExpectedVersion,
+			Update: map[string]map[string]any{
+				submission.MessageID: {
+					"keywords/" + submissionMarker: true,
+					"keywords/" + bindingMarker:    true,
+				},
+			},
+		})
+		if prepareErr != nil {
+			return nil, prepareErr
+		}
+		prepareSet, prepareErr := parseStalwartEmailSetResponse(prepareResponse, submission.AccountID, submission.ExpectedVersion)
+		if prepareErr != nil {
+			return nil, prepareErr
+		}
+		if prepareErr = stalwartSubmissionMarkerUpdateSucceeded(prepareSet, submission.MessageID); prepareErr != nil {
+			return nil, prepareErr
+		}
+		preparedState = prepareSet.NewState
+	}
+	fenceResponse, err := engine.stalwartBoundedEmailSet(ctx, submission.AccountID, stalwartEmailSetArguments{
 		AccountID: submission.AccountID,
-		IfInState: submission.ExpectedVersion,
+		IfInState: preparedState,
 		Update: map[string]map[string]any{
-			submission.MessageID: {"keywords/" + submissionMarker: true},
+			submission.MessageID: {"keywords/" + dispatchMarker: true},
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
-	markerSet, err := parseStalwartEmailSetResponse(markerResponse, submission.AccountID, submission.ExpectedVersion)
+	fenceSet, err := parseStalwartEmailSetResponse(fenceResponse, submission.AccountID, preparedState)
 	if err != nil {
 		return nil, err
 	}
-	if err := stalwartEmailOnlyUpdateSucceeded(markerSet, []string{submission.MessageID}); err != nil {
+	if err := stalwartSubmissionMarkerUpdateSucceeded(fenceSet, submission.MessageID); err != nil {
 		return nil, err
 	}
 	envelope := stalwartSubmissionEnvelope{
@@ -378,12 +493,16 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 	if err != nil {
 		return nil, err
 	}
-	submissionID, err := stalwartValidateSubmissionSetResponse(response, submission, submissionState, markerSet.NewState)
+	submissionID, err := stalwartValidateSubmissionSetResponse(response, submission, submissionState, fenceSet.NewState)
 	if err != nil {
 		return nil, err
 	}
 	projections, _, notFound, err := engine.stalwartFetchProjections(ctx, submission.AccountID, []string{submission.MessageID})
-	if err != nil || len(notFound) != 0 || len(projections) != 1 || projections[0].Flags.Draft || !stalwartExactFolder(projections[0], sentID) || !stalwartProjectionHasKeyword(projections[0], submissionMarker) {
+	if err != nil || len(notFound) != 0 || len(projections) != 1 || projections[0].Flags.Draft ||
+		!stalwartExactFolder(projections[0], sentID) ||
+		!stalwartProjectionHasKeyword(projections[0], submissionMarker) ||
+		!stalwartProjectionHasKeyword(projections[0], bindingMarker) ||
+		!stalwartProjectionHasKeyword(projections[0], dispatchMarker) {
 		return nil, stalwartEngineError(EngineErrorIndeterminate)
 	}
 	return EngineSubmissionSent{SubmissionID: submissionID, MessageID: submission.MessageID}, nil
@@ -397,6 +516,10 @@ func (engine *StalwartEngine) ReconcileSubmission(ctx context.Context, accountID
 		return nil, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
 	marker, err := stalwartOpaqueMarker("submission", accountID, submissionKey)
+	if err != nil {
+		return nil, err
+	}
+	dispatchMarker, err := stalwartOpaqueMarker("submission-dispatch", accountID, submissionKey)
 	if err != nil {
 		return nil, err
 	}
@@ -429,21 +552,59 @@ func (engine *StalwartEngine) ReconcileSubmission(ctx context.Context, accountID
 		}
 		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
+	dispatchIDs, dispatchAmbiguous, err := engine.stalwartQueryEmailsByMarker(ctx, accountID, dispatchMarker)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	if dispatchAmbiguous || len(dispatchIDs) > 1 || len(dispatchIDs) == 1 && dispatchIDs[0] != ids[0] {
+		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
 	submissionIDs, submissionAmbiguous, err := engine.stalwartQuerySubmissionsByEmail(ctx, accountID, ids[0])
 	if err != nil {
 		return stalwartSubmissionReconciliationError(err)
 	}
 	projection := projections[0]
-	if len(submissionIDs) == 0 {
-		if projection.Flags.Draft && stalwartExactFolder(projection, draftsID) {
-			return EngineSubmissionAbsent{}, nil
-		}
+	if !submissionAmbiguous && len(submissionIDs) == 1 && len(dispatchIDs) == 1 &&
+		!projection.Flags.Draft && stalwartExactFolder(projection, sentID) && !projectionHasFolder(projection, draftsID) {
+		return EngineSubmissionSent{SubmissionID: submissionIDs[0], MessageID: ids[0]}, nil
+	}
+	if len(dispatchIDs) != 0 {
 		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
-	if submissionAmbiguous || len(submissionIDs) != 1 || projection.Flags.Draft || !stalwartExactFolder(projection, sentID) || projectionHasFolder(projection, draftsID) {
-		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	if len(submissionIDs) == 0 && projection.Flags.Draft && stalwartExactFolder(projection, draftsID) {
+		return EngineSubmissionAbsent{}, nil
 	}
-	return EngineSubmissionSent{SubmissionID: submissionIDs[0], MessageID: ids[0]}, nil
+	return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+}
+
+func stalwartValidateSubmissionMessage(message EngineMessage, submission EngineSubmission) error {
+	projection := message.Projection
+	recipientCount := len(projection.To) + len(projection.CC) + len(projection.BCC)
+	if projection.AccountID != submission.AccountID || projection.MessageID != submission.MessageID ||
+		!validAddress(projection.From, true) ||
+		!validAddresses(projection.To, MaxEngineDraftRecipientItems) ||
+		!validAddresses(projection.CC, MaxEngineDraftRecipientItems) ||
+		!validAddresses(projection.BCC, MaxEngineDraftRecipientItems) ||
+		recipientCount < 1 || recipientCount > MaxEngineDraftTotalRecipientItems ||
+		!uniqueRecipients(projection.To, projection.CC, projection.BCC) {
+		return stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	if projection.SizeBytes > submission.MaxMessageBytes || int64(messageVariableBytes(message)) > submission.MaxMessageBytes {
+		return stalwartEngineError(EngineErrorPayloadTooLarge)
+	}
+	return nil
+}
+
+func stalwartExactPreparedSubmission(message EngineMessage, submission EngineSubmission, draftsID, draftMarker, locatorMarker, bindingMarker, dispatchMarker string) bool {
+	projection := message.Projection
+	return projection.AccountID == submission.AccountID &&
+		projection.MessageID == submission.MessageID &&
+		projection.Flags.Draft &&
+		stalwartExactFolder(projection, draftsID) &&
+		stalwartProjectionHasKeyword(projection, draftMarker) &&
+		stalwartProjectionHasKeyword(projection, locatorMarker) &&
+		stalwartProjectionHasKeyword(projection, bindingMarker) &&
+		!stalwartProjectionHasKeyword(projection, dispatchMarker)
 }
 
 func (engine *StalwartEngine) stalwartSaveDraftSet(ctx context.Context, accountID string, arguments stalwartDraftEmailSetArguments) (stalwart.JMAPResponse, error) {
@@ -451,10 +612,10 @@ func (engine *StalwartEngine) stalwartSaveDraftSet(ctx context.Context, accountI
 	if err != nil {
 		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
-	return engine.callMailbox(ctx, accountID, stalwart.JMAPRequest{
+	return engine.stalwartCallBoundedMutation(ctx, accountID, stalwart.JMAPRequest{
 		Using: stalwartMailboxCapabilities,
 		MethodCalls: []stalwart.JMAPMethodCall{{Name: "Email/set", Arguments: payload, CallID: stalwartDraftEmailSetCallID}},
-	}, true)
+	})
 }
 
 func (engine *StalwartEngine) stalwartSubmitSet(ctx context.Context, accountID string, arguments stalwartSubmissionSetArguments) (stalwart.JMAPResponse, error) {
@@ -462,10 +623,32 @@ func (engine *StalwartEngine) stalwartSubmitSet(ctx context.Context, accountID s
 	if err != nil {
 		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
-	return engine.callMailbox(ctx, accountID, stalwart.JMAPRequest{
+	return engine.stalwartCallBoundedMutation(ctx, accountID, stalwart.JMAPRequest{
 		Using: stalwartMailboxCapabilities,
 		MethodCalls: []stalwart.JMAPMethodCall{{Name: "EmailSubmission/set", Arguments: payload, CallID: stalwartSubmissionSetCallID}},
-	}, true)
+	})
+}
+
+func (engine *StalwartEngine) stalwartBoundedEmailSet(ctx context.Context, accountID string, arguments stalwartEmailSetArguments) (stalwart.JMAPResponse, error) {
+	payload, err := json.Marshal(arguments)
+	if err != nil {
+		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	return engine.stalwartCallBoundedMutation(ctx, accountID, stalwart.JMAPRequest{
+		Using: stalwartMailboxCapabilities,
+		MethodCalls: []stalwart.JMAPMethodCall{{Name: "Email/set", Arguments: payload, CallID: stalwartEmailSetCallID}},
+	})
+}
+
+func (engine *StalwartEngine) stalwartCallBoundedMutation(ctx context.Context, accountID string, request stalwart.JMAPRequest) (stalwart.JMAPResponse, error) {
+	fits, err := stalwart.RequestFitsTransport(request)
+	if err != nil {
+		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	if !fits {
+		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorPayloadTooLarge)
+	}
+	return engine.callMailbox(ctx, accountID, request, true)
 }
 
 func (engine *StalwartEngine) stalwartLookupDraft(ctx context.Context, accountID, draftsID, marker string, maximum int64) (EngineMessage, bool, bool, error) {
@@ -700,31 +883,22 @@ func (engine *StalwartEngine) stalwartQuerySubmissionsByEmail(ctx context.Contex
 	return append([]string(nil), query.IDs...), false, nil
 }
 
-func stalwartValidateDraftSetResponse(response stalwart.JMAPResponse, draft EngineDraft) (string, string, error) {
+func stalwartValidateDraftSetResponse(response stalwart.JMAPResponse, draft EngineDraft, expectedState string) (string, string, error) {
 	raw, err := stalwartDraftMethodPayload(response, "Email/set", stalwartDraftEmailSetCallID)
 	if err != nil {
 		return "", "", stalwartEngineError(EngineErrorIndeterminate)
 	}
-	var set stalwartEmailSetResponse
-	if err := json.Unmarshal(raw, &set); err != nil {
-		return "", "", stalwartEngineError(EngineErrorIndeterminate)
-	}
-	if set.AccountID != draft.AccountID {
-		return "", "", stalwartEngineError(EngineErrorUnauthorizedAccount)
-	}
-	if !validOpaqueID(set.OldState) || !validOpaqueID(set.NewState) {
-		return "", "", stalwartEngineError(EngineErrorIndeterminate)
-	}
-	if draft.PreviousVersion != "" && set.OldState != draft.PreviousVersion {
-		return "", "", stalwartEngineError(EngineErrorIndeterminate)
+	set, err := stalwartParseEmailSetPayload(raw, draft.AccountID, expectedState)
+	if err != nil {
+		return "", "", err
 	}
 	if len(set.NotCreated) != 0 {
-		if len(set.Created) != 0 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.Destroyed) != 0 || len(set.NotDestroyed) != 0 || set.NewState != set.OldState {
+		if len(set.Created) != 0 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.Destroyed) != 0 || len(set.NotDestroyed) != 0 || set.OldStateKnown && set.NewState != set.OldState {
 			return "", "", stalwartEngineError(EngineErrorIndeterminate)
 		}
-		return "", "", stalwartEmailSetFailuresFor(set.NotCreated, []string{stalwartDraftCreationID})
+		return "", "", stalwartDraftSetFailuresFor(set.NotCreated)
 	}
-	if len(set.Created) != 1 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.NotDestroyed) != 0 || set.NewState == set.OldState {
+	if len(set.Created) != 1 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.NotDestroyed) != 0 || set.OldStateKnown && set.NewState == set.OldState {
 		return "", "", stalwartEngineError(EngineErrorIndeterminate)
 	}
 	createdRaw, exists := set.Created[stalwartDraftCreationID]
@@ -753,23 +927,17 @@ func stalwartValidateSubmissionSetResponse(response stalwart.JMAPResponse, submi
 	if first.Name != "EmailSubmission/set" || first.CallID != stalwartSubmissionSetCallID {
 		return "", stalwartEngineError(EngineErrorIndeterminate)
 	}
-	var set stalwartSubmissionSetResponse
-	if err := json.Unmarshal(first.Arguments, &set); err != nil {
-		return "", stalwartEngineError(EngineErrorIndeterminate)
-	}
-	if set.AccountID != submission.AccountID {
-		return "", stalwartEngineError(EngineErrorUnauthorizedAccount)
-	}
-	if set.OldState != expectedState || !validOpaqueID(set.NewState) {
-		return "", stalwartEngineError(EngineErrorIndeterminate)
+	set, err := stalwartParseEmailSetPayload(first.Arguments, submission.AccountID, expectedState)
+	if err != nil {
+		return "", err
 	}
 	if len(set.NotCreated) != 0 {
-		if len(response.MethodResponses) != 1 || len(set.Created) != 0 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.Destroyed) != 0 || len(set.NotDestroyed) != 0 || set.NewState != set.OldState {
+		if len(response.MethodResponses) != 1 || len(set.Created) != 0 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.Destroyed) != 0 || len(set.NotDestroyed) != 0 || set.OldStateKnown && set.NewState != set.OldState {
 			return "", stalwartEngineError(EngineErrorIndeterminate)
 		}
-		return "", stalwartEmailSetFailuresFor(set.NotCreated, []string{stalwartSubmissionCreationID})
+		return "", stalwartSubmissionSetFailuresFor(set.NotCreated)
 	}
-	if len(response.MethodResponses) != 2 || len(set.Created) != 1 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.Destroyed) != 0 || len(set.NotDestroyed) != 0 || set.NewState == set.OldState {
+	if len(response.MethodResponses) != 2 || len(set.Created) != 1 || len(set.Updated) != 0 || len(set.NotUpdated) != 0 || len(set.Destroyed) != 0 || len(set.NotDestroyed) != 0 || set.OldStateKnown && set.NewState == set.OldState {
 		return "", stalwartEngineError(EngineErrorIndeterminate)
 	}
 	createdRaw, exists := set.Created[stalwartSubmissionCreationID]
@@ -784,17 +952,75 @@ func stalwartValidateSubmissionSetResponse(response stalwart.JMAPResponse, submi
 	if implicit.Name != "Email/set" || implicit.CallID != stalwartSubmissionSetCallID {
 		return "", stalwartEngineError(EngineErrorIndeterminate)
 	}
-	var emailSet stalwartEmailSetResponse
-	if err := json.Unmarshal(implicit.Arguments, &emailSet); err != nil {
-		return "", stalwartEngineError(EngineErrorIndeterminate)
+	emailSet, err := stalwartParseEmailSetPayload(implicit.Arguments, submission.AccountID, expectedEmailState)
+	if err != nil {
+		return "", err
 	}
-	if emailSet.AccountID != submission.AccountID {
-		return "", stalwartEngineError(EngineErrorUnauthorizedAccount)
-	}
-	if emailSet.OldState != expectedEmailState || !validOpaqueID(emailSet.NewState) || emailSet.NewState == emailSet.OldState || len(emailSet.Created) != 0 || len(emailSet.NotCreated) != 0 || len(emailSet.NotUpdated) != 0 || len(emailSet.Destroyed) != 0 || len(emailSet.NotDestroyed) != 0 || !stalwartEmailUpdatedExactly(emailSet.Updated, []string{submission.MessageID}) {
+	if emailSet.OldStateKnown && emailSet.NewState == emailSet.OldState || len(emailSet.Created) != 0 || len(emailSet.NotCreated) != 0 || len(emailSet.NotUpdated) != 0 || len(emailSet.Destroyed) != 0 || len(emailSet.NotDestroyed) != 0 || !stalwartEmailUpdatedExactly(emailSet.Updated, []string{submission.MessageID}) {
 		return "", stalwartEngineError(EngineErrorIndeterminate)
 	}
 	return created.ID, nil
+}
+
+func stalwartParseEmailSetPayload(raw json.RawMessage, accountID, expectedState string) (stalwartEmailSetResponse, error) {
+	return parseStalwartEmailSetResponse(stalwart.JMAPResponse{
+		MethodResponses: []stalwart.JMAPMethodResponse{{
+			Name: "Email/set", Arguments: raw, CallID: stalwartEmailSetCallID,
+		}},
+	}, accountID, expectedState)
+}
+
+func stalwartDraftSetFailuresFor(failures map[string]stalwartMailboxSetFailure) error {
+	failure, exists := failures[stalwartDraftCreationID]
+	if len(failures) != 1 || !exists || failure.Type == "" {
+		return stalwartEngineError(EngineErrorIndeterminate)
+	}
+	switch failure.Type {
+	case "overQuota", "tooManyKeywords", "tooManyMailboxes":
+		return stalwartEngineError(EngineErrorRejectedPolicy)
+	default:
+		return stalwartEmailSetFailuresFor(failures, []string{stalwartDraftCreationID})
+	}
+}
+
+func stalwartSubmissionSetFailuresFor(failures map[string]stalwartMailboxSetFailure) error {
+	failure, exists := failures[stalwartSubmissionCreationID]
+	if len(failures) != 1 || !exists || failure.Type == "" {
+		return stalwartEngineError(EngineErrorIndeterminate)
+	}
+	switch failure.Type {
+	case "tooManyRecipients":
+		return stalwartEngineError(EngineErrorPayloadTooLarge)
+	case "overQuota", "invalidEmail", "noRecipients", "invalidRecipients", "forbiddenMailFrom", "forbiddenFrom", "forbiddenToSend":
+		return stalwartEngineError(EngineErrorRejectedPolicy)
+	default:
+		return stalwartEmailSetFailuresFor(failures, []string{stalwartSubmissionCreationID})
+	}
+}
+
+func stalwartSubmissionMarkerUpdateSucceeded(set stalwartEmailSetResponse, messageID string) error {
+	if len(set.Created) != 0 || len(set.NotCreated) != 0 || len(set.Destroyed) != 0 || len(set.NotDestroyed) != 0 {
+		return stalwartEngineError(EngineErrorIndeterminate)
+	}
+	if len(set.NotUpdated) != 0 {
+		if len(set.Updated) != 0 || set.OldStateKnown && set.NewState != set.OldState {
+			return stalwartEngineError(EngineErrorIndeterminate)
+		}
+		failure, exists := set.NotUpdated[messageID]
+		if len(set.NotUpdated) != 1 || !exists || failure.Type == "" {
+			return stalwartEngineError(EngineErrorIndeterminate)
+		}
+		switch failure.Type {
+		case "overQuota", "tooManyKeywords", "tooManyMailboxes":
+			return stalwartEngineError(EngineErrorRejectedPolicy)
+		default:
+			return stalwartEmailSetFailuresFor(set.NotUpdated, []string{messageID})
+		}
+	}
+	if !stalwartEmailUpdatedExactly(set.Updated, []string{messageID}) {
+		return stalwartEngineError(EngineErrorIndeterminate)
+	}
+	return nil
 }
 
 func stalwartDraftCreate(content EngineMessageContent, draftsID, draftMarker, mutationMarker string) stalwartDraftEmailCreate {

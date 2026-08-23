@@ -29,6 +29,17 @@ type JMAPRequest struct {
 	CreatedIDs  map[string]string `json:"createdIds,omitempty"`
 }
 
+// RequestFitsTransport reports whether the exact serialized JMAP envelope fits
+// the transport ceiling. Callers use this before mutation I/O so a locally
+// oversized request can be rejected without an ambiguous provider outcome.
+func RequestFitsTransport(request JMAPRequest) (bool, error) {
+	payload, err := json.Marshal(request)
+	if err != nil || validateJSON(payload) != nil {
+		return false, newError(ErrorInvalidRequest)
+	}
+	return int64(len(payload)) <= maxJMAPBytes, nil
+}
+
 // JMAPMethodCall is the JMAP tuple [name, arguments, callId].
 type JMAPMethodCall struct {
 	Name      string
