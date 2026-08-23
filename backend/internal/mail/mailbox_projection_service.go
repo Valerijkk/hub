@@ -11,8 +11,9 @@ import (
 
 // MailboxFolderProjectionService resolves the authenticated owner before reading its durable folder projection.
 type MailboxFolderProjectionService struct {
-	owners     mailboxOwnerResolver
-	repository MailboxFolderProjectionRepository
+	owners           mailboxOwnerResolver
+	repository       MailboxFolderProjectionRepository
+	threadRepository MailboxThreadProjectionRepository
 }
 
 // NewMailboxFolderProjectionService creates the owner-gated folder projection read service.
@@ -20,7 +21,11 @@ func NewMailboxFolderProjectionService(owners mailboxOwnerResolver, repository M
 	if mailboxFolderProjectionDependencyNil(owners) || mailboxFolderProjectionDependencyNil(repository) {
 		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	return &MailboxFolderProjectionService{owners: owners, repository: repository}, nil
+	threadRepository, ok := repository.(MailboxThreadProjectionRepository)
+	if !ok || mailboxFolderProjectionDependencyNil(threadRepository) {
+		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	return &MailboxFolderProjectionService{owners: owners, repository: repository, threadRepository: threadRepository}, nil
 }
 
 // ListMailboxFolders returns the persisted folder projection for one authenticated owner.
@@ -48,6 +53,38 @@ func (service *MailboxFolderProjectionService) ListMailboxFolders(ctx context.Co
 	projection = mailboxFolderProjectionCopy(projection)
 	sortMailboxFolderProjectionItems(projection.Items)
 	return projection, nil
+}
+
+// ListMailboxThreads returns one owner-scoped, cursor-paged durable thread projection.
+func (service *MailboxFolderProjectionService) ListMailboxThreads(ctx context.Context, actorID uuid.UUID, query MailboxThreadProjectionQuery) (MailboxThreadProjection, error) {
+	if service == nil || mailboxFolderProjectionDependencyNil(service.owners) || mailboxFolderProjectionDependencyNil(service.threadRepository) || ctx == nil || actorID == uuid.Nil {
+		return MailboxThreadProjection{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	if !mailboxThreadProjectionQueryValid(query) {
+		return MailboxThreadProjection{}, errMailboxThreadProjectionRequestInvalid
+	}
+
+	owner, err := service.owners.ResolveOwner(ctx, actorID)
+	if err != nil {
+		return MailboxThreadProjection{}, mailboxFolderProjectionOwnerError(err)
+	}
+	scope, err := mailboxFolderProjectionScopeFromOwner(actorID, owner)
+	if err != nil {
+		return MailboxThreadProjection{}, err
+	}
+	query, err = mailboxThreadProjectionQueryForScope(query, scope)
+	if err != nil {
+		return MailboxThreadProjection{}, errMailboxThreadProjectionRequestInvalid
+	}
+
+	projection, err := service.threadRepository.ListMailboxThreadProjection(ctx, scope, query)
+	if err != nil {
+		return MailboxThreadProjection{}, mailboxFolderProjectionRepositoryError(err)
+	}
+	if err := validateMailboxThreadProjection(projection, query, scope.AccountID); err != nil {
+		return MailboxThreadProjection{}, err
+	}
+	return mailboxThreadProjectionCopy(projection), nil
 }
 
 func mailboxFolderProjectionScopeFromOwner(actorID uuid.UUID, owner MailboxOwner) (MailboxFolderProjectionScope, error) {
