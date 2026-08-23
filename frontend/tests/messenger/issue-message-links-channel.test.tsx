@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { IssueMessageLinksPanel } from "@/modules/tracker/issue-message-links-panel";
 import { renderWithProviders } from "../support/render";

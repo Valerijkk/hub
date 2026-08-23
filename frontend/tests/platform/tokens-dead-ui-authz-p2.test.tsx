@@ -156,7 +156,7 @@ describe("TASK-050 P2-FE-05/06/16 tokens + dead UI + authz", () => {
 							version_number: 1,
 							snapshot: {},
 							created_at: "2026-01-01T00:00:00Z",
-							created_by: { id: "u1", name: "A" },
+							created_by: { id: "u1", name: "A", email: "a@hub.local" },
 						},
 					]}
 					onRollback={() => {}}

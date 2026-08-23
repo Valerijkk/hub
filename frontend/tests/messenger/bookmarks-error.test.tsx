@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BookmarksPanel } from "@/components/messenger/bookmarks-panel";
+import { queryError } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 const refetch = vi.fn();
@@ -27,13 +28,7 @@ describe("BookmarksPanel error≠empty (W9-A2-009 / TASK-047)", () => {
 	});
 
 	it("shows alert + retry instead of «Нет закладок» when query fails", async () => {
-		vi.mocked(useQuery).mockReturnValue({
-			data: undefined,
-			isLoading: false,
-			isError: true,
-			error: new Error("network"),
-			refetch,
-		} as ReturnType<typeof useQuery>);
+		vi.mocked(useQuery).mockReturnValue(queryError(new Error("network"), refetch));
 
 		renderWithProviders(<BookmarksPanel />);
 

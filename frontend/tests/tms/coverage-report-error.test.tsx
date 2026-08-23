@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CoverageReport } from "@/modules/tms/components/coverage-report";
+import { queryError } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 const refetch = vi.fn();
@@ -23,13 +24,7 @@ describe("CoverageReport error≠empty (W10-A2-007 / TASK-047)", () => {
 	});
 
 	it("shows alert + retry instead of empty coverage copy when query fails", () => {
-		vi.mocked(useQuery).mockReturnValue({
-			data: undefined,
-			isLoading: false,
-			isError: true,
-			error: new Error("network"),
-			refetch,
-		} as ReturnType<typeof useQuery>);
+		vi.mocked(useQuery).mockReturnValue(queryError(new Error("network"), refetch));
 
 		renderWithProviders(<CoverageReport projectId="proj-1" />);
 

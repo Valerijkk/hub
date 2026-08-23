@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GanttChart } from "@/modules/tracker/gantt-chart";
+import { querySuccess } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 const refetch = vi.fn();
@@ -42,12 +43,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 describe("GanttChart QueryStateView (A10-011)", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.mocked(useQuery).mockReturnValue({
-			data: [],
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useQuery>);
+		vi.mocked(useQuery).mockReturnValue(querySuccess([]));
 	});
 
 	it("shows alert + retry instead of empty due-date copy when issues query fails", () => {

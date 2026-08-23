@@ -1,6 +1,8 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Channel } from "@/api/messenger";
 import { ChannelList } from "@/components/messenger/channel-list";
+import { queryError } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 const refetch = vi.fn();
@@ -24,6 +26,7 @@ vi.mock("@/hooks/use-presence", () => ({
 
 vi.mock("@tanstack/react-router", () => ({
 	useMatchRoute: () => () => false,
+	useNavigate: () => vi.fn(),
 	Link: ({ children, ...props }: { children: React.ReactNode }) => (
 		<a {...props}>{children}</a>
 	),
@@ -37,12 +40,9 @@ describe("ChannelList error state (A10-005)", () => {
 	});
 
 	it("shows alert + retry instead of empty list when channels query fails", () => {
-		vi.mocked(useChannels).mockReturnValue({
-			data: undefined,
-			isLoading: false,
-			isError: true,
-			refetch,
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(
+			queryError<Channel[]>(new Error("network"), refetch),
+		);
 
 		renderWithProviders(<ChannelList />);
 

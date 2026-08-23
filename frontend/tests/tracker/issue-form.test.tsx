@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import i18n from "@/i18n";
 import { renderWithProviders } from "../support/render";
 
 vi.mock("@/api/tracker", () => ({
@@ -37,6 +38,10 @@ function renderForm(mode: "create" | "edit" = "create") {
 	);
 	return { onSuccess };
 }
+
+beforeAll(async () => {
+	await i18n.loadNamespaces("tracker");
+});
 
 describe("IssueForm", () => {
 	it("shows validation error when title is too short", async () => {

@@ -31,6 +31,7 @@ describe("SprintBoard nested interactive (A2W10-A3-005 / TASK-093)", () => {
 					start_date: "2026-07-01",
 					end_date: "2026-07-14",
 					issue_count: 3,
+					version: 1,
 					created_at: "2026-07-01T00:00:00Z",
 					updated_at: "2026-07-01T00:00:00Z",
 				},

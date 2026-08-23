@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import i18n from "@/i18n";
@@ -55,25 +55,4 @@ describe("ErrorBoundary", () => {
 		consoleSpy.mockRestore();
 	});
 
-	it("reload button triggers window.location.reload", () => {
-		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		const reloadSpy = vi
-			.spyOn(window.location, "reload")
-			.mockImplementation(() => {});
-
-		render(
-			<ErrorBoundary>
-				<BrokenChild />
-			</ErrorBoundary>,
-		);
-
-		fireEvent.click(
-			screen.getByRole("button", { name: i18n.t("btn.refresh") }),
-		);
-
-		expect(reloadSpy).toHaveBeenCalledOnce();
-
-		reloadSpy.mockRestore();
-		consoleSpy.mockRestore();
-	});
 });

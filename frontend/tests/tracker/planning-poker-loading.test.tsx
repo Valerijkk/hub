@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlanningPoker } from "@/modules/tracker/planning-poker";
 import { useSprintStore } from "@/stores/sprint-store";

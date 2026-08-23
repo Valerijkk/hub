@@ -6,6 +6,7 @@ import {
 	GanttChart,
 } from "@/modules/tracker/gantt-chart";
 import { renderWithProviders } from "../support/render";
+import { querySuccess } from "../support/query-result";
 
 /** Mirrors `GANTT_VIRTUALIZE_THRESHOLD` export (A10-014). */
 const VIRTUALIZE_THRESHOLD = GANTT_VIRTUALIZE_THRESHOLD;
@@ -63,11 +64,12 @@ function makeIssue(i: number): IssueResponse {
 			color: "#888",
 			category: "todo",
 			sort_order: 0,
+			is_default: true,
 		},
 		due_date: `2026-08-${day.length > 2 ? "28" : day}T00:00:00Z`,
 		created_at: "2026-07-01T00:00:00Z",
 		updated_at: "2026-07-01T00:00:00Z",
-	} as IssueResponse;
+	};
 }
 
 /** jsdom reports 0 scroll height — stub so @tanstack/react-virtual mounts rows. */
@@ -105,12 +107,7 @@ describe("GanttChart virtualization (A10-014)", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		stubScrollMetrics();
-		vi.mocked(useQuery).mockReturnValue({
-			data: [],
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useQuery>);
+		vi.mocked(useQuery).mockReturnValue(querySuccess([]));
 	});
 
 	afterEach(() => {

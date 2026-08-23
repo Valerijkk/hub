@@ -7,32 +7,31 @@ import type {
 import { EnvironmentComparison } from "@/modules/tms/components/environment-comparison";
 import { renderWithProviders } from "../support/render";
 
-const ENVS: EnvironmentResponse[] = [
-	{
+const DEV_ENV: EnvironmentResponse = {
 		id: "env-dev",
 		name: "Dev",
 		label: "dev",
 		created_at: "2026-07-01T00:00:00Z",
-	},
-	{
+};
+const STAGING_ENV: EnvironmentResponse = {
 		id: "env-stg",
 		name: "Staging",
 		label: "staging",
 		created_at: "2026-07-01T00:00:00Z",
-	},
-	{
+};
+const PROD_ENV: EnvironmentResponse = {
 		id: "env-prod",
 		name: "Prod",
 		label: "prod",
 		created_at: "2026-07-01T00:00:00Z",
-	},
-];
+};
+const ENVS: EnvironmentResponse[] = [DEV_ENV, STAGING_ENV, PROD_ENV];
 
 const STALE_MARKER = "TC-STALE-MARKER";
 
 const COMPARISON: EnvironmentComparisonResponse = {
-	env1: ENVS[0],
-	env2: ENVS[1],
+	env1: DEV_ENV,
+	env2: STAGING_ENV,
 	items: [
 		{
 			case_key: STALE_MARKER,

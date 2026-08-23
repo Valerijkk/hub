@@ -19,7 +19,7 @@ vi.mock("@tanstack/react-router", () => ({
 		children: React.ReactNode;
 		to: string;
 		"aria-label"?: string;
-		"aria-current"?: string;
+		"aria-current"?: React.AriaAttributes["aria-current"];
 	}) => (
 		<a href={to} aria-label={ariaLabel} aria-current={ariaCurrent} {...rest}>
 			{children}

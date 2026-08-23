@@ -1,7 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type MockInstance,
+	vi,
+} from "vitest";
 import type { Channel } from "@/api/messenger";
 import { CHANNELS_QUERY_KEY, useChannels } from "@/hooks/use-channels";
 import { useAuthStore } from "@/stores/auth-store";
@@ -82,7 +90,7 @@ function emitWsEvent(event: string, payload: unknown) {
 
 describe("useChannels WS → Query cache (A10-001)", () => {
 	let queryClient: QueryClient;
-	let setQueryDataSpy: ReturnType<typeof vi.spyOn>;
+	let setQueryDataSpy: MockInstance<QueryClient["setQueryData"]>;
 	const existing = makeChannel({ id: "ch-existing", name: "Existing" });
 
 	beforeEach(() => {

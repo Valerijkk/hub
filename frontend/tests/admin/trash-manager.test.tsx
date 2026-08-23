@@ -8,8 +8,16 @@ vi.mock("@/api/admin");
 describe("TrashManager (A3W9-1-003)", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.mocked(adminApi.getTrash).mockResolvedValue({ items: [], total: 0 });
-		vi.mocked(adminApi.restoreItem).mockResolvedValue(undefined);
+		vi.mocked(adminApi.getTrash).mockResolvedValue({
+			items: [],
+			total: 0,
+			page: 1,
+			per_page: 20,
+		});
+		vi.mocked(adminApi.restoreItem).mockResolvedValue({
+			success: true,
+			message: "restored",
+		});
 	});
 
 	it("shows empty copy only after successful empty load", async () => {
@@ -39,7 +47,7 @@ describe("TrashManager (A3W9-1-003)", () => {
 	it("retry reloads trash table", async () => {
 		vi.mocked(adminApi.getTrash)
 			.mockRejectedValueOnce(new Error("network"))
-			.mockResolvedValueOnce({ items: [], total: 0 });
+			.mockResolvedValueOnce({ items: [], total: 0, page: 1, per_page: 20 });
 
 		render(<TrashManager />);
 		await waitFor(() => {

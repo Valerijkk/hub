@@ -1,6 +1,8 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Channel } from "@/api/messenger";
 import { MessengerIndex } from "@/routes/_authenticated/messenger/index";
+import { queryError } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 const refetch = vi.fn();
@@ -35,12 +37,9 @@ describe("MessengerIndex error≠empty (A3W10-4-001 / TASK-127)", () => {
 	});
 
 	it("shows alert + retry instead of welcoming empty when channels fail", () => {
-		vi.mocked(useChannels).mockReturnValue({
-			data: undefined,
-			isLoading: false,
-			isError: true,
-			refetch,
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(
+			queryError<Channel[]>(new Error("network"), refetch),
+		);
 
 		renderWithProviders(<MessengerIndex />);
 

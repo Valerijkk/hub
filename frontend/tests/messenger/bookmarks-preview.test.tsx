@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BookmarksPanel } from "@/components/messenger/bookmarks-panel";
+import { querySuccess } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 const CHANNEL_UUID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
@@ -28,8 +29,8 @@ describe("BookmarksPanel preview labels (A3W9-2-001 / TASK-173)", () => {
 	});
 
 	it("shows channel_name + content_preview, not raw UUIDs as primary label", async () => {
-		vi.mocked(useQuery).mockReturnValue({
-			data: [
+		vi.mocked(useQuery).mockReturnValue(
+			querySuccess([
 				{
 					id: "bm-1",
 					message_id: MESSAGE_UUID,
@@ -38,12 +39,8 @@ describe("BookmarksPanel preview labels (A3W9-2-001 / TASK-173)", () => {
 					content_preview: "Привет, команда!",
 					created_at: "2026-07-29T10:00:00Z",
 				},
-			],
-			isLoading: false,
-			isError: false,
-			error: null,
-			refetch: vi.fn(),
-		} as unknown as ReturnType<typeof useQuery>);
+			]),
+		);
 
 		renderWithProviders(<BookmarksPanel />);
 
@@ -63,20 +60,16 @@ describe("BookmarksPanel preview labels (A3W9-2-001 / TASK-173)", () => {
 	});
 
 	it("falls back to «Канал»/«Сообщение» when preview fields empty — still no UUID primary", async () => {
-		vi.mocked(useQuery).mockReturnValue({
-			data: [
+		vi.mocked(useQuery).mockReturnValue(
+			querySuccess([
 				{
 					id: "bm-2",
 					message_id: MESSAGE_UUID,
 					channel_id: CHANNEL_UUID,
 					created_at: "2026-07-29T10:00:00Z",
 				},
-			],
-			isLoading: false,
-			isError: false,
-			error: null,
-			refetch: vi.fn(),
-		} as unknown as ReturnType<typeof useQuery>);
+			]),
+		);
 
 		renderWithProviders(<BookmarksPanel />);
 

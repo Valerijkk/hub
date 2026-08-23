@@ -2,6 +2,7 @@ import { fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Channel } from "@/api/messenger";
 import { ChannelList } from "@/components/messenger/channel-list";
+import { querySuccess } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 vi.mock("@/hooks/use-channels", () => ({
@@ -77,12 +78,7 @@ describe("ChannelList section collapse a11y (A3W9-3-001)", () => {
 	});
 
 	it("collapse button has aria-expanded and aria-controls pointing at panel id", () => {
-		vi.mocked(useChannels).mockReturnValue({
-			data: [makeChannel()],
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(querySuccess([makeChannel()]));
 
 		renderWithProviders(<ChannelList />);
 

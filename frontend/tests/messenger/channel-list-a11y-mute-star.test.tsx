@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Channel } from "@/api/messenger";
 import { ChannelList } from "@/components/messenger/channel-list";
+import { querySuccess } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 vi.mock("@/hooks/use-channels", () => ({
@@ -74,12 +75,9 @@ describe("ChannelList mute/star a11y (A10-013)", () => {
 	});
 
 	it("star button exposes aria-label matching title pattern", () => {
-		vi.mocked(useChannels).mockReturnValue({
-			data: [makeChannel({ is_starred: false })],
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(
+			querySuccess([makeChannel({ is_starred: false })]),
+		);
 
 		renderWithProviders(<ChannelList />);
 
@@ -89,12 +87,9 @@ describe("ChannelList mute/star a11y (A10-013)", () => {
 	});
 
 	it("starred channel uses unstar aria-label", () => {
-		vi.mocked(useChannels).mockReturnValue({
-			data: [makeChannel({ is_starred: true })],
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(
+			querySuccess([makeChannel({ is_starred: true })]),
+		);
 
 		renderWithProviders(<ChannelList />);
 
@@ -105,12 +100,9 @@ describe("ChannelList mute/star a11y (A10-013)", () => {
 
 	it("muted channel exposes aria-label on mute indicator", () => {
 		const future = new Date(Date.now() + 3_600_000).toISOString();
-		vi.mocked(useChannels).mockReturnValue({
-			data: [makeChannel({ muted_until: future })],
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(
+			querySuccess([makeChannel({ muted_until: future })]),
+		);
 
 		renderWithProviders(<ChannelList />);
 

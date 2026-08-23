@@ -269,8 +269,6 @@ describe("A3W10-5 TMS canMutate UI (TASK-128)", () => {
 			};
 			vi.mocked(getProject).mockResolvedValue(project);
 
-			const { createTestQueryClient, renderWithProviders: renderP } =
-				await import("../../render");
 			const qc = createTestQueryClient();
 			qc.setQueryData(["project", "proj-1"], project);
 			qc.setQueryData(
@@ -278,7 +276,7 @@ describe("A3W10-5 TMS canMutate UI (TASK-128)", () => {
 				{ items: [], total: 0 },
 			);
 
-			renderP(<TestRunsPage />, { queryClient: qc });
+			renderWithProviders(<TestRunsPage />, { queryClient: qc });
 
 			await waitFor(() => {
 				expect(screen.getByText("Прогоны")).toBeInTheDocument();
@@ -304,8 +302,6 @@ describe("A3W10-5 TMS canMutate UI (TASK-128)", () => {
 			vi.mocked(listTestRuns).mockResolvedValue({ items: [], total: 0 });
 			vi.mocked(getProject).mockResolvedValue(project);
 
-			const { createTestQueryClient, renderWithProviders: renderP } =
-				await import("../../render");
 			const qc = createTestQueryClient();
 			qc.setQueryData(["project", "proj-1"], project);
 			qc.setQueryData(
@@ -313,7 +309,7 @@ describe("A3W10-5 TMS canMutate UI (TASK-128)", () => {
 				{ items: [], total: 0 },
 			);
 
-			renderP(<TestRunsPage />, { queryClient: qc });
+			renderWithProviders(<TestRunsPage />, { queryClient: qc });
 
 			await waitFor(() => {
 				expect(
@@ -339,13 +335,11 @@ describe("A3W10-5 TMS canMutate UI (TASK-128)", () => {
 			vi.mocked(getTestCase).mockResolvedValue(mockCase);
 			vi.mocked(getProject).mockResolvedValue(project);
 
-			const { createTestQueryClient, renderWithProviders: renderP } =
-				await import("../../render");
 			const qc = createTestQueryClient();
 			qc.setQueryData(["project", "proj-1"], project);
 			qc.setQueryData(["tms-case", "proj-1", "TC-1"], mockCase);
 
-			renderP(<TestCaseDetailPage />, { queryClient: qc });
+			renderWithProviders(<TestCaseDetailPage />, { queryClient: qc });
 
 			await waitFor(() => {
 				expect(screen.getByText("Login flow")).toBeInTheDocument();
@@ -375,13 +369,11 @@ describe("A3W10-5 TMS canMutate UI (TASK-128)", () => {
 			vi.mocked(getTestCase).mockResolvedValue(mockCase);
 			vi.mocked(getProject).mockResolvedValue(project);
 
-			const { createTestQueryClient, renderWithProviders: renderP } =
-				await import("../../render");
 			const qc = createTestQueryClient();
 			qc.setQueryData(["project", "proj-1"], project);
 			qc.setQueryData(["tms-case", "proj-1", "TC-1"], mockCase);
 
-			renderP(<TestCaseDetailPage />, { queryClient: qc });
+			renderWithProviders(<TestCaseDetailPage />, { queryClient: qc });
 
 			await waitFor(() => {
 				expect(

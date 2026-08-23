@@ -1,6 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CoverageReport } from "@/modules/tms/components/coverage-report";
+import { querySuccess } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 vi.mock("@tanstack/react-query", async () => {
@@ -21,8 +22,8 @@ describe("CoverageReport keyboard expand (A2W10-A2-007 / TASK-093)", () => {
 	});
 
 	function mockCoverageReport() {
-		vi.mocked(useQuery).mockReturnValue({
-			data: {
+		vi.mocked(useQuery).mockReturnValue(
+			querySuccess({
 				issues: [
 					{
 						issue_id: "i1",
@@ -37,12 +38,8 @@ describe("CoverageReport keyboard expand (A2W10-A2-007 / TASK-093)", () => {
 						],
 					},
 				],
-			},
-			isLoading: false,
-			isError: false,
-			error: null,
-			refetch: vi.fn(),
-		} as unknown as ReturnType<typeof useQuery>);
+			}),
+		);
 	}
 
 	it("expands from the row-wide pointer control outside the trailing action cell", () => {

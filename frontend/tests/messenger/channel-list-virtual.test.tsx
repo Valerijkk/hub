@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Channel } from "@/api/messenger";
 import { ChannelList } from "@/components/messenger/channel-list";
+import { querySuccess } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
 /** Mirrors `CHANNEL_VIRTUALIZE_THRESHOLD` in channel-list.tsx (A13-018). */
@@ -98,12 +99,7 @@ describe("ChannelList virtualization (A13-018)", () => {
 
 	it("renders all channels when below virtualize threshold", () => {
 		const channels = Array.from({ length: 5 }, (_, i) => makeChannel(i + 1));
-		vi.mocked(useChannels).mockReturnValue({
-			data: channels,
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(querySuccess(channels));
 
 		const { container } = renderWithProviders(<ChannelList />);
 
@@ -119,12 +115,7 @@ describe("ChannelList virtualization (A13-018)", () => {
 		const channels = Array.from({ length: channelCount }, (_, i) =>
 			makeChannel(i + 1),
 		);
-		vi.mocked(useChannels).mockReturnValue({
-			data: channels,
-			isLoading: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as ReturnType<typeof useChannels>);
+		vi.mocked(useChannels).mockReturnValue(querySuccess(channels));
 
 		const { container } = renderWithProviders(<ChannelList />);
 
