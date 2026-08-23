@@ -3575,7 +3575,6 @@ components:
       properties:
         status: {type: string, enum: [accepted, declined, tentative]}
         attendee_version: {type: integer, minimum: 1}
-        comment: {type: [string, "null"], maxLength: 2000}
     UserAvailability:
       type: object
       additionalProperties: false
