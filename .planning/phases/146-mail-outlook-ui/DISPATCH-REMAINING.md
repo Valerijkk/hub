@@ -2,8 +2,12 @@
 
 > **Assembly rule:** Common envelope + exactly one packet/variant. Never combine variants.
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
-> **Current blockers:** backend NOT_IMPLEMENTED, exact runtime unavailable, frontend
-> feature-unit harness pending protected rebase, launcher NOT_READY.
+> **Current blockers:** backend NOT_IMPLEMENTED, exact runtime unavailable, launcher
+> NOT_READY. The frontend feature-unit harness is **AVAILABLE_FROM_MASTER_INTEGRATION**
+> at `f21e3f77` / merge `6dc6a066`: current `frontend/tests/**` and the Vitest setup in
+> `frontend/vite.config.ts` are available. This does not select 146-01A: its exact
+> test-first two-file manifest remains frozen, and the current founder no-test constraint
+> prohibits selecting frontend source/test packets.
 
 Standalone complete prompts exist for 146-01A, 146-04C and 146-04D. This file completes
 every other row in `DISPATCH-INDEX.md`.
@@ -12,7 +16,7 @@ every other row in `DISPATCH-INDEX.md`.
 
 - Atomic TypeScript/React role; external genuine unit first, then minimal source. Root
   supplies clean HEAD and accepted upstream API/type surface. Dirty overlap, missing route
-  generation/harness, changed contract or actual model mismatch => `BLOCKED` before write.
+  generation prerequisite, changed contract or actual model mismatch => `BLOCKED` before write.
 - Modify only chosen Allowed files. No commit/push/PR/dependency install/generated manual
   edit. Never read/change protected testframework/test-rebase/pro-qa-ai paths.
 - TanStack Query owns server state; URL owns folder/thread/search; local reducer owns only
@@ -20,8 +24,8 @@ every other row in `DISPATCH-INDEX.md`.
 - No raw HTML/direct remote URL/body/recipients/idempotency key in logs, query keys, error
   objects or persisted client state. Existing Messenger/Calendar/Resend UI stays compatible.
 - Tests use repository-native Vitest/RTL/client fakes; no MSW unless separately approved.
-  Host test/build/lint/validator forbidden; direct Docker not fallback; launcher/harness
-  absent => `NOT_RUN`.
+  Host test/build/lint/validator forbidden; direct Docker not fallback; launcher absent
+  => `NOT_RUN`. The available harness does not override the founder no-test constraint.
 - Accessibility: semantic name/state, visible focus, editable-target shortcut guard, polite
   live status, 44px mobile targets. EN/RU for user text.
 - depth/fan-out 0, retries 2, 45m (60 for UI). Russian response: files/symbols/oracles/

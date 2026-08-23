@@ -16,10 +16,14 @@ assemble the Common envelope plus exactly one section from `DISPATCH-REMAINING.m
 1. Phase 143 canonical calendar API is accepted before invitation RSVP UI.
 2. Phase 144 public mailbox API is accepted before live mail queries/mutations.
 3. Exact founder-authorized Terra runtime is available for every source/test packet.
-4. The protected test-rebase owner either merges the new frontend unit harness or hands
-   off an approved feature-test config. Current `frontend/vite.config.ts` points into a
-   protected legacy testframework path; this phase must not read/change that protected
-   suite or claim its own tests executed through it.
+4. **AVAILABLE_FROM_MASTER_INTEGRATION:** the frontend unit harness arrived at
+   `f21e3f77` and was integrated into this branch by merge `6dc6a066`. Current
+   `frontend/tests/**` is the genuine-unit tree and `frontend/vite.config.ts` configures
+   Vitest to include `tests/**/*.test.{ts,tsx}` with the repository setup file. This
+   removes the protected-rebase harness blocker; it does not authorize a packet: 146-01A
+   retains its exact test-first two-file manifest and the current founder no-test
+   constraint leaves all frontend source/test packets unselected. This phase must not
+   read/change protected testframework or test-rebase suites, or claim unrun tests.
 5. No new MSW dependency is added by default. Repository-native typed client/fetch fakes
    are used unless founder approves a reviewed dependency/provenance change.
 
@@ -107,6 +111,6 @@ separate accepted Docker/build step.
 | UI design contract | READY |
 | Mail/Calendar backend implementation | NOT_IMPLEMENTED |
 | Exact Terra runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
-| Frontend unit harness | PENDING_PROTECTED_REBASE |
+| Frontend unit harness | AVAILABLE_FROM_MASTER_INTEGRATION (`f21e3f77`; merge `6dc6a066`); 146-01A remains NOT_SELECTED under founder no-test constraint |
 | Accepted launcher | NOT_READY |
 | Build/unit/a11y/runtime | NOT_RUN |
