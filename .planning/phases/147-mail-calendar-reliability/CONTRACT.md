@@ -219,7 +219,7 @@ APPROVED C/I/M `0/0/0`. Its owning Go package is `backend/internal/mail` (`packa
 import and use the exported sealed Mail port/types, but Mail never imports Calendar. P3-A accepts only the
 sealed ABI/port surface below; it does not claim a concrete `CalendarPartSource`, engine/provider I/O,
 MIME/locator handling, Ent, NATS, wiring, or runtime. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
-`43a6c42af88524be2951966bdbfc83b422ecb7f9`; P3-C is the sole next `UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation, and P3-D/E remain pending. The P3-A static accepted compile shape in `package mail` is:
+`43a6c42af88524be2951966bdbfc83b422ecb7f9`; CONSUMED/HISTORICAL: P3-C was the sole next `UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation, and P3-D/E remain pending. The P3-A static accepted compile shape in `package mail` is:
 
 ```go
 type CalendarPartReadRequest struct { /* unexported fields */ }
@@ -314,7 +314,7 @@ P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
 one receipt-first `EventTransaction`, opaque claim/scope/completion, and the closed observed/error-code
 constructor ABI, preserving REPLY receipt/outbox behavior with no nested transaction or duplicate logic.
 Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`.
-P3-C is the sole next pending atom, blocked on Mail Ent generation, for exactly
+CONSUMED/HISTORICAL: P3-C was the sole next pending atom, blocked on Mail Ent generation, for exactly
 `backend/internal/mail/mailbox_ent_calendar_part.go` and `backend/internal/mail/mailbox_ent_repository.go`.
 P3-D and P3-E remain pending/blocked. Generated Ent artifacts, migration, SQL, compile/build, tests,
 lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; this static acceptance makes no
@@ -394,7 +394,7 @@ Source atoms are closed: P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
 `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `43a6c42af88524be2951966bdbfc83b422ecb7f9` for exact
 `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and
 `event_service_inbound_message.go` (new), transaction-aware policy/ports only and no generated Ent.
-P3-C is the sole next `UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation:
+CONSUMED/HISTORICAL: P3-C was the sole next `UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation:
 `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`; it owns the
 concrete source/I-O and five-second/pre-post semantics above. P3-D/E remain pending/blocked.
 P3-D remains pending only after Calendar generation: `backend/internal/calendar/

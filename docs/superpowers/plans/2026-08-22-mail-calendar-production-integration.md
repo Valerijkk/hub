@@ -1207,7 +1207,7 @@ concrete `CalendarPartSource`, Ent, MIME/provider I/O, NATS, wiring, or runtime 
 `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `43a6c42af88524be2951966bdbfc83b422ecb7f9` for exactly
 `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and new
 `event_service_inbound_message.go`: transaction ABI only, after Contract/high and Security/xhigh
-APPROVED C/I/M `0/0/0`. P3-C is the sole next pending atom, blocked on Mail Ent generation, for exactly
+APPROVED C/I/M `0/0/0`. CONSUMED/HISTORICAL: P3-C was the sole next pending atom, blocked on Mail Ent generation, for exactly
 new `backend/internal/mail/mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D/E remain
 pending/blocked. All generation, migration, SQL, build, test, lint/gofmt, parser/validator, Docker, and
 runtime evidence remains `NOT_RUN`; no merge, product, or readiness claim follows.
@@ -1226,7 +1226,7 @@ wording is `CONSUMED/HISTORICAL`; no such fallback is permitted.
   Ent references, nested transaction, repository bypass, or duplicate REPLY logic. Its opaque completion
   constructors enforce the closed Phase 147 observed/error-code pairings; repository time/lease handling
   remains behind `CompleteCalendarInboundMessageReceipt`.
-- [ ] **P3-C — Mail Ent concrete calendar-part source — sole NEXT / PENDING/BLOCKED:** after Mail generation only,
+- [ ] **P3-C — Mail Ent concrete calendar-part source — independently PENDING/BLOCKED:** after Mail generation only,
   exact future
   `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`.
   It owns concrete source I/O, exact byte/five-second bound, MIME/locator hash and durable pre/post

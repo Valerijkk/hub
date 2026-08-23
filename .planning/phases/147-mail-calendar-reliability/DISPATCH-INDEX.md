@@ -12,7 +12,7 @@ first, owns only its allowed files, makes no commit, and returns `BLOCKED` when 
 model, generation or external gate is missing. Assemble the Common envelope plus exactly
 one matching section from `DISPATCH-PACKETS.md`.
 
-## P3 inbound source boundary — P3-A and P3-B accepted; P3-C sole next atom
+## P3 inbound source boundary — P3-A and P3-B accepted; P3-C historical route; P3-D0 sole next atom
 
 P0-P2 remain accepted. P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
 `05f87f87f6dc30bd57648030026faf5912add3e7` (`feat(mail): add sealed calendar part port`) for exactly
@@ -22,7 +22,7 @@ only sealed `package mail` port/types/error ABI, not a concrete `CalendarPartSou
 Ent, NATS, wiring, or runtime. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
 `43a6c42af88524be2951966bdbfc83b422ecb7f9` for exactly `backend/internal/calendar/event_repository.go`,
 `event_service_inbound_reply.go`, and new `event_service_inbound_message.go`: transaction ABI only,
-with Contract/high and Security/xhigh APPROVED C/I/M `0/0/0`. P3-C is the sole next
+with Contract/high and Security/xhigh APPROVED C/I/M `0/0/0`. CONSUMED/HISTORICAL: P3-C was the sole next
 `UNIMPLEMENTED / PENDING / BLOCKED` atom, pending Mail Ent generation, for exactly new
 `backend/internal/mail/mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D/E remain
 pending/blocked. Generated Ent, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker, and
@@ -39,7 +39,7 @@ For Calendar ingestion, all earlier 147-02D/02E `GetMessage`, full-body/MIME par
 provider/locator, and legacy `engine_message_id` paths are `CONSUMED/HISTORICAL`; they must not be
 dispatched as a fallback. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
 `43a6c42af88524be2951966bdbfc83b422ecb7f9` with exact Calendar policy/port files `event_repository.go`,
-`event_service_inbound_reply.go`, and new `event_service_inbound_message.go`; P3-C is the sole next pending/blocked Mail Ent atom after generation with new
+`event_service_inbound_reply.go`, and new `event_service_inbound_message.go`; CONSUMED/HISTORICAL: P3-C was the sole next pending/blocked Mail Ent atom after generation with new
 `mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D exact Calendar generated-Ent
 files are new `mail_inbound_repository.go`, `mail_inbound_service.go`, `mail_inbound_due_worker.go`,
 `event_ent_transaction.go`, and new `event_ent_inbound_message.go`; P3-E exact files after concrete
@@ -102,7 +102,7 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-02E | `CONSUMED/HISTORICAL — superseded by P3-A..E` | historical Calendar consumer/bare-NAK route retained only as record | non-dispatchable; no Calendar full-envelope subscription | none |
 | P3-A | Sealed Mail calendar-part port | `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go` | `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` `05f87f87f6dc30bd57648030026faf5912add3e7`; ABI/port only, no concrete source/I-O | Contract/high + Security/xhigh APPROVED C/I/M 0/0/0 |
 | P3-B | Calendar transaction-aware REPLY policy/ports | `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, `event_service_inbound_message.go` (new) | `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` `43a6c42af88524be2951966bdbfc83b422ecb7f9`; transaction ABI only; Contract/high + Security/xhigh C/I/M 0/0/0 | accepted exact source boundary |
-| P3-C | Mail Ent concrete calendar-part source | `backend/internal/mail/mailbox_ent_calendar_part.go` (new), `mailbox_ent_repository.go` | sole next `PENDING/BLOCKED`; concrete source/I-O, five-second/pre/post; Stalwart excluded | Mail Ent generation |
+| P3-C | Mail Ent concrete calendar-part source | `backend/internal/mail/mailbox_ent_calendar_part.go` (new), `mailbox_ent_repository.go` | independently `PENDING/BLOCKED`; concrete source/I-O, five-second/pre/post; Stalwart excluded | Mail Ent generation |
 | P3-D | Calendar inbound repository/service/due worker | `backend/internal/calendar/mail_inbound_repository.go` (new), `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`, `event_ent_inbound_message.go` (new) | `PENDING/BLOCKED` after Calendar generated Ent | P3-C + Calendar generation |
 | P3-E | Mail sanitized ingress consumer and wiring | `backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go` (new), `backend/cmd/server/main.go`, `backend/cmd/server/wiring_calendar_mail.go` | `PENDING/BLOCKED`; Mail v1 decoder/sink, durable ACK policy | P3-D + concrete engine/source |
 | 147-03A | External REPLY delivery state machine and sender port | `backend/internal/calendar/reply_delivery.go`, `backend/tests/calendar/reply_delivery_test.go` | stable draft/send keys; unknown reconciles; permanent/transient split | 01C/E + accepted 143 RSVP/serializer |

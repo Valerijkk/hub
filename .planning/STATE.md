@@ -9,7 +9,7 @@ mail_calendar_inbound_prerequisites_2026_08_23: >-
   fc5dfe195b89963601e3f365e593469f73bed94f, 1ebbb129d62aeca695a2b028822101af9c77687f,
   and a61edbb086df8535349429438155fad015b29615. P3-A sealed port is STATIC_ACCEPTED / STATIC_SOURCE_ONLY
   at 05f87f87f6dc30bd57648030026faf5912add3e7 (Contract/high and Security/xhigh APPROVED C/I/M 0/0/0);
-  P3-B is STATIC_ACCEPTED / STATIC_SOURCE_ONLY at 43a6c42af88524be2951966bdbfc83b422ecb7f9; P3-C is the sole next pending/blocked Task 10 consumer/repository/service/wiring atom on Mail Ent generation. P3-D/E remain pending. Generated Ent artifacts are absent/uncommitted; generation, migration,
+  P3-B is STATIC_ACCEPTED / STATIC_SOURCE_ONLY at 43a6c42af88524be2951966bdbfc83b422ecb7f9; CONSUMED/HISTORICAL: P3-C was the sole next pending/blocked Task 10 consumer/repository/service/wiring atom on Mail Ent generation. P3-D/E remain pending. Generated Ent artifacts are absent/uncommitted; generation, migration,
   SQL, compile/build, tests, lint/gofmt, parser/validator, Docker, and runtime are NOT_RUN. No
   NATS/worker, migration, merge, product, or readiness claim follows.
 mail_calendar_inbound_p3_source_freeze_2026_08_23: >-
@@ -18,7 +18,7 @@ mail_calendar_inbound_p3_source_freeze_2026_08_23: >-
   mailbox_engine.go, mailbox_types.go, mailbox_errors.go, mailbox_fake.go; independent Contract/high and
   Security/xhigh are APPROVED C/I/M 0/0/0. It accepts sealed `package mail` ABI/port only: no concrete
   CalendarPartSource, engine/provider/MIME/locator I/O, Ent, NATS, wiring, or runtime. P3-B is STATIC_ACCEPTED /
-  STATIC_SOURCE_ONLY at 43a6c42af88524be2951966bdbfc83b422ecb7f9 for the receipt-first EventTransaction REPLY factor. P3-C is the sole next pending/
+  STATIC_SOURCE_ONLY at 43a6c42af88524be2951966bdbfc83b422ecb7f9 for the receipt-first EventTransaction REPLY factor. CONSUMED/HISTORICAL: P3-C was the sole next pending/
   blocked atom on Mail Ent generation and owns concrete source plus five-second/pre-post semantics; P3-D/E
   follows Calendar generation; P3-E follows concrete engine/source. Historic 147-02D/02E GetMessage/full-
   body/MIME/direct-engine/provider/legacy-engine_message_id Calendar-ingestion wording is
@@ -1984,4 +1984,4 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > remain unavailable, therefore executable RED/GREEN, Go compile/test/build/gofmt/lint, Ent
 > generation, Atlas migration, Docker and runtime evidence are all `NOT_RUN` until Task 9.
 
-> **Phase 147 P3-B static acceptance (2026-08-23):** `43a6c42af88524be2951966bdbfc83b422ecb7f9` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/internal/calendar/event_repository.go`, `backend/internal/calendar/event_service_inbound_reply.go`, and `backend/internal/calendar/event_service_inbound_message.go`. It accepts transaction ABI only: a receipt-first single `EventTransaction`, opaque claim/scope/completion, and closed observed/error-code constructor ABI while preserving REPLY receipt/outbox behavior without nested transaction or duplicate logic. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. P3-C is the sole next pending atom, blocked on Mail Ent generation, for exactly `backend/internal/mail/mailbox_ent_calendar_part.go` and `backend/internal/mail/mailbox_ent_repository.go`. P3-D/E remain pending/blocked. Generated Ent, migration, SQL, compile/build, tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; no merge, product, or Docker-readiness claim.
+> **Phase 147 P3-B static acceptance (2026-08-23):** `43a6c42af88524be2951966bdbfc83b422ecb7f9` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/internal/calendar/event_repository.go`, `backend/internal/calendar/event_service_inbound_reply.go`, and `backend/internal/calendar/event_service_inbound_message.go`. It accepts transaction ABI only: a receipt-first single `EventTransaction`, opaque claim/scope/completion, and closed observed/error-code constructor ABI while preserving REPLY receipt/outbox behavior without nested transaction or duplicate logic. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. CONSUMED/HISTORICAL: P3-C was the sole next pending atom, blocked on Mail Ent generation, for exactly `backend/internal/mail/mailbox_ent_calendar_part.go` and `backend/internal/mail/mailbox_ent_repository.go`. P3-D/E remain pending/blocked. Generated Ent, migration, SQL, compile/build, tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; no merge, product, or Docker-readiness claim.
