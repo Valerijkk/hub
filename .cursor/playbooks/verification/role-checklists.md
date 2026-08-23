@@ -37,7 +37,7 @@ Skill: `BE_VER_skill.md`. Артефакт: Go-код в `backend/internal/<modu
 ```
 
 Воспроизведение: только task-owned limited Docker job `backend-unit` из
-`AGENTS.md`; non-unit boundary — соответствующий Python job `/qa-gate`.
+`AGENTS.md`; non-unit boundary — соответствующий Python service через `docker compose -f docker-compose.local.yml run --rm <service>`.
 
 Как проверять layering (пример поиска нарушения):
 
@@ -88,7 +88,7 @@ Skill: `FE_VER_skill.md`. Артефакт: React/TS в `frontend/src`.
 ```
 
 Воспроизведение: task-owned limited Docker `frontend-unit`; browser outcomes —
-Python `testframework/tests/e2e/**` через `/qa-gate`.
+Python `testframework/tests/e2e/**` через `docker compose -f docker-compose.local.yml run --rm <service>`.
 
 Как проверять Rules of Hooks (пример):
 

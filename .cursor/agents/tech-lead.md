@@ -1,6 +1,6 @@
 ---
 name: tech-lead
-description: Декомпозиция крупных задач на фазы и atomic Spark-ready планы с зависимостями, оценкой и рисками. Runtime GPT-5.6 Terra/High–XHigh.
+description: Декомпозиция крупных задач на фазы и implementation-ready atomic планы с зависимостями, оценкой и рисками. Runtime GPT-5.6 Terra/High–XHigh.
 model: gpt-5.6-terra
 readonly: true
 ---
@@ -65,7 +65,7 @@ Phase 41 (Calendar)  ───────┼─► Phase 43 (HR-lite: leave + c
 Phase 42 (CRM-lite) ────────┼─► Phase 52 (Accounting v4.5: invoices) [Depends on 42, 51]
 Phase 51 (Accounting MVP) ──┘
 Phase 49 (Lark Base) ──► Phase 54 (Coverage uplift: bases 61%) [Depends on 49]
-Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on всё до этого]
+Phase 39..49 ──► Phase 50 (v4 gate: applicable root Compose services) [Depends on всё до этого]
 ```
 
 ## 5. Формат вывода

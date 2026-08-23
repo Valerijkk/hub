@@ -23,7 +23,7 @@ import (
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues [post]
+// @Router /projects/{projectId}/issues [post]
 func (h *Handler) CreateIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -65,7 +65,7 @@ func (h *Handler) CreateIssue(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues [get]
+// @Router /projects/{projectId}/issues [get]
 func (h *Handler) ListIssues(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -97,7 +97,7 @@ func (h *Handler) ListIssues(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 404 {object} fiber.Error "Задача не найдена"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey} [get]
+// @Router /projects/{projectId}/issues/{issueKey} [get]
 func (h *Handler) GetIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -130,7 +130,7 @@ func (h *Handler) GetIssue(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey} [put]
+// @Router /projects/{projectId}/issues/{issueKey} [put]
 func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -169,7 +169,7 @@ func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey} [delete]
+// @Router /projects/{projectId}/issues/{issueKey} [delete]
 func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -205,7 +205,7 @@ func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/position [put]
+// @Router /projects/{projectId}/issues/{issueKey}/position [put]
 func (h *Handler) MoveIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -255,7 +255,7 @@ type jqlRequest struct {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Ошибка выполнения"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/jql [post]
+// @Router /projects/{projectId}/issues/jql [post]
 func (h *Handler) SearchIssuesJQL(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

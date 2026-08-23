@@ -62,18 +62,18 @@ WINDOWS_RESERVED_NAMES = {
 AUTHORITY_FILES = {
     "inventory": {
         "path": ".planning/audits/test-rebase/inventory.json",
-        "sha256": "72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511",
+        "sha256": "83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89",
     },
     "founder_manifest": {
         "path": ".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json",
-        "sha256": "df503a7f136aed70f0a9aaed2a576350f692574b0fd9f5506bd4b7f5fed0376a",
+        "sha256": "292b40dbddcc5e5709eef1504a1d6331e5cc45ddeb6e1534642d3ca3dc4288b7",
     },
     "architecture_contract": {
         "path": ".planning/audits/test-rebase/test-architecture-contract.json",
-        "sha256": "62eb27ecd93164cf404639e6c8b85d14843613da2d34ea4da08101a673bf1335",
+        "sha256": "8e9f4819f4f9813c2b9c92ec7cae8dba47782c61a2414dda649aa7ac0f3d315e",
     },
 }
-LEDGER_REVISION = "5708671f00411c7c9e9dbee88b725de2092cbacd"
+LEDGER_REVISION = "b9f690da5cdcf322fc5b28a8d96c71a422407154"
 NON_LEDGER_PATHS_SHA256 = "9b06611c2e5f9342ae081b6917e4033808c642e0b65216d7e60a0b2f89a62d49"
 PHASE129_BATCH_ORDER_SHA256 = "faebb25e84d4efb01fc02fb515118ed28d5224be50dc02ec45da3baea42bb9f5"
 PHASE129_PLAN_ORDER = ("129-02", "129-03", "129-04", "129-05", "129-06", "129-07")
@@ -323,7 +323,7 @@ GATE_REGISTRY = [
     {
         "id": "architecture-contract",
         "image": "python:3.12-slim",
-        "expected_image_digest": None,
+        "expected_image_digest": "sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
         "cpus": "1.0",
         "memory": "1g",
         "memory_swap": "1g",
@@ -344,7 +344,7 @@ GATE_REGISTRY = [
     {
         "id": "backend-unit",
         "image": "golang:1.25-bookworm",
-        "expected_image_digest": None,
+        "expected_image_digest": "sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24",
         "cpus": "2.0",
         "memory": "4g",
         "memory_swap": "4g",
@@ -366,7 +366,7 @@ GATE_REGISTRY = [
     {
         "id": "frontend-unit",
         "image": "mcr.microsoft.com/playwright:v1.61.0-noble",
-        "expected_image_digest": None,
+        "expected_image_digest": "sha256:57b65fdc9ceabe0ef613124c7bbe2babcf9362c4d85e382fe3b03604e84b428a",
         "cpus": "2.0",
         "memory": "4g",
         "memory_swap": "4g",
@@ -1477,6 +1477,9 @@ def write_transactionally(
         while written < len(payload):
             written += os.write(descriptor, payload[written:])
         os.fsync(descriptor)
+        # The identity snapshot must be taken after the payload lands: the
+        # post-close comparison includes size/mtime/ctime, which change on write.
+        staging_meta = os.fstat(descriptor)
         os.close(descriptor)
         descriptor = -1
         verify_fd = os.open(staging_name, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=parent_fd)

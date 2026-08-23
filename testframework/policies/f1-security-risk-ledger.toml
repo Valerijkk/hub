@@ -1,0 +1,41 @@
+schema = "hub.testframework.f1-security-risk-ledger/v1"
+
+[[edge]]
+risk_id = "RISK-OPENAPI-CANONICAL-DOCUMENT"
+severity = "critical"
+case_id = "TC-OPENAPI-0001"
+pytest_node_id = "testframework/tests/contract/openapi/test_openapi_security_contract.py::test_swagger_document_is_valid_with_single_api_prefix"
+profile = "openapi-contract"
+case_root = "testframework/cases/openapi"
+
+[[edge]]
+risk_id = "RISK-MAGIC-VERIFY-ERROR-CONTRACT"
+severity = "high"
+case_id = "TC-OPENAPI-0002"
+pytest_node_id = "testframework/tests/contract/openapi/test_openapi_security_contract.py::test_magic_verify_operation_lists_implemented_error_contract"
+profile = "openapi-contract"
+case_root = "testframework/cases/openapi"
+
+[[edge]]
+risk_id = "RISK-TMS-WEBHOOK-AUTH-DRIFT"
+severity = "critical"
+case_id = "TC-OPENAPI-0003"
+pytest_node_id = "testframework/tests/contract/openapi/test_openapi_security_contract.py::test_tms_webhooks_document_real_auth_not_legacy_token"
+profile = "openapi-contract"
+case_root = "testframework/cases/openapi"
+
+[[edge]]
+risk_id = "RISK-PUBLIC-ERROR-ARTIFACT"
+severity = "high"
+case_id = "TC-PRIVACY-0001"
+pytest_node_id = "testframework/tests/contract/privacy/test_public_error_contract.py::test_public_error_artifact_is_redacted_to_wire_schema"
+profile = "privacy-security"
+case_root = "testframework/cases/privacy"
+
+[[edge]]
+risk_id = "RISK-AUTH-SESSION-EVENT-LINK"
+severity = "high"
+case_id = "TC-SECURITY-0001"
+pytest_node_id = "testframework/tests/contract/security/test_auth_session_event_contract.py::test_auth_session_created_event_has_exact_producer_consumer_link"
+profile = "security-risk"
+case_root = "testframework/cases/security"

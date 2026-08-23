@@ -1,14 +1,13 @@
 # Регламент AI-команды Hub
 
-> **FOUNDER MODEL ROUTING LOCK (2026-08-11; highest precedence):** `team-lead`
+> **FOUNDER MODEL ROUTING LOCK (amended 2026-08-22; highest precedence):** `team-lead`
 > is the only Sol slot and runs `gpt-5.6-sol` with `max` reasoning. Every
 > downstream launch explicitly provides `model` and `reasoning_effort`;
 > `inherit`, an omitted field, or silent fallback is a dispatch error. Terra
-> (`gpt-5.6-terra`) owns analysis, decomposition, coordination and review with
-> task-routed `low|medium|high|xhigh`. Atomic code writers use
-> `gpt-5.3-codex` (5.3 Codex Spark) with `xhigh`, its full official 400k
-> context window when useful, and one function/small module/single-behaviour ownership after a frozen
-> contract. Spark never decides architecture, security or product scope. Sol is
+> (`gpt-5.6-terra`) owns every downstream task with task-routed
+> `low|medium|high|xhigh`. Atomic code writers always use Terra with `xhigh`,
+> one function/small module/single-behaviour ownership, and a frozen contract.
+> They never decide architecture, security or product scope. Sol is
 > forbidden for subagents; unavailable exact runtime means `UNKNOWN/BLOCKED`.
 
 > Полный цикл разработки: **32 агента** (лидерство/продукт, аналитика/архитектура/дизайн с верификаторами, backend/frontend/QA в параллельных потоках с кросс-ревью и верификаторами, cross-cutting специалисты). Ростер: `.cursor/playbooks/README.md`.
@@ -52,7 +51,7 @@ hard controls обязательны по применимости, а SOLID/DRY
 
 > **2026-07-02.** Команда реорганизована под параллельную разработку: **32 агента**. Полный ростер, модели и RACI — `.cursor/playbooks/README.md` и `.cursor/playbooks/team-workflow.md`. Практики ремесла вынесены в `.cursor/playbooks/*` (файлы агентов ссылаются, не дублируют). Прежние `project_skills/*_skill.md` удалены (миграция: `.cursor/project_skills/README.md`).
 
-**Runtime policy (founder lock, amended 2026-08-11):** `team-lead` = единственный **GPT-5.6 Sol / Max** слот. Terra (`gpt-5.6-terra`) явно запускается для анализа/декомпозиции/ревью с task-routed `low|medium|high|xhigh`; 5.3 Codex Spark (`gpt-5.3-codex`) явно запускается для атомарного кода с `xhigh` и полным официальным окном 400k, когда оно полезно. `model: inherit`, пропущенные параметры, Sol-субагенты и silent fallback запрещены. Недоступный точный runtime даёт `UNKNOWN/BLOCKED`. Канон: [`.cursor/playbooks/model-routing.md`](playbooks/model-routing.md). `team-lead-opus` — deprecated redirect, не escalation slot.
+**Runtime policy (founder lock, amended 2026-08-22):** `team-lead` = единственный **GPT-5.6 Sol / Max** слот. Все downstream-задачи явно используют Terra (`gpt-5.6-terra`) с task-routed `low|medium|high|xhigh`; атомарный код по frozen contract всегда получает `xhigh`. `codex-micro` — только стабильный legacy ID роли, не требование Codex runtime. `model: inherit`, пропущенные параметры, Sol-субагенты и silent fallback запрещены. Недоступный точный runtime даёт `UNKNOWN/BLOCKED`. Канон: [`.cursor/playbooks/model-routing.md`](playbooks/model-routing.md). `team-lead-opus` — deprecated redirect, не escalation slot.
 
 ### Лидерство и продукт
 
@@ -114,7 +113,7 @@ hard controls обязательны по применимости, а SOLID/DRY
 
 1. **Контекст задачи** — верификатор воспроизводит сценарий из требований
 2. **Независимый verifier** — отдельный запуск/контекст; для critical/security по возможности другая модель
-3. **Качество циклично** — новое поведение: test→fix→re-test до green; старый функционал — регрессия тем же циклом; без green `/qa-gate` артефакт не в baseline (см. §7, rule 56)
+3. **Качество циклично** — новое поведение: test→fix→re-test до green; старый функционал — регрессия тем же циклом; без green применимого `docker compose -f docker-compose.local.yml run --rm <service>` артефакт не в baseline (см. §7, rule 56)
 4. **Scoped context** — `AGENTS.md` + `STATE.md` + `docs/README.md`, затем только релевантные docs/sections; полный `docs/` не является quality gate
 5. **Атомарность** — ≤200–300 строк за итерацию
 6. **Security** — проверка по `security_guidelines.md` и `tz_constraints.md`
@@ -151,10 +150,10 @@ hard controls обязательны по применимости, а SOLID/DRY
    верифицированным TC) → qa-auto-ver
 6. Docs sync → .cursor/rules/55-docs-sync.mdc (STATE + domain docs)
 7. code-reviewer → team-lead приёмка
-8. /qa-gate → финальный чек (на интеграции волны)
+8. root Compose service → финальный чек (на интеграции волны)
 ```
 
-Hotfix: `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
+Hotfix: `be`/`fe` → `be-ver`/`fe-ver` → root Compose service
 
 ---
 
@@ -162,7 +161,7 @@ Hotfix: `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
 
 | Команда | Назначение |
 |---------|------------|
-| `/qa-gate` | build + test + lint + security scan |
+| root Compose service | scope-matched build/test/lint/security execution |
 | `/coverage-audit` | матрица требований × код × тесты |
 | `/handoff-sync` | STATE + ROADMAP + COVERAGE + docs matrix |
 | `/style-check` | anti-AI + deprecated + a11y |
@@ -175,7 +174,7 @@ Hotfix: `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
 Любое изменение кода, конфигурации или docs, затрагивающее поведение — **сразу** два циклических контура:
 
 1. **Новая фича / новое поведение** — проверить → FAIL? → triage → fix → повтор до green.
-2. **Старый функционал (регрессия)** — домен/смежное → FAIL? → triage → fix → повтор; на интеграции волны — `/qa-gate`.
+2. **Старый функционал (регрессия)** — домен/смежное → FAIL? → triage → fix → повтор; на интеграции волны — root Compose service.
 
 Одноразовой проверки недостаточно.
 
@@ -184,7 +183,7 @@ Hotfix: `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
 его failures не чинятся, если они не доказали production bug. Новый код до
 готовности Python слоя защищается genuine unit tests и независимым verifier.
 
-Или slash-команда: **`/qa-gate`** — останавливается на первой FAIL; после фикса — повтор (цикл).
+Запусти exact service: **`docker compose -f docker-compose.local.yml run --rm <service>`**; после фикса — повтор (цикл).
 
 **Правило для агентов:** сделал изменение → цикл качества нового → цикл регрессии старого → skill-лог PASS/FAIL → только после green — передача `*-ver`.
 
@@ -293,7 +292,7 @@ routing по `description`, когда задача требует docs-sync в�
 | Папка | Что внутри | Примеры файлов |
 |-------|------------|-----------------|
 | `.planning/archive/july-2026/` | July Rebuild / QA-HARDENING | `INDEX-JULY-2026.md`, `JULY-2026-REBUILD-BRIEF.md`, `ROADMAP-FINAL-2026-07-03.md`, `ROADMAP-DETAILED-JULY-RETURN.md`, `PROJECT-STATUS-2026-07-10.md`, `CODE-QUALITY-CHARTER.md`, `EDGE-CORNER-CATALOG.md`, `EXPANSION-ANALYSIS-2026-07-02.md` |
-| `.planning/audits/2026-06/` | Аудиты июня | `AUDIT-2026-06-23.md`, `AUDIT-2026-06-23-full.md`, `AUDIT-SCORECARD.md`, `FA-01-AUDIT.md`, `FA-02-SECURITY-REAUDIT.md`, `FA-10-QA-GATE.md`, `FA-RBAC-FIBER3-AUDIT.md`, `TECH-DEBT-AUDIT-2026-06-23.md`, `WAVE-C-VERIFICATION.md`, `RU-V-REPORT.md`, `AUDIT-2026-06-22-quality-processes.md` |
+| `.planning/audits/2026-06/` | Аудиты июня | `AUDIT-2026-06-23.md`, `AUDIT-2026-06-23-full.md`, `AUDIT-SCORECARD.md`, `FA-01-AUDIT.md`, `FA-02-SECURITY-REAUDIT.md`, FA-10 archived gate record, `FA-RBAC-FIBER3-AUDIT.md`, `TECH-DEBT-AUDIT-2026-06-23.md`, `WAVE-C-VERIFICATION.md`, `RU-V-REPORT.md`, `AUDIT-2026-06-22-quality-processes.md` |
 | `.planning/ops/production/` | Prod ops | `PG-03-SECRET-ROTATION.md`, `PRODUCTION-HANDOFF.md`, `FA-06-EXECUTION-LOG.md`, `PROD-01-SPIKE.md`, `PR-feat-v2.5-trust.md` |
 | `.planning/decisions/gray-zones/` | Серые зоны + зафиксированные решения | `GRAY-ZONES-DECISIONS-2026-07-03.md`, `AREA-quality.md`, `AREA-release-process.md`, `AREA-security.md`, `AREA-security-ops.md`, `AREA-v4-parity.md`, `AREA-arch-services.md` |
 | `.planning/archive/roadmaps/` | Исторические roadmap/backlog | `EXECUTIVE-REPORT-2026.md`, `FEATURE-BACKLOG-2026.md`, `IMPROVEMENT-MASTER-PLAN.md`, `MICROSERVICES-ROADMAP.md`, `MILESTONE-2.md`, `MILESTONE-3.md`, `DISCUSS-ROADMAP-LOCKED.md`, `DISCUSS-ROADMAP-2026-CONTEXT.md` |
@@ -337,7 +336,7 @@ spec/phase только после triage. Другие seed-команды не
 | Изменение auth-потока | Magic Link rate-limit, refresh rotation | `docs/security_guidelines.md`, `docs/tz_constraints.md` (если меняет mandatory), `.planning/STATE.md` |
 | Новый UI flow / хоткей | Ctrl+K палитра, bases inline-edit | `docs/wiki/SHORTCUTS.md`, `docs/wiki/QUICKSTART.md`, `docs/vision_and_scope.md` (если новый US) |
 | Новые тесты / coverage | `backend/tests/tracker/service_test.go` или `testframework/tests/api/tracker/` | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
-| CI/CD, Docker, K3s | `docker-compose.test.yml`, `.github/workflows/ci.yml` | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
+| CI/CD, Docker, K3s | root `docker-compose.local.yml`, `.github/workflows/ci.yml` | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
 | Security fix | webhook signature, SSRF guard | `docs/security_guidelines.md` + запись в `.planning/audits/2026-06/AUDIT-SCORECARD.md` если закрывает finding |
 | Закрытие gap/wave | Волна интеграции | `.planning/archive/tasks/TASKS-CLOSE-GAPS.md`, `.planning/STATE.md` |
 | Архитектурное решение | Микросервисы, SSO | `.planning/decisions/ADR-*.md` + `docs/architecture.md` |
@@ -384,15 +383,15 @@ spec/phase только после triage. Другие seed-команды не
 
 ---
 
-## 15. `/qa-gate` — единый executable authority
+## 15. Root Compose services — единый executable authority
 
 Этот регламент не дублирует inner Docker commands. Канонический
-outer launcher, target jobs, limits, Compose profiles, fail protocol и cleanup
-определены только в `.cursor/skills/qa-gate/SKILL.md`; target layout — в
-`AGENTS.md`. Прямой `docker run`/`docker compose` snippet из playbook,
+target jobs, limits, Compose profiles, fail protocol и cleanup
+определены в `docker-compose.local.yml`; target layout — в
+`AGENTS.md`. Используй только `docker compose -f docker-compose.local.yml run --rm <service>`;
 отчёта или historical appendix не заменяет launcher.
 
-Если target path, image, profile или runner ещё не реализован,
+Если target path, image, profile или service ещё не реализован,
 результат — `NOT_READY`, а не legacy substitute и не доказанный
 `PASS`. Zero collection, unexpected skip и cleanup leak fail closed.
 
@@ -413,12 +412,12 @@ artifact path и cleanup. Self-report и historical acceptance не evidence.
 
 1. BE вносит минимальный production diff и genuine Go units в
    `backend/tests/tracker/**`.
-2. Канонический `/qa-gate` launcher запускает changed-risk jobs.
+2. Exact root Compose service запускает changed-risk jobs.
 3. FAIL по new behavior → `ROOT=code|test|infra|flaky|stop` → минимальный
    fix → повтор упавшего и adjacent risk jobs.
 4. Public API/integration/browser risk покрывается greenfield Python
 suite в `testframework/tests/{api,integration,e2e}/**`, когда применимо.
-5. На интеграции волны выполняется полный selected `/qa-gate`;
+5. На интеграции волны выполняются все применимые root Compose services;
    missing target scaffold даёт `NOT_READY`.
 6. Evidence и owner marker лежат в
    `testframework/reports/<task-run>/`; docs/traceability синхронизированы.
@@ -590,7 +589,7 @@ Hub-сторона тулкита: [`.cursor/playbooks/prompt-contract.md`](play
 - Планы (порт GSD, PE, portable kit): [`.planning/archive/july-2026/ai-expansion/`](../.planning/archive/july-2026/ai-expansion/README.md)
 - Historical/non-executable acceptance snapshot:
   [`07-ACCEPTANCE.md`](../.planning/archive/july-2026/ai-expansion/07-ACCEPTANCE.md).
-  Он не заменяет current TaskContract, `/qa-gate` evidence и independent
+  Он не заменяет current TaskContract, root Compose evidence и independent
   verifier на exact revision.
 - Граница двух слоёв по объекту работы — §20 выше
 

@@ -19,7 +19,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/typing [post]
+// @Router /messenger/channels/{channelId}/typing [post]
 func (h *Handler) SendTyping(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -51,7 +51,7 @@ func (h *Handler) SendTyping(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Параметр user_ids обязателен"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/presence [get]
+// @Router /messenger/presence [get]
 func (h *Handler) GetPresence(c fiber.Ctx) error {
 	callerID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -81,7 +81,7 @@ func (h *Handler) GetPresence(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/presence/status [put]
+// @Router /messenger/presence/status [put]
 func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -110,7 +110,7 @@ func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 // @Success 200 "Heartbeat принят"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/presence/heartbeat [post]
+// @Router /messenger/presence/heartbeat [post]
 func (h *Handler) Heartbeat(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {

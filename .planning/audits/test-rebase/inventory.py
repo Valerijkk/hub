@@ -648,7 +648,7 @@ def sorted_files(
                 raise ValueError(f"descriptor-relative source enumeration failed: {relative}: {error}") from error
             visited_files += len(names)
             if visited_files > max_files:
-                raise ValueError(f"source traversal exceeded {max_files} entry budget: {root}")
+                raise ValueError(f"source traversal exceeded {max_files} file budget: {root}")
             for name in names:
                 if (
                     name in {"", ".", ".."}
@@ -2259,6 +2259,9 @@ def write_inventory_atomically(
                 raise OSError("short write while staging inventory")
             written += count
         os.fsync(descriptor)
+        # The identity snapshot must be taken after the payload lands: the
+        # post-close comparison includes size/mtime/ctime, which change on write.
+        staging_meta = os.fstat(descriptor)
         os.close(descriptor)
         descriptor = -1
 

@@ -1,13 +1,18 @@
 # Hub — Тестовая документация
 
-> **Обновлено:** 2026-07-28 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`  
+> **Обновлено:** 2026-08-23 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`
 > **Edge/Corner backlog:** [`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/archive/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
 >
-> **Founder authority 2026-08-12:** команды и пути legacy ниже были inventory,
-> а не executable canon. Единственная публичная точка — `/qa-gate`; private
-> runner source candidate имеет только static review. Package/launcher
-> `NOT_READY`, `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime
-> `NOT_RUN`. Direct host/runner/Docker/Compose fallback запрещён.
+> **Current QA authority:** legacy commands and paths below are inventory, not executable canon.
+> **Minimal slice status (2026-08-23):** the 14-path target-unit curation and
+> 241 hook-dependent deletion batches have accepted receipts. Full legacy-root
+> reconciliation is 349 relocations + 232 net component deletions + 241
+> hook-dependent deletions = 822 removed source paths. Protected Mail/Calendar
+> paths remain outside this merge. Runnable genuine
+> units live under `backend/tests/**` and `frontend/tests/**`; historical
+> legacy paths/counts below are inventory only and never an execution fallback.
+> Единственная публичная точка — `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
+> Допустимы только восемь declared QA services; host test processes запрещены.
 
 ---
 
@@ -17,15 +22,15 @@
 
 | Уровень | Инструменты | Расположение | CI job |
 |---------|-------------|--------------|--------|
-| Unit (Backend) | Go testing + testify | `backend/tests/{domain}/` | `backend-unit` (`NOT_READY`) |
-| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit` (`NOT_READY`) |
-| API / integration / contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | future fixed targets (`NOT_READY`) |
-| E2E | pytest + Playwright | `testframework/tests/e2e/` | `python-e2e-smoke/full` (`NOT_READY`) |
-| Load | Locust | `testframework/load/` | `python-load` (`NOT_READY`) |
+| Unit (Backend) | Go testing + testify | genuine product units: `backend/tests/{domain}/` | `backend-unit`: PASS (build/vet/unit/race) |
+| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit`: PASS (338/338 suites, 419/419 tests) |
+| Framework | pytest | `testframework/selftests/**` | `python-contract`: PASS (181/181 framework selftests; no SUT product tests) |
+| API / integration / E2E | pytest + httpx/Playwright | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
+| Load | Locust | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
 
 ### Принципы
 
-1. **Execution:** fixed target только через `/qa-gate`; unavailable target остаётся `NOT_READY`/`NOT_RUN`.
+1. **Execution:** exact service только через root Compose `run --rm`; PASS относится только к фактически запущенному target и не переносится на `NOT_RUN` targets.
 2. **Historical metrics:** statement coverage и legacy counts — inventory, не текущий migration/release gate.
 3. **Auth тесты:** Magic Link only (v2.5) — Telegram login endpoints **удалены**
 4. **E2E:** legacy TypeScript inventory удаляется, greenfield target — Python suite.
@@ -48,13 +53,11 @@
 
 Backend/Frontend genuine units принадлежат целевым roots из таблицы выше.
 Legacy `backend/testframework/**`, static-contract Vitest и TypeScript
-Playwright остаются только frozen inventory до exact deletion batch и не
-запускаются как fallback.
+Playwright удалены; их historical inventory не запускается как fallback.
 
-Применимый target запрашивается через `/qa-gate`. Accepted evidence содержит
-exact revision, immutable image identity, task-owned artifacts, duration/result
-и exact cleanup receipt. Если launcher/job не принят, verdict — `NOT_READY` или
-`NOT_RUN`, а не green.
+Применимый target запускается только через root Compose `run --rm` с exact service.
+QA services disposable, а integration/e2e используют изолированную QA-инфраструктуру.
+Исторические legacy QA entrypoints архивны; отсутствие прогона через `docker compose -f docker-compose.local.yml run --rm <service>` не заменяется green-claim.
 
 ---
 

@@ -18,7 +18,8 @@ func wireAuth(d *serverDeps) {
 
 	// --- Сервисы ---
 
-	// Magic link: при наличии API-ключа Resend — отправка email; иначе — dev-режим (код в логах).
+	// Resend delivers magic links when configured. Without it delivery is disabled;
+	// only cfg.Server.DevMode controls whether an HTTP response may disclose the code.
 	var resendClient auth.ResendClient
 	if cfg.Resend.APIKey != "" {
 		resendClient = auth.NewResendEmailClient(cfg.Resend.APIKey, cfg.Resend.FromEmail)
@@ -90,7 +91,9 @@ func wireAuth(d *serverDeps) {
 	api.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
 
 	// AUTH-01: Telegram login убран; notify bot — Phase 15 Wave 3.
-	authHandler := auth.NewHandler(authSvc)
+	// DEV_MODE is the sole switch for exposing a one-time code in the response.
+	// Missing Resend credentials disable delivery but never enable disclosure.
+	authHandler := auth.NewHandler(authSvc, cfg.Server.DevMode)
 	authHandler.RegisterRoutes(api, requireAuth)
 
 	// Dev routes (seed, login без Magic Link — только при DEV_MODE=true)

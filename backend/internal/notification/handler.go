@@ -61,7 +61,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/notifications [get]
+// @Router /notifications [get]
 func (h *Handler) List(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -102,7 +102,7 @@ func (h *Handler) List(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/notifications/unread-count [get]
+// @Router /notifications/unread-count [get]
 func (h *Handler) UnreadCount(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -127,7 +127,7 @@ func (h *Handler) UnreadCount(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/notifications/{id}/read [patch]
+// @Router /notifications/{id}/read [patch]
 func (h *Handler) MarkRead(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -154,7 +154,7 @@ func (h *Handler) MarkRead(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/notifications/read-all [patch]
+// @Router /notifications/read-all [patch]
 func (h *Handler) MarkAllRead(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -178,7 +178,7 @@ func (h *Handler) MarkAllRead(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/notifications/{id} [delete]
+// @Router /notifications/{id} [delete]
 func (h *Handler) Delete(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -206,7 +206,7 @@ func (h *Handler) Delete(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/notifications/preferences [get]
+// @Router /notifications/preferences [get]
 func (h *Handler) GetPreferences(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -233,7 +233,7 @@ func (h *Handler) GetPreferences(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/notifications/preferences [put]
+// @Router /notifications/preferences [put]
 func (h *Handler) UpdatePreference(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -264,7 +264,7 @@ func (h *Handler) UpdatePreference(c fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} map[string]string "vapid_public_key"
 // @Security BearerAuth
-// @Router /api/notifications/push/vapid-key [get]
+// @Router /notifications/push/vapid-key [get]
 func (h *Handler) GetVAPIDKey(c fiber.Ctx) error {
 	push := h.service.PushSender()
 	key := ""
@@ -293,7 +293,7 @@ type PushSubscribeRequest struct {
 // @Failure 403 {object} fiber.Error "Endpoint принадлежит другому пользователю"
 // @Failure 503 {object} fiber.Error "Push не настроен"
 // @Security BearerAuth
-// @Router /api/notifications/push/subscribe [post]
+// @Router /notifications/push/subscribe [post]
 func (h *Handler) PushSubscribe(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -349,7 +349,7 @@ type PushUnsubscribeRequest struct {
 // @Failure 404 {object} fiber.Error "Подписка не найдена"
 // @Failure 503 {object} fiber.Error "Push не настроен"
 // @Security BearerAuth
-// @Router /api/notifications/push/unsubscribe [delete]
+// @Router /notifications/push/unsubscribe [delete]
 func (h *Handler) PushUnsubscribe(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {

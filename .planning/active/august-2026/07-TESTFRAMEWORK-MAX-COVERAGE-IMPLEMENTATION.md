@@ -1,0 +1,918 @@
+# Testframework Maximum-Coverage Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:subagent-driven-development` or `superpowers:executing-plans` task by task. Checkboxes are deliberately retained for execution tracking; this document itself grants source-authoring scope only.
+
+**Goal:** Author the greenfield `testframework` package, closed test-case catalog, and maximum-risk suite source in ordered waves without claiming that a runner, image, dependency resolution, Docker execution, or product behavior is ready.
+
+**Architecture:** One installable `hub_testkit` package owns reusable Python QA behavior. Repository-owned cases, schemas, policies, framework selftests, and SUT suites remain separate roots and join only through validated traceability metadata and the sole future launcher. The waves intentionally maximize coverage of implemented, observable Hub behavior while keeping product proposals and unverified infrastructure out of the executable source surface.
+
+**Tech Stack:** CPython 3.12.13; `requires-python = ">=3.12,<3.13"`; Hatchling; uv lock generation in Docker only; pytest framework selftests; Pydantic, JSON Schema, HTTPX, OpenAPI validation, Playwright, and Locust in explicit dependency groups.
+
+## Global Constraints
+
+- This is the founder's 2026-08-15 override of `G129-C`, `G130-H`, and per-feature `G-ACTIVATE-*` **only for source authoring in F0--F3**. It does not create an execution receipt or alter `NOT_READY` / `NOT_RUN` runtime truth.
+- Runtime is still prohibited until all of A1 runner admission, R Docker resolver admission, immutable image evidence, generated `uv.lock`, and Docker-only evidence are separately accepted on one exact revision. File existence, source review, or a source commit never supplies any of those proofs.
+- Do not run host or Docker tests, linters, package builders, dependency resolution, services, browser automation, load, or network requests while authoring this plan. Future execution always uses the sole accepted launcher and task-owned Docker resources.
+- The canonical new-case grammar is `^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$`. `TC-HEALTH-0001` is valid. Older `TC-AUTH-03` examples and `HUB-TC-*` inventory identifiers are historical evidence only and are rejected for new `testframework/cases/**` files.
+- Keep the exact 47 profile identifiers, image roles, limits, targets, and deadlines in Phase 130 unchanged. A registered profile is capacity metadata, not runtime activation or proof that a target suite exists.
+- No generic `utils.py`, `BaseTest`, global mutable configuration, `sys.path` mutation, copied suite-local reusable helpers, direct `src/` imports, package-to-suite imports, unbounded retry/polling, raw secret diagnostics, or a second launcher is permitted.
+- No test may assert an unimplemented product proposal. Magic-link TTL behavior is excluded pending a product decision. “Tenant” cases are limited to an actual implemented ownership/scope invariant; they must not invent multi-tenant behavior for a single-tenant deployment. Current read-only Calendar aggregation/export and implemented call API authz/signature behavior are in scope. Calendar-v2 writes/resources/availability/subscriptions, Wiki, WebRTC/media capacity, and other unimplemented call proposals remain planned-only.
+- Every future source slice has one bounded feature/risk, literal owned paths, a schema-valid case or explicit framework-selftest rationale, an observable oracle, exact cleanup, a rollback-by-revert boundary, and independent review before the next slice.
+
+## 1. Authority and status separation
+
+This document supersedes the former missing-predecessor stops only as described above. It does not reopen Phase 129 deletion/cutover work, accept the private runner, or authorize edits outside the F0--F3 source plan.
+
+| Surface | Source-authoring status | Execution/runtime status |
+|---|---|---|
+| F0 package, traceability, plugin, health, framework selftests | Authorized in the order below | `NOT_READY` / `NOT_RUN` until A1, R, image, lock, and Docker evidence |
+| F1 HTTP, identity, authorization/platform, OpenAPI/security | Authorized after F0 source review | `NOT_READY` / `NOT_RUN` under the same gates |
+| F2 integration/API spine | Authorized after F1 source review, only for implemented behavior | `NOT_READY` / `NOT_RUN` under the same gates |
+| F3 browser, accessibility, privacy, load | Authorized after its source prerequisites, never as a product-readiness claim | `NOT_READY` / `NOT_RUN` under the same gates |
+| Phase 129 cutover/deletion, CI publication, deployments | Not authorized by this document | Unchanged |
+
+`A1` is the accepted public versioned launcher admission; `R` is the accepted Docker dependency-resolution admission. Both must record exact source revision, approved request/profile binding, image digest, resource limits, failure/cleanup behavior, and provenance. `uv.lock` is generated only by R's Docker-owned resolver from the committed `pyproject.toml`; it is never hand-authored and may remain absent before R.
+
+## 2. Fixed physical contract and F0 bootstrap
+
+### 2.1 Bootstrap files and responsibilities
+
+| Path | Responsibility | First owning atomic slice |
+|---|---|---|
+| `testframework/pyproject.toml` | sole package metadata, Hatchling build backend, Python range, `src` discovery, pytest strict configuration, and dependency-group authority | F0-01 |
+| `testframework/.python-version` | literal `3.12.13` only | F0-01 |
+| `testframework/uv.lock` | generated exact resolution only after R; intentionally absent before R | F0-02/R |
+| `testframework/PACKAGE-CONTRACT.md` | current source/package/runtime status updated in the same atomic slice that changes package artifacts | F0-01 and F0 closure |
+| `testframework/src/hub_testkit/__init__.py` | sole public namespace boundary | F0-01 |
+| `testframework/src/hub_testkit/py.typed` | PEP 561 marker shipped with typed public surfaces | F0-01 |
+| `testframework/src/hub_testkit/config/{__init__.py,models.py,load.py}` | frozen strict settings and environment admission before SUT I/O | F0-03 |
+| `testframework/src/hub_testkit/runtime/{__init__.py,ids.py,ownership.py,redaction.py}` | run identity, exact ownership ledger, cleanup scope, fail-closed redaction | F0-03 |
+| `testframework/src/hub_testkit/traceability/{__init__.py,model.py,loader.py,index.py}` | closed case records, schema loading, case index, collected-test link validation | F0-04 |
+| `testframework/src/hub_testkit/pytest_plugin/{__init__.py,plugin.py,markers.py,collection.py,reporting.py}` | public pytest-hook collection and reporting policy only | F0-05 |
+| `testframework/src/hub_testkit/domains/health/{__init__.py,models.py,api.py,oracles.py}` | narrow health facade and observable health oracle | F0-06 |
+| `testframework/schemas/test-case.schema.json` | closed machine-readable frontmatter/case contract | F0-04 |
+| `testframework/policies/{markers.toml,environments.toml,redaction.toml,profiles.toml}` | closed marker, environment, redaction, and exact 47-profile policy data | F0-02/F0-04/F0-05 |
+| `testframework/selftests/architecture/{package,config,policies}/**` | installation, metadata, configuration, profile, namespace, marker, and no-service contracts collected by `architecture-selftest` | F0-01 through F0-03 |
+| `testframework/selftests/collection/{traceability,pytest_plugin}/**` | case and public-hook collection contracts collected by `collection-gates` | F0-04/F0-05 |
+| `testframework/selftests/runtime/**` | ownership, cleanup, deadline, and redaction contracts collected by `runtime-observability` | F0-03 |
+| `testframework/selftests/architecture/imports/**` | import-direction and forbidden-pattern contracts collected by `architecture-selftest` | F0-05 |
+| `testframework/tests/api/health/**` and `testframework/cases/health/TC-HEALTH-0001.md` | first schema-valid API tracer for `GET /api/live` | F0-06 |
+
+The package owns no generic product behavior. SUT tests only import installed `hub_testkit.*`; framework selftests may validate package contracts but never contact Hub, read credentials, create reports, or access network services.
+
+### 2.2 `pyproject.toml` package groups
+
+The committed project metadata contains one group authority with the following membership. Version resolution is deliberately deferred to R and becomes immutable only in generated `uv.lock`.
+
+| Group | Exact packages | First source consumer |
+|---|---|---|
+| project runtime | `pydantic`, `jsonschema` | F0 config and traceability |
+| `framework` | `pytest`, `pytest-timeout`, `pytest-randomly` | F0 selftests and plugin |
+| `quality` | `ruff`, `mypy`, `import-linter` | F0 architecture/source contracts |
+| `http` | `httpx` | F1 HTTP and health extraction |
+| `contract` | `openapi-spec-validator` | F1 OpenAPI contract |
+| `browser` | `playwright`, `pytest-playwright` | F3 browser/a11y only |
+| `load` | `locust` | F3 load only |
+
+Hatchling is the only build backend. `pytest-xdist`, Faker, Allure, Schemathesis, Pact, Testcontainers, code generators, and browser/load dependencies outside their named groups are not bootstrap dependencies. A package request that requires one of them must amend this plan and the group table before source authoring.
+
+## 3. Traceability, cases, and plugin contract
+
+Every new case is strict UTF-8 Markdown with exactly one leading TOML frontmatter block delimited by `+++` lines and parsed only by CPython 3.12 `tomllib`. YAML frontmatter and a second parser dependency are forbidden. The mapping is then validated by `test-case.schema.json`; bytes before the opening delimiter, an absent closing delimiter, duplicate TOML keys, invalid UTF-8, or an empty Markdown body fail closed.
+
+The case model is closed: `id`, `title`, `status`, `domain`, `layer`, `risk`, `tasks`, `requirements`, `automation`, `owner`, `data_classification`, `preconditions`, `test_data`, `oracle`, and `cleanup`. Unknown fields fail. Scalar fields are non-empty strings; `tasks`, `requirements`, `preconditions`, `test_data`, `oracle`, and `cleanup` are non-empty duplicate-free string arrays. `status` is `draft`, `active`, or `deprecated`; `layer` is `contract`, `api`, `integration`, `e2e`, `load`, or `manual`; `risk` is `critical`, `high`, `medium`, or `low`; `data_classification` is `public`, `internal`, `confidential`, or `restricted`.
+
+`automation` is a closed tagged object. Active `contract|api|integration|e2e` cases require exactly `{kind = "pytest", node_id = "<repo-relative pytest node id>"}`. Active `load` cases require exactly `{kind = "locust", entrypoint = "<repo-relative callable>"}`. `manual` cases require exactly `{kind = "manual", evidence_owner = "<owner>"}`. Cross-kind fields are forbidden. Each active pytest case has one unique node ID, and collection must prove a bijection between that node ID, the sole `case_id` marker, and the loaded active case. Missing active items, duplicate node IDs, and collected items not referenced by an active case fail.
+
+Collection uses one `@pytest.mark.case_id("TC-...")` and exactly one registered layer marker per executable test. The plugin uses public pytest hooks only and must fail closed on malformed/new-grammar ID, duplicate case ID, missing or unknown marker, path/layer mismatch, missing risk/oracle/cleanup, orphan requirement/task link, inactive case collected, unexpected `skip`/`xfail`, or zero collection. It emits only redacted JUnit properties for case/task/requirement/domain/risk. It performs no Hub or network I/O during collection.
+
+The 47 profile registry remains the literal list in `130-tf-traceability-gates/PLAN.md`: it is copied verbatim to `policies/profiles.toml` by F0-02 and receives a parser/duplicate/field-closure selftest. No runner code writes that file.
+
+## 4. Ordered source-authoring waves
+
+### F0 — package bootstrap, traceability, plugin, health, framework selftests
+
+1. **F0-01 package contract.** Add the project metadata, Python file, namespace marker, and package selftests. Prove source-level package discovery, distribution metadata intent, typed marker inclusion intent, strict pytest configuration, no root-path hack, and no service/network/reports dependency.
+2. **F0-02 profile and resolver boundary.** Add the literal 47-row profile policy plus selftest. Preserve the documented absent-before-R status for `uv.lock`; do not create or ignore a lock before R.
+3. **F0-03 strict config/runtime safety.** Add immutable `HubSettings`/environment policy admission; add nonce-bearing resource IDs, ownership ledger, exact cleanup scope, and idempotent recursive redaction. Selftests cover unknown config fields, production-deny admission, cross-run ownership, secret canaries, and no broad deletion selector.
+4. **F0-04 closed traceability.** Add the TOML-frontmatter case schema/model/loader/index and fixtures. Selftests prove strict UTF-8/`+++` parsing through stdlib `tomllib`, the four-digit grammar, historical-ID rejection, duplicate/orphan/node-ID rejection, and required task/requirement/risk/oracle/cleanup links.
+5. **F0-05 plugin/architecture.** Add public-hook plugin behavior and architecture selftests. Reject forbidden import directions, `sys.path`, `utils.py`, `BaseTest`, package-to-suite imports, naked sleep, unbounded polling, and unredacted reporting.
+6. **F0-06 health tracer.** Add `TC-HEALTH-0001` and its API test against the implemented `GET /api/live` contract: no authorization, `200`, JSON `status == "ok"`. `/api/ready` and `/api/health` remain separate readiness behavior, including possible `503/degraded`; they are not substituted for liveness and no nonexistent `version` field is asserted.
+
+### F1 — HTTP, identity/authz/platform, OpenAPI/security API and contract surfaces
+
+F1 begins only after F0 independent source review records that the package boundary and 47-profile policy are closed.
+
+**Founder source-authoring receipt (2026-08-15).** The instruction to build the
+test framework and maximize tests before any Docker execution activates F1-01
+source authoring on the reviewed F0 closure. For F1-01 only, this receipt
+supersedes the older Phase 131-A literal path list with the following exact
+allowlist:
+
+- `testframework/src/hub_testkit/http/{__init__.py,transport.py,auth.py,policy.py,errors.py,diagnostics.py}`;
+- `testframework/selftests/http/{test_policy.py,test_diagnostics.py}`;
+- `testframework/src/hub_testkit/domains/health/api.py`.
+
+F1-01 creates no case, SUT-suite, report, lock, image, runner, or execution
+evidence. `TC-HEALTH-0001` and its fake-only API test remain byte-unchanged.
+This receipt grants no later F1 slice and does not change `NOT_READY` /
+`NOT_RUN` runtime truth.
+
+**Founder F1-02 source-authoring receipt (2026-08-15).** The same instruction
+activates the identity/session source slice only after the independently
+reviewed F1-01 boundary. It is split into two revertable commits with these
+literal allowlists:
+
+1. JSON request closure may modify only
+   `testframework/src/hub_testkit/http/transport.py` and
+   `testframework/selftests/http/test_policy.py`. It adds the sole optional
+   `Content-Type: application/json` request contract; arbitrary headers and
+   all existing retry/auth/redaction rules remain closed.
+2. Identity source may create only
+   `testframework/src/hub_testkit/domains/identity/{__init__.py,models.py,builders.py,api.py,oracles.py}`,
+   `testframework/src/hub_testkit/harness/{__init__.py,identity.py,pytest_identity.py}`,
+   `testframework/tests/api/identity/{conftest.py,test_identity_api.py}`, and
+   `testframework/cases/identity/{TC-IDENTITY-0001.md,TC-IDENTITY-0002.md,TC-IDENTITY-0003.md,TC-IDENTITY-0004.md}`.
+
+Commit 2 may be authored only after commit 1 has received an independent
+source-review `ACCEPT`; otherwise stop after commit 1. Each commit has its own
+revert-only rollback boundary.
+
+The identity harness is an explicit launcher-injected protocol, never a fake
+SUT. The config stash contains an `IdentityHarnessFactory`, not a reusable
+harness instance: the function-scoped fixture creates one fresh harness and
+owner ledger per test, then calls that harness's exact cleanup in `finally`.
+Missing injection fails before a request. Future A1 admission for the
+`identity-api` profile must bind target `testframework/tests/api/identity` to
+the exact `--hub-case-root testframework/cases/identity` and reject any other
+case root; loading the global case catalog for a profile-local collection is
+forbidden. This receipt creates no concrete provisioner, environment lookup,
+dev login, magic-link delivery, report, lock, image, runner, Docker execution,
+or runtime evidence. It grants no F1-03 or later slice and preserves
+`NOT_READY` / `NOT_RUN`.
+
+**F1-03 source-authoring receipt (2026-08-15).** F1-03 is split into two
+independently revertible source-only commits. `authz-tenant` is only the frozen
+profile identifier; no test, case, model, diagnostic, or documentation may
+claim a tenant boundary in the current single-instance product. Both profiles
+use a launcher-injected factory stored in pytest config. A function-scoped
+fixture calls that factory exactly once per test, owns a fresh nonce-bound
+ledger, and calls that harness's exact cleanup in `finally`. Missing,
+duplicate, invalid, or cleanup-failing injection raises a generic
+`pytest.UsageError` with no secret-bearing preserved cause. There is no
+environment discovery, default HTTP client, fake SUT response, dev login,
+magic-link delivery, host execution, runner authority, or runtime evidence.
+
+F1-03A owns exactly these paths:
+
+```text
+testframework/src/hub_testkit/domains/authz/__init__.py
+testframework/src/hub_testkit/domains/authz/models.py
+testframework/src/hub_testkit/domains/authz/builders.py
+testframework/src/hub_testkit/domains/authz/api.py
+testframework/src/hub_testkit/domains/authz/oracles.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/src/hub_testkit/harness/authz.py
+testframework/src/hub_testkit/harness/pytest_authz.py
+testframework/tests/api/authz/conftest.py
+testframework/tests/api/authz/test_authz_api.py
+testframework/cases/authz/TC-AUTHZ-0001.md
+testframework/cases/authz/TC-AUTHZ-0002.md
+testframework/cases/authz/TC-AUTHZ-0003.md
+testframework/cases/authz/TC-AUTHZ-0004.md
+```
+
+The future `authz-tenant` A1 profile binds only
+`testframework/tests/api/authz` to exact
+`--hub-case-root testframework/cases/authz`; any global or different case root
+is rejected before collection. The four active `TASK-208` cases map one-to-one
+to four literal, non-parametrized pytest nodes:
+
+- `TC-AUTHZ-0001` / `test_system_admin_read_matrix`: anonymous registration
+  mode is `401`, an active member is `403`, and founder plus system-admin are
+  `200` with the sole `mode` field in `open|invite_only`.
+- `TC-AUTHZ-0002` /
+  `test_pending_approval_and_rejection_are_admin_only`: a member receives
+  `403` for pending-list, approve, and reject; an admin sees both owned pending
+  identities, approves one and rejects the other with the exact current success
+  messages, and neither remains in the later pending list. Setup provisioning
+  is not magic-link behavior and is never used as the oracle.
+- `TC-AUTHZ-0003` /
+  `test_deactivation_revokes_credentials_and_preserves_founder`: an admin
+  deactivates a fresh ordinary active identity with `200` and `success: true`;
+  that identity's access receives `/api/auth/me` `403` and its refresh receives
+  `/api/auth/refresh` `401`. Founder deactivation is `403` and the founder's
+  `/api/auth/me` remains `200`. Localized message text is not an oracle.
+- `TC-AUTHZ-0004` /
+  `test_pending_admin_endpoint_does_not_enumerate_active_users`: approving a
+  known active identity and an unknown UUID both produce `404` with the same
+  generic error shape; neither response nor diagnostic contains owned email,
+  ID, token, or nonce canaries.
+
+`AuthzHarness` exposes only `send`, `provision_principal`, and `cleanup`.
+Principal setup explicitly distinguishes `founder|admin|member` and
+`active|pending`, permits zero credentials for pending identities, redacts all
+credential/PII representations, and never emulates an API response.
+
+F1-03B owns exactly these paths:
+
+```text
+testframework/src/hub_testkit/domains/platform_abuse/__init__.py
+testframework/src/hub_testkit/domains/platform_abuse/models.py
+testframework/src/hub_testkit/domains/platform_abuse/builders.py
+testframework/src/hub_testkit/domains/platform_abuse/api.py
+testframework/src/hub_testkit/domains/platform_abuse/oracles.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/src/hub_testkit/harness/platform_abuse.py
+testframework/src/hub_testkit/harness/pytest_platform_abuse.py
+testframework/tests/api/platform/conftest.py
+testframework/tests/api/platform/test_platform_abuse.py
+testframework/cases/platform/TC-PLATFORM-0001.md
+testframework/cases/platform/TC-PLATFORM-0002.md
+```
+
+The future `abuse-platform` A1 profile binds only
+`testframework/tests/api/platform` to exact
+`--hub-case-root testframework/cases/platform`. Its two active `TASK-209`
+cases map one-to-one to two literal, non-parametrized pytest nodes:
+
+- `TC-PLATFORM-0001` /
+  `test_magic_verify_has_bounded_production_rate_limit`: with explicit
+  production-like `DevMode=false`, isolated Redis, controlled client identity,
+  and one owned nonce email, four identical valid-shape unknown-code requests
+  yield `401,401,401,429`; the fourth has exact `Retry-After: 600`. Raw
+  response, headers, diagnostics, and failures omit email, code, and nonce.
+- `TC-PLATFORM-0002` /
+  `test_magic_verify_rejects_replay_without_secret_leak`: explicit future
+  launcher authority provisions one owned active identity and one valid
+  one-time code without delivery or dev login; first public verification is
+  `200` with a strict token pair and byte-identical replay is `401`. Tokens,
+  code, email, nonce, and authorization never enter repr, failure text, case
+  markdown, or diagnostics.
+
+The one-time-code provisioner, isolated Redis binding, and production-like
+server remain future launcher/A1 responsibilities. The config stash holds a
+`PlatformAbuseHarnessFactory`; each call must bind a healthy exclusive Redis
+instance or database and one stable server-observed client identity before the
+first request. Its nonce-bound cleanup ledger records and may delete only the
+exact owned `rl:auth:ip:<server-derived-hash>`,
+`rl:auth-verify-email:email:<normalized-owned-email>`,
+`magiclink:fails:<normalized-owned-email>`, and owned one-time-code state.
+Prefix scan/delete is forbidden. Missing, foreign, unhealthy, or non-exclusive
+state fails before a request, and cleanup never removes an unrecorded key.
+Rate-limit expiry/recovery is excluded: no accepted clock-control API exists,
+sleeping ten minutes is forbidden, and cleanup of exact fixture-owned Redis
+keys is not an observed product oracle.
+
+`TC-AUTHZ-0005` is blocked on a separate product repair. The current project
+route registration places protected handlers before `rbac.RequirePermission`,
+and those handlers terminate the request without `Next`, so the RBAC middleware
+is unreachable. F1-03 must not manufacture a passing cross-project denial.
+After a separately reviewed backend fix, a follow-up may assert outsider member
+read `403`, developer owner-escalation `403`, unchanged developer role, owner
+read `200`, and canary-free denials. Organization invite success is also
+excluded because the current response exposes an invite secret. F1-03A and
+F1-03B create no profile binding, provisioner, image, lock, runner, Docker
+execution, report, or runtime evidence and preserve `NOT_READY` / `NOT_RUN`.
+
+**F1-04 source-authoring receipt (2026-08-15).** The current generated Swagger
+artifacts contain known RED contract defects: malformed security-definition
+`in`, a double `/api` client prefix, missing magic-verify `403`/`429`, an
+internal `AppError` schema instead of the public error wire, and legacy TMS
+webhook token authentication. These are product-documentation defects, not
+testframework acceptance. Their source annotation repair plus regeneration of
+all generated Swagger artifacts requires a separate reviewed backend manifest;
+F1-04 neither edits nor declares those artifacts repaired.
+
+F1-04 is five independently revertible source-only commits. The first commit is
+selftests-first and owns exactly:
+
+```text
+testframework/src/hub_testkit/contracts/__init__.py
+testframework/src/hub_testkit/contracts/source_bundle.py
+testframework/src/hub_testkit/contracts/pytest_source_bundle.py
+testframework/src/hub_testkit/contracts/risk_ledger.py
+testframework/policies/f1-security-risk-ledger.toml
+testframework/selftests/collection/contracts/test_source_bundle.py
+testframework/selftests/collection/contracts/test_risk_ledger.py
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
+```
+
+`ContractSourceBundleFactory` is a future launcher-injected callable installed
+exactly once in `pytest.Config.stash`. A function fixture invokes it exactly
+once per test and returns an opaque, non-revealing facade. The delegate exposes
+only `materialize() -> SourceSnapshot`; the snapshot contains lower-case
+40-hex `source_commit` and an ordered `tuple[SourceBlob, ...]` for this exact
+manifest v1:
+
+```text
+backend/cmd/server/main.go
+backend/docs/swagger.json
+backend/internal/auth/events.go
+backend/internal/auth/handler.go
+backend/internal/auth/service_session.go
+backend/internal/notification/consumer.go
+backend/internal/notification/events.go
+backend/internal/platform/middleware/middleware.go
+backend/internal/tms/handler.go
+testframework/policies/f1-security-risk-ledger.toml
+```
+
+The facade accepts exactly ten blobs in that literal tuple order; only this
+single snapshot input can be admitted, so missing, duplicate, extra, or
+reordered records are observable and rejected. Each
+`SourceBlob` is bound to its exact `ContractSourcePath`, lower-case raw SHA-256,
+strict UTF-8 without BOM/NUL/CR, at most 4 MiB per blob and 8 MiB total; missing,
+duplicate, extra, reordered, replaced, oversized, or digest-mismatched input is
+rejected. The immutable facade publishes only safe `source_commit`, canonical
+bundle digest, and a closed enum-based blob selector; there is no arbitrary
+path API. The canonical bundle digest is exactly SHA-256 over
+`b"hub.qa.contract-source-bundle/v1\0"`, the ASCII source commit, `b"\0"`, then
+for every ordered blob its ASCII logical path, `b"\0"`, ASCII raw SHA-256, and
+`b"\0"`. `load_f1_04_risk_ledger(bundle)` obtains the policy only through the
+closed facade selector; neither it nor any test accepts a path or byte-loader
+callable. Delegate/raw blob/raw exception references are deleted before a
+constant generic `pytest.UsageError` or `ContractSourceError`, and no secret or
+hostile input survives in repr or traceback locals. This transports claimed
+Git authority only: future R/A1 must independently prove every blob equals
+`git show <source_commit>:<logical_path>`.
+
+The contract package and F1-04 tests are forbidden from importing or using
+`pathlib`, `os`, `open`, `read_text`, `read_bytes`, cwd, environment variables,
+subprocess/Git, HTTP clients, private facade fields, or a second source loader.
+Architecture selftests enforce the active import/call boundary. The current
+declared `openapi-spec-validator` is not executable authority because `uv.lock`,
+resolved version/hash, and admitted dependency bytes are absent. F1-04 uses
+one stdlib duplicate-aware bounded JSON parser plus narrow structural
+predicates only. It calls `json.loads` with the duplicate-rejecting
+`object_pairs_hook`, `parse_constant` rejecting non-finite constants,
+`parse_int=_parse_bounded_int_lexeme`, and
+`parse_float=_parse_bounded_finite_decimal_lexeme`. The integer parser rejects
+lexemes over 20 characters before calling `int`; the float parser rejects
+lexemes over 64 before producing a finite `Decimal`; both delete raw values and
+suppress causes on failure. A recursive post-parse walk limits depth to 32,
+each mapping and list
+to 4,096 entries/items, and every string to 65,536 characters. Every decode,
+type, duplicate, numeric, depth, cardinality, or string-bound failure becomes a
+constant generic error with raw input deleted and `from None`; no separate JSON
+parser is permitted. External Swagger validation needs a separate R/A1
+amendment.
+
+`f1-security-risk-ledger.toml` has exactly ordered root keys `schema`, then five
+ordered `edge` records. Every record has exactly `risk_id`, `severity`,
+`case_id`, `pytest_node_id`, `profile`, `case_root`. Its closed values are:
+
+| Risk | Severity | Case | Profile | Case root |
+|---|---|---|---|---|
+| `RISK-OPENAPI-CANONICAL-DOCUMENT` | `critical` | `TC-OPENAPI-0001` | `openapi-contract` | `testframework/cases/openapi` |
+| `RISK-MAGIC-VERIFY-ERROR-CONTRACT` | `high` | `TC-OPENAPI-0002` | `openapi-contract` | `testframework/cases/openapi` |
+| `RISK-TMS-WEBHOOK-AUTH-DRIFT` | `critical` | `TC-OPENAPI-0003` | `openapi-contract` | `testframework/cases/openapi` |
+| `RISK-PUBLIC-ERROR-ARTIFACT` | `high` | `TC-PRIVACY-0001` | `privacy-security` | `testframework/cases/privacy` |
+| `RISK-AUTH-SESSION-EVENT-LINK` | `high` | `TC-SECURITY-0001` | `security-risk` | `testframework/cases/security` |
+
+The exact node IDs are respectively:
+
+```text
+testframework/tests/contract/openapi/test_openapi_security_contract.py::test_swagger_document_is_valid_with_single_api_prefix
+testframework/tests/contract/openapi/test_openapi_security_contract.py::test_magic_verify_operation_lists_implemented_error_contract
+testframework/tests/contract/openapi/test_openapi_security_contract.py::test_tms_webhooks_document_real_auth_not_legacy_token
+testframework/tests/contract/privacy/test_public_error_contract.py::test_public_error_artifact_is_redacted_to_wire_schema
+testframework/tests/contract/security/test_auth_session_event_contract.py::test_auth_session_created_event_has_exact_producer_consumer_link
+```
+
+The stdlib `tomllib` loader rejects every key/order/count/ID/severity/profile/
+root/node deviation. Each domain conftest verifies its actual public
+`item.user_properties` `hub.case_id` and `hub.risk` plus public `item.nodeid`
+against the ledger, without private plugin stash or direct case-file reads.
+Each of the three local conftests owns exactly one `autouse=True`,
+function-scoped fixture that performs this verification once for every item.
+It reads only `request.node.nodeid` and `request.node.user_properties`; missing,
+unknown, duplicate, reordered, or non-exact `hub.case_id`/`hub.risk` properties
+raise a constant generic failure. No test can bypass the edge check.
+This proves only these five explicit F1-04 edges; global critical/high closure
+remains `NOT_PROVEN`.
+
+The second F1-04 commit owns exactly:
+
+```text
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
+testframework/selftests/collection/contracts/test_source_bundle.py
+testframework/src/hub_testkit/contracts/source_bundle.py
+testframework/src/hub_testkit/contracts/openapi.py
+testframework/tests/contract/openapi/conftest.py
+testframework/tests/contract/openapi/test_openapi_security_contract.py
+testframework/cases/openapi/TC-OPENAPI-0001.md
+testframework/cases/openapi/TC-OPENAPI-0002.md
+testframework/cases/openapi/TC-OPENAPI-0003.md
+```
+
+The architecture selftest is modified first in this commit: it expands the
+exact admitted contract-module set only to include `openapi.py`, admits only
+`assert_openapi_canonical_document`, `assert_magic_verify_error_contract`, and
+`assert_tms_webhook_auth_contract` from `hub_testkit.contracts.openapi` for
+suite use. The complete cumulative suite-import set is exactly
+`contract_source_bundle`, `load_f1_04_risk_ledger`, and those three semantic
+functions; construction/provider/delegate exports remain forbidden. The gate
+preserves every
+raw bundle/factory/selector/private/filesystem/dynamic-import prohibition.
+
+The source-bundle selftest is also modified before production. F1-04 10B
+successor-authority upgrades the sealed manifest and digest tag from v1/ten
+blobs to v3/fourteen blobs by inserting the four exact auth-chain witnesses.
+The complete v3 order is:
+
+```text
+backend/cmd/server/main.go
+backend/cmd/server/wiring_auth.go
+backend/cmd/server/wiring_messenger.go
+backend/docs/swagger.json
+backend/internal/apigateway/apikey.go
+backend/internal/auth/events.go
+backend/internal/auth/handler.go
+backend/internal/auth/middleware.go
+backend/internal/auth/service_session.go
+backend/internal/notification/consumer.go
+backend/internal/notification/events.go
+backend/internal/platform/middleware/middleware.go
+backend/internal/tms/handler.go
+testframework/policies/f1-security-risk-ledger.toml
+```
+
+The literal canonical digest prefix becomes
+`b"hub.qa.contract-source-bundle/v3\0"`; all existing per-blob/total/type/path/
+order/provenance/error rules remain unchanged. The updated bundle selftests
+cover exact v3 ordering/digest plus missing/extra/reordered new witnesses.
+
+Its three literal, non-parametrized `TASK-227` cases validate narrow generated
+JSON-to-source relations rather than hard-coded Swagger expectations.
+`TC-OPENAPI-0001` consumes `backend/cmd/server/main.go` plus
+`backend/docs/swagger.json` and requires matching valid header-only
+`BearerAuth`/`APIKeyAuth` definitions, no conflicting base path, and exactly one
+composed `/api` prefix. `TC-OPENAPI-0002` consumes
+`backend/internal/auth/handler.go` plus Swagger JSON and requires the annotated
+magic-verify request/token success plus `400/401/403/429`, with no secret
+examples. Its source witness is only the contiguous `VerifyMagicLink`
+annotation block immediately preceding that method; failures on unrelated auth
+handlers are never counted. `TC-OPENAPI-0003` consumes
+`backend/cmd/server/main.go`,
+`backend/cmd/server/wiring_auth.go`,
+`backend/cmd/server/wiring_messenger.go`,
+`backend/internal/apigateway/apikey.go`,
+`backend/internal/auth/middleware.go`, `backend/internal/tms/handler.go`, and
+Swagger JSON. These witnesses must prove `wireAuth(d)` precedes
+`wireMessenger(d)`, API-key middleware registration, `X-API-Key` verification
+writing `Locals("userID", ...)` before `Next()`, TMS receiving that
+`requireAuth`, the matching pre-authenticated identity branch, and the named
+RBAC guard. Both generated webhook operations must match the source's
+exact supported alternatives:
+`[{"BearerAuth": []}, {"APIKeyAuth": []}]` plus the named
+`PermTestRunCreate` route guard. `X-Hub-Token` and query-token authentication
+remain forbidden. Each oracle freezes only these named annotations/routes and
+relations; it does not infer unrelated Go routes. Broad route snapshots, YAML,
+`docs.go`, live HTTP, and dev-only routes are excluded.
+
+The third F1-04 commit owns exactly:
+
+```text
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
+testframework/src/hub_testkit/contracts/public_error.py
+testframework/tests/contract/privacy/conftest.py
+testframework/tests/contract/privacy/test_public_error_contract.py
+testframework/cases/privacy/TC-PRIVACY-0001.md
+```
+
+The architecture selftest is modified first to admit only
+`public_error.py` and `assert_public_error_artifact_contract`. The complete
+cumulative suite-import set is the exact 10B set plus only that function; it
+retains every prior suite prohibition and the OpenAPI boundary.
+
+Its one literal `TASK-227` case consumes
+`backend/internal/platform/middleware/middleware.go` plus Swagger JSON and
+requires the generated public error definition to equal the implemented wire
+fields `error` and `request_id`, excluding `code`, `details`, `message`, secret
+examples, and extra fields. The oracle freezes only the named public error
+write relation and does not scan unrelated middleware.
+
+The fourth F1-04 commit owns exactly:
+
+```text
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
+testframework/src/hub_testkit/contracts/auth_events.py
+testframework/tests/contract/security/conftest.py
+testframework/tests/contract/security/test_auth_session_event_contract.py
+testframework/cases/security/TC-SECURITY-0001.md
+```
+
+The architecture selftest is modified first to admit only `auth_events.py` and
+`assert_auth_session_created_event_contract`. The complete cumulative
+suite-import set is the exact 10B plus 10C set plus only that function, while
+retaining every previous boundary.
+
+Its one literal `TASK-227` case checks a bounded source relation only: the exact
+`SessionCreatedEvent` JSON fields, producer subject `auth.session.created`,
+notification subject mapping, and typed consumer remain aligned. It does not
+execute a broker or infer other unversioned event families.
+
+The fifth commit changes only `testframework/PACKAGE-CONTRACT.md` and
+`testframework/README.md`. Future A1 profiles bind only
+`openapi-contract` to `tests/contract/openapi` plus exact `cases/openapi`,
+`privacy-security` to `tests/contract/privacy` plus exact `cases/privacy`, and
+`security-risk` to `tests/contract/security` plus exact `cases/security`.
+There is no 48th profile, profile-registry edit, filesystem source discovery,
+dependency resolution, provisioner, image, lock, runner, report, Docker
+execution, or runtime evidence. Status remains `NOT_READY` / `NOT_RUN`.
+
+1. **F1-01 HTTP policy and diagnostics.** Add immutable actor/client policy, explicit connect/read/write/pool timeout values, bounded retry classification, idempotency protection for unsafe methods, correlation, and redacted diagnostics. The first failures are mutable authorization, timeout/retry leakage, unsafe POST retry, and secret-bearing request evidence.
+2. **F1-02 identity/session/account.** Add only observable current auth/session/account behavior: successful valid flow, invalid credentials/no token, deactivated/blocked account denial where implemented, refresh/session revocation behavior where current routes support it, and exact fixture cleanup. Magic-link transport/code creation is not assumed; a safe provisioning path must be explicit. `/api/dev/login` is development-only and is not a default auth fixture.
+3. **F1-03 authorization/platform abuse.** Author only the six active cases in the source-authoring receipt above. Add admin/account RBAC denial, privilege preservation, enumeration-safe responses, one-time-code replay rejection, the observable production rate bound, and artifact redaction. Do not claim rate-limit expiry/recovery without clock control, and do not add cross-project denial until the separately reviewed middleware-order product fix exists. The reserved `authz-tenant` profile name is not evidence of a true multi-tenant product.
+4. **F1-04 OpenAPI/security contracts.** Author only the sealed-bundle, five-edge ledger, three Swagger, one public-error, and one auth-session-event source contracts above. Preserve the known RED documentation defects until a separate backend annotation/regeneration repair is accepted. No broad snapshot or global critical/high closure claim is allowed.
+
+### F2 — implemented integration/API spine
+
+F2 is source-authoring for active, observable implementations only. Each service gets isolated seed/nonce ownership and a source-level cleanup oracle before a SUT test is authored.
+
+**F2 135-F source-authoring receipt (2026-08-15).** The first F2 slice is only
+the implemented storage lifecycle under existing `files-api` and `TASK-214`.
+It grants no other Phase 135 task, no F2-wide authority, no new profile, and no
+runtime activation. The one independently revertible source commit modifies
+exactly these 16 paths, with the architecture selftest authored first:
+
+```text
+testframework/selftests/architecture/imports/test_files_domain_boundary.py
+testframework/src/hub_testkit/domains/files/__init__.py
+testframework/src/hub_testkit/domains/files/models.py
+testframework/src/hub_testkit/domains/files/builders.py
+testframework/src/hub_testkit/domains/files/api.py
+testframework/src/hub_testkit/domains/files/oracles.py
+testframework/src/hub_testkit/harness/files.py
+testframework/src/hub_testkit/harness/pytest_files.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/tests/api/files/conftest.py
+testframework/tests/api/files/test_files_api.py
+testframework/cases/files/TC-FILES-0001.md
+testframework/cases/files/TC-FILES-0002.md
+testframework/cases/files/TC-FILES-0003.md
+testframework/cases/files/TC-FILES-0004.md
+testframework/cases/files/TC-FILES-0005.md
+```
+
+The architecture selftest scans the files domain, files harness, and
+`tests/api/files` with alias-aware AST checks. `test_files_api.py` may import
+only `pytest` plus these five functions from `hub_testkit.harness.files`;
+`files_runtime` is fixture-injected and is never imported:
+
+```text
+assert_presigned_lifecycle_download_and_soft_delete
+assert_confirm_missing_object_then_retry_succeeds
+assert_confirm_and_delete_are_single_transition
+assert_files_require_authz_and_hide_storage_artifacts
+assert_upload_rejects_bounded_size_and_unsafe_media
+```
+
+Each function has the exact signature
+`def assert_...(runtime: FilesRuntime) -> None` and is defined in
+`hub_testkit.harness.files`. It returns `None` or raises only a constant generic
+error `from None`. `domains/files/oracles.py` owns only closed per-response
+parsing/projection and must not import `hub_testkit.harness` or tests. The AST
+gate has a separate literal allowlist for the minimal `conftest.py` imports
+needed to obtain and cleanup the runtime; it never grants those imports to test
+bodies.
+
+Each of the five literal `test_*` functions contains exactly the matching
+`@pytest.mark.case_id("<TC-FILES-NNNN>")` decorator, the
+`@pytest.mark.api` decorator, and one call to its mapped `assert_*` function
+with the fixture-injected `files_runtime`. Test bodies contain no other call,
+attribute access, assignment, comprehension, pytest API, `raises`, or control
+flow. The architecture AST rejects every `files_runtime` attribute access in a
+test body, any pytest use other than those two marker decorators, and every call
+other than the one mapped semantic assertion. Tests therefore cannot bypass
+the semantic worker, privacy/no-showlocals handling, or traceability binding by
+calling public `FilesRuntime.provision`, `put`, or `fetch` directly.
+
+It rejects `httpx`/`requests`, environment/filesystem discovery, client
+construction, `sleep`/polling, skip/xfail/parametrize, raw `send`, arbitrary
+URL/key access, ticket private fields, default transports, and direct fixture
+cleanup from test bodies. Dead-code, aliases, `getattr`, descriptor/private
+inspection, and dynamic imports are covered. Domain/harness code may use only
+the existing `HttpRequest`/`HttpExchange` policy boundary and the exact injected
+delegate; there is no second generic HTTP layer.
+
+`FilesHarnessFactory` is installed exactly once in `pytest.Config.stash`. A
+function fixture calls it once, obtains one healthy exclusive nonce-bound
+delegate, wraps it in a frozen/slotted opaque `FilesRuntime`, and calls exact
+cleanup once in `finally`. `FilesRuntime` holds a repr-hidden delegate and a
+repr-hidden `FilesApi`; it exposes only safe `provision`, `put`, and `fetch`
+operations plus the five named semantic functions' input surface. The delegate
+protocol is closed to `send(HttpRequest) -> HttpExchange`,
+`provision(FilesSeed) -> ProvisionedFiles`,
+`put(UploadTicket, UploadContent)`, `fetch(DownloadTicket) -> ObjectDigest`, and
+`cleanup()`. Tests never receive or call the delegate or raw sender. Every
+factory/delegate/builder/API/oracle failure uses non-throwing workers, deletes
+raw request/response/URL/key/token/content/canary references, and raises only a
+constant generic error with `from None`; opaque ticket/content/principal
+representations never reveal those values under `--showlocals`.
+
+The future launcher delegate owns one fresh ledger per test with exact owner
+principal/credentials/session, foreign principal/credentials/session, one
+owner project and membership/permissions, exact file metadata IDs, and exact
+task-owned S3 bucket/key objects. Cleanup order is exact object delete, exact
+metadata delete even after API soft-delete, membership/project delete, then
+principal/session artifacts. Prefix scan/delete, bucket/database/namespace
+delete, foreign adoption, environment fallback, cloud/provider egress, and
+cleanup-as-oracle are forbidden. `put` and `fetch` accept only same-runtime
+opaque tickets and may reach only the launcher-created local S3-compatible
+endpoint. Product `DELETE /files/:id` is metadata soft-delete only; the harness
+removes the exact object during cleanup and no test claims product object purge.
+Every `UploadTicket` privately and immutably retains its runtime binding,
+presigned URL, object key, expected content type, and expected byte length.
+`FilesRuntime.put` rejects a cross-runtime ticket or byte-length mismatch before
+I/O; the delegate sends exactly the ticket-bound content type and content
+length. Those fields are never public or repr-visible.
+
+The five active `TASK-214` cases map one-to-one to five literal,
+non-parametrized pytest nodes:
+
+- `TC-FILES-0001` /
+  `test_presigned_lifecycle_download_and_soft_delete`: an owner with exact
+  upload/view/delete permissions submits a bounded valid request; the public
+  response has exactly `fileId`, `uploadUrl`, `s3Key`, but the facade publishes
+  only an opaque same-runtime ticket. Task-owned PUT succeeds, confirm is exact
+  `200 {"status":"confirmed"}`, an opaque download is fetched and verified by
+  exact length/SHA-256, delete is exact `200 {"status":"deleted"}`, and the
+  later public GET is `404`.
+- `TC-FILES-0002` /
+  `test_confirm_missing_object_then_retry_succeeds`: confirming pending metadata
+  without an object is `404`; putting the exact same ticket and confirming
+  again is `200`. This observes the real S3 HEAD before transition and proves
+  the pending metadata remains recoverable without sleep or internal key edits.
+- `TC-FILES-0003` /
+  `test_confirm_and_delete_are_single_transition`: confirming a confirmed file
+  again is `409`; first delete is `200`, second delete is `404`. No idempotency
+  header or retry behavior is invented.
+- `TC-FILES-0004` /
+  `test_files_require_authz_and_hide_storage_artifacts`: anonymous calls are
+  `401`; a foreign authenticated non-member receives `403` for known-file
+  confirm/download/delete. Safe internal oracles verify response bodies,
+  diagnostics, repr, and failure text omit owner filename, project UUID, object
+  key, presigned URL, access/refresh tokens, and nonce. Unknown-file
+  non-enumeration is not claimed because current unknown behavior is `404`.
+- `TC-FILES-0005` /
+  `test_upload_rejects_bounded_size_and_unsafe_media`: `size=0`,
+  `size=25*1024*1024+1`, and `contentType=text/html` each return `400` before
+  presign/object creation. No oversized request body is allocated or sent.
+
+Every owner confirm in `TC-FILES-0001` through `TC-FILES-0003` sends exactly
+`{"entityType":"","entityId":""}`. The foreign call in
+`TC-FILES-0004` may send the same body but must be denied by stored-file project
+ownership before body handling. No issue, channel, avatar, or other attachable
+entity fixture is permitted in this slice.
+
+Models are frozen/closed and reject coercion. `UploadTicket` and
+`DownloadTicket` expose safe file identity only; URL/object key/runtime binding
+remain private, repr-hidden, and non-constructible outside domain factories.
+`UploadContent` keeps bytes private and publishes only bounded length/digest;
+`ObjectDigest` publishes only exact length/digest. `ProvisionedFiles` is opaque
+and repr-hidden. Raw `HttpExchange` and response bodies remain inside
+`FilesApi`/oracles.
+
+Future A1 may bind only `files-api` to
+`testframework/tests/api/files` with exact
+`--hub-case-root testframework/cases/files`. Runtime additionally requires one
+exclusive local backend/PostgreSQL/S3 topology and exact cleanup evidence.
+Presign expiry timing, 24-hour orphan cleanup, retention, multipart uploads,
+malware scanning, provider failover, direct cloud egress, and physical-object
+deletion by the product endpoint are excluded. The obsolete
+`/projects/:projectId/files` text in `docs/TECHNICAL.md` needs a separate docs
+receipt. This slice creates no provisioner implementation, profile binding,
+image, lock, runner, report, Docker execution, or runtime evidence; status is
+`NOT_READY` / `NOT_RUN`.
+
+**F2 133-B project-outbox source-authoring receipt (2026-08-15).** The next F2
+slice is only the implemented `POST /api/projects` transaction and its durable
+`project.created` outbox publication under `TASK-211`. For source authoring
+only and only for this one commit, this receipt supersedes Phase 133-B's
+conflicting authoring predecessor and file-list clauses: the commit need not
+consume a runtime receipt from 133-A and its literal allowlist is the 16 paths
+below rather than the generic redis/nats/Compose/report list. Phase 133-B's
+runtime `consumes`, `verify`, Compose/report authority, and activation
+preconditions are not superseded; no infrastructure is started or claimed
+here. Runtime activation still requires a later founder `G-ACTIVATE-133`, an
+accepted 133-A isolation receipt, A1/profile binding, and a launcher-owned
+delegate. The source commit modifies exactly these 16 paths, with the
+architecture selftest authored first:
+
+```text
+testframework/selftests/architecture/imports/test_project_outbox_boundary.py
+testframework/src/hub_testkit/integration/project_outbox/__init__.py
+testframework/src/hub_testkit/integration/project_outbox/models.py
+testframework/src/hub_testkit/integration/project_outbox/builders.py
+testframework/src/hub_testkit/integration/project_outbox/api.py
+testframework/src/hub_testkit/integration/project_outbox/oracles.py
+testframework/src/hub_testkit/harness/project_outbox.py
+testframework/src/hub_testkit/harness/pytest_project_outbox.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/tests/integration/redis-nats/project_outbox/conftest.py
+testframework/tests/integration/redis-nats/project_outbox/test_project_outbox.py
+testframework/cases/outbox/TC-OUTBOX-0001.md
+testframework/cases/outbox/TC-OUTBOX-0002.md
+testframework/cases/outbox/TC-OUTBOX-0003.md
+testframework/cases/outbox/TC-OUTBOX-0004.md
+testframework/cases/outbox/TC-OUTBOX-0005.md
+```
+
+The architecture selftest scans the project-outbox integration package,
+harness, and literal suite with alias-aware AST checks. The suite imports only
+`pytest` and these five functions from `hub_testkit.harness.project_outbox`;
+`project_outbox_runtime` is fixture-injected and never imported:
+
+```text
+assert_project_create_commits_and_publishes_project_created
+assert_duplicate_project_key_conflict_has_no_second_project_created
+assert_anonymous_project_create_is_rejected_without_owned_outbox_event
+assert_malformed_project_json_is_rejected_without_owned_outbox_event
+assert_durable_project_created_observer_replays_after_observer_reconnect
+```
+
+Every assertion has the exact signature
+`def assert_...(runtime: ProjectOutboxRuntime) -> None`. Each of the five
+literal `test_*` functions contains exactly its matching
+`@pytest.mark.case_id("<TC-OUTBOX-NNNN>")`, `@pytest.mark.integration`, and one
+mapped assertion call with `project_outbox_runtime`. The AST gate uses a
+literal function-to-TC/function-to-assertion table and negative swapped and
+unknown-ID examples. It rejects any other test-body call, attribute access,
+assignment, comprehension, pytest API, `raises`, or control flow; direct
+runtime methods therefore cannot bypass semantic assertions. `conftest.py` has
+its own minimal import allowlist. `integration/project_outbox/oracles.py` owns
+only closed per-response and per-receipt parsing/projection and imports neither
+harness nor tests.
+
+`ProjectOutboxHarnessFactory` is installed exactly once in
+`pytest.Config.stash`. Its function fixture calls it once, receives one healthy
+exclusive launcher delegate, creates a frozen/slotted opaque
+`ProjectOutboxRuntime`, and invokes exact cleanup once in `finally`. Runtime,
+seed, provisioned-state, event-receipt, and state-projection models reject
+coercion, direct construction, copying, mutation, and secret-bearing repr. They
+publish no private-field or descriptor accessor; every boundary method
+revalidates the opaque instance. Python cannot prevent a determined
+`object.__getattribute__` caller, so the architecture AST gate rejects every
+suite private, descriptor, reflection, and dynamic-access attempt. Internal
+factories alone use `object.__new__`; invalid construction or operation raises
+a constant generic error `from None` with no request, response, DSN, token,
+nonce, project, stream, consumer, payload, or traceback-local canary.
+
+The closed future delegate may only send an existing `HttpRequest`, provision
+one nonce-bound `ProjectOutboxSeed`, return a closed owned-state projection,
+obtain one typed `ProjectCreatedReceipt` through the pre-registered durable
+observer, disconnect and reconnect that exact observer for the recovery case,
+and cleanup. No test or reusable package owns an HTTP, PostgreSQL, Redis,
+MongoDB, NATS, JetStream, process, environment, filesystem, or default client.
+This restriction applies to SUT suite, domain, and harness code; the
+architecture selftest may read only its fixed literal repository source paths
+for AST validation and performs no SUT or infrastructure I/O.
+There is no Python NATS/PostgreSQL dependency and no direct message, ack,
+subject, stream, consumer, SQL, or retry API. Delegate operations are bounded
+by the future launcher deadline; test code contains no sleep, polling, timeout
+loop, retry loop, or eventual-consistency helper.
+
+The future launcher must allocate, record, and exclusively own one server
+process, PostgreSQL database, Redis instance/database, MongoDB database,
+JetStream node with the fixed `EVENTS` stream, and one durable observer before
+the first POST. That full topology is required because current server wiring
+unconditionally connects all four services; this receipt does not claim a
+PG-plus-NATS-only server. Cleanup stops the exact server and removes only the
+recorded resources. It first requests shutdown, boundedly waits for the exact
+owned server process to exit, and confirms that exit; on timeout it fails
+closed, terminates only that exact owned process, and again confirms exit before
+resource deletion. Only after quiescence does cleanup remove, in this fixed
+reverse order, the durable observer, JetStream stream/node, MongoDB database,
+Redis instance/database, and PostgreSQL database containing all owned
+application rows, sessions, principals, and memberships. Prefix
+scan/delete, shared instance/database mutation, foreign adoption,
+namespace-wide cleanup, cloud/provider egress, and cleanup-as-oracle are
+forbidden. The observer exists before publication because the current `EVENTS`
+stream uses `InterestPolicy`.
+
+The five active `TASK-211` cases map one-to-one to five literal,
+non-parametrized nodes:
+
+- `TC-OUTBOX-0001` /
+  `test_project_create_commits_and_publishes_project_created`: an authenticated
+  owner sends one nonce-bound valid project request. The response is `201` and
+  its safe project projection matches the request. Exactly one durable
+  `project.created` receipt has a valid UUID `Hub-Event-Id` and exactly the
+  typed payload fields `project_id`, `name`, `key`, and `created_by_id`, all
+  bound to the created project and owner.
+- `TC-OUTBOX-0002` /
+  `test_duplicate_project_key_conflict_has_no_second_project_created`: the
+  first create succeeds; a second request with the exact same key is `409`.
+  Closed owned-state and durable-receipt projections prove exactly one owned
+  project, owner membership, outbox row, and published event.
+- `TC-OUTBOX-0003` /
+  `test_anonymous_project_create_is_rejected_without_owned_outbox_event`: a
+  request without bearer credentials is `401`; closed state contains no owned
+  project, membership, outbox row, or event receipt.
+- `TC-OUTBOX-0004` /
+  `test_malformed_project_json_is_rejected_without_owned_outbox_event`: an
+  authenticated syntactically malformed JSON body is `400`; closed state again
+  contains no owned project, membership, outbox row, or event receipt.
+- `TC-OUTBOX-0005` /
+  `test_durable_project_created_observer_replays_after_observer_reconnect`: the
+  pre-created durable observer is disconnected, one authenticated project is
+  created, then the exact observer reconnects and receives the same one typed
+  event identity and payload. This proves durable-observer replay only; it does
+  not claim outbox-worker process crash/restart recovery.
+
+The public source facts frozen by these cases are: auth is required; malformed
+JSON is `400`; duplicate project key is `409`; project, owner membership, and
+`project.created` outbox row are committed in one PostgreSQL transaction;
+publication uses a JetStream PubAck before the row is marked published; and
+the event payload contains the four named fields. The source suite does not
+claim invalid name/key validation, workflow/board/TMS/dashboard provisioning
+atomicity, PubAck fault injection, tenth-attempt failure, lease reclaim,
+worker/process recovery, exact latency, or a retained event without a
+pre-existing durable observer. Current post-commit provisioner errors are
+outside this transaction and remain excluded.
+
+The existing future profile identity remains `redis-nats-integration`, target
+`testframework/tests/integration/redis-nats`, deadline 1200 seconds, with exact
+case root `testframework/cases/outbox`; no 48th profile is created. This source
+receipt does not alter `profiles.toml`, Compose, dependencies, `uv.lock`, A1,
+images, runner, reports, or Phase 133 activation state. It grants no other
+133-B cases and produces no runtime evidence: status is `NOT_READY` /
+`NOT_RUN`.
+
+1. **Data and broker boundaries:** PostgreSQL/Mongo transaction/migration/isolation; Redis/NATS message bleed, duplicate job, timeout, reconnect, and recovery; storage partial failure/idempotency/recovery; WebSocket authorization/order/reconnect. Use only existing profile identities (`postgres-integration`, `redis-nats-integration`, `notifications-nats`, and the relevant API/work profile); do not invent a 48th profile.
+2. **Implemented work domains:** tracker lifecycle, TMS state/run lifecycle, project scope/idempotency, messenger membership/order/privacy, notification delivery/retry, and implemented search/audit/backup/import-export boundaries. Every suite covers allowed behavior plus invalid, denied, boundary, recovery, and cleanup variants that are observable in current handlers.
+3. **Implemented Calendar reads:** under the existing `calendar-api` profile add `cases/calendar/**`, an optional narrow `hub_testkit.domains.calendar` facade, and `tests/api/calendar/**` for authentication; missing/malformed/reversed/>366-day ranges; user/project-scoped call/sprint/deadline/approved-leave aggregation; UTC/order invariants; recurring scheduled-call reads; and `export.ics` content type, disposition, RFC 5545 escaping, and PII-safe leave titles.
+4. **Implemented business/adapter domains:** CRM, HR, accounting, bases, intranet, files/storage, automation, GitHub, GitLab, mail, marketplace, AI, and adapters only where their current API/contract and safe fixture topology are accepted. Implemented call API authz and webhook-signature behavior may be covered under the existing authz/security profiles; no live media/provider egress. External delivery/integration tests use a controlled fake or contract boundary.
+5. **Explicit exclusions:** Calendar-v2 writes/resources/availability/subscriptions, Wiki permission/tree/versioning, WebRTC/media capacity, unimplemented call proposals, and any route present only in a forward-looking specification remain planned-only until product scope, implementation, seed strategy, and an observable oracle are accepted.
+
+### F3 — browser, accessibility, privacy, load
+
+1. **Browser foundation and critical smoke:** lifecycle, immutable browser image contract, sanitized screenshots/traces, login/session only through the accepted fixture boundary, and one implemented critical journey.
+2. **Journey/recovery:** work, business, admin, and recovery journeys only for F2-backed implemented features. No UI flow becomes a substitute for API/integration coverage.
+3. **Accessibility/privacy:** scoped axe/WCAG interactions for accepted UI pages; PII/secret artifact inspection and authorization isolation across API/browser evidence.
+4. **Load/resilience:** target guard first (non-production allowlist, capped users/rate/duration, task-owned cleanup), then steady/spike/soak source profiles. No measured baseline, capacity statement, or production-readiness conclusion is allowed before Docker execution evidence.
+
+## 5. Maximum-risk suite catalog and source references
+
+The catalog is risk-first, not a case-count target. It consolidates the live 47 profile registry and the detailed suite candidates in `docs/superpowers/plans/2026-08-08-python-qa-framework-rebase.md` §§10--15. That older document supplies candidate suite names only; the current implementation, API/docs, and this founder directive determine whether a case is authored.
+
+| Catalog family | Required risk coverage | Profile/reference |
+|---|---|---|
+| Framework F0 | package installation boundary, config admission, ownership/cleanup, secret redaction, metadata closure, collection loss | `collection-gates`, `architecture-selftest`, `health-api`; detailed-plan §§10 and 17 |
+| HTTP/identity F1 | mutable credentials, timeout/retry, token leakage, invalid/session/revocation behavior, role/object denial, replay/enumeration/rate recovery | `http-api`, `runtime-observability`, `identity-api`, `authz-tenant`, `abuse-platform`, `security-risk`; detailed-plan §§11--12 |
+| Contract/security F1 | incompatible OpenAPI/schema/event, public-artifact redaction, critical/high risk graph | `openapi-contract`, `frontend-contract`, `privacy-security`; detailed-plan §§14 and 15 |
+| Data/broker F2 | transaction/migration isolation, cross-run data leak, message bleed, duplicate/reordered delivery, timeout/recovery, exact cleanup | `postgres-integration`, `redis-nats-integration`, `notifications-nats`; detailed-plan §13 and §§14--15 |
+| Work F2 | lifecycle/state conflict, scope/idempotency, membership/order/privacy, notification recovery | `tracker-api`, `tms-api`, `projects-api`, `messenger-api`, `work-risk`; live Phase 134 tasks A--G |
+| Calendar F2 | authenticated scoped aggregation, range boundaries, UTC/order, recurrence reads, RFC 5545 export and PII-safe titles | `calendar-api`; current `GET /api/calendar/events` and `GET /api/calendar/export.ics` only |
+| Business/adapters F2 | financial idempotency, HR privacy, row/schema ownership, storage recovery, webhook signature, unavailable/retry/redaction | `crm-api`, `hr-api`, `accounting-api`, `bases-api`, `intranet-api`, `files-api`, `automation-api`, `github-adapter`, `gitlab-adapter`, `mail-adapter`, `business-risk`; live Phase 135 and detailed-plan §14 |
+| Browser/privacy F3 | browser leak, auth artifact leak, critical accessibility regression, PII/secret exposure, recovery journey | `browser-lifecycle`, `e2e-smoke`, `journey-*`, `accessibility`, `privacy-security`; live Phases 137--139 |
+| Load F3 | production target, uncapped rate, baseline ambiguity, data leak, unsafe cleanup | `load-validity`, `load-measured`; live Phase 140 and detailed-plan §15 |
+
+## 6. Atomic commit and review order
+
+One atomic source commit contains its source, cases, and selftests for one row below; it never mixes domains, dependency/image changes, unrelated docs, or reports. The author writes the negative contract before the minimum implementation in the same working slice. Until runtime gates exist, an independent reviewer may accept source closure only; the commit must retain `NOT_READY` and make no pass/green claim.
+
+| Order | Atomic commit subject | Literal source ownership | Mandatory independent review before next source commit |
+|---:|---|---|---|
+| 0 | `docs(testframework): activate founder max coverage source plan` | the four planning/contract files named in this document's change set | architecture + security review for scope/status/grammar |
+| 1 | `build(testframework): bootstrap installable hub testkit` | F0-01 paths including the factual `PACKAGE-CONTRACT.md` status update | package/import-contract review |
+| 2 | `feat(testframework): add profile and resolver policy boundary` | F0-02 paths, never `uv.lock` before R | profile/launcher-boundary review |
+| 3 | `feat(testframework): add strict config runtime ownership` | F0-03 paths | security/redaction review |
+| 4 | `feat(testframework): add closed test case traceability` | F0-04 paths | traceability/schema review |
+| 5 | `feat(testframework): add collection and architecture gates` | F0-05 paths | pytest-public-hook and architecture review |
+| 6 | `test(testframework): add health liveness tracer` | F0-06 paths | API-contract review |
+| 7 | `feat(testframework): add HTTP policy boundary` | F1-01 paths | transport/auth/redaction review |
+| 8 | `test(testframework): add identity session account cases` | F1-02 paths | auth/security/product-behavior review |
+| 9A | `test(testframework): add admin account authorization cases` | exact F1-03A 14-path allowlist | security/product review; reject invented tenant semantics |
+| 9B | `test(testframework): add platform abuse replay cases` | exact F1-03B 12-path allowlist | security/privacy review; provisioning and profile remain unbound |
+| 10A | `feat(testframework): add sealed contract source boundary` | exact F1-04 boundary 8-path allowlist | source-provenance/privacy/architecture review |
+| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 9-path allowlist | bundle + architecture selftests first; v3 source witnesses; API/schema/security review; known product-doc RED remains |
+| 10C | `test(testframework): add public error artifact contract` | exact F1-04 privacy 5-path allowlist | architecture selftest first; privacy/wire-schema review |
+| 10D | `test(testframework): add auth session event contract` | exact F1-04 event 5-path allowlist | architecture selftest first; producer/consumer source-link review |
+| 10E | `docs(testframework): record F1 contract source closure` | `testframework/PACKAGE-CONTRACT.md`, `testframework/README.md` | factual docs review; runtime remains `NOT_RUN` |
+| 11 | `test(testframework): add data broker isolation spine` | F2 data/broker paths, one service boundary per commit | integration/cleanup review per service |
+| 12 | `test(testframework): add implemented work domain cases` | exactly one work domain per commit | domain + traceability review |
+| 13 | `test(testframework): add current calendar read contracts` | `cases/calendar/**`, optional `src/hub_testkit/domains/calendar/**`, `tests/api/calendar/**` | calendar API/privacy/RFC 5545 review |
+| 14 | `test(testframework): add implemented business adapter cases` | exactly one business/adapter boundary per commit | domain/security review; no live egress |
+| 15 | `feat(testframework): add browser lifecycle and smoke source` | F3 browser foundation paths | browser artifact/privacy review |
+| 16 | `test(testframework): add accepted journey and a11y privacy cases` | one journey or cross-cutting boundary per commit | product/a11y/security review |
+| 17 | `test(testframework): add bounded load source profiles` | F3 load paths | production-safety and cleanup review |
+
+At each review, reject: an unlisted path, a missing case/risk edge, an unobservable oracle, a shared mutable fixture, broad cleanup, a secret-bearing artifact, an old-format TC ID, a new profile, an unsupported dependency group, or a runtime-readiness claim. Rollback is a normal revert of that single commit, followed by a fresh source review; no legacy suite is copied back into the target tree.
+
+## 7. Deferred resolver and execution admission
+
+After source commits have independent review, the separate R admission may build a task-owned Docker resolver image, generate and review `uv.lock`, inspect resolved artifact provenance and hashes, and bind the lock to an immutable `images.lock.v3.json`/image digest. A1 then binds an accepted versioned launcher request to those immutable bytes and the exact 47 profiles. Only after both admissions may Docker-only framework selftests or SUT suites produce runtime evidence. The first runtime evidence records source SHA, lock hash, image digest, profile, CPU/RAM/PID limits, command, collection/pass/fail/skip, duration, artifact URI, and exact cleanup result.
+
+Until then the valid wording is: **source-authoring planned or reviewed; package/launcher/runtime `NOT_READY` or `NOT_RUN`; no test result exists.**
+
+## 8. Planning self-review
+
+- F0 through F3 cover the requested package/bootstrap, API/contract, integration/API spine, and browser/a11y/privacy/load sequence.
+- The exact new TC grammar accepts `TC-HEALTH-0001` and rejects the two historical formats.
+- The 47-profile registry is retained as-is, with no profile addition or deadline change.
+- The source override is narrowly limited; runtime gates, cutover recovery, Docker-only evidence, and product delivery remain separate.
+- Magic TTL, unimplemented true tenancy, Calendar-v2 writes/resources/availability/subscriptions, Wiki, and WebRTC/media-capacity behavior are explicitly excluded; current Calendar reads/export remain in scope.
+- Every source slice has a bounded atomic commit, independent review, and revert-only rollback boundary.

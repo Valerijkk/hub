@@ -15,6 +15,12 @@ type AppError struct {
 	RetryAfter int    `json:"-"` // секунды для заголовка Retry-After (429)
 }
 
+// PublicErrorBody is the redacted API error response body.
+type PublicErrorBody struct {
+	Error     string `json:"error"`
+	RequestID string `json:"request_id"`
+}
+
 // Error возвращает строковое представление ошибки в формате "[код] сообщение".
 func (e *AppError) Error() string {
 	return fmt.Sprintf("[%d] %s", e.Code, e.Message)

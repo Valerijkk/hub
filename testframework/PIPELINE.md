@@ -1,5 +1,13 @@
 # Hub — Test Framework
 
+> **Historical/quarantine notice (2026-08-14):** the pipeline names, paths and
+> local commands below document the retired pre-greenfield arrangement. They
+> are not current launcher authority and must not be run on the host.
+> `LAUNCHER=NOT_READY`, `POST_CUTOVER_RUNTIME=NOT_RUN`, and
+> `CI_ROOT_DISCOVERY=UNBOUND`. The target layout is the founder greenfield
+> contract in `AGENTS.md`; Phase 129 remains `RECOVERY_BLOCKED` under
+> forward-only Option A (`.planning/audits/test-rebase/RECOVERY-OPTION-A-2026-08-14.md`).
+
 Единая точка входа для тестов Hub. Структура повторяет **CI pipeline**: стадия → job → домен функционала.
 
 ## Карта пайплайна

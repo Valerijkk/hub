@@ -11,7 +11,7 @@ readonly: true
 
 Оркестратор и финальная инстанция — [`team-lead`](team-lead.md) на **GPT-5.6 Sol / Max**
 (`model: gpt-5.6-sol`). Downstream запускается только explicit Terra либо
-5.3 Codex Spark/XHigh по `model-routing.md`; для высокорисковых решений —
+Terra/XHigh по `model-routing.md`; для высокорисковых решений —
 независимый Terra challenge-pass и `*-ver`, не отдельный Sol slot.
 
 ## Что делать вместо этого файла

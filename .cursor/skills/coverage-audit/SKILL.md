@@ -51,10 +51,9 @@ Read-only поиск разрешён на host. Для каждого row за�
 target test/TC. Наличие файла, grep hit, mock-only green или coverage percentage
 не доказывают поведение.
 
-Runnable checks выполняются только task-owned limited Docker job из
-`AGENTS.md`/`/qa-gate`, с non-zero collection, exact image/command/resources,
-duration, artifacts и cleanup. Если target scaffold отсутствует — `NOT_READY`,
-не legacy PASS.
+Runnable checks use only `docker compose -f docker-compose.local.yml run --rm <exact-service>`
+with non-zero collection, exact image/command/resources, duration, artifacts and cleanup.
+Without actual runnable evidence the status is `NOT_RUN`, not a legacy PASS.
 
 ## 4. Матрица
 

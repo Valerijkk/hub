@@ -1,10 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
   workflow_dispatch:
 
 concurrency:
@@ -14,154 +10,29 @@ concurrency:
 jobs:
   backend-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    services:
-      mongo:
-        image: mongo:8
-        env:
-          MONGO_INITDB_ROOT_USERNAME: hub
-          MONGO_INITDB_ROOT_PASSWORD: hub
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval \"db.adminCommand('ping')\""
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Reject UTF-8 BOM in Go sources
+      - name: Backend unit target is quarantined
         run: |
-          set -euo pipefail
-          bad=0
-          while IFS= read -r -d '' f; do
-            if [ "$(head -c 3 "$f" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
-              echo "::error file=${f}::UTF-8 BOM prefix breaks Go 1.25 on Linux CI"
-              bad=1
-            fi
-          done < <(find backend/internal -name '*.go' -print0)
-          exit "$bad"
+          echo "::error::NOT_READY: backend-unit is quarantined until the accepted testframework runner binds this CI target."
+          exit 1
 
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-          cache-dependency-path: backend/go.sum
-
-      - name: Generate Ent + vet
-        working-directory: backend
-        run: |
-          go generate ./ent
-          go vet -tags hubtest ./...
-
-      - name: Test (race detector)
-        working-directory: backend
-        env:
-          MONGODB_TEST_URL: mongodb://hub:hub@localhost:27017/?authSource=admin
-        run: go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-      - name: Build prod binary (ME-09)
-        working-directory: backend
-        run: |
-          go generate ./ent
-          go build -tags release -o bin/server ./cmd/server
-
-  # COV gate on master push / manual only — skips PRs to save CI minutes.
+  # Coverage remains quarantined in this manual-only workflow.
   coverage-gate:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-          cache-dependency-path: backend/go.sum
-
-      - name: Start test infrastructure
+      - name: Coverage target is quarantined
         run: |
-          for attempt in 1 2 3; do
-            if docker compose -f deployments/docker-compose.test.yml up -d; then
-              exit 0
-            fi
-            echo "docker compose up failed (attempt ${attempt}/3), retrying in 20s..."
-            sleep 20
-          done
-          echo "docker compose up failed after 3 attempts"
+          echo "::error::NOT_READY: coverage-gate is quarantined until a post-cutover coverage contract and accepted runner target exist."
           exit 1
-
-      - name: Wait for test infrastructure
-        run: |
-          for _ in $(seq 1 30); do
-            if docker compose -f deployments/docker-compose.test.yml exec -T postgres pg_isready -U hub >/dev/null 2>&1; then
-              echo "Postgres ready"
-              break
-            fi
-            sleep 2
-          done
-          for _ in $(seq 1 30); do
-            if docker compose -f deployments/docker-compose.test.yml exec -T mongo mongosh --eval "db.adminCommand('ping')" --quiet >/dev/null 2>&1; then
-              echo "Mongo ready"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Mongo timeout"
-          exit 1
-
-      - name: Generate Ent
-        working-directory: backend
-        run: go generate ./ent
-
-      - name: Coverage gate (≥82%)
-        working-directory: backend
-        env:
-          POSTGRES_TEST_URL: postgresql://hub:hub@localhost:5432/hub?sslmode=disable
-          MONGODB_TEST_URL: mongodb://hub:hub@localhost:27017/?authSource=admin
-        run: |
-          go test -tags hubtest -coverprofile=/tmp/cov -coverpkg=./internal/... ./testframework/...
-          total="$(go tool cover -func=/tmp/cov | tail -1 | awk '{print $NF}' | tr -d '%')"
-          echo "Total coverage: ${total}%"
-          awk -v cov="${total}" 'BEGIN { if (cov + 0 >= 82.0) exit 0; exit 1 }' || {
-            echo "::error::Coverage ${total}% is below 82.0% gate"
-            exit 1
-          }
-
-      - name: Stop test infrastructure
-        if: always()
-        run: docker compose -f deployments/docker-compose.test.yml down -v
 
   frontend-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: TypeScript check
-        working-directory: frontend
-        run: npx tsc --noEmit
-
-      - name: Link testframework node_modules
-        working-directory: frontend
-        run: node scripts/link-testframework-node-modules.mjs
-
-      - name: Vitest unit tests
-        working-directory: frontend
-        run: npx vitest run
-
-      - name: Biome lint (gate)
-        working-directory: frontend
-        run: npm run lint
+      - name: Frontend unit target is quarantined
+        run: |
+          echo "::error::NOT_READY: frontend-unit is quarantined until the accepted testframework runner binds this CI target."
+          exit 1
 
   build:
     needs: [backend-test, frontend-test]
@@ -188,111 +59,7 @@ jobs:
         working-directory: frontend
         run: npm ci && npm run build
 
-  # Fast PR gate: no Docker, no backend — login branding + login-page a11y only.
-  e2e-smoke:
-    needs: [frontend-test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies + Chromium
-        working-directory: frontend
-        run: npm ci && npx playwright install chromium --with-deps
-
-      - name: Link testframework node_modules
-        working-directory: frontend
-        run: node scripts/link-testframework-node-modules.mjs
-
-      - name: Playwright smoke (frontend-only specs)
-        working-directory: frontend
-        env:
-          CI: 'true'
-        run: npx playwright test -c playwright.config.ts --project=chromium-smoke --grep "login page loads with Hub branding$|full page has no critical or serious axe violations$|path 1: login page loads without backend$"
-
-  # Full E2E: docker infra + native backend (DEV_MODE) + Playwright critical paths.
-  # Env vars documented in scripts/ci-e2e-backend.sh header.
-  e2e-full:
-    needs: [backend-test, frontend-test]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      DEV_MODE: 'true'
-      ENVIRONMENT: development
-      SERVER_PORT: '3000'
-      DATABASE_URL: postgresql://hub:hub@localhost:5432/hub?sslmode=disable
-      MONGODB_URL: mongodb://hub:hub@localhost:27017/?authSource=admin
-      MONGODB_DATABASE: hub
-      REDIS_URL: redis://localhost:6379/0
-      NATS_URL: nats://localhost:4222
-      JWT_SECRET: local-dev-secret-change-in-production
-      PLAYWRIGHT_API_URL: http://127.0.0.1:3000
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-          cache-dependency-path: backend/go.sum
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies + Chromium
-        working-directory: frontend
-        run: npm ci && npx playwright install chromium --with-deps
-
-      - name: Link testframework node_modules
-        working-directory: frontend
-        run: node scripts/link-testframework-node-modules.mjs
-
-      - name: Start infrastructure (postgres, redis, mongo, nats)
-        run: bash scripts/ci-e2e-backend.sh start-infra
-
-      - name: Wait for infrastructure
-        run: bash scripts/ci-e2e-backend.sh wait-infra
-
-      - name: Build and start backend
-        run: bash scripts/ci-e2e-backend.sh start-backend
-
-      - name: Wait for backend (health + dev mode)
-        run: bash scripts/ci-e2e-backend.sh wait-backend
-
-      - name: Playwright critical paths (backend + frontend)
-        working-directory: frontend
-        env:
-          CI: 'true'
-        run: npx playwright test -c playwright.config.ts --project=chromium-full
-
-      - name: Upload Playwright report on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 7
-
-      - name: Upload backend log on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: backend-e2e-log
-          path: .ci-backend.log
-          retention-days: 7
-
-      - name: Stop services
-        if: always()
-        run: bash scripts/ci-e2e-backend.sh stop
-
-  # FB-06 / NFR-17: Lighthouse artifact on master push — non-blocking gate initially.
+  # FB-06 / NFR-17: manual-only Lighthouse artifact, non-blocking.
   lighthouse:
     if: github.event_name != 'pull_request'
     needs: [frontend-test]

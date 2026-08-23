@@ -149,7 +149,8 @@ tmp_*.py
 Before every commit:
 
 1. Выполнить применимые target jobs только в task-owned limited Docker по
-   `AGENTS.md`/`/qa-gate`; host build/test/lint/validator запрещён.
+   `docker compose -f docker-compose.local.yml run --rm <service>`;
+   host build/test/lint/validator запрещён.
 2. Просмотреть exact staged diff и secret scan; raw keyword hit требует triage,
    а не автоматического удаления легитимного текста.
 3. Убедиться, что commit message не содержит AI attribution/co-author trailers.

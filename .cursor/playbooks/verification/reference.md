@@ -27,7 +27,7 @@
 [ ] Прошёл пофактовый чек-лист своей роли (раздел 3)
 
 РЕГРЕССИЯ
-[ ] Green профильный прогон / /qa-gate
+[ ] Green профильный root Compose service
 [ ] Лог приложен в отчёт
 [ ] При FAIL — test-triage выполнен
 
@@ -44,7 +44,7 @@
 
 ### 9.2 Воспроизведение (сводка)
 
-Все executable checks — только target jobs из `AGENTS.md`/`/qa-gate`:
+Все executable checks — только target services из `AGENTS.md` через `docker compose -f docker-compose.local.yml run --rm <service>`:
 `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
 `python-integration`, `python-e2e-smoke/full`, `python-load`. Каждый имеет exact
 revision/image/command/resources/result/duration/artifacts/cleanup. Для gap audit
@@ -195,7 +195,7 @@ FAIL: CRITICAL (version). Возврат SA, приложить пересчёт
 
 ## Регрессия
 - Historical pre-cutover result: frontend-test PASS; не reusable runtime evidence
-- Current fixed target: `/qa-gate` `frontend-unit`
+- Current fixed target: `docker compose -f docker-compose.local.yml run --rm frontend-unit`
 - Current status: `NOT_READY` / `NOT_RUN` до accepted launcher evidence
 
 ## Замечания
@@ -219,7 +219,7 @@ FAIL: Rules of Hooks + key=index. Возврат fe. Регрессия зелё
 - Вердикт: verified: false
 
 ## Воспроизведение
-`/qa-gate` fixed target на exact revision: 2/3 accepted receipts PASS,
+root Compose fixed service на exact revision: 2/3 accepted receipts PASS,
 1/3 FAIL (нестабильно); task-owned artifacts и cleanup receipts приложены.
 
 ## Замечания
@@ -323,7 +323,7 @@ Python E2E evidence на exact revision; Lighthouse остаётся non-blockin
 ```
 Wave N: параллельные be/fe/qa агенты
   → каждый прогоняет test-triage при FAIL
-  → каждый запускает /qa-gate subset на затронутых пакетах
+  → каждый запускает применимый root Compose service на затронутом scope
   → соответствующий *-ver верифицирует свой артефакт (независимо)
   → оркестратор мержит только verified: true артефакты
   → GSD-RU `handoff` + `/handoff-sync` (STATE + COVERAGE)

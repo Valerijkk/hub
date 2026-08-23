@@ -7,30 +7,18 @@
 
 ## 1. Проверка сообщает `NOT_READY`
 
-Единственная публичная точка маршрутизации test/build/lint/validator jobs —
-`/qa-gate`. Она принимает только fixed target identity и не публикует direct
-runner, host-команду, произвольный executable или inline Docker/Compose.
-
-Private source candidate `testframework/runner/run-task.ps1` существует и имеет
-только принятые статические C1/P2/P4 review. Это не runtime acceptance:
-
-- `testframework/docker/images.lock.v3.json` отсутствует;
-- required local dependency bytes отсутствуют;
-- `testframework/pyproject.toml`, `uv.lock` и `src/hub_testkit/py.typed`
-  отсутствуют;
-- target suites не приняты;
-- launcher/package — `NOT_READY`;
-- `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`.
-
-Поэтому текущий `NOT_READY` — ожидаемый fail-closed результат. Не заменяйте его
-legacy runner, host test/build/lint, direct PowerShell entrypoint или ручным
-Docker/Compose запуском.
+Единственный QA API для test/build/lint/validator jobs —
+`docker compose -f docker-compose.local.yml run --rm <exact-service>`.
+Допустимы только `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full` и `python-load`.
+QA services profile-explicit/disposable; integration/e2e поднимают только
+изолированную QA-инфраструктуру. Не запускайте test/build/lint на host.
 
 ## 2. Ошибка указывает на legacy `hubtest`, Vitest или Playwright
 
-Старые пути `backend/testframework/**`, static-contract Vitest и TypeScript
-Playwright остаются frozen inventory до exact-manifest cutover. Они не являются
-target architecture и не чинятся как способ получить green.
+The Variant A cutover removed all tracked legacy test files from
+`backend/testframework/**`. Static-contract Vitest and TypeScript Playwright
+are also outside the target architecture; none is repaired as a route to green.
 
 Целевые roots:
 
@@ -54,17 +42,17 @@ manifest. Не переносите и не запускайте legacy suite к
 1. сверить наблюдаемое поведение с актуальными product/system/security docs;
 2. классифицировать root как `code`, `test`, `infra`, `flaky` или `stop`;
 3. внести минимальный scoped fix;
-4. повторно запросить тот же fixed target через `/qa-gate`;
-5. сохранить exact revision, result, task-owned artifacts и cleanup receipt.
+4. повторить тот же exact root-Compose service;
+5. сохранить exact revision и result.
 
 Assertion не меняют только ради green. Если target всё ещё `NOT_READY`, итог
 остаётся `NOT_RUN` с причиной.
 
 ## 4. Локальный dev stack
 
-Dev stack — отдельная developer workflow, не QA evidence и не замена
-`/qa-gate`. Каноническая dev-stack точка указана в `AGENTS.md`; test/build/lint
-процессы из неё не выводятся автоматически.
+Dev stack запускается `docker compose -f docker-compose.local.yml up -d`.
+QA выполняется отдельной командой root Compose `run --rm <exact-service>`;
+test/build/lint процессы из dev stack не выводятся автоматически.
 
 При занятом порте сначала определите владельца ресурса. Останавливать или
 удалять можно только доказанно принадлежащий текущей задаче ресурс; broad
@@ -100,6 +88,6 @@ wildcard или discovery-driven cleanup.
 | Термин/префикс ID непонятен | [GLOSSARY.md](GLOSSARY.md) |
 | Онбординг в роль | [onboarding/](onboarding/README.md) |
 | Стратегия тестирования | [test_plan.md](test_plan.md), [testframework_strategy.md](testframework_strategy.md) |
-| Текущий QA authority | `AGENTS.md`, `.cursor/skills/qa-gate/SKILL.md` |
+| Текущий QA authority | `AGENTS.md`, root `docker-compose.local.yml` |
 | Прод лежит | [runbooks/incident-response.md](runbooks/incident-response.md) |
 | Правила стиля и запреты | [code_style_guide.md](code_style_guide.md), `.cursor/rules/10-style.mdc` |

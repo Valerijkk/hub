@@ -9,6 +9,25 @@ verified_at: null
 
 # Phase 128 test-rebase guard verification
 
+> **Historical verification record (superseded 2026-08-23):** frontmatter and
+> recovery statuses below describe the old TASK-204 gate only. They are not the
+> current Phase 129 verdict. Use `FINAL-MERGE-EVIDENCE-2026-08-23.md` for the
+> accepted minimal Docker slice, deletion reconciliation and publication rule.
+
+## Independent Option A recovery re-review — ACCEPT (2026-08-14)
+
+W-01 was fixed before a fresh independent re-review. That re-review found no
+`HIGH` or `WARNING` finding and accepts only the recovery observation packet:
+the recorded static path facts, including the 350 backend moves, 157 frontend
+moves, limited 58 render-helper rewrites, 241 staged deletions, and the
+unchanged all-`planned` v1 manifest.
+
+This is not acceptance of a v1 batch, either bulk move, the staged deletion
+set, CI binding, launcher/package readiness, runtime evidence, or Phase 129
+completion. The current statuses remain `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`,
+`PHASE_129=RECOVERY_BLOCKED`, `LAUNCHER=NOT_READY`, and
+`POST_CUTOVER_RUNTIME=NOT_RUN`.
+
 ## Current verdict
 
 **NOT_RUN.** The current guard implementation has not received a fresh run of
@@ -191,3 +210,111 @@ window closes after the attempt and the wrapper is forbidden after G129-L;
 direct host/Docker fallback remains prohibited. The wrapper is an execution
 boundary, not a scheduler, so any claim that the one attempt occurred remains
 invalid until the separate G128-D receipt exists.
+
+## 2026-08-13 — ротация леджер-авторитета и Docker-цепочка TASK-204
+
+Этот раздел — датированная evidence-запись; вердикт фронтматтера выше
+(NOT_RUN для канонического wrapper-прогона G128-D) он не меняет.
+
+### Контекст и фиксы инструментария
+
+Реконструкция репозитория (`b8677d9d`) создала параллельную git-линию:
+recorded revision `5708671f` перестал быть предком HEAD, и fail-closed
+`inventory.py --check` корректно уходил в RED по ancestry. Дополнительно
+вскрыты и исправлены три никогда не гонявшиеся регрессии инструментария:
+
+- `72589442` — fstat-снимок staging до записи payload в
+  `inventory.py::write_inventory_atomically` (публикация и `--self-test`
+  падали всегда);
+- `b9f690da` — текст file-budget стража расходился с негативным сентинелом;
+- `986b2211` — та же fstat-регрессия в
+  `build_cutover_manifest.py` (destination-race сентинел падал wrong failure).
+
+### Ротация авторитета (`da2c1c4c` + `31072faa`)
+
+Доказано байт-в-байт: пиновые sha256 у 1027/1049 строк старого леджера были
+хэшами CRLF-варианта тех же git-блобов (пример
+`backend/testframework/accounting/fixtures_test.go`: LF-блоб `883e1aa1…`,
+блоб+CRLF = старый пин `d8e92a58…`); блобы линий `5708671f` и `b9f690da`
+байт-идентичны. Регенерация tool 2.2.1 в контейнере: 1049/1049 строк, у 1026
+изменились только `sha256`+`evidence`, у 1 строки
+(`testframework/stages/unit/frontend-test/domains/tms/import-multipart-api.test.ts`)
+дополнительно `dependency_hints` (CRLF внутри сниппетов); у всех 43 записей
+`hooks[]` ротирован `sha256`; классификация, партиции, hook-линки и групповые
+`source_paths_sha256` не изменились. Пары дайджестов:
+
+| Артефакт | Старый | Новый |
+|---|---|---|
+| inventory.json | `72de6a81b2bd…` @ `5708671f` | `83b6a3114980…` @ `b9f690da` |
+| founder-greenfield-cutover-manifest.json | `df503a7f136a…` | `292b40dbddcc…` |
+| test-architecture-contract.json | `62eb27ecd931…` | `8e9f4819f4f9…` |
+
+Независимая верификация (3 агента, полная развёртка всех 1049 строк и 43
+hooks против git-блобов): 0 расхождений, вердикты PASS_WITH_NOTES.
+`scripts/reorganize-testframework-pipeline.ps1` (позиция 12/28 non-ledger
+удалений) восстановлен байт-точно из старой линии (blob `0e967e22…`).
+
+### Docker-цепочка (source revision `986b2211`)
+
+Окружение: image `python:3.12`
+(`sha256:dd4fe98ab39f91e936f8e7e7a65a3ce59ecfb11e32f9a125b3132779920ba7f7`),
+контейнер `--cpus 2 --memory 2g --pids-limit 512 --network none`, workspace —
+named volume (ext4), клон в нативную ФС, checkout `986b2211`. Полный лог:
+`task204-docker-run-2026-08-13.log` (в этом каталоге). Результаты:
+
+| Шаг | Результат | Время |
+|---|---|---|
+| inventory `--self-test` | GREEN | 0s |
+| inventory `--check` | GREEN: rows=1049, LEDGER_HEAD=b9f690da | 4s |
+| контракт-валидатор позитив | GREEN: move 507/1673, keep-block 245/1428, delete 297/1145, non-ledger 28 | 0s |
+| контракт-валидатор `--self-test` (bind-sentinel) | GREEN (негативы RED) | 1s |
+| builder `--self-test` | PASS (atomic no-replace race sentinel) | 0s |
+| builder `--write` | PASS: sealed planned manifest | 1s |
+| cutover-валидатор `--check` | PASS: batches=173 planned=173 | 1s |
+| cutover-валидатор `--stdin --self-test` | PASS (негативная батарея RED) | 5s |
+| ручной traversal-негатив | exit 1 (ожидаемо) | — |
+
+Контейнер удалён (`--rm`); суммарно 25s. `cutover-manifest.json` перенесён в
+этот каталог байт-точно: sha256
+`85dd85ca38923a0211eff6110bef797274289c2ef453ec66364118100dff7bd5`,
+173 батча в состоянии `planned`, `source.repository_head=986b2211`. По
+конструкции валидатора live-HEAD-проверка all-planned манифеста привязана к
+`986b2211`: PASS зафиксирован до коммита манифеста; после старта батчей
+authority ведёт state-transition механика.
+
+Остаются открытыми: канонический wrapper-прогон G128-D (founder-gated),
+независимая подпись arch-ver/qa-auto-ver, honest post-cutover unit baseline.
+
+### Аддендум — проба батч-флоу Phase 129 (тот же день, HEAD `c31150c5`)
+
+Docker-проба (`apply-check-log.txt` не коммитится, итоги здесь):
+`apply_cutover_batch.py --self-test` = PASS (no-replace/crash/link/collision/
+cleanup/receipt сентинелы). `validate_cutover_manifest.py --check` и
+`apply --check 129-02-go-hook-free-accounting` на HEAD `c31150c5` дали
+ожидаемые fail-closed отказы: (а) «live repository HEAD differs from manifest
+source.repository_head» — all-planned манифест привязан к `986b2211`;
+(б) шесть «independent live consumer hash mismatch»
+(consumer-003/004/008/022/024/025) — docs-sync `c31150c5` изменил шесть из 65
+зарегистрированных консюмеров после запечатывания. Механика Phase 129,
+подтверждённая пробой: перед стартом батчей манифест пересобирается на
+стартовом HEAD (rm + `--write` + обе валидации, цепочка отлажена, ~25s),
+после чего батчи идут подряд без промежуточных planning-коммитов — каждый
+батч переключает манифест и консюмеров в одном атомарном коммите.
+
+### Подпись пакета TASK-204 (2026-08-13)
+
+Финальная независимая верификация (workflow из двух агентов):
+**arch-ver = PASS** (манифест: пины байт-в-байт, 173 батча order 1..173,
+507/325/288 операций, консюмер-снапшоты сверены с `986b2211`, null-шаблоны
+planned-состояния 6166/6166, ноль required actions) и **qa-auto-ver =
+PASS_WITH_NOTES** (acceptance 1–6 и 8 закрыты; 7 частично — лимиты
+контейнера задокументированы прозой секции, сам лог начинается внутри
+контейнера; правило «тесты не менялись» подтверждено git diff).
+**Владелец авторизовал подпись пакета и старт Phase 129** (2026-08-13).
+Deferred-узлы владельца: G128-D wrapper (`validate-contract.ps1` не
+запускался; его sealed-конверт пинует доротационные дайджесты
+`72de6a81`/`df503a7f` и утверждает отсутствие `cutover-manifest.json` —
+строки 857/861 — требуется founder-ресинхронизация перед единственной
+попыткой), honest post-cutover baseline (волна Phase 129+). Замечание
+Rule 51: восемь коммитов сессии соответствуют полностью; `d44175f8`
+(тело на английском) сделан до этой сессии.

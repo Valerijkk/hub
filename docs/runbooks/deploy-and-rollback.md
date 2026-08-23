@@ -2,6 +2,7 @@
 
 > **Кто выполняет:** владелец / дежурный. **Когда:** плановый релиз; откат неудачного релиза.
 > **Источник правды:** [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml). Изменил workflow — обнови этот документ в том же PR (rule 55).
+> **Production gate:** мерж и зелёный CI не запускают деплой. Workflow запускается вручную на текущем Docker-verified SHA `master` только после локального Docker evidence и выполнения `FA-06/PG-03`, CTO sign-off и явного подтверждения `confirm_production`.
 > **Главное правило отката:** если после деплоя стало хуже — **сначала откатывай, потом разбирайся**. Дебаг на горящем проде дороже отката.
 
 ---
@@ -9,7 +10,7 @@
 ## 1. Как устроен деплой (факты из workflow)
 
 ```
-push в master → workflow CI → (по успеху) workflow "Build & Deploy"
+локальный Docker evidence → merge/push в master → отдельный ручной запуск workflow "Build & Deploy"
    ├─ build+push образов в GHCR:
    │     ghcr.io/valerijkk/hub/backend :latest и :<SHA>
    │     ghcr.io/valerijkk/hub/frontend:latest и :<SHA>
@@ -39,8 +40,9 @@ push в master → workflow CI → (по успеху) workflow "Build & Deploy"
 
 ## 2. Перед деплоем (плановый релиз)
 
-☐ CI зелёный на коммите, который деплоится (деплой запускается по успеху CI, но убедись).
-☐ Прогнан гейт качества: `/qa-gate` (см. `.cursor/skills/qa-gate/SKILL.md`).
+☐ CI зелёный на коммите `master`, который деплоится; автоматического запуска после CI нет.
+☐ `FA-06/PG-03` выполнен и получен CTO sign-off production cutover.
+☐ Выполнены применимые root-Compose QA services; результаты проверены в CI. Исторические QA launcher и вложенные test Compose манифесты не являются fallback.
 ☐ Preflight-диагностика (read-only, секреты не печатает):
 
 ```bash
@@ -63,9 +65,10 @@ docker inspect --format='{{.Config.Image}}' hub-backend-1 2>/dev/null || docker 
 
 ## 3. Деплой
 
-Штатный путь — **автоматический**: мерж в `master` → CI → Build & Deploy.
+Штатный путь — **ручной GitHub Actions gate**: после локального Docker evidence для текущего SHA открыть workflow `Build & Deploy` на ветке `master`, включить `confirm_production` и запустить его. Запуск с другой ветки или без подтверждения будет пропущен. Если `master` продвинется после dispatch, deploy job сравнит remote `master` с выбранным SHA и завершится ошибкой до `git reset` и перезапуска контейнеров; запустите workflow заново на новом Docker-verified SHA.
 
-☐ Дождаться завершения workflow «Build & Deploy» в GitHub Actions.
+☐ Убедиться, что выбран текущий Docker-verified SHA `master`, и вручную запустить workflow «Build & Deploy».
+☐ Дождаться завершения build и deploy jobs в GitHub Actions.
 ☐ Проверить, что задеплоился ожидаемый SHA (workflow печатает в конце `Deployed <SHA> <git log>`).
 ☐ Пост-деплой проверка (§4.1) — **обязательна**, деплой без проверки не считается завершённым.
 
@@ -92,7 +95,7 @@ docker run -d --name frontend "${FRONTEND_IMAGE}"    # TODO(ops): сверить
 docker restart hub-caddy-1 2>/dev/null || true
 ```
 
-> `TODO(ops)`: в workflow у `docker run frontend` есть дополнительные флаги (сеть/порты/labels), обрезанные в этом конспекте. Перед первым ручным деплоем — выписать полную команду из `deploy.yml` сюда, чтобы ручной путь не расходился с автоматическим.
+> `TODO(ops)`: в workflow у `docker run frontend` есть дополнительные флаги (сеть/порты/labels), обрезанные в этом конспекте. Перед первым прямым SSH-деплоем — выписать полную команду из `deploy.yml` сюда, чтобы fallback-путь не расходился с workflow.
 
 ---
 
@@ -124,7 +127,7 @@ docker compose -f docker-compose.prod.yml -p hub logs --tail=100 --timestamps ba
 
 ☐ Метрики не деградировали: 5xx-rate и p95 — [monitoring-and-alerts.md](monitoring-and-alerts.md) §3.1–3.3.
 ☐ Не сыпятся алерты. Помни: `HubBackendMetricsDown` может кратковременно сработать на рестарте — это ожидаемо.
-☐ При росте 5xx/p95 в течение 10–15 минут после деплоя → §4 «Откат», не «подождём, может само».
+☐ При росте 5xx/p95 в течение 10–15 минут после деплоя → §5 «Откат», не «подождём, может само».
 
 ---
 
@@ -161,8 +164,8 @@ docker pull ghcr.io/valerijkk/hub/backend:<PREV_SHA>     # если локаль
 
 Тогда — пересборка из нужного коммита:
 
-☐ Запустить workflow сборки на нужном коммите (GitHub Actions → re-run на старом SHA), либо
-☐ Собрать образ вручную из тега/коммита и запушить в GHCR.
+☐ Если для этого точного SHA уже существует исторический запуск production workflow — выполнить его re-run. Новый `workflow_dispatch` запускается только с текущего `master` и произвольный старый SHA не принимает.
+☐ Надёжный fallback: собрать образ вручную из нужного тега/коммита, запушить SHA-тег в GHCR и выполнить ручной откат по §5.2.
 
 Это долго (минуты сборки). **Вывод для профилактики:** держать «последний известно-хороший» SHA записанным, а критичные релизы делать в начале рабочего дня, а не перед выходными.
 
@@ -198,12 +201,12 @@ docker pull ghcr.io/valerijkk/hub/backend:<PREV_SHA>     # если локаль
 ```
 Релиз <дата>
 - [ ] CI зелёный на <SHA>
-- [ ] /qa-gate пройден
+- [ ] Применимые root-Compose QA services выполнены и проверены в CI
 - [ ] scripts/deploy-preflight.sh выполнен
 - [ ] Точка отката зафиксирована: <PREV_SHA>
 - [ ] Класс релиза: обычный / миграция / auth / livekit
 - [ ] (если миграция) бэкап БД сделан и проверен
-- [ ] Деплой выполнен, workflow зелёный, задеплоен <SHA>
+- [ ] Деплой выполнен без ignored failure: deploy job зелёный, в логе есть `Deployed <SHA>`, задеплоен <SHA>
 - [ ] Пост-деплой §4.1: контейнеры / health / логи / реальный сценарий
 - [ ] Наблюдение 30 мин: 5xx, p95, алерты
 - [ ] Запись в .planning/STATE.md

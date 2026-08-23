@@ -18,8 +18,8 @@ import (
 // @Param projectId path string true "Project ID"
 // @Param body body ImportAllureRequest true "Allure results"
 // @Success 201 {object} TestRunDetailResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/allure/import [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/allure/import [post]
 func (h *Handler) ImportAllureResults(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -52,9 +52,9 @@ func (h *Handler) ImportAllureResults(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body ImportAllureRequest true "Allure results"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 400 {object} apperr.AppError
-// @Failure 404 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/allure [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Failure 404 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/allure [post]
 func (h *Handler) ImportAllureToExistingRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -93,7 +93,7 @@ func (h *Handler) ImportAllureToExistingRun(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Success 200 {object} ImportResult
-// @Router /api/projects/{projectId}/tms/import [post]
+// @Router /projects/{projectId}/tms/import [post]
 func (h *Handler) ImportTestCases(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -119,7 +119,7 @@ func (h *Handler) ImportTestCases(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param format query string false "Format (csv, json, xml, excel)"
 // @Success 200 {file} binary
-// @Router /api/projects/{projectId}/tms/export [get]
+// @Router /projects/{projectId}/tms/export [get]
 func (h *Handler) ExportTestCases(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -146,7 +146,7 @@ func (h *Handler) ExportTestCases(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param format query string false "Format (pdf, csv, json)"
 // @Success 200 {file} binary
-// @Router /api/projects/{projectId}/tms/runs/{runId}/export [get]
+// @Router /projects/{projectId}/tms/runs/{runId}/export [get]
 func (h *Handler) ExportTestRunReport(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

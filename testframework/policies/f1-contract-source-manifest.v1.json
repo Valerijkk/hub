@@ -1,0 +1,63 @@
+{
+  "schema": "hub.testframework.contract-source-manifest/v1",
+  "byte_format": "git-lf-utf8",
+  "source_commit": "4e9a0dad4f07a5b6123b4cf4e17e380e81c931fb",
+  "blobs": [
+    {
+      "path": "backend/cmd/server/main.go",
+      "sha256": "f082c81567c582b8fcc22027b43aad5f54f4e7458a0e42f6667a901a994fed5e"
+    },
+    {
+      "path": "backend/cmd/server/wiring_auth.go",
+      "sha256": "545cd139b6ecdfc9c6925c12e5c2c5db15054f76e32d38990ac7b44638c83f08"
+    },
+    {
+      "path": "backend/cmd/server/wiring_messenger.go",
+      "sha256": "32cb79d3bbc1d124d154853e36ea762357e31fe2bbe5f6b28a43cd3cc00933a3"
+    },
+    {
+      "path": "backend/docs/swagger.json",
+      "sha256": "90e79f20e5c4a02d560f31eb69b5d5cc76fcd72970aa2e0f55c7635621c15ae4"
+    },
+    {
+      "path": "backend/internal/apigateway/apikey.go",
+      "sha256": "85fce37552ae78d3bcfaa4de090fdb566e98281e39179dd687ad745266154ccb"
+    },
+    {
+      "path": "backend/internal/auth/events.go",
+      "sha256": "8904ac565e516881952f7eb2b8219bca1930236e6c9775b552b6ca7515bfe9f8"
+    },
+    {
+      "path": "backend/internal/auth/handler.go",
+      "sha256": "de01ee65b1c10ff1c2c7aa5e6fceb8f8707a68e1b1a09bb3edc9a2859f06f9ad"
+    },
+    {
+      "path": "backend/internal/auth/middleware.go",
+      "sha256": "477fbcb8ac4c993a128e0b82f3c867159e6ac4987001fdac7fa3a7999c0c614f"
+    },
+    {
+      "path": "backend/internal/auth/service_session.go",
+      "sha256": "4c568ffa1145db42da4a01ad412254ba3b61a87731732225dae2f27486eb4cf0"
+    },
+    {
+      "path": "backend/internal/notification/consumer.go",
+      "sha256": "8ab97179948f537165ad86a1146aca9505e0db719e4b785dda5885e6e1f95fdc"
+    },
+    {
+      "path": "backend/internal/notification/events.go",
+      "sha256": "8a3b722df8256d9135b5d26307c508b6ef12de4c392036d55aed23da396e7a9b"
+    },
+    {
+      "path": "backend/internal/platform/middleware/middleware.go",
+      "sha256": "a53e15dc2828468eb4ab9800b50fec11dabef645e87ea7f361474e82c26185ab"
+    },
+    {
+      "path": "backend/internal/tms/handler.go",
+      "sha256": "4d13128caa948617539bc176d1929dccbe853a94610ec150f57f94d8a48fbd6e"
+    },
+    {
+      "path": "testframework/policies/f1-security-risk-ledger.toml",
+      "sha256": "7d3a8f64ef98e31e8b20f0776a32639ebac7964b5fad3147a6d3ed5adae6eab3"
+    }
+  ]
+}

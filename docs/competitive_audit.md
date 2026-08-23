@@ -110,12 +110,12 @@ inventory, а не принятую зрелость модулей.
 3. Secret rotation в git history — ⏳ **FA-06/PG-03 manual** — отдельный ops-блокер production cutover, не readiness proxy
 4. ~~Vitest smoke tests auth + admin~~ — ✅ **179** files (`stages/unit/frontend-test/`, measured 2026-07-29)
 5. ~~E2E critical paths~~ — ✅ 20 Playwright specs
-6. Historical test-framework migration slice — новый package/launcher `NOT_READY`, runtime `NOT_RUN`
+6. Historical test-framework migration slice — package и 181 framework selftests приняты; SUT API/integration/e2e/load остаются `NOT_RUN` и вне minimal merge gate
 7. ~~Squash PR v2.5-trust~~ — ✅ merged PR #1 2026-06-22
 
 ### Should Have (v4.5 / Wave C audit — в основном закрыто)
 
-1. Historical TF-M01–M10 slice — не current framework acceptance; package/launcher `NOT_READY`, runtime `NOT_RUN`
+1. Historical TF-M01–M10 slice — не current SUT-suite acceptance; package и framework selftests приняты, остальные Python targets `NOT_RUN`
 2. ~~tms/project micro-gap~~ — ✅ FA-11 (82.0%, 2026-06-22 Docker baseline)
 3. **Webhook delivery log polish** — PROD-04 базово есть; admin UI depth
 4. **Flaky test detection** — PROD-02 partial
@@ -154,7 +154,7 @@ Hub API → slog (JSON) → Loki (Promtail)
        → Alertmanager → webhook → audit log
 ```
 
-**DEV_MODE** остаётся для локального Docker: magic link в логах, relaxed CORS, полный HTTP audit.
+**DEV_MODE** остаётся для локального Docker: только он разрешает magic-link OTP в HTTP-ответе, при этом OTP никогда не попадает в логи; также применяются relaxed CORS и полный HTTP audit. Пустой `RESEND_API_KEY` отключает доставку, но не раскрывает код при `DEV_MODE=false`.
 
 ---
 

@@ -27,7 +27,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 // @Tags Infrastructure
 // @Produce json
 // @Success 200 {object} Response
-// @Router /api/status [get]
+// @Router /status [get]
 func (h *Handler) GetStatus(c fiber.Ctx) error {
 	resp := h.service.GetPublicStatus(c.Context())
 	code := fiber.StatusOK
@@ -42,7 +42,7 @@ func (h *Handler) GetStatus(c fiber.Ctx) error {
 // @Tags Infrastructure
 // @Produce json
 // @Success 200 {object} Response
-// @Router /api/status/details [get]
+// @Router /status/details [get]
 // @Security BearerAuth
 func (h *Handler) GetStatusDetails(c fiber.Ctx) error {
 	resp := h.service.GetDetailedStatus(c.Context())

@@ -18,7 +18,7 @@ import (
 // @Param projectId path string true "Project ID"
 // @Param body body CreateSuiteRequest true "Suite data"
 // @Success 201 {object} SuiteResponse
-// @Router /api/projects/{projectId}/tms/suites [post]
+// @Router /projects/{projectId}/tms/suites [post]
 func (h *Handler) CreateSuite(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -44,7 +44,7 @@ func (h *Handler) CreateSuite(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Success 200 {array} SuiteResponse
-// @Router /api/projects/{projectId}/tms/suites [get]
+// @Router /projects/{projectId}/tms/suites [get]
 func (h *Handler) ListSuites(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -68,7 +68,7 @@ func (h *Handler) ListSuites(c fiber.Ctx) error {
 // @Param suiteId path string true "Suite ID"
 // @Param body body UpdateSuiteRequest true "Update data"
 // @Success 200 {object} SuiteResponse
-// @Router /api/projects/{projectId}/tms/suites/{suiteId} [put]
+// @Router /projects/{projectId}/tms/suites/{suiteId} [put]
 func (h *Handler) UpdateSuite(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -98,7 +98,7 @@ func (h *Handler) UpdateSuite(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param suiteId path string true "Suite ID"
 // @Success 204
-// @Router /api/projects/{projectId}/tms/suites/{suiteId} [delete]
+// @Router /projects/{projectId}/tms/suites/{suiteId} [delete]
 func (h *Handler) DeleteSuite(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -128,7 +128,7 @@ func (h *Handler) DeleteSuite(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param body body CreateComponentRequest true "Component data"
 // @Success 201 {object} ComponentResponse
-// @Router /api/projects/{projectId}/tms/components [post]
+// @Router /projects/{projectId}/tms/components [post]
 func (h *Handler) CreateComponent(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -154,7 +154,7 @@ func (h *Handler) CreateComponent(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Success 200 {array} ComponentResponse
-// @Router /api/projects/{projectId}/tms/components [get]
+// @Router /projects/{projectId}/tms/components [get]
 func (h *Handler) ListComponents(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -175,7 +175,7 @@ func (h *Handler) ListComponents(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param componentId path string true "Component ID"
 // @Success 204
-// @Router /api/projects/{projectId}/tms/components/{componentId} [delete]
+// @Router /projects/{projectId}/tms/components/{componentId} [delete]
 func (h *Handler) DeleteComponent(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

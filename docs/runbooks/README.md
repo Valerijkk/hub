@@ -26,8 +26,8 @@
 | Сайт не открывается | [incident-response](incident-response.md) §2 → [monitoring-and-alerts](monitoring-and-alerts.md) `HubBackendMetricsDown` |
 | 5xx на части запросов | [monitoring-and-alerts](monitoring-and-alerts.md) `HubHighHTTP5xxRate` |
 | Всё медленно | [monitoring-and-alerts](monitoring-and-alerts.md) `HubHighHTTPLatencyP95` |
-| Задеплоили и стало хуже | [deploy-and-rollback](deploy-and-rollback.md) §4 «Откат» |
-| Не приходят Magic Link / transactional alert письма Resend | [fa06-secret-rotation](fa06-secret-rotation.md) (проверить ключи) + [incident-response](incident-response.md) §5 |
+| Задеплоили и стало хуже | [deploy-and-rollback](deploy-and-rollback.md) §5 «Откат» |
+| Не приходят письма/уведомления | [fa06-secret-rotation](fa06-secret-rotation.md) (проверить ключи) + [incident-response](incident-response.md) §5 |
 | Кончилось место / БД не пишет | [database-operations](database-operations.md) §5 |
 | Утёк секрет | [fa06-secret-rotation](fa06-secret-rotation.md) немедленно |
 | Потеряны данные | [backup-restore](backup-restore.md) §3 |
@@ -36,15 +36,9 @@
 
 **Production-стек** (`deployments/docker-compose.prod.yml`): `postgres`, `mongo`, `redis`, `nats`, `seaweedfs`, `livekit`, `backend`, `hub-mail`, `frontend`, `caddy`.
 
-Здесь `hub-mail` означает текущий Resend процесс: Magic Link/transactional alerts и
-legacy admin broadcast. Broadcast — известное нарушение no-marketing policy, а не принятая
-mailbox-функция. Stalwart mailbox engine, SMTP receive/send, JMAP adapter и mailbox runbooks
-пока только заморожены в `ADR-MAIL-01`; они отсутствуют в production stack и имеют статус
-`NOT_IMPLEMENTED` / `NOT_RUN`.
-
 **Мониторинг** (`deployments/docker-compose.monitoring.yml`, overlay): `prometheus`, `alertmanager`, `loki`, `promtail`, `grafana`.
 
-**Деплой:** GitHub Actions `.github/workflows/deploy.yml` — сборка и push образов, затем SSH-деплой на хост. Каталог приложения на сервере: `/opt/hub` (см. `scripts/deploy-preflight.sh`).
+**Деплой:** GitHub Actions `.github/workflows/deploy.yml` — manual-only запуск на текущем `master` после локального Docker evidence для выбранного SHA, `FA-06/PG-03` и CTO sign-off; мерж сам по себе production-действий не запускает. Если `master` продвинулся после dispatch, deploy fail-closed останавливается до смены checkout. Workflow собирает и push-ит образы, затем выполняет SSH-деплой на хост. Каталог приложения на сервере: `/opt/hub` (см. `scripts/deploy-preflight.sh`).
 
 **Health-эндпоинты:** `/api/health` (backend, проверяется в preflight), `/metrics` (Prometheus-метрики, `backend/internal/platform/observability/prometheus.go`).
 

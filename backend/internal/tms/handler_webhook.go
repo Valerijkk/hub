@@ -10,13 +10,11 @@ import (
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
-// apperr используется в swag @Failure аннотациях.
-var _ *apperr.AppError
+var _ apperr.PublicErrorBody
 // ---------------------------------------------------------------------------
 // Обработчики вебхуков CI/CD
 // ---------------------------------------------------------------------------
 // Упрощённые эндпоинты для CI/CD пайплайнов.
-// Аутентификация через X-Hub-Token заголовок или query-параметр token.
 // ---------------------------------------------------------------------------
 
 // maxAllureFileBytes — лимит размера на каждый загружаемый файл в multipart-вебхуках.
@@ -40,19 +38,18 @@ type WebhookResponse struct {
 // @Summary CI/CD webhook для импорта результатов Allure
 // @Description Принимает multipart (JSON-файл allure-results) или raw JSON-массив результатов.
 // @Description ZIP-архивы не поддерживаются — передавайте JSON-массив или один .json файл.
-// @Description Аутентификация через X-Hub-Token заголовок или query-параметр token.
 // @Tags TMS
 // @Accept multipart/form-data,application/json
 // @Produce json
+// @Security BearerAuth
+// @Security APIKeyAuth
 // @Param projectId path string true "Project ID"
-// @Param X-Hub-Token header string false "API-ключ"
-// @Param token query string false "API-ключ (альтернативный способ)"
 // @Param title query string false "Заголовок прогона"
 // @Success 201 {object} WebhookResponse
-// @Failure 400 {object} apperr.AppError
-// @Failure 401 {object} apperr.AppError
-// @Failure 413 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/webhook [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Failure 401 {object} apperr.PublicErrorBody
+// @Failure 413 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/webhook [post]
 func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -148,14 +145,14 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 // @Tags TMS
 // @Accept multipart/form-data,application/xml
 // @Produce json
+// @Security BearerAuth
+// @Security APIKeyAuth
 // @Param projectId path string true "Project ID"
-// @Param X-Hub-Token header string false "API-ключ"
-// @Param token query string false "API-ключ (альтернативный способ)"
 // @Param title query string false "Заголовок прогона"
 // @Success 201 {object} WebhookResponse
-// @Failure 400 {object} apperr.AppError
-// @Failure 401 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/webhook/junit [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Failure 401 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/webhook/junit [post]
 func (h *Handler) WebhookJUnit(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

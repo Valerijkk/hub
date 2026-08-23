@@ -30,7 +30,7 @@ import (
 // @Failure 403 {object} fiber.Error "Нет доступа к каналу звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/recording/start [post]
+// @Router /calls/{callId}/recording/start [post]
 func (h *Handler) StartRecording(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -69,7 +69,7 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет доступа к записи"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/recording/stop [post]
+// @Router /calls/{callId}/recording/stop [post]
 func (h *Handler) StopRecording(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -113,7 +113,7 @@ func (h *Handler) StopRecording(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/recordings [get]
+// @Router /projects/{projectId}/recordings [get]
 func (h *Handler) ListProjectRecordings(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("projectId"))
 	projectID, err := uuid.Parse(idStr)
@@ -178,7 +178,7 @@ func (h *Handler) ListProjectRecordings(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/recordings/{recordingId}/download [get]
+// @Router /recordings/{recordingId}/download [get]
 func (h *Handler) GetRecordingDownloadURL(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("recordingId"))
 	recordingID, err := uuid.Parse(idStr)

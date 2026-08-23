@@ -20,7 +20,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/labels [get]
+// @Router /projects/{projectId}/labels [get]
 func (h *Handler) ListLabels(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -48,7 +48,7 @@ func (h *Handler) ListLabels(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/labels [post]
+// @Router /projects/{projectId}/labels [post]
 func (h *Handler) CreateLabel(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -79,7 +79,7 @@ func (h *Handler) CreateLabel(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/labels/{labelId} [delete]
+// @Router /projects/{projectId}/labels/{labelId} [delete]
 func (h *Handler) DeleteLabel(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -107,7 +107,7 @@ func (h *Handler) DeleteLabel(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/labels/groups [get]
+// @Router /projects/{projectId}/labels/groups [get]
 func (h *Handler) ListLabelGroups(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -135,7 +135,7 @@ func (h *Handler) ListLabelGroups(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/labels/groups [post]
+// @Router /projects/{projectId}/labels/groups [post]
 func (h *Handler) CreateLabelGroup(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

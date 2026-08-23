@@ -30,13 +30,13 @@
 
 ## 0. Runtime routing моделей
 
-> **Policy (ADR-MODELS-GPT56, amended 2026-08-11):** root `team-lead` — единственный **GPT-5.6 Sol / Max**. Terra явно выполняет analysis/decomposition/review; 5.3 Codex Spark (`gpt-5.3-codex`) / XHigh — atomic code. Все model frontmatter и каждый dispatch explicit; `inherit` и silent fallback запрещены. Канон: [`model-routing.md`](model-routing.md).
+> **Policy (ADR-MODELS-GPT56, amended 2026-08-22):** root `team-lead` — единственный **GPT-5.6 Sol / Max**. Каждый downstream явно использует `gpt-5.6-terra` с task-routed effort; atomic code по frozen contract всегда Terra / XHigh. Все model frontmatter и каждый dispatch explicit; `inherit` и silent fallback запрещены. Канон: [`model-routing.md`](model-routing.md).
 
 | Слот | Frontmatter | Runtime policy |
 |------|-------------|----------------|
 | Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol / Max**; единственный Sol runtime |
 | Ролевые исполнители и `*-ver` | `gpt-5.6-terra` | Analysis/decomposition/review; explicit Low–XHigh |
-| Atomic code `codex-micro` | `gpt-5.3-codex` | **5.3 Codex Spark / XHigh**, context до 400k |
+| Atomic code `codex-micro` | `gpt-5.6-terra` | **Terra / XHigh** по frozen contract; legacy role ID, не runtime requirement |
 | `team-lead-opus` | `gpt-5.6-terra` | Deprecated compatibility redirect; not an escalation slot |
 
 Runtime mismatch не лечится automatic override: root создаёт новый explicit route либо останавливает задачу `UNKNOWN/BLOCKED`.
@@ -146,7 +146,7 @@ Evidence-aware примеры, hard controls, review warnings, negative sentinel
 
 ## 3. Ростер команды (32 файла агентов)
 
-**Runtime:** `team-lead` — GPT-5.6 Sol / Max; downstream explicit Terra, atomic code explicit 5.3 Codex Spark / XHigh (§0).
+**Runtime:** `team-lead` — GPT-5.6 Sol / Max; downstream explicit Terra, atomic code explicit Terra / XHigh (§0).
 
 ### Тир 1 — Лидерство
 | Агент | Файл | Runtime | Роль |
@@ -154,7 +154,7 @@ Evidence-aware примеры, hard controls, review warnings, negative sentinel
 | Team Lead | `team-lead.md` | **Sol / Max** | Оркестратор волн, делегирование, финальная приёмка |
 | Team Lead (esc.) | `team-lead-opus.md` | deprecated | Исторический профиль; routing теперь внутри `team-lead` |
 | Tech Lead | `tech-lead.md` | routed | Декомпозиция на фазы/планы, зависимости, риски |
-| Codex Micro | `codex-micro.md` | **5.3 Codex Spark / XHigh** | Атомарный код по frozen contract (не волны) |
+| Codex Micro | `codex-micro.md` | **Terra / XHigh** | Атомарный код по frozen contract (не волны); legacy role ID |
 
 ### Тир 2 — Продукт
 | Агент | Файл | Роль |
@@ -242,7 +242,7 @@ Evidence-aware примеры, hard controls, review warnings, negative sentinel
 | Docs-sync | После user-visible/prod изменения — обновить docs в той же сессии | `.cursor/rules/55-docs-sync.mdc` |
 | Test-triage | Упал тест → сначала проверить функционал по docs, потом чинить | `.cursor/skills/test-triage/SKILL.md` |
 | Верификация | Каждый артефакт → персональный `*-ver`; `verified:true` только при green + лог | `verification.md` |
-| /qa-gate | Финальный чек перед handoff/merge | `.cursor/skills/qa-gate/SKILL.md` |
+| Root Compose services | Финальный чек перед handoff/merge | `docker compose -f docker-compose.local.yml run --rm <service>` |
 | Cleanup | Удалить coverage-dumps/temp до коммита | `.cursor/rules/45-artifacts-cleanup.mdc` |
 
 ---

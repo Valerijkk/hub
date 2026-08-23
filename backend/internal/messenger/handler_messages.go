@@ -24,7 +24,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages [post]
+// @Router /messenger/channels/{channelId}/messages [post]
 func (h *Handler) SendMessage(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -60,7 +60,7 @@ func (h *Handler) SendMessage(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages [get]
+// @Router /messenger/channels/{channelId}/messages [get]
 func (h *Handler) ListMessages(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -105,7 +105,7 @@ func (h *Handler) ListMessages(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages/{messageId} [put]
+// @Router /messenger/channels/{channelId}/messages/{messageId} [put]
 func (h *Handler) EditMessage(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -144,7 +144,7 @@ func (h *Handler) EditMessage(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages/{messageId} [delete]
+// @Router /messenger/channels/{channelId}/messages/{messageId} [delete]
 func (h *Handler) DeleteMessage(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -179,7 +179,7 @@ func (h *Handler) DeleteMessage(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages/{messageId}/forward [post]
+// @Router /messenger/channels/{channelId}/messages/{messageId}/forward [post]
 func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -222,7 +222,7 @@ func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Failure 404 {object} fiber.Error "Сообщение не найдено"
 // @Security BearerAuth
-// @Router /api/messages/{messageId}/promote-to-issue [post]
+// @Router /messages/{messageId}/promote-to-issue [post]
 func (h *Handler) PromoteToIssue(c fiber.Ctx) error {
 	messageID := parseMessageID(c)
 	if messageID == "" {
@@ -259,7 +259,7 @@ func (h *Handler) PromoteToIssue(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages/{messageId}/replies [get]
+// @Router /messenger/channels/{channelId}/messages/{messageId}/replies [get]
 func (h *Handler) ListThreadReplies(c fiber.Ctx) error {
 	messageID := parseMessageID(c)
 	if messageID == "" {

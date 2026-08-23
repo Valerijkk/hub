@@ -145,9 +145,11 @@ Docker containers/Compose:
 - `--rm` или guaranteed task-owned `down -v --remove-orphans`;
 - не останавливать shared stack и не удалять чужие resources.
 
-Exact target runners находятся только в `AGENTS.md` и
-`.cursor/skills/qa-gate/SKILL.md`. Если target scaffold/job ещё не
-существует, результат — `NOT_READY`, а не legacy fallback.
+Единственный API — `docker compose -f docker-compose.local.yml run --rm <service>`.
+Разрешены только `backend-unit`, `frontend-unit`, `python-contract`,
+`python-api`, `python-integration`, `python-e2e-smoke`, `python-e2e-full` и
+`python-load`. Если fixed service ещё не существует, результат — `NOT_READY`,
+а не host, direct или legacy fallback.
 
 ## 7. Evidence and cleanup
 
@@ -196,5 +198,4 @@ Done, когда:
 - independent verifier дал verdict по raw evidence, не self-report.
 
 См. также `.cursor/rules/41-test-contracts.mdc`,
-`.cursor/rules/56-regression-verify.mdc`, `.cursor/playbooks/testing.md` и
-`.cursor/skills/qa-gate/SKILL.md`.
+`.cursor/rules/56-regression-verify.mdc` и `.cursor/playbooks/testing.md`.

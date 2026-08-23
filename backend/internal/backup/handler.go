@@ -39,7 +39,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, adminMw
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/admin/backups [post]
+// @Router /admin/backups [post]
 func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 	resp, err := h.svc.PerformBackup(c.Context())
 	if err != nil {
@@ -58,7 +58,7 @@ func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/admin/backups [get]
+// @Router /admin/backups [get]
 func (h *Handler) ListBackups(c fiber.Ctx) error {
 	backups, err := h.svc.ListBackups(c.Context())
 	if err != nil {
@@ -81,7 +81,7 @@ func (h *Handler) ListBackups(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/admin/backups/{id}/restore [post]
+// @Router /admin/backups/{id}/restore [post]
 func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	backupID, err := uuid.Parse(idStr)
@@ -119,7 +119,7 @@ func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/admin/backups/{id} [delete]
+// @Router /admin/backups/{id} [delete]
 func (h *Handler) DeleteBackup(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	backupID, err := uuid.Parse(idStr)

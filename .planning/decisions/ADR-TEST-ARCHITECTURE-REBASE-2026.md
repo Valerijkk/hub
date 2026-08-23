@@ -22,8 +22,8 @@ tests are evidence about history, not specifications to translate.
 ADR_STATUS=ACCEPTED
 BASELINE_E2E=DOCKER:53_COLLECTED:48_PASS:5_EXPECTED_SKIP:0_FAIL
 MIGRATION_MODE=GREENFIELD_REBUILD
-LEDGER_HEAD=5708671f00411c7c9e9dbee88b725de2092cbacd
-LEDGER_SHA256=72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511
+LEDGER_HEAD=b9f690da5cdcf322fc5b28a8d96c71a422407154
+LEDGER_SHA256=83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89
 CUTOVER_PARTITION=MOVE:507:KEEP_BLOCKED:245:DELETE:297:NONLEDGER_DELETE:28
 PARTIAL_CUTOVER_ALLOWED=true
 PHASE129_EXIT=HOOK_DEPENDENT_REFACTORED_AND_MOVED
@@ -161,7 +161,7 @@ each group by both count and SHA-256 over sorted canonical source paths.
 The immediate move set is exactly **507 files / 1,673 cases**. The blocked set
 is **245 / 1,428** and the ledger deletion set is **297 / 1,145**. These nine
 groups partition all **1,049 rows / 4,246 cases** at ledger revision
-`5708671f00411c7c9e9dbee88b725de2092cbacd`. A separate exact non-ledger
+`b9f690da5cdcf322fc5b28a8d96c71a422407154`. A separate exact non-ledger
 closure contains 28 obsolete runners, configs, helpers and stage documents.
 
 A count-only match is insufficient: every group is sealed by SHA-256 over its

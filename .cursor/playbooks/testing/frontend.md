@@ -41,12 +41,11 @@ partial/retry/recovery/cancel, stale/version и accessibility. Это не quota
 
 ## Docker evidence
 
-Frontend unit job запускается только через `/qa-gate` и sole runner boundary:
-outer wall-clock timeout, exit-code preservation, task-owned container/volumes
+Frontend unit job запускается только как `docker compose -f docker-compose.local.yml run --rm frontend-unit`;
+profile-explicit disposable service использует task-owned container/volumes
 и unconditional cleanup в `finally`. Host Node/Vitest/tsc/Biome/Vite и прямой
-`docker run` запрещены. Private source candidate принят только статически; до
-binding и parser/private-contract/Docker acceptance verdict — `NOT_READY`,
-runtime — `NOT_RUN`; cleanup result входит в handoff.
+`docker run` запрещены. Runtime status выводится только из свежего target
+receipt; без него статус — `NOT_RUN`; cleanup result входит в handoff.
 
 ## Review
 

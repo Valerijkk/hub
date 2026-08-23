@@ -3,9 +3,8 @@
 > **Обновлено:** 2026-06-22 · Стек: Go 1.25, React 19, Fiber v3 · Auth: Magic Link only  
 > Wiki: `docs/wiki/API.md` · Deploy: `docs/wiki/DEPLOY.md` · Tests: `docs/test_plan.md`
 >
-> **2026-08-12 status overlay:** CI-строки ниже — historical inventory, не
-> runnable authority и не current PASS. Применимые jobs маршрутизируются только
-> через `/qa-gate`; launcher/package `NOT_READY`, runtime `NOT_RUN`.
+> **Current QA authority:** CI-строки ниже — historical inventory, не current PASS.
+> Единственный QA API — `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
 
 ---
 
@@ -13,9 +12,10 @@
 
 | Target | Authority | Current status |
 |-----|-------------------|---|
-| `backend-unit` | `/qa-gate` → sole runner boundary | `NOT_READY` |
-| `frontend-unit` | `/qa-gate` → sole runner boundary | `NOT_READY` |
-| Python contract/API/integration/E2E/load | `/qa-gate` → future accepted profiles | `NOT_READY` |
+| `backend-unit` | root Compose exact service | PASS: build/vet/unit/race |
+| `frontend-unit` | root Compose exact service | PASS: 338/338 suites, 419/419 tests |
+| python-contract | root Compose exact service | PASS: 181/181 framework selftests |
+| Python API/integration/E2E/load | root Compose exact services | NOT_RUN; outside minimal merge gate |
 
 Historical coverage baseline `internal/`: **~82%** (`.planning/COVERAGE.md`);
 это не текущий migration/release gate.

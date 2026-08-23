@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hub.testframework.case/v1",
+  "title": "Hub test case v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "title",
+    "status",
+    "task",
+    "requirement",
+    "risk",
+    "scenario",
+    "subject",
+    "preconditions",
+    "oracle",
+    "cleanup",
+    "automation"
+  ],
+  "properties": {
+    "schema": {"const": "hub.testframework.case/v1"},
+    "id": {
+      "type": "string",
+      "pattern": "^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$"
+    },
+    "title": {"type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S"},
+    "status": {"enum": ["active", "planned", "retired"]},
+    "task": {"type": "string", "pattern": "^TASK-[0-9]{3}$"},
+    "requirement": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+$"
+    },
+    "risk": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+$"
+    },
+    "scenario": {
+      "enum": [
+        "happy",
+        "negative",
+        "authn",
+        "authz",
+        "boundary",
+        "edge",
+        "corner",
+        "failure-recovery",
+        "security",
+        "accessibility",
+        "performance"
+      ]
+    },
+    "subject": {"type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S"},
+    "preconditions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {"type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S"}
+    },
+    "oracle": {"type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S"},
+    "cleanup": {"type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S"},
+    "automation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "layer", "node_id"],
+          "properties": {
+            "kind": {"const": "pytest"},
+            "layer": {"enum": ["contract", "api", "integration", "e2e"]},
+            "node_id": {
+              "type": "string",
+              "pattern": "^testframework/tests/(?:contract|api|integration|e2e)/(?:[A-Za-z0-9][A-Za-z0-9_-]*/)*test_[A-Za-z0-9_]+\\.py::test_[A-Za-z0-9_]+$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "entrypoint"],
+          "properties": {
+            "kind": {"const": "locust"},
+            "entrypoint": {
+              "type": "string",
+              "pattern": "^testframework/load/(?:[A-Za-z0-9][A-Za-z0-9_-]*/)*[A-Za-z0-9_]+\\.py$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "evidence_owner"],
+          "properties": {
+            "kind": {"const": "manual"},
+            "evidence_owner": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{2,31}$"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "active"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "automation": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": {
+              "kind": {"const": "pytest"}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "automation": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": {
+              "kind": {"enum": ["locust", "manual"]}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

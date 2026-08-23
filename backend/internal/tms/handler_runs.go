@@ -18,7 +18,7 @@ import (
 // @Param projectId path string true "Project ID"
 // @Param body body CreateTestRunRequest true "Run data"
 // @Success 201 {object} TestRunResponse
-// @Router /api/projects/{projectId}/tms/runs [post]
+// @Router /projects/{projectId}/tms/runs [post]
 func (h *Handler) CreateTestRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -51,7 +51,7 @@ func (h *Handler) CreateTestRun(c fiber.Ctx) error {
 // @Param limit query int false "Limit"
 // @Param status query string false "Status"
 // @Success 200 {object} PaginatedResponse[TestRunResponse]
-// @Router /api/projects/{projectId}/tms/runs [get]
+// @Router /projects/{projectId}/tms/runs [get]
 func (h *Handler) ListTestRuns(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -78,8 +78,8 @@ func (h *Handler) ListTestRuns(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 404 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId} [get]
+// @Failure 404 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId} [get]
 func (h *Handler) GetTestRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -107,8 +107,8 @@ func (h *Handler) GetTestRun(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body UpdateRunStatusRequest true "New status"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/status [put]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/status [put]
 func (h *Handler) UpdateRunStatus(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -139,8 +139,8 @@ func (h *Handler) UpdateRunStatus(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/reopen [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/reopen [post]
 func (h *Handler) ReopenTestRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -172,7 +172,7 @@ func (h *Handler) ReopenTestRun(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body CreateTestResultRequest true "Result data"
 // @Success 201 {object} TestResultResponse
-// @Router /api/projects/{projectId}/tms/runs/{runId}/results [post]
+// @Router /projects/{projectId}/tms/runs/{runId}/results [post]
 func (h *Handler) CreateTestResult(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -206,8 +206,8 @@ func (h *Handler) CreateTestResult(c fiber.Ctx) error {
 // @Param resultId path string true "Result ID"
 // @Param body body UpdateTestResultRequest true "Execution data"
 // @Success 200 {object} TestResultResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/results/{resultId} [put]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/results/{resultId} [put]
 func (h *Handler) ExecuteTestResult(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -246,7 +246,7 @@ func (h *Handler) ExecuteTestResult(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {array} TestResultResponse
-// @Router /api/projects/{projectId}/tms/runs/{runId}/results [get]
+// @Router /projects/{projectId}/tms/runs/{runId}/results [get]
 func (h *Handler) ListTestResults(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -278,8 +278,8 @@ func (h *Handler) ListTestResults(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body AddTestCasesToRunRequest true "List of test case IDs"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/cases [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/cases [post]
 func (h *Handler) AddTestCasesToRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -312,8 +312,8 @@ func (h *Handler) AddTestCasesToRun(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body AssignTestersRequest true "List of user IDs"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/assignees [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/assignees [post]
 func (h *Handler) AssignTestersToRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -344,8 +344,8 @@ func (h *Handler) AssignTestersToRun(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/start [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/start [post]
 func (h *Handler) StartTestRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -371,8 +371,8 @@ func (h *Handler) StartTestRun(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/complete [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/complete [post]
 func (h *Handler) CompleteTestRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -398,8 +398,8 @@ func (h *Handler) CompleteTestRun(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 404 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/detail [get]
+// @Failure 404 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/detail [get]
 func (h *Handler) GetTestRunDetail(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

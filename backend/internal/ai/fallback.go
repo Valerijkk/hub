@@ -92,6 +92,9 @@ func (s *Service) resolveProviders(ctx context.Context, userID uuid.UUID, model 
 	if err != nil {
 		return nil, err
 	}
+	if len(providers) == 0 {
+		return nil, ErrNoProvider
+	}
 	allowExternal, err := s.externalAIAllowed(ctx, userID)
 	if err != nil {
 		return nil, err

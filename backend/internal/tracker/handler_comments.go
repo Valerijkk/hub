@@ -24,7 +24,7 @@ import (
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/comments [post]
+// @Router /projects/{projectId}/issues/{issueKey}/comments [post]
 func (h *Handler) CreateComment(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -63,7 +63,7 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/comments [get]
+// @Router /projects/{projectId}/issues/{issueKey}/comments [get]
 func (h *Handler) ListComments(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -96,7 +96,7 @@ func (h *Handler) ListComments(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId} [put]
+// @Router /projects/{projectId}/issues/{issueKey}/comments/{commentId} [put]
 func (h *Handler) UpdateComment(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -139,7 +139,7 @@ func (h *Handler) UpdateComment(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId} [delete]
+// @Router /projects/{projectId}/issues/{issueKey}/comments/{commentId} [delete]
 func (h *Handler) DeleteComment(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -179,7 +179,7 @@ func (h *Handler) DeleteComment(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId}/reactions [post]
+// @Router /projects/{projectId}/issues/{issueKey}/comments/{commentId}/reactions [post]
 func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -226,7 +226,7 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/activity [get]
+// @Router /projects/{projectId}/issues/{issueKey}/activity [get]
 func (h *Handler) GetActivity(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

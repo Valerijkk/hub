@@ -1,10 +1,7 @@
 name: PR Guard
 
 on:
-  pull_request:
-    branches: [master]
-  push:
-    branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -32,7 +29,6 @@ jobs:
 
   docs-link-check:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v7
 

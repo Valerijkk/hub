@@ -197,8 +197,8 @@ contract отменяет его как migration gate; destructive batches ра
 |------:|--------|------------|-----------------|
 | 126 | IMPLEMENTED 2026-07-28 | — | Intranet NewsPost trash · TASK-001 |
 | 127 | IMPLEMENTED 2026-07-28 | 126 | Calendar series trash · TASK-002 |
-| 128 | IN PROGRESS · contract/manifests | — | TASK-202 archived/verified; TASK-203/224 baseline evidence closed; TASK-204 accepted contract + ordered `cutover-manifest.json` verification pending |
-| 129 | PLANNED · 7 ordered plans | 128 PASS | exact cutover: per-batch operation + CI/docs switch + manifest evidence; move 350 hook-free Go units, preserve/refactor 245 via TASK-234, move frontend units, delete legacy non-units, root Python scaffold · TASK-193/197/198/201/219/234 |
+| 128 | Historical evidence retained; 2026-08-14 recovery packet superseded by final 2026-08-23 evidence | — | Minimal Docker gate PASS: backend/frontend units plus 181 framework selftests; see `audits/test-rebase/FINAL-MERGE-EVIDENCE-2026-08-23.md`. |
+| 129 | `PUBLICATION_PENDING` | final remote fast-forward | Root-Compose minimal gate PASS; full legacy source disposition reconciled; hosted CI off; API/integration/e2e/load remain `NOT_RUN` and non-gating. |
 | 130 | PLANNED | 129 | task/requirement/risk → TC traceability and fail-closed quality gates · TASK-206/218 |
 | 131 | PLANNED | 130 | Python core + health/auth/account API foundation · TASK-205/207 |
 | 132 | PLANNED | 131 | authz, tenant isolation, admin/platform and abuse cases · TASK-208/209/227 |

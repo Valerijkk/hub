@@ -66,11 +66,11 @@ DYNAMIC_BATCH_KEYS = {
 }
 
 AUTHORITY_FILES = {
-    "inventory": (".planning/audits/test-rebase/inventory.json", "72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511"),
-    "founder_manifest": (".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json", "df503a7f136aed70f0a9aaed2a576350f692574b0fd9f5506bd4b7f5fed0376a"),
-    "architecture_contract": (".planning/audits/test-rebase/test-architecture-contract.json", "62eb27ecd93164cf404639e6c8b85d14843613da2d34ea4da08101a673bf1335"),
+    "inventory": (".planning/audits/test-rebase/inventory.json", "83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89"),
+    "founder_manifest": (".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json", "292b40dbddcc5e5709eef1504a1d6331e5cc45ddeb6e1534642d3ca3dc4288b7"),
+    "architecture_contract": (".planning/audits/test-rebase/test-architecture-contract.json", "8e9f4819f4f9813c2b9c92ec7cae8dba47782c61a2414dda649aa7ac0f3d315e"),
 }
-LEDGER_REVISION = "5708671f00411c7c9e9dbee88b725de2092cbacd"
+LEDGER_REVISION = "b9f690da5cdcf322fc5b28a8d96c71a422407154"
 PHASE129_BATCH_ORDER_SHA256 = "faebb25e84d4efb01fc02fb515118ed28d5224be50dc02ec45da3baea42bb9f5"
 PHASE129_PLAN_ORDER = ("129-02", "129-03", "129-04", "129-05", "129-06", "129-07")
 PHASE129_PLAN_KINDS = {
@@ -1246,7 +1246,7 @@ def validate_verified_receipt(
         errors.append(f"verified receipt is not canonical JSON: {batch.get('id')}")
     receipt_keys = {
         "schema_version", "manifest_id", "batch_id", "applied_commit",
-        "verifier_commit", "verifier_identity", "verified_at",
+        "verifier_identity", "verified_at",
         "operations_sha256", "transition_chain_sha256", "evidence_sha256",
         "commit_chain_sha256", "verifier_binding_sha256", "receipt_sha256",
     }
@@ -1259,15 +1259,17 @@ def validate_verified_receipt(
         "manifest_id": manifest.get("manifest_id"),
         "batch_id": batch.get("id"),
         "applied_commit": commit.get("applied_commit"),
-        "verifier_commit": commit.get("verifier_commit"),
         "verifier_identity": verifier.get("identity"),
         "verified_at": verifier.get("verified_at"),
         "operations_sha256": batch.get("preconditions", {}).get("operations_sha256"),
         "transition_chain_sha256": object_digest(batch.get("state_transition", {}).get("history")),
         "evidence_sha256": object_digest(batch.get("evidence")),
+        # verifier_commit is intentionally absent from the receipt body: the
+        # receipt lives in the verifier commit's own tree, so embedding that
+        # commit hash would be an unsatisfiable fixed point. Tree membership
+        # (read_bound_artifact commit=) provides the verifier-commit binding.
         "commit_chain_sha256": object_digest({
             "applied_commit": commit.get("applied_commit"),
-            "verifier_commit": commit.get("verifier_commit"),
         }),
         "verifier_binding_sha256": object_digest({
             "identity": verifier.get("identity"),
@@ -1758,10 +1760,15 @@ def _expected_gate_contract() -> dict[str, dict[str, Any]]:
             ],
         ),
     }
+    sealed_digests = {
+        "architecture-contract": "sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
+        "backend-unit": "sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24",
+        "frontend-unit": "sha256:57b65fdc9ceabe0ef613124c7bbe2babcf9362c4d85e382fe3b03604e84b428a",
+    }
     return {
         gate_id: {
             "image": image,
-            "expected_image_digest": None,
+            "expected_image_digest": sealed_digests.get(gate_id),
             "cpus": cpu,
             "memory": memory,
             "memory_swap": swap,
@@ -2350,13 +2357,12 @@ def two_batch_projection_sentinel() -> str | None:
             "manifest_id": manifest["manifest_id"],
             "batch_id": batch["id"],
             "applied_commit": commit["applied_commit"],
-            "verifier_commit": commit["verifier_commit"],
             "verifier_identity": verifier["identity"],
             "verified_at": verifier["verified_at"],
             "operations_sha256": batch["preconditions"]["operations_sha256"],
             "transition_chain_sha256": object_digest(batch["state_transition"]["history"]),
             "evidence_sha256": object_digest(batch["evidence"]),
-            "commit_chain_sha256": object_digest(commit),
+            "commit_chain_sha256": object_digest({"applied_commit": commit["applied_commit"]}),
             "verifier_binding_sha256": object_digest({
                 "identity": verifier["identity"],
                 "verdict": verifier["verdict"],

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "authority_id": "FOUNDER-VARIANT-A-BACKEND-HOOK-DEPENDENT-DELETE-2026-08-20",
+  "status": "accepted",
+  "founder_confirmation": {
+    "date": "2026-08-22",
+    "decision": "Do not restore the exact 241 non-protected hook-dependent legacy test deletions; these tests are not required.",
+    "canonical_non_protected_path_digest": "d6bc5ce2e1406e2baa2484b0e87155a4abdf102ffe0fdf96f2c6fbcbd0bc5cc9"
+  },
+  "supersedes": {
+    "manifest": ".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json",
+    "former_partition": "KEEP-GO-UNIT-HOOK-DEPENDENT",
+    "former_action": "keep",
+    "former_status": "verified-hook-blocked"
+  },
+  "decision": "Founder Variant A, reconfirmed on 2026-08-22, reclassifies the exact 241 non-protected hook-dependent legacy Go tests under backend/testframework as delete-not-port. Private export hooks are retained; this authority does not permit changing production hooks, backend/tests, or protected Calendar/Mail paths.",
+  "source_authority": {
+    "operation_manifest": ".planning/audits/test-rebase/cutover-manifest.json",
+    "operation_manifest_git_blob": "ed5fc43644a629d8bf5584f00b1b5f983b6d170e",
+    "operation_selector": {
+      "authority_group": "KEEP-GO-UNIT-HOOK-DEPENDENT",
+      "action": "keep-blocked",
+      "source_prefix": "backend/testframework/",
+      "source_suffix": "_test.go"
+    },
+    "exact_source_fields": ["source", "source_sha256"],
+    "selected_source_binding_sha256": "a3d1d9801ce1cf5ca22cc7a7b37b9d806f227ad711ec0b53f6a2e5559b57ff2f",
+    "selected_source_binding_format": "UTF-8 sorted source TAB source_sha256 records with LF terminator after protected exclusion",
+    "required_git_mode": "100644",
+    "selector_operations_before_protected_exclusion": 245,
+    "selected_operations": 241,
+    "protected_exclusion_paths": [
+      "backend/testframework/calendar/service_wave98_test.go",
+      "backend/testframework/mail/config_test.go",
+      "backend/testframework/mail/hub_handler_test.go",
+      "backend/testframework/mail/internal_auth_test.go"
+    ],
+    "source_ledger": ".planning/audits/test-rebase/inventory.json",
+    "source_ledger_sha256": "83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89"
+  },
+  "operation": {
+    "action": "delete",
+    "port": "forbidden",
+    "precondition": "Each selected source still has git mode 100644 and its git blob SHA-1 corresponds to the selected operation source_sha256 provenance before deletion.",
+    "postcondition": "All and only the 241 non-protected selected paths remain deleted; no live code, CI, or runner imports/references those deleted tests.",
+    "rollback": "Restore only through git revert of the eventual atomic deletion commit; no ad-hoc copies."
+  },
+  "receipt": {
+    "verified_at": "2026-08-23",
+    "commit": "e85feac5c02f4652997c670e1c6fd4640f5760c0",
+    "parent": "83bf84946b0f7605e17eb164e55818f2f74ab699",
+    "deleted_path_count": 241,
+    "path_digest_sha256": "d6bc5ce2e1406e2baa2484b0e87155a4abdf102ffe0fdf96f2c6fbcbd0bc5cc9",
+    "path_digest_format": "UTF-8 sorted paths with LF terminator",
+    "path_mismatches": 0,
+    "non_deletion_changes": 0,
+    "provenance_mismatches": 0,
+    "protected_exclusion": {
+      "count": 4,
+      "deleted_in_commit": 0,
+      "present_in_head": 4,
+      "paths": [
+        "backend/testframework/calendar/service_wave98_test.go",
+        "backend/testframework/mail/config_test.go",
+        "backend/testframework/mail/hub_handler_test.go",
+        "backend/testframework/mail/internal_auth_test.go"
+      ]
+    }
+  },
+  "non_scope": [
+    "backend/tests/**",
+    "backend/internal/**/export_hooks*.go",
+    "four protected Calendar/Mail metadata paths",
+    "pro-qa-ai/**",
+    "legacy non-test support files"
+  ]
+}

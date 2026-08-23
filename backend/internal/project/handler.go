@@ -70,7 +70,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects [post]
+// @Router /projects [post]
 func (h *Handler) CreateProject(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -99,7 +99,7 @@ func (h *Handler) CreateProject(c fiber.Ctx) error {
 // @Success 200 {array} ProjectResponse "Список проектов"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects [get]
+// @Router /projects [get]
 func (h *Handler) ListProjects(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -126,7 +126,7 @@ func (h *Handler) ListProjects(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 404 {object} fiber.Error "Проект не найден"
 // @Security BearerAuth
-// @Router /api/projects/{projectId} [get]
+// @Router /projects/{projectId} [get]
 func (h *Handler) GetProject(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -158,7 +158,7 @@ func (h *Handler) GetProject(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId} [put]
+// @Router /projects/{projectId} [put]
 func (h *Handler) UpdateProject(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -188,7 +188,7 @@ func (h *Handler) UpdateProject(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/archive [post]
+// @Router /projects/{projectId}/archive [post]
 func (h *Handler) ArchiveProject(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -213,7 +213,7 @@ func (h *Handler) ArchiveProject(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/unarchive [post]
+// @Router /projects/{projectId}/unarchive [post]
 func (h *Handler) UnarchiveProject(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -238,7 +238,7 @@ func (h *Handler) UnarchiveProject(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId} [delete]
+// @Router /projects/{projectId} [delete]
 func (h *Handler) DeleteProject(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -262,7 +262,7 @@ func (h *Handler) DeleteProject(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/restore [post]
+// @Router /projects/{projectId}/restore [post]
 func (h *Handler) RestoreProject(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -288,7 +288,7 @@ func (h *Handler) RestoreProject(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 404 {object} fiber.Error "Не найден"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/permanent [delete]
+// @Router /projects/{projectId}/permanent [delete]
 func (h *Handler) PermanentDeleteProject(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -314,7 +314,7 @@ func (h *Handler) PermanentDeleteProject(c fiber.Ctx) error {
 // @Success 200 {array} ProjectResponse "Удалённые проекты"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/trash [get]
+// @Router /projects/trash [get]
 func (h *Handler) ListTrash(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -339,7 +339,7 @@ func (h *Handler) ListTrash(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/members [get]
+// @Router /projects/{projectId}/members [get]
 func (h *Handler) ListMembers(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -366,7 +366,7 @@ func (h *Handler) ListMembers(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/members [post]
+// @Router /projects/{projectId}/members [post]
 func (h *Handler) AddMember(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -404,7 +404,7 @@ func (h *Handler) AddMember(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/members/{userId} [put]
+// @Router /projects/{projectId}/members/{userId} [put]
 func (h *Handler) UpdateMemberRole(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -440,7 +440,7 @@ func (h *Handler) UpdateMemberRole(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/members/{userId} [delete]
+// @Router /projects/{projectId}/members/{userId} [delete]
 func (h *Handler) RemoveMember(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -472,7 +472,7 @@ func (h *Handler) RemoveMember(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/invites [post]
+// @Router /projects/{projectId}/invites [post]
 func (h *Handler) CreateInvite(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -507,7 +507,7 @@ func (h *Handler) CreateInvite(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/invites [get]
+// @Router /projects/{projectId}/invites [get]
 func (h *Handler) ListInvites(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -532,7 +532,7 @@ func (h *Handler) ListInvites(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/invites/{inviteId} [delete]
+// @Router /projects/{projectId}/invites/{inviteId} [delete]
 func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -562,7 +562,7 @@ func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный код"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/invites/join [post]
+// @Router /invites/join [post]
 func (h *Handler) JoinByInvite(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -593,7 +593,7 @@ func (h *Handler) JoinByInvite(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/teams [post]
+// @Router /teams [post]
 func (h *Handler) CreateTeam(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -621,7 +621,7 @@ func (h *Handler) CreateTeam(c fiber.Ctx) error {
 // @Success 200 {array} TeamResponse "Список команд"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/teams [get]
+// @Router /teams [get]
 func (h *Handler) ListTeams(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -646,7 +646,7 @@ func (h *Handler) ListTeams(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/teams/{teamId}/members [post]
+// @Router /teams/{teamId}/members [post]
 func (h *Handler) AddTeamMember(c fiber.Ctx) error {
 	actorID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -681,7 +681,7 @@ func (h *Handler) AddTeamMember(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/teams/{teamId}/members/{userId} [delete]
+// @Router /teams/{teamId}/members/{userId} [delete]
 func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
 	actorID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -714,7 +714,7 @@ func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/teams/{teamId}/projects/{projectId} [post]
+// @Router /teams/{teamId}/projects/{projectId} [post]
 func (h *Handler) AddTeamToProject(c fiber.Ctx) error {
 	teamIDStr := utils.CopyString(c.Params("teamId"))
 	teamID, err := uuid.Parse(teamIDStr)

@@ -19,8 +19,8 @@ import (
 // @Param projectId path string true "Project ID"
 // @Param body body CreateTestCaseRequest true "Test case data"
 // @Success 201 {object} TestCaseResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/cases [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/cases [post]
 func (h *Handler) CreateTestCase(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -56,7 +56,7 @@ func (h *Handler) CreateTestCase(c fiber.Ctx) error {
 // @Param priority query string false "Priority"
 // @Param search query string false "Search by title"
 // @Success 200 {object} PaginatedResponse[TestCaseResponse]
-// @Router /api/projects/{projectId}/tms/cases [get]
+// @Router /projects/{projectId}/tms/cases [get]
 func (h *Handler) ListTestCases(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -83,8 +83,8 @@ func (h *Handler) ListTestCases(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param caseKey path string true "Case key"
 // @Success 200 {object} TestCaseResponse
-// @Failure 404 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/cases/{caseKey} [get]
+// @Failure 404 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/cases/{caseKey} [get]
 func (h *Handler) GetTestCase(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -112,8 +112,8 @@ func (h *Handler) GetTestCase(c fiber.Ctx) error {
 // @Param caseKey path string true "Case key"
 // @Param body body UpdateTestCaseRequest true "Update data"
 // @Success 200 {object} TestCaseResponse
-// @Failure 404 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/cases/{caseKey} [put]
+// @Failure 404 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/cases/{caseKey} [put]
 func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -147,8 +147,8 @@ func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param caseKey path string true "Case key"
 // @Success 204
-// @Failure 404 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/cases/{caseKey} [delete]
+// @Failure 404 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/cases/{caseKey} [delete]
 func (h *Handler) DeleteTestCase(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -177,7 +177,7 @@ func (h *Handler) DeleteTestCase(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param caseKey path string true "Case key"
 // @Success 200 {array} TestCaseVersionResponse
-// @Router /api/projects/{projectId}/tms/cases/{caseKey}/versions [get]
+// @Router /projects/{projectId}/tms/cases/{caseKey}/versions [get]
 func (h *Handler) ListTestCaseVersions(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -204,8 +204,8 @@ func (h *Handler) ListTestCaseVersions(c fiber.Ctx) error {
 // @Param caseKey path string true "Case key"
 // @Param versionId path string true "Version ID"
 // @Success 200 {object} TestCaseResponse
-// @Failure 404 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/cases/{caseKey}/rollback/{versionId} [post]
+// @Failure 404 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/cases/{caseKey}/rollback/{versionId} [post]
 func (h *Handler) RollbackTestCase(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -244,7 +244,7 @@ func (h *Handler) RollbackTestCase(c fiber.Ctx) error {
 // @Param caseKey path string true "Case key"
 // @Param body body LinkIssueRequest true "Issue ID"
 // @Success 204
-// @Router /api/projects/{projectId}/tms/cases/{caseKey}/links [post]
+// @Router /projects/{projectId}/tms/cases/{caseKey}/links [post]
 func (h *Handler) LinkTestCaseToIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -279,7 +279,7 @@ func (h *Handler) LinkTestCaseToIssue(c fiber.Ctx) error {
 // @Param caseKey path string true "Case key"
 // @Param issueId path string true "Issue ID"
 // @Success 204
-// @Router /api/projects/{projectId}/tms/cases/{caseKey}/links/{issueId} [delete]
+// @Router /projects/{projectId}/tms/cases/{caseKey}/links/{issueId} [delete]
 func (h *Handler) UnlinkTestCaseFromIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -308,7 +308,7 @@ func (h *Handler) UnlinkTestCaseFromIssue(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param caseKey path string true "Case key"
 // @Success 200 {array} IssueBriefResponse
-// @Router /api/projects/{projectId}/tms/cases/{caseKey}/links [get]
+// @Router /projects/{projectId}/tms/cases/{caseKey}/links [get]
 func (h *Handler) GetTestCaseLinks(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -337,8 +337,8 @@ func (h *Handler) GetTestCaseLinks(c fiber.Ctx) error {
 // @Param resultId path string true "Result ID"
 // @Param body body CreateBugRequest true "Bug data"
 // @Success 201 {object} IssueBriefResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/runs/{runId}/results/{resultId}/bug [post]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/runs/{runId}/results/{resultId}/bug [post]
 func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

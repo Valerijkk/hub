@@ -162,7 +162,7 @@ manual ops production cutover и не заменяет product acceptance.
 | JUnit webhook | ✅ | Webhook retry dashboard UX |
 | #hub-ci | ✅ | Pipeline failed→issue (automation) |
 | Observability | ✅ OTel + metrics | hub-mail prod compose (FA-05) |
-| Test framework | исторический TF-M01–M10 technical slice | активен rebase; package/launcher `NOT_READY`, runtime `NOT_RUN` |
+| Test framework | исторический TF-M01–M10 technical slice | minimal rebase принят: package + 181 framework selftests; SUT targets `NOT_RUN` |
 
 **Приоритет:** product/quality acceptance; FA-06/PG-03 ведётся отдельно как
 manual ops production-cutover blocker.
@@ -187,8 +187,8 @@ manual ops production-cutover blocker.
 |----|---------|--------|
 | COV ≥82% | Backend coverage | ✅ **83.0%** (2026-06-22 Docker baseline) |
 | Security ≥80% | 6 critical packages | ✅ **6/6** |
-| TF-M04–M08 | Historical migration slice | historical COMPLETE label; новый package/launcher `NOT_READY`, runtime `NOT_RUN` |
-| FA-10 | Full `/qa-gate` Docker | ✅ PASS |
+| TF-M04–M08 | Historical migration slice | historical COMPLETE label; новый package + 181 framework selftests приняты, SUT targets `NOT_RUN` |
+| FA-10 | Historical legacy Docker gate record | archival PASS; archived authority |
 | PG-03 | Secret rotation execute | ⏳ отдельный manual ops production-cutover blocker; не readiness proxy |
 | v2.5.0 tag | Historical release-plan item | ⏳ требует отдельного founder sign-off; FA-06 сам по себе готовность не доказывает |
 

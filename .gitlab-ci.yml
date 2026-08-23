@@ -1,46 +1,31 @@
 # GitLab CI — mirror of GitHub Actions CI for self-hosted / GitLab remotes
 # Docs: docs/stack_and_tools.md
 
+workflow:
+  rules:
+    - when: never
+
 stages:
   - test
   - build
-  - e2e
 
 variables:
   GO_VERSION: "1.25"
   NODE_VERSION: "22"
   GOPROXY: "https://proxy.golang.org,direct"
 
-.backend_template: &backend_template
-  image: golang:${GO_VERSION}
-  before_script:
-    - cd backend
-    - go mod download
-
-.frontend_template: &frontend_template
-  image: node:${NODE_VERSION}
-  before_script:
-    - cd frontend
-    - npm ci
-
 backend:test:
-  <<: *backend_template
   stage: test
   script:
-    - go generate ./ent
-    - go vet ./...
-    - go test -race -count=1 -timeout=600s ./...
+    - 'echo "NOT_READY: backend-unit is quarantined until the accepted testframework runner binds this CI target." >&2; exit 1'
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 frontend:test:
-  <<: *frontend_template
   stage: test
   script:
-    - npx tsc --noEmit
-    - npx vitest run
-    - npm run lint || true
+    - 'echo "NOT_READY: frontend-unit is quarantined until the accepted testframework runner binds this CI target." >&2; exit 1'
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -60,19 +45,6 @@ build:artifacts:
     expire_in: 7 days
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-# Full E2E requires Docker-in-Docker — enable on runners with dind
-e2e:smoke:
-  <<: *frontend_template
-  stage: e2e
-  needs: [frontend:test]
-  script:
-    - npx playwright install chromium --with-deps
-    - CI=true npx playwright test e2e/login.spec.ts e2e/a11y.spec.ts --grep "login page|full page has no critical"
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
-      allow_failure: true
 
 # GitLab merge request hooks — require passing pipeline (configure in UI):
 # Settings → Merge requests → Pipelines must succeed

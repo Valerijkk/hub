@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "authority_id": "FOUNDER-BACKEND-UNIT-DELETE-NOT-PORT-2026-08-22",
+  "status": "accepted",
+  "decision": "The founder explicitly confirmed that these exact 14 deleted backend unit files are not required and must not be restored.",
+  "supersedes": {
+    "manifest": ".planning/audits/test-rebase/cutover-manifest.json",
+    "authority_group": "MOVE-GO-UNIT-HOOK-FREE",
+    "former_action": "move",
+    "former_status": "retain-until-parity"
+  },
+  "source_authority": {
+    "operation_manifest": ".planning/audits/test-rebase/cutover-manifest.json",
+    "operation_manifest_git_blob": "ed5fc43644a629d8bf5584f00b1b5f983b6d170e",
+    "inventory": ".planning/audits/test-rebase/inventory.json",
+    "inventory_sha256": "83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89",
+    "required_git_mode": "100644",
+    "selected_operations": 14,
+    "selected_declared_tests": 67
+  },
+  "operation": {
+    "action": "delete-not-port",
+    "restore": "forbidden",
+    "postcondition": "All and only the 14 exact targets remain deleted and active CI, build tags, imports, and root Compose do not reference them.",
+    "rollback": "Restore only through git revert of the eventual atomic deletion commit; no ad-hoc copies."
+  },
+  "receipt": {
+    "verified_at": "2026-08-23",
+    "commit": "83bf84946b0f7605e17eb164e55818f2f74ab699",
+    "parent": "272882ad8066f2f6159f8bf61ea45d764fdf96ab",
+    "deleted_path_count": 14,
+    "path_digest_sha256": "c5701a3ab72283caec9aa4b772582dff02799bff0975a7f0c9cc1e9e6306b37c",
+    "path_digest_format": "UTF-8 sorted paths with LF terminator",
+    "path_mismatches": 0,
+    "non_deletion_changes": 0,
+    "provenance_mismatches": 0,
+    "protected_exclusion": {
+      "count": 4,
+      "deleted_in_commit": 0,
+      "present_in_head": 4,
+      "paths": [
+        "backend/testframework/calendar/service_wave98_test.go",
+        "backend/testframework/mail/config_test.go",
+        "backend/testframework/mail/hub_handler_test.go",
+        "backend/testframework/mail/internal_auth_test.go"
+      ]
+    }
+  },
+  "targets": [
+    {"path":"backend/tests/hr/cancel_access_denied_task063_test.go","source_sha256":"3d058a9e25f37265535c64113a44f2c303e2ea77660717479a8da92ecdae760f","head_blob":"090fedb7795449828cb153368b59735b1e06552e","mode":"100644"},
+    {"path":"backend/tests/intranet/dto_test.go","source_sha256":"77ca03a7536bc473b061863422a21f85ba22e6d6b887a24b720674b66577ab9f","head_blob":"515a2e3e8979eb5893c75d150b58eca719224bb6","mode":"100644"},
+    {"path":"backend/tests/project/handler_flow_test.go","source_sha256":"174e74cb7c7014c624726097e9f7dd098fbd087e3d3ec25a3ffbed9661e99ac8","head_blob":"cc9c6390bdc54eecf40a135909f5ccc015cddeff","mode":"100644"},
+    {"path":"backend/tests/project/handler_wave110_test.go","source_sha256":"a2e6f0df12a577d832d9a34f2b5c9961703317616f5c6d9a66959ac692238045","head_blob":"5ed691038099894692c382e25618617c18eb2fee","mode":"100644"},
+    {"path":"backend/tests/project/handler_wave113_test.go","source_sha256":"3634ed85ff8d67f434f957fe9dfb2a4dddf5e3a2e8408e70de1dd17207c5fc74","head_blob":"384c45450d397030288aa0a847b76c0c46ac37f3","mode":"100644"},
+    {"path":"backend/tests/project/handler_wave120_test.go","source_sha256":"08108bc5d704273fb35c2fa038748699f8782b5179868ef213dc93f34a73419a","head_blob":"4c4b8cb2dba49bb6b2f811e70d719686eb7a1c89","mode":"100644"},
+    {"path":"backend/tests/project/handler_wave122_test.go","source_sha256":"a71d375d845d8a388aa56f8768d1d37e89496581d45157cbcceda61046bb8407","head_blob":"fc6854840e61e0be2c9f9ad974f5a7ac6b503784","mode":"100644"},
+    {"path":"backend/tests/project/template_handler_fa11_test.go","source_sha256":"1dd945351a76e4d5ae1e365e5e1a165773b896e88c13ee251b6938f466be5458","head_blob":"01813849d5331c8332bb90e80adbe21673b93723","mode":"100644"},
+    {"path":"backend/tests/server/wiring_fiber_recover_test.go","source_sha256":"1798b24864aa88027e3a451390f9108a4787392c1da5d33fdfc831f19d6cf99c","head_blob":"eb6f2b97cfa0c0e2e812ae084a5ae41c6ad5c4e0","mode":"100644"},
+    {"path":"backend/tests/sprint/handler_wave113_test.go","source_sha256":"db89b9fb03df6477cfb5a4031854858213cf9074d0d232ed0ab3ec6d20504f01","head_blob":"20fb8d13e09209b030f465ac1e7b8294cce5214c","mode":"100644"},
+    {"path":"backend/tests/tms/handler_import_flow_test.go","source_sha256":"1b0a20ca13add35361ce19fd83efc04fda8fc9e6823be0385255fbc9ddbe6c6d","head_blob":"4efc09132a4e9efb853b6db62036a905a4a4e2ce","mode":"100644"},
+    {"path":"backend/tests/tms/handler_webhook_flow_test.go","source_sha256":"292197cceab24fa887a82c3cbbc3b0390bc9cce60ae92f974526a5114be88ade","head_blob":"23800c369c39f41d2c79a982ec58575edbe6abe6","mode":"100644"},
+    {"path":"backend/tests/tms/handler_webhook_wave99_test.go","source_sha256":"0c3206758b89abfa92233311dfd5b03e08854111ee861bda81f554d2f96d6950","head_blob":"547ffc3c35d9abaec93b69e02862016e8930230e","mode":"100644"},
+    {"path":"backend/tests/tms/webhook_safe_errors_task063_test.go","source_sha256":"9e2ed7dcde2f4297fef857664bd492a5c543b24951fdd0cf5287716bd0def773","head_blob":"d886b93a17155296df4a555c6bb25847536c5acb","mode":"100644"}
+  ],
+  "non_scope": [
+    "protected Calendar/Mail paths",
+    "pro-qa-ai/**",
+    "production source",
+    "all other backend/tests/**"
+  ]
+}

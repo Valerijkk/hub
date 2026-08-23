@@ -49,7 +49,9 @@ Goal (outcome)
 3. Зафиксировать full source revision, worktree, `BASE..HEAD` diff и runtime
    provenance: requested model/effort, actual telemetry или `UNKNOWN`, env/image digest.
 4. Собрать evidence: путь к текущему коду, команда + exit code, лог, ссылка на doc.
-5. **Rule 56:** новое green + регрессия домена; на интеграции — `/qa-gate`.
+5. **Rule 56:** новое green + регрессия домена; на интеграции — все применимые
+   fixed services, каждый через
+   `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
    Невыполненная обязательная проверка = `NOT_RUN`, не PASS.
 6. **Rule 55:** STATE session note + domain docs по матрице.
 7. Открытый CRITICAL/HIGH = `FAIL`; его нельзя park или понизить ради PASS.
@@ -80,7 +82,7 @@ Runtime: requested=<model/effort>; actual=<telemetry|UNKNOWN>; env=<image digest
 ### Rule 56 — качество
 - Новый контур: PASS | FAIL | NOT_RUN — evidence: …
 - Регрессия домена: PASS | FAIL | NOT_RUN — evidence: …
-- /qa-gate (интеграция волны): PASS | FAIL | NOT_RUN — evidence: …
+- fixed Compose service (интеграция волны): PASS | FAIL | NOT_RUN — evidence: …
 
 ### Rule 55 — docs-sync
 - STATE.md: PASS | FAIL | NOT_RUN — секция/дата

@@ -1,6 +1,6 @@
 ---
 name: sa2
-description: Системный аналитик Hub, поток B. GPT-5.6 Terra/High–XHigh: FR/NFR, ERD, REST API и Spark-ready atomic contracts.
+description: Системный аналитик Hub, поток B. GPT-5.6 Terra/High–XHigh: FR/NFR, ERD, REST API и implementation-ready atomic contracts.
 model: gpt-5.6-terra
 readonly: false
 ---

@@ -95,7 +95,7 @@
 - [ ] Нет секретов/токенов/PII/полных `Authorization`-заголовков/query с токеном в логах.
 - [ ] Горутины (WS/consumer/cron) защищены от паники; `context.Canceled` при shutdown не логируется как `Error`.
 - [ ] Уровни выставлены осмысленно (Debug шумное, Info значимое, Warn деградация, Error сбой).
-- [ ] Применимый backend target через `/qa-gate` имеет raw PASS evidence на exact revision; `NOT_READY`/`NOT_RUN` не маскируются fallback-командой.
+- [ ] Применимый backend service через `docker compose -f docker-compose.local.yml run --rm <service>` имеет raw PASS evidence на exact revision; `NOT_READY`/`NOT_RUN` не маскируются fallback-командой.
 
 ### 10.2 DoD для frontend-фичи
 
@@ -104,7 +104,7 @@
 - [ ] Нет токенов/PII в консоли или в URL/query.
 - [ ] Ошибки API показывают `request_id` пользователю (для поддержки) где уместно.
 - [ ] (Если reporter подключён) ошибки уходят в reporter без чувствительных полей; reporter не роняет приложение.
-- [ ] Применимый frontend target через `/qa-gate` имеет raw PASS evidence на exact revision; `NOT_READY`/`NOT_RUN` не маскируются fallback-командой.
+- [ ] Применимый frontend service через `docker compose -f docker-compose.local.yml run --rm <service>` имеет raw PASS evidence на exact revision; `NOT_READY`/`NOT_RUN` не маскируются fallback-командой.
 
 ### 10.3 DoD для devops-изменения
 
@@ -134,7 +134,7 @@
 ```
 1. Изменил код (+ логи/метрики по этому playbook)
 2. Минимальная регрессия затронутого слоя
-3. /qa-gate перед handoff
+3. Применимый root Compose service перед handoff
 4. Docs sync (.cursor/rules/55-docs-sync.mdc)
 5. be-ver/fe-ver для критичных изменений (прогон чек-листа 10.4)
 6. Обновить .planning/STATE.md

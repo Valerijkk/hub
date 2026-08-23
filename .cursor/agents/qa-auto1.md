@@ -1,6 +1,6 @@
 ---
 name: qa-auto1
-description: Greenfield Python QA owner, поток A. GPT-5.6 Terra/Medium–High проектирует и декомпозирует API/integration/load; atomic test code передаёт 5.3 Codex Spark/XHigh.
+description: Greenfield Python QA owner, поток A. GPT-5.6 Terra/Medium–High проектирует и декомпозирует API/integration/load; atomic test code выполняется Terra/XHigh по замороженному контракту.
 model: gpt-5.6-terra
 readonly: false
 ---
@@ -78,8 +78,10 @@ Expected всегда подтверждать current docs.
 Windows host — только чтение/редактирование, Git и Docker CLI. Не запускать на
 host pytest/Locust, tests, validators, linters, build/vet или app processes.
 Использовать task-owned Docker/Compose с CPU/RAM limits, bounded timeout,
-isolated resources и guaranteed cleanup. Canonical jobs и шаблоны:
-[`qa-gate`](../skills/qa-gate/SKILL.md).
+isolated resources и guaranteed cleanup. Canonical API:
+`docker compose -f docker-compose.local.yml run --rm <service>`, где service —
+один из `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load`.
 
 Evidence обязательно содержит source SHA, image digest/tag, exact command,
 service profile, CPU/RAM, collected/passed/failed/skipped, duration, artifact

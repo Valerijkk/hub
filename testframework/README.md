@@ -1,13 +1,36 @@
 # Hub Python QA project
 
 `testframework/` is the separately extractable Python QA project boundary for
-Hub. The tree contains a statically reviewed private runner source candidate,
-but no accepted package, target suites, launcher runtime, or runtime authority.
+Hub. F0 package/config/runtime/traceability/public-plugin/profile and health
+sources are authored and independently source-reviewed. F1-01 injected-only
+HTTP policy, transport, and redacted diagnostics source is independently
+source-reviewed at `a5f3b728`; it creates no network client or runtime
+evidence. F1-02 identity/session source is independently static-accepted at
+`2b037dd2`: four active identity cases/nodes require a launcher-injected
+`IdentityHarnessFactory` that produces a fresh harness and ownership ledger per
+test with exact cleanup. No concrete provisioner or harness implementation
+exists. F1-03 authorization and platform-abuse source is independently accepted
+at `f184487a` and `3932ac78`: four TASK-208 and two TASK-209 active nodes/cases
+require launcher-injected opaque fresh factories, per-test nonce-bound ledgers,
+and exact cleanup; the platform contract records only four exact Redis ownership
+entries. F1-04 source is independently static-accepted across `bc5feef8`,
+`630bda9b`, `8ff13097`, and `1868cf71`: its sealed v3 manifest contains 14
+bounded source blobs and its closed ledger contains five ordered critical/high
+risk edges for three OpenAPI, one privacy, and one auth-session-event active
+source contract. F2 135-F files-lifecycle source is independently static-
+accepted at `af077c18`: five active TASK-214 cases/nodes require a
+launcher-injected `FilesHarnessFactory`, a fresh opaque `FilesRuntime` per test,
+and exact cleanup. The existing `files-api` source profile targets exactly
+`tests/api/files`, with future launcher case root exactly `cases/files`. No
+concrete files delegate, A1 admission, accepted profile binding, or executable
+launcher exists. A private runner source candidate also has static review only.
+None is accepted package execution, launcher runtime, or runtime authority; all
+global critical/high outcomes remain `NOT_PROVEN`.
 
 Package/bootstrap boundaries for the next slice are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
-not evidence that `pyproject.toml`, `uv.lock`, `py.typed`, dependencies, or
-executable suites exist, and does not promote the runner candidate to readiness.
+not evidence that `pyproject.toml`, `uv.lock`, `py.typed`, or dependencies are
+resolved, that a suite has executed, or that the runner candidate is ready.
 
 ## Legacy quarantine
 
@@ -32,14 +55,50 @@ progressively only by its first accepted consumer.
     redaction primitives.
   - `traceability/` owns `TC-*` metadata loading and the risk-linked
     `task -> requirement -> TC/case` graph.
+  - `http/` owns injected-only HTTP policy, bounded retry, request identity,
+    and redacted diagnostics; it never creates a default client or network
+    request.
   - `domains/<domain>/` owns that domain's models, facades, builders, and
     oracles. Optional UI abstractions live only under the owning domain in
     `ui/pages/` and `ui/components/`.
-- Planned `tests/{api,integration,contract,e2e}/` will own executable pytest
-  suites grouped by layer and domain: API and E2E assert public observable
-  behavior, contract covers API/schema/event/source contracts, and integration
-  covers DB/broker/storage boundaries. These layer directories are currently
-  absent; `tests/README.md` is the only suite-boundary scaffold artifact.
+- `tests/api/health/` contains the first source-authored tracer, linked to
+  `TC-HEALTH-0001`: a fake-transport liveness contract, not live Hub evidence.
+  `tests/api/identity/` contains four active identity/session source nodes,
+  linked to `TC-IDENTITY-0001`--`TC-IDENTITY-0004`; its `identity-api` profile
+  target is exactly `tests/api/identity` and requires exactly
+  `--hub-case-root cases/identity` when a launcher binding exists. It has no
+  concrete provisioner or harness implementation.
+  `tests/api/authz/` contains four active authorization source nodes, linked to
+  `TC-AUTHZ-0001`--`TC-AUTHZ-0004` for TASK-208. Its future profile root is
+  exactly `tests/api/authz` and requires exactly `--hub-case-root cases/authz`;
+  every test requires an opaque fresh launcher-injected `AuthzHarnessFactory`, a
+  nonce-bound ledger, and exact cleanup. `tests/api/platform/` contains two
+  active platform-abuse source nodes, linked to `TC-PLATFORM-0001` and
+  `TC-PLATFORM-0002` for TASK-209. Its future profile root is exactly
+  `tests/api/platform` and requires exactly `--hub-case-root cases/platform`;
+  every test requires an opaque fresh launcher-injected
+  `PlatformAbuseHarnessFactory` and exact cleanup of only four recorded Redis
+  ownership entries. Neither has a concrete provisioner or launcher binding.
+- `tests/api/files/` contains five active TASK-214 files-lifecycle source nodes,
+  linked to `TC-FILES-0001`--`TC-FILES-0005`. Each future execution requires a
+  launcher-injected `FilesHarnessFactory`, one fresh opaque `FilesRuntime`, and
+  exact cleanup in the fixture `finally` path. The existing `files-api` source
+  profile targets exactly `tests/api/files`, with future launcher case root
+  exactly `cases/files`; no concrete delegate or launcher binding exists.
+- `tests/contract/openapi/` contains three active TASK-227 source contracts,
+  linked to `TC-OPENAPI-0001`--`TC-OPENAPI-0003`; source profile
+  `openapi-contract` targets exactly `tests/contract/openapi`, with future
+  launcher case root exactly `cases/openapi`.
+  `tests/contract/privacy/` contains the active `TC-PRIVACY-0001` source
+  contract; source profile `privacy-security` targets exactly
+  `tests/contract/privacy`, with future launcher case root exactly
+  `cases/privacy`. `tests/contract/security/` contains the active
+  `TC-SECURITY-0001` auth-session-event source contract; source profile
+  `security-risk` targets exactly `tests/contract/security`, with future
+  launcher case root exactly `cases/security`. The closed ledger stores the
+  corresponding repo-relative case roots below
+  `testframework/cases/{openapi,privacy,security}`. These are source contracts,
+  not executed evidence. Planned `tests/{integration,e2e}/` remain absent.
 - `selftests/` owns contracts of the framework itself.
 - `load/` owns the separate measured Locust lifecycle.
 - `cases/` owns repository-controlled `TC-*` intent, risk linkage, and
@@ -68,33 +127,57 @@ chain.
 
 ## Current status
 
-Structure-only scaffold: **COMMITTED** as `22035c45`. Package bootstrap:
-**NOT_READY**. Target suites: **NOT_READY**. Private runner source candidate:
+Structure-only scaffold: **COMMITTED** as `22035c45`. F0 package/config/runtime/
+traceability/public-plugin/profile and health source: **SOURCE_AUTHORED** and
+**SOURCE_REVIEWED** through `92e9fec7`; the health test is fake-transport source
+contract only, not live evidence. F1-01 HTTP policy and diagnostics source:
+**SOURCE_AUTHORED** and **SOURCE_REVIEWED** at `a5f3b728`; it is injected-only,
+creates no network client or runtime evidence. F1-02 identity/session source:
+**SOURCE_AUTHORED** and independently **STATIC_ACCEPT** at `2b037dd2`, with four
+active cases/nodes and a future launcher-injected `IdentityHarnessFactory` that
+creates a fresh harness and ownership ledger per test with exact cleanup. There
+is no concrete provisioner or harness implementation. The `identity-api` target
+is exactly `tests/api/identity` and requires exactly `--hub-case-root
+cases/identity`; accepted A1 admission and profile-to-launcher binding remain
+absent. F1-03 authorization source is independently **ACCEPTED** at `f184487a`:
+four active TASK-208 nodes/cases require an opaque fresh launcher-injected
+`AuthzHarnessFactory`, a nonce-bound ownership ledger, and exact cleanup per
+test. F1-03 platform-abuse source is independently **ACCEPTED** at `3932ac78`:
+two active TASK-209 nodes/cases require an opaque fresh launcher-injected
+`PlatformAbuseHarnessFactory`, exact cleanup, and only four exact recorded Redis
+ownership entries per test. Their future profile roots are exactly
+`tests/api/authz` and `tests/api/platform`, with case roots exactly
+`cases/authz` and `cases/platform`; concrete provisioners, A1 admission, and
+profile-to-launcher bindings remain absent. `TC-AUTHZ-0005` is
+project-cross-scope blocked by the current backend middleware order: protected
+handlers terminate before `rbac.RequirePermission` can run. Package bootstrap
+and target-suite execution: **NOT_READY**. F1-04 is independently **STATIC
+ACCEPT** across `bc5feef8`, `630bda9b`, `8ff13097`, and `1868cf71`: sealed
+source-bundle manifest v3 has exactly 14 bounded blobs, and the closed risk
+ledger has five ordered edges for three active OpenAPI, one active privacy, and
+one active auth-session-event source contract. Every global critical/high
+outcome remains **NOT_PROVEN**.
+
+F2 135-F files-lifecycle source is independently **STATIC ACCEPT** at
+`af077c18`: five active TASK-214 cases/nodes require a launcher-injected
+`FilesHarnessFactory`, one fresh opaque `FilesRuntime` per test, and exact
+cleanup through the fixture `finally` path. The existing `files-api` source
+profile targets exactly `tests/api/files`, with future launcher case root
+exactly `cases/files`. The concrete delegate, A1 admission, and accepted
+profile-to-launcher binding remain absent.
+
+The current generated Swagger is known RED: security-definition `in` values
+are malformed, paths retain a second `/api` below `basePath`, magic verification
+omits implemented 403/429 responses, TMS webhook docs still expose legacy
+`X-Hub-Token`/query-token auth instead of BearerAuth-or-APIKeyAuth alternatives,
+and public error responses reference internal `AppError` artifacts. Backend
+repair and Swagger regeneration are pending. External OpenAPI-validator
+admission/execution, A1, accepted profile-to-launcher bindings, `uv.lock`, image
+evidence, and an executable launcher remain absent. Source profile records do
+not grant execution authority. Remaining F2 and later source is pending.
+Private runner source candidate:
 **STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
-`PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `images.lock.v3.json` and
-required local dependency bytes are absent. There is no supported direct runner or
-fallback command. The next accepted consumer must create the first narrow
-behavioral module test-first under its owning boundary and must not infer
-runtime authority from this directory tree.
-
-### Task 2A launcher receipt
-
-Static launcher source was committed as
-`e357e71ae445c797c686787e8cde2d643566bb68` (source
-`cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c`, tree
-`b16311222d3093ae4d2bb462a2e4d2835a3f38cf`, subject
-`feat(qa): добавить закрытый public launcher`). The exact seven control blobs
-are recorded in `runner/README.md`; Contract (Terra/high), Security
-(Terra/xhigh), and Lifecycle (Terra/high) precommit and immutable reviews are
-PASS C/I/M `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN`.
-
-`runner/invoke-qa-gate.ps1` accepts only raw `-Target <target> -Task <task>
--Run <run>`. Invalid, extra, or unknown input exits `64` before effects. Every
-known target remains literal `NOT_READY`, yielding one safe `hub.qa-gate/v1`
-JSON line and exit `69`, with zero private runner, Docker, or report effect.
-Portable roots, reparse rejection, linked-worktree support, and fixed-sibling
-private handoff are static-only controls. `PS5.1_PARSE_NOT_RUN`,
-`PRIVATE_CONTRACT_NOT_RUN`, `G0-B_PARITY_NOT_VERIFIED`, and `NOT_RUN` remain.
-This receipt becomes current only after atomic Task 2B exact7 docs commit and
-immutable review; it grants no image, dependency, Compose, Dockerfile, target,
-runtime, or Task 3 authority.
+`PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,
+and required local dependency bytes are absent. There is no supported direct runner
+or fallback command. No file/source review promotes installation, execution, or
+runtime to `PASS`.

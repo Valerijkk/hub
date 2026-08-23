@@ -80,11 +80,11 @@ FR/API. Единый источник истины.
 ### Финальный чек-лист team-workflow.md
 
 - [ ] `team-lead` делегирует **только** по шаблону §5.3.1; в условиях — цикл качества + регрессия.
-- [ ] `team-lead` (GPT-5.6 Sol / Max) оркестрирует и принимает; downstream — explicit Terra/Spark по `model-routing.md`.
+- [ ] `team-lead` (GPT-5.6 Sol / Max) оркестрирует и принимает; downstream — explicit Terra с task-routed effort по `model-routing.md`.
 - [ ] Поток фичи: product → ba → sa → (arch) → (designer) → be∥fe → qa → review → team-lead → docs-sync.
 - [ ] Волны root + ≤3 субагента, разведены по файлам, sync между волнами.
 - [ ] Каждый артефакт → персональный верификатор → `verified: true` при green + лог.
-- [ ] Ворота: цикл качества новой фичи, регрессия старого, docs-sync, test-triage, `/qa-gate`.
+- [ ] Ворота: цикл качества новой фичи, регрессия старого, docs-sync, test-triage, root Compose service.
 - [ ] Handoff полный; `STATE.md` обновлён; знания не дублируются.
 
 ---
@@ -124,7 +124,7 @@ FR/API. Единый источник истины.
 | Волна (Wave) | Root + до 3 параллельных субагентов (≤4 active slots total) |
 | Атомарный коммит | Изменение ≤200–300 строк, целиком проходящее регрессию |
 | Верификатор | Независимый агент, проверяющий артефакт исполнителя |
-| Ворота (gate) | Обязательный чек перед handoff (регрессия/docs/qa-gate) |
+| Ворота (gate) | Обязательный чек перед handoff (регрессия/docs/root Compose service) |
 | Handoff | Передача работы следующему агенту (формат §9) |
 | Baseline | Проверенное состояние проекта после verified + green gate |
 | Docs-sync | Обновление docs в той же сессии после изменения |
@@ -187,9 +187,9 @@ FR/API. Единый источник истины.
 ```
 Что сделано: 12 ручных TC (все PASS), 8 backend integration + 1 e2e Playwright spec (все green).
 Что проверить (team-lead): соответствие AC US-M11.1, покрытие edge-cases, coverage не упал.
-Артефакты: test_plan.md §Backlog, COVERAGE.md (tracker 82.4%, 2026-06-22 Docker baseline), лог /qa-gate green.
+Артефакты: test_plan.md §Backlog, COVERAGE.md (tracker 82.4%, 2026-06-22 Docker baseline), лог green root Compose service.
 Следующий шаг: team-lead финальная приёмка → docs-sync → merge-ready → пользовательский rebase-merge.
-Статус ворот: /qa-gate green (build/test/lint/security/e2e-smoke), verified: true (qa-*-ver 2026-07-02 23:30).
+Статус ворот: archived legacy gate green (build/test/lint/security/e2e-smoke), verified: true (qa-*-ver 2026-07-02 23:30).
 ```
 
 ### Чек-лист шаблонов (Прил. D)
@@ -227,7 +227,7 @@ FR/API. Единый источник истины.
     ├─ be2: ent/schema + repository ──► be-ver ✅
     ├─ fe1: List.tsx + drag ──────────► fe-ver ✅
     └─ fe2: Filters.tsx ──────────────► fe-ver ✅
-  Sync: /qa-gate green на объединении
+  Sync: green root Compose services на объединении
 
 День 3
   Wave 4 (качество):
@@ -353,12 +353,12 @@ be-ver: перепроверяет → verified: true 2026-07-02 22:50
 | **Backend-код (be)** | Layering соблюдён, security по guidelines, тесты, регрессия green; `be-ver` verified; docs-sync |
 | **Frontend-код (fe)** | По DESIGN-SPEC, Shadcn className-only, a11y (axe) + Lighthouse, регрессия green; `fe-ver` verified; docs-sync |
 | **Тесты (qa)** | TC покрывают AC; автотесты green; coverage не упал; test-triage при фиксах; `qa-*-ver` verified; COVERAGE.md |
-| **Фаза (team-lead)** | Все артефакты verified, `/qa-gate` green, AC/success criteria выполнены, docs-sync, code-reviewer прошёл |
+| **Фаза (team-lead)** | Все артефакты verified, применимые root Compose services green, AC/success criteria выполнены, docs-sync, code-reviewer прошёл |
 
 ### Универсальный DoD-гейт
 
 - [ ] Артефакт verified персональным верификатором.
-- [ ] Регрессия/`/qa-gate` green (лог приложен).
+- [ ] Регрессия/root Compose service green (лог приложен).
 - [ ] Docs-sync выполнен (STATE + доменный doc).
 - [ ] Handoff передан следующему агенту.
 
@@ -529,7 +529,7 @@ CRITICAL/HIGH + приложенный лог регрессии.
 - [ ] Тесты детерминированы; historical coverage/parity не migration gate.
 - [ ] Test-triage применён при фиксах (ROOT зафиксирован).
 - [ ] Genuine units в `backend/tests/**`/`frontend/tests/**`; non-unit QA в root Python `testframework/**`.
-- [ ] Применимые target jobs `/qa-gate` воспроизведены Docker-only на exact revision;
+- [ ] Применимые target services воспроизведены Docker-only через `docker compose -f docker-compose.local.yml run --rm <service>` на exact revision;
       отсутствующий launcher/scaffold = `NOT_READY`, не legacy fallback.
 
 ---
@@ -538,7 +538,7 @@ CRITICAL/HIGH + приложенный лог регрессии.
 
 Снимок 2026-06-22..24 сохранён только для истории. Он не определяет current
 acceptance и не разрешает legacy suite, parity или coverage migration gate.
-Источник текущего статуса — `.planning/STATE.md`; current gate — `/qa-gate`.
+Источник текущего статуса — `.planning/STATE.md`; current gate — root Compose service.
 
 | Метрика | Значение |
 |---|---|
@@ -574,7 +574,7 @@ launcher/scaffold отсутствует, verdict `NOT_READY`. Числа выш
                           [returned] ──fix──► (назад в regression)    [verified:true]
                                                                            │
                                                                            ▼
-                                                              [in-qa-gate] ──green──►
+                                                              [in-root-compose-service] ──green──►
                                                                            │
                                                                            ▼
                                                               [reviewed] (code-reviewer)
@@ -724,7 +724,7 @@ Scope волны остаётся чистым.
 3. Handoff по формату §9 следующему агенту/верификатору.
 4. `/handoff-sync` — синхронизировать STATE/ROADMAP/COVERAGE.
 5. Артефакты-мусор (coverage dumps) удалить (rule 45).
-6. `team-lead`: собрать волну, `/qa-gate`, решить о мерже/следующей волне.
+6. `team-lead`: собрать волну, применимые root Compose services, решить о мерже/следующей волне.
 
 ### Чек-лист ритуала (Прил. R)
 
@@ -737,11 +737,11 @@ Scope волны остаётся чистым.
 # Приложение S. Сводная памятка (одна страница)
 
 ```
-РОЛИ:      team-lead(GPT-5.6 Sol/Max) | Terra(analysis/decomposition/review) | 5.3 Codex Spark/XHigh(atomic code)
+РОЛИ:      team-lead(GPT-5.6 Sol/Max) | Terra(task-routed downstream; atomic code=XHigh)
 ПОТОК:     product → ba → sa → (arch) → (designer) → be∥fe → qa → review → team-lead → docs-sync
 ВОЛНЫ:     root + ≤3 субагента (4 slots total), разные файлы, sync между волнами
 ВЕРИФ:     каждый артефакт → персональный -ver → verified:true при green+лог
-ВОРОТА:    регрессия → docs-sync → test-triage → /qa-gate (перед handoff)
+ВОРОТА:    регрессия → docs-sync → test-triage → root Compose service (перед handoff)
 HANDOFF:   что сделано / что проверить / артефакты / след.шаг / статус ворот
 ДЕКОМП:    фаза ≤1-3д, план ≤200-300 строк = атомарный коммит, Depends on + success criteria
 ЗНАНИЯ:    грузить docs/* перед задачей; ссылки по ID, не копии

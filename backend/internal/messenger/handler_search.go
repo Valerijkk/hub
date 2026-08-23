@@ -21,7 +21,7 @@ import (
 // @Failure 400 {object} fiber.Error "Параметр query обязателен"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/search [get]
+// @Router /messenger/search [get]
 func (h *Handler) SearchMessages(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {

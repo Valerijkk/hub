@@ -50,12 +50,11 @@ version. Timeout/retry/dependency failure чаще требует Python boundar
 
 ## Docker evidence
 
-Backend unit job запускается только через `/qa-gate` и sole runner boundary:
-outer wall-clock timeout, exit-code preservation, task-owned resources и
+Backend unit job запускается только как `docker compose -f docker-compose.local.yml run --rm backend-unit`;
+profile-explicit disposable service использует task-owned resources и
 unconditional cleanup в `finally`. Host-run и прямой `docker run` запрещены и
-не являются evidence. Private source candidate принят только статически; до
-binding и parser/private-contract/Docker acceptance verdict — `NOT_READY`,
-runtime — `NOT_RUN`.
+не являются evidence. Runtime status выводится только из свежего target
+receipt; без него статус — `NOT_RUN`.
 
 Записать image, source SHA, exact launcher + inner command,
 collect/pass/fail/skip, duration и cleanup. Исторический 82% coverage не

@@ -21,7 +21,7 @@ readonly: false
 deployments/
 ├── docker-compose.yml            # dev-инфра: PG, Mongo, Redis, NATS, SeaweedFS, LiveKit, Caddy
 ├── docker-compose.prod.yml       # full prod-стек: инфра + backend + hub-mail + frontend + Caddy
-├── docker-compose.test.yml       # минимальный стек для CI (coverage-gate)
+├── docker-compose.local.yml      # dev stack + fixed profile-gated QA services
 ├── docker-compose.monitoring.yml # overlay: Prometheus, Loki, Promtail, Alertmanager, Grafana
 ├── Caddyfile                     # dev reverse proxy (localhost)
 ├── Caddyfile.prod                # prod reverse proxy + Let's Encrypt TLS

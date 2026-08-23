@@ -197,11 +197,12 @@ Skill: `.cursor/skills/test-triage/SKILL.md`. Принцип Hub: **тест —
    | Flaky (race, timing, network) | Стабилизировать тест (deterministic mock, `-race`, fake clock), не добавлять `time.Sleep` как фикс |
 
 4. **Запрещено:** менять assertion, чтобы «прошло», не проверив шаг 2; удалять тест без обоснования в лог; `t.Skip()` без тикета/плана; чинить продакшн-код только потому что «тест так ожидает», если тест противоречит docs.
-5. **После фикса:** запросить применимый fixed target только через `/qa-gate`.
+5. **После фикса:** запустить применимый fixed root Compose service только как
+   `docker compose -f docker-compose.local.yml run --rm <service>`.
    Если launcher/job `NOT_READY`, сохранить `NOT_RUN` и не подменять его host,
    direct-runner или inline Docker командой. Запись в лог:
    `TRIAGE: TestX — ROOT=test|code`, `FIX: <файл:строка>`,
-   `EVIDENCE: /qa-gate <target> PASS|FAIL|NOT_READY|NOT_RUN + artifact digest`.
+   `EVIDENCE: docker compose -f docker-compose.local.yml run --rm <service> = PASS|FAIL|NOT_READY|NOT_RUN + artifact digest`.
 
 ### 8.1 Примеры классификации из практики Hub
 
@@ -249,13 +250,13 @@ func (h *Hub) runClientPump(ctx context.Context, cl *client) {
 Когда симптом появился после некоторого изменения, а не воспроизводится
 детерминированно по логике кода, сначала замораживаю exact revision range.
 `git bisect` допустим только в отдельном task-owned worktree; проверка каждого
-шага маршрутизируется через применимый `/qa-gate` target и не получает host fallback.
+шага маршрутизируется через применимый fixed root Compose service и не получает host fallback.
 
 ```bash
 git bisect start
 git bisect bad HEAD                 # текущий коммит содержит баг
 git bisect good <последний известный хороший SHA>
-# на каждом шаге: запросить тот же fixed target через /qa-gate и отметить good/bad
+# на каждом шаге: запустить тот же fixed root Compose service и отметить good/bad
 git bisect good   # или bad, по результату
 git bisect reset  # после нахождения виновного коммита
 ```

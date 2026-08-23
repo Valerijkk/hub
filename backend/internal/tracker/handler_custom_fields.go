@@ -20,7 +20,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/custom-fields [get]
+// @Router /projects/{projectId}/custom-fields [get]
 func (h *Handler) ListCustomFields(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -48,7 +48,7 @@ func (h *Handler) ListCustomFields(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/custom-fields [post]
+// @Router /projects/{projectId}/custom-fields [post]
 func (h *Handler) CreateCustomField(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -79,7 +79,7 @@ func (h *Handler) CreateCustomField(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/custom-fields/{fieldId} [delete]
+// @Router /projects/{projectId}/custom-fields/{fieldId} [delete]
 func (h *Handler) DeleteCustomField(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

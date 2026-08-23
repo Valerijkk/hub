@@ -121,7 +121,7 @@ GSD lifecycle используется для substantial phase/multi-step work.
 
 - Не вставляй в текст задачи числовые `temperature`, `Top-P` или `Top-K`, если launcher/API фактически не даёт ими управлять. Такие строки создают ложный контроль и раздувают prompt.
 - Описывай нужное поведение словами: **точно по evidence**, **предложить несколько вариантов**, **глубоко проверить высокий риск**, **сохранить совместимость**.
-- `team-lead` работает на **GPT-5.6 Sol / Max**. Terra явно получает analysis/decomposition/review; `gpt-5.3-codex` / XHigh — atomic code по frozen contract. Название модели не подменяет completion bar и проверки.
+- `team-lead` работает на **GPT-5.6 Sol / Max**. Каждый downstream явно получает Terra с task-routed effort; atomic code по frozen contract всегда Terra / XHigh. Название модели не подменяет completion bar и проверки.
 - Каждый dispatch и frontmatter содержит literal model; `inherit`, omission и silent fallback запрещены founder lock.
 - Явные sampling-параметры допустимы только в конфигурации launcher-а, который документированно их применяет; они не являются частью task contract.
 - В delegation фиксируй `requested_model`; в handoff — наблюдённый `actual_model` и evidence. Нет надёжной telemetry → `actual_model: UNKNOWN`; **никогда не выводи actual runtime из requested/frontmatter/названия роли**.
@@ -308,9 +308,9 @@ Evidence:
 вызовы service). Приложи команду и результат проверки.
 
 [ДОПОЛНИТЕЛЬНЫЕ УСЛОВИЯ]
-- Цикл качества нового: применимый fixed backend target только через `/qa-gate`;
+- Цикл качества нового: применимый fixed backend service только через `docker compose -f docker-compose.local.yml run --rm <service>`;
   FAIL → triage → fix → повтор accepted target. `NOT_READY`/`NOT_RUN` сохраняются
-  без direct runner, host или inline Docker fallback.
+  без direct execution, host или inline Docker fallback.
 - Регрессия старого: весь домен tracker + смежный dashboard (читает board stats).
 - Docs-sync (rule 55): system_specification §FR-TRACKER, COVERAGE.md, STATE.md.
 - Evidence по prompt-contract §6; risk focus: security-инварианты + тест реально падает.
@@ -559,17 +559,17 @@ CI-vs-локально: сначала сравни окружения (пара
 
 | Блок шаблона | Что писать про скилы |
 |--------------|----------------------|
-| `[РОЛЬ И TASKCONTRACT]` | Если задача = запуск скила целиком («прогони `/qa-gate` по волне») — объявить это здесь |
+| `[РОЛЬ И TASKCONTRACT]` | Если задача = прогон root Compose service по волне — объявить exact service здесь |
 | `[КОНТЕКСТ]` | Какой GSD-скил уже отработал и дал вход (`gsd-plan-phase` → PLAN.md, который ты исполняешь) |
 | `[ФОРМАТ ОТВЕТА]` | Если скил задаёт формат выхода (`gsd-code-review` → REVIEW.md) — сослаться на него |
-| `[ДОПОЛНИТЕЛЬНЫЕ УСЛОВИЯ]` | Обязательные ворота-скилы: `/test-triage` при падении, `/qa-gate` на интеграции, `/handoff-sync` в конце сессии |
+| `[ДОПОЛНИТЕЛЬНЫЕ УСЛОВИЯ]` | Обязательные ворота: `/test-triage` при падении, root Compose service на интеграции, `/handoff-sync` в конце сессии |
 
 ### 13.2 Обязательные скилы-ворота (не опциональны)
 
 | Триггер | Скил | Кто обязан |
 |---------|------|------------|
 | Упал тест / баг | `/test-triage` (skills/test-triage) — функционал по докам ДО решения чинить код или тест | `be*`, `fe*`, `qa-*`, `debugger` |
-| Интеграция волны / перед PR | `/qa-gate` | `team-lead`, исполнители перед handoff |
+| Интеграция волны / перед PR | `docker compose -f docker-compose.local.yml run --rm <service>` | `team-lead`, исполнители перед handoff |
 | Конец значимой сессии | `/handoff-sync` | все |
 | Перед code review | `/style-check` (Phase 1 читает `references/anti-ai.md`) | `code-reviewer`, исполнители |
 | Аудит покрытия требований | `/coverage-audit` | `qa-auto-ver`, `sa*` |

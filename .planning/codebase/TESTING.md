@@ -3,7 +3,7 @@
 > **Superseded inventory note (2026-08-07):** числовой snapshot ниже был
 > построен до двух последних unit-файлов. Текущий action authority —
 > `.planning/audits/test-rebase/founder-greenfield-cutover-manifest.json`
-> (1,049 rows / 4,246 declared, revision `5708671f`, SHA `72de6a81…`).
+> (1,049 rows / 4,246 declared, revision `b9f690da`, SHA `83b6a311…`, ротация 2026-08-13).
 > Parity/dual-run отменены; 237 legacy component rows delete-not-port, а 245
 > hook-dependent genuine units защищены TASK-234.
 

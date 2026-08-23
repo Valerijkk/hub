@@ -1,9 +1,0 @@
-# Job: coverage-gate (CI stage: quality) — master push only
-job: coverage-gate
-stage: quality
-when: github.event_name != pull_request
-working_directory: backend
-threshold_percent: 82
-command: go test -tags hubtest -coverprofile=/tmp/cov -coverpkg=./internal/... ./testframework/...
-
-code_root: backend/testframework

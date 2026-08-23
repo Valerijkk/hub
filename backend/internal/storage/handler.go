@@ -96,7 +96,7 @@ type uploadRequest struct {
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/files/upload-url [post]
+// @Router /files/upload-url [post]
 func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 	var req uploadRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -151,7 +151,7 @@ type confirmRequest struct {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/files/{fileId}/confirm [post]
+// @Router /files/{fileId}/confirm [post]
 func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 	fileID, err := httputil.ParseUUIDParam(c, "fileId")
 	if err != nil {
@@ -213,7 +213,7 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/files/{fileId}/url [get]
+// @Router /files/{fileId}/url [get]
 func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 	fileID, err := httputil.ParseUUIDParam(c, "fileId")
 	if err != nil {
@@ -254,7 +254,7 @@ func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/files/{fileId} [delete]
+// @Router /files/{fileId} [delete]
 func (h *Handler) DeleteFile(c fiber.Ctx) error {
 	fileID, err := httputil.ParseUUIDParam(c, "fileId")
 	if err != nil {

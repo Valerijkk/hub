@@ -15,7 +15,7 @@ import (
 // @Param issueKey path string true "Ключ задачи"
 // @Success 200 {array} IssueMessageLinkResponse
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/message-links [get]
+// @Router /projects/{projectId}/issues/{issueKey}/message-links [get]
 func (h *Handler) ListIssueMessageLinks(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -39,7 +39,7 @@ func (h *Handler) ListIssueMessageLinks(c fiber.Ctx) error {
 // @Param body body CreateIssueMessageLinkRequest true "Link"
 // @Success 201 {object} IssueMessageLinkResponse
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/message-links [post]
+// @Router /projects/{projectId}/issues/{issueKey}/message-links [post]
 func (h *Handler) CreateIssueMessageLink(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -69,7 +69,7 @@ func (h *Handler) CreateIssueMessageLink(c fiber.Ctx) error {
 // @Param linkId path string true "ID связи"
 // @Success 204 "No Content"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/message-links/{linkId} [delete]
+// @Router /projects/{projectId}/issues/{issueKey}/message-links/{linkId} [delete]
 func (h *Handler) DeleteIssueMessageLink(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -95,7 +95,7 @@ func (h *Handler) DeleteIssueMessageLink(c fiber.Ctx) error {
 // @Param messageId query string true "Thread root message ID"
 // @Success 200 {array} IssueMessageLinkResponse
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/message-links [get]
+// @Router /projects/{projectId}/message-links [get]
 func (h *Handler) ListThreadIssueLinks(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

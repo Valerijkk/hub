@@ -9,6 +9,11 @@
 
 ---
 
+> **Variant A current state (2026-08-20):** no tracked legacy test files remain
+> in `backend/testframework/**`. References below to
+> legacy paths, hooks, builders, factories, counts, or jobs are archival
+> inventory only; current backend units are exclusively `backend/tests/**`.
+
 ## 1. Цели и принципы
 
 Стратегия отвечает на вопрос «как устроено тестирование Hub сейчас и куда оно движется». Четыре несущих принципа:
@@ -78,7 +83,7 @@ non-unit QA создаётся greenfield в root `testframework/tests/**`.
 
 | Метрика | Значение |
 |---------|----------|
-| Ledger | **1,049** source rows / **4,246** declared; SHA-256 `72de6a81…`; drift/unmapped = 0 |
+| Ledger | **1,049** source rows / **4,246** declared; SHA-256 `83b6a311…` (ротация 2026-08-13, revision `b9f690da`); historical inventory, not a current runnable-test count |
 | Backend test files | **832** total / **3,674** declared: legacy `backend/testframework/` 831/3,672 + server 1/2; taxonomy 595 genuine unit + 237 component (31 API + 206 integration); 0 в target `backend/tests/` |
 | Backend hook sources | **43** files / 582 symbols / 892 links; 245 protected units use 653 links across 42 files; prune only after TASK-234/TASK-219B |
 | Frontend Vitest | **180** files / **519** literal cases: 156 frontend unit + 24 static contract |
@@ -95,24 +100,20 @@ inventory и не являются исполняемыми инструкция
 tests, validators, linters и builds; прямой `docker run`/`compose up` также не
 является каноническим обходом.
 
-Пакет/bootstrap и target suites сейчас **`NOT_READY`**. Private runner source
-candidate существует и имеет только статические C1/P2/P4 review; launcher
-**`NOT_READY`**, `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime —
-**`NOT_RUN`**. API принадлежит только `testframework/runner/**`, а
-`testframework/docker/**` содержит только immutable images, topologies, locks и
-resource/container contracts. `/qa-gate` — только user-facing routing и не может
-выполнять jobs до binding и independent acceptance. После неё runner должен
-обеспечивать wall-clock timeout, CPU/RAM/swap/PID и network policy,
-сохранять first exit code, писать только в `testframework/reports/<task-run>/`
-после owner-marker check и удалять exact task-owned resources в `finally`.
+Package/suite readiness is independent from execution evidence. Единственный QA API —
+`docker compose -f docker-compose.local.yml run --rm <exact-service>` для восьми
+exact services: `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load`.
+QA services profile-explicit/disposable; integration/e2e infrastructure isolated.
+Этот документ не заявляет результат запуска. Исторические legacy QA entrypoints архивны;
+используется только `docker compose -f docker-compose.local.yml run --rm <service>`.
 
 ### 2.4. Текущие legacy-паттерны и будущие task-named targets
 
-Текущий committed scaffold содержит `hub_testkit/__init__.py`, boundary
-README под `config/`, `runtime/`, `traceability/` и `domains/README.md`.
-Эти артефакты фиксируют ownership, но не реализуют installable package,
-browser/UI helpers или executable suites. Package и target suites — `NOT_READY`,
-runtime — `NOT_RUN`.
+Current minimal slice contains the installable `hub_testkit` package and
+framework selftests. Docker `python-contract` is PASS at 181/181 and contains
+no SUT product tests. Browser/UI helpers and SUT API/integration/e2e/load suites
+remain separate future work with runtime `NOT_RUN`.
 
 | Паттерн | Где | Статус |
 |---------|-----|--------|
@@ -163,7 +164,6 @@ testframework/
 ├── policies/**                                 # markers, environments, redaction, profiles
 ├── load/**                                     # separate bounded Locust lifecycle
 ├── docker/**                                   # immutable execution assets only
-├── runner/**                                   # sole launcher boundary; private static candidate exists
 └── reports/<task-run>/**                       # owner-marked generated evidence
 ```
 
@@ -173,10 +173,9 @@ Future reusable clients, factories, fixtures, oracles, pages и components со�
 `conftest.py` не являются target architecture. Если первому accepted suite
 потребуется `tests/conftest.py`, он только композирует узкие package fixtures и
 не становится second framework. Только `smoke` — pytest marker; `full` — будущий
-launcher profile. Package, target suites и launcher `NOT_READY`, runtime `NOT_RUN`.
-`testframework/runner/**` — единственный владелец versioned API, profile resolution,
-orchestration, first-exit preservation, report ownership и exact cleanup;
-`testframework/docker/**` содержит только immutable execution assets. После Phase 141 в
+launcher profile. Package and target suites remain independently tracked; runtime
+result is not claimed here. QA executes only through root Compose exact services.
+После Phase 141 в
 `testframework/**` не остаётся исполняемого Go/Vitest/TypeScript E2E-кода.
 
 ### 3.3. Нагрузочные: Locust и SLO
@@ -204,7 +203,7 @@ link/refresh), board API, messenger throughput, Allure-import 1000 резуль�
 CI** (дорого); будущие результаты и тайминги публикуются в
 `.planning/COVERAGE.md`.
 
-**Важно:** Locust-профили начинаются только в Phase 140 после separate implementation и independent acceptance нужных package/suite/runner slices. До этого launcher `NOT_READY`, runtime `NOT_RUN`; исторический realtime baseline не заменяет greenfield risk/SLO design и не является migration gate.
+**Важно:** Locust-профили начинаются только в Phase 140 после separate implementation и independent acceptance нужных package/suite/service slices. До этого service `NOT_READY`, runtime `NOT_RUN`; исторический realtime baseline не заменяет greenfield risk/SLO design и не является migration gate.
 
 ---
 
@@ -303,10 +302,10 @@ evidence; line coverage остаётся диагностикой, а не за�
 ### 6.2. Флейки
 
 - **Unit (Go/Vitest): ретраев нет.** Флейк = дефект, чинится причина.
-- **E2E:** после separate runner implementation and independent acceptance future
+- **E2E:** после separate service implementation and independent acceptance future
   versioned profile должен задавать bounded retry policy только для
   доказанной инфраструктурной нестабильности; trace/screenshot policy — future
-  acceptance requirement. Launcher пока `NOT_READY`, runtime `NOT_RUN`.
+  acceptance requirement. E2E service/profile пока `NOT_READY`, runtime `NOT_RUN`.
 - Future flake-detection profile после той же acceptance должен задавать
   bounded repetitions и random order; raw host flags не являются инструкцией.
 - **Quarantine:** флейк, который нельзя починить немедленно, помечается skip с причиной + тикетом + owner и заносится в `.planning/STATE.md`. **SLA карантина — 1 волна:** к воротам следующей волны тест либо починен, либо удалён с обоснованием. Верификатор проверяет отсутствие «голых» skip.
@@ -323,22 +322,22 @@ independent acceptance; это не current CI claim.
 
 ### 6.4. Будущая топология E2E
 
-Таблица ниже — target mapping после separate suite/runner implementation и
-independent acceptance, а не текущий runnable pipeline. Сейчас target suites и
-launcher `NOT_READY`, runtime `NOT_RUN`.
+Таблица ниже — target mapping после separate suite/service implementation и
+independent acceptance, а не текущий runnable pipeline. Сейчас SUT target suites и
+API/integration/e2e/load services `NOT_READY`, runtime `NOT_RUN`; framework selftests приняты.
 
 | Триггер | Что гоняем |
 |---------|-----------|
-| PR | future `python-e2e-smoke` target: task-named risk-based critical path + affected domains |
-| Push/merge в master | future `python-e2e-full` target: accepted greenfield journeys without historical spec-count preservation |
+| Manual future smoke profile | `python-e2e-smoke`: task-named risk-based critical path + affected domains |
+| Manual future full profile | `python-e2e-full`: accepted greenfield journeys without historical spec-count preservation |
 | Nightly / pre-release | future `full` launcher profile + separately accepted Locust profile |
 
 ### 6.5. CI-бюджет
 
 Лимит ~3000 мин/мес (студенческий пакет GitHub Actions). Меры экономии:
 
-- **path-filtered CI** (dorny/paths-filter, план M0-05): PR в один домен запускает только его jobs;
-- smoke на каждом PR, full — на master/по необходимости;
+- **Future only:** path-filtered hosted CI may be reconsidered after explicit founder activation;
+- hosted PR/push automation is currently off; local root Compose evidence is canonical;
 - Playwright: шардинг + blob/merge-reports, `storageState` (логин один раз);
 - pytest-xdist для параллелизма Python-слоя;
 - нагрузочные и бенчмарки — вне основного CI;
@@ -352,25 +351,22 @@ launcher `NOT_READY`, runtime `NOT_RUN`.
 Phase 128 принимает founder contract и exact current manifest; Phase 129 сразу
 переносит 350 hook-free Go units и frontend units, защищает и по доменам
 рефакторит/переносит остальные 245 genuine Go units, удаляет legacy
-non-units/runners и развивает structure-only scaffold к отдельно принятому
+non-units/legacy launch entrypoints и развивает structure-only scaffold к отдельно принятому
 package bootstrap прямо в `testframework/**`; launcher в этот slice не входит.
 Исторические file/case counts, dual-run и Go statement coverage не являются
 migration gates.
 
-**Runtime gate:** private API source candidate под `testframework/runner/**`
-существует и принят только статически. До binding и independent
-parser/private-contract/Docker acceptance status остаётся `NOT_READY`,
-`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`;
-`testframework/docker/**` остаётся immutable-assets-only. Ни legacy runner, ни inline Docker command не могут
-заменить неготовый launcher.
+**Runtime gate:** source structure is not execution evidence. Единственный QA API —
+root Compose `run --rm <exact-service>`; this document does not claim a runtime result.
+Старые launch entrypoints и inline test Compose retired and cannot be fallback.
 
 | План | Содержание | Ворота |
 |------|------------|--------|
 | TF-PY-01 | Спека approved ownership model (sa + qa-auto): `src/hub_testkit/**`, planned `tests/{contract,api,integration,e2e}/**`, separate selftests/cases/schemas/policies/load/reports, composition-only `tests/conftest.py`, POM под owning domain и Allure-аннотации с TC-ID | sa-ver + qa-auto-ver |
-| TF-PY-02 | Отдельно принятый package bootstrap прямо в `testframework/`: root pyproject/pytest authority и reusable modules только под `src/hub_testkit/**`; launcher не входит в этот slice | Package `NOT_READY`; clean-room install + ненулевая collection + failing sentinel после implementation |
+| TF-PY-02 | Отдельно принятый package bootstrap прямо в `testframework/`: root pyproject/pytest authority и reusable modules только под `src/hub_testkit/**`; SUT suites не входят в этот slice | Package + framework selftests accepted: Docker 181/181 PASS |
 | TF-PY-03..NN | Новые API/integration/contract suites по доменам из requirements/tasks/risks — **один атомарный план на домен** | Traceability complete; happy/negative/authz/boundary/edge/failure-recovery рассмотрены |
 | TF-PY-E2E | Новый playwright-python слой: POM/component objects/steps и risk-based journeys | Critical smoke стабилен; unexpected skip = 0; старые TS counts не авторитет |
-| TF-PY-LOAD | Phase 140: bounded Locust-сценарии в `testframework/load/**` после принятия нужных work/business suites; nightly/pre-release, только non-production | Future `testframework/runner/**` profile доказывает SLO/risk и task-run evidence после separate implementation и independent acceptance; до того launcher `NOT_READY`, runtime `NOT_RUN` |
+| TF-PY-LOAD | Phase 140: bounded Locust-сценарии в `testframework/load/**` после принятия нужных work/business suites; nightly/pre-release, только non-production | sole QA API is root Compose service `python-load`; no run result is claimed here |
 | TF-PY-ALLURE | Сквозная привязка TC↔автотест (tms-link/AS_ID) + автозаливка в Hub TMS webhook'ом из CI | Результаты прогона видны в TMS, unmapped → 0 |
 
 **Ворота программы:** каждый Python case связан с task/requirement/verified TC
@@ -386,9 +382,9 @@ clean-room CI verification и handoff, а не отложенный cleanup.
 ### 8.1. Что и куда фиксируем
 
 - **Wall-time** каждого значимого прогона (полная регрессия, coverage-прогон, e2e-full, Locust) — в `.planning/COVERAGE.md` рядом с процентами.
-- **Топ медленных тестов** — future runner adapters после separate
+- **Топ медленных тестов** — future service adapters после separate
   implementation и independent acceptance должны публиковать единый
-  sanitized timing report для Go/Vitest/pytest/Playwright; до того launcher
+  sanitized timing report для Go/Vitest/pytest/Playwright; до того service/profile
   `NOT_READY`, runtime `NOT_RUN`.
 - **Деградация >20%** — заметка в `.planning/STATE.md` + задача на оптимизацию.
 

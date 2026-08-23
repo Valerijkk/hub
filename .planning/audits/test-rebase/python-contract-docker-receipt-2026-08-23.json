@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "service": "python-contract",
+  "compose_file": "docker-compose.local.yml",
+  "command": "docker compose -f docker-compose.local.yml run --rm python-contract",
+  "executed_revision": "c07f247056a9ac293ab137c39dbc377f2b2f611f",
+  "reviewed_head_before_receipt": "cd9ebbe9d7d3b076733b2b5775e61e8f21b43ba8",
+  "run_date": "2026-08-23",
+  "execution": "sequential; COMPOSE_PARALLEL_LIMIT=1; disposable container; cache retained",
+  "runtime": "Python 3.12.13",
+  "random_seed": 747999403,
+  "result": "PASS",
+  "exit_code": 0,
+  "collected": 181,
+  "passed": 181,
+  "failed": 0,
+  "duration_seconds": 4.51,
+  "scope": "framework selftests only; no SUT product tests",
+  "input_identity": {
+    "testframework_tree": "348f4014765f38f190af7f1aea33f28ca96a6473",
+    "root_compose_blob": "de0bd1813ca3db077cc91c72c0a1193a3a3d1d5d",
+    "executed_revision_matches_reviewed_head_inputs": true,
+    "receipt_path_excluded_from_execution_inputs": true
+  },
+  "identity_proof": "git diff --quiet c07f247056a9ac293ab137c39dbc377f2b2f611f..cd9ebbe9d7d3b076733b2b5775e61e8f21b43ba8 -- testframework docker-compose.local.yml",
+  "later_rerun": "NOT_RUN: Docker Desktop Linux engine pipe was unavailable; no contradictory runtime result was produced."
+}

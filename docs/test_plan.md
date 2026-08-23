@@ -17,6 +17,16 @@
 
 ---
 
+> **Variant A current state (2026-08-20):** all tracked legacy test files in
+> `backend/testframework/**` were removed. Any legacy path, hook, count, coverage result, or job name
+> below is historical inventory only. Current backend units are exclusively
+> `backend/tests/**` and execute through root Compose `backend-unit`. That
+> target also has one closed framework-command boundary: with `hubtest && qa`,
+> it compiles and runs only isolated CLI contract packages
+> `backend/cmd/qa-{secret-init,schema,backend}/`. They are neither genuine
+> product units nor legacy/component/API coverage, and do not permit arbitrary
+> `cmd/**` tests.
+
 ## Пирамида тестирования
 
 ```
@@ -31,9 +41,10 @@
 
 | Уровень | Инструмент | Расположение | Gate |
 |---------|------------|--------------|------|
-| Unit (BE) | Go testing + testify | `backend/tests/{domain}/` | CI `backend-unit` |
-| Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/`, support | CI `frontend-unit` |
-| API / Integration / Contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | Python gates |
+| Unit (BE) | Go testing + testify; closed QA CLI contracts | genuine product units: `backend/tests/{domain}/`; QA-only `hubtest && qa`: `backend/cmd/qa-{secret-init,schema,backend}/` | local Docker `backend-unit` (`build`, `vet`, `unit`, `race` PASS) |
+| Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/`, support | local Docker `frontend-unit` PASS |
+| Framework selftests | pytest | `testframework/selftests/` | local Docker `python-contract` PASS |
+| API / Integration / Contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | `NOT_RUN`; not a minimal merge gate |
 | E2E | pytest + playwright-python | `testframework/tests/e2e/` | `smoke` marker; `full` launcher profile |
 | Load | Locust | `testframework/load/` | nightly/manual |
 | Build | `tsc`, `vite build`, `-tags release` | CI `build` job | 0 errors |
@@ -93,11 +104,11 @@ task-owned Docker containers с CPU/RAM limits. Host-run не является b
 ## Текущая инвентаризация (2026-08-07)
 
 Источник: `.planning/audits/test-rebase/{inventory.json,founder-greenfield-cutover-manifest.json}` · HEAD
-`5708671f`; ledger SHA-256 `72de6a81…`.
+`b9f690da`; ledger SHA-256 `83b6a311…` (ротация 2026-08-13).
 
 | Метрика | Значение |
 |---------|----------|
-| Ledger | **1,049** source rows / **4,246** declared; drift/unmapped = 0 |
+| Ledger | **1,049** source rows / **4,246** declared; drift/unmapped = 0; historical inventory, not a current runnable-test count |
 | Backend Go total | **832** файлов / **3,674** declared: legacy `backend/testframework/` 831/3,672 + server 1/2; taxonomy 595 genuine unit + 237 component (31 API + 206 integration) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
 | Backend hook sources | **43** files / 582 symbols / 892 links; 245 genuine units protected until TASK-234, prune only TASK-219B |
@@ -115,36 +126,25 @@ task-owned Docker containers с CPU/RAM limits. Host-run не является b
 
 ### Целевой runner после greenfield scaffold
 
-Host запускает только Docker CLI через единый versioned outer launcher из
-`testframework/runner/**`. Private `run-task.ps1` source candidate существует и
-имеет только статические C1/P2/P4 review. Launcher обязан enforce wall-clock timeout, сохранить exit
-code, задать CPU/RAM/PID limits и в `finally` удалить только заранее записанные
-exact task-owned container/network/resource IDs. Каждый job пишет только в
-`testframework/reports/<task-run>/` после проверки owner marker; общий reports
-root не является output directory.
-
-До binding, parser/private-contract и Docker acceptance verdict — `NOT_READY`,
-`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime `NOT_RUN`, не PASS.
-`images.lock.v3.json` и dependency bytes отсутствуют. Zero collection, cleanup
-failure и missing owner marker — FAIL. Legacy
-runners остаются только источником inventory до exact deletion commit; чинить,
-расширять или использовать их как fallback запрещено.
+Host не запускает test/build/lint процессы. Единственный QA API —
+`docker compose -f docker-compose.local.yml run --rm <exact-service>` для
+`backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load`.
+QA services disposable; integration/e2e используют изолированную инфраструктуру.
+Результаты запуска в этом документе не заявляются. Legacy runners — только
+источник inventory; использовать их как fallback запрещено.
 
 ---
 
-## Исторический legacy CI (`.github/workflows/ci.yml`, frozen; под удаление/замену)
+## Current minimal merge gate
 
-| Job | Зависимости | Содержание |
-|-----|-------------|------------|
-| `backend-test` | — | Go **1.25**, Mongo **8** service, `go generate`, `go vet -tags hubtest`, `go test -tags hubtest -race ./testframework/...` 600s |
-| `frontend-test` | — | Node **22**, link testframework deps, `tsc`, `vitest run`, Biome lint |
-| `build` | backend + frontend test | `go build -tags release`, `npm run build` |
-| `e2e-smoke` | frontend-test | Playwright без backend: `login`, `a11y`, `critical-gate` |
-| `e2e-full` | backend + frontend test | Infra script + backend `DEV_MODE` + 20 spec files |
-| `coverage-gate` | master push only | Docker infra, ≥82% statement coverage |
-| `lighthouse` | master push only | Login page LH audit, artifact (non-blocking) |
-
-**Deploy** (`.github/workflows/deploy.yml`): только после успешного CI на push `master`; образы GHCR по SHA; **без** `DEV_MODE=true`.
+Hosted GitHub CI/PR automation is manual-only and GitLab pipelines are off.
+Canonical evidence is local Docker through exact root Compose services. This
+slice requires only `backend-unit`, `frontend-unit` and framework-only
+`python-contract`; API/integration/e2e/load remain `NOT_RUN` and are not merge
+gates. Production deploy is a separate manual workflow on current `master`
+after local Docker evidence, `FA-06/PG-03`, CTO sign-off and
+`confirm_production`; stale SHA is rejected before reset/deploy.
 
 **Historical/forbidden legacy inventory:** `frontend/playwright.config.ts` once selected TypeScript specs under `testframework/stages/e2e/domains/{domain}/`; this is not target execution authority.
 Module resolution: `frontend/scripts/link-testframework-node-modules.mjs`  
@@ -298,8 +298,7 @@ File: path:line
 |----------|------------|
 | `docs/TESTING.md` | TC-AUTH-01…, API code matrix, manual checklist |
 | `docs/stack_and_tools.md` | Версии, CI jobs |
-| `.cursor/rules/56-regression-verify.mdc` | Обязательный цикл qa-gate |
-| `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
+| `docker-compose.local.yml` | Единственный QA service contract |
 
 ---
 *Последнее обновление: 2026-08-07 — founder greenfield cutover: genuine

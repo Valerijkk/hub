@@ -60,9 +60,42 @@ testframework/                  один Python QA-проект в корне
    `testframework/reports/<task-run>/` после проверки owner marker с task и
    exact revision. Shared reports root и чужие artifacts read/write запрещены.
 
+### 2.1 Founder maximum-coverage source-authoring override (2026-08-15)
+
+Founder authorizes the ordered source-authoring waves in
+[`07-TESTFRAMEWORK-MAX-COVERAGE-IMPLEMENTATION.md`](07-TESTFRAMEWORK-MAX-COVERAGE-IMPLEMENTATION.md):
+F0 package/bootstrap/traceability/plugin/health/framework selftests; F1
+HTTP/identity/authz/platform/OpenAPI/security API and contract surfaces; F2
+implemented PostgreSQL/Mongo/Redis/NATS/storage/WebSocket/work/business
+spine; F3 browser/a11y/privacy/load source. This narrowly supersedes the
+former `G129-C`, `G130-H`, and per-feature `G-ACTIVATE-*` predecessor stops
+**only while authoring and independently reviewing source**.
+
+It does not accept Phase 129 recovery, a private launcher, a profile run,
+dependency resolution, an image, Docker execution, CI, or runtime behavior.
+Package, launcher, and every profile remain `NOT_READY`; runtime remains
+`NOT_RUN` until one exact revision has separately accepted A1 versioned-runner
+admission, R Docker resolver admission, immutable image evidence, generated
+`uv.lock`, and Docker-only evidence. A source file, source review, or source
+commit is never runtime evidence.
+
+The scope is implemented observable behavior only. Magic-link TTL remains out
+until a product decision; single-tenant deployments must not gain invented
+true-tenant assertions. Current authenticated Calendar aggregation/export and
+implemented call API authz/signature behavior remain in scope. Calendar-v2
+writes/resources/availability/subscriptions, Wiki, WebRTC/media capacity, and
+other unimplemented call proposals remain planned-only until delivery,
+accepted API/UI behavior, fixture ownership, and observable oracles exist.
+This override creates no authority for Phase 129 deletion/cutover or deployment
+work.
+
 ## 3. Обязательный контракт каждого нового Python test case
 
-Каждый test case имеет стабильный `TC-*` ID и metadata/marker:
+Каждый новый test case имеет стабильный ID, matching
+`^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$`, и metadata/marker.
+`TC-HEALTH-0001` is canonical. Historical `TC-AUTH-03` examples and
+`HUB-TC-*` inventory identifiers do not match the new greenfield grammar and
+are not accepted for new `testframework/cases/**` records:
 
 - `requirement`: `FR-*`, `NFR-*`, `GZ-*`, ADR/API section или approved spec;
 - `task`: backlog/phase TASK, который ввёл или менял поведение;
@@ -137,6 +170,16 @@ Live slugs 130-141 follow phase outcomes. Historical snapshots using an old slug
 
 ## 6. Dependency graph
 
+> **Current recovery override (2026-08-14):** founder selected forward-only
+> Option A after the current worktree accumulated bulk moves. The prescribed
+> per-batch execution history was not produced. `STATIC_PATH_MAPPING=PASS`,
+> but `CUTOVER_ACCEPTANCE=FAIL/BLOCKED` and Phase 129 is `RECOVERY_BLOCKED`.
+> The immutable v1 manifest stays `PLANNED_UNCHANGED`; no receipt, verifier
+> verdict, phase completion, or runtime result may be inferred from the bulk
+> commits. The 241 staged legacy deletions must be handled in explicit ordered
+> successor work, never accepted as one bulk deletion. See
+> `../../audits/test-rebase/RECOVERY-OPTION-A-2026-08-14.md`.
+
 ```text
 128 contract/manifests
   -> 129 immediate cutover/scaffold
@@ -150,6 +193,23 @@ Live slugs 130-141 follow phase outcomes. Historical snapshots using an old slug
               -> 140 load/resilience
 {132..140} -> 141 CI/final verification
 ```
+
+For source authoring only, the ordered founder waves are an overlay on this
+graph, not evidence that any predecessor runtime gate passed:
+
+```text
+F0 package + traceability + plugin + health selftests
+  -> F1 HTTP + identity + authz/platform + OpenAPI/security
+      -> F2 implemented integration/API spine
+          -> F3 browser + a11y + privacy + load source
+              -> A1 + R + image + lock + Docker evidence (separate runtime admission)
+```
+
+The literal 47-profile registry continues to be owned by the live Phase 130
+plan; its registration does not authorize a run or create a 48th profile.
+Source authoring uses only profile identities already in that registry. The
+detailed maximum-risk suite map, exact source slices, commit/review order, and
+exclusions are canonical in the 2026-08-15 plan linked above.
 
 После Phase 131 фазы 132, 133, 136 и 137 могут идти параллельно только при
 непересекающихся owned paths/data. **Phases 134 и 135 формально зависят от

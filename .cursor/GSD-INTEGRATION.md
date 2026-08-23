@@ -3,7 +3,7 @@
 > GSD skills: `~/.agents/skills/gsd-*/SKILL.md` · typed agents: `~/.codex/agents/gsd-*.toml` · Hub slash-skills: `.cursor/skills/*/SKILL.md`.
 > Ростер команды: `.cursor/playbooks/README.md` · Регламент: `.cursor/REGULATION.md`.
 >
-> **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. `/task-packet`, `/context-selector`, `/evidence-verifier`, `/workflow-eval` и обязательные скилы-ворота `/test-triage`, `/qa-gate`, `/handoff-sync`, `/style-check`, `/coverage-audit`).
+> **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. `/task-packet`, `/context-selector`, `/evidence-verifier`, `/workflow-eval` и обязательные ворота `/test-triage`, root Compose service, `/handoff-sync`, `/style-check`, `/coverage-audit`).
 
 *Обновлено: 2026-08-08 — live install: 71 GSD skills + 34 typed agents; Superpowers installed as a workflow source, not a role/authority · historical port inventory remains dated 2026-07-22.*
 
@@ -15,7 +15,7 @@
 |------|-----------|-----------|---------|
 | **Installed GSD skills** | `~/.agents/skills/gsd-<name>/` | = имя папки | `gsd-plan-phase`, `gsd-execute-phase`, `gsd-ai-integration-phase` (**71 live skills**) |
 | **Typed GSD agents** | `~/.codex/agents/gsd-<role>.toml` | = `agent_type` | `gsd-planner`, `gsd-plan-checker`, `gsd-executor`, `gsd-security-auditor` (**34 live profiles**) |
-| **Hub slash** | `.cursor/skills/<name>/SKILL.md` | = имя папки | `task-packet`, `context-selector`, `evidence-verifier`, `workflow-eval`, `qa-gate`, `handoff-sync`, `coverage-audit`, `test-triage` |
+| **Hub slash** | `.cursor/skills/<name>/SKILL.md` | = имя папки | `task-packet`, `context-selector`, `evidence-verifier`, `workflow-eval`, `handoff-sync`, `coverage-audit`, `test-triage` |
 | **GSD-RU lite** | `.cursor/skills/gsd-ru/<name>/SKILL.md` | = имя папки | `phase-plan`, `wave-run`, `goal-verify`, `handoff` |
 | **Superpowers** | Codex plugin runtime | plugin-contributed workflow practices | Дополняет discovery/spec/planning/review; не заменяет GSD и не создаёт agent slot |
 
@@ -129,7 +129,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | `gsd-docs-update` | practice · `docs-writer` + rule 55 | agents `docs-writer` |
 | `gsd-ship` | practice · devops | agents `devops-engineer` |
 
-**Итого P0:** 6/21 закрыты локальным `gsd-ru` skill; **15/21** — паттерн в agents/practice или route (не отдельный RU skill). Не смешивать с Hub slash: `/qa-gate` ≠ `gsd-verify-work`.
+**Итого P0:** 6/21 закрыты локальным `gsd-ru` skill; **15/21** — паттерн в agents/practice или route (не отдельный RU skill). Root Compose service ≠ `gsd-verify-work`.
 
 ### P1 — route-only и PE (ориентир до 15.08)
 
@@ -159,7 +159,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Волны/исполнение | `gsd-execute-phase`, `gsd-workstreams` | — |
 | Мелкая задача | `gsd-quick`, `gsd-fast` | — |
 | Role/wave handoff; синхронизация STATE | GSD-RU `handoff` | `/handoff-sync` |
-| Полный quality gate | — | `/qa-gate` |
+| Полный quality gate | — | `docker compose -f docker-compose.local.yml run --rm <service>` |
 | Матрица покрытия | — | `/coverage-audit` (Hub) |
 | Нормализовать задачу и authority boundary | lifecycle выбирается после risk | `/task-packet` |
 | Выбрать минимальный релевантный контекст | route к domain docs/plan | `/context-selector` |
@@ -285,7 +285,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Cross-phase UAT-долги | `gsd-audit-uat` | Ревизия открытых UAT перед релизом |
 | Root-cause post-mortem неудачного workflow | `gsd-forensics` | Волна упала на интеграции — разбор что пошло не так |
 | **Hub:** упавший тест — код vs тест | `.cursor/skills/test-triage/SKILL.md` | См. `REGULATION.md` §14, §18 |
-| **Hub:** полный gate | `.cursor/skills/qa-gate/SKILL.md` | См. `REGULATION.md` §15 |
+| **Hub:** полный gate | `docker compose -f docker-compose.local.yml run --rm <service>` | См. `REGULATION.md` §15 |
 
 ### 5. Документация / аудит покрытия
 
@@ -307,7 +307,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Конец значимой сессии | `/handoff-sync` (Hub) + `gsd-progress` | Всегда перед закрытием сессии с кодом |
 | Пауза посреди фазы | `gsd-pause-work` | Context handoff на следующую сессию |
 | Завершение milestone | `gsd-complete-milestone`, `gsd-audit-milestone` | v4 super-app → архивация |
-| PR готов к ревью | `gsd-ship` | После green `/qa-gate` |
+| PR готов к ревью | `gsd-ship` | После green применимых root Compose services |
 | Разбить на несколько PR | `gsd-pr-branch` | Волна с 4 модулями → 4 отдельных PR |
 
 ---
@@ -370,7 +370,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 7. gsd-secure-phase               → security-auditor: ValidateOutboundURL для ical_subscription (SSRF)
 8. gsd-code-review                → code-reviewer pre-merge
 9. gsd-docs-update                → docs-writer: system_specification.md + wiki/API.md
-10. /qa-gate (Hub)                → team-lead финальный чек
+10. root Compose service (Hub)    → team-lead финальный чек
 11. gsd-milestone-summary          → архив после релиза
 ```
 
@@ -383,7 +383,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 2. gsd-debug                                → воспроизвести, найти root cause в service_login.go
 3. .cursor/skills/test-triage/SKILL.md      → классификация ROOT=code (см. REGULATION.md §14, A1)
 4. gsd-fast (или gsd-quick, если >1 файл)   → минимальный фикс
-5. /qa-gate --domain auth (точечный прогон) → testframework/auth/...
+5. docker compose -f docker-compose.local.yml run --rm python-api (точечный прогон) → testframework/tests/api/...
 6. gsd-docs-update (если менялся контракт)  → security_guidelines.md
 7. be-ver                                    → verified: true
 ```
@@ -396,7 +396,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 
 | Нужно | Используй | НЕ используй |
 |-------|-----------|---------------|
-| Полный build+test+lint+security гейт перед PR | `.cursor/skills/qa-gate/SKILL.md` | `gsd-verify-work` (это UAT, не CI-гейт) |
+| Полный build+test+lint+security гейт перед PR | `docker compose -f docker-compose.local.yml run --rm <service>` | `gsd-verify-work` (это UAT, не CI-гейт) |
 | Упавший тест — код или тест виноват | `.cursor/skills/test-triage/SKILL.md` | `gsd-debug` напрямую (сначала триаж, `gsd-debug` — только если триаж показал сложный root cause) |
 | STATE/COVERAGE/ROADMAP синхронизация в конце сессии | `.cursor/skills/handoff-sync/SKILL.md` | `gsd-milestone-summary` (это для завершённого milestone, не рутинный handoff) |
 | Требование×код×тест матрица | `.cursor/skills/coverage-audit/SKILL.md` | `gsd-map-codebase` (это структурный анализ, не coverage) |
@@ -448,7 +448,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 5. test-triage на каждый FAIL после фикса
 6. gsd-secure-phase                   → retroactive verify threat model
 7. docs-writer: docs/security_guidelines.md + AUDIT-SCORECARD.md статус
-8. /qa-gate (Hub)                      → team-lead финальная приёмка
+8. root Compose service (Hub)          → team-lead финальная приёмка
 ```
 
 ### Сценарий: coverage gap найден для домена `tms`

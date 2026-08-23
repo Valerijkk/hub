@@ -22,7 +22,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels [post]
+// @Router /messenger/channels [post]
 func (h *Handler) CreateChannel(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -50,7 +50,7 @@ func (h *Handler) CreateChannel(c fiber.Ctx) error {
 // @Success 200 {array} ChannelResponse "Список каналов"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels [get]
+// @Router /messenger/channels [get]
 func (h *Handler) ListMyChannels(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -76,7 +76,7 @@ func (h *Handler) ListMyChannels(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 404 {object} fiber.Error "Канал не найден"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId} [get]
+// @Router /messenger/channels/{channelId} [get]
 func (h *Handler) GetChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -107,7 +107,7 @@ func (h *Handler) GetChannel(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId} [put]
+// @Router /messenger/channels/{channelId} [put]
 func (h *Handler) UpdateChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -141,7 +141,7 @@ func (h *Handler) UpdateChannel(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId} [delete]
+// @Router /messenger/channels/{channelId} [delete]
 func (h *Handler) DeleteChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -168,7 +168,7 @@ func (h *Handler) DeleteChannel(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/join [post]
+// @Router /messenger/channels/{channelId}/join [post]
 func (h *Handler) JoinChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -195,7 +195,7 @@ func (h *Handler) JoinChannel(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/leave [post]
+// @Router /messenger/channels/{channelId}/leave [post]
 func (h *Handler) LeaveChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -224,7 +224,7 @@ func (h *Handler) LeaveChannel(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/members [post]
+// @Router /messenger/channels/{channelId}/members [post]
 func (h *Handler) AddMembers(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -257,7 +257,7 @@ func (h *Handler) AddMembers(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/members [get]
+// @Router /messenger/channels/{channelId}/members [get]
 func (h *Handler) ListMembers(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -290,7 +290,7 @@ func (h *Handler) ListMembers(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/star [post]
+// @Router /messenger/channels/{channelId}/star [post]
 func (h *Handler) ToggleStar(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -326,7 +326,7 @@ type MuteChannelRequest struct {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/mute [post]
+// @Router /messenger/channels/{channelId}/mute [post]
 func (h *Handler) MuteChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -359,7 +359,7 @@ func (h *Handler) MuteChannel(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/unmute [post]
+// @Router /messenger/channels/{channelId}/unmute [post]
 func (h *Handler) UnmuteChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -394,7 +394,7 @@ func (h *Handler) UnmuteChannel(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/invites [post]
+// @Router /messenger/channels/{channelId}/invites [post]
 func (h *Handler) CreateInviteLink(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -427,7 +427,7 @@ func (h *Handler) CreateInviteLink(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/invites [get]
+// @Router /messenger/channels/{channelId}/invites [get]
 func (h *Handler) ListChannelInvites(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -454,7 +454,7 @@ func (h *Handler) ListChannelInvites(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Токен не указан"
 // @Failure 404 {object} fiber.Error "Приглашение не найдено"
 // @Security BearerAuth
-// @Router /api/messenger/invites/{token} [get]
+// @Router /messenger/invites/{token} [get]
 func (h *Handler) ValidateInvite(c fiber.Ctx) error {
 	token := c.Params("token")
 	if token == "" {
@@ -477,7 +477,7 @@ func (h *Handler) ValidateInvite(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный токен или запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/invites/{token}/accept [post]
+// @Router /messenger/invites/{token}/accept [post]
 func (h *Handler) AcceptInvite(c fiber.Ctx) error {
 	token := c.Params("token")
 	if token == "" {
@@ -505,7 +505,7 @@ func (h *Handler) AcceptInvite(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/invites/{inviteId} [delete]
+// @Router /messenger/channels/{channelId}/invites/{inviteId} [delete]
 func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -541,7 +541,7 @@ func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/dm [post]
+// @Router /messenger/dm [post]
 func (h *Handler) CreateOrGetDM(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {

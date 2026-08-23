@@ -21,11 +21,12 @@ import (
 // архитектуру handler → service → repository (db) и упрощает unit-тесты.
 type Handler struct {
 	service *AuthService
+	devMode bool
 }
 
 // NewHandler создаёт новый обработчик аутентификации.
-func NewHandler(service *AuthService) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *AuthService, devMode bool) *Handler {
+	return &Handler{service: service, devMode: devMode}
 }
 
 // RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
@@ -100,7 +101,7 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	}
 
 	resp := fiber.Map{"message": "Magic link sent"}
-	if h.service.magicLink.IsDevMode() {
+	if h.devMode {
 		resp["code"] = code
 	}
 	return c.JSON(resp)
@@ -114,8 +115,10 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 // @Produce json
 // @Param body body VerifyMagicLinkRequest true "Email и код верификации"
 // @Success 200 {object} TokenPairResponse "JWT-токены"
-// @Failure 400 {object} map[string]string "Некорректный запрос"
-// @Failure 401 {object} map[string]string "Неверный или просроченный код"
+// @Failure 400 {object} apperrors.PublicErrorBody "Некорректный запрос"
+// @Failure 401 {object} apperrors.PublicErrorBody "Неверный или просроченный код"
+// @Failure 403 {object} apperrors.PublicErrorBody "Доступ запрещён"
+// @Failure 429 {object} apperrors.PublicErrorBody "Слишком много попыток верификации"
 // @Router /auth/magic-link/verify [post]
 func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 	var req VerifyMagicLinkRequest

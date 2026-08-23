@@ -25,7 +25,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages/{messageId}/reactions [post]
+// @Router /messenger/channels/{channelId}/messages/{messageId}/reactions [post]
 func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -68,7 +68,7 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/messages/{messageId}/pin [post]
+// @Router /messenger/channels/{channelId}/messages/{messageId}/pin [post]
 func (h *Handler) TogglePin(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -101,7 +101,7 @@ func (h *Handler) TogglePin(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/pins [get]
+// @Router /messenger/channels/{channelId}/pins [get]
 func (h *Handler) ListPins(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -132,7 +132,7 @@ func (h *Handler) ListPins(c fiber.Ctx) error {
 // @Success 200 {array} BookmarkResponse "Список закладок"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/bookmarks [get]
+// @Router /messenger/bookmarks [get]
 func (h *Handler) ListBookmarks(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -157,7 +157,7 @@ func (h *Handler) ListBookmarks(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/bookmarks [post]
+// @Router /messenger/bookmarks [post]
 func (h *Handler) AddBookmark(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -190,7 +190,7 @@ func (h *Handler) AddBookmark(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/bookmarks/{bookmarkId} [delete]
+// @Router /messenger/bookmarks/{bookmarkId} [delete]
 func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("bookmarkId"))
 	if idStr == "" {
@@ -224,7 +224,7 @@ func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 // @Success 200 {object} map[string]int "Счётчики непрочитанных по каналам"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/unread [get]
+// @Router /messenger/unread [get]
 func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -248,7 +248,7 @@ func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/read [post]
+// @Router /messenger/channels/{channelId}/read [post]
 func (h *Handler) MarkChannelRead(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -296,7 +296,7 @@ func parsePollID(c fiber.Ctx) (uuid.UUID, error) {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/channels/{channelId}/polls [post]
+// @Router /messenger/channels/{channelId}/polls [post]
 func (h *Handler) CreatePoll(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -332,7 +332,7 @@ func (h *Handler) CreatePoll(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/polls/{pollId}/vote [post]
+// @Router /messenger/polls/{pollId}/vote [post]
 func (h *Handler) VotePoll(c fiber.Ctx) error {
 	pollID, err := parsePollID(c)
 	if err != nil {
@@ -367,7 +367,7 @@ func (h *Handler) VotePoll(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/messenger/polls/{pollId}/close [post]
+// @Router /messenger/polls/{pollId}/close [post]
 func (h *Handler) ClosePoll(c fiber.Ctx) error {
 	pollID, err := parsePollID(c)
 	if err != nil {
@@ -396,7 +396,7 @@ func (h *Handler) ClosePoll(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/messenger/polls/{pollId} [get]
+// @Router /messenger/polls/{pollId} [get]
 func (h *Handler) GetPollResults(c fiber.Ctx) error {
 	pollID, err := parsePollID(c)
 	if err != nil {

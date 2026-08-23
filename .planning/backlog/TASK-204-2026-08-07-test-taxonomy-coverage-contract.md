@@ -1,6 +1,8 @@
 # TASK-204 — 📐 Greenfield test architecture and cutover contract
 
-> Revision: **2026-08-07 founder override** · Priority: **P1** · Status: Open · Phase: **128**
+> Revision: **2026-08-07 founder override** · Priority: **P1** · Status: **Verified — owner sign-off 2026-08-13** · Phase: **128**
+
+> Sign-off 2026-08-13: артефакты (ротированный контракт/ADR + sealed `cutover-manifest.json` 173 батча, sha256 `85dd85ca`, Docker-цепочка A–I GREEN на `986b2211`) приняты владельцем; независимая агентная верификация arch-ver PASS / qa-auto-ver PASS_WITH_NOTES (см. `.planning/audits/test-rebase/VERIFICATION.md`, секция 2026-08-13). Открытыми остаются founder-gated G128-D wrapper (конверт пинует доротационные дайджесты и требует отсутствия манифеста — нужна founder-ресинхронизация) и honest post-cutover baseline (обязательство волны Phase 129+).
 
 > Runtime/traceability gate: the future versioned launcher API belongs only to `testframework/runner/**`; `testframework/docker/**` contains immutable execution assets only. Launcher status remains `NOT_READY` and runtime remains `NOT_RUN` until a separate implementation and independent acceptance. Every executable case/evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 

@@ -133,8 +133,8 @@ collection, лог, duration и cleanup прикладываются к отчё
 | `performance` | ≥ 0.75 |
 | `best-practices` | ≥ 0.90 |
 
-Lighthouse выполняется только через соответствующий task-owned Docker/CI job
-из `/qa-gate`; frontend/browser процессы на host запрещены. Отчёт
+Lighthouse выполняется только через соответствующий fixed root Compose service
+или CI job; frontend/browser процессы на host запрещены. Отчёт
 `lighthouse-report.json`/`lighthouse-summary.json` хранится в task-owned
 artifacts и очищается по rule 45. Gate **non-blocking** сейчас (PR #27,
 artifact only): фиксировать фактический результат или `NOT_RUN`, не выдавать

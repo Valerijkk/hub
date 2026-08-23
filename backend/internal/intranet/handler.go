@@ -54,7 +54,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 // @Produce json
 // @Success 200 {object} DirectoryResponse
 // @Security BearerAuth
-// @Router /api/intranet/directory [get]
+// @Router /intranet/directory [get]
 func (h *Handler) ListDirectory(c fiber.Ctx) error {
 	resp, err := h.service.ListDirectory(c.Context())
 	if err != nil {
@@ -70,7 +70,7 @@ func (h *Handler) ListDirectory(c fiber.Ctx) error {
 // @Param userId path string true "User ID"
 // @Success 200 {object} DirectoryUserResponse
 // @Security BearerAuth
-// @Router /api/intranet/directory/users/{userId} [get]
+// @Router /intranet/directory/users/{userId} [get]
 func (h *Handler) GetDirectoryUser(c fiber.Ctx) error {
 	id, err := parseUserID(c)
 	if err != nil {
@@ -92,7 +92,7 @@ func (h *Handler) GetDirectoryUser(c fiber.Ctx) error {
 // @Param per_page query int false "На странице"
 // @Success 200 {object} NewsListResponse
 // @Security BearerAuth
-// @Router /api/intranet/news [get]
+// @Router /intranet/news [get]
 func (h *Handler) ListNews(c fiber.Ctx) error {
 	page, perPage := parsePagination(c)
 	resp, err := h.service.ListNews(c.Context(), page, perPage)
@@ -108,7 +108,7 @@ func (h *Handler) ListNews(c fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} NewsListResponse
 // @Security BearerAuth
-// @Router /api/intranet/news/admin [get]
+// @Router /intranet/news/admin [get]
 func (h *Handler) ListNewsAdmin(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -129,7 +129,7 @@ func (h *Handler) ListNewsAdmin(c fiber.Ctx) error {
 // @Param newsId path string true "News ID"
 // @Success 200 {object} NewsPostResponse
 // @Security BearerAuth
-// @Router /api/intranet/news/{newsId} [get]
+// @Router /intranet/news/{newsId} [get]
 func (h *Handler) GetNews(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -154,7 +154,7 @@ func (h *Handler) GetNews(c fiber.Ctx) error {
 // @Param body body CreateNewsRequest true "News"
 // @Success 201 {object} NewsPostResponse
 // @Security BearerAuth
-// @Router /api/intranet/news [post]
+// @Router /intranet/news [post]
 func (h *Handler) CreateNews(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -180,7 +180,7 @@ func (h *Handler) CreateNews(c fiber.Ctx) error {
 // @Param body body UpdateNewsRequest true "News"
 // @Success 200 {object} NewsPostResponse
 // @Security BearerAuth
-// @Router /api/intranet/news/{newsId} [put]
+// @Router /intranet/news/{newsId} [put]
 func (h *Handler) UpdateNews(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -207,7 +207,7 @@ func (h *Handler) UpdateNews(c fiber.Ctx) error {
 // @Param newsId path string true "News ID"
 // @Success 204
 // @Security BearerAuth
-// @Router /api/intranet/news/{newsId} [delete]
+// @Router /intranet/news/{newsId} [delete]
 func (h *Handler) DeleteNews(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -230,7 +230,7 @@ func (h *Handler) DeleteNews(c fiber.Ctx) error {
 // @Param newsId path string true "News ID"
 // @Success 200 {object} NewsPollResponse
 // @Security BearerAuth
-// @Router /api/intranet/news/{newsId}/poll [get]
+// @Router /intranet/news/{newsId}/poll [get]
 func (h *Handler) GetNewsPoll(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -256,7 +256,7 @@ func (h *Handler) GetNewsPoll(c fiber.Ctx) error {
 // @Param body body VoteNewsPollRequest true "Vote"
 // @Success 200 {object} NewsPollResponse
 // @Security BearerAuth
-// @Router /api/intranet/news/{newsId}/poll/vote [post]
+// @Router /intranet/news/{newsId}/poll/vote [post]
 func (h *Handler) VoteNewsPoll(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -286,7 +286,7 @@ func (h *Handler) VoteNewsPoll(c fiber.Ctx) error {
 // @Param body body UpdateNewsPollRequest true "Poll"
 // @Success 200 {object} NewsPollResponse
 // @Security BearerAuth
-// @Router /api/intranet/news/{newsId}/poll [put]
+// @Router /intranet/news/{newsId}/poll [put]
 func (h *Handler) UpdateNewsPoll(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -313,7 +313,7 @@ func (h *Handler) UpdateNewsPoll(c fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} KudoListResponse
 // @Security BearerAuth
-// @Router /api/intranet/kudos/feed [get]
+// @Router /intranet/kudos/feed [get]
 func (h *Handler) ListKudosFeed(c fiber.Ctx) error {
 	page, perPage := parsePagination(c)
 	resp, err := h.service.ListKudosFeed(c.Context(), page, perPage)
@@ -329,7 +329,7 @@ func (h *Handler) ListKudosFeed(c fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} KudoListResponse
 // @Security BearerAuth
-// @Router /api/intranet/kudos/received [get]
+// @Router /intranet/kudos/received [get]
 func (h *Handler) ListMyReceivedKudos(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -351,7 +351,7 @@ func (h *Handler) ListMyReceivedKudos(c fiber.Ctx) error {
 // @Param body body CreateKudoRequest true "Kudos"
 // @Success 201 {object} KudoResponse
 // @Security BearerAuth
-// @Router /api/intranet/kudos [post]
+// @Router /intranet/kudos [post]
 func (h *Handler) CreateKudo(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
