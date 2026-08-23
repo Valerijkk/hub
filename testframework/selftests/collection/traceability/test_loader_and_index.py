@@ -125,7 +125,7 @@ class _HostileCollectionIterable:
 def test_marker_policy_is_closed_and_literal() -> None:
     policy = _policy()
 
-    assert policy.schema == "hub.testframework.markers/v1"
+    assert policy.schema_ == "hub.testframework.markers/v1"
     assert policy.statuses == ("active", "planned", "retired")
     assert policy.scenarios == (
         "happy",

@@ -99,7 +99,7 @@ Automation = PytestAutomation | LocustAutomation | ManualAutomation
 class MarkerPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
-    schema: Literal["hub.testframework.markers/v1"]
+    schema_: Literal["hub.testframework.markers/v1"] = Field(alias="schema")
     case_id_pattern: str
     statuses: tuple[Status, ...] = Field(min_length=1)
     scenarios: tuple[Scenario, ...] = Field(min_length=1)
@@ -110,7 +110,7 @@ class MarkerPolicy(BaseModel):
 class CaseMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
-    schema: Literal["hub.testframework.case/v1"]
+    schema_: Literal["hub.testframework.case/v1"] = Field(alias="schema")
     id: str
     title: str
     status: Status

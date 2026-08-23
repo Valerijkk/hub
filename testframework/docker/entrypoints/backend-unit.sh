@@ -22,7 +22,7 @@ write_step() {
     "$step" "$status" "$code" > "$report_dir/$step.result.json"
 }
 
-mkdir -p "$report_dir" "$report_dir/go-cache"
+mkdir -p "$report_dir" "$report_dir/go-cache" "$report_dir/tmp"
 cd /opt/hub/source/backend
 
 if go build ./...; then

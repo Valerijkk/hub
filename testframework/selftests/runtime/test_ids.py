@@ -65,7 +65,7 @@ def test_runtime_ids_reject_malformed_or_open_input(raw: dict[str, object]) -> N
 
 
 def test_runtime_identity_error_does_not_echo_a_rejected_value() -> None:
-    canary = "secret-runtime-canary"
+    canary = "secret-runtime-canary!"
 
     with pytest.raises(RuntimeIdentityError) as error:
         parse_runtime_ids(_raw_ids(task_id=canary))

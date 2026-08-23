@@ -40,7 +40,7 @@ def _raw_settings(**overrides: object) -> dict[str, object]:
 def test_environment_policy_has_only_deterministic_docker_admission() -> None:
     policy = _policy()
 
-    assert policy.schema == "hub.testframework.environments/v1"
+    assert policy.schema_ == "hub.testframework.environments/v1"
     assert [environment.id for environment in policy.environments] == [
         "docker-local",
         "docker-ci",

@@ -97,7 +97,7 @@ def _normalize_record(record: object) -> CaseRecord:
             raise TypeError("record type is invalid")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            document = record.model_dump(mode="python")
+            document = record.model_dump(mode="python", by_alias=True)
         return CaseRecord.model_validate(document)
     except Exception:
         raise TraceabilityError("case record is invalid") from None

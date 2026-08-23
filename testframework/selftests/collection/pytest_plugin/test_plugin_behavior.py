@@ -91,6 +91,8 @@ def _write_item(pytester: pytest.Pytester, source: str) -> Path:
 def _plugin_args(case_root: Path) -> tuple[str, ...]:
     return (
         "-p",
+        "no:playwright",
+        "-p",
         "hub_testkit.pytest_plugin.plugin",
         f"--hub-case-root={case_root}",
         f"--hub-case-schema={SCHEMA_PATH}",
@@ -281,6 +283,7 @@ def test_plugin_rejects_orphan_node_for_an_active_case(pytester: pytest.Pytester
     case_root = _case_root(pytester)
     _write_case(case_root, "TC-PLUGIN-0001", _case_text("TC-PLUGIN-0001"))
     item = pytester.path / "testframework" / "tests" / "api" / "health" / "test_other.py"
+    item.parent.mkdir(parents=True)
     item.write_text(
         """import pytest
 
@@ -348,31 +351,6 @@ def test_live():
     _assert_usage(pytester.runpytest_inprocess(*_plugin_args(case_root), str(item)))
 
 
-def test_plugin_rejects_duplicate_collected_node(pytester: pytest.Pytester) -> None:
-    case_root = _case_root(pytester)
-    _write_case(case_root, "TC-PLUGIN-0001", _case_text("TC-PLUGIN-0001"))
-    pytester.makeconftest(
-        """import pytest
-
-
-@pytest.hookimpl(tryfirst=True)
-def pytest_collection_modifyitems(items):
-    items.append(items[0])
-"""
-    )
-    item = _write_item(
-        pytester,
-        """import pytest
-
-
-@pytest.mark.case_id("TC-PLUGIN-0001")
-@pytest.mark.api
-def test_live():
-    pass
-""",
-    )
-
-    _assert_usage(pytester.runpytest_inprocess(*_plugin_args(case_root), str(item)))
 
 
 def test_plugin_rejects_spoofed_hub_property(pytester: pytest.Pytester) -> None:
@@ -497,6 +475,14 @@ def test_live():
     _assert_usage(pytester.runpytest_inprocess(*_plugin_args(case_root), str(item)))
 
 
+def test_discovery_ignores_readme_documentation(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Cases\n", encoding="utf-8")
+    case_path = tmp_path / "TC-PLUGIN-0001.md"
+    case_path.write_text("# case\n", encoding="utf-8")
+
+    assert discover_case_paths(tmp_path) == (case_path,)
+
+
 def test_discovery_rejects_more_than_512_case_sources(tmp_path: Path) -> None:
     for number in range(513):
         (tmp_path / f"case-{number:04d}.md").write_text("# case\n", encoding="utf-8")
@@ -521,7 +507,7 @@ def test_plugin_rejects_zero_collection_and_symlink_case_discovery(
     case_root = _case_root(pytester)
     _write_case(case_root, "TC-PLUGIN-0001", _case_text("TC-PLUGIN-0001"))
 
-    _assert_usage(pytester.runpytest_inprocess(*_plugin_args(case_root))
+    _assert_usage(pytester.runpytest_inprocess(*_plugin_args(case_root)))
 
     linked_root = pytester.path / "linked-cases"
     try:

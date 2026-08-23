@@ -110,9 +110,10 @@ def test_actor_policy_and_request_models_are_frozen_and_strict() -> None:
     assert "body-repr-canary" not in repr(request_with_secrets)
     with pytest.raises(dataclasses.FrozenInstanceError):
         actor.token = "changed"
+    canary = "TOKEN-CANARY"
     with pytest.raises(HttpAuthError) as auth_error:
-        Actor(subject="qa\nuser", token="TOKEN-CANARY")
-    _assert_generic_without_canary(auth_error.value, "TOKEN-CANARY", "actor is invalid")
+        Actor(subject="qa-user", token=f"{canary}\x00")
+    _assert_generic_without_canary(auth_error.value, canary, "actor is invalid")
     bypass_actor = object.__new__(Actor)
     object.__setattr__(bypass_actor, "subject", "qa-user")
     object.__setattr__(bypass_actor, "token", "actor\x00BYPASS-ACTOR-CANARY")

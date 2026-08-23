@@ -384,8 +384,9 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
                 / "entrypoints"
                 / "frontend-unit.sh"
             ),
-            "if /usr/local/bin/node /opt/hub/source/frontend/node_modules/"
-            "typescript/bin/tsc -b; then",
+            "if /usr/bin/node /opt/hub/source/frontend/node_modules/"
+            "typescript/bin/tsc -p /opt/hub/source/frontend/"
+            "tsconfig.json --noEmit; then",
         ),
     )
     for validator, source, first_command in fixed_entrypoints:
@@ -400,9 +401,9 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
             )
         )
     frontend_source = fixed_entrypoints[1][1]
-    assert frontend_source.count("/usr/local/bin/node ") == 4
+    assert frontend_source.count("/usr/bin/node ") == 2
     assert not _frontend_entrypoint_is_closed(
-        frontend_source.replace("/usr/local/bin/node", "node")
+        frontend_source.replace("/usr/bin/node", "node")
     )
 
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
@@ -1677,10 +1678,15 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                         "COPY backend/go.mod backend/go.sum ./",
                         "RUN go mod download",
                         "COPY backend/ ./",
+                        "RUN go generate ./ent",
+                        "RUN test -f ent/ent.go -a -f ent/client.go -a -f "
+                        "ent/migrate/schema.go",
                         "COPY testframework/docker/entrypoints/backend-unit.sh "
                         "/usr/local/bin/backend-unit",
-                        "RUN chmod 0555 /usr/local/bin/backend-unit",
+                        "RUN sed -i 's/\\r$//' /usr/local/bin/backend-unit && "
+                        "chmod 0555 /usr/local/bin/backend-unit",
                         "ENV GOCACHE=/reports/backend-unit/go-cache",
+                        "ENV GOTMPDIR=/reports/backend-unit/tmp",
                         "ENV HOME=/tmp",
                         "USER 10001:10001",
                         'ENTRYPOINT ["/usr/local/bin/backend-unit"]',
@@ -1698,16 +1704,18 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                         "RUN npm ci",
                         "COPY frontend/src/ ./src/",
                         "COPY frontend/tests/ ./tests/",
+                        "RUN find /opt/hub/source/frontend/src "
+                        "/opt/hub/source/frontend/tests -type f -exec sed -i 's/\\r$//' {} +",
                         "COPY frontend/public/ ./public/",
                         "COPY frontend/index.html frontend/biome.json "
                         "frontend/components.json frontend/tsconfig.json "
                         "frontend/vite.config.ts ./",
                         "COPY testframework/docker/vitest.frontend-unit.config.ts "
-                        "/opt/hub/testframework/docker/"
-                        "vitest.frontend-unit.config.ts",
+                        "/opt/hub/source/frontend/.qa/vitest.frontend-unit.config.ts",
                         "COPY testframework/docker/entrypoints/frontend-unit.sh "
                         "/usr/local/bin/frontend-unit",
-                        "RUN chmod 0555 /usr/local/bin/frontend-unit",
+                        "RUN sed -i 's/\\r$//' /usr/local/bin/frontend-unit && "
+                        "chmod 0555 /usr/local/bin/frontend-unit",
                         "ENV HOME=/reports/frontend-unit/home",
                         "ENV TMPDIR=/reports/frontend-unit/tmp",
                         "USER 10001:10001",
@@ -1734,20 +1742,36 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                     "python-base",
                     (
                         "WORKDIR /opt/hub/testframework",
-                        "COPY testframework/pyproject.toml "
-                        "testframework/uv.lock ./",
+                        "COPY testframework/pyproject.toml testframework/uv.lock "
+                        "testframework/.python-version testframework/README.md ./",
                         "RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv "
                         "uv sync --frozen --all-groups --no-install-project",
                         "COPY testframework/src/ ./src/",
+                        "RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv "
+                        "uv sync --frozen --all-groups",
+                        "COPY docker-compose.local.yml "
+                        "/opt/hub/docker-compose.local.yml",
+                        "COPY .planning/phases/130-tf-traceability-gates/PLAN.md "
+                        "/opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md",
+                        "COPY testframework/docker/ ./docker/",
+                        "RUN find /opt/hub/docker-compose.local.yml "
+                        "/opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md "
+                        "/opt/hub/testframework/docker -type f -exec "
+                        "sed -i 's/\\r$//' {} +",
                         "COPY testframework/selftests/ ./selftests/",
                         "COPY testframework/tests/ ./tests/",
                         "COPY testframework/cases/ ./cases/",
                         "COPY testframework/policies/ ./policies/",
                         "COPY testframework/schemas/ ./schemas/",
                         "COPY testframework/load/ ./load/",
+                        "RUN find /opt/hub/testframework/cases "
+                        "/opt/hub/testframework/policies "
+                        "/opt/hub/testframework/schemas -type f -exec "
+                        "sed -i 's/\\r$//' {} +",
                         "COPY testframework/docker/entrypoints/python-qa.sh "
                         "/usr/local/bin/python-qa",
-                        "RUN chmod 0555 /usr/local/bin/python-qa && "
+                        "RUN sed -i 's/\\r$//' /usr/local/bin/python-qa && "
+                        "chmod 0555 /usr/local/bin/python-qa && "
                         "chown -R 10001:10001 /opt/hub/testframework "
                         "/opt/hub/.venv",
                         "ENV PATH=/opt/hub/.venv/bin:$PATH",
@@ -1886,7 +1910,7 @@ def _backend_entrypoint_is_closed(text: object) -> bool:
             return False
         return text == _canonical_fixed_unit_entrypoint(
             target="backend-unit",
-            report_setup='mkdir -p "$report_dir" "$report_dir/go-cache"',
+            report_setup='mkdir -p "$report_dir" "$report_dir/go-cache" "$report_dir/tmp"',
             workdir="/opt/hub/source/backend",
             steps=(
                 ("build", "go build ./..."),
@@ -1920,26 +1944,16 @@ def _frontend_entrypoint_is_closed(text: object) -> bool:
             steps=(
                 (
                     "typescript",
-                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
-                    "typescript/bin/tsc -b",
-                ),
-                (
-                    "biome",
-                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
-                    "@biomejs/biome/bin/biome check ./src",
-                ),
-                (
-                    "vite",
-                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
-                    "vite/bin/"
-                    "vite.js build --outDir /reports/frontend-unit/vite-dist",
+                    "/usr/bin/node /opt/hub/source/frontend/node_modules/"
+                    "typescript/bin/tsc -p /opt/hub/source/frontend/"
+                    "tsconfig.json --noEmit",
                 ),
                 (
                     "vitest",
-                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
+                    "/usr/bin/node /opt/hub/source/frontend/node_modules/"
                     "vitest/"
-                    "vitest.mjs run --config /opt/hub/testframework/docker/"
-                    "vitest.frontend-unit.config.ts --reporter=json",
+                    "vitest.mjs run --config /opt/hub/source/frontend/.qa/"
+                    "vitest.frontend-unit.config.ts --configLoader runner",
                 ),
             ),
         )
@@ -2044,24 +2058,39 @@ def _python_dispatcher_is_closed(text: object) -> bool:
             "export PYTHONSAFEPATH=1",
             'case "$1" in',
             "contract)",
-            "exec /opt/hub/.venv/bin/pytest selftests tests/contract "
-            "--hub-case-root cases --strict-markers",
+            "exec /opt/hub/.venv/bin/pytest selftests --strict-markers",
             ";;",
             "api)",
-            "exec /opt/hub/.venv/bin/pytest tests/api --hub-case-root cases "
-            "--strict-markers",
+            "exec /opt/hub/.venv/bin/pytest -p "
+            "hub_testkit.pytest_plugin.plugin tests/api "
+            "--hub-case-root cases "
+            "--hub-case-schema schemas/test-case.schema.json "
+            "--hub-marker-policy policies/markers.toml "
+            "--hub-redaction-policy policies/redaction.toml --strict-markers",
             ";;",
             "integration)",
-            "exec /opt/hub/.venv/bin/pytest tests/integration --hub-case-root "
-            "cases --strict-markers",
+            "exec /opt/hub/.venv/bin/pytest -p "
+            "hub_testkit.pytest_plugin.plugin tests/integration "
+            "--hub-case-root cases "
+            "--hub-case-schema schemas/test-case.schema.json "
+            "--hub-marker-policy policies/markers.toml "
+            "--hub-redaction-policy policies/redaction.toml --strict-markers",
             ";;",
             "e2e-smoke)",
-            "exec /opt/hub/.venv/bin/pytest tests/e2e -m smoke --hub-case-root "
-            "cases --strict-markers",
+            "exec /opt/hub/.venv/bin/pytest -p "
+            "hub_testkit.pytest_plugin.plugin tests/e2e -m smoke "
+            "--hub-case-root cases "
+            "--hub-case-schema schemas/test-case.schema.json "
+            "--hub-marker-policy policies/markers.toml "
+            "--hub-redaction-policy policies/redaction.toml --strict-markers",
             ";;",
             "e2e-full)",
-            "exec /opt/hub/.venv/bin/pytest tests/e2e --hub-case-root cases "
-            "--strict-markers",
+            "exec /opt/hub/.venv/bin/pytest -p "
+            "hub_testkit.pytest_plugin.plugin tests/e2e "
+            "--hub-case-root cases "
+            "--hub-case-schema schemas/test-case.schema.json "
+            "--hub-marker-policy policies/markers.toml "
+            "--hub-redaction-policy policies/redaction.toml --strict-markers",
             ";;",
             "load)",
             "exec /opt/hub/.venv/bin/locust -f load/locustfile.py --headless",

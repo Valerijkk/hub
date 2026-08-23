@@ -1,5 +1,25 @@
 # Hub testkit package contract
 
+## 2026-08-23 minimal merge-slice override
+
+This dated section is the controlling runtime statement for the minimal
+framework merge slice. Historical source-authoring and deferred-runtime text
+below remains as provenance, but does not override these current facts:
+
+- `hub_testkit` is installed from the committed `pyproject.toml` and `uv.lock`
+  into the task-owned Docker image;
+- `python-contract` runs framework selftests only and passed `181/181` in
+  Docker on 2026-08-23;
+- the five SUT contract tests and their five OpenAPI/privacy/security cases
+  were removed by explicit founder direction; they are not a merge gate;
+- API, integration, e2e, load and hosted CI evidence remains `NOT_RUN` and is
+  not implied by the framework selftest result;
+- PyYAML is permitted only for safe Compose parsing in framework selftests.
+  Test-case frontmatter remains TOML and YAML frontmatter remains forbidden.
+
+This accepts the package/framework skeleton gate only. It is not a product,
+module, production-readiness, SUT-coverage, or hosted-CI acceptance claim.
+
 This is a documentation-only architecture contract for the future Python
 package bootstrap. It does not install dependencies, create executable suites,
 define a runnable command, or grant runtime authority.

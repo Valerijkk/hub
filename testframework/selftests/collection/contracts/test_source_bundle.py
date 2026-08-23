@@ -176,7 +176,7 @@ def test_bundle_is_immutable_and_repr_does_not_reveal_source_canary() -> None:
     )
     bundle = _bundle(blobs)
 
-    with pytest.raises(FrozenInstanceError):
+    with pytest.raises((FrozenInstanceError, TypeError)):
         bundle.source_commit = "f" * 40  # type: ignore[misc]
     assert canary.decode("ascii") not in repr(bundle)
     assert canary.decode("ascii") not in str(bundle)

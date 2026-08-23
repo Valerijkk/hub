@@ -4,9 +4,12 @@ WORKDIR /opt/hub/source/backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
+RUN go generate ./ent
+RUN test -f ent/ent.go -a -f ent/client.go -a -f ent/migrate/schema.go
 COPY testframework/docker/entrypoints/backend-unit.sh /usr/local/bin/backend-unit
-RUN chmod 0555 /usr/local/bin/backend-unit
+RUN sed -i 's/\r$//' /usr/local/bin/backend-unit && chmod 0555 /usr/local/bin/backend-unit
 ENV GOCACHE=/reports/backend-unit/go-cache
+ENV GOTMPDIR=/reports/backend-unit/tmp
 ENV HOME=/tmp
 USER 10001:10001
 ENTRYPOINT ["/usr/local/bin/backend-unit"]
@@ -18,11 +21,12 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/src/ ./src/
 COPY frontend/tests/ ./tests/
+RUN find /opt/hub/source/frontend/src /opt/hub/source/frontend/tests -type f -exec sed -i 's/\r$//' {} +
 COPY frontend/public/ ./public/
 COPY frontend/index.html frontend/biome.json frontend/components.json frontend/tsconfig.json frontend/vite.config.ts ./
-COPY testframework/docker/vitest.frontend-unit.config.ts /opt/hub/testframework/docker/vitest.frontend-unit.config.ts
+COPY testframework/docker/vitest.frontend-unit.config.ts /opt/hub/source/frontend/.qa/vitest.frontend-unit.config.ts
 COPY testframework/docker/entrypoints/frontend-unit.sh /usr/local/bin/frontend-unit
-RUN chmod 0555 /usr/local/bin/frontend-unit
+RUN sed -i 's/\r$//' /usr/local/bin/frontend-unit && chmod 0555 /usr/local/bin/frontend-unit
 ENV HOME=/reports/frontend-unit/home
 ENV TMPDIR=/reports/frontend-unit/tmp
 USER 10001:10001
@@ -35,17 +39,23 @@ RUN mkdir -p /opt/hub/testframework /opt/hub/.venv && chown -R 10001:10001 /opt/
 
 FROM python-base AS python-tests
 WORKDIR /opt/hub/testframework
-COPY testframework/pyproject.toml testframework/uv.lock ./
+COPY testframework/pyproject.toml testframework/uv.lock testframework/.python-version testframework/README.md ./
 RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv uv sync --frozen --all-groups --no-install-project
 COPY testframework/src/ ./src/
+RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv uv sync --frozen --all-groups
+COPY docker-compose.local.yml /opt/hub/docker-compose.local.yml
+COPY .planning/phases/130-tf-traceability-gates/PLAN.md /opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md
+COPY testframework/docker/ ./docker/
+RUN find /opt/hub/docker-compose.local.yml /opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md /opt/hub/testframework/docker -type f -exec sed -i 's/\r$//' {} +
 COPY testframework/selftests/ ./selftests/
 COPY testframework/tests/ ./tests/
 COPY testframework/cases/ ./cases/
 COPY testframework/policies/ ./policies/
 COPY testframework/schemas/ ./schemas/
 COPY testframework/load/ ./load/
+RUN find /opt/hub/testframework/cases /opt/hub/testframework/policies /opt/hub/testframework/schemas -type f -exec sed -i 's/\r$//' {} +
 COPY testframework/docker/entrypoints/python-qa.sh /usr/local/bin/python-qa
-RUN chmod 0555 /usr/local/bin/python-qa && chown -R 10001:10001 /opt/hub/testframework /opt/hub/.venv
+RUN sed -i 's/\r$//' /usr/local/bin/python-qa && chmod 0555 /usr/local/bin/python-qa && chown -R 10001:10001 /opt/hub/testframework /opt/hub/.venv
 ENV PATH=/opt/hub/.venv/bin:$PATH
 ENV PYTHONPATH=/opt/hub/testframework/src
 ENV PYTHONSAFEPATH=1

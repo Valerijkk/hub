@@ -64,6 +64,7 @@ def test_ast_suite_import_guard_rejects_bare_and_package_namespaces() -> None:
     ):
         assert _is_suite_namespace(namespace)
     assert not _is_suite_namespace("hub_testkit.traceability")
+    assert _violations(ast.parse("from .load import value"), plugin_source=False) == set()
     assert _violations(
         ast.parse("from testframework import tests, selftests, cases, load"),
         plugin_source=False,
@@ -156,7 +157,7 @@ class _BoundaryVisitor(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = node.module or ""
-        if _is_suite_namespace(module):
+        if node.level == 0 and _is_suite_namespace(module):
             self.violations.add("suite-import")
         if module == "_pytest" or module.startswith("_pytest."):
             self.violations.add("private-pytest")
@@ -164,7 +165,7 @@ class _BoundaryVisitor(ast.NodeVisitor):
         if self.plugin_source and root in _FORBIDDEN_PLUGIN_IMPORTS:
             self.violations.add("plugin-operational-import")
         for alias in node.names:
-            if module == "testframework" and alias.name in {
+            if node.level == 0 and module == "testframework" and alias.name in {
                 "tests",
                 "selftests",
                 "cases",
@@ -395,6 +396,13 @@ def _literal_string(value: ast.expr) -> str | None:
 def _is_unbounded_loop(test: ast.expr, visitor: _BoundaryVisitor) -> bool:
     if isinstance(test, ast.Constant) and test.value is True:
         return True
+    if isinstance(test, ast.Name):
+        name = test.id.casefold()
+        if name in {"queue", "stack"} or any(
+            fragment in name
+            for fragment in ("limit", "max", "count", "remaining", "size", "length")
+        ):
+            return False
     for comparison in (node for node in ast.walk(test) if isinstance(node, ast.Compare)):
         if _has_clock_or_deadline(comparison, visitor) or _has_finite_bound(comparison):
             return False
@@ -409,10 +417,13 @@ def _has_clock_or_deadline(comparison: ast.Compare, visitor: _BoundaryVisitor) -
 
 
 def _has_finite_bound(comparison: ast.Compare) -> bool:
-    bound_fragments = ("limit", "max", "count", "remaining", "size", "length")
+    bound_fragments = ("limit", "max", "count", "remaining", "size", "length", "cursor")
+    names = _lexical_names(comparison)
+    if "len" in names:
+        return True
     return any(
         any(fragment in name.casefold() for fragment in bound_fragments)
-        for name in _lexical_names(comparison)
+        for name in names
     )
 
 

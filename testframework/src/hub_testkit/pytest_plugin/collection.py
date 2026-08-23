@@ -63,7 +63,7 @@ def discover_case_paths(root: str | Path) -> tuple[Path, ...]:
                 child_stat = os.lstat(child)
                 if stat.S_ISLNK(child_stat.st_mode):
                     raise CollectionError("case source is invalid")
-                if name.startswith(".") or child.suffix != ".md":
+                if name == "README.md" or name.startswith(".") or child.suffix != ".md":
                     continue
                 if not stat.S_ISREG(child_stat.st_mode):
                     raise CollectionError("case source is invalid")

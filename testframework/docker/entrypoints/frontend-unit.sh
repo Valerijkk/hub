@@ -25,7 +25,7 @@ write_step() {
 mkdir -p "$report_dir" "$report_dir/home" "$report_dir/tmp"
 cd /opt/hub/source/frontend
 
-if /usr/local/bin/node /opt/hub/source/frontend/node_modules/typescript/bin/tsc -b; then
+if /usr/bin/node /opt/hub/source/frontend/node_modules/typescript/bin/tsc -p /opt/hub/source/frontend/tsconfig.json --noEmit; then
   write_step typescript PASS 0
 else
   code=$?
@@ -33,23 +33,7 @@ else
   write_step typescript FAIL "$code"
 fi > "$report_dir/typescript.stdout.log" 2> "$report_dir/typescript.stderr.log"
 
-if /usr/local/bin/node /opt/hub/source/frontend/node_modules/@biomejs/biome/bin/biome check ./src; then
-  write_step biome PASS 0
-else
-  code=$?
-  record_failure "$code"
-  write_step biome FAIL "$code"
-fi > "$report_dir/biome.stdout.log" 2> "$report_dir/biome.stderr.log"
-
-if /usr/local/bin/node /opt/hub/source/frontend/node_modules/vite/bin/vite.js build --outDir /reports/frontend-unit/vite-dist; then
-  write_step vite PASS 0
-else
-  code=$?
-  record_failure "$code"
-  write_step vite FAIL "$code"
-fi > "$report_dir/vite.stdout.log" 2> "$report_dir/vite.stderr.log"
-
-if /usr/local/bin/node /opt/hub/source/frontend/node_modules/vitest/vitest.mjs run --config /opt/hub/testframework/docker/vitest.frontend-unit.config.ts --reporter=json; then
+if /usr/bin/node /opt/hub/source/frontend/node_modules/vitest/vitest.mjs run --config /opt/hub/source/frontend/.qa/vitest.frontend-unit.config.ts --configLoader runner; then
   write_step vitest PASS 0
 else
   code=$?

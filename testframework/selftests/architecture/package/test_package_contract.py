@@ -52,7 +52,7 @@ def test_dependency_groups_have_one_authoritative_membership() -> None:
     assert groups == {
         "browser": {"playwright", "pytest-playwright"},
         "contract": {"openapi-spec-validator"},
-        "framework": {"pytest", "pytest-randomly", "pytest-timeout"},
+        "framework": {"pytest", "pytest-randomly", "pytest-timeout", "pyyaml"},
         "http": {"httpx"},
         "load": {"locust"},
         "quality": {"import-linter", "mypy", "ruff"},

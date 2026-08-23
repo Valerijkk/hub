@@ -28,7 +28,7 @@ class AllowedEnvironment(BaseModel):
 class EnvironmentPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
-    schema: Literal["hub.testframework.environments/v1"]
+    schema_: Literal["hub.testframework.environments/v1"] = Field(alias="schema")
     environments: tuple[AllowedEnvironment, ...] = Field(min_length=1)
 
     @model_validator(mode="after")
