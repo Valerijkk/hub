@@ -1,38 +1,153 @@
 # Phase 143 — Calendar schema, ScheduledCall backfill and cutover plan
 
-> **Status:** MIGRATION_CONTROL_PLANE_STATIC · EXECUTABLE_ARTIFACT_NOT_RUN
+> **Status:** BOUNDED_CONTROL_PLANE_FROZEN · IMPLEMENTATION_NOT_STARTED · EXECUTABLE_NOT_RUN
 > **Runtime:** NOT_RUN
 > **Owner decision:** founder instruction 2026-08-22; design:
 > `docs/superpowers/specs/2026-08-22-mail-calendar-production-integration-design.md`
+> **Bounded lineage parent:** `f21e3f7748eac55a4b16746b078e88801f11829c`
 
 ## Current repository truth
 
-- Ent schemas are the checked-in model source. Generated Ent files are ignored and must be
-  regenerated only inside the accepted Docker launcher.
+- Ent schemas are the checked-in model source. Generated Ent files are ignored, remain
+  uncommitted, and may be produced only inside the accepted bounded Docker operation.
 - Development may call `client.Schema.Create(ctx)` only with `DEV_MODE=true`.
-- `backend/migrations` is the single versioned production migration directory. Atlas is the
-  selected deterministic diff, lint, checksum and apply tool; checked-in SQL remains the
-  reviewed production artifact and Ent schema remains the model source.
+- The SQL files directly under `backend/migrations/*.sql` are historical additive operator
+  artifacts for already-existing databases. They predate Atlas control, have repeated date-only
+  version prefixes, have no `atlas.sum`, and are not an Atlas-replayable migration lineage. They
+  must not be renamed, re-hashed, replayed as a fresh-database history, or silently imported into
+  the Mail/Calendar lineage.
+- The only future Atlas lineage for this workstream is the bounded child directory
+  `backend/migrations/atlas/mail-calendar-v1/`. It starts from the exact pre-feature master
+  `f21e3f7748eac55a4b16746b078e88801f11829c` and contains only its full baseline, the reviewed
+  additive Mail/Calendar delta, and `atlas.sum`.
 - The previous migration-mechanism/owner mismatch is resolved by the founder instruction dated
   2026-08-22. It is historical and no longer blocks authoring the Atlas configuration or a
   reviewed migration packet.
 - No generation, SQL diff, lint, apply command or database evidence has run yet. Those executable
-  steps still require the accepted task-owned Docker launcher and remain `NOT_RUN`.
+  steps still require the accepted isolated `schema-maintenance` Compose profile and remain
+  `NOT_RUN`.
 - `DEV_MODE=true` may continue to call `client.Schema.Create(ctx)` for development only;
   production uses the versioned migration directory.
 
 ## Static control-plane artifact
 
-`backend/atlas.hcl` defines one `local` environment. Its `DATABASE_URL` and
-task-owned `ATLAS_DEV_URL` inputs fail closed when absent in the accepted
-launcher; no credential or host Docker URL is embedded. It reads the Ent source
-at `ent://ent/schema` and names only `file://migrations` as the versioned
-production directory. Atlas remains the deterministic diff, lint, checksum and
-apply tool, never a second model authority. Production applies reviewed,
-checked-in SQL plus `atlas.sum`; backfill is a separate reviewed forward-only
-artifact. Direct host commands are forbidden. The launcher is `NOT_READY`, and
-Ent generation, Atlas diff, lint, checksum, apply, database replay, and runtime
-validation remain `NOT_RUN`.
+The current `backend/atlas.hcl` is a static predecessor only: its
+`file://migrations` root is not executable migration authority because that root
+contains the non-replayable legacy artifacts above. The next reviewed
+implementation packet changes only its migration directory to
+`file://migrations/atlas/mail-calendar-v1`, while retaining the checked-in Ent
+source `ent://ent/schema` and fail-closed profile-supplied `DATABASE_URL` and
+task-owned `ATLAS_DEV_URL`. No credential, host Docker URL, Docker socket, or
+shared database URL may be embedded.
+
+Atlas remains the deterministic diff, lint, checksum and apply tool, never a
+second model authority. Production may apply only the independently reviewed
+checked-in bounded SQL plus its exact `atlas.sum`. Direct host Atlas, Ent,
+database, build, validator, or test commands remain forbidden. The bounded
+profile is not implemented, and Ent generation, Atlas diff, lint, checksum,
+apply, database replay, build, tests, validators and runtime remain `NOT_RUN`.
+
+## Bounded Atlas lineage contract
+
+The lineage is ordered and immutable after acceptance:
+
+1. `backend/migrations/atlas/mail-calendar-v1/20260823000000_mail_calendar_baseline.sql`
+   is the complete PostgreSQL desired schema generated from exact parent
+   `f21e3f7748eac55a4b16746b078e88801f11829c`. A new empty database applies it normally. An
+   existing database may mark this baseline as already applied only after an independent
+   schema-equivalence report proves that every baseline object already exists with the same
+   shape. A mismatch is a hard stop; `--baseline` is never a repair mechanism.
+2. `backend/migrations/atlas/mail-calendar-v1/20260823000001_mail_calendar_core.sql`
+   is the additive delta from that baseline to the exact reviewed feature schema. It may create
+   only the Mail/Calendar tables, columns, edges, indexes and constraints selected below.
+3. `backend/migrations/atlas/mail-calendar-v1/atlas.sum` covers both immutable SQL files. Any
+   reviewed SQL correction is followed by a fresh checksum and another exact-byte review. An
+   accepted migration is never edited; later corrections are forward-only migrations.
+
+The schema-source allowlist is exact:
+
+- Calendar: `calendarattendee.go`, `calendarevent.go`, `calendareventexception.go`,
+  `calendarinboundmessagereceipt.go`, `calendarinboundobjectstate.go`,
+  `calendarinboundreplyreceipt.go`, `calendarmutationreceipt.go`, and
+  `calendarreplydelivery.go`;
+- Mail: `mailaccount.go`, `mailattachment.go`, `mailboxpolicy.go`, `maildomain.go`,
+  `maildraft.go`, `mailfolder.go`, `mailidentity.go`, `maillabel.go`, `mailmessage.go`,
+  `mailmessagefolder.go`, `mailmessagelabel.go`, `mailmutationreceipt.go`,
+  `mailmutationreceiptmember.go`, `mailmutationreceipttarget.go`, `mailobject.go`,
+  `mailrule.go`, `mailsignature.go`, `mailsubmission.go`, `mailthread.go`, and
+  `mailusersettings.go`;
+- bounded shared additions: `recentcontact.go` plus only the reviewed Mail/Calendar edge or field
+  changes in `organization.go`, `user.go`, and `scheduledcall.go`.
+
+The delta rejects every table or shared-field change outside that allowlist, every `DROP`,
+`TRUNCATE`, destructive type conversion, implicit data deletion, constraint weakening, unreviewed
+cascade, and non-null alteration that cannot be proven safe for existing rows. Atlas output is a
+candidate, not authority: any unexpected object stops the packet and returns ownership to a new
+schema review. The schema SQL contains no ScheduledCall data backfill, feature enablement, provider
+I/O, NATS/outbox emission, or runtime cutover.
+
+## Generated Ent and dependent adapters
+
+Generated files below `backend/ent/` remain image-local and uncommitted. The accepted operation
+generates them twice from one immutable source tree and requires an identical second-generation
+manifest before compiling any dependent source. Application code never hand-writes or stages
+generated Ent output.
+
+P3-C (`backend/internal/mail/mailbox_ent_calendar_part.go` and the required narrow change in
+`backend/internal/mail/mailbox_ent_repository.go`) and D2
+(`backend/internal/calendar/event_ent_transaction.go` and
+`backend/internal/calendar/event_ent_inbound_message.go`) compile against that same image-local
+generation. This dependency map grants no source authority by itself; each P3-C/D2 packet retains
+its existing contract, ordering and independent review gates.
+
+## Isolated schema-maintenance execution contract
+
+Generation and Atlas work belong to a non-QA Compose profile named `schema-maintenance`; it does
+not expand or modify the closed `qa` and `qa-maintenance` testframework catalogs. Its public
+operations are fixed baseline, diff and verify entrypoints rather than an arbitrary command shell.
+The exact Atlas module/version must match the reviewed Go module pin, and the Go and PostgreSQL
+images must use reviewed immutable digests recorded in a checked-in tool lock.
+
+Every service is non-root and `read_only`, drops all capabilities, enables
+`no-new-privileges`, uses `init`, publishes no port, mounts no Docker socket or host/named volume,
+and joins only a dedicated internal network. The schema tool is bounded to `pids_limit: 128`,
+`cpus: 1.0`, `mem_limit: 1g`, a 512 MiB `/work` tmpfs and a 64 MiB `/tmp` tmpfs. Its disposable
+PostgreSQL peer is bounded to `pids_limit: 128`, `cpus: 1.0`, `mem_limit: 1g` and a 512 MiB data
+tmpfs. Each operation has a 15-minute wall-clock limit, no automatic retry, no persistent runtime
+cache and unconditional `run --rm` cleanup. Generated SQL/checksum candidates leave the container
+only as bounded, hashed review output and become repository files only in a separate exact-path
+authoring packet.
+
+## Exact next implementation packets
+
+All packets remain `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED / NOT_RUN` until separately authored,
+committed and independently reviewed. They contain no test changes.
+
+1. **Schema-maintenance authority, exact five files:** create
+   `backend/docker/Dockerfile.schema-maintenance`,
+   `backend/docker/entrypoints/mail-calendar-schema.sh`, and
+   `backend/docker/schema-tool.lock.json`; modify `docker-compose.local.yml` and
+   `backend/atlas.hcl`. This packet creates no SQL and runs nothing.
+2. **Immutable baseline, exact two files:** create
+   `backend/migrations/atlas/mail-calendar-v1/20260823000000_mail_calendar_baseline.sql` and
+   `backend/migrations/atlas/mail-calendar-v1/atlas.sum` from the exact parent above. Before
+   authoring, the operator approves the parent SHA, tool lock, image digests and empty output
+   directory; after authoring, Contract/Security/Lifecycle review the exact bytes and source
+   manifest.
+3. **Additive feature delta, exact two files:** create
+   `backend/migrations/atlas/mail-calendar-v1/20260823000001_mail_calendar_core.sql` and modify
+   only its sibling `atlas.sum`. The operator must approve the allowlist report and a destructive-
+   SQL report showing zero forbidden statements before this packet can be accepted.
+4. **Replay and cutover evidence:** after the three source packets are accepted and executable
+   permission is explicit, run checksum/lint, empty replay, realistic pre-feature replay,
+   zero-diff comparison, ScheduledCall preflight and postconditions in the isolated profile.
+   Shared or production apply additionally requires a fresh backup, exact database identity,
+   independent database review and direct founder approval.
+
+ScheduledCall backfill is a later separately reviewed forward-only artifact. It is not owned by
+the Atlas schema delta. Founder question 18 remains unresolved: any non-deleted recurring row
+blocks backfill and canonical-writer cutover; it is never skipped, coerced or assigned a guessed
+timezone. This does not block producing or reviewing the additive schema migration itself.
 
 ## Target schema invariants
 
@@ -187,8 +302,8 @@ owner, email, timezone, UID, or duration.
 ## Apply and recovery contract
 
 1. Take a database backup and record source revision plus preflight hashes/counts.
-2. Create tables/constraints before backfill, inside the migration mechanism chosen by the
-   founder.
+2. Apply the independently reviewed bounded Atlas schema lineage before any backfill; the schema
+   SQL contains no data rewrite or feature enablement.
 3. Stop/guard legacy scheduled-call writers and the due worker; verify the guard before the
    first backfill write.
 4. Insert events and attendees in bounded transactions; record exact affected counts.
@@ -200,7 +315,7 @@ owner, email, timezone, UID, or duration.
 
 ## Required future evidence
 
-- accepted launcher identity and bounded Docker database target;
+- accepted `schema-maintenance` image/tool-lock identity and bounded Docker database target;
 - generated Ent diff inspection without committing generated files;
 - migration lint/dry run from empty schema and realistic pre-feature snapshot;
 - backfill preflight, apply and postcondition reports;
