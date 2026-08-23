@@ -44,6 +44,13 @@ func wireCalendarMail(d *serverDeps) {
 	eventHandler := calendarmod.NewEventHandler(eventSvc)
 	eventHandler.RegisterRoutes(d.api, d.requireAuth)
 
+	// Legacy ScheduledCall rows remain the bounded availability source until the
+	// CalendarEvent-to-call bridge has completed its production cutover.
+	availabilityRepo := calendarmod.NewEntAvailabilityRepository(d.db, true)
+	availabilitySvc := calendarmod.NewAvailabilityService(availabilityRepo)
+	availabilityHandler := calendarmod.NewAvailabilityHandler(availabilitySvc)
+	availabilityHandler.RegisterRoutes(d.api, d.requireAuth)
+
 	mailboxRepo, err := mailmod.NewMailboxEntRepository(d.db, serverUTCClock{})
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)

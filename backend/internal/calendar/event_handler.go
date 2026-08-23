@@ -611,6 +611,8 @@ func calendarHTTPValidateExactKeys(data []byte, target any) error {
 		validateAttendees = true
 	case *calendarHTTPRSVPRequest:
 		allowed = calendarHTTPRSVPKeyAllowed
+	case *calendarHTTPAvailabilityRequest:
+		allowed = calendarHTTPAvailabilityKeyAllowed
 	default:
 		return errors.New("unsupported calendar request type")
 	}
@@ -647,6 +649,15 @@ func calendarHTTPUpdateKeyAllowed(key string) bool {
 
 func calendarHTTPRSVPKeyAllowed(key string) bool {
 	return key == "status" || key == "attendee_version"
+}
+
+func calendarHTTPAvailabilityKeyAllowed(key string) bool {
+	switch key {
+	case "user_ids", "from", "to", "timezone", "slot_minutes":
+		return true
+	default:
+		return false
+	}
 }
 
 func calendarHTTPValidateAttendeeKeys(data []byte) error {
