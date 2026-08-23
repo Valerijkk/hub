@@ -43,6 +43,13 @@ func (CalendarInboundMessageReceipt) Fields() []ent.Field {
 			Default("pending"),
 		field.Int("attempts").
 			Default(0).
+			NonNegative().
+			Max(8),
+		field.UUID("lease_token", uuid.UUID{}).
+			Optional().
+			Nillable(),
+		field.Int64("lease_generation").
+			Default(0).
 			NonNegative(),
 		field.Time("lease_until").
 			Optional().
@@ -71,6 +78,8 @@ func (CalendarInboundMessageReceipt) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
 			"calendar_inbound_message_receipts_part_locator_hash_length": "octet_length(part_locator_hash) = 32",
+			"calendar_inbound_message_receipts_attempts_bounds":          "attempts >= 0 AND attempts <= 8",
+			"calendar_inbound_message_receipts_state_shape":              "COALESCE((state = 'pending' AND lease_token IS NULL AND lease_until IS NULL AND ((attempts = 0 AND next_attempt_at IS NULL) OR (attempts > 0 AND next_attempt_at IS NOT NULL))) OR (state = 'processing' AND lease_token IS NOT NULL AND lease_until IS NOT NULL AND lease_generation >= 1 AND attempts >= 1 AND next_attempt_at IS NULL AND error_code IS NULL) OR (state IN ('applied','ignored_stale','duplicate','quarantined','dead_letter') AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NULL) OR (state = 'deferred_missing_master' AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NOT NULL), FALSE)",
 		}),
 	}
 }
@@ -90,5 +99,10 @@ func (CalendarInboundMessageReceipt) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("mail_message_id", "part_locator_hash").
 			Unique(),
+		index.Fields("event_envelope_id").
+			Unique(),
+		index.Fields("state", "next_attempt_at", "id").
+			StorageKey("calendar_inbound_message_receipts_due_idx").
+			Annotations(entsql.IndexWhere("state IN ('pending','deferred_missing_master') AND next_attempt_at IS NOT NULL")),
 	}
 }
