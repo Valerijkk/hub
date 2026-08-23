@@ -1,5 +1,5 @@
 # Mail persistence contract 0.1.8
-> **Deletion-port persistence adjudication (2026-08-23):** `STATIC_ACCEPTED / DOCS_DESIGN_ONLY`; former deletion-port-next clauses are `CONSUMED/HISTORICAL`, never source authority. Future private durable deletion intent/control (never an owner projection) immutably captures account `deletion_id`, `account_id`, `organization_id`, `provisioning_key`, `engine_account_id`, plus its `lease_token`, `lease_generation`, and `lease_until`; object control immutably captures `object_id`, `organization_id`, `mail_account_id`, `uploader_user_id`, `bucket`, `object_key`, `deletion_id`, plus its `lease_token`, `lease_generation`, and `lease_until`. Every claim, retry, reconciliation, completion, compensation, and finalization CAS binds all captured identity/scope fields together with the exact lease token, generation, and deadline; no mutable projection or later request may retarget an intent. Transactions are short, I/O remains outside locks, only expired leases reclaim, and stale token/generation or zero-row outcomes perform no I/O or compensation. `MailAccount.deleting` is an admission fence rather than a queue; bare `not_found` preserves intent unless the scoped authoritative-absence contract proves otherwise. Object-first/account-last drain and hard-delete-only-after-closed-evidence remain required. Actual Ent schema, migration, source, worker, provider, OpenAPI, SQL, tests, Docker, runtime, and physical User/GDPR work are separately planned and remain `BLOCKED` / `NOT_RUN`.
+> **Deletion-port persistence adjudication (2026-08-23):** deletion ABI docs contract is frozen and accepted through `3900b331` nil hardening; former deletion-port-next clauses are `CONSUMED/HISTORICAL`, never source authority. Future private durable deletion intent/control (never an owner projection) immutably captures account `deletion_id`, `account_id`, `organization_id`, `provisioning_key`, `engine_account_id`, plus its `lease_token`, `lease_generation`, and `lease_until`; object control immutably captures `object_id`, `organization_id`, `mail_account_id`, `uploader_user_id`, `bucket`, `object_key`, `deletion_id`, plus its `lease_token`, `lease_generation`, and `lease_until`. Every claim, retry, reconciliation, completion, compensation, and finalization CAS binds all captured identity/scope fields together with the exact lease token, generation, and deadline; no mutable projection or later request may retarget an intent. Transactions are short, I/O remains outside locks, only expired leases reclaim, and stale token/generation or zero-row outcomes perform no I/O or compensation. `MailAccount.deleting` is an admission fence rather than a queue; bare `not_found` preserves account intent unless the scoped authoritative-absence contract proves otherwise, and the object error ABI has no `not_found`. Object-first/account-last drain and hard-delete-only-after-closed-evidence remain required. Source/adapter/persistence/worker work remains blocked pending adapter capability proof, accepted source plan, and named dependencies; Ent schema, migration, generated source, provider, OpenAPI, SQL, tests, Docker, runtime, and physical User/GDPR work remain `BLOCKED` / `NOT_RUN`.
 
 ## 144-04A owner-resolution seam immutable source receipt
 
@@ -415,9 +415,9 @@ launcher is `NOT_READY`, all such evidence `NOT_RUN`.
   required/default-`uuid.New`/immutable; every stable engine or idempotency key is immutable.
 - Versioned public resources use `VersionMixin`; no second hand-written `version` field.
 - Soft-delete uniqueness always includes `deleted_at IS NULL`. Hard account deletion, engine
-  removal, object drain and physical Organization completion are BLOCKED pending the separate
-  accepted engine deletion-port amendment and separate accepted source plan; this candidate
-  supplies only the fail-closed representation.
+  removal, object drain and physical Organization completion are BLOCKED pending adapter
+  capability proof, an accepted source plan, and named dependencies; the accepted deletion ABI
+  docs contract supplies only the fail-closed representation.
   Historical snapshot ids that must survive projection deletion are scalar UUIDs, not cascading edges.
 - `normalize_mail_name_v1` is a private key normalizer; no database/session collation
   participates. For the Folder consumer, validate raw valid UTF-8 with no Unicode control/NUL
@@ -482,7 +482,7 @@ Indexes/checks:
   `desired_enabled=false`. Both require an engine id and a deployed tuple, but an active account may
   intentionally have `deployed_generation < control_generation` while an alias/lifecycle
   change is pending; exact equality means converged, not merely active;
-- `deleting` is the blocked-pending-engine-port representation only. Its schema shape requires
+- `deleting` is the blocked-pending-source-and-adapter representation only. Its schema shape requires
   `desired_enabled=false`, no lease/attempt/confirmed absence and the existing due marker; it does
   not claim engine absence, authorize a drain, map to `suspended` publicly, or make a worker
   executable.
@@ -859,9 +859,9 @@ is a root (`parent_id` null); custom rows
 have null role. Parent cannot equal id; depth/cycle/same-account is transactionally validated.
 The receipt edge restricts deletion while referenced. A referenced move rule returns
 `MAIL_FOLDER_IN_USE`. Any final service-owned account deletion is a future prerequisite-only
-description, BLOCKED until an accepted engine deletion-port amendment and separate source plan;
-it authorizes no current cascade or drain. Parent delete is service-ordered and restricted until
-children move/delete. The 100-row live quota counts reserved non-deleted
+description, BLOCKED pending adapter capability proof, an accepted source plan, and named
+dependencies; the accepted deletion ABI docs contract authorizes no current cascade or drain.
+Parent delete is service-ordered and restricted until children move/delete. The 100-row live quota counts reserved non-deleted
 control rows, not only rows that already have an engine id. Projection/persistence maps opaque
 engine folder IDs to Hub UUID rows before the pure Folder policy; it never passes engine IDs
 to that policy.
@@ -972,15 +972,18 @@ validated. No scan field or project/file edge exists.
 
 This is schema-ready representation only. It authorizes no current object transition, worker
 claim, provider `DeleteObject(bucket,key)` I/O, or row hard-delete. A FUTURE/NON-DISPATCHABLE
-protocol, only after an accepted engine deletion-port amendment and a separate accepted source
-plan, must move an object to `orphaned|deleted` only after every Attachment reference is removed
-or terminalized; those states reject confirm, download, new association and presign replay with
-no storage I/O. That future protocol must claim a fresh token/deadline after the immutable drain
-boundary, call idempotent `DeleteObject(bucket,key)` outside locks, accept only success or
-authoritative NotFound, then reacquire User -> Account -> Object and hard-delete only by exact
-token/state/scope CAS. Its future failure, crash-reclaim and stale-completion rules are respectively
-exact-lease clear plus bounded retry, expired-lease reclaim only, and zero-row/no-compensating-I/O.
-Account-owned object drain remains blocked, not an active Account-to-Object exception.
+protocol, only after adapter capability proof, an accepted source plan, and named dependencies,
+must move an object to `orphaned|deleted` only after every Attachment reference is removed or
+terminalized; those states reject confirm, download, new association and presign replay with no
+storage I/O. That future protocol must claim a fresh token/deadline after the immutable drain
+boundary, call `MailObjectDeletionPort.DeleteObject` outside locks, then reacquire User -> Account
+-> Object and hard-delete only by exact token/state/scope CAS. Finalization is permitted only for
+a closed `MailObjectDeleteResult.State` of `deleted` or `authoritatively_absent`, or a scoped
+`ReconcileObjectAbsence` result of `authoritatively_absent`; the object error ABI has no
+`not_found`, and any error or zero/unknown result preserves intent. Its future failure,
+crash-reclaim and stale-completion rules are respectively exact-lease clear plus bounded retry,
+expired-lease reclaim only, and zero-row/no-compensating-I/O. Account-owned object drain remains
+blocked, not an active Account-to-Object exception.
 
 ### `MailAttachment`
 
@@ -1084,9 +1087,9 @@ than correction scope; this grants no schema/source authority.
 
 **Scope rules and canonical User lifecycle lock set.** Same-account joins, folder cycle/depth/quota, received-marker set-once, and the 50 selected-attachment locked-draft cap remain service invariants. Object is upload-only; Attachment is the only scan authority. Every nonphysical User deactivation/organization/email mutation, `RecentContact` link/unlink, and any future-authorized `MailObject` uploader-linked lifecycle path uses one canonical affected-account union: (a) every owned or otherwise lifecycle-affected `MailAccount`, including the operation's target account; (b) every account containing a `RecentContact.user_id` link to the User; and (c) every account of every physically present `MailObject` whose `uploader_user_id` is the User, regardless of `upload_state`. The future protocol locks that union exactly once in ascending raw UUID order, then re-reads all three dependency families and proves the union complete. It revalidates User state, organization, account, permission, exact contact links, and uploader/object ownership before any row mutation. Object paths would then lock object/receipt/control rows; `attachment_presign` preserves User before its existing `MailAccount -> receipt` claim order without changing the accepted-02F relative account-before-control-row rule. A race loser performs no row mutation, receipt creation/mutation, or engine/storage I/O, and no engine/storage I/O occurs while locks are held. Physical User deletion and account-owned object drain have no current exception or execution path.
 
-**MailAccount deleting boundary.** The exact blocked-pending-engine-port shape is schema-ready only: `desired_enabled=false`, `status='deleting'`, no lease, no attempted tuple, no confirmed-absence tuple, and the existing due marker. The accepted exact14 docs representation may describe/fence that blocked representation only; it starts no admission worker, precleanup, drain, partial mutation, engine I/O, or finalization. Ordinary workers require `status <> 'deleting'`. Until a separately pre-reviewed and accepted engine-port amendment freezes stable request identity/idempotency, a desired-absence primitive, authoritative absent reconciliation, lost-response/crash behavior, token/generation fencing, exact errors, selected adapter capability and 04J/04K ownership, destructive account drain, engine removal, attachment/object drain and final Account hard-delete are NOT DISPATCHED/BLOCKED. This exact14 receipt does not amend `ENGINE-CONTRACT` and grants no source/runtime authority.
+**MailAccount deleting boundary.** The exact blocked-pending-source-and-adapter shape is schema-ready only: `desired_enabled=false`, `status='deleting'`, no lease, no attempted tuple, no confirmed-absence tuple, and the existing due marker. The accepted deletion ABI docs contract freezes stable request identity/idempotency, desired-absence and authoritative-absence primitives, lost-response/crash behavior, token/generation fencing, and exact errors; it grants no source/runtime authority. The accepted exact14 docs representation may describe/fence the blocked shape only; it starts no admission worker, precleanup, drain, partial mutation, engine I/O, or finalization. Ordinary workers require `status <> 'deleting'`. Until adapter capability proof, an accepted source plan, and named 04J/04K/persistence/worker dependencies exist, destructive account drain, engine removal, attachment/object drain and final Account hard-delete are NOT DISPATCHED/BLOCKED.
 
-**Physical User and Organization boundary.** No exact14 field authorizes physical User deletion. Physical User deletion and every cross-domain GDPR mutation are NOT_DISPATCHABLE/BLOCKED until a separately accepted durable User-deletion-intent/job/route contract and an accepted engine deletion-port amendment freeze intent persistence, authorization/reassignment snapshot, reactivation fencing, preflight before any GDPR mutation, recovery and final full purge. No mail precleanup, drain, partial mutation, User wait, or User deletion starts before both contracts and a separate accepted source plan. Deactivation and email change retain the canonical three-family union; organization change still requires zero accounts and uploader objects. Physical Organization completion is likewise BLOCKED by the missing engine-port amendment; `NO ACTION` remains the fail-closed edge and no eventual completion is claimed.
+**Physical User and Organization boundary.** No exact14 field authorizes physical User deletion. Physical User deletion and every cross-domain GDPR mutation are NOT_DISPATCHABLE/BLOCKED until a separately accepted durable User-deletion-intent/job/route contract freezes intent persistence, authorization/reassignment snapshot, reactivation fencing, preflight before any GDPR mutation, recovery and final full purge, and until adapter capability proof, an accepted source plan, and named deletion dependencies exist. No mail precleanup, drain, partial mutation, User wait, or User deletion starts before those requirements. Deactivation and email change retain the canonical three-family union; organization change still requires zero accounts and uploader objects. Physical Organization completion is likewise BLOCKED by the separate User intent/source/dependency requirements; `NO ACTION` remains the fail-closed edge and no eventual completion is claimed.
 
 **02B field/type/null/default/immutable table (authoritative).**
 
@@ -1246,9 +1249,10 @@ One UUID/account row with required `default_identity_id`, optional
 `is_default` is derived. Same-account, active/send-allowed identity and same-account live
 signature are checked under a locked settings row. Selected identity deletion is restricted;
 selected signature deletion clears the pointer and increments settings version atomically.
-Any final service-owned account deletion is future/BLOCKED until the accepted engine deletion-port
-amendment and separate source plan; it authorizes no current cascade. Identity/signature edges
-otherwise restrict until their ordered service transitions complete.
+Any final service-owned account deletion is future/BLOCKED pending adapter capability proof, an
+accepted source plan, and named dependencies; the accepted deletion ABI docs contract authorizes
+no current cascade. Identity/signature edges otherwise restrict until their ordered service
+transitions complete.
 
 ### `MailSignature`
 
@@ -1310,8 +1314,8 @@ canonical union; this section never defines a narrower complete set. While the U
 link, owned-account lifecycle, or uploader-object lifecycle may change outside this protocol.
 Physical User deletion and every cross-domain GDPR route are NOT_DISPATCHABLE/BLOCKED: they do not
 adjudicate blockers, commit accounts to `deleting`, wait, clean contacts, drain objects, or delete
-the User unless the separate accepted durable User intent/job/route contract, accepted engine
-deletion-port amendment, and separate accepted source plan exist. Organization change requires
+the User unless the separate accepted durable User intent/job/route contract, adapter capability
+proof, accepted source plan, and named deletion dependencies exist. Organization change requires
 zero owned accounts and zero physically present uploader objects and otherwise aborts before
 contact mutation. Deactivation and email change do not reject solely because objects exist; after
 the canonical re-read they clear invalid `user_id`+`display_name` and restore each cap. This
