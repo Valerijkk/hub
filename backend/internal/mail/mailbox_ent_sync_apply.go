@@ -31,6 +31,14 @@ type mailboxEntSyncApplyPosition struct {
 	updatesLastSynced bool
 }
 
+type mailboxEntSyncApplyNoWrite struct{}
+
+func (mailboxEntSyncApplyNoWrite) Error() string {
+	return "mailbox sync apply no write"
+}
+
+var errMailboxEntSyncApplyNoWrite = mailboxEntSyncApplyNoWrite{}
+
 // ApplyMailboxSyncPage commits one canonical page while the originating lease
 // remains fenced. The provider and policy work have already happened before
 // this boundary; this method performs no external I/O.
@@ -55,27 +63,27 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 			Only(ctx)
 		if err != nil {
 			if ent.IsNotFound(err) {
-				return nil
+				return errMailboxEntSyncApplyNoWrite
 			}
 			return mailboxEntSafeError(err)
 		}
-		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
-		if err != nil {
-			return err
+		persistedFence, hasLease, leaseValid := mailboxEntSyncLeaseFence(account)
+		if !leaseValid {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 		active, err := mailboxEntSyncApplyAccountValid(account, canonical.Fence.AccountID)
 		if err != nil {
 			return err
 		}
 		if !active {
-			return nil
+			return errMailboxEntSyncApplyNoWrite
 		}
-		persistedFence, hasLease, leaseValid := mailboxEntSyncLeaseFence(account)
-		if !hasLease || !leaseValid || persistedFence != canonical.Fence || account.SyncEpoch != canonical.Fence.SyncEpoch || account.MutationEpoch != canonical.Fence.MutationEpoch || account.SyncLeaseUntil == nil || !account.SyncLeaseUntil.After(databaseWallClock) {
-			return nil
+		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
+		if err != nil {
+			return err
 		}
-		if !canonical.NextAttemptAt.After(databaseWallClock) {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
+		if !hasLease || persistedFence != canonical.Fence || account.SyncEpoch != canonical.Fence.SyncEpoch || account.MutationEpoch != canonical.Fence.MutationEpoch || account.SyncLeaseUntil == nil || !account.SyncLeaseUntil.After(databaseWallClock) {
+			return errMailboxEntSyncApplyNoWrite
 		}
 		leaseUntil, ok := mailboxEntCheckedTimeAdd(canonical.NextAttemptAt, time.Second)
 		if !ok || !leaseUntil.After(canonical.NextAttemptAt) {
@@ -91,7 +99,11 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 				return mailboxServiceError(MailboxServiceErrorInvalid)
 			}
 			result = MailboxSyncApplyResult{Applied: true, Replayed: true, Phase: canonical.ExpectedPhase, NextAttemptAt: canonical.NextAttemptAt}
-			return nil
+			return errMailboxEntSyncApplyNoWrite
+		}
+
+		if !canonical.NextAttemptAt.After(databaseWallClock) {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 
 		prePosition, err := mailboxEntSyncClaimSnapshot(account)
@@ -99,7 +111,7 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 			return err
 		}
 		if !mailboxEntSyncApplyFencePositionMatches(prePosition, canonical.Fence) {
-			return nil
+			return errMailboxEntSyncApplyNoWrite
 		}
 		if err := mailboxEntSyncApplyOutboxCandidatesAvailable(ctx, transaction, canonical); err != nil {
 			return err
@@ -116,6 +128,9 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 		result = MailboxSyncApplyResult{Applied: true, Phase: canonical.ExpectedPhase, NextAttemptAt: canonical.NextAttemptAt}
 		return nil
 	})
+	if err == errMailboxEntSyncApplyNoWrite {
+		return result, nil
+	}
 	if err != nil {
 		return MailboxSyncApplyResult{}, mailboxEntSafeError(err)
 	}
@@ -316,14 +331,16 @@ func mailboxEntSyncApplyOutboxCandidatesAvailable(ctx context.Context, transacti
 	ids := make([]uuid.UUID, 0, len(canonical.Result.Events))
 	seen := make(map[uuid.UUID]struct{}, len(canonical.Result.Events))
 	for _, envelope := range canonical.Result.Events {
-		if envelope.ID == uuid.Nil || envelope.Subject == "" {
+		eventID := envelope.EventID()
+		subject := envelope.Subject()
+		if eventID == uuid.Nil || subject == "" {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		if _, duplicate := seen[envelope.ID]; duplicate {
+		if _, duplicate := seen[eventID]; duplicate {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		seen[envelope.ID] = struct{}{}
-		ids = append(ids, envelope.ID)
+		seen[eventID] = struct{}{}
+		ids = append(ids, eventID)
 	}
 	rows, err := transaction.OutboxEvent.Query().Where(outboxevent.IDIn(ids...)).All(ctx)
 	if err != nil {
@@ -341,13 +358,15 @@ func mailboxEntSyncApplyAppendOutbox(ctx context.Context, transaction *ent.Tx, c
 	}
 	traceContext := natsclient.TraceContextMap(ctx)
 	for _, envelope := range canonical.Result.Events {
+		eventID := envelope.EventID()
+		subject := envelope.Subject()
 		payload, err := envelope.MarshalJSON()
-		if err != nil || envelope.ID == uuid.Nil || envelope.Subject == "" || len(payload) == 0 {
+		if err != nil || eventID == uuid.Nil || subject == "" || len(payload) == 0 {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 		create := transaction.OutboxEvent.Create().
-			SetID(envelope.ID).
-			SetEventType(envelope.Subject).
+			SetID(eventID).
+			SetEventType(subject).
 			SetPayload(append([]byte(nil), payload...)).
 			SetCreatedAt(transactionTime)
 		if traceContext != nil {
