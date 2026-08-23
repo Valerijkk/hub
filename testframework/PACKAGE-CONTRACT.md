@@ -20,31 +20,40 @@ below remains as provenance, but does not override these current facts:
 This accepts the package/framework skeleton gate only. It is not a product,
 module, production-readiness, SUT-coverage, or hosted-CI acceptance claim.
 
-This is a documentation-only architecture contract for the future Python
-package bootstrap. It does not install dependencies, create executable suites,
-define a runnable command, or grant runtime authority.
+The committed package/bootstrap assets now support the framework-only slice.
+The sole QA command boundary is root Compose
+`docker compose -f docker-compose.local.yml run --rm <exact-service>`; no
+`testframework/runner/**` command exists or may be used as a fallback. This
+does not make a SUT suite, Mail/Calendar path, production deployment, or hosted
+CI ready.
 
 ## Current truth
 
 | Surface | Status | Evidence |
 |---|---|---|
 | Structure and ownership boundaries | `COMMITTED` | commit `22035c45` |
-| Installable `hub_testkit` package bootstrap | `NOT_READY` | package metadata, Python pin, typed marker, and package-contract selftests are source-authored; `uv.lock`, installation, build, and Docker evidence remain absent |
-| Framework selftests | `NOT_READY` | package-contract selftest source exists under the registered architecture profile root; it is not executed evidence |
+| Installable `hub_testkit` package bootstrap | `COMMITTED` / Docker-verified | committed `pyproject.toml`, `uv.lock`, `src/hub_testkit/py.typed`, `docker/Dockerfile.qa`, and `docker/entrypoints/python-qa.sh` |
+| Framework selftests | `PASS` | `python-contract`: 181/181 framework selftests in Docker on 2026-08-23 |
 | F0 framework/domain source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | strict config/runtime/ownership/redaction, traceability, public pytest collection plugin, literal 47-profile policy, and fake-only health source are authored and independently source-reviewed; this is not execution evidence |
 | F1-01 HTTP policy and diagnostics source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | commit `a5f3b728`; immutable injected-only HTTP policy, transport, redaction-bound diagnostics, and health adapter source are independently reviewed. They create no client, network request, or runtime evidence |
-| F1-02 identity/session source | `SOURCE_AUTHORED` / `STATIC_ACCEPT` | commit `2b037dd2`; four active `TC-IDENTITY-0001`--`TC-IDENTITY-0004` API nodes are independently static-accepted. They require a launcher-injected `IdentityHarnessFactory` to create a fresh harness and ownership ledger per test with exact cleanup; no concrete provisioner or harness implementation exists |
-| F1-03 authorization and platform-abuse source | `SOURCE_AUTHORED` / `INDEPENDENTLY_ACCEPTED` | commits `f184487a` and `3932ac78`; four active TASK-208 authorization nodes/cases and two active TASK-209 platform-abuse nodes/cases use launcher-injected opaque fresh factories, per-test nonce-bound ownership ledgers, and exact cleanup. The platform contract records only its four exact Redis ownership entries; concrete provisioners, profile bindings, and a launcher remain absent |
+| F1-02 identity/session source | `SOURCE_AUTHORED` / `STATIC_ACCEPT` | commit `2b037dd2`; four active `TC-IDENTITY-0001`--`TC-IDENTITY-0004` API nodes are independently static-accepted. They require a future domain harness binding to create a fresh `IdentityHarnessFactory` and ownership ledger per test with exact cleanup; no concrete provisioner or harness implementation exists |
+| F1-03 authorization and platform-abuse source | `SOURCE_AUTHORED` / `INDEPENDENTLY_ACCEPTED` | commits `f184487a` and `3932ac78`; four active TASK-208 authorization nodes/cases and two active TASK-209 platform-abuse nodes/cases use opaque fresh factories, per-test nonce-bound ownership ledgers, and exact cleanup. The platform contract records only its four exact Redis ownership entries; concrete provisioners and domain profile bindings remain absent |
 | F1-04 sealed source-contract boundary | `SOURCE_AUTHORED` / `INDEPENDENT STATIC ACCEPT` | commits `bc5feef8`, `630bda9b`, `8ff13097`, and `1868cf71`; the sealed v3 manifest contains exactly 14 bounded source blobs and the closed ledger contains five ordered risk edges. Three active OpenAPI cases, one privacy case, and one auth-event case are source-authored; all critical/high outcomes remain `NOT_PROVEN` |
-| F2 135-F files lifecycle source | `SOURCE_AUTHORED` / `INDEPENDENT STATIC ACCEPT` | commit `af077c18`; five active TASK-214 cases/nodes use a launcher-injected `FilesHarnessFactory` to create a fresh opaque `FilesRuntime` per test and require exact cleanup. The existing `files-api` source profile targets `tests/api/files`; its future launcher case root is `cases/files`. No concrete delegate, A1 admission, launcher binding, or runtime evidence exists |
-| SUT suite layer directories | `NOT_READY` | API source tracers exist for health, identity, authorization, platform abuse, and files lifecycle. Contract source tracers now exist under `tests/contract/{openapi,privacy,security}/` with five active TASK-227 cases; `tests/{integration,e2e}/` remain absent and no suite execution evidence exists |
-| Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
-| Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
+| F2 135-F files lifecycle source | `SOURCE_AUTHORED` / `INDEPENDENT STATIC ACCEPT` | commit `af077c18`; five active TASK-214 cases/nodes use a future domain-bound `FilesHarnessFactory` to create a fresh opaque `FilesRuntime` per test and require exact cleanup. The existing `files-api` source profile targets `tests/api/files`; its future case root is `cases/files`. No concrete delegate, domain binding, or runtime evidence exists |
+| SUT suite layer directories | `NOT_RUN` | API/integration/e2e/load have no current execution evidence; the five SUT contract tests/cases were removed by founder direction |
+| QA command boundary | `COMMITTED` | root Compose exact services are the sole API; retired `testframework/runner/**` is absent and is not a fallback |
+| Runtime | `PARTIAL` | framework selftests only: 181/181 PASS; SUT and Mail/Calendar runtime remain `NOT_RUN` |
 
 The status values above are independent. A committed directory tree does not
-make the package, launcher, suites, or runtime ready.
+make SUT suites or product runtime ready.
 
-## Founder maximum-coverage source-authoring authority (2026-08-15)
+## Historical source-authoring record (2026-08-15)
+
+The records below preserve pre-merge design and source-review provenance. Where
+they say that the lock, package bootstrap, Docker assets, or private runner are
+absent or `NOT_READY`, they are historical and are superseded by the current
+truth table above. They do not override the still-current `NOT_RUN` status of
+SUT API/integration/e2e/load or Mail/Calendar runtime.
 
 The founder has authorized the F0--F3 source waves in
 `.planning/active/august-2026/07-TESTFRAMEWORK-MAX-COVERAGE-IMPLEMENTATION.md`.
@@ -65,6 +74,9 @@ runtime claim.
 The repository contains one Python project directly in `testframework/`, with
 package code and executable suites on different roots:
 
+The retired SUT contract and runner rows are explicitly marked below. They are
+historical provenance, not current executable ownership.
+
 | Path | Sole responsibility |
 |---|---|
 | `src/hub_testkit/**` | reusable installable framework modules imported as `hub_testkit.*` |
@@ -73,17 +85,15 @@ package code and executable suites on different roots:
 | `tests/api/authz/**` | four source-authored authorization API nodes linked to `TC-AUTHZ-0001`--`TC-AUTHZ-0004` for TASK-208; the future profile root is exactly `tests/api/authz` and its future launcher binding requires exactly `--hub-case-root cases/authz` |
 | `tests/api/platform/**` | two source-authored platform-abuse API nodes linked to `TC-PLATFORM-0001`--`TC-PLATFORM-0002` for TASK-209; the future profile root is exactly `tests/api/platform` and its future launcher binding requires exactly `--hub-case-root cases/platform` |
 | `tests/api/files/**` | five active TASK-214 files-lifecycle source nodes linked to `TC-FILES-0001`--`TC-FILES-0005`; the existing `files-api` source profile targets exactly `tests/api/files`, with future launcher case root exactly `cases/files` |
-| `tests/contract/openapi/**` | three active TASK-227 source contracts linked to `TC-OPENAPI-0001`--`TC-OPENAPI-0003`; source profile `openapi-contract` targets exactly `tests/contract/openapi`, with future launcher case root exactly `cases/openapi` |
-| `tests/contract/privacy/**` | one active TASK-227 source contract linked to `TC-PRIVACY-0001`; source profile `privacy-security` targets exactly `tests/contract/privacy`, with future launcher case root exactly `cases/privacy` |
-| `tests/contract/security/**` | one active TASK-227 auth-event source contract linked to `TC-SECURITY-0001`; source profile `security-risk` targets exactly `tests/contract/security`, with future launcher case root exactly `cases/security` |
+| historical `tests/contract/{openapi,privacy,security}/**` | five SUT contract tests/cases removed by founder direction; no current SUT contract execution evidence |
 | Planned `tests/{integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; these layer directories are currently absent |
 | `selftests/**` | contracts of the framework/package itself; never SUT behavior |
 | `cases/**` | repository-owned new-case intent and risk linkage; IDs match `^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$` |
 | `schemas/**` | closed machine-readable case/run/ownership contracts |
 | `policies/**` | marker, environment, redaction, and profile policy data |
 | `load/**` | separate bounded Locust lifecycle |
-| `docker/**` | immutable execution assets and container contracts only |
-| `runner/**` | sole reviewed versioned launcher boundary; current private source candidate is static-only and not runtime authority |
+| `docker/**` | immutable images, entrypoints, container contracts, and root Compose service targets |
+| historical `runner/**` | retired/absent static launcher boundary; never a fallback |
 | `reports/<task-run>/**` | generated owner-marked evidence for exactly one run |
 
 The suite tree is progressive. API source tracers exist at
@@ -183,20 +193,18 @@ Version resolution, transitive hashes, and the final exact dependency set are
 not invented in this document. They become authoritative only when R generates
 the lock in a task-owned Docker resolver.
 
-### `uv.lock`
+### `uv.lock` (historical resolver contract)
 
-The root `testframework/uv.lock` will be the sole exact Python dependency
-resolution derived from `pyproject.toml`. It is generated, reviewed, and
-committed only after R Docker resolver admission; before that it may and should
-remain absent. It is never hand-maintained as an independent dependency list.
-A lock that is stale relative to project metadata fails package acceptance.
+The root `testframework/uv.lock` is the sole exact Python dependency resolution
+derived from `pyproject.toml`; it is committed in the current framework slice.
+It is never hand-maintained as an independent dependency list. A lock that is
+stale relative to project metadata fails package acceptance.
 
 ### `src/hub_testkit/py.typed`
 
-The PEP 561 marker is present with a typed public package boundary and a
-source-authored selftest that will verify its installed distribution location.
-Neither file presence nor source review is proof that the package is installed
-or type-safe.
+The PEP 561 marker is committed with a typed public package boundary. The
+framework selftest receipt verifies package bootstrap only; it is not a general
+type-safety, SUT, or product-runtime claim.
 
 ### `tests/conftest.py`
 
@@ -241,22 +249,20 @@ prove:
 - a framework selftest does not require Hub services, credentials, network
   egress, or generated report state.
 
-These are framework contracts, not a substitute for SUT tests. Their future
-execution must use the accepted launcher and evidence boundary; no host or
-direct command is defined by this document. F0 also adds source-level negative
+These are framework contracts, not a substitute for SUT tests. Their execution
+uses root Compose `python-contract`; no host or direct command is defined by
+this document. F0 also adds source-level negative
 contracts for strict config/environment admission, nonce-bound ownership and
 cleanup, recursive idempotent secret redaction, closed test-case schema links,
 and public-hook-only collection behavior.
 
 ## Launcher and container boundary
 
-`runner/**` owns the versioned launcher API, profile resolution,
-bounded orchestration, exit preservation, task/run ownership, and exact cleanup
-flow. `docker/**` owns only immutable images, topologies, and resource/container
-contracts consumed by that launcher. Neither directory may expose a second or
-implicit fallback. The current private source candidate has only static review;
-until binding, parser/private-contract and Docker evidence are independently
-accepted, launcher status remains `NOT_READY` and runtime remains `NOT_RUN`.
+Root Compose owns the versioned QA command API and service selection.
+`docker/**` owns immutable images, entrypoints, topologies, and resource/container
+contracts. `runner/**` is retired and absent; it cannot be restored as a
+fallback. Neither the framework receipt nor a Compose service definition grants
+SUT or product runtime evidence.
 
 ## Source closure and package-bootstrap acceptance
 

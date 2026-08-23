@@ -17,7 +17,7 @@
 
 ---
 
-> **Variant A current state (2026-08-20):** all tracked legacy test files in
+> **Variant A current state (2026-08-23):** all tracked legacy test files in
 > `backend/testframework/**` were removed. Any legacy path, hook, count, coverage result, or job name
 > below is historical inventory only. Current backend units are exclusively
 > `backend/tests/**` and execute through root Compose `backend-unit`. That
@@ -43,8 +43,8 @@
 |---------|------------|--------------|------|
 | Unit (BE) | Go testing + testify; closed QA CLI contracts | genuine product units: `backend/tests/{domain}/`; QA-only `hubtest && qa`: `backend/cmd/qa-{secret-init,schema,backend}/` | local Docker `backend-unit` (`build`, `vet`, `unit`, `race` PASS) |
 | Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/`, support | local Docker `frontend-unit` PASS |
-| Framework selftests | pytest | `testframework/selftests/` | local Docker `python-contract` PASS |
-| API / Integration / Contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | `NOT_RUN`; not a minimal merge gate |
+| Framework selftests | pytest | `testframework/selftests/` | local Docker `python-contract`: **181/181 PASS** (2026-08-23) |
+| SUT API / Integration / Contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | `NOT_RUN`; not a minimal merge gate |
 | E2E | pytest + playwright-python | `testframework/tests/e2e/` | `smoke` marker; `full` launcher profile |
 | Load | Locust | `testframework/load/` | nightly/manual |
 | Build | `tsc`, `vite build`, `-tags release` | CI `build` job | 0 errors |
@@ -131,8 +131,10 @@ Host не запускает test/build/lint процессы. Единстве�
 `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
 `python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load`.
 QA services disposable; integration/e2e используют изолированную инфраструктуру.
-Результаты запуска в этом документе не заявляются. Legacy runners — только
-источник inventory; использовать их как fallback запрещено.
+Текущий framework-only receipt: `python-contract` = **181/181 PASS**
+(2026-08-23). API/integration/e2e/load и Mail/Calendar evidence этим не
+подтверждаются и остаются `NOT_RUN`. Legacy runners — только источник
+historical inventory; использовать их как fallback запрещено.
 
 ---
 

@@ -1,7 +1,31 @@
 # Hub Python QA project
 
 `testframework/` is the separately extractable Python QA project boundary for
-Hub. F0 package/config/runtime/traceability/public-plugin/profile and health
+Hub.
+
+## Current framework slice (2026-08-23)
+
+`pyproject.toml`, `uv.lock`, `src/hub_testkit/py.typed`,
+`docker/Dockerfile.qa`, and `docker/entrypoints/python-qa.sh` are committed.
+The only QA entrypoint is root Compose:
+`docker compose -f docker-compose.local.yml run --rm <exact-service>`, with
+exact services `backend-unit`, `frontend-unit`, `python-contract`,
+`python-api`, `python-integration`, `python-e2e-smoke`, `python-e2e-full`, and
+`python-load`. `python-contract` ran 181/181 framework selftests in Docker on
+2026-08-23. That result does not cover SUT behavior, Mail/Calendar, API,
+integration, e2e, load, hosted CI, or production; all of those remain `NOT_RUN`.
+
+`testframework/runner/**` and `qa-gate` are retired/absent and are never a
+fallback. The five SUT contract tests/cases were removed by founder direction.
+
+## Historical source-authoring record
+
+The source-review receipts below are retained for provenance. Any statement in
+this historical record that package bootstrap, `uv.lock`, Docker assets, or a
+private runner is absent is superseded by the current framework slice above.
+It does not supersede the `NOT_RUN` SUT/runtime boundaries.
+
+F0 package/config/runtime/traceability/public-plugin/profile and health
 sources are authored and independently source-reviewed. F1-01 injected-only
 HTTP policy, transport, and redacted diagnostics source is independently
 source-reviewed at `a5f3b728`; it creates no network client or runtime
@@ -27,10 +51,9 @@ launcher exists. A private runner source candidate also has static review only.
 None is accepted package execution, launcher runtime, or runtime authority; all
 global critical/high outcomes remain `NOT_PROVEN`.
 
-Package/bootstrap boundaries for the next slice are defined in
-[`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
-not evidence that `pyproject.toml`, `uv.lock`, `py.typed`, or dependencies are
-resolved, that a suite has executed, or that the runner candidate is ready.
+Package/bootstrap boundaries are defined in
+[`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). The current 181/181 receipt is
+framework-only Docker evidence, not a SUT or product-runtime assertion.
 
 ## Legacy quarantine
 
@@ -105,12 +128,10 @@ progressively only by its first accepted consumer.
   observable outcomes in the `task -> requirement -> TC/case` chain.
 - `schemas/` owns closed machine-readable case and run contracts.
 - `policies/` owns marker, environment, redaction, and profile policies.
-- `docker/` owns immutable pinned images, topologies, and resource/container
-  contracts consumed by the sole runner boundary; it does not own launcher
-  implementation.
-- `runner/` owns the reviewed versioned launcher boundary. The private
-  `runner/run-task.ps1` source candidate exists and has static C1/P2/P4 review
-  only; it is not an accepted public command or executable runtime.
+- `docker/` owns immutable pinned images, entrypoints, topologies, and
+  resource/container contracts consumed by root Compose.
+- `runner/` is retired and absent. Root Compose exact services are the sole QA
+  entrypoint; no private runner or `qa-gate` fallback exists.
 - `reports/<task-run>/` is the exact generated-artifact boundary. Every run
   directory has a task-run owner marker, and nothing may write outside its
   owned run directory.
@@ -125,7 +146,12 @@ Traceability is always explicit and risk-linked:
 `task -> requirement -> TC/case`. No case or executable suite may bypass that
 chain.
 
-## Current status
+## Historical detailed source status
+
+The following pre-merge source-status detail is retained as provenance. Its
+former package/lock/image/runner `NOT_READY` wording is historical; the current
+framework status is the 181/181 Docker receipt stated above. SUT execution and
+Mail/Calendar runtime remain `NOT_RUN`.
 
 Structure-only scaffold: **COMMITTED** as `22035c45`. F0 package/config/runtime/
 traceability/public-plugin/profile and health source: **SOURCE_AUTHORED** and

@@ -63,9 +63,11 @@ Non-unit QA создаётся с нуля как единый Python-проек
 reusable package code принадлежит `testframework/src/hub_testkit/**`, а
 исполняемые pytest suites — `testframework/tests/{contract,api,integration,e2e}/**`.
 Отдельные roots `selftests/`, `cases/`, `schemas/`, `policies/`, `load/` и
-`reports/` не смешиваются ни с package, ни с SUT suites. Будущие
-`testframework/pyproject.toml`, `uv.lock` и `src/hub_testkit/py.typed` описаны
-документационным `testframework/PACKAGE-CONTRACT.md`, но ещё не реализованы.
+`reports/` не смешиваются ни с package, ни с SUT suites. `pyproject.toml`,
+`uv.lock`, `src/hub_testkit/py.typed`, `docker/Dockerfile.qa` и
+`docker/entrypoints/python-qa.sh` уже committed. `python-contract` выполнил
+181/181 framework selftests в Docker (2026-08-23); это не доказывает SUT
+поведение. API/integration/e2e/load остаются `NOT_RUN`.
 Row-level parity и
 сохранение исторического 82% Go coverage не являются migration gate. Новый
 набор принимается по traceability `task/requirement/TC`, risk-based design и

@@ -12,7 +12,7 @@
 | Go | **1.25.0** | `backend/go.mod` | Backend, CLI, hub-mail |
 | TypeScript | **~5.7** | `frontend/package.json` | Frontend |
 | Node.js | **22** (QA image), 20+ (local) | `testframework/docker/Dockerfile.qa`, `frontend/package.json` | Frontend build and Vitest inside Docker |
-| Python | **3.12+ target** (локально bundled 3.12.13) | `testframework/pyproject.toml`, `testframework/uv.lock`, `testframework/PACKAGE-CONTRACT.md` | Package install и 181/181 framework selftests Docker-verified; API/integration/e2e/load остаются `NOT_RUN` и вне minimal merge gate |
+| Python | **3.12.13** | `testframework/pyproject.toml`, `testframework/uv.lock`, `testframework/PACKAGE-CONTRACT.md` | Committed installable package; 181/181 framework selftests Docker-verified through `python-contract`. API/integration/e2e/load remain `NOT_RUN` |
 
 ---
 
@@ -176,9 +176,13 @@ fail-closed до изменения checkout:
 3. Post-deploy health curl
 4. **Без** `DEV_MODE=true` в workflow
 
-**Current QA authority:** root Compose `run --rm <exact-service>`; this document
-does not claim a session result. QA services are disposable and integration/e2e
-infrastructure is isolated. Legacy jobs and scripts remain archival inventory only.
+**Current QA authority:** root Compose `run --rm <exact-service>` for
+`backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full`, and `python-load`.
+QA services are disposable and integration/e2e infrastructure is isolated.
+`python-contract` has framework-only Docker evidence of 181/181 PASS; this
+does not imply SUT, Mail/Calendar, API/integration/e2e/load, or deploy evidence.
+Legacy jobs and scripts remain archival inventory only.
 
 ---
 
@@ -210,31 +214,13 @@ Current authority is root Compose `run --rm <exact-service>`; host checks forbid
 
 ---
 
-Task 2A has committed a static public launcher control bundle:
-`e357e71ae445c797c686787e8cde2d643566bb68` (source
-`cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c`, tree
-`b16311222d3093ae4d2bb462a2e4d2835a3f38cf`, subject
-`feat(qa): добавить закрытый public launcher`). Its public path is
-`testframework/runner/invoke-qa-gate.ps1`; raw ABI is exactly `-Target <target>
--Task <task> -Run <run>`. Invalid/extra/unknown input is exit `64` before
-effects. All known targets are literal `NOT_READY`, giving one safe
-`hub.qa-gate/v1` JSON record and exit `69`, with no private runner, Docker, or
-report effect. Script-derived portable roots reject reparse ancestry, accept a
-linked-worktree `.git` file without parsing it, and use a fixed sibling private
-runner only for a future ready state.
-
-The exact seven blobs and C/I/M evidence live in
-`testframework/runner/README.md`: Contract (Terra/high), Security
-(Terra/xhigh), and Lifecycle (Terra/high) precommit and immutable exact-SHA
-reviews are PASS `0/0/0`, dispatcher-enforced, no fallback, telemetry
-`UNKNOWN`. This is static only:
-`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`,
-`G0-B_PARITY_NOT_VERIFIED`, and `NOT_RUN` remain; no image lock, dependency
-bytes, source image, accepted/ready Compose-admission or Dockerfile authority,
-or READY target exists. The physically present Compose/Dockerfile assets remain
-inert and non-authoritative.
-These docs become current only after the atomic Task 2B exact7 docs commit and
-immutable review; they do not self-activate any lifecycle or Task 3.
+**Historical retired-launcher receipt:** Task 2A / `e357e71a` recorded a
+static `testframework/runner/invoke-qa-gate.ps1` control bundle and its
+Contract/Security/Lifecycle reviews. The runner directory and `qa-gate` are now
+absent after the greenfield cutover; this receipt is provenance only and is not
+current command authority or a fallback. Root Compose exact services and the
+framework-only 181/181 `python-contract` receipt above are current. This does
+not change `NOT_RUN` SUT or Mail/Calendar runtime status.
 
 ## CLI
 
