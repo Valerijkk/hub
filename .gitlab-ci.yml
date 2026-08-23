@@ -1,6 +1,10 @@
 # GitLab CI — mirror of GitHub Actions CI for self-hosted / GitLab remotes
 # Docs: docs/stack_and_tools.md
 
+workflow:
+  rules:
+    - when: never
+
 stages:
   - test
   - build

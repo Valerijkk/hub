@@ -1,10 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
   workflow_dispatch:
 
 concurrency:
@@ -20,7 +16,7 @@ jobs:
           echo "::error::NOT_READY: backend-unit is quarantined until the accepted testframework runner binds this CI target."
           exit 1
 
-  # COV gate on master push / manual only — skips PRs to save CI minutes.
+  # Coverage remains quarantined in this manual-only workflow.
   coverage-gate:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -63,7 +59,7 @@ jobs:
         working-directory: frontend
         run: npm ci && npm run build
 
-  # FB-06 / NFR-17: Lighthouse artifact on master push — non-blocking gate initially.
+  # FB-06 / NFR-17: manual-only Lighthouse artifact, non-blocking.
   lighthouse:
     if: github.event_name != 'pull_request'
     needs: [frontend-test]
