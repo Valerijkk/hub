@@ -128,6 +128,8 @@ func (User) Edges() []ent.Edge {
 		edge.From("calendar_attendances", CalendarAttendee.Type).
 			Ref("user"),
 		edge.To("calendar_mutation_receipts", CalendarMutationReceipt.Type),
+		edge.From("calendar_availability_reservations", CalendarAvailabilityReservation.Type).
+			Ref("user"),
 		edge.To("project_templates", ProjectTemplate.Type),
 		edge.To("polls", Poll.Type),
 		edge.To("poll_votes", PollVote.Type),

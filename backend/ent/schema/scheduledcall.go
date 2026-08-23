@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -47,6 +48,11 @@ func (ScheduledCall) Fields() []ent.Field {
 			Comment("ID проекта"),
 		field.UUID("created_by", uuid.UUID{}).
 			Comment("ID пользователя, создавшего запланированный звонок"),
+		field.UUID("calendar_event_id", uuid.UUID{}).
+			Optional().
+			Nillable().
+			Unique().
+			Immutable(),
 		field.Bool("is_active").
 			Default(true).
 			Comment("Активен ли запланированный звонок"),
@@ -91,6 +97,11 @@ func (ScheduledCall) Edges() []ent.Edge {
 		edge.From("calendar_event", CalendarEvent.Type).
 			Ref("scheduled_call").
 			Unique(),
+		edge.To("calendar_event_reference", CalendarEvent.Type).
+			Field("calendar_event_id").
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("participants", User.Type).
 			Comment("Приглашённые участники звонка"),
 	}

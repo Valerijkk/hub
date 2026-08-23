@@ -66,6 +66,8 @@ func (Organization) Edges() []ent.Edge {
 		edge.To("mail_objects", MailObject.Type),
 		edge.From("calendar_inbound_object_states", CalendarInboundObjectState.Type).
 			Ref("organization"),
+		edge.From("calendar_availability_reservations", CalendarAvailabilityReservation.Type).
+			Ref("organization"),
 	}
 }
 

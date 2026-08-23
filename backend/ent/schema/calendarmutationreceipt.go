@@ -31,7 +31,7 @@ func (CalendarMutationReceipt) Fields() []ent.Field {
 		field.UUID("organization_id", uuid.UUID{}),
 		field.UUID("actor_user_id", uuid.UUID{}),
 		field.Enum("operation").
-			Values("event_create", "legacy_call_create", "rsvp_series", "rsvp_occurrence").
+			Values("event_create", "legacy_call_create", "rsvp_series", "rsvp_occurrence", "meeting_create", "meeting_update", "meeting_cancel").
 			Immutable(),
 		field.Bytes("idempotency_key_hash").
 			MinLen(sha256.Size).

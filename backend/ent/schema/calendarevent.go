@@ -156,9 +156,14 @@ func (CalendarEvent) Edges() []ent.Edge {
 			Field("scheduled_call_id").
 			Unique().
 			Immutable(),
+		edge.From("scheduled_call_reference", ScheduledCall.Type).
+			Ref("calendar_event_reference").
+			Unique(),
 		edge.To("attendees", CalendarAttendee.Type),
 		edge.To("exceptions", CalendarEventException.Type),
 		edge.To("mutation_receipts", CalendarMutationReceipt.Type),
+		edge.From("availability_reservations", CalendarAvailabilityReservation.Type).
+			Ref("calendar_event"),
 		edge.From("inbound_object_states", CalendarInboundObjectState.Type).
 			Ref("event"),
 		edge.To("mail_messages", MailMessage.Type),
