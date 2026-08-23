@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/organization"
@@ -148,6 +149,8 @@ func calendarEntSafeError(err error) error {
 	switch {
 	case err == nil:
 		return nil
+	case calendarEntAvailabilityReservationExclusion(err):
+		return ErrAvailabilitySlotUnavailable
 	case errors.Is(err, ErrEventNotFound):
 		return ErrEventNotFound
 	case errors.Is(err, ErrEventForbidden):
@@ -165,6 +168,11 @@ func calendarEntSafeError(err error) error {
 	default:
 		return ErrEventInvalid
 	}
+}
+
+func calendarEntAvailabilityReservationExclusion(err error) bool {
+	var postgresError *pq.Error
+	return errors.As(err, &postgresError) && postgresError.Code == "23P01" && postgresError.Constraint == "calendar_availability_reservations_active_window_excl"
 }
 
 func eventEntUUIDPointer(value *uuid.UUID) *uuid.UUID {

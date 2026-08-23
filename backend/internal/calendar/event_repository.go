@@ -35,6 +35,13 @@ type EventTransactionBackend interface {
 	AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error
 }
 
+// AvailabilityReservationTransactionBackend is intentionally optional so
+// legacy EventTransaction implementations keep their existing ABI. A meeting
+// service must fail closed when its transaction backend lacks this capability.
+type AvailabilityReservationTransactionBackend interface {
+	ReconcileCalendarAvailabilityReservations(context.Context, CalendarAvailabilityReservationSet) error
+}
+
 // CalendarEventUpdateAuthorizationRequest carries only the event identity and,
 // when supplied, the untrusted attendee replacement candidates. The transaction
 // backend is the sole authority for every current event and attendee value.
@@ -616,6 +623,25 @@ func (transaction *EventTransaction) close() {
 	defer transaction.mu.Unlock()
 	transaction.active = false
 	transaction.backend = nil
+}
+
+// ReconcileCalendarAvailabilityReservations applies one complete desired
+// reservation set while the enclosing EventTransaction remains active. It is
+// the only public seam for the race-safe reservation reconciliation core.
+func (transaction *EventTransaction) ReconcileCalendarAvailabilityReservations(ctx context.Context, set CalendarAvailabilityReservationSet) error {
+	if transaction == nil {
+		return ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(AvailabilityReservationTransactionBackend)
+	if !supported || nilAvailabilityReservationTransactionBackend(backend) || !set.valid() {
+		return ErrAvailabilitySourceInvalid
+	}
+	return backend.ReconcileCalendarAvailabilityReservations(ctx, cloneCalendarAvailabilityReservationSet(set))
 }
 
 // EventMutationScope связывает каждую мутацию с actor, revalidated organization и operation одной транзакции.
