@@ -1799,6 +1799,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ---
 
 ## Session Continuity
+> **Phase 147 147-02A static acceptance (2026-08-23):** immutable source commit `3f4d174f888f08a119bbe381dc86e5e9b34e0301` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly the sole production file `backend/internal/calendar/itip_ingest_policy.go`. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. Under the current production-only test constraint, tests are intentionally absent and every executable/generation/runtime claim remains `NOT_RUN`. This accepts only the pure REQUEST/CANCEL order policy; it makes no product, merge, readiness, schema, generation, migration, SQL, Docker, or runtime claim. D0 remains the sole next unblocked P3 schema atom; D1/D2 retain their amendment dependencies, and 147-02B/147-02C remain pending/blocked on their stated dependencies.
 
 **Last session:** 2026-08-14 (Mail 144-03A-Thread callable/encoding/oracle static acceptance sync)
 **Stopped at:** 144-01A remains `STATIC_ACCEPTED` at
