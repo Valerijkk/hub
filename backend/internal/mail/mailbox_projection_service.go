@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -41,10 +42,10 @@ func (service *MailboxFolderProjectionService) ListMailboxFolders(ctx context.Co
 	if err != nil {
 		return MailboxFolderProjection{}, mailboxFolderProjectionRepositoryError(err)
 	}
-	projection = mailboxFolderProjectionCopy(projection)
 	if err := validateMailboxFolderProjection(projection); err != nil {
 		return MailboxFolderProjection{}, err
 	}
+	projection = mailboxFolderProjectionCopy(projection)
 	sortMailboxFolderProjectionItems(projection.Items)
 	return projection, nil
 }
@@ -119,38 +120,62 @@ func validateMailboxFolderProjection(projection MailboxFolderProjection) error {
 	if projection.ProjectionState == MailboxProjectionReady && projection.ProjectionAsOf == nil {
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	if projection.ProjectionAsOf != nil && projection.ProjectionAsOf.IsZero() {
+	if projection.ProjectionAsOf != nil && !mailboxEntValidTime(*projection.ProjectionAsOf) {
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 
-	byID := make(map[uuid.UUID]struct{}, len(projection.Items))
-	for _, item := range projection.Items {
+	folders := make([]FolderTreeFolder, len(projection.Items))
+	for index, item := range projection.Items {
 		if !validMailboxFolderProjectionItem(item) {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		if _, duplicate := byID[item.ID]; duplicate {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		byID[item.ID] = struct{}{}
-	}
-	for _, item := range projection.Items {
+		parentID := uuid.Nil
 		if item.ParentID != nil {
-			if _, found := byID[*item.ParentID]; !found {
-				return mailboxServiceError(MailboxServiceErrorInvalid)
-			}
+			parentID = *item.ParentID
 		}
+		role := FolderTreeRole("")
+		if item.Role != nil {
+			role = FolderTreeRole(*item.Role)
+		}
+		folders[index] = FolderTreeFolder{
+			AccountID: mailboxFolderProjectionValidationAccountID,
+			ID:        item.ID,
+			ParentID:  parentID,
+			Role:      role,
+			Name:      item.Name,
+			SortOrder: item.SortOrder,
+		}
+	}
+	if _, err := NormalizeFolderTree(FolderTreeSnapshot{AccountID: mailboxFolderProjectionValidationAccountID, Folders: folders}); err != nil {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	return nil
 }
 
 func validMailboxFolderProjectionItem(item MailboxFolderProjectionItem) bool {
-	if item.ID == uuid.Nil || item.Name == "" || item.normalizedName == "" || item.UnreadCount < 0 || item.TotalCount < 0 || item.UnreadCount > item.TotalCount || item.Version < 1 || !validMailboxFolderProjectionState(item.State) {
+	if item.ID == uuid.Nil || item.UnreadCount < 0 || item.TotalCount < 0 || item.UnreadCount > item.TotalCount || item.Version < 1 || !validMailboxFolderProjectionState(item.State) || !validMailboxFolderProjectionColor(item.Color) {
 		return false
 	}
 	if item.ParentID != nil && (*item.ParentID == uuid.Nil || *item.ParentID == item.ID) {
 		return false
 	}
+	normalizedName, err := normalizeFolderName(item.Name)
+	if err != nil || normalizedName != item.normalizedName {
+		return false
+	}
+	if item.State != "active" && (item.UnreadCount != 0 || item.TotalCount != 0) {
+		return false
+	}
 	return mailboxFolderProjectionRoleRank(item.Role) != 7
+}
+
+var mailboxFolderProjectionValidationAccountID = uuid.MustParse("c8f06746-6a9d-4a71-8493-a66d9441c8f5")
+
+func validMailboxFolderProjectionColor(value *string) bool {
+	if value == nil {
+		return true
+	}
+	return utf8.ValidString(*value) && len(*value) >= 1 && len(*value) <= 128 && utf8.RuneCountInString(*value) <= 32
 }
 
 func validMailboxFolderProjectionState(state string) bool {

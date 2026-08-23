@@ -25,14 +25,25 @@ func (repository *MailboxEntRepository) ListMailboxFolderProjection(ctx context.
 				mailaccount.IDEQ(scope.AccountID),
 				mailaccount.UserIDEQ(scope.ActorID),
 				mailaccount.OrganizationIDEQ(scope.OrganizationID),
-				mailaccount.StatusEQ(mailaccount.StatusActive),
 			).
 			ForUpdate().
 			Only(ctx)
 		if err != nil {
 			return mailboxEntSafeError(err)
 		}
-		if account.ID != scope.AccountID || account.UserID != scope.ActorID || account.OrganizationID != scope.OrganizationID || account.Status != mailaccount.StatusActive || !validMailboxProjectionState(MailboxProjectionState(account.ProjectionState)) {
+		if account.ID != scope.AccountID || account.UserID != scope.ActorID || account.OrganizationID != scope.OrganizationID {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		switch account.Status {
+		case mailaccount.StatusActive:
+			if !validMailboxProjectionState(MailboxProjectionState(account.ProjectionState)) || (account.LastSyncedAt != nil && !mailboxEntValidTime(*account.LastSyncedAt)) {
+				return mailboxServiceError(MailboxServiceErrorInvalid)
+			}
+		case mailaccount.StatusDeleting:
+			return mailboxServiceError(MailboxServiceErrorDeleting)
+		case mailaccount.StatusProvisioning, mailaccount.StatusSuspended, mailaccount.StatusError:
+			return mailboxServiceError(MailboxServiceErrorUnavailable)
+		default:
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 
@@ -44,7 +55,6 @@ func (repository *MailboxEntRepository) ListMailboxFolderProjection(ctx context.
 					mailaccount.IDEQ(scope.AccountID),
 					mailaccount.UserIDEQ(scope.ActorID),
 					mailaccount.OrganizationIDEQ(scope.OrganizationID),
-					mailaccount.StatusEQ(mailaccount.StatusActive),
 				),
 			).
 			Order(
@@ -53,10 +63,13 @@ func (repository *MailboxEntRepository) ListMailboxFolderProjection(ctx context.
 				ent.Asc(mailfolder.FieldNormalizedName),
 				ent.Asc(mailfolder.FieldID),
 			).
-			Limit(maxMailboxFolderProjectionItems).
+			Limit(maxMailboxFolderProjectionItems + 1).
 			All(ctx)
 		if err != nil {
 			return mailboxEntSafeError(err)
+		}
+		if len(rows) > maxMailboxFolderProjectionItems {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 
 		items := make([]MailboxFolderProjectionItem, len(rows))
@@ -87,20 +100,14 @@ func mailboxEntFolderProjectionItem(scope MailboxFolderProjectionScope, row *ent
 	if row == nil || scope.AccountID == uuid.Nil || row.ID == uuid.Nil || row.MailAccountID != scope.AccountID || row.DeletedAt != nil {
 		return MailboxFolderProjectionItem{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	if row.ParentID != nil && (*row.ParentID == uuid.Nil || *row.ParentID == row.ID) {
+	if _, valid := mailboxEntApplyFolderRowState(row, scope.AccountID); !valid || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) || !validMailboxFolderProjectionColor(row.Color) {
 		return MailboxFolderProjectionItem{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 
 	var role *string
 	if row.Role != nil {
 		roleValue := string(*row.Role)
-		if mailboxFolderProjectionRoleRank(&roleValue) == 7 {
-			return MailboxFolderProjectionItem{}, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
 		role = &roleValue
-	}
-	if row.Name == "" || row.NormalizedName == "" || row.UnreadCount < 0 || row.TotalCount < 0 || row.UnreadCount > row.TotalCount || row.Version < 1 || !validMailboxFolderProjectionState(string(row.ControlState)) {
-		return MailboxFolderProjectionItem{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 
 	return MailboxFolderProjectionItem{
