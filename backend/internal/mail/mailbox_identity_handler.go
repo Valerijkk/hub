@@ -10,7 +10,6 @@ import (
 )
 
 // MailboxIdentityHandler exposes the authenticated identity-list operation.
-// Route registration remains deliberately separate from this narrow packet.
 type MailboxIdentityHandler struct {
 	service mailboxIdentityReader
 }
@@ -21,6 +20,16 @@ func NewMailboxIdentityHandler(service mailboxIdentityReader) (*MailboxIdentityH
 		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	return &MailboxIdentityHandler{service: service}, nil
+}
+
+// RegisterRoutes registers only GET /api/mail/identities on the supplied /api router.
+func (handler *MailboxIdentityHandler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler) error {
+	if handler == nil || mailboxHTTPDependencyNil(handler.service) || mailboxHTTPDependencyNil(api) || authMiddleware == nil {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+
+	api.Group("/mail", authMiddleware).Get("/identities", handler.List)
+	return nil
 }
 
 // List returns the bounded From-identity page for the authenticated mailbox owner.

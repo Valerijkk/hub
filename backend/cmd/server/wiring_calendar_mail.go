@@ -94,7 +94,9 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	d.api.Get("/mail/identities", mailboxIdentityHandler.List, d.requireAuth)
+	if err := mailboxIdentityHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 
 	mailboxEngineConfig, err := mailmod.ParseMailboxEngineConfig(os.LookupEnv)
 	if err != nil {
