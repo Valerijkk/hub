@@ -21,12 +21,82 @@ export interface CalendarEventsResponse {
 	to: string;
 }
 
+export type CalendarAvailabilitySource = "event" | "call" | "leave";
+
+export interface CalendarAvailabilityRequest {
+	user_ids: string[];
+	from: string;
+	to: string;
+	timezone: string;
+	slot_minutes: number;
+}
+
+export interface CalendarAvailabilityBusyInterval {
+	from: string;
+	to: string;
+	source: CalendarAvailabilitySource;
+}
+
+export interface CalendarAvailabilityFreeInterval {
+	from: string;
+	to: string;
+}
+
+export interface CalendarAvailabilityUserResponse {
+	user_id: string;
+	busy: CalendarAvailabilityBusyInterval[];
+	free: CalendarAvailabilityFreeInterval[];
+}
+
+export interface CalendarAvailabilityResponse {
+	users: CalendarAvailabilityUserResponse[];
+}
+
+export interface CalendarMeetingCreateRequest {
+	title: string;
+	description: string;
+	project_id: string;
+	channel_id: string;
+	starts_at: string;
+	ends_at: string;
+	timezone: string;
+	rrule: string;
+	attendee_user_ids: string[];
+}
+
+export interface CalendarMeetingCreateResponse {
+	event_id: string;
+	scheduled_call_id: string;
+	project_id: string;
+	channel_id: string;
+	organizer_id: string;
+	attendee_user_ids: string[];
+	title: string;
+	description?: string;
+	starts_at: string;
+	ends_at: string;
+	timezone: string;
+	rrule?: string;
+	status: "confirmed";
+	event_version: number;
+	scheduled_call_version: number;
+}
+
 export function listCalendarEvents(
 	from: string,
 	to: string,
 ): Promise<CalendarEventsResponse> {
 	return api.get<CalendarEventsResponse>(
 		`/calendar/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+	);
+}
+
+export function getCalendarAvailability(
+	request: CalendarAvailabilityRequest,
+): Promise<CalendarAvailabilityResponse> {
+	return api.post<CalendarAvailabilityResponse>(
+		"/calendar/v2/availability",
+		request,
 	);
 }
 
@@ -265,6 +335,17 @@ export function createCalendarEvent(
 ): Promise<CalendarEventCreateResponse> {
 	return api.post<CalendarEventCreateResponse>(
 		"/calendar/v2/events",
+		request,
+		options,
+	);
+}
+
+export function createCalendarMeeting(
+	request: CalendarMeetingCreateRequest,
+	options: CalendarIdempotencyRequestOptions,
+): Promise<CalendarMeetingCreateResponse> {
+	return api.post<CalendarMeetingCreateResponse>(
+		"/calendar/v2/meetings",
 		request,
 		options,
 	);
