@@ -1,5 +1,25 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## Mail/Calendar HTTP composition static acceptance (2026-08-23)
+
+`STATIC_ACCEPTED / RUNTIME_NOT_RUN` is limited to the accepted source and independent static
+reviews: Task 7B's deleting-owner snapshot `f02c3be1`, mail-account handler `ebfe750d`, and
+safe error-classification correction `af92452d` (C/I/M `0/0/0`) register authenticated
+`GET /api/mail/account` only. Task 7C's mutation contract `cb1c59e8`, unsupported RSVP-comment
+removal `6a9276ba`, typed-create-conflict correction `fbeb7419`, handler `bc66cdcb`, and
+exact-key correction `0eacbc2d` are independently statically approved for the six additive
+canonical mutation routes; they do not replace legacy Calendar GET. Task 8A route composition
+`1627b46d` (C/I/M `0/0/0`) uses private UTC/UUID/iTIP adapters to register legacy Calendar GET,
+canonical mutations, and the Mail account route exactly once in the main server.
+
+The later executable oracle must establish exact authenticated route registration without duplicates,
+safe owner/mutation error mapping, the mutation-result versus RSVP-attendee response boundaries, and
+legacy Calendar read compatibility. It must not infer MailEngine, sync-worker, provider, or NATS
+consumer readiness: Task 8 worker lifecycle remains pending/blocked, Task 7A remains blocked on
+Phase 145 founder auth/gateway gates and inaccessible private engine interfaces, and the
+launcher/framework cutover, build, test, generation, migration, Docker, runtime, and merge
+acceptance remain `NOT_READY`/`NOT_RUN` as applicable.
+
 ## Task 6B Ent sync prepare immutable source receipt (2026-08-22)
 
 `STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN` at effective HEAD `431022ed`, after source

@@ -980,6 +980,9 @@ feat(mail): persist mailbox sync and worker state
 
 ### Task 7A: Stalwart MailEngine adapter
 
+**Status:** `BLOCKED / NOT_AUTHORIZED / RUNTIME_NOT_RUN` pending Phase 145 founder
+authentication/gateway gates and access to the private engine interfaces. This task is not complete.
+
 **Files:**
 - Create: `backend/internal/mail/stalwart/engine.go`
 - Create: `backend/internal/mail/stalwart/client.go`
@@ -1010,6 +1013,10 @@ feat(mail): add Stalwart engine adapter
 
 ### Task 7B: Mail account HTTP surface
 
+**Status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN`. The deleting-owner snapshot `f02c3be1`, handler
+`ebfe750d`, and safe error-classification correction `af92452d` are independently approved with
+C/I/M `0/0/0`; only authenticated `GET /api/mail/account` is registered.
+
 **Files:**
 - Create: `backend/internal/mail/mailbox_handler.go`
 - Modify: `docs/mail/openapi.yaml`
@@ -1019,7 +1026,7 @@ feat(mail): add Stalwart engine adapter
 - Consumes: `MailboxService.ResolveOwner` only.
 - Produces: authenticated `GET /api/mail/account` matching the existing `/mail/account` OpenAPI operation.
 
-- [ ] **Step 1: Add the handler**
+- [x] **Step 1: Add the handler**
 
 Resolve actor exclusively from auth context, call `ResolveOwner`, and return the existing bounded owner/account/projection/recovery representation. Map invalid auth, not configured, not found, suspended, deleting, and unavailable states to the frozen status and safe-code contract.
 
@@ -1027,7 +1034,7 @@ Resolve actor exclusively from auth context, call `ResolveOwner`, and return the
 
 The dedicated post-sync test plan owns fake-owner coverage for missing/invalid actor, each owner state, typed service errors, no secret/provider identifiers, and exact route registration. Until then this packet writes no test and exact-scope static source review is the only gate; executable evidence is `NOT_RUN`.
 
-- [ ] **Step 3: Static review and commit**
+- [x] **Step 3: Static review and commit**
 
 ```text
 feat(mail): expose mailbox account status
@@ -1036,6 +1043,11 @@ feat(mail): expose mailbox account status
 All other `/api/mail` OpenAPI operations remain unregistered until their own accepted services and receipt-backed repositories exist.
 
 ### Task 7C: Canonical Calendar mutation HTTP surface
+
+**Status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN`. Contract `cb1c59e8`, unsupported RSVP-comment
+removal `6a9276ba`, typed-create-conflict correction `fbeb7419`, handler `bc66cdcb`, and exact-key
+correction `0eacbc2d` are independently statically approved for the six additive canonical mutation
+routes; legacy Calendar GET remains registered separately.
 
 **Files:**
 - Create: `backend/internal/calendar/event_handler.go`
@@ -1046,7 +1058,7 @@ All other `/api/mail` OpenAPI operations remain unregistered until their own acc
 - Consumes: the six accepted actor-facing `EventService` methods.
 - Produces: authenticated `POST /api/calendar/v2/events`, `PATCH|DELETE /api/calendar/v2/events/{eventId}`, `POST /api/calendar/v2/events/{eventId}/rsvp`, `POST /api/calendar/v2/events/{eventId}/instances/{recurrenceId}/rsvp`, and `DELETE /api/calendar/v2/events/{eventId}/instances/{recurrenceId}`.
 
-- [ ] **Step 1: Implement exact route-to-service mapping**
+- [x] **Step 1: Implement exact route-to-service mapping**
 
 Map routes respectively to `CreateCalendarEvent`, `UpdateCalendarEvent`, `CancelCalendarEvent`, `RespondToCalendarSeries`, `RespondToCalendarOccurrence`, and `CancelCalendarEventOccurrence`. PATCH and DELETE encode only the public `CalendarEventMutationResult` that mirrors `CalendarEventUpdateResult` (`event_id`, `version`, `sequence`, `status`, `changed_fields`); the handler must not hydrate or invent a canonical event read. Their caller invalidates and refetches canonical event detail. Both RSVP POST routes return the canonical `CalendarAttendee`, never a full event or link state; their caller invalidates and refetches the event/card. Actor comes only from auth context; current owner/state is never accepted from the client.
 
@@ -1054,13 +1066,18 @@ Map routes respectively to `CreateCalendarEvent`, `UpdateCalendarEvent`, `Cancel
 
 The dedicated post-sync test plan owns coverage for bounded DTO parsing, UUID/recurrence/version validation, typed safe status mapping, foreign-resource masking, exact `CalendarEventMutationResult` PATCH/DELETE encoding without hydration, canonical `CalendarAttendee` RSVP result encoding, caller invalidation/refetch, and exact POST route registration. Until then this packet writes no test and exact-scope static source review is the only gate; executable evidence is `NOT_RUN`. Keep legacy GET routes in the existing handler.
 
-- [ ] **Step 3: Static review and commit**
+- [x] **Step 3: Static review and commit**
 
 ```text
 feat(calendar): expose canonical event mutations
 ```
 
 ### Task 8: Main-server composition and worker lifecycle
+
+**Status:** Task 8A route composition is `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at `1627b46d` with
+C/I/M `0/0/0`. It registers legacy Calendar GET, canonical Calendar mutations, and the Mail account
+route once through private UTC/UUID/iTIP adapters. Task 8B provider and worker lifecycle is still
+`PENDING / BLOCKED / RUNTIME_NOT_RUN`; this does not mark Task 8 complete.
 
 **Files:**
 - Create: `backend/cmd/server/wiring_calendar_mail.go`
@@ -1072,22 +1089,39 @@ feat(calendar): expose canonical event mutations
 - Modify: `.planning/STATE.md`
 
 **Interfaces:**
-- Consumes: Ent repositories, Stalwart engine, injected real timer, server root context, NATS, outbox, and cleanup stack.
-- Produces: fail-closed startup and graceful shutdown for Mail sync plus canonical Calendar.
+- Task 8A consumes only the already accepted handler/service dependencies and private UTC/UUID/iTIP
+  adapters; it produces one authenticated registration point without replacing legacy reads.
+- Task 8B consumes the remaining Ent repositories, Stalwart engine, injected real timer, server root
+  context, NATS, outbox, and cleanup stack; it must later produce fail-closed Mail-sync startup and
+  graceful shutdown.
 
-- [ ] **Step 1: Build dependencies in one wiring function**
+#### Task 8A: accepted route composition
 
-Construct repositories before services, services before handlers/workers, and consumers last. Enabled Mail sync with incomplete DB/engine/config is a startup error.
+- [x] **Step 1: Build the private route-composition adapters**
 
-- [ ] **Step 2: Register routes without replacing legacy reads**
+Use only private UTC/UUID/iTIP adapters and the accepted Mail-account and canonical-Calendar handler
+dependencies. Do not construct a MailEngine, sync worker, provider, or NATS consumer.
+
+- [x] **Step 2: Register routes without replacing legacy reads**
 
 Move legacy Calendar registration into the new function, keep its two GET routes, and register canonical mutations separately. Avoid double registration.
 
-- [ ] **Step 3: Own worker lifetime**
+- [x] **Step 3: Static review and commit route composition**
+
+`1627b46d` is statically approved with C/I/M `0/0/0`; executable evidence remains `NOT_RUN`.
+
+#### Task 8B: pending provider and worker lifecycle
+
+- [ ] **Step 4: Build remaining dependencies in one wiring function**
+
+Construct repositories before services, services before workers, and consumers last. Enabled Mail sync
+with incomplete DB/engine/config is a startup error.
+
+- [ ] **Step 5: Own worker lifetime**
 
 Run `MailboxSyncWorker.Run(d.rootCtx)` in one guarded goroutine, surface unexpected terminal errors through server shutdown/error reporting, and rely on root cancellation plus cleanup drain. Do not add process-local background contexts.
 
-- [ ] **Step 4: Static review and commit**
+- [ ] **Step 6: Static review and commit provider/worker lifecycle**
 
 ```text
 feat(mail-calendar): wire production services

@@ -292,8 +292,16 @@ envelopes cross the boundary; state ownership does not.
    accepted through `8d2bbb3c` and `5f28ad37`, aggregates through `0bb0a7e8`, and the 6C1
    orchestrator through `7ad57e85`. The fenced 6C2 transaction/proof/outbox composition is
    statically accepted through `e20fa860`, `fc25ca93`, `f7996092`, and `d6184d7a`.
-   Executable evidence remains `NOT_RUN`; the next active source packets are 7A, 7B, and 7C.
-4. Main-server composition and authenticated HTTP surfaces.
+   Executable evidence remains `NOT_RUN`; Task 7B and Task 7C now have only the static acceptance
+   recorded below, while Task 7A remains blocked.
+4. Main-server composition and authenticated HTTP surfaces: Task 7B is statically accepted through
+   `f02c3be1`, `ebfe750d`, and `af92452d` for authenticated `GET /api/mail/account` only; Task 7C
+   is independently statically accepted through `cb1c59e8`, `6a9276ba`, `fbeb7419`, `bc66cdcb`, and
+   `0eacbc2d` for the six additive canonical mutation routes; and Task 8A route composition is
+   statically accepted through `1627b46d`. Its private UTC/UUID/iTIP adapters register legacy
+   Calendar GET, canonical mutations, and the Mail account route once. Task 7A stays blocked on
+   Phase 145 founder auth/gateway gates and inaccessible private engine interfaces; Task 8B provider
+   and worker lifecycle remains pending/blocked. No item in this paragraph is runtime evidence.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
 7. Docker generation, build, focused verification, migration replay, and runtime
