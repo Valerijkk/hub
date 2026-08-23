@@ -54,6 +54,8 @@ func (MailMessage) Fields() []ent.Field {
 		field.Enum("projection_origin").Values("inbound_or_unknown", "confirmed_owner_submission", "confirmed_owner_draft"),
 		field.Time("flags_synced_at").Optional().Nillable(),
 		field.Enum("calendar_method").Values("request", "cancel", "reply").Optional().Nillable(),
+		field.Bytes("calendar_part_locator_hash").Optional().Nillable().MinLen(32).MaxLen(32),
+		field.Enum("authentication_class").Values("trusted_internal", "dmarc_aligned", "untrusted").Default("untrusted"),
 		field.UUID("calendar_event_id", uuid.UUID{}).Optional().Nillable(),
 		field.Int64("last_seen_sync_epoch").Default(0).Validate(validateMailProjectionEpoch),
 		field.UUID("received_event_id", uuid.UUID{}).Optional().Nillable(),
@@ -76,7 +78,8 @@ func (MailMessage) Annotations() []schema.Annotation {
 			"mail_messages_epoch":             "COALESCE(last_seen_sync_epoch BETWEEN 0 AND 2147483647, FALSE)",
 			"mail_messages_priority":          "COALESCE(priority IN ('low','normal','high'), FALSE)",
 			"mail_messages_projection_origin": "COALESCE(projection_origin IN ('inbound_or_unknown','confirmed_owner_submission','confirmed_owner_draft'), FALSE)",
-			"mail_messages_calendar_method":   "COALESCE(calendar_method IS NULL OR calendar_method IN ('request','cancel','reply'), FALSE)",
+			"mail_messages_authentication_class": "COALESCE(authentication_class IN ('trusted_internal','dmarc_aligned','untrusted'), FALSE)",
+			"mail_messages_calendar_part":       "COALESCE((calendar_method IS NULL AND calendar_part_locator_hash IS NULL) OR (calendar_method IS NOT NULL AND calendar_method IN ('request','cancel','reply') AND calendar_part_locator_hash IS NOT NULL AND octet_length(calendar_part_locator_hash) = 32), FALSE)",
 			"mail_messages_bcc_origin":        "CASE WHEN jsonb_typeof(bcc) = 'array' THEN COALESCE(projection_origin IN ('confirmed_owner_submission','confirmed_owner_draft') OR jsonb_array_length(bcc) = 0, FALSE) ELSE FALSE END",
 		}),
 	}
