@@ -193,7 +193,10 @@ Provider/projection must recompute the hash only when canonical locator or decod
 Mail content is immutable: a P3-C mismatch maps to `invalid`, durable `quarantined/internal_error`, and a
 content-free integrity-degraded signal, never processing/relabeling an old event.
 
-P3-B is the next exact pending atom. Its future `package calendar` transaction port is:
+P3-B transaction port below is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9`; P3-C is the sole next
+`UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation, and P3-D/E remain pending. Its accepted
+`package calendar` transaction port is:
 
 ```go
 type CalendarInboundMessageClaim struct { ReceiptID, LeaseToken uuid.UUID; LeaseGeneration int64 }

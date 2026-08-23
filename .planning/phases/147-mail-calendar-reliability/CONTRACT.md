@@ -388,11 +388,13 @@ drop. `65s > lease60s`, and hard timeout < lease < AckWait, so no heartbeat is n
 
 Source atoms are closed: P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
 `05f87f87f6dc30bd57648030026faf5912add3e7` for exact `backend/internal/mail/calendar_part_source.go`
-(new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`. P3-B is next
-and pending for exact `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`,
-and `event_service_inbound_message.go` (new), transaction-aware policy/ports only and no generated Ent.
-P3-C remains pending only after Mail generation: `backend/internal/mail/mailbox_ent_calendar_part.go` (new)
-and `mailbox_ent_repository.go`; it owns the concrete source/I-O and five-second/pre-post semantics above.
+(new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`. P3-B is
+`STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `43a6c42af88524be2951966bdbfc83b422ecb7f9` for exact
+`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and
+`event_service_inbound_message.go` (new), transaction-aware policy/ports only and no generated Ent.
+P3-C is the sole next `UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation:
+`backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`; it owns the
+concrete source/I-O and five-second/pre-post semantics above. P3-D/E remain pending/blocked.
 P3-D remains pending only after Calendar generation: `backend/internal/calendar/
 mail_inbound_repository.go` (new), `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new),
 `event_ent_transaction.go`, `event_ent_inbound_message.go` (new); P3-E only after concrete engine:
