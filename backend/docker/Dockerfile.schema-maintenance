@@ -6,6 +6,28 @@ RUN go mod download
 RUN test "$(go list -m -f '{{.Version}}' ariga.io/atlas)" = 'v0.19.1-0.20240203083654-5948b60a8e43' && \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -o /out/atlas ariga.io/atlas/cmd/atlas
 
+FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS prefeature-source
+
+WORKDIR /carrier
+COPY docker/sources/mail-calendar-prefeature-f21/parent-source.tar ./parent-source.tar
+RUN set -eu; \
+    wc -c < parent-source.tar | tr -d ' ' | grep -qx '307200'; \
+    printf '%s  %s\n' '988437e19435e30952e6afe03446115c0341a084b80d4a58f060ebfc1b3a8b90' 'parent-source.tar' | sha256sum -c -; \
+    if LC_ALL=C tar -tvf parent-source.tar | cut -c1 | grep -qv '[-d]'; then exit 1; fi; \
+    mkdir -p /opt/hub/prefeature; \
+    tar --no-same-owner --no-same-permissions -xf parent-source.tar -C /opt/hub/prefeature; \
+    if find /opt/hub/prefeature -mindepth 1 ! -type d ! -type f -print -quit | grep -q .; then exit 1; fi; \
+    find /opt/hub/prefeature -mindepth 1 -type d | wc -l | tr -d ' ' | grep -qx '3'; \
+    test -d /opt/hub/prefeature/backend; \
+    test -d /opt/hub/prefeature/backend/ent; \
+    test -d /opt/hub/prefeature/backend/ent/schema; \
+    if find /opt/hub/prefeature -mindepth 1 -type d ! -path /opt/hub/prefeature/backend ! -path /opt/hub/prefeature/backend/ent ! -path /opt/hub/prefeature/backend/ent/schema -print -quit | grep -q .; then exit 1; fi; \
+    find /opt/hub/prefeature -type f | wc -l | tr -d ' ' | grep -qx '89'; \
+    if find /opt/hub/prefeature -type f ! -path /opt/hub/prefeature/backend/go.mod ! -path /opt/hub/prefeature/backend/go.sum ! -path '/opt/hub/prefeature/backend/ent/schema/*.go' -print -quit | grep -q .; then exit 1; fi; \
+    test -f /opt/hub/prefeature/backend/go.mod; \
+    test -f /opt/hub/prefeature/backend/go.sum; \
+    find /opt/hub/prefeature -type f -printf '%P\n' | LC_ALL=C sort | sha256sum | cut -d ' ' -f1 | grep -qx 'e5d0a779c33506d1dd5e27c7e5ceb2947999bce8ebd1c8e40f9c45f830ff3eef'
+
 FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS schema-maintenance
 
 RUN groupadd --gid 10001 hubschema && useradd --uid 10001 --gid 10001 --create-home --home-dir /home/hubschema hubschema
@@ -17,6 +39,7 @@ COPY --chown=10001:10001 ent/schema/ ./ent/schema/
 COPY --chown=10001:10001 migrations/ ./migrations/
 COPY --chown=10001:10001 docker/schema-tool.lock.json ./docker/schema-tool.lock.json
 COPY --chown=10001:10001 docker/entrypoints/mail-calendar-schema.sh /usr/local/bin/mail-calendar-schema
+COPY --from=prefeature-source --chown=10001:10001 /opt/hub/prefeature/backend/ /opt/hub/prefeature/backend/
 RUN chmod 0555 /usr/local/bin/atlas /usr/local/bin/mail-calendar-schema && \
     mkdir -p /opt/hub/backend/migrations/atlas/mail-calendar-v1 && \
     chown -R 10001:10001 /opt/hub/backend

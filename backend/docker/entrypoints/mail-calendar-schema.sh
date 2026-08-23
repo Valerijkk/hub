@@ -7,6 +7,7 @@ readonly REVIEW_FILE_LIMIT_BYTES=33554432
 readonly SOURCE_ROOT=/opt/hub/backend
 readonly LINEAGE_DIR="$SOURCE_ROOT/migrations/atlas/mail-calendar-v1"
 readonly WORK_ROOT=/work/mail-calendar-schema
+readonly BASELINE_FILENAME=20260823000000_mail_calendar_baseline.sql
 readonly EXPECTED_DATABASE_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public'
 readonly EXPECTED_DEV_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=atlas_dev'
 
@@ -35,6 +36,24 @@ require_exact_files() {
   done
 }
 
+require_exact_candidate_files() {
+  candidate_dir="$1"
+  expected_count="$2"
+  shift 2
+
+  [ -d "$candidate_dir" ] || fail 'schema-maintenance: candidate directory is absent' "$EX_CONFIG"
+  if find "$candidate_dir" -mindepth 1 -maxdepth 1 ! -type f -print -quit | grep -q .; then
+    fail 'schema-maintenance: candidate contains a non-regular output entry' "$EX_CONFIG"
+  fi
+  if ! find "$candidate_dir" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ' | grep -qx "$expected_count"; then
+    fail 'schema-maintenance: candidate contains unreviewed output files' "$EX_CONFIG"
+  fi
+
+  for required_name in "$@"; do
+    [ -f "$candidate_dir/$required_name" ] || fail 'schema-maintenance: required candidate output is absent' "$EX_CONFIG"
+  done
+}
+
 emit_review_file() {
   review_file="$1"
   review_size="$(wc -c < "$review_file" | tr -d ' ')"
@@ -47,7 +66,23 @@ emit_review_file() {
 }
 
 run_baseline() {
-  fail 'schema-maintenance: baseline is BLOCKED (EX_CONFIG): immutable parent-source bridge for f21e3f7748eac55a4b16746b078e88801f11829c is not reviewed or materialized; host git archive, bind mounts, and .git access are forbidden' "$EX_CONFIG"
+  require_internal_database_urls
+
+  candidate_dir="$WORK_ROOT/baseline"
+  rm -rf "$candidate_dir"
+  mkdir -p "$candidate_dir"
+  trap 'rm -rf "$WORK_ROOT"' EXIT HUP INT TERM
+
+  atlas schema inspect \
+    --config "$SOURCE_ROOT/atlas.hcl" \
+    --env prefeature_baseline \
+    --url env://schema.src \
+    --format '{{ sql . }}' > "$candidate_dir/$BASELINE_FILENAME"
+  atlas migrate hash --dir "file://$candidate_dir"
+
+  require_exact_candidate_files "$candidate_dir" 2 "$BASELINE_FILENAME" atlas.sum
+  emit_review_file "$candidate_dir/$BASELINE_FILENAME"
+  emit_review_file "$candidate_dir/atlas.sum"
 }
 
 run_diff() {

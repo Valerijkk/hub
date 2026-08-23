@@ -42,6 +42,23 @@ the baseline as applied only after a separate schema-equivalence report proves i
 already matches every baseline object. A mismatch blocks the operation; baseline
 marking is not a repair or drift-suppression mechanism.
 
+## Static pre-feature source controls
+
+SB-A is the committed immutable carrier for pre-feature parent
+`f21e3f7748eac55a4b16746b078e88801f11829c`. SB-B statically consumes that exact
+carrier in the schema-maintenance image: it verifies the fixed 307200-byte
+archive hash, permits only the reviewed regular-file selection, rejects symlinks
+and extra entries, and materializes only
+`/opt/hub/prefeature/backend`. The fixed `prefeature_baseline` Atlas environment
+uses that image-local Ent source and exports only a bounded baseline SQL candidate
+plus `atlas.sum` for review output.
+
+This is static source-control implementation, not SQL authoring or execution.
+The exact two-file baseline packet remains required at
+`backend/migrations/atlas/mail-calendar-v1/20260823000000_mail_calendar_baseline.sql`
+and `backend/migrations/atlas/mail-calendar-v1/atlas.sum`; it needs separate
+exact-byte review before it gains any migration authority.
+
 Any ScheduledCall or Mail data backfill is a separate reviewed forward-only
 artifact after the schema migration. It preserves user data and emits no provider,
 notification, NATS or outbox side effect. Non-deleted recurring ScheduledCall rows
@@ -64,6 +81,6 @@ independent database review and direct founder approval. Recovery after apply is
 forward-only and never deletes user data automatically.
 
 Direct host Atlas, Ent, database, build, validator and test commands are forbidden.
-The profile and SQL lineage are not implemented yet. Ent generation, Atlas diff,
-lint, checksum, apply, database replay, build, tests and runtime validation remain
-`NOT_RUN`.
+SB-A/SB-B are statically implemented, but no Docker image build, Atlas inspect,
+diff, lint, checksum or apply, generated SQL, database replay, build, tests or
+runtime validation has run. All executable and SQL evidence remains `NOT_RUN`.

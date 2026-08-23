@@ -28,7 +28,35 @@
     "schema_source": "ent://ent/schema",
     "lineage": "file://migrations/atlas/mail-calendar-v1",
     "baseline_parent": "f21e3f7748eac55a4b16746b078e88801f11829c",
-    "baseline_parent_bridge": "BLOCKED: separate reviewed immutable parent-source bridge required; no host git archive, bind mount, or .git capability is admitted",
+    "prefeature_baseline_carrier": {
+      "path": "backend/docker/sources/mail-calendar-prefeature-f21",
+      "commit": "f21e3f7748eac55a4b16746b078e88801f11829c",
+      "root_tree": "980b6a2ebc1cb0473a7ec0c946886f6174c17ad0",
+      "ent_schema_tree": "3d7b69728c9d8fd435005f0273496ee402747ce2",
+      "selection": [
+        "backend/go.mod",
+        "backend/go.sum",
+        "backend/ent/schema"
+      ],
+      "archive": {
+        "path": "backend/docker/sources/mail-calendar-prefeature-f21/parent-source.tar",
+        "format": "tar",
+        "bytes": 307200,
+        "sha256": "988437e19435e30952e6afe03446115c0341a084b80d4a58f060ebfc1b3a8b90"
+      },
+      "entries": {
+        "total": 92,
+        "directories": 3,
+        "regular_files": 89,
+        "symlinks": 0,
+        "other_non_regular": 0,
+        "ordered_regular_paths": {
+          "sha256": "e5d0a779c33506d1dd5e27c7e5ceb2947999bce8ebd1c8e40f9c45f830ff3eef",
+          "bytes": 2950
+        }
+      }
+    },
+    "baseline_parent_bridge": "STATIC_IMPLEMENTED: versioned immutable carrier is verified and materialized image-locally; host git archive, bind mounts, and .git capability remain forbidden; Docker/Atlas/SQL/runtime evidence is NOT_RUN",
     "runtime_source_mounts": [],
     "runtime_output": "bounded SHA-256-labelled review output on stdout only"
   },

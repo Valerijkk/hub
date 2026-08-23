@@ -1,6 +1,6 @@
 # Phase 143 — Calendar schema, ScheduledCall backfill and cutover plan
 
-> **Status:** BOUNDED_CONTROL_PLANE_FROZEN · IMPLEMENTATION_NOT_STARTED · EXECUTABLE_NOT_RUN
+> **Status:** BOUNDED_CONTROL_PLANE_FROZEN · SB-A/SB-B_STATIC_IMPLEMENTED · EXECUTABLE_NOT_RUN
 > **Runtime:** NOT_RUN
 > **Owner decision:** founder instruction 2026-08-22; design:
 > `docs/superpowers/specs/2026-08-22-mail-calendar-production-integration-design.md`
@@ -31,21 +31,22 @@
 
 ## Static control-plane artifact
 
-The current `backend/atlas.hcl` is a static predecessor only: its
-`file://migrations` root is not executable migration authority because that root
-contains the non-replayable legacy artifacts above. The next reviewed
-implementation packet changes only its migration directory to
-`file://migrations/atlas/mail-calendar-v1`, while retaining the checked-in Ent
-source `ent://ent/schema` and fail-closed profile-supplied `DATABASE_URL` and
-task-owned `ATLAS_DEV_URL`. No credential, host Docker URL, Docker socket, or
-shared database URL may be embedded.
+The `local` environment in `backend/atlas.hcl` retains the checked-in feature
+source `ent://ent/schema`, fixed bounded lineage, and fail-closed profile-supplied
+`DATABASE_URL` and task-owned `ATLAS_DEV_URL`. SB-A is the committed immutable
+pre-feature source carrier for parent `f21e3f7748eac55a4b16746b078e88801f11829c`;
+SB-B statically consumes it image-locally, verifies its exact archive identity and
+exposes only `prefeature_baseline` at
+`ent:///opt/hub/prefeature/backend/ent/schema`. No credential, host Docker URL,
+Docker socket, bind mount, `.git` capability, or shared database URL is admitted.
 
 Atlas remains the deterministic diff, lint, checksum and apply tool, never a
 second model authority. Production may apply only the independently reviewed
 checked-in bounded SQL plus its exact `atlas.sum`. Direct host Atlas, Ent,
-database, build, validator, or test commands remain forbidden. The bounded
-profile is not implemented, and Ent generation, Atlas diff, lint, checksum,
-apply, database replay, build, tests, validators and runtime remain `NOT_RUN`.
+database, build, validator, or test commands remain forbidden. SB-A/SB-B are
+static source-control implementation only: no Docker image build, Atlas inspect,
+diff, lint, checksum or apply, generated SQL, database replay, build, tests,
+validators or runtime validation has run; all remain `NOT_RUN`.
 
 ## Bounded Atlas lineage contract
 
@@ -118,27 +119,35 @@ cache and unconditional `run --rm` cleanup. Generated SQL/checksum candidates le
 only as bounded, hashed review output and become repository files only in a separate exact-path
 authoring packet.
 
-## Exact next implementation packets
+## Implemented source controls and next packets
 
-All packets remain `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED / NOT_RUN` until separately authored,
+- **SB-A, immutable source carrier:** committed static input at
+  `192f23686a69c036ddc03d35ea04192b30780936`; it supplies only the reviewed
+  pre-feature `go.mod`, `go.sum`, and Ent-schema archive for parent
+  `f21e3f7748eac55a4b16746b078e88801f11829c`.
+- **SB-B, source-carrier consumer, exact six files:** the static consumer is
+  implemented in `backend/docker/Dockerfile.schema-maintenance`,
+  `backend/docker/entrypoints/mail-calendar-schema.sh`,
+  `backend/docker/schema-tool.lock.json`, `backend/atlas.hcl`, this plan, and
+  `backend/migrations/README.md`. It neither authors nor accepts SQL and changes
+  no Compose, Docker-ignore, mount, socket, credential, or arbitrary-command
+  boundary.
+
+SB-A/SB-B are `STATIC_IMPLEMENTED` only. Docker, Atlas, SQL, database and runtime
+evidence are `NOT_RUN`; the following exact SQL packets remain separately authored,
 committed and independently reviewed. They contain no test changes.
 
-1. **Schema-maintenance authority, exact five files:** create
-   `backend/docker/Dockerfile.schema-maintenance`,
-   `backend/docker/entrypoints/mail-calendar-schema.sh`, and
-   `backend/docker/schema-tool.lock.json`; modify `docker-compose.local.yml` and
-   `backend/atlas.hcl`. This packet creates no SQL and runs nothing.
-2. **Immutable baseline, exact two files:** create
+1. **Immutable baseline, exact two files:** create
    `backend/migrations/atlas/mail-calendar-v1/20260823000000_mail_calendar_baseline.sql` and
    `backend/migrations/atlas/mail-calendar-v1/atlas.sum` from the exact parent above. Before
    authoring, the operator approves the parent SHA, tool lock, image digests and empty output
    directory; after authoring, Contract/Security/Lifecycle review the exact bytes and source
    manifest.
-3. **Additive feature delta, exact two files:** create
+2. **Additive feature delta, exact two files:** create
    `backend/migrations/atlas/mail-calendar-v1/20260823000001_mail_calendar_core.sql` and modify
    only its sibling `atlas.sum`. The operator must approve the allowlist report and a destructive-
    SQL report showing zero forbidden statements before this packet can be accepted.
-4. **Replay and cutover evidence:** after the three source packets are accepted and executable
+3. **Replay and cutover evidence:** after both SQL packets are accepted and executable
    permission is explicit, run checksum/lint, empty replay, realistic pre-feature replay,
    zero-diff comparison, ScheduledCall preflight and postconditions in the isolated profile.
    Shared or production apply additionally requires a fresh backup, exact database identity,

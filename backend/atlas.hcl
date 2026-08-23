@@ -18,3 +18,10 @@ env local {
     dir = file://migrations/atlas/mail-calendar-v1
   }
 }
+
+env prefeature_baseline {
+  dev = var.dev_url
+  schema {
+    src = ent:///opt/hub/prefeature/backend/ent/schema
+  }
+}
