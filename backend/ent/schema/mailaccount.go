@@ -257,6 +257,8 @@ func (MailAccount) Edges() []ent.Edge {
 		edge.To("identities", MailIdentity.Type),
 		edge.To("user_settings", MailUserSettings.Type).
 			Unique(),
+		edge.To("oauth_credential", MailOAuthCredential.Type).
+			Unique(),
 		edge.To("signatures", MailSignature.Type),
 		edge.To("rules", MailRule.Type),
 		edge.To("recent_contacts", RecentContact.Type),
