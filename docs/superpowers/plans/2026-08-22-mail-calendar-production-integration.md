@@ -812,6 +812,9 @@ or runtime action is authorized; all executable evidence remains `NOT_RUN`.
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_projection.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_apply_folders.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_apply_messages.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_apply_aggregates.go`
 
 Freeze the private transaction handoff (a repository receiver is permitted only if required by the
 existing private helpers):
@@ -835,6 +838,93 @@ deterministic tie-break, so valid drafts with both provider timestamps nil remai
 dedicated post-sync test plan owns the time and tie-break coverage; until then, exact-scope static
 source review is the only gate and executable evidence is `NOT_RUN`.
 
+Task 6C1 freezes the following persistence contract before source authoring:
+
+1. `Result.Folders` is the complete bounded `ListFolders` snapshot for the account, not a delta.
+   Preflight the whole snapshot before writes: engine and Hub IDs remain one-to-one; every non-empty
+   parent engine ID resolves inside the same snapshot; system-role folders have no parent; custom
+   parents are custom; the hierarchy is acyclic; live roles and live `(parent, normalized_name)`
+   coordinates are unique. `normalized_name` uses the schema's exact whitespace-collapse, NFC,
+   Unicode case-fold, NFC algorithm. Apply in deterministic parent-before-child order after safely
+   tombstoning absent rows that would otherwise conflict.
+2. A present folder may create a new active row, update an active row, or revive only the safe
+   provider tombstone shape `control_state=deleting`, `deleted_at != nil`, and no control receipt.
+   Account, Hub ID, engine ID, and nullable immutable role must match. A row owned by an in-flight
+   control receipt (`creating`, `unknown`, `error`, or non-tombstoned `deleting`) fails closed instead
+   of being overwritten by sync. Provider metadata updates preserve local `color` and `sort_order`.
+   If a live system role is already occupied by a different Hub or engine identity, the entire page
+   fails before mutation; sync never reassigns an immutable role. Parent rows must be active,
+   same-account snapshot members, never self/descendants. Every provider-owned active row absent from
+   the complete snapshot is a deletion, for both custom and system-role folders and for every absent
+   node in a parent-child tree: set `control_state=deleting`, `deleted_at=transactionTime`, counters
+   to zero, physically remove all of its `MailMessageFolder` memberships in one database-side
+   operation, and preserve folder identity/history. Receipt-owned rows are not inferred deleted.
+   Folder `version` advances exactly once for a
+   metadata/control/live-state change, not for a bookkeeping-only epoch refresh.
+3. Every upsert reconciles the complete provider projection; `ChangedFields` is an ordered event
+   provenance record already validated by 6C0V2, never a database write mask or an Ent-state
+   compare-and-set condition. 6C1 neither derives, rewrites, nor rejects it from current database
+   state; 6C2's account mutation fence owns intervening-write exclusion and same-lease replay skips
+   6C1 entirely. Consequently an empty concrete delta
+   still permits a first-seen row, provider-version-only change, subject/snippet/date/thread/origin/
+   calendar-method change, attachment change, or a bookkeeping refresh. The canonical sequence is
+   consumed later only by its already-associated outbox envelope.
+4. The exact message mapping is: fence account and intent Hub message/thread IDs; projection
+   `MessageID -> engine_message_id`, `Version -> engine_version`, empty message IDs to SQL `NULL`,
+   concrete non-nil references/address arrays to concrete JSON arrays, all safe text and provider
+   timestamps exactly, every provider flag, priority,
+   provenance origin, intent/projection-equal `CalendarMethod`, current sync epoch, and the monotonic
+   `ReceivedEventID`. `calendar_event_id` is preserved for the Mail/Calendar bridge. `engine_state`
+   has no source field and is preserved on an existing row or `NULL` on create. Every upsert sets
+   `flags_synced_at=transactionTime`; a bookkeeping-only refresh explicitly preserves the prior
+   message `updated_at`, while any provider projection, membership, attachment, thread, live-state,
+   or provider-version change sets it to `transactionTime`.
+5. Reconcile `MailMessageFolder` and `MailMessageLabel` as exact desired sets. Folder links target
+   active current-snapshot folders and carry the current epoch plus `projected_at=transactionTime`.
+   Label links preserve the policy-separated `manual` and `engine_rule` bits and require at least one
+   true bit. Reconcile provider-backed `MailAttachment` rows by unique per-message engine blob ID;
+   empty content ID maps to `NULL`, empty filename/media type map deterministically to `attachment`
+   and `application/octet-stream`, and every other value must fit the existing schema without lossy
+   truncation. Existing immutable blob metadata must match or fail closed; retain its scan state,
+   create new provider blobs as `pending`, remove obsolete provider-backed rows, and never delete a
+   Hub storage-backed attachment from sync. Reappearance reuses matching retained provider rows; a
+   changed blob ID is a distinct attachment, while changed immutable metadata under the same blob ID
+   is a projection conflict. After reconciliation, `MailMessage.has_attachments` is true exactly when
+   at least one provider-backed or preserved Hub storage-backed attachment row belongs to the message.
+6. A tombstone must match one currently live account/message/engine ID. It sets message
+   `deleted_at` and `updated_at` to `transactionTime`, advances the current sync epoch, removes all
+   folder links, and preserves thread identity, projection metadata, `calendar_event_id`, labels,
+   attachments, and received-event provenance for audit and deterministic reappearance. The
+   tombstone's label states must equal persisted label states. A later canonical upsert for the same
+   identity clears `deleted_at`, writes the full projection, and reconciles all live links; it never
+   creates a second message identity.
+7. The formal live-folder predicate is `MailFolder.deleted_at IS NULL AND control_state='active'`;
+   the formal live-message predicate is `MailMessage.deleted_at IS NULL`; a live membership is a
+   physical `MailMessageFolder` row joining both. Folder totals count live messages through those
+   live memberships and unread is the same predicate with `is_seen=false`. Thread aggregates use
+   only live messages: exact message and
+   unread counts, `has_attachments=BOOL_OR`, and snippet from the latest effective message. Compare
+   effective time first and choose the lexicographically greatest message UUID on equality. A
+   non-empty thread clears `deleted_at` and stores the current epoch. A zero-live-message thread is
+   soft-deleted at `transactionTime` while retaining its last valid non-empty aggregates because the
+   schema requires `message_count >= 1`; `is_pinned` and immutable key identity are always preserved.
+   Fallback-created threads store canonical normalized subject/participants; ancestor-derived rows
+   must resolve an existing live or tombstoned identity and preserve that identity metadata.
+8. `Result.Counts` is the complete bounded affected-target set for page mutations. Task 6C1 alone
+   owns folder counters and thread aggregate writes, including old and new thread targets and
+   absent-folder zeroing. Task 6C2 only invokes this helper inside its fenced transaction; it owns
+   account position/schedule/proof and outbox rows, not duplicate counter logic.
+
+Implementation may use bounded, parameterized database-side delete/count/aggregate statements so
+large folders or threads are never materialized into process memory. It must consume only the passed
+`*ent.Tx`, map all database errors through the existing content-free repository mapper, and perform
+no provider, network, outbox, account-position, lease, proof, or clock action.
+
+Implement and review the source atoms in dependency order: 6C1F folder snapshot, 6C1M
+message/link/attachment projection, 6C1A folder/thread aggregates, then 6C1O the exact public-private
+orchestrator above. The contract itself passed independent static architecture re-review on
+2026-08-23; source, generation, build, database, Docker, and runtime evidence remain `NOT_RUN`.
+
 - [ ] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
 
 **Files:**
@@ -844,7 +934,7 @@ After 6W, 6Q2, 6C0V2, and 6C1, this is the sole consumer of both implementation 
 owner of the repository transaction, outbox append, and same-lease proof. It re-locks and compares
 account, lease, sync, mutation, phase, cursor, base cursor, and checkpoint before any projection
 write. In one transaction, it obtains the authoritative transaction time, invokes the bounded
-projection handoff, persists position/counts/outbox result, and writes
+projection handoff, persists account position/proof/outbox result, and writes
 `sync_lease_applied_next_at = NextAttemptAt` plus checked exact-second
 `sync_lease_until = NextAttemptAt + 1s`. It obtains the 6Q2 database wall clock only after the
 successful account lock, once, and uses it for every live-lease/applied-at/projection/schedule value;

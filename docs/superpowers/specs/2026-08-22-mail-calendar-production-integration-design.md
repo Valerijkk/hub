@@ -242,6 +242,35 @@ envelopes cross the boundary; state ownership does not.
 - Worker concurrency, page sizes, retry attempts, and wall-clock slots retain the
   existing hard caps.
 
+## Sync projection persistence boundary
+
+- One `ListFolders` result is a complete bounded account snapshot. 6C1 validates
+  its hierarchy and live uniqueness before any write, updates or safely revives
+  provider-owned rows, and soft-deletes only absent active provider rows. It never
+  overwrites a folder carrying an in-flight control receipt.
+- One message upsert is a complete provider projection. The canonical non-nil
+  `ChangedFields` sequence is 6C0V2-validated event provenance; 6C1 never
+  derives or compares it to Ent state and it is not a selective-write mask.
+  Metadata, thread, provider version, origin,
+  Calendar method, attachments, and sync bookkeeping therefore remain durable
+  even when that sequence is empty.
+- A provider tombstone soft-deletes the live message and removes its folder
+  memberships while retaining labels, attachments, thread/projection history,
+  Calendar linkage, and received-event provenance. Reappearance revives the same
+  account-scoped message identity.
+- 6C1 alone owns exact folder counters and live-message thread aggregates. Live
+  means a non-deleted message and, for folder counts, an active non-deleted
+  folder joined by a physical membership row; unread additionally means
+  `is_seen=false`.
+  Effective thread time is the later provider timestamp, otherwise the persisted
+  message `updated_at` for an unchanged row or the single transaction time for a
+  new/changed row; the lexicographically greatest message UUID wins the final tie.
+  Zero-live-message threads are soft-deleted while retaining their last
+  schema-valid non-empty aggregate values.
+- 6C1 consumes only a passed `*ent.Tx` and exact-second UTC transaction time.
+  6C2 remains the sole owner of the account lock/fence, database-clock read,
+  transaction lifecycle, position/schedule/proof, and outbox writes.
+
 ## Delivery order
 
 1. Migration mechanism and schema diff authority.
@@ -251,7 +280,9 @@ envelopes cross the boundary; state ownership does not.
    RUNTIME_NOT_RUN` through `57b815a1`, `43a6546d`, and `89c47581`; 6C0V2 is
    `STATIC_ACCEPTED / SPEC_PASS / QUALITY_APPROVED / RUNTIME_NOT_RUN` through `41851638` and
    `805ac226`. Prior v1 `8935..52190` is superseded by v2 and not runtime accepted. 6Q2 and 6C0V2
-   share Prepare but are complete; the next active order is 6C1, then 6C2.
+   share Prepare but are complete; the 6C1 persistence contract is frozen and independently
+   reviewed PASS in the implementation plan. Its source is split into folder, message/link/
+   attachment, aggregate, and orchestrator atoms; the next active order remains 6C1 source, then 6C2.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
