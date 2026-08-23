@@ -197,7 +197,7 @@ func validateRequest(contextKind jmapContext, request JMAPRequest, session *Mail
 	}
 
 	seenCallIDs := make(map[string]struct{}, len(request.MethodCalls))
-	mutation := false
+	mutationCount := 0
 	for _, method := range request.MethodCalls {
 		if !validCallID(method.CallID) {
 			return nil, false, newError(ErrorInvalidRequest)
@@ -209,7 +209,15 @@ func validateRequest(contextKind jmapContext, request JMAPRequest, session *Mail
 		if !methodAllowed(contextKind, method.Name, session) || !validJSONObject(method.Arguments) {
 			return nil, false, newError(ErrorUnsupported)
 		}
-		mutation = mutation || isMutation(method.Name)
+		if isMutation(method.Name) {
+			mutationCount++
+		}
+	}
+	// A JMAP batch cannot safely expose a retryable failure when one mutation
+	// may already have applied. Until the service has atomic batch semantics,
+	// accept only a single mutation by itself.
+	if mutationCount > 1 || mutationCount == 1 && len(request.MethodCalls) != 1 {
+		return nil, false, newError(ErrorInvalidRequest)
 	}
 	if len(request.CreatedIDs) > maxJMAPMethodCalls {
 		return nil, false, newError(ErrorInvalidRequest)
@@ -224,7 +232,7 @@ func validateRequest(contextKind jmapContext, request JMAPRequest, session *Mail
 	if err != nil || int64(len(payload)) > maxJMAPBytes || validateJSON(payload) != nil {
 		return nil, false, newError(ErrorInvalidRequest)
 	}
-	return payload, mutation, nil
+	return payload, mutationCount == 1, nil
 }
 
 func validCapabilities(contextKind jmapContext, capabilities []string, session *MailboxSession) bool {
@@ -286,7 +294,7 @@ func parseJMAPResponse(contextKind jmapContext, request JMAPRequest, data []byte
 		return JMAPResponse{}, newError(ErrorProtocol)
 	}
 	var response JMAPResponse
-	if err := json.Unmarshal(data, &response); err != nil || len(response.MethodResponses) == 0 || len(response.MethodResponses) > len(request.MethodCalls) {
+	if err := json.Unmarshal(data, &response); err != nil || len(response.MethodResponses) != len(request.MethodCalls) {
 		return JMAPResponse{}, newError(ErrorProtocol)
 	}
 	if response.SessionState != "" && !validOpaque(response.SessionState) {
@@ -314,11 +322,18 @@ func parseJMAPResponse(contextKind jmapContext, request JMAPRequest, data []byte
 			return JMAPResponse{}, newError(ErrorProtocol)
 		}
 		seen[responseMethod.CallID] = struct{}{}
+		if responseMethod.Name != "error" && (responseMethod.Name != requestName || !methodAllowed(contextKind, responseMethod.Name, session)) {
+			return JMAPResponse{}, newError(ErrorProtocol)
+		}
+	}
+	if len(seen) != len(requestNames) {
+		return JMAPResponse{}, newError(ErrorProtocol)
+	}
+	// Correlate the complete provider batch before mapping a call-level error.
+	// This prevents a partial/mixed result from looking safely retryable.
+	for _, responseMethod := range response.MethodResponses {
 		if responseMethod.Name == "error" {
 			return JMAPResponse{}, responseError(responseMethod.Arguments)
-		}
-		if responseMethod.Name != requestName || !methodAllowed(contextKind, responseMethod.Name, session) {
-			return JMAPResponse{}, newError(ErrorProtocol)
 		}
 	}
 	return response, nil

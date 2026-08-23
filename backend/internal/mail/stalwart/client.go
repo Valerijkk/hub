@@ -18,13 +18,23 @@ const (
 	transferDeadline = 60 * time.Second
 )
 
-// UploadRequest makes the caller select a bounded body size. The transport
-// additionally caps it at 50 MiB and never records the content after the call.
+// ContextReadCloser is the upload pre-read boundary. ReadContext must return
+// when ctx is cancelled; the transport does not start helper goroutines to
+// interrupt an opaque io.Reader. UploadMailboxBlob owns and closes it after
+// the bounded pre-read, including every cancellation path.
+type ContextReadCloser interface {
+	io.ReadCloser
+	ReadContext(context.Context, []byte) (int, error)
+}
+
+// UploadRequest makes the caller select a bounded body size and provide a
+// cancellation-aware stream. The transport additionally caps it at 50 MiB and
+// never records the content after the call.
 type UploadRequest struct {
 	Session      *MailboxSession
 	AccountID    string
 	ContentType  string
-	Content      io.Reader
+	Content      ContextReadCloser
 	MaximumBytes int64
 }
 
@@ -135,12 +145,16 @@ func (c *Client) CallMailbox(ctx context.Context, session *MailboxSession, reque
 // no partial provider write.
 func (c *Client) UploadMailboxBlob(ctx context.Context, request UploadRequest) (UploadResult, error) {
 	maximum, ok := boundedLimit(request.MaximumBytes, maxUploadContentBytes)
-	if !ok || request.Session == nil || !validOpaque(request.AccountID) || !validContentType(request.ContentType) || request.Content == nil || !c.validUploadURL(request.Session) {
+	if ctx == nil || !ok || request.Session == nil || !validOpaque(request.AccountID) || !validContentType(request.ContentType) || request.Content == nil || !c.validUploadURL(request.Session) {
 		return UploadResult{}, newError(ErrorInvalidRequest)
 	}
-	content, err := readBounded(request.Content, maximum)
+	defer request.Content.Close()
+	content, err := readBounded(ctx, request.Content, maximum)
 	if err != nil {
 		return UploadResult{}, err
+	}
+	if ctx.Err() != nil {
+		return UploadResult{}, requestError(ctx)
 	}
 	target, ok := c.renderUploadURL(request.AccountID)
 	if !ok {
@@ -297,18 +311,45 @@ func boundedLimit(value, hardLimit int64) (int64, bool) {
 	return value, value > 0 && value <= hardLimit
 }
 
-func readBounded(source io.Reader, maximum int64) ([]byte, error) {
-	if source == nil || maximum < 1 {
+func readBounded(ctx context.Context, source ContextReadCloser, maximum int64) ([]byte, error) {
+	if ctx == nil || source == nil || maximum < 1 {
 		return nil, newError(ErrorInvalidRequest)
 	}
-	content, err := io.ReadAll(io.LimitReader(source, maximum+1))
-	if err != nil {
-		return nil, newError(ErrorUnavailable)
+	const chunkSize = 32 << 10
+	buffer := make([]byte, chunkSize)
+	content := bytes.NewBuffer(make([]byte, 0, chunkSize))
+	for {
+		if ctx.Err() != nil {
+			return nil, requestError(ctx)
+		}
+		remaining := maximum + 1 - int64(content.Len())
+		if remaining < 1 {
+			return nil, newError(ErrorPayloadTooLarge)
+		}
+		readSize := int64(len(buffer))
+		if remaining < readSize {
+			readSize = remaining
+		}
+		n, err := source.ReadContext(ctx, buffer[:readSize])
+		if n < 0 || n > int(readSize) {
+			return nil, newError(ErrorUnavailable)
+		}
+		if n > 0 {
+			_, _ = content.Write(buffer[:n])
+			if int64(content.Len()) > maximum {
+				return nil, newError(ErrorPayloadTooLarge)
+			}
+		}
+		if ctx.Err() != nil {
+			return nil, requestError(ctx)
+		}
+		if err == io.EOF {
+			return content.Bytes(), nil
+		}
+		if err != nil || n == 0 {
+			return nil, newError(ErrorUnavailable)
+		}
 	}
-	if int64(len(content)) > maximum {
-		return nil, newError(ErrorPayloadTooLarge)
-	}
-	return content, nil
 }
 
 func readHTTPBody(source io.Reader, maximum int64) ([]byte, error) {
