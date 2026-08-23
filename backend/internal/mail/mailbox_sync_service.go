@@ -88,13 +88,22 @@ func (errorValue *MailboxSyncServiceError) Unwrap() error {
 	}
 }
 
+// MailboxSyncEngine reads one bounded account folder snapshot and projection page.
+type MailboxSyncEngine interface {
+	ListFolders(context.Context, string) ([]EngineFolder, error)
+	Changes(context.Context, EngineChangeRequest) (EngineChangePage, error)
+	EnumerateProjection(context.Context, EngineEnumerationRequest) (EngineEnumerationPage, error)
+}
+
+var _ MailboxSyncEngine = (*StalwartEngine)(nil)
+
 type MailboxSyncService struct {
-	engine     MailEngine
+	engine     MailboxSyncEngine
 	repository MailboxSyncRepository
 	config     MailboxSyncServiceConfig
 }
 
-func NewMailboxSyncService(engine MailEngine, repository MailboxSyncRepository, config MailboxSyncServiceConfig) (*MailboxSyncService, error) {
+func NewMailboxSyncService(engine MailboxSyncEngine, repository MailboxSyncRepository, config MailboxSyncServiceConfig) (*MailboxSyncService, error) {
 	if mailboxSyncNilDependency(engine) || mailboxSyncNilDependency(repository) || !validMailboxSyncServiceConfig(config) {
 		return nil, mailboxSyncServiceError(MailboxSyncServiceErrorInvalid)
 	}

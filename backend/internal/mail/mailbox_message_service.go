@@ -7,15 +7,22 @@ import (
 	"github.com/google/uuid"
 )
 
+// MailboxMessageReadEngine reads one bounded message from an account-scoped engine projection.
+type MailboxMessageReadEngine interface {
+	GetMessage(context.Context, EngineMessageReadRequest) (EngineMessage, error)
+}
+
+var _ MailboxMessageReadEngine = (*StalwartEngine)(nil)
+
 // MailboxMessageService owner-gates one bounded engine body read against a sealed local projection.
 type MailboxMessageService struct {
 	owners     mailboxOwnerResolver
 	repository MailboxMessageRepository
-	engine     MailEngine
+	engine     MailboxMessageReadEngine
 }
 
 // NewMailboxMessageService creates the safe public message-detail service.
-func NewMailboxMessageService(owners mailboxOwnerResolver, repository MailboxMessageRepository, engine MailEngine) (*MailboxMessageService, error) {
+func NewMailboxMessageService(owners mailboxOwnerResolver, repository MailboxMessageRepository, engine MailboxMessageReadEngine) (*MailboxMessageService, error) {
 	if mailboxFolderProjectionDependencyNil(owners) || mailboxFolderProjectionDependencyNil(repository) || mailboxFolderProjectionDependencyNil(engine) {
 		return nil, mailboxMessageReadError(MailboxMessageReadErrorInvalid)
 	}
