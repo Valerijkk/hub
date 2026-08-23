@@ -96,7 +96,9 @@ One receipt exists for a projected message plus hashed stable calendar-part loca
 | `mail_message_id`, `part_locator_hash` | unique together; locator is SHA-256, not engine part id |
 | `event_envelope_id` | original `mail.received.v1` event id for traceability |
 | `state` | `pending`, `processing`, `applied`, `ignored_stale`, `duplicate`, `deferred_missing_master`, `quarantined`, `dead_letter` |
-| `attempts`, `lease_until`, `next_attempt_at` | bounded claim/recovery metadata |
+| `lease_token` | nullable UUID, no default |
+| `lease_generation` | non-null int64, default `0`, minimum `0` |
+| `attempts`, `lease_until`, `next_attempt_at` | bounded claim/recovery metadata; attempts are `0..8` |
 | `error_code` | nullable stable allowlisted code, no provider/body text |
 | `calendar_event_id` | nullable resolved event |
 | timestamps | required |
@@ -109,12 +111,30 @@ One receipt exists for a projected message plus hashed stable calendar-part loca
 It never stores raw SQL, provider, body, or free-form error text. Expanding this set requires
 an explicit reviewed contract amendment.
 
-The worker claims with a lease. A transient engine/DB failure schedules bounded retry;
-permanent malformed, untrusted, equal-conflict, unsupported-version, or exhausted input is
-finalized without mutation. `deferred_missing_master` is rehydrated by the recovery job;
-the receipt never stores the calendar bytes needed for that retry.
-Deferred receipts stop retrying after seven days and become `dead_letter`; finalized
-message receipts are retained for 30 days, then removed by a bounded cleanup job.
+Uniqueness is both `event_envelope_id` and the existing `(mail_message_id, part_locator_hash)`.
+The due-worker index is partial on `(state, next_attempt_at, id)` for only `pending` and
+`deferred_missing_master`. Initial `pending` has attempts `0` and nil due; retry `pending`
+has attempts `>0` and a required due. `processing` has token and until, generation `>=1`,
+attempts `>=1`, and nil next/error. Terminal `applied`, `ignored_stale`, `duplicate`,
+`quarantined`, and `dead_letter` clears lease and due. `deferred_missing_master` has no
+lease and a required due. Existing rows migrate to token null/generation `0`; migration
+preflight requires zero `processing` rows.
+
+The database UTC clock truncated to exact seconds is the sole due/lease authority. TTL is
+60 seconds and maximum claims/attempts is 8. Transient failures after attempts 1..7 retry
+after `30s, 2m, 10m, 30m, 2h, 6h, 24h`; transient failure at attempt 8 terminalizes
+`dead_letter/retry_exhausted`. Missing-master deferrals 1..7 use `15m, 1h, 4h, 12h, 24h,
+48h, 72h`; object-state expiry is exactly first deferral plus 7 days. At the due claim that
+reaches expiry, including attempt 8, finalize `dead_letter/missing_master_expired` without
+a Mail body read or Calendar mutation.
+
+Claim locks only the receipt, assigns a random token, and increments generation and attempts
+for a new or expired claim. Terminalization or retry requires id + `processing` + token +
+generation + an unexpired database lease before any Calendar lock, preventing ABA. Mail
+read/parse is after claim commit and before the terminalization transaction. `CalendarInboundObjectState`
+is unchanged and sufficient; `CalendarInboundReplyReceipt` is not reused, and REPLY delegates
+to the accepted reply service. Finalized receipts are retained for 30 days, then removed by a
+bounded cleanup job.
 
 ### 2.3 Authentication admission
 
@@ -127,14 +147,31 @@ authentication facts:
 - `untrusted`: missing/failing/unaligned results, forwarded calendar attachment, or an
   unverified delegation.
 
-Only the first two classes may mutate. v1 has no organizer-delegation allowlist. Envelope
+Only the first two classes may mutate. v1 has no organizer-delegation allowlist. `mail.received.v1`
+requires `authentication_class` exactly from this enum; it carries only that enum internally,
+never SPF/DKIM/DMARC evidence, headers, provider explanation, raw MIME, or provider locator.
+It also requires `calendar_method` and `calendar_part_locator_sha256` to be strictly paired:
+both null for a non-candidate, both non-null for `request|cancel|reply`; the locator is exactly
+64 lowercase hexadecimal characters. `engine_message_id` remains a v1 compatibility field, but
+the new Calendar consumer must ignore it. Public APIs and logs expose none of these authentication
+details. Envelope
 sender, header From and ORGANIZER are normalized before comparison; a null/empty sender is
 untrusted. Once an object state exists, its organizer identity is immutable: even a newer
 otherwise authenticated REQUEST/CANCEL from a different organizer is quarantined. This
 prevents a sender who learns another organizer's UID from taking over the event.
 Authentication details are not included in public API/event payloads.
 
-### 2.4 REQUEST/CANCEL decision table
+### 2.4 Canonical Mail apply proof v3 prerequisite
+
+Do not mutate 6C0V2. 6C0V3 has outer domain `hub.mail.sync.apply.result.v3`, format/proof
+version `3`, and retains tags 1..9 byte-for-byte. It appends tag 10 `AuthenticationClass` as
+an enum string and tag 11 optional raw 32-byte `CalendarPartLocatorHash`, using the existing
+optional-presence convention. Canonical validation owns exact projection/carrier equivalence and
+method/locator pairing. New apply requests use v3. A stored matching v2 proof may replay only
+through the retained v2 encoder; it must not be overwritten or reinterpreted as v3. Stored v1
+proofs remain fail-closed as already specified.
+
+### 2.5 REQUEST/CANCEL decision table
 
 | Current object state | Incoming | Result |
 |---|---|---|

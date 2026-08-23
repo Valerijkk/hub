@@ -105,7 +105,10 @@
                 "to",
                 "received_at",
                 "folder_ids",
-                "has_attachments"
+                "has_attachments",
+                "calendar_method",
+                "authentication_class",
+                "calendar_part_locator_sha256"
               ],
               "properties": {
                 "mailbox_id": { "$ref": "#/$defs/uuid" },
@@ -131,6 +134,14 @@
                 "calendar_method": {
                   "type": ["string", "null"],
                   "enum": ["request", "cancel", "reply", null]
+                },
+                "authentication_class": {
+                  "type": "string",
+                  "enum": ["trusted_internal", "dmarc_aligned", "untrusted"]
+                },
+                "calendar_part_locator_sha256": {
+                  "type": ["string", "null"],
+                  "pattern": "^[0-9a-f]{64}$"
                 }
               }
             }

@@ -222,6 +222,27 @@ Cross-domain integration uses the existing shared envelope and durable outbox:
    them through durable delivery/submission state; unknown submission outcomes are
    reconciled before retry.
 
+### Task 10 P0 prerequisite contract
+
+This is a source-free prerequisite; it does not establish runtime readiness. `MailMessage`
+must later add non-null `authentication_class` defaulting to `untrusted` and nullable
+`calendar_part_locator_hash` of exactly 32 bytes. Existing rows backfill as
+`untrusted`/null with no reparse or historical re-emission. The engine projection supplies
+only the class and domain-separated locator hash, never raw locator, provider ID, or body.
+
+`mail.received.v1` keeps `engine_message_id` solely for legacy v1 compatibility. A new Calendar
+consumer ignores it; therefore it is incorrect to claim that no provider IDs exist anywhere in
+NATS. The new fields are required: authentication enum `trusted_internal|dmarc_aligned|untrusted`,
+and method plus locator pair (both null for non-candidate; otherwise a permitted method and a
+64-lowercase-hex locator). Public APIs/logs receive no authentication evidence; the envelope carries
+only the enum.
+
+6C0V2 is retained unchanged for matching stored-v2 replay. 6C0V3 is the new-request proof:
+domain `hub.mail.sync.apply.result.v3`, version 3, tags 1..9 unchanged, tag 10 authentication
+class enum string, and tag 11 optional raw 32-byte locator hash using the registered presence
+encoding. v1 remains fail-closed; a v2 proof is neither overwritten nor reinterpreted as v3.
+Canonical validation proves projection/carrier equality and method/locator pairing.
+
 No domain imports or queries the other domain's Ent tables. Shared identifiers and
 envelopes cross the boundary; state ownership does not.
 
@@ -239,8 +260,10 @@ envelopes cross the boundary; state ownership does not.
   deduplication is only an optimization.
 - Optimistic-version or fence mismatch produces a typed retry/lease-lost outcome,
   never a last-write-wins overwrite.
-- Raw MIME, calendar body, credentials, provider errors, and engine identifiers are
-  absent from receipts, logs, public errors, and NATS envelopes.
+- Raw MIME, calendar body, credentials, provider errors, authentication evidence, and newly
+  introduced provider identifiers are absent from receipts, logs, public errors, and new
+  envelope fields. Legacy v1 `engine_message_id` is explicitly retained as an ignored
+  compatibility field.
 - Consumer poison messages are terminally quarantined/dead-lettered using safe
   codes and bounded retry metadata.
 - Worker concurrency, page sizes, retry attempts, and wall-clock slots retain the

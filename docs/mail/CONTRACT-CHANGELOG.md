@@ -1,5 +1,25 @@
 # Hub Mail contract changelog
 
+## 2026-08-23 - Mail-to-Calendar inbound admission additive prerequisite
+
+Documentation-only P0 prerequisite; no source implementation, testframework change, migration,
+generation, build, lint, format, Docker, or runtime evidence was run. `mail.received.v1` now
+requires `authentication_class` and `calendar_part_locator_sha256` alongside required
+`calendar_method`; class is `trusted_internal|dmarc_aligned|untrusted`, locator is null or exact
+64 lowercase hex, and method/locator are strictly paired. `engine_message_id` remains only a legacy
+v1 compatibility field and is ignored by the future consumer. The envelope carries only the class;
+no authentication evidence, headers, explanations, raw MIME, provider locator, or new provider ID
+is exposed through public APIs/logs.
+
+The future Mail durable mapping is non-null class/default `untrusted` plus nullable exact-32-byte
+domain-separated locator hash, with existing rows `untrusted`/null and no reparse/re-emission.
+6C0V2 is not mutated: 6C0V3 introduces `hub.mail.sync.apply.result.v3`, version 3, preserves tags
+1..9, and appends authentication class tag 10 and optional raw 32-byte locator-hash tag 11. Matching
+stored v2 proofs replay only with v2; v1 remains fail-closed. The receipt contract freezes lease
+token/generation, state invariants, exact-second database clock, 60-second TTL, eight attempts,
+retry/deferral schedules, expiry behavior, and ABA-proof terminalization. Task 10 now depends on
+the P0/P1/P2/P3 prerequisite sequence; future source manifests remain separate.
+
 ## 2026-08-22 - Task 6B Ent sync prepare immutable source receipt
 
 `STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN` at effective HEAD `431022ed`, after source

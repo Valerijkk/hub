@@ -1162,7 +1162,38 @@ Through `/qa-gate`: backend build plus applicable Calendar/Mail unit/contract/in
 feat(db): add mail calendar production migration
 ```
 
+### Task 10P: Freeze Mail-to-Calendar inbound admission prerequisites
+
+**Dependency:** P0 -> P1 -> P2 -> P3. This task is documentation-only and must complete before
+Task 10; it authorizes neither implementation nor runtime verification.
+
+- [ ] **P0: Freeze compatibility, privacy, proof, and worker semantics**
+
+Require v1 authentication class and strict method/locator pairing; retain but ignore legacy
+`engine_message_id` in the new consumer. Freeze Mail durable backfill/no-reparse/no-re-emission,
+6C0V3 alongside retained v2 replay and v1 fail-closed, and the exact receipt lease/state/retry
+contract. Tests, build, lint, formatting, generation, migration, Docker, and runtime are all
+`NOT_RUN` and forbidden until the founder merges the new testframework.
+
+- [ ] **P1: Future Ent schema packet only**
+
+The only future source file is `backend/ent/schema/calendarinboundmessagereceipt.go`.
+
+- [ ] **P2: Future Mail projection/canonical packet only**
+
+The later source manifest is `backend/internal/mail/mailbox_types.go`,
+`backend/internal/mail/mailbox_events.go`, `backend/internal/mail/mailbox_sync_policy.go`,
+`backend/internal/mail/mailbox_sync_apply_canonical.go`, `backend/ent/schema/mailmessage.go`, and
+`backend/internal/mail/mailbox_ent_sync_apply_messages.go`.
+
+- [ ] **P3: Later Calendar consumer/repository/service/wiring packet**
+
+Only after P0-P2 acceptance may a separate packet own the consumer, repository, service, and
+wiring; no source implementation belongs to Task 10P.
+
 ### Task 10: Inbound Mail-to-Calendar consumer
+
+**Dependency:** Task 10P P0, P1, P2, and P3 prerequisites must be accepted first.
 
 **Files:**
 - Create: `backend/internal/calendar/mail_inbound_consumer.go`
