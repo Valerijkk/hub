@@ -1164,32 +1164,41 @@ feat(db): add mail calendar production migration
 
 ### Task 10P: Freeze Mail-to-Calendar inbound admission prerequisites
 
-**Dependency:** P0 -> P1 -> P2 -> P3. This task is documentation-only and must complete before
-Task 10; it authorizes neither implementation nor runtime verification.
+**Dependency:** P0 -> P1 -> P2 -> P3. This is a prerequisite track, not a wholly
+documentation-only task. P0-P2 are static-source acceptance only; P3 must complete before Task 10.
 
-- [ ] **P0: Freeze compatibility, privacy, proof, and worker semantics**
+- [x] **P0: Freeze compatibility, privacy, proof, and worker semantics — STATIC_ACCEPTED**
 
 Require v1 authentication class and strict method/locator pairing; retain but ignore legacy
 `engine_message_id` in the new consumer. Freeze Mail durable backfill/no-reparse/no-re-emission,
 6C0V3 alongside retained v2 replay and v1 fail-closed, and the exact receipt lease/state/retry
 contract. Tests, build, lint, formatting, generation, migration, Docker, and runtime are all
-`NOT_RUN` and forbidden until the founder merges the new testframework.
+`NOT_RUN` and forbidden until the founder merges the new testframework. Contract
+`0d4fa053d569631234c5a7f902341bb6a73a7d46` plus pairing fix
+`5a253d166f83ce37e695566f1396ee16fe00b224` are independently accepted C/I/M `0/0/0`.
 
-- [ ] **P1: Future Ent schema packet only**
+- [x] **P1: Calendar receipt Ent schema — STATIC_ACCEPTED**
 
-The only future source file is `backend/ent/schema/calendarinboundmessagereceipt.go`.
+The accepted source is `backend/ent/schema/calendarinboundmessagereceipt.go` at
+`4b7f322b629dd269cac7e05ba61f7ca03e45d96c`, independently approved C/I/M `0/0/0`.
 
-- [ ] **P2: Future Mail projection/canonical packet only**
+- [x] **P2: Mail durable projection/canonical packet — STATIC_ACCEPTED**
 
-The later source manifest is `backend/internal/mail/mailbox_types.go`,
+The accepted exact source manifest is `backend/internal/mail/mailbox_types.go`,
 `backend/internal/mail/mailbox_events.go`, `backend/internal/mail/mailbox_sync_policy.go`,
 `backend/internal/mail/mailbox_sync_apply_canonical.go`, `backend/ent/schema/mailmessage.go`, and
-`backend/internal/mail/mailbox_ent_sync_apply_messages.go`.
+`backend/internal/mail/mailbox_ent_sync_apply_messages.go`, plus `backend/internal/mail/mailbox_fake.go`,
+`backend/internal/mail/mailbox_sync_service.go`, `backend/internal/mail/mailbox_repository.go`, and
+`backend/internal/mail/mailbox_ent_sync_apply.go`. The durable schema, projection carrier, and
+event/durable/V2/V3 proof are respectively approved C/I/M `0/0/0` at
+`fc5dfe195b89963601e3f365e593469f73bed94f`, `1ebbb129d62aeca695a2b028822101af9c77687f`, and
+`a61edbb086df8535349429438155fad015b29615`.
 
 - [ ] **P3: Later Calendar consumer/repository/service/wiring packet**
 
 Only after P0-P2 acceptance may a separate packet own the consumer, repository, service, and
-wiring; no source implementation belongs to Task 10P.
+wiring; it remains pending. No consumer/repository/service/wiring, NATS subscription, or worker
+readiness is accepted by P0-P2.
 
 ### Task 10: Inbound Mail-to-Calendar consumer
 

@@ -224,11 +224,16 @@ Cross-domain integration uses the existing shared envelope and durable outbox:
 
 ### Task 10 P0 prerequisite contract
 
-This is a source-free prerequisite; it does not establish runtime readiness. `MailMessage`
-must later add non-null `authentication_class` defaulting to `untrusted` and nullable
-`calendar_part_locator_hash` of exactly 32 bytes. Existing rows backfill as
-`untrusted`/null with no reparse or historical re-emission. The engine projection supplies
-only the class and domain-separated locator hash, never raw locator, provider ID, or body.
+This prerequisite track is `STATIC_SOURCE_ONLY / RUNTIME_NOT_RUN`, not runtime readiness.
+P1 `CalendarInboundMessageReceipt` schema is independently approved C/I/M `0/0/0` at
+`4b7f322b629dd269cac7e05ba61f7ca03e45d96c`. P2 makes `MailMessage`
+`authentication_class` non-null with default `untrusted` and `calendar_part_locator_hash`
+nullable at exactly 32 bytes; existing rows backfill as `untrusted`/null with no reparse or
+historical re-emission. The P2 durable schema is approved C/I/M `0/0/0` at
+`fc5dfe195b89963601e3f365e593469f73bed94f`; its projection carrier is approved at
+`1ebbb129d62aeca695a2b028822101af9c77687f`; and event/durable/V2/V3 proof is approved at
+`a61edbb086df8535349429438155fad015b29615`. The engine projection supplies only the class
+and domain-separated locator hash, never raw locator, provider ID, or body.
 
 `mail.received.v1` keeps `engine_message_id` solely for legacy v1 compatibility. A new Calendar
 consumer ignores it; therefore it is incorrect to claim that no provider IDs exist anywhere in
@@ -242,6 +247,10 @@ domain `hub.mail.sync.apply.result.v3`, version 3, tags 1..9 unchanged, tag 10 a
 class enum string, and tag 11 optional raw 32-byte locator hash using the registered presence
 encoding. v1 remains fail-closed; a v2 proof is neither overwritten nor reinterpreted as v3.
 Canonical validation proves projection/carrier equality and method/locator pairing.
+
+P3 remains future: no Calendar consumer, repository, service, server wiring, NATS subscription,
+or worker is accepted. Generated Ent artifacts are absent/uncommitted; migration, SQL,
+compile/build, test, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 
 No domain imports or queries the other domain's Ent tables. Shared identifiers and
 envelopes cross the boundary; state ownership does not.
@@ -325,7 +334,9 @@ envelopes cross the boundary; state ownership does not.
    Calendar GET, canonical mutations, and the Mail account route once. Task 7A stays blocked on
    Phase 145 founder auth/gateway gates and inaccessible private engine interfaces; Task 8B provider
    and worker lifecycle remains pending/blocked. No item in this paragraph is runtime evidence.
-5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
+5. P0-P2 Mail-to-Calendar prerequisite sources are statically accepted; P3 remains the later
+   outbox-backed Calendar consumer/repository/service/wiring packet, followed by the separate
+   Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
 7. Docker generation, build, focused verification, migration replay, and runtime
    smoke through the accepted launcher.

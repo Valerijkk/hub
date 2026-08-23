@@ -1,4 +1,15 @@
 ---
+mail_calendar_inbound_prerequisites_2026_08_23: >-
+  STATIC_SOURCE_ONLY / RUNTIME_NOT_RUN. P0 contract is independently accepted C/I/M 0/0/0 at
+  0d4fa053d569631234c5a7f902341bb6a73a7d46 with locator-pairing fix
+  5a253d166f83ce37e695566f1396ee16fe00b224; P1 CalendarInboundMessageReceipt schema is
+  APPROVED C/I/M 0/0/0 at 4b7f322b629dd269cac7e05ba61f7ca03e45d96c; P2 Mail durable schema,
+  projection carrier, and event/durable/V2/V3 proof are APPROVED C/I/M 0/0/0 at
+  fc5dfe195b89963601e3f365e593469f73bed94f, 1ebbb129d62aeca695a2b028822101af9c77687f,
+  and a61edbb086df8535349429438155fad015b29615. P3 and Task 10 consumer/repository/service/
+  wiring remain pending. Generated Ent artifacts are absent/uncommitted; generation, migration,
+  SQL, compile/build, tests, lint/gofmt, parser/validator, Docker, and runtime are NOT_RUN. No
+  NATS/worker, migration, merge, product, or readiness claim follows.
 mail_144_task_6b_ent_sync_prepare: >-
   STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN at effective HEAD 431022ed after source
   6e788cc7 and live-thread correction 431022ed. The exact effective manifest is

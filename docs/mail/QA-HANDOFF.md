@@ -1,5 +1,17 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## Inbound Mail-to-Calendar P0-P2 prerequisite acceptance (2026-08-23)
+
+`STATIC_SOURCE_ONLY / RUNTIME_NOT_RUN`: P0 contract `0d4fa053d569631234c5a7f902341bb6a73a7d46`
+plus pairing fix `5a253d166f83ce37e695566f1396ee16fe00b224`, P1 receipt schema
+`4b7f322b629dd269cac7e05ba61f7ca03e45d96c`, and P2 Mail durable schema,
+projection carrier, and event/durable/V2/V3 proof `fc5dfe195b89963601e3f365e593469f73bed94f`,
+`1ebbb129d62aeca695a2b028822101af9c77687f`, and
+`a61edbb086df8535349429438155fad015b29615` are independently approved C/I/M `0/0/0`.
+P3 and Task 10 consumer/repository/service/wiring remain pending; no NATS/worker readiness follows.
+Generated Ent artifacts are absent/uncommitted and generation, migration, SQL, compile/build,
+tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
+
 ## Mail/Calendar HTTP composition static acceptance (2026-08-23)
 
 `STATIC_ACCEPTED / RUNTIME_NOT_RUN` is limited to the accepted source and independent static
