@@ -1048,11 +1048,11 @@ All other `/api/mail` OpenAPI operations remain unregistered until their own acc
 
 - [ ] **Step 1: Implement exact route-to-service mapping**
 
-Map routes respectively to `CreateCalendarEvent`, `UpdateCalendarEvent`, `CancelCalendarEvent`, `RespondToCalendarSeries`, `RespondToCalendarOccurrence`, and `CancelCalendarEventOccurrence`. Both RSVP POST routes return the canonical `CalendarAttendee`, never a full event or link state; their caller invalidates and refetches the event/card. Actor comes only from auth context; current owner/state is never accepted from the client.
+Map routes respectively to `CreateCalendarEvent`, `UpdateCalendarEvent`, `CancelCalendarEvent`, `RespondToCalendarSeries`, `RespondToCalendarOccurrence`, and `CancelCalendarEventOccurrence`. PATCH and DELETE encode only the public `CalendarEventMutationResult` that mirrors `CalendarEventUpdateResult` (`event_id`, `version`, `sequence`, `status`, `changed_fields`); the handler must not hydrate or invent a canonical event read. Their caller invalidates and refetches canonical event detail. Both RSVP POST routes return the canonical `CalendarAttendee`, never a full event or link state; their caller invalidates and refetches the event/card. Actor comes only from auth context; current owner/state is never accepted from the client.
 
 - [ ] **Step 2: Record deferred handler coverage**
 
-The dedicated post-sync test plan owns coverage for bounded DTO parsing, UUID/recurrence/version validation, typed safe status mapping, foreign-resource masking, canonical `CalendarAttendee` RSVP result encoding, caller invalidation/refetch, and exact POST route registration. Until then this packet writes no test and exact-scope static source review is the only gate; executable evidence is `NOT_RUN`. Keep legacy GET routes in the existing handler.
+The dedicated post-sync test plan owns coverage for bounded DTO parsing, UUID/recurrence/version validation, typed safe status mapping, foreign-resource masking, exact `CalendarEventMutationResult` PATCH/DELETE encoding without hydration, canonical `CalendarAttendee` RSVP result encoding, caller invalidation/refetch, and exact POST route registration. Until then this packet writes no test and exact-scope static source review is the only gate; executable evidence is `NOT_RUN`. Keep legacy GET routes in the existing handler.
 
 - [ ] **Step 3: Static review and commit**
 

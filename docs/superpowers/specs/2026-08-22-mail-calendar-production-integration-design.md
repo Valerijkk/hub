@@ -169,6 +169,10 @@ Both canonical RSVP mutations are `POST /api/calendar/v2/events/{eventId}/rsvp` 
 `POST /api/calendar/v2/events/{eventId}/instances/{recurrenceId}/rsvp`. Each returns only the
 canonical `CalendarAttendee`; the caller invalidates and refetches its event/card rather than
 receiving a full event or link state.
+Canonical `PATCH` and `DELETE /api/calendar/v2/events/{eventId}` return only
+`CalendarEventMutationResult`, mirroring the accepted `CalendarEventUpdateResult` fields
+`event_id`, `version`, `sequence`, `status`, and `changed_fields`. The handler does not hydrate
+or fabricate canonical event detail; its caller invalidates and refetches that detail.
 Legacy Calendar read endpoints remain available until the migration postconditions
 authorize cutover. The current legacy Calendar handler registers only
 `GET /api/calendar/events` and `GET /api/calendar/export.ics`; those reads remain

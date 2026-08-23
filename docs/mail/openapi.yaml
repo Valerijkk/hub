@@ -1244,10 +1244,10 @@ paths:
             schema: {$ref: "#/components/schemas/UpdateCalendarEventRequest"}
       responses:
         "200":
-          description: Updated event with sequence and RSVP policy applied
+          description: Mutation result only; clients invalidate and refetch canonical event detail
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/CalendarEvent"}
+              schema: {$ref: "#/components/schemas/CalendarEventMutationResult"}
         "409": {$ref: "#/components/responses/CalendarEventPatchConflict"}
         default: {$ref: "#/components/responses/Error"}
     delete:
@@ -1258,10 +1258,10 @@ paths:
         - {$ref: "#/components/parameters/IfMatch"}
       responses:
         "200":
-          description: Cancelled event with incremented sequence
+          description: Mutation result only; clients invalidate and refetch canonical event detail
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/CalendarEvent"}
+              schema: {$ref: "#/components/schemas/CalendarEventMutationResult"}
         "409": {$ref: "#/components/responses/CalendarEventDeleteConflict"}
         default: {$ref: "#/components/responses/Error"}
   /calendar/v2/events/{eventId}/rsvp:
@@ -3300,6 +3300,26 @@ components:
           maxItems: 200
           items: {$ref: "#/components/schemas/CalendarAttendee"}
         version: {type: integer, minimum: 1}
+    CalendarEventMutationResult:
+      type: object
+      additionalProperties: false
+      description: >-
+        Public result of an EventService update or cancellation. It is not a hydrated event;
+        callers invalidate and refetch canonical event detail.
+      required: [event_id, version, sequence, status, changed_fields]
+      properties:
+        event_id: {type: string, format: uuid}
+        version: {type: integer, minimum: 1}
+        sequence: {type: integer, minimum: 0}
+        status: {type: string, enum: [confirmed, tentative, cancelled]}
+        changed_fields:
+          type: array
+          uniqueItems: true
+          maxItems: 13
+          description: Canonical service order; empty when no event fields changed or on cancellation
+          items:
+            type: string
+            enum: [title, description, location, starts_at, ends_at, start_date, end_date_exclusive, all_day, timezone, rrule, exdates, reminder_minutes, attendees]
     CalendarEventSummary:
       type: object
       additionalProperties: false
