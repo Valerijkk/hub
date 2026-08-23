@@ -3,6 +3,24 @@ import { useAuthStore } from "@/stores/auth-store";
 /** Базовый путь API. Все запросы идут через /api префикс. */
 const API_BASE = "/api";
 
+const MAX_HEADER_VALUE_LENGTH = 256;
+const MAX_LOCATION_LENGTH = 2048;
+const CONTROL_CHARACTERS = /[\u0000-\u001F\u007F]/;
+const RECOVERY_ERROR_CODES = new Set([
+	"MAIL_ACCOUNT_BUSY",
+	"ATTENDEE_VERSION_CONFLICT",
+	"CALENDAR_EVENT_VERSION_CONFLICT",
+	"CALENDAR_EVENT_NOT_MUTABLE",
+	"CALENDAR_OCCURRENCE_NOT_MUTABLE",
+	"SCHEDULED_CALL_NOT_MUTABLE",
+]);
+
+export interface ApiRequestOptions {
+	idempotencyKey?: string;
+	ifMatch?: number;
+	signal?: AbortSignal;
+}
+
 /**
  * Структура ошибки API.
  * Возвращается сервером при неуспешных запросах (4xx, 5xx).
@@ -16,6 +34,10 @@ export interface ApiError {
 	request_id?: string;
 	/** Секунды до повтора (429, из заголовка Retry-After). */
 	retry_after?: number;
+	error_code?: string;
+	etag?: string;
+	location?: string;
+	retry_after_seconds?: number;
 }
 
 /**
@@ -44,7 +66,10 @@ class ApiClient {
 	 * Формирует заголовки запроса, включая Authorization.
 	 * Для FormData не ставим Content-Type — браузер сам добавит multipart boundary.
 	 */
-	private getHeaders(body?: unknown): Record<string, string> {
+	private getHeaders(
+		body?: unknown,
+		options?: ApiRequestOptions,
+	): Record<string, string> {
 		const headers: Record<string, string> = {};
 		if (!(body instanceof FormData)) {
 			headers["Content-Type"] = "application/json";
@@ -52,6 +77,16 @@ class ApiClient {
 		const token = useAuthStore.getState().accessToken;
 		if (token) {
 			headers.Authorization = `Bearer ${token}`;
+		}
+		if (options?.idempotencyKey && options.idempotencyKey.trim().length > 0) {
+			headers["Idempotency-Key"] = options.idempotencyKey;
+		}
+		if (
+			typeof options?.ifMatch === "number" &&
+			Number.isSafeInteger(options.ifMatch) &&
+			options.ifMatch > 0
+		) {
+			headers["If-Match"] = `"${options.ifMatch}"`;
 		}
 		return headers;
 	}
@@ -88,7 +123,50 @@ class ApiClient {
 	 * Wire TZ/NFR-13: `{"error","request_id"}` → клиентский ApiError.
 	 * `message` = поле `error`; без/невалидный JSON → statusText.
 	 */
+	private getBoundedHeaderValue(value: string | null): string | undefined {
+		if (
+			!value ||
+			value.length > MAX_HEADER_VALUE_LENGTH ||
+			CONTROL_CHARACTERS.test(value)
+		) {
+			return undefined;
+		}
+		return value;
+	}
+
+	private getSanitizedLocation(value: string | null): string | undefined {
+		if (
+			!value ||
+			value.length > MAX_LOCATION_LENGTH ||
+			!value.startsWith("/api/") ||
+			value.includes(String.fromCharCode(92)) ||
+			CONTROL_CHARACTERS.test(value)
+		) {
+			return undefined;
+		}
+		return value;
+	}
+
 	private async mapWireToApiError(response: Response): Promise<ApiError> {
+		const error: ApiError = {
+			code: response.status,
+			message: response.statusText,
+		};
+		const errorCode = this.getBoundedHeaderValue(
+			response.headers.get("X-Hub-Error-Code"),
+		);
+		if (errorCode && RECOVERY_ERROR_CODES.has(errorCode)) {
+			error.error_code = errorCode;
+		}
+		const etag = this.getBoundedHeaderValue(response.headers.get("ETag"));
+		if (etag) {
+			error.etag = etag;
+		}
+		const location = this.getSanitizedLocation(response.headers.get("Location"));
+		if (location) {
+			error.location = location;
+		}
+
 		try {
 			const body = (await response.json()) as {
 				error?: unknown;
@@ -98,16 +176,13 @@ class ApiClient {
 				typeof body.error === "string" && body.error.length > 0
 					? body.error
 					: response.statusText;
-			const error: ApiError = {
-				code: response.status,
-				message,
-			};
+			error.message = message;
 			if (typeof body.request_id === "string" && body.request_id.length > 0) {
 				error.request_id = body.request_id;
 			}
 			return error;
 		} catch {
-			return { code: response.status, message: response.statusText };
+			return error;
 		}
 	}
 
@@ -125,12 +200,14 @@ class ApiClient {
 		method: string,
 		path: string,
 		body?: unknown,
+		options?: ApiRequestOptions,
 		_retried = false,
 	): Promise<T> {
 		const isFormData = body instanceof FormData;
 		const response = await fetch(`${API_BASE}${path}`, {
 			method,
-			headers: this.getHeaders(body),
+			headers: this.getHeaders(body, options),
+			signal: options?.signal,
 			body:
 				body === undefined || body === null
 					? undefined
@@ -146,7 +223,7 @@ class ApiClient {
 			}
 			const refreshed = await this.tryRefresh();
 			if (refreshed) {
-				return this.request(method, path, body, true);
+				return this.request(method, path, body, options, true);
 			}
 			await this.expireSession();
 			throw new Error("Session expired");
@@ -161,6 +238,12 @@ class ApiClient {
 					if (!Number.isNaN(seconds) && seconds > 0) {
 						error.retry_after = seconds;
 					}
+				}
+			}
+			if (response.status === 423 && error.error_code === "MAIL_ACCOUNT_BUSY") {
+				const retryHeader = response.headers.get("Retry-After");
+				if (retryHeader && /^[1-5]$/.test(retryHeader)) {
+					error.retry_after_seconds = Number(retryHeader);
 				}
 			}
 			throw error;
@@ -254,16 +337,16 @@ class ApiClient {
 		return response.blob();
 	}
 	/** POST-запрос. */
-	post<T>(path: string, body?: unknown) {
-		return this.request<T>("POST", path, body);
+	post<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
+		return this.request<T>("POST", path, body, options);
 	}
 	/** PUT-запрос. */
-	put<T>(path: string, body?: unknown) {
-		return this.request<T>("PUT", path, body);
+	put<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
+		return this.request<T>("PUT", path, body, options);
 	}
 	/** PATCH-запрос (частичное обновление). */
-	patch<T>(path: string, body?: unknown) {
-		return this.request<T>("PATCH", path, body);
+	patch<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
+		return this.request<T>("PATCH", path, body, options);
 	}
 	/** DELETE-запрос. */
 	delete<T>(path: string) {
