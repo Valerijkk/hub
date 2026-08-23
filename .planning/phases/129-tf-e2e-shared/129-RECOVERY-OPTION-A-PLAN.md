@@ -1,4 +1,5 @@
 ---
+SUPERSEDED_EXECUTION_AUTHORITY: root-compose-2026-08-15
 phase: 129-tf-e2e-shared
 plan: recovery-option-a
 type: execute
@@ -19,6 +20,8 @@ must_haves:
     - "No cutover-manifest mutation, fabricated v1 receipt/verdict, all-241 deletion commit, push, or merge."
     - "No host test/build/validator, direct Docker/Compose, pro-qa-ai access, or unrelated staging."
 ---
+
+> **SUPERSEDED — provenance only.** This plan is not executable authority. Its old paths and commands are non-executable provenance, superseded by root Compose authority approved in commits `831d5014` and `e3de17d6`.
 
 <objective>
 Create a forward-only, fail-closed successor authority for staged Phase 129-04

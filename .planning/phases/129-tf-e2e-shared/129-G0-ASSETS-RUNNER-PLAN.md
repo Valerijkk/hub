@@ -1,3 +1,7 @@
+SUPERSEDED_EXECUTION_AUTHORITY: root-compose-2026-08-15
+
+> **SUPERSEDED — provenance only.** This plan is not executable authority. Its old paths and commands are non-executable provenance, superseded by root Compose authority approved in commits `831d5014` and `e3de17d6`.
+
 # G0 Assets and Runner: Pre-Genesis Bootstrap Plan
 
 **Status:** planning only. This plan does not accept a Phase 129 batch, the two recovered bulk moves, or the 241 staged legacy deletions.

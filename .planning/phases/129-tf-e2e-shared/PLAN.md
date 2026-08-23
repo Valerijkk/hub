@@ -1,4 +1,5 @@
 ---
+SUPERSEDED_EXECUTION_AUTHORITY: root-compose-2026-08-15
 phase: 129-tf-e2e-shared
 plan: "00"
 type: execute
@@ -41,6 +42,8 @@ must_haves:
     - "each batch mutation -> repository-root manifest validation in its sealed validation mode -> focused Docker-native tests"
     - "hook consumer refactor -> regenerated authority with zero links -> hook-file deletion"
 ---
+
+> **SUPERSEDED — provenance only.** This plan is not executable authority. Its old paths and commands are non-executable provenance, superseded by root Compose authority approved in commits `831d5014` and `e3de17d6`.
 
 <objective>
 Execute the founder-locked greenfield test-architecture cutover as 173 small, manifest-authorized batches after Phase 128 has sealed the authority and destructive executor.
