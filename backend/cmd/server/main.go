@@ -27,6 +27,7 @@ func main() {
 	wireMessenger(d)
 	wireNotification(d)
 	wireAuditMailAI(d)
+	wireCalendarMail(d)
 	wireModules(d)
 	wireIntegrations(d)
 	wireWebSocket(d)

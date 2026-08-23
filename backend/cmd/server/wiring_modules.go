@@ -5,7 +5,6 @@ import (
 	"github.com/google/uuid"
 	accountingmod "github.com/valerii/hub/backend/internal/accounting"
 	basesmod "github.com/valerii/hub/backend/internal/bases"
-	calendarmod "github.com/valerii/hub/backend/internal/calendar"
 	crmmod "github.com/valerii/hub/backend/internal/crm"
 	dashboardmod "github.com/valerii/hub/backend/internal/dashboard"
 	hrmod "github.com/valerii/hub/backend/internal/hr"
@@ -31,11 +30,6 @@ func wireModules(d *serverDeps) {
 	intranetSvc := intranetmod.NewService(intranetRepo, intranetNotifier, intranetNotifier)
 	intranetHandler := intranetmod.NewHandler(intranetSvc)
 	intranetHandler.RegisterRoutes(api, requireAuth)
-
-	calendarRepo := calendarmod.NewEntRepository(d.db)
-	calendarSvc := calendarmod.NewService(calendarRepo)
-	calendarHandler := calendarmod.NewHandler(calendarSvc)
-	calendarHandler.RegisterRoutes(api, requireAuth)
 
 	crmRepo := crmmod.NewEntRepository(d.db)
 	crmSvc := crmmod.NewService(crmRepo)
