@@ -8,7 +8,7 @@ mail_calendar_inbound_prerequisites_2026_08_23: >-
   fc5dfe195b89963601e3f365e593469f73bed94f, 1ebbb129d62aeca695a2b028822101af9c77687f,
   and a61edbb086df8535349429438155fad015b29615. P3-A sealed port is STATIC_ACCEPTED / STATIC_SOURCE_ONLY
   at 05f87f87f6dc30bd57648030026faf5912add3e7 (Contract/high and Security/xhigh APPROVED C/I/M 0/0/0);
-  P3-B and Task 10 consumer/repository/service/wiring remain pending. Generated Ent artifacts are absent/uncommitted; generation, migration,
+  P3-B is STATIC_ACCEPTED / STATIC_SOURCE_ONLY at 43a6c42af88524be2951966bdbfc83b422ecb7f9; P3-C is the sole next pending/blocked Task 10 consumer/repository/service/wiring atom on Mail Ent generation. P3-D/E remain pending. Generated Ent artifacts are absent/uncommitted; generation, migration,
   SQL, compile/build, tests, lint/gofmt, parser/validator, Docker, and runtime are NOT_RUN. No
   NATS/worker, migration, merge, product, or readiness claim follows.
 mail_calendar_inbound_p3_source_freeze_2026_08_23: >-
@@ -16,9 +16,9 @@ mail_calendar_inbound_p3_source_freeze_2026_08_23: >-
   (`feat(mail): add sealed calendar part port`) for exact five files calendar_part_source.go,
   mailbox_engine.go, mailbox_types.go, mailbox_errors.go, mailbox_fake.go; independent Contract/high and
   Security/xhigh are APPROVED C/I/M 0/0/0. It accepts sealed `package mail` ABI/port only: no concrete
-  CalendarPartSource, engine/provider/MIME/locator I/O, Ent, NATS, wiring, or runtime. P3-B is next exact
-  UNIMPLEMENTED / PENDING atom for receipt-first EventTransaction REPLY factor. P3-C-E remain pending/
-  blocked: P3-C after Mail generation owns concrete source plus five-second/pre-post semantics; P3-D
+  CalendarPartSource, engine/provider/MIME/locator I/O, Ent, NATS, wiring, or runtime. P3-B is STATIC_ACCEPTED /
+  STATIC_SOURCE_ONLY at 43a6c42af88524be2951966bdbfc83b422ecb7f9 for the receipt-first EventTransaction REPLY factor. P3-C is the sole next pending/
+  blocked atom on Mail Ent generation and owns concrete source plus five-second/pre-post semantics; P3-D/E
   follows Calendar generation; P3-E follows concrete engine/source. Historic 147-02D/02E GetMessage/full-
   body/MIME/direct-engine/provider/legacy-engine_message_id Calendar-ingestion wording is
   CONSUMED/HISTORICAL with no fallback. Stalwart remains blocked on Phase 145 authority. Generated Ent

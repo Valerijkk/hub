@@ -26,9 +26,9 @@ body/MIME parsing, direct MailEngine or Mail Ent, provider IDs/raw locator, or l
 
 P3-A accepted files are `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`,
 `mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`; no concrete source/read behavior is
-accepted. P3-B next exact files are `backend/internal/calendar/event_repository.go`,
-`event_service_inbound_reply.go`, and new `event_service_inbound_message.go`, policy/ports only with no
-generated Ent. P3-C remains pending after Mail generation: new
+accepted. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `43a6c42af88524be2951966bdbfc83b422ecb7f9` for exact
+`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and new
+`event_service_inbound_message.go`, policy/ports only with no generated Ent. P3-C is the sole next pending/blocked atom after Mail generation: new
 `backend/internal/mail/mailbox_ent_calendar_part.go` plus `mailbox_ent_repository.go`; it owns concrete
 source/I-O, byte/five-second bound, and durable pre/post behavior. Stalwart is separately
 Phase-145-blocked. P3-D remains pending after Calendar generation: new `mail_inbound_repository.go`,

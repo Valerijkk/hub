@@ -216,8 +216,8 @@ P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at immutable source
 APPROVED C/I/M `0/0/0`. Its owning Go package is `backend/internal/mail` (`package mail`): Calendar may
 import and use the exported sealed Mail port/types, but Mail never imports Calendar. P3-A accepts only the
 sealed ABI/port surface below; it does not claim a concrete `CalendarPartSource`, engine/provider I/O,
-MIME/locator handling, Ent, NATS, wiring, or runtime. P3-B is the next exact pending atom; P3-B onward is
-`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. The P3-A static accepted compile shape in `package mail` is:
+MIME/locator handling, Ent, NATS, wiring, or runtime. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9`; P3-C is the sole next `UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation, and P3-D/E remain pending. The P3-A static accepted compile shape in `package mail` is:
 
 ```go
 type CalendarPartReadRequest struct { /* unexported fields */ }

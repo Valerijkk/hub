@@ -284,11 +284,10 @@ runtime evidence.
 raw locator/version never leaves Mail. The V1 formula and snapshot/recheck are normative in CONTRACT §2.6.
 
 Historic 147-02D `GetMessage`/full-body/MIME parsing and legacy event `engine_message_id` wording is
-`CONSUMED/HISTORICAL` for Calendar ingestion only; none is a fallback. P3-B is the next exact pending
-atom: it will factor existing REPLY application into one receipt-first `EventTransaction` with opaque
+`CONSUMED/HISTORICAL` for Calendar ingestion only; none is a fallback. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9` for one receipt-first `EventTransaction` with opaque
 claim/scope/completion and its closed observed/error-code constructor ABI, preserving reply receipt/outbox
-behavior and no nested transaction or duplicate logic. P3-C/D remain pending after their respective
-Mail/Calendar generation. P3-E remains pending after concrete engine/source: its future Mail-owned decoder
+behavior and no nested transaction or duplicate logic. P3-C is the sole next pending/blocked atom on Mail Ent generation; P3-D/E remain pending. P3-E remains pending after concrete engine/source: its future Mail-owned decoder
 validates the full compatibility `mail.received.v1` envelope, drops
 `engine_message_id`, constructs the only opaque sanitized `CalendarInboundDelivery` without that field,
 and invokes an injected Calendar-implemented sink. Calendar does not subscribe to the full envelope or
@@ -383,8 +382,8 @@ cross the boundary; state ownership does not.
    Calendar GET, canonical mutations, and the Mail account route once. Task 7A stays blocked on
    Phase 145 founder auth/gateway gates and inaccessible private engine interfaces; Task 8B provider
    and worker lifecycle remains pending/blocked. No item in this paragraph is runtime evidence.
-5. P0-P2 Mail-to-Calendar prerequisite sources and the P3-A sealed port ABI are statically accepted;
-   P3-B through P3-E remain the later transaction/source/repository/worker/NATS sequence, followed by
+5. P0-P2 Mail-to-Calendar prerequisite sources, the P3-A sealed port ABI, and P3-B transaction ABI are statically accepted;
+   P3-C is the sole next pending/blocked atom on Mail Ent generation, while P3-D/E remain pending, followed by
    the separate Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
 7. Docker generation, build, focused verification, migration replay, and runtime

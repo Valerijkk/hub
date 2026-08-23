@@ -236,7 +236,8 @@ Calendar-implemented `CalendarInboundSink`; Calendar never receives that field o
 sink result means the durable Calendar disposition committed and is ACKed. A content-free/provider-free
 sink error means no durable disposition and uses `NakWithDelay(65s)`/MaxDeliver20; no Calendar package
 subscribes to v1.
-P3-B onward remains `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; the concrete Stalwart adapter remains
+P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at `43a6c42af88524be2951966bdbfc83b422ecb7f9`; P3-C is the sole next
+`UNIMPLEMENTED / PENDING / BLOCKED` atom on Mail Ent generation, P3-D/E remain pending, and the concrete Stalwart adapter remains
 blocked on Phase 145 authority. Generated Ent, migration, SQL, build, tests, lint/gofmt, parser/validator,
 Docker, and runtime remain `NOT_RUN`.
 

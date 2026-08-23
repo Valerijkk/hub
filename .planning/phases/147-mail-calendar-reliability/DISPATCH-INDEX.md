@@ -29,15 +29,15 @@ The exact opaque `package mail` request/result/delivery/sink and `package calend
 claim/scope/completion signatures are frozen in CONTRACT §2.6 and ENGINE-CONTRACT-0.1.8. V1 identity
 binds canonical private locator and decoded bounded iTIP bytes; `engine_version` is private TOCTOU state
 only, never receipt identity.
-P3-C alone remains pending for concrete Mail source/I-O, five-second read cap, V1 locator calculation,
-and durable preflight/recheck. P3-B has the next exact Calendar policy/transaction port; receipt/ACK
-transport remains later P3-D/E.
+P3-C alone remains pending/blocked on Mail Ent generation for concrete Mail source/I-O, five-second read cap,
+V1 locator calculation, and durable preflight/recheck. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9`; receipt/ACK transport remains later P3-D/E.
 
 For Calendar ingestion, all earlier 147-02D/02E `GetMessage`, full-body/MIME parsing, direct engine,
 provider/locator, and legacy `engine_message_id` paths are `CONSUMED/HISTORICAL`; they must not be
-dispatched as a fallback. P3-B is next with exact Calendar policy/port files `event_repository.go`,
-`event_service_inbound_reply.go`, and new `event_service_inbound_message.go`; P3-C exact Mail Ent files
-after generation are new
+dispatched as a fallback. P3-B is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at
+`43a6c42af88524be2951966bdbfc83b422ecb7f9` with exact Calendar policy/port files `event_repository.go`,
+`event_service_inbound_reply.go`, and new `event_service_inbound_message.go`; P3-C is the sole next pending/blocked Mail Ent atom after generation with new
 `mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D exact Calendar generated-Ent
 files are new `mail_inbound_repository.go`, `mail_inbound_service.go`, `mail_inbound_due_worker.go`,
 `event_ent_transaction.go`, and new `event_ent_inbound_message.go`; P3-E exact files after concrete
