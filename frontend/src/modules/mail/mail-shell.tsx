@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { PenLine } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +16,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { MailSidebar } from "./mail-sidebar";
+import { MailComposer } from "./mail-composer";
 import { mailKeys } from "./mail-query-keys";
 
 type MailShellProps = PropsWithChildren;
@@ -96,6 +98,7 @@ function accountStateCopy(status: MailAccountStatus["status"]): {
 
 export function MailShell({ children }: MailShellProps) {
 	const { t } = useTranslation("mail");
+	const [composerOpen, setComposerOpen] = useState(false);
 	const accountQuery = useQuery({
 		queryKey: mailKeys.mailbox(),
 		queryFn: getMailAccountStatus,
@@ -109,6 +112,10 @@ export function MailShell({ children }: MailShellProps) {
 			!accountQuery.data ||
 			(accountQuery.data.status !== "active" &&
 				accountStateCopy(accountQuery.data.status).canRetry));
+	const composerAvailable =
+		!accountQuery.isPending &&
+		!accountQuery.isError &&
+		accountQuery.data?.status === "active";
 
 	const retryAccount = () => {
 		retryIntentRef.current = true;
@@ -178,12 +185,26 @@ export function MailShell({ children }: MailShellProps) {
 	return (
 		<main className="min-h-full bg-base px-4 py-6 sm:px-6 sm:py-8">
 			<div className="mx-auto w-full max-w-7xl">
-				<h1 className="mb-6 text-2xl font-bold tracking-tight text-t1">
-					{t("title")}
-				</h1>
+				<div className="mb-6 flex items-center justify-between gap-4">
+					<h1 className="text-2xl font-bold tracking-tight text-t1">
+						{t("title")}
+					</h1>
+					{composerAvailable ? (
+						<Button onClick={() => setComposerOpen(true)}>
+							<PenLine aria-hidden="true" />
+							{t("compose.open")}
+						</Button>
+					) : null}
+				</div>
 				<div ref={stateResultRef} tabIndex={-1} aria-live="polite">
 					{content}
 				</div>
+				{composerAvailable ? (
+					<MailComposer
+						open={composerOpen}
+						onOpenChange={setComposerOpen}
+					/>
+				) : null}
 			</div>
 		</main>
 	);

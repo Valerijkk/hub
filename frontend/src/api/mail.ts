@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, type ApiRequestOptions } from "./client";
 
 const MAIL_THREAD_MAX_LIMIT = 100;
 const MAIL_THREAD_MAX_CURSOR_LENGTH = 512;
@@ -161,6 +161,132 @@ export interface MailMessageDetail extends MailThreadMessageSummary {
 	remote_images_blocked: boolean;
 	attachments: MailMessageAttachment[];
 	calendar: Record<string, never> | null;
+}
+
+export interface MailRecipientInput {
+	email: string;
+	name?: string | null;
+}
+
+export type MailDraftStatus =
+	| "active"
+	| "saving"
+	| "unknown"
+	| "submitting"
+	| "submitted";
+
+export interface MailDraft {
+	id: string;
+	draft_client_id: string;
+	revision: number;
+	status: MailDraftStatus;
+	from_identity_id: string;
+	to: MailAddress[];
+	cc: MailAddress[];
+	bcc: MailAddress[];
+	subject: string;
+	body_format: "rich" | "plain";
+	rich_body: string | null;
+	plain_body: string;
+	priority: MailMessagePriority;
+	attachment_ids: string[];
+	reply_to_message_id?: string | null;
+	forward_message_id?: string | null;
+	updated_at: string;
+}
+
+export interface SaveMailDraftRequest {
+	draft_client_id: string;
+	from_identity_id: string;
+	to: MailRecipientInput[];
+	cc: MailRecipientInput[];
+	bcc: MailRecipientInput[];
+	subject: string;
+	body_format: "plain";
+	plain_body: string;
+	priority: MailMessagePriority;
+	attachment_ids: string[];
+}
+
+export type MailSubmissionStatus =
+	| "queued"
+	| "submitting"
+	| "sent"
+	| "unknown"
+	| "failed";
+
+export type MailSubmissionErrorCode =
+	| "MAIL_SUBMISSION_REJECTED"
+	| "MAIL_SUBMISSION_OUTCOME_UNKNOWN"
+	| "MAIL_SUBMISSION_RECONCILIATION_REQUIRED"
+	| "MAIL_SUBMISSION_POLICY"
+	| "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN"
+	| "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE"
+	| "MAIL_SUBMISSION_RECIPIENT_LIMIT"
+	| "MAIL_SUBMISSION_SIZE_LIMIT"
+	| "MAILBOX_UNAVAILABLE";
+
+export interface MailSubmission {
+	id: string;
+	status: MailSubmissionStatus;
+	message_id: string | null;
+	error_code: MailSubmissionErrorCode | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export type MailAttachmentDisposition = "attachment" | "inline";
+export type MailAttachmentScanStatus =
+	| "pending"
+	| "clean"
+	| "rejected"
+	| "error";
+
+export interface MailAttachment {
+	id: string;
+	filename: string;
+	media_type: string;
+	size_bytes: number;
+	disposition: MailAttachmentDisposition;
+	content_id: string | null;
+	scan_status: MailAttachmentScanStatus;
+	sha256: string | null;
+}
+
+export interface PresignMailAttachmentRequest {
+	draft_client_id: string;
+	filename: string;
+	media_type: string;
+	size_bytes: number;
+	disposition: MailAttachmentDisposition;
+	content_id?: string | null;
+}
+
+export interface PresignMailAttachmentResponse {
+	attachment_id: string;
+	upload_url: string;
+	expires_at: string;
+	required_headers: Record<string, string>;
+}
+
+export interface ConfirmMailAttachmentRequest {
+	sha256: string;
+	size_bytes: number;
+}
+
+export interface MailIdentity {
+	id: string;
+	address: string;
+	display_name: string;
+	kind: "primary" | "alias" | "group";
+	send_allowed: boolean;
+	is_default: boolean;
+	status: "pending" | "active" | "error" | "deleting";
+}
+
+export interface MailIdentityPage {
+	items: MailIdentity[];
+	next_cursor: string | null;
 }
 
 export interface MailThreadListParams {
@@ -359,5 +485,119 @@ export function getMailMessage(messageId: string): Promise<MailMessageDetail> {
 	const normalizedMessageID = normalizeMailMessageID(messageId);
 	return api.get<MailMessageDetail>(
 		`/mail/messages/${encodeURIComponent(normalizedMessageID)}`,
+	);
+}
+
+function normalizeMailDraftID(draftId: string): string {
+	const normalized = normalizeMailUUID(draftId);
+	if (normalized === null) {
+		throw new Error("Invalid mail draft ID");
+	}
+	return normalized;
+}
+
+function normalizeMailAttachmentID(attachmentId: string): string {
+	const normalized = normalizeMailUUID(attachmentId);
+	if (normalized === null) {
+		throw new Error("Invalid mail attachment ID");
+	}
+	return normalized;
+}
+
+export function getMailIdentities(): Promise<MailIdentityPage> {
+	return api.get<MailIdentityPage>("/mail/identities?limit=100");
+}
+
+export function createMailDraft(
+	request: SaveMailDraftRequest,
+	options: ApiRequestOptions,
+): Promise<MailDraft> {
+	return api.post<MailDraft>("/mail/drafts", request, options);
+}
+
+export function getMailDraft(draftId: string): Promise<MailDraft> {
+	return api.get<MailDraft>(
+		`/mail/drafts/${encodeURIComponent(normalizeMailDraftID(draftId))}`,
+	);
+}
+
+export function updateMailDraft(
+	draftId: string,
+	request: SaveMailDraftRequest,
+	options: ApiRequestOptions,
+): Promise<MailDraft> {
+	return api.patch<MailDraft>(
+		`/mail/drafts/${encodeURIComponent(normalizeMailDraftID(draftId))}`,
+		request,
+		options,
+	);
+}
+
+export function deleteMailDraft(
+	draftId: string,
+	options: ApiRequestOptions,
+): Promise<void> {
+	return api.delete<void>(
+		`/mail/drafts/${encodeURIComponent(normalizeMailDraftID(draftId))}`,
+		options,
+	);
+}
+
+export function sendMailDraft(
+	draftId: string,
+	options: ApiRequestOptions,
+): Promise<MailSubmission> {
+	return api.post<MailSubmission>(
+		`/mail/drafts/${encodeURIComponent(normalizeMailDraftID(draftId))}/send`,
+		undefined,
+		options,
+	);
+}
+
+export function presignMailAttachment(
+	request: PresignMailAttachmentRequest,
+	options: ApiRequestOptions,
+): Promise<PresignMailAttachmentResponse> {
+	return api.post<PresignMailAttachmentResponse>(
+		"/mail/attachments/presign",
+		request,
+		options,
+	);
+}
+
+export async function putPresignedMailAttachment(
+	contract: PresignMailAttachmentResponse,
+	body: ArrayBuffer,
+): Promise<void> {
+	const response = await fetch(contract.upload_url, {
+		method: "PUT",
+		headers: contract.required_headers,
+		body,
+		credentials: "omit",
+		redirect: "error",
+		referrerPolicy: "no-referrer",
+	});
+	if (!response.ok) {
+		throw new Error("Mail attachment upload failed");
+	}
+}
+
+export function confirmMailAttachment(
+	attachmentId: string,
+	request: ConfirmMailAttachmentRequest,
+): Promise<MailAttachment> {
+	return api.post<MailAttachment>(
+		`/mail/attachments/${encodeURIComponent(
+			normalizeMailAttachmentID(attachmentId),
+		)}/confirm`,
+		request,
+	);
+}
+
+export function deleteMailAttachment(attachmentId: string): Promise<void> {
+	return api.delete<void>(
+		`/mail/attachments/${encodeURIComponent(
+			normalizeMailAttachmentID(attachmentId),
+		)}`,
 	);
 }
