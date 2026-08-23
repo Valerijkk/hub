@@ -59,4 +59,15 @@ func wireCalendarMail(d *serverDeps) {
 	if err := mailboxHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	mailboxProjectionService, err := mailmod.NewMailboxFolderProjectionService(mailboxSvc, mailboxRepo)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxProjectionHandler, err := mailmod.NewMailboxFolderProjectionHandler(mailboxProjectionService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxProjectionHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 }
