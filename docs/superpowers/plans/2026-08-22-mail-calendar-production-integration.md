@@ -1169,9 +1169,10 @@ documentation-only task. P0-P2 are static-source acceptance only; P3 must comple
 
 - [x] **P0: Freeze compatibility, privacy, proof, and worker semantics — STATIC_ACCEPTED**
 
-Require v1 authentication class and strict method/locator pairing; retain but ignore legacy
-`engine_message_id` in the new consumer. Freeze Mail durable backfill/no-reparse/no-re-emission,
-6C0V3 alongside retained v2 replay and v1 fail-closed, and the exact receipt lease/state/retry
+Require v1 authentication class and strict method/locator pairing; retain legacy `engine_message_id` only
+inside the compatibility envelope, where the Mail-owned v1 decoder validates the full envelope, drops it,
+and constructs `CalendarInboundDelivery` without it for Calendar. Freeze Mail durable backfill/no-reparse/
+no-re-emission, 6C0V3 alongside retained v2 replay and v1 fail-closed, and the exact receipt lease/state/retry
 contract. Tests, build, lint, formatting, generation, migration, Docker, and runtime are all
 `NOT_RUN` and forbidden until the founder merges the new testframework. Contract
 `0d4fa053d569631234c5a7f902341bb6a73a7d46` plus pairing fix
@@ -1198,18 +1199,21 @@ event/durable/V2/V3 proof are respectively approved C/I/M `0/0/0` at
 
 **Contract frozen only — `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`.** P3 owns no source in this
 task and remains the explicit Task 10 dependency. Historical 147-02D/02E `GetMessage`, full-body/MIME,
-and legacy `engine_message_id` Calendar-ingestion wording is superseded; no such fallback is permitted.
+and legacy `engine_message_id` Calendar-ingestion wording is `CONSUMED/HISTORICAL`; no such fallback is
+permitted.
 
 - **P3-A — abstract Mail port/fake/engine/types/errors:** exact future
   `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`,
   `mailbox_errors.go`, and `mailbox_fake.go`. `package mail` owns sealed opaque request/result,
-  closed source errors, private engine-only `ReadCalendarPart`, five-second/snapshot boundary and
+  closed concrete source-error ABI, private engine-only `ReadCalendarPart`, five-second/snapshot boundary and
   locator-plus-decoded-iTIP hash identity; `engine_version` is private TOCTOU state only. Calendar may
   import exported Mail types but Mail never imports Calendar.
 - **P3-B — Calendar transaction port and REPLY factor:** exact future
   `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and
   `event_service_inbound_message.go` (new). It is transaction-aware policy/ports only: no generated
-  Ent references, nested transaction, repository bypass, or duplicate REPLY logic.
+  Ent references, nested transaction, repository bypass, or duplicate REPLY logic. Its opaque completion
+  constructors enforce the closed Phase 147 observed/error-code pairings; repository time/lease handling
+  remains behind `CompleteCalendarInboundMessageReceipt`.
 - **P3-C — Mail Ent source:** after Mail generation only, exact future
   `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`.
   Stalwart is separately Phase-145-blocked and is not P3-C.
@@ -1220,7 +1224,8 @@ and legacy `engine_message_id` Calendar-ingestion wording is superseded; no such
 - **P3-E — Mail NATS consumer and server wiring:** after concrete engine/source only, exact future
   `backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go`
   (new), `backend/cmd/server/main.go`, and `backend/cmd/server/wiring_calendar_mail.go`. Mail validates
-  legacy v1 and invokes a sanitized sink, not a Calendar full-envelope subscription. EVENTS `mail.>`,
+  the full compatibility v1 envelope, drops `engine_message_id`, constructs sanitized delivery without it,
+  and invokes a Calendar sink; Calendar never receives the field or has a full-envelope subscription. EVENTS `mail.>`,
   durable `calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s, handler
   timeout 45s, MaxAckPending 16, fetch batch 8, concurrency 4, MaxDeliver 20. Semantic durable
   dispositions ACK; no durable disposition uses `NakWithDelay(65s)`, and exhaustion retains EVENTS

@@ -149,8 +149,23 @@ type CalendarInboundSink interface { HandleCalendarInbound(context.Context, Cale
 `CalendarPartReadRequest`/Result remain opaque; only the stated constructor/result accessors are
 Calendar-facing. The closed `CalendarPartSourceErrorKind` names/values are exactly
 `invalid|untrusted|message_unavailable|deleting|part_unavailable|payload_too_large|
-repository_unavailable|engine_unavailable`; no other kind exists. No engine/provider ID, raw locator,
-raw MIME, `MailEngine`, or Mail Ent value crosses the source boundary.
+repository_unavailable|engine_unavailable`; no other kind exists. Its exact future ABI in `package mail`
+is:
+
+```go
+type CalendarPartSourceErrorKind string
+// exact constants already listed
+type CalendarPartSourceError struct { /* unexported kind only */ }
+func (e *CalendarPartSourceError) Error() string // constant content-free text
+func (e *CalendarPartSourceError) Kind() CalendarPartSourceErrorKind
+func CalendarPartSourceErrorKindOf(error) (CalendarPartSourceErrorKind, bool)
+```
+
+`CalendarPartSource.ReadCalendarPart` returns only this concrete family. Its constructor is unexported to
+`package mail`; engine/provider errors are mapped inside `CalendarPartSource`; `KindOf` uses `errors.As`.
+The error has no `Unwrap`, retains no provider/SQL/body/cause value, and returns the same constant
+content-free `Error()` text for every kind. No engine/provider ID, raw locator, raw MIME, `MailEngine`,
+or Mail Ent value crosses the source boundary.
 
 `MailEngine.ReadCalendarPart` is exported only for Go interface implementation, but engine-private
 semantically: only Mail `CalendarPartSource` may call it, never Calendar/server. Its request carries
@@ -163,9 +178,9 @@ prefix. V1 locator hash is exactly
 `SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || engine_account_id || u32be(len(engine_message_id)) || engine_message_id || u32be(len(canonical_private_part_locator)) || canonical_private_part_locator || u32be(32) || SHA-256(decoded_itip_bytes))`.
 `Version` is excluded from hash identity. The engine recomputes from the returned exact decoded iTIP bytes
 and private canonical locator and compares the result to the requested hash; body substitution is an
-integrity failure. Changing the formula requires a versioned schema/event amendment. This P3 clause
-supersedes only prior 147-02D Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy
-`engine_message_id`; those are forbidden Calendar fallbacks, not a removal of unrelated Mail reads.
+integrity failure. Changing the formula requires a versioned schema/event amendment. Prior 147-02D
+Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy `engine_message_id` is
+`CONSUMED/HISTORICAL`; those are forbidden Calendar fallbacks, not a removal of unrelated Mail reads.
 Mail snapshot/recheck requires the same private `engine_version` before/after engine I/O for TOCTOU, but
 an engine-version-only flag/folder change neither changes the hash nor loses the existing delivery.
 Provider/projection recomputes the hash only when canonical locator or decoded iTIP bytes change. Mail
@@ -177,23 +192,44 @@ For P3-B, the exact future `package calendar` transaction port is:
 ```go
 type CalendarInboundMessageClaim struct { ReceiptID, LeaseToken uuid.UUID; LeaseGeneration int64 }
 type CalendarInboundMessageScope struct { /* opaque transaction-bound */ }
-type CalendarInboundMessageCompletion struct { /* validated constructor-only */ }
+type CalendarInboundObservedState string // only ignored_stale|duplicate
+type CalendarInboundMessageErrorCode string // exact Phase147 allowlist
+type CalendarInboundMessageCompletion struct { /* opaque */ }
+func NewCalendarInboundAppliedCompletion(calendarEventID uuid.UUID) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundObservedCompletion(state CalendarInboundObservedState, calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundQuarantinedCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundDeadLetterCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundRetryCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundDeferredCompletion(calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error)
 // added to EventTransaction:
 LockCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageClaim) (CalendarInboundMessageScope, bool, error)
 CompleteCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageScope, CalendarInboundMessageCompletion) error
 ```
 
-Completion has only constructor-validated terminal, retry, and deferred shapes and carries no raw MIME,
-iTIP, or provider text. `bool=false, nil` (that is, `valid=false, err=nil`) is a lease-lost/terminal
-no-op with no Calendar mutation.
+Completion is constructor-only, carries no raw MIME, iTIP, provider text, or unvalidated outcome, and
+defensively copies optional UUID pointers; every nonnil UUID is nonzero and applied requires a nonzero
+event UUID. Observed is only `ignored_stale|duplicate` with nil error. Error code is exactly the Phase 147
+receipt allowlist: `message_unavailable|part_unavailable|malformed_itip|unsupported_method|
+unsupported_version|untrusted_sender|organizer_mismatch|equal_sequence_conflict|missing_master_expired|
+resource_limit|retry_exhausted|engine_unavailable|database_unavailable|internal_error`.
+Quarantine allows only `malformed_itip|unsupported_method|unsupported_version|untrusted_sender|
+organizer_mismatch|equal_sequence_conflict|internal_error`; dead letter only
+`message_unavailable|part_unavailable|missing_master_expired|resource_limit|retry_exhausted|
+internal_error`; retry only `engine_unavailable|database_unavailable|internal_error`; deferred has nil
+error. Constructors take no timestamp, lease token, generation, or raw content. The repository derives due
+time from receipt attempts and its DB clock; `CompleteCalendarInboundMessageReceipt` alone clears/sets
+lease and due by validated kind. `bool=false, nil` (that is, `valid=false, err=nil`) is a lease-lost/
+terminal no-op with no Calendar mutation.
 `ApplyInboundITIPReply` stays a thin `WithEventTransaction` wrapper around
 `applyInboundITIPReplyInTransaction(ctx, tx, input)`.
 
 For P3-E, only Mail's strict v1 decoder constructs opaque `CalendarInboundDelivery`; there is no public
-arbitrary-field constructor. The Mail consumer drops `engine_message_id`, invokes the injected
-Calendar-implemented `CalendarInboundSink`, and never passes/logs provider data. A nil sink result means
-the durable Calendar disposition committed and is ACKed. A content-free/provider-free sink error means no
-durable disposition and uses `NakWithDelay(65s)`/MaxDeliver20; no Calendar package subscribes to v1.
+arbitrary-field constructor. The Mail-owned decoder validates the full compatibility envelope, drops
+`engine_message_id`, and constructs the delivery without it before invoking the injected
+Calendar-implemented `CalendarInboundSink`; Calendar never receives that field or provider data. A nil
+sink result means the durable Calendar disposition committed and is ACKed. A content-free/provider-free
+sink error means no durable disposition and uses `NakWithDelay(65s)`/MaxDeliver20; no Calendar package
+subscribes to v1.
 P3 is `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; the concrete Stalwart adapter remains blocked on
 Phase 145 authority.
 

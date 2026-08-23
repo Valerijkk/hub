@@ -20,11 +20,13 @@ tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 locator/raw MIME. V1 binds private canonical locator plus decoded bounded iTIP bytes; `engine_version`
 is private before/after TOCTOU state only, never receipt identity. Exact 1..1,048,576-byte/five-second preflight/recheck,
 safe errors and defensive-copy iTIP are in CONTRACT §2.6. Future P3-E is Mail-owned sanitized v1
-consumer-to-sink delivery, never Calendar full-envelope subscription; nil sink means durable disposition
-then ACK, and a content-free/provider-free no-disposition error uses `NakWithDelay(65s)`/MaxDeliver20
-with retained EVENTS manual replay.
-Earlier 147-02D/02E GetMessage/full-body/MIME and legacy `engine_message_id` paths are superseded with
-no fallback. Stalwart remains Phase-145-blocked; generated Ent/migration/SQL/build/tests/lint/gofmt/
+consumer-to-sink delivery: its Mail-owned decoder validates the full compatibility envelope, drops
+`engine_message_id`, and constructs opaque delivery without it; Calendar never receives the field or full
+envelope. Nil sink means durable disposition then ACK, and a content-free/provider-free no-disposition
+error uses `NakWithDelay(65s)`/MaxDeliver20 with retained EVENTS manual replay. The sealed source-error
+and Calendar completion-constructor ABI are contract-only.
+Earlier 147-02D/02E GetMessage/full-body/MIME and legacy `engine_message_id` paths are
+`CONSUMED/HISTORICAL` with no fallback. Stalwart remains Phase-145-blocked; generated Ent/migration/SQL/build/tests/lint/gofmt/
 parser/validator/Docker/runtime are `NOT_RUN`. This creates no worker, NATS, merge, product, or readiness claim.
 
 ## Mail/Calendar HTTP composition static acceptance (2026-08-23)

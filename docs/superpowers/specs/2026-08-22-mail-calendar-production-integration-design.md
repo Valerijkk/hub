@@ -194,9 +194,9 @@ Cross-domain integration uses the existing shared envelope and durable outbox:
 
 1. Mail projection persistence commits compatibility `mail.received.v1` with the safe locator,
    authentication classification, and optional `request|cancel|reply` iTIP method. The future
-   Mail-owned P3-E consumer is the only v1 subscriber: it validates broker subject/schema inside
-   `package mail`, strips ignored legacy `engine_message_id`, and passes only sealed sanitized
-   `CalendarInboundDelivery` to the injected Calendar sink.
+   Mail-owned P3-E consumer is the only v1 subscriber: inside `package mail` it validates the full
+   compatibility envelope including broker subject/schema, drops legacy `engine_message_id`, and constructs
+   sealed sanitized `CalendarInboundDelivery` without that field for the injected Calendar sink.
 2. The Calendar sink accepts only that sealed delivery, resolves durable organization/account ownership,
    and deduplicates by application envelope `event_id`; Calendar never receives or subscribes to the
    full v1 envelope.
@@ -241,9 +241,11 @@ historical re-emission. The P2 durable schema is approved C/I/M `0/0/0` at
 `a61edbb086df8535349429438155fad015b29615`. The engine projection supplies only the class
 and domain-separated locator hash, never raw locator, provider ID, or body.
 
-`mail.received.v1` keeps `engine_message_id` solely for legacy v1 compatibility. A new Calendar
-consumer ignores it; therefore it is incorrect to claim that no provider IDs exist anywhere in
-NATS. The new fields are required: authentication enum `trusted_internal|dmarc_aligned|untrusted`,
+`mail.received.v1` keeps `engine_message_id` solely for legacy v1 compatibility. The Mail-owned v1
+decoder validates the full compatibility envelope, drops that field, and constructs
+`CalendarInboundDelivery` without it; Calendar never receives it. Therefore it is incorrect to claim that
+no provider IDs exist anywhere in NATS. The new fields are required: authentication enum
+`trusted_internal|dmarc_aligned|untrusted`,
 and method plus locator pair (both null for non-candidate; otherwise a permitted method and a
 64-lowercase-hex locator). Public APIs/logs receive no authentication evidence; the envelope carries
 only the enum.
@@ -274,14 +276,15 @@ private before/after TOCTOU state only and never receipt identity.
 raw locator/version never leaves Mail. The V1 formula and snapshot/recheck are normative in CONTRACT §2.6.
 
 Historic 147-02D `GetMessage`/full-body/MIME parsing and legacy event `engine_message_id` wording is
-superseded for Calendar ingestion only; none is a fallback. P3-B factors existing REPLY application
-into one receipt-first `EventTransaction` with opaque claim/scope/completion, preserving reply receipt/
-outbox behavior and no nested transaction or duplicate logic; P3-C/D await the respective Mail/Calendar
-generation. P3-E is Mail-owned consumer code: Mail's strict decoder validates compatibility
-`mail.received.v1`, ignores/drops `engine_message_id`, constructs the only opaque sanitized
-`CalendarInboundDelivery`, and invokes an injected Calendar-implemented sink. Calendar does not
-subscribe to the full envelope. A nil sink result means durable disposition then ACK; a content-free,
-provider-free error means no durable disposition and uses `NakWithDelay(65s)`. The frozen consumer has
+`CONSUMED/HISTORICAL` for Calendar ingestion only; none is a fallback. P3-B factors existing REPLY
+application into one receipt-first `EventTransaction` with opaque claim/scope/completion and its closed
+observed/error-code constructor ABI, preserving reply receipt/outbox behavior and no nested transaction
+or duplicate logic; P3-C/D await the respective Mail/Calendar generation. P3-E is Mail-owned consumer
+code: its strict decoder validates the full compatibility `mail.received.v1` envelope, drops
+`engine_message_id`, constructs the only opaque sanitized `CalendarInboundDelivery` without that field,
+and invokes an injected Calendar-implemented sink. Calendar does not subscribe to the full envelope or
+receive the field. A nil sink result means durable disposition then ACK; a content-free, provider-free
+error means no durable disposition and uses `NakWithDelay(65s)`. The frozen consumer has
 EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, exact filter `mail.received.v1`, explicit ACK,
 AckWait 90s, hard timeout 45s, MaxAckPending 16, fetch batch 8, concurrency 4, and MaxDeliver 20.
 Semantic durable terminal/retry/defer dispositions ACK. Exhaustion retains the message and raises one
@@ -308,8 +311,8 @@ cross the boundary; state ownership does not.
   never a last-write-wins overwrite.
 - Raw MIME, calendar body, credentials, provider errors, authentication evidence, and newly
   introduced provider identifiers are absent from receipts, logs, public errors, and new
-  envelope fields. Legacy v1 `engine_message_id` is explicitly retained as an ignored
-  compatibility field.
+  envelope fields. Legacy v1 `engine_message_id` is retained only in the compatibility envelope; the
+  Mail-owned decoder drops it before opaque delivery, and Calendar never receives it.
 - Consumer poison messages are terminally quarantined/dead-lettered using safe
   codes and bounded retry metadata.
 - Worker concurrency, page sizes, retry attempts, and wall-clock slots retain the
