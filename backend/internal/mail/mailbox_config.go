@@ -37,7 +37,8 @@ const (
 type MailboxEngineMailAuthMode string
 
 const (
-	MailboxEngineMailAuthModeDisabled MailboxEngineMailAuthMode = "disabled"
+	MailboxEngineMailAuthModeDisabled                   MailboxEngineMailAuthMode = "disabled"
+	MailboxEngineMailAuthModeOAuthAuthorizationCodePKCE MailboxEngineMailAuthMode = "oauth_authorization_code_pkce"
 )
 
 // MailboxEngineConfig contains only non-secret, process-owned engine settings. Origin
@@ -160,6 +161,11 @@ func ParseMailboxEngineConfig(lookup MailboxConfigLookup) (MailboxEngineConfig, 
 	}
 	if !authModePresent || rawAuthMode == "" || strings.EqualFold(rawAuthMode, string(MailboxEngineMailAuthModeDisabled)) {
 		return mailboxEngineConfigFailure(config, MailboxEngineConfigStatusAuthModeRequired, MailboxEngineConfigErrorAuthModeRequired)
+	}
+	if strings.EqualFold(rawAuthMode, string(MailboxEngineMailAuthModeOAuthAuthorizationCodePKCE)) {
+		config.MailAuthMode = MailboxEngineMailAuthModeOAuthAuthorizationCodePKCE
+		config.Status = MailboxEngineConfigStatusConfigured
+		return config, nil
 	}
 
 	return mailboxEngineConfigFailure(config, MailboxEngineConfigStatusAuthModeUnsupported, MailboxEngineConfigErrorAuthModeUnsupported)
