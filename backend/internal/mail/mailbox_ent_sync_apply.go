@@ -67,23 +67,26 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 			}
 			return mailboxEntSafeError(err)
 		}
+		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
+		if err != nil {
+			return err
+		}
+		if account.Status != mailaccount.StatusActive || !account.DesiredEnabled {
+			return errMailboxEntSyncApplyNoWrite
+		}
 		persistedFence, hasLease, leaseValid := mailboxEntSyncLeaseFence(account)
 		if !leaseValid {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		if !hasLease || persistedFence != canonical.Fence || account.SyncEpoch != canonical.Fence.SyncEpoch || account.MutationEpoch != canonical.Fence.MutationEpoch || account.SyncLeaseUntil == nil || !account.SyncLeaseUntil.After(databaseWallClock) {
+			return errMailboxEntSyncApplyNoWrite
 		}
 		active, err := mailboxEntSyncApplyAccountValid(account, canonical.Fence.AccountID)
 		if err != nil {
 			return err
 		}
 		if !active {
-			return errMailboxEntSyncApplyNoWrite
-		}
-		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
-		if err != nil {
-			return err
-		}
-		if !hasLease || persistedFence != canonical.Fence || account.SyncEpoch != canonical.Fence.SyncEpoch || account.MutationEpoch != canonical.Fence.MutationEpoch || account.SyncLeaseUntil == nil || !account.SyncLeaseUntil.After(databaseWallClock) {
-			return errMailboxEntSyncApplyNoWrite
+			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 		leaseUntil, ok := mailboxEntCheckedTimeAdd(canonical.NextAttemptAt, time.Second)
 		if !ok || !leaseUntil.After(canonical.NextAttemptAt) {
@@ -190,8 +193,11 @@ func mailboxEntSyncApplyExpectedPosition(canonical MailboxSyncCanonicalApply) (m
 			position.cursor = advance.Change.FromCursor
 		}
 		if canonical.ExpectedPhase == MailboxSyncPhaseCatchUp {
+			if advance.Change.NextCursor == "" {
+				return mailboxEntSyncApplyPosition{}, mailboxServiceError(MailboxServiceErrorInvalid)
+			}
 			position.projectionState = mailaccount.ProjectionState("rebuilding")
-			position.baseCursor = canonical.Fence.Cursor
+			position.baseCursor = position.cursor
 			position.updatesLastSynced = false
 		}
 		if canonical.ExpectedPhase != MailboxSyncPhaseIncremental && canonical.ExpectedPhase != MailboxSyncPhaseCatchUp {
