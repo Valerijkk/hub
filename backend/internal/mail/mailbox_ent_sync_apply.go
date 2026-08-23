@@ -308,13 +308,48 @@ func mailboxEntSyncApplyPostPositionMatches(account *ent.MailAccount, canonical 
 		return false
 	}
 	postPosition, err := mailboxEntSyncClaimSnapshot(account)
-	if err != nil || postPosition.AccountID != canonical.Fence.AccountID || postPosition.SyncEpoch != canonical.Fence.SyncEpoch || postPosition.MutationEpoch != canonical.Fence.MutationEpoch || postPosition.Phase != position.phase || postPosition.Cursor != position.cursor || postPosition.BaseCursor != position.baseCursor || postPosition.Checkpoint != position.checkpoint {
+	if err != nil || !mailboxEntSyncApplyReplayPositionMatches(postPosition, canonical, position) {
 		return false
 	}
 	if position.updatesLastSynced {
 		return account.LastSyncedAt != nil && mailboxEntValidTime(*account.LastSyncedAt) && account.LastSyncedAt.Equal(proof.appliedAt)
 	}
 	return account.LastSyncedAt == nil || mailboxEntValidTime(*account.LastSyncedAt)
+}
+
+func mailboxEntSyncApplyReplayPositionMatches(postPosition MailboxSyncFence, canonical MailboxSyncCanonicalApply, position mailboxEntSyncApplyPosition) bool {
+	if position.phase != canonical.ExpectedPhase ||
+		postPosition.AccountID != canonical.Fence.AccountID ||
+		postPosition.SyncEpoch != canonical.Fence.SyncEpoch ||
+		postPosition.MutationEpoch != canonical.Fence.MutationEpoch ||
+		postPosition.Phase != position.phase {
+		return false
+	}
+
+	switch position.phase {
+	case MailboxSyncPhaseIncremental:
+		return postPosition.Cursor == position.cursor &&
+			postPosition.BaseCursor == "" &&
+			postPosition.Checkpoint == "" &&
+			position.baseCursor == "" &&
+			position.checkpoint == ""
+	case MailboxSyncPhaseEnumeration:
+		return postPosition.Cursor == "" &&
+			postPosition.BaseCursor == position.baseCursor &&
+			postPosition.Checkpoint == position.checkpoint &&
+			position.cursor == "" &&
+			position.baseCursor != "" &&
+			position.checkpoint != ""
+	case MailboxSyncPhaseCatchUp:
+		return postPosition.Cursor == position.baseCursor &&
+			postPosition.BaseCursor == "" &&
+			postPosition.Checkpoint == "" &&
+			position.baseCursor != "" &&
+			position.checkpoint == "" &&
+			(position.cursor == "" || position.cursor == position.baseCursor)
+	default:
+		return false
+	}
 }
 
 func mailboxEntSyncApplyFencePositionMatches(position MailboxSyncFence, fence MailboxSyncFence) bool {
