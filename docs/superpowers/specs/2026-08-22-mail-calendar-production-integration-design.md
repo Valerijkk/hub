@@ -225,6 +225,9 @@ Cross-domain integration uses the existing shared envelope and durable outbox:
 ### Task 10 P0 prerequisite contract
 
 This prerequisite track is `STATIC_SOURCE_ONLY / RUNTIME_NOT_RUN`, not runtime readiness.
+P0 contract is independently finally accepted C/I/M `0/0/0` at
+`0d4fa053d569631234c5a7f902341bb6a73a7d46`, with pairing fix
+`5a253d166f83ce37e695566f1396ee16fe00b224`; this is static/docs-only provenance.
 P1 `CalendarInboundMessageReceipt` schema is independently approved C/I/M `0/0/0` at
 `4b7f322b629dd269cac7e05ba61f7ca03e45d96c`. P2 makes `MailMessage`
 `authentication_class` non-null with default `untrusted` and `calendar_part_locator_hash`
