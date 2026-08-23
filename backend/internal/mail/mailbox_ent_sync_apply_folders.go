@@ -288,7 +288,7 @@ func mailboxEntApplyTombstoneFolder(ctx context.Context, tx *ent.Tx, row *ent.Ma
 	if row == nil || row.ID == uuid.Nil || tx == nil {
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	if err := tx.MailMessageFolder.Delete().
+	if _, err := tx.MailMessageFolder.Delete().
 		Where(mailmessagefolder.MailFolderIDEQ(row.ID)).
 		Exec(ctx); err != nil {
 		return mailboxEntSafeError(err)
