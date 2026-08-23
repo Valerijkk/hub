@@ -186,7 +186,8 @@ func mailboxEntApplyProjectionIntent(intent MailboxSyncPolicyMessageIntent) (mai
 	if err := syncValidateProjection(projection); err != nil {
 		return mailboxEntApplyMessageProjection{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	references := schema.MailMessageReferences(append([]string(nil), projection.References...))
+	references := make(schema.MailMessageReferences, len(projection.References))
+	copy(references, projection.References)
 	if err := references.Validate(); err != nil {
 		return mailboxEntApplyMessageProjection{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
@@ -213,6 +214,8 @@ func mailboxEntApplyProjectionIntent(intent MailboxSyncPolicyMessageIntent) (mai
 	if intent.ReceivedEventID != nil && *intent.ReceivedEventID == uuid.Nil {
 		return mailboxEntApplyMessageProjection{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
+	attachments := make([]EngineProjectionAttachment, len(projection.Attachments))
+	copy(attachments, projection.Attachments)
 	calendarMethod := mailboxEntApplyCalendarMethodPointer(intent.CalendarMethod)
 	return mailboxEntApplyMessageProjection{
 		engineMessageID:   projection.MessageID,
@@ -235,7 +238,7 @@ func mailboxEntApplyProjectionIntent(intent MailboxSyncPolicyMessageIntent) (mai
 		origin:            mailmessage.ProjectionOrigin(projection.Origin),
 		calendarMethod:    calendarMethod,
 		receivedEventID:   syncCopyUUIDPointer(intent.ReceivedEventID),
-		attachments:       append([]EngineProjectionAttachment(nil), projection.Attachments...),
+		attachments:       attachments,
 	}, nil
 }
 
