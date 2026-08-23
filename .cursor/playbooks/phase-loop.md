@@ -152,7 +152,7 @@ failure/recovery, approvals и evidence. План дробится, если bou
 | Обсудить | `gsd-discuss-phase`, `gsd-spec-phase`, `gsd-explore` |
 | Спланировать | `gsd-plan-phase`, `gsd-graphify`, `gsd-phase`, `gsd-review` |
 | Исполнить | `gsd-execute-phase`, `gsd-workstreams`, `gsd-quick` |
-| Проверить | `gsd-verify-work`, `/qa-gate`, `gsd-code-review` |
+| Проверить | `gsd-verify-work`, root Compose service, `gsd-code-review` |
 | Сдать | `gsd-ship`, `gsd-pause-work` |
 
 Мелкая обратимая задача не обязана создавать discuss/plan/ship artifacts:

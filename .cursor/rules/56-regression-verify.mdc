@@ -18,7 +18,7 @@ alwaysApply: false
 Старый функционал (регрессия):
   после green по новому → затронутый домен (+ смежное при shared)
                        → FAIL? → triage → fix → повтор до green
-  интеграция волны / одиночный handoff → полный /qa-gate (тоже с циклом при FAIL)
+  интеграция волны / одиночный handoff → применимая fixed root Compose service sequence (тоже с циклом при FAIL)
 ```
 
 **Запрещено:** один прогон «вроде зелёный» → сразу handoff/`verified: true`.
@@ -33,13 +33,13 @@ assertion ради green: сначала восстановить окружен
 
 ## Обязательный цикл (каждая сессия с кодом)
 
-> **Уточнение для параллельных волн (решение 2026-07-03, GZ-QA-13):** агент-исполнитель гоняет **сборку + тесты своего домена** перед handoff; **полный `/qa-gate` — один раз на интеграции волны** (ответственный: team-lead) + CI на merge. Полный gate у каждого агента больше не требуется (4 дублирующих прогона на волну — расточительно). Для одиночной (не-волновой) работы полный gate перед handoff остаётся.
+> **Уточнение для параллельных волн (решение 2026-07-03, GZ-QA-13):** агент-исполнитель запускает применимый fixed root Compose service своего домена перед handoff; применимая root Compose service sequence выполняется один раз на интеграции волны (ответственный: team-lead) + CI на merge. Для одиночной работы та же применимая sequence обязательна перед handoff.
 
 ```
 1. Изменил код
 2. Цикл качества НОВОГО поведения — до green
 3. Цикл регрессии СТАРОГО (затронутый модуль/домен) — до green
-4. Полный /qa-gate — на интеграции волны (team-lead) или перед handoff при одиночной работе
+4. Применимая root Compose service sequence — на интеграции волны (team-lead) или перед handoff при одиночной работе
 5. Docs sync (.cursor/rules/55-docs-sync.mdc)
 6. *-ver или verifier для критичных изменений
 7. Обновить .planning/STATE.md
@@ -54,10 +54,11 @@ assertion ради green: сначала восстановить окружен
 | Contract/API/integration/E2E/load | task-owned limited Docker → root `testframework/**` Python job по taxonomy |
 | Infra | Review exact diff + Docker-only applicable validator/gate |
 
-Точные команды/limits/cleanup живут в `AGENTS.md` и `/qa-gate`. Host-run любого
-test/build/lint/validator неканоничен и запрещён founder lock.
-
-Slash: **`/qa-gate`** — останавливается на первой FAIL; после фикса — повтор с начала упавшего шага (цикл).
+Точные команды/limits/cleanup живут в `AGENTS.md`: каждый запуск имеет вид
+`docker compose -f docker-compose.local.yml run --rm <service>`. Host-run любого
+test/build/lint/validator неканоничен и запрещён founder lock. После FAIL
+исправление повторно запускает тот же fixed service; service sequence продолжается
+только после его PASS.
 
 ## Когда запускать верификаторов
 
@@ -97,7 +98,6 @@ fresh RCA/architecture review до следующего фикса. Review remed
 - `.cursor/rules/55-docs-sync.mdc` — документация
 - `.cursor/rules/45-artifacts-cleanup.mdc` — coverage dumps
 - `.cursor/skills/test-triage/SKILL.md` — FAIL triage
-- `.cursor/skills/qa-gate/SKILL.md` — полный gate
 - `.cursor/playbooks/team-workflow.md` §5.3.1 — шаблон задач team-lead
 
 ## Примеры из Hub (реальные циклы качества)

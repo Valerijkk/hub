@@ -24,7 +24,7 @@ readonly: false
 ```markdown
 ## 2026-06-1X — SEC-05 WS closed channel fix
 - Заменил close(send) на отдельный done-канал в ws/hub.go (антипаттерн "receiver closes channel")
-- Регрессия: `/qa-gate` `<fixed-target>` PASS на exact revision; artifact и cleanup receipt приложены
+- Регрессия: `docker compose -f docker-compose.local.yml run --rm <service>` PASS на exact revision; artifact и cleanup receipt приложены
 - Docs: security_guidelines.md обновлён (SEC-05 статус FIXED)
 ```
 

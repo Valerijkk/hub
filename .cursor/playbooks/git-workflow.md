@@ -498,7 +498,7 @@ diff/checksums и возвращает файл merge-owner-у; destructive уд
 
 1. PR-описание ссылается на задачу/план (`PLAN.md`/тикет) и коротко объясняет *что и почему*.
 2. Required current target jobs по changed risk дали `PASS` через
-   canonical `/qa-gate` outer launcher. `NOT_READY`/`NOT_RUN` не считаются
+   root Compose service: `docker compose -f docker-compose.local.yml run --rm <service>`. `NOT_READY`/`NOT_RUN` не считаются
    green; legacy hubtest/static-contract/TS Playwright не substitute.
 3. В диффе **нет** `DEV_MODE=true`, секретов, build/coverage-артефактов.
 4. Пройдено кросс-ревью (парный агент) и **персональный `*-ver`** (`verified: true` + лог регрессии).
@@ -572,7 +572,7 @@ b3bca09 Merge remote-tracking branch 'origin/fix/platform/wave1-quickfixes' into
 ### 8.3. Правила для интеграционной ветки
 
 - Владеет и мержит в неё **только** `team-lead`; рядовые агенты не реализуют напрямую в `master`.
-- Перед финальным мержем `integration/*` → `master` — полный `/qa-gate` на интеграции (rule 56), не по отдельности на каждый поток.
+- Перед финальным мержем `integration/*` → `master` — все применимые root Compose services на интеграции (rule 56), не по отдельности на каждый поток.
 - После Docker-only gate, review и docs-sync `team-lead` интегрирует routine accepted result в `master` и удаляет merged branches; security/auth, DB migrations, deploy/CI и ADR требуют founder review (§14).
 
 ---
@@ -581,11 +581,11 @@ b3bca09 Merge remote-tracking branch 'origin/fix/platform/wave1-quickfixes' into
 
 Любое изменение, влияющее на поведение, проверяется **до** коммита только в
 task-owned Docker с limits/cleanup. Канонические target jobs и команды —
-`AGENTS.md` и `/qa-gate`: Go genuine units `backend/tests/**`, frontend genuine
+`AGENTS.md` и root Compose service interface: Go genuine units `backend/tests/**`, frontend genuine
 units `frontend/tests/**`, весь non-unit QA — root `testframework/**` Python.
 Host `go/npm/pytest/Playwright/build/lint` запрещены.
 Прямой Docker snippet из отчёта/playbook не заменяет canonical outer
-launcher. Если target runner/profile не готов, фиксируется
+service. Если target service/profile не готов, фиксируется
 `NOT_READY`, а не legacy fallback.
 
 Результат (`PASS|FAIL|NOT_READY|NOT_RUN|NOT_APPLICABLE`, exact revision,
@@ -593,7 +593,7 @@ launcher. Если target runner/profile не готов, фиксируется
 в `testframework/reports/<task-run>/`. У каталога обязателен owner
 marker с `task`, `run`, `owner`, `source_sha`, `created_at` и cleanup policy.
 Без required green нет handoff/PR. Цикл: новое поведение →
-регрессия затронутого домена → на интеграции волны полный `/qa-gate`; детали —
+регрессия затронутого домена → на интеграции волны все применимые root Compose services; детали —
 `.cursor/rules/56-regression-verify.mdc` и `.cursor/playbooks/testing.md`.
 
 **Важно:** «вроде зелёный» одним прогоном не считается закрытием цикла — при FAIL применяется `test-triage`, фикс, повтор до реального green (не переинтерпретация «наверное, флейк»).
@@ -628,7 +628,7 @@ v1.0.1   hotfix
 v2.0.0   новый milestone
 ```
 
-Тег ставится на `master` после прохождения `/qa-gate` и sign-off. Релиз/деплой гейтится успешным CI (`devops-engineer`).
+Тег ставится на `master` после прохождения применимых root Compose services и sign-off. Релиз/деплой гейтится успешным CI (`devops-engineer`).
 
 ### 11.1. Реальный release gate Hub (`scripts/v25-release-gate.sh`)
 
@@ -776,7 +776,7 @@ gh run list --branch master --limit 1
 - [ ] Ветка названа по конвенции; изменение атомарно и по теме.
 - [ ] Коммиты — Conventional Commits; тело объясняет *почему* + ссылка на план/тикет.
 - [ ] Ребейз на свежий `origin/master` выполнен; конфликты решены (§6), регрессия перепрогнана после разрешения.
-- [ ] Регрессия green (лог + время); `/qa-gate` пройден (§9).
+- [ ] Регрессия green (лог + время); применимый root Compose service пройден (§9).
 - [ ] Нет секретов/`DEV_MODE=true`/артефактов (скан §4 чист).
 - [ ] Docs-sync выполнен; PR ссылается на задачу (§10).
 - [ ] Кросс-ревью парного агента + персональный `*-ver` (verified:true).

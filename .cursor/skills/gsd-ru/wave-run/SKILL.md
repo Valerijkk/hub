@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # wave-run
 
-Запуск волны агентов Hub: планы готовы → промпты **только** по шаблону §5.2 → параллель с картой файлов → сбор → qa-gate / verifiers.
+Запуск волны агентов Hub: планы готовы → промпты **только** по шаблону §5.2 → параллель с картой файлов → сбор → fixed Compose services / verifiers.
 Исполнитель: **`team-lead`**.
 
 ## Когда
@@ -23,7 +23,7 @@ disable-model-invocation: true
 - [ ] Пересечение файлов внутри волны = **0**
 - [ ] Один active writer на ownership boundary; reviewers/verifiers read-only
 - [ ] Для каждого артефакта назначен `*-ver`
-- [ ] Известно: кто гоняет доменные тесты, кто `/qa-gate` на интеграции
+- [ ] Известно: кто гоняет доменные тесты, кто fixed Compose service на интеграции
 - [ ] Явно заданы fan-out, delegation depth, retry/remediation limits и timebox
 
 ## Шаги
@@ -37,7 +37,7 @@ disable-model-invocation: true
    `task_timebox`. Один writer владеет boundary до sync point.
 5. Собрать артефакты; конфликт путей / противоречивые контракты / исчерпанный
    bound → **стоп / переплан**, а не скрытый дополнительный агент или retry.
-6. Код: агент — доменные тесты; **team-lead** — `/qa-gate` на интеграции волны (GZ-QA-13). Docs-only: link-check + acceptance.
+6. Код: агент — доменные тесты; **team-lead** — все применимые fixed Compose services на интеграции волны. Docs-only: link-check + acceptance.
 7. Handoff каждому `*-ver` **тоже по §5.2** (принимающий не видит чат оркестратора).
 8. Remediation вернуть исходному writer только в finding scope. Hard bounds:
    максимум 3 fix attempts на один RCA и максимум 5 re-review rounds; раунды
@@ -88,7 +88,7 @@ on_limit=STOP|REPLAN|ESCALATE
 
 Наличие свободных agent slots не повышает лимит и не расширяет authority.
 
-**GZ-QA-13:** полный `/qa-gate` **один раз** на интеграции волны (team-lead), не у каждого агента.
+**GZ-QA-13:** применимая fixed Compose service sequence запускается **один раз** на интеграции волны (team-lead), не у каждого агента.
 
 ## Чек-лист сборки волны
 
@@ -100,7 +100,7 @@ on_limit=STOP|REPLAN|ESCALATE
 - [ ] Доменные тесты green (логи приложены)
 - [ ] Docs-sync сделан или явно в next
 - [ ] Промпты *-ver подготовлены по §5.2
-- [ ] /qa-gate (если код) — PASS или gaps зафиксированы
+- [ ] fixed Compose service (если код) — PASS или gaps зафиксированы
 ```
 
 ## DoD
@@ -111,7 +111,7 @@ on_limit=STOP|REPLAN|ESCALATE
 - [ ] Verifier назначен и получит отдельный §5.2
 - [ ] Карта файлов волны без пересечений
 - [ ] Fan-out/depth/retry/remediation/time заданы и соблюдены
-- [ ] Известен владелец `/qa-gate`
+- [ ] Известен владелец fixed Compose service
 - [ ] Конфликты остановлены до merge-ready
 
 ## Anti-patterns
@@ -121,7 +121,7 @@ on_limit=STOP|REPLAN|ESCALATE
 | be1 и be2 на один файл | merge hell | один владелец файла в волне |
 | Волна без sync point | потеря конфликтов | явный sync после parallel |
 | Приёмка без Verification блоков | «вроде ок» | требовать блок из prompt-contract §6 |
-| Полный qa-gate у каждого агента | расточительно (CI мин) | домен у агента + gate на интеграции |
+| Полный fixed-service прогон у каждого агента | расточительно (CI мин) | домен у агента + один service на интеграции |
 | Handoff ver-у ссылкой на «чат выше» | ver не видит контекст | полный §5.2 |
 | Смешать security-фикс с фичей | нельзя срочно смержить | отдельная ветка/PR |
 

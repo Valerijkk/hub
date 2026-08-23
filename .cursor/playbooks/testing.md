@@ -36,7 +36,6 @@ testframework/
   policies/                         marker/environment/redaction/profile policy
   load/                             separate Locust lifecycle
   docker/                           immutable execution assets only
-  runner/                           sole launcher boundary; private static candidate
   reports/<task-run>/               owner-marked generated evidence
   pyproject.toml                    future; NOT_READY
   uv.lock                           future; NOT_READY
@@ -155,22 +154,20 @@ pytest/Playwright и Locust исполняются только в task-owned co
 
 - уникальное имя/project: `hub-<job>-<task>`;
 - явные CPU/RAM и bounded timeout;
-- source mount read-only, если runner не обязан писать;
+- source mount read-only, если service не обязан писать;
 - isolated data/ports/network/artifacts;
 - unconditional cleanup только по заранее записанным exact owned IDs; broad
   project teardown, wildcard/prune и foreign-resource deletion запрещены;
 - zero collection, unexpected skip или leaked resource = FAIL.
 
-Единственная точка исполнения — versioned outer launcher API из
-`testframework/runner/**`, вызываемый
-[`/qa-gate`](../skills/qa-gate/SKILL.md). Он enforce wall-clock timeout,
-сохраняет exit code и выполняет exact-resource cleanup в `finally`; artifacts
-изолированы в `testframework/reports/<task-run>/` с owner marker. Private
-`run-task.ps1` source candidate существует и принят только статически; до
-binding и parser/private-contract/Docker acceptance launcher — `NOT_READY`,
-`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`.
-`testframework/docker/**` содержит только immutable execution
-assets/contracts, не launcher code или alternate entrypoint.
+Единственная точка исполнения — root Compose service API:
+`docker compose -f docker-compose.local.yml run --rm <service>`. Он использует
+profile-explicit disposable service; artifacts изолированы в
+`testframework/reports/`. Старый private control plane удалён. До применимого
+Docker-only прогона конкретного service его runtime-статус — `NOT_RUN`;
+статический review или успешная сборка image не повышают его до PASS.
+`testframework/docker/**` содержит только шесть policy-listed immutable
+execution assets, не alternate entrypoint.
 Прямой `docker run`/`compose up` не является допустимым substitute.
 
 ## 7. Evidence и false confidence
@@ -219,5 +216,5 @@ Superpowers practices → локальные heuristics. Исследовате�
 Связанные документы: [`docs/TESTING.md`](../../docs/TESTING.md),
 [`docs/test_plan.md`](../../docs/test_plan.md),
 [`test-triage`](../skills/test-triage/SKILL.md),
-[`qa-gate`](../skills/qa-gate/SKILL.md),
+root Compose service API (`docker compose -f docker-compose.local.yml run --rm <service>`),
 [`verification.md`](verification.md).

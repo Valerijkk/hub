@@ -13,7 +13,7 @@ controls: `hard-controls.md`, `review-guidelines.md`,
 `negative-sentinels.md`, `adoption-status.md`.
 
 Tests, validators, linters, build/vet и app processes выполняются только в
-task-owned Docker через [`qa-gate`](../qa-gate/SKILL.md). Host `rg` допустим
+fixed `docker compose -f docker-compose.local.yml run --rm <exact-service>`. Host `rg` допустим
 только как read-only просмотр кандидатов; его output не является canonical
 validator PASS/FAIL и не доказывает defect.
 

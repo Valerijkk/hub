@@ -48,9 +48,9 @@
 - `ba-ver` не верит «US полны» — сам проходит vision_and_scope и считает US, проверяет AC.
 - `sa-ver` не верит «285 endpoints» — сам парсит `RegisterRoutes` и пересчитывает (реальный
   кейс: заявлено 293, независимый пересчёт дал 285).
-- `be-ver` не верит «тесты проходят» — независимо сверяет raw `/qa-gate`
+- `be-ver` не верит «тесты проходят» — независимо сверяет raw root Compose
   evidence применимого backend target на exact revision.
-- `fe-ver` не верит «a11y ок» — независимо сверяет применимый `/qa-gate`
+- `fe-ver` не верит «a11y ок» — независимо сверяет применимый root Compose
   evidence или, если target `NOT_READY`, ограничивает verdict статическим review.
 - `qa-auto-ver` не верит «тест стабилен» — проверяет повторные accepted target
   receipts; без runnable target фиксирует `NOT_RUN`.
@@ -158,7 +158,7 @@ severity и верил на слово — ровно то, что запрещ�
    - ожидаемое vs фактическое по каждому пункту чек-листа роли
 
 4. ПРОВЕРИТЬ РЕГРЕССИЮ
-   - green /qa-gate или профильный прогон слоя (см. раздел 6)
+   - green root Compose service или профильный прогон слоя (см. раздел 6)
    - ЛОГ ПРОГОНА ОБЯЗАТЕЛЕН (без лога verified:true запрещён)
 
 5. ВЫНЕСТИ ВЕРДИКТ
@@ -313,10 +313,10 @@ Severity верификации согласована с аудит-цикло�
 - Вердикт: verified: true | false
 
 ## Контекст и воспроизведение
-<Что проверялось, какой сценарий воспроизведён и какой fixed target запросил `/qa-gate`.>
+<Что проверялось, какой сценарий воспроизведён и какой exact Compose service запускался.>
 
 ## Регрессия
-- Target: </qa-gate fixed-target | NOT_APPLICABLE>
+- Service: <docker compose -f docker-compose.local.yml run --rm service | NOT_APPLICABLE>
 - Результат: PASS | FAIL | NOT_READY | NOT_RUN
 - Лог:
 ```
@@ -382,10 +382,10 @@ docs + (для sa-ver) актуальность COVERAGE, но при измен
 
 | Слой | Канонический target (только task-owned Docker с limits/cleanup) |
 |------|-------------------|
-| Backend genuine units | `backend/tests/**`; exact runner из `AGENTS.md` |
-| Frontend genuine units | `frontend/tests/**`; exact runner из `AGENTS.md` |
+| Backend genuine units | `backend/tests/**`; exact service из `AGENTS.md` |
+| Frontend genuine units | `frontend/tests/**`; exact service из `AGENTS.md` |
 | Contract/API/integration/E2E/load | root Python `testframework/**`; job по taxonomy и marker |
-| Полный gate | `/qa-gate` — build + test + lint + security scan, останавливается на первой FAIL |
+| Полный gate | применимые root Compose services — build/test/lint/security по scope |
 | Матрица | `/coverage-audit` — требования × код × тесты |
 
 Host-запуск test/build/lint/validator неканоничен и запрещён founder lock.
@@ -431,7 +431,7 @@ Skill: `.cursor/skills/test-triage/SKILL.md`. **Запрещено** делат�
 | `gsd-secure-phase` | Проверить митигации угроз из threat model в коде | arch-ver, security-auditor |
 | `gsd-audit-uat` | Кросс-фазовый аудит невыполненных UAT/verification | sa-ver, qa |
 | `gsd-ui-review` | Ретроспективный 6-pillar визуальный аудит фронта | fe-ver, designer-ver |
-| `/qa-gate` | Полный quality gate (build/test/lint/security) | все, перед PASS |
+| Root Compose services | Полный quality gate по применимому scope | все, перед PASS |
 | `/coverage-audit` | Матрица требований × код × тесты | sa-ver, qa-ver |
 | `/test-triage` | Протокол: функционал → код vs тест | все при FAIL |
 
@@ -439,7 +439,7 @@ Skill: `.cursor/skills/test-triage/SKILL.md`. **Запрещено** делат�
 
 ```
 Проверяю фичу целиком против требований      → gsd-verify-work
-Проверяю diff/файлы на дефекты               → gsd-code-review (+ /qa-gate)
+Проверяю diff/файлы на дефекты               → gsd-code-review (+ root Compose service)
 Проверяю полноту тестов/покрытия фазы        → gsd-validate-phase + /coverage-audit
 Проверяю security-митигации                  → gsd-secure-phase
 Проверяю UI/дизайн                            → gsd-ui-review

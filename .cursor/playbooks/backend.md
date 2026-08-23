@@ -716,7 +716,7 @@ Supply-chain шаги — обязательные CI-инструменты (20
 4. Module integrity (`go mod verify` + tidy diff) выполняется внутри supply-chain Docker job.
 5. `govulncheck` выполняется внутри закреплённого Docker/CI toolchain; scheduled-прогон по `master` закрывает окно новых advisories.
 
-Полный gate — slash `/qa-gate` (останавливается на первой FAIL). `verified: true` — только при зелёной регрессии с приложенным логом.
+Полный gate — применимые root Compose services через `docker compose -f docker-compose.local.yml run --rm <service>`. `verified: true` — только при зелёной регрессии с приложенным логом.
 
 ### 16.2. Docs-sync
 

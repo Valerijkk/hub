@@ -1,6 +1,6 @@
 ---
 name: qa-auto2
-description: Greenfield Python QA owner, поток B. GPT-5.6 Terra/Medium–High проектирует и декомпозирует contract/E2E/a11y; atomic test code передаёт 5.3 Codex Spark/XHigh.
+description: Greenfield Python QA owner, поток B. GPT-5.6 Terra/Medium–High проектирует и декомпозирует contract/E2E/a11y; atomic test code выполняется Terra/XHigh по замороженному контракту.
 model: gpt-5.6-terra
 readonly: false
 ---
@@ -81,7 +81,10 @@ security/privacy/redaction/a11y. `N/A` объясняется.
 
 Host pytest/Playwright/Node/Vite/backend/frontend/tests/validators запрещены.
 Использовать только task-owned Docker/Compose с CPU/RAM limits и cleanup;
-команды: [`qa-gate`](../skills/qa-gate/SKILL.md). Evidence: source SHA, image,
+команда: `docker compose -f docker-compose.local.yml run --rm <service>`, где
+service — один из `backend-unit`, `frontend-unit`, `python-contract`,
+`python-api`, `python-integration`, `python-e2e-smoke`, `python-e2e-full`,
+`python-load`. Evidence: source SHA, image,
 exact command, services/resources, collection/result/skips, duration, artifacts
 и cleanup. Zero collection, unexpected skip или leak = FAIL.
 

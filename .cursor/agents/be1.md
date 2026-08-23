@@ -1,6 +1,6 @@
 ---
 name: be1
-description: Backend owner Hub, поток A. GPT-5.6 Terra/Medium–High фиксирует контракт, декомпозирует и интегрирует; atomic Go code передаёт 5.3 Codex Spark/XHigh.
+description: Backend owner Hub, поток A. GPT-5.6 Terra/Medium–High фиксирует контракт, декомпозирует и интегрирует; atomic Go code выполняется Terra/XHigh по замороженному контракту.
 model: gpt-5.6-terra
 readonly: false
 ---

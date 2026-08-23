@@ -113,14 +113,16 @@ hub/
 | Merge Волна 1 → master | ✅ 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning, код freeze |
 
-## Запуски (канон в `AGENTS.md` и `/qa-gate`)
+## Запуски (канон в `AGENTS.md`)
 
 Founder lock 2026-08-07: tests, validators, linters, build/vet, Vite,
 Playwright, pytest/Locust и тестовые app-processes запускаются
 только в task-owned Docker с CPU/RAM/timeout и cleanup. Host используется
-для чтения/редактирования, Git и Docker CLI. Exact target runners не
-дублируются в этом rule: см. `AGENTS.md` и
-`.cursor/skills/qa-gate/SKILL.md`.
+для чтения/редактирования, Git и Docker CLI. Единственный публичный API:
+`docker compose -f docker-compose.local.yml run --rm <service>`; доступны
+только `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load`.
+Если сервис отсутствует, фиксировать `NOT_READY`; host/direct fallback запрещён.
 
 Target test architecture:
 

@@ -122,7 +122,8 @@ Playbook описывает **единый способ работы** для п
 | Новый milestone | `ba1`+`ba2` параллельно | `sa1`+`sa2` параллельно → `arch` |
 
 Для мелкого фикса без изменения поведения аналитики не нужны — идёт прямой путь `be`/`fe` →
-`be-ver`/`fe-ver` → `/qa-gate` (см. REGULATION §5, hotfix path).
+`be-ver`/`fe-ver` → применимый fixed root Compose service (см. REGULATION §5,
+hotfix path).
 
 ### 2.3 Как ba1 и ba2 делят работу без конфликтов
 

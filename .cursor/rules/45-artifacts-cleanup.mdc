@@ -37,7 +37,8 @@ alwaysApply: false
 ## Процедура
 
 1. До запуска записать expected containers/volumes/networks/report paths.
-2. Выполнить target job только по `AGENTS.md`/`/qa-gate`.
+2. Выполнить fixed root Compose service только как
+   `docker compose -f docker-compose.local.yml run --rm <service>`.
 3. В `finally/trap` остановить exact container/Compose project и удалить только
    перечисленные task-owned volumes/artifacts.
 4. Read-only проверить отсутствие exact ресурсов и unexpected repo status.
@@ -53,5 +54,6 @@ alwaysApply: false
 - объявлять cleanup PASS только потому, что использован `--rm` — проверить
   дополнительные volumes/networks/report paths всё равно нужно.
 
-Канон execution/evidence: `.cursor/playbooks/testing.md`,
-`.cursor/skills/qa-gate/SKILL.md`, `.cursor/rules/07-agent-safety.mdc`.
+Канон execution/evidence: `AGENTS.md`, `.cursor/playbooks/testing.md`,
+`.cursor/rules/07-agent-safety.mdc`; применимый service вызывается только как
+`docker compose -f docker-compose.local.yml run --rm <service>`.

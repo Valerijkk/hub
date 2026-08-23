@@ -60,12 +60,12 @@ observable oracle и cleanup через принятую metadata schema.
 
 ## Docker evidence
 
-E2E запускается только через canonical `/qa-gate` outer launcher
-и target Compose profile из `testframework/docker/**`. Этот playbook не
+E2E запускается только как `docker compose -f docker-compose.local.yml run --rm python-e2e-smoke`
+или `docker compose -f docker-compose.local.yml run --rm python-e2e-full`. Этот playbook не
 дублирует `docker run`/`docker compose` snippets: прямой inner command
 не доказывает наличие required services, limits, isolation и cleanup.
 
-Если target E2E image/profile/runner ещё не существует, verdict —
+Если target E2E image/profile/service ещё не существует, verdict —
 `NOT_READY`, а не legacy TypeScript Playwright fallback. Host
 Playwright/pytest/backend/frontend processes запрещены.
 

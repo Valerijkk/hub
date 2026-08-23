@@ -81,9 +81,9 @@ user := repo.Get(ctx, id) // получаем пользователя
 ### 2.5 Тесты и регрессия
 
 - Тесты присутствуют для нового поведения; привязаны к TC (`docs/TESTING.md`/testframework) там, где применимо.
-- Для применимого target job требуется raw `/qa-gate` evidence на exact revision;
+- Для применимого fixed root Compose service требуется raw evidence на exact revision;
   не принимаю `verified: true` без конкретного результата и cleanup receipt.
-- Если `/qa-gate` сообщает `NOT_READY` или job не существует, отчёт обязан
+- Если fixed root Compose service сообщает `NOT_READY` или job не существует, отчёт обязан
   сохранить `NOT_READY`/`NOT_RUN`; host-команда, direct runner или inline
   Docker/Compose не заменяют evidence.
 - Тест покрывает именно новый баг-класс, не только конкретный инстанс (актуально при ревью фиксов от `debugger` — регрессионный тест должен ловить повторение той же гонки/race/паники, не просто «однажды воспроизведённый кейс»).

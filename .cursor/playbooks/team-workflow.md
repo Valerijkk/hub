@@ -10,7 +10,7 @@
 > **Ключевой принцип:** единая база знаний в `docs/`, верификация каждого артефакта персональным
 > верификатором, **цикличное** качество новой фичи + регрессия старого + docs-sync перед handoff.
 > Делегирование `team-lead` — только шаблон §5.3.1. Ни один артефакт не входит в baseline без
-> `verified: true` + green `/qa-gate`.
+> `verified: true` + green применимый root Compose service.
 
 ---
 
@@ -26,17 +26,16 @@
 
 ## 1.1 Модельная политика
 
-> **FOUNDER MODEL ROUTING LOCK (2026-08-11; overrides legacy routing below):**
+> **FOUNDER MODEL ROUTING LOCK (2026-08-22; overrides legacy routing below):**
 > only `team-lead` uses `gpt-5.6-sol`, with `max` effort. Every subagent
 > dispatch hard-codes both fields and never inherits. Terra
 > (`gpt-5.6-terra`) performs analysis, decomposition, coordination and review
-> with task-routed `low|medium|high|xhigh`. Atomic code writers use
-> `gpt-5.3-codex` (5.3 Codex Spark) with `xhigh`, one bounded code outcome and
-> the full official 400k context window when useful after Terra/root freezes the contract. Missing
+> with task-routed `low|medium|high|xhigh`. Atomic code writers use Terra with
+> `xhigh`, one bounded code outcome after Terra/root freezes the contract. Missing
 > model/effort, `inherit`, full-history inheritance, silent fallback, or a Sol
 > subagent makes the dispatch invalid.
 
-> **Model policy (founder lock, amended 2026-08-11):** `team-lead` = `gpt-5.6-sol` / `max`; Terra = analysis/decomposition/review; `gpt-5.3-codex` / `xhigh` = atomic code. Каждый downstream dispatch явно задаёт точные model+effort. `inherit`, пропуск полей и Sol-субагенты запрещены. Канон: [`model-routing.md`](model-routing.md).
+> **Model policy (founder lock, amended 2026-08-22):** `team-lead` = `gpt-5.6-sol` / `max`; every downstream dispatch = `gpt-5.6-terra` with task-routed effort; atomic code = Terra / `xhigh` after a frozen contract. Каждый downstream dispatch явно задаёт точные model+effort. `inherit`, пропуск полей и Sol-субагенты запрещены. Канон: [`model-routing.md`](model-routing.md).
 >
 > Workflow evidence/limits: [`22-ai-workflow-decisioning.md`](../knowledge/code-practices/22-ai-workflow-decisioning.md). Приоритет: founder locks → Hub safety/authority → GSD lifecycle → совместимые Superpowers 6.2.0 patterns → local heuristics. Нижний уровень не расширяет permissions.
 
@@ -44,7 +43,7 @@
 |---|---|---|---|
 | Оркестратор | `gpt-5.6-sol` | **GPT-5.6 Sol / Max** | Единственный Sol-слот; цель, волны, риски и финальная приёмка |
 | Анализ/декомпозиция/ревью | explicit | **GPT-5.6 Terra / Low–XHigh** | Model и effort обязательны; Terra замораживает контракт до передачи кода |
-| Atomic code | `gpt-5.3-codex` | **5.3 Codex Spark / XHigh** | Одна функция/малый модуль/одно поведение; до полного окна 400k релевантного контекста; не принимает architecture/security/product решения |
+| Atomic code | `gpt-5.6-terra` | **Terra / XHigh** | Одна функция/малый модуль/одно поведение по frozen contract; exact-path bounded; не принимает architecture/security/product решения |
 | Portable agents | explicit | Launcher validates | Role prompt содержит literal model slug и effort; `inherit` запрещён |
 
 **Политика выбора:**
@@ -54,7 +53,7 @@
 - Задача субагенту описывает outcome, constraints, completion bar и evidence. Sampling-параметры не пишутся в prompt, если launcher ими не управляет.
 - Requested runtime не считается фактическим: handoff фиксирует `actual_model` по telemetry/evidence либо `UNKNOWN`, не выводит его из frontmatter.
 - `team-lead-opus` — исторический deprecated-профиль; обязательного отдельного escalation slot больше нет.
-- Только `team-lead` запускает волну и принимает фазу целиком. Terra дробит code backlog до атомарных Spark-задач; Spark не превращает микрозадачу в волну и возвращает `BLOCKED`, если контракт не помещается в границы.
+- Только `team-lead` запускает волну и принимает фазу целиком. Terra дробит code backlog до атомарных Terra/XHigh-задач; исполнитель не превращает микрозадачу в волну и возвращает `BLOCKED`, если контракт не помещается в границы.
 - `pro-qa-ai/**` не входит в scope внутренних волн: это эксклюзивная зона Claude Code Opus 5; только явный founder handoff конкретного артефакта.
 ## 1.2 Полный ростер (32 роли)
 
@@ -68,7 +67,7 @@
 | `team-lead-opus` | deprecated | Исторический профиль эскалации | — |
 | `tech-lead` | Terra / High–XHigh | Декомпозиция на фазы/планы | (ревью `team-lead`) |
 | `product` | Terra / High–XHigh | Приоритеты, scope, MoSCoW | `product-ver` (Terra / High) |
-| `codex-micro` | 5.3 Codex Spark / XHigh | Атомарная реализация функции/малого модуля/одного поведения по замороженному контракту | Ролевой Terra verifier |
+| `codex-micro` | Terra / XHigh | Атомарная реализация функции/малого модуля/одного поведения по замороженному контракту; legacy role ID, не runtime requirement | Ролевой Terra verifier |
 
 ### Аналитика и архитектура
 
@@ -116,7 +115,7 @@
 
 - [ ] `team-lead` = GPT-5.6 Sol / Max, единственный Sol-слот, оркестратор и финальная приёмка.
 - [ ] Downstream-модели выбраны по capability/cost/risk из реально доступных Cursor runtimes.
-- [ ] Каждый downstream launch содержит explicit model+effort: Terra для analysis/decomposition/review или `gpt-5.3-codex` / `xhigh` для atomic code; `inherit` запрещён.
+- [ ] Каждый downstream launch содержит explicit `gpt-5.6-terra` + task-routed effort; atomic code после frozen contract всегда `xhigh`; `inherit` запрещён.
 - [ ] У каждой производящей роли есть персональный верификатор.
 - [ ] Параллельные исполнители разведены по файлам/модулям.
 
@@ -158,7 +157,7 @@
 
 | Этап | devops | qa | security-auditor | docs-writer | team-lead |
 |---|---|---|---|---|---|
-| /qa-gate green | C | R | C | I | A |
+| Root Compose service green | C | R | C | I | A |
 | Security-скан | I | C | R | I | A |
 | Docs/changelog | I | I | I | R | A |
 | Деплой (SSH/K3s) | R | I | C | I | A |
@@ -234,13 +233,13 @@ flowchart TD
    → **qa-auto-ver** верифицирует автотесты. **Unit-тесты — обязанность разработчиков** (`be*`/`fe*`,
    шаг 6), qa-auto их не пишет.
 9. **code-reviewer** — pre-merge review диффа (баги, паттерны, security, стиль).
-10. **team-lead** — финальная приёмка фазы: сверяет с AC/success criteria, green `/qa-gate`, собирает
+10. **team-lead** — финальная приёмка фазы: сверяет с AC/success criteria, green применимые root Compose services, собирает
     результаты волн. Accountable за всё.
 11. **docs-sync** — обновление `STATE.md` + доменных docs (§8, `55-docs-sync.mdc`).
 ## 3.3 Hotfix (сокращённый поток)
 
 ```
-debugger (root cause) → be/fe (fix атомарно) → be-ver/fe-ver → qa (регресс) → /qa-gate → team-lead
+debugger (root cause) → be/fe (fix атомарно) → be-ver/fe-ver → qa (регресс) → root Compose service → team-lead
 ```
 
 Пропускаются product/ba/sa/arch/designer, если фикс не меняет контракт/дизайн. Docs-sync обязателен.
@@ -264,7 +263,7 @@ debugger (root cause) → be/fe (fix атомарно) → be-ver/fe-ver → qa 
 Wave N: root + до 3 параллельных субагентов (4 active slots total)
    каждый: делает атомарную задачу
          → test-triage при падении теста
-         → /qa-gate по затронутым пакетам
+         → root Compose service по затронутому scope
 team-lead: собирает артефакты + merge + handoff-sync
 Wave N+1: зависит от артефактов Wave N
 ```
@@ -307,7 +306,7 @@ Wave 4 (приёмка):
 первым атомарным коммитом, оба берут оттуда. То же для API-контракта между be и fe.
 ## 4.4 Точки синхронизации и порядок мержа
 
-- **Sync point** между волнами: `team-lead` собирает артефакты, прогоняет `/qa-gate` на объединении,
+- **Sync point** между волнами: `team-lead` собирает артефакты, прогоняет применимые root Compose services на объединении,
   делает `/handoff-sync` (обновляет `STATE.md`).
 - **Порядок мержа:** сначала фундамент (Ent schema/миграции, общие типы, API-контракт), затем зависимые
   слои (service → handler → frontend). Каждая новая задача стартует в `codex/<task>` от refreshed
@@ -331,7 +330,7 @@ Wave 4 (приёмка):
 
 - [ ] Root + ≤3 параллельных субагента; каждый slot занят независимой полезной задачей.
 - [ ] Задачи разведены по модулям/файлам; общий контракт зафиксирован первым коммитом.
-- [ ] Между волнами — sync point: `/qa-gate` + `/handoff-sync`.
+- [ ] Между волнами — sync point: root Compose service + `/handoff-sync`.
 - [ ] Порядок мержа: фундамент → зависимые слои; task branch от refreshed master → Docker-only gate + independent review → team-lead integration → branch cleanup.
 
 ---
@@ -414,7 +413,7 @@ Wave 4 (приёмка):
 - max_retries_per_failure: <N|NOT_SET>; max_fix_attempts_per_root_cause: <N<=3|NOT_SET>
 - max_re_review_rounds: <N<=5|NOT_SET>
 - wall_clock_limit: <duration|NOT_SET>
-- requested_model: <gpt-5.6-terra|gpt-5.3-codex, REQUIRED and explicit>; reasoning_effort: <low|medium|high|xhigh, REQUIRED; Spark=xhigh>
+- requested_model: gpt-5.6-terra (REQUIRED and explicit); reasoning_effort: <low|medium|high|xhigh, REQUIRED; atomic=xhigh>
 - actual_model: UNKNOWN при dispatch; provider: <observed|UNKNOWN>; actual_model_evidence: <telemetry/ref|none>
 - workflow: <name@revision|UNKNOWN>; skills: <name@revision|none|UNKNOWN>
 - plugins: <name@revision|none|UNKNOWN>; MCP: <server@revision + capability scope|none|UNKNOWN>
@@ -449,7 +448,7 @@ Wave 4 (приёмка):
   если известный runtime обязателен, `UNKNOWN` = missing evidence.
 - **Цикл качества новой фичи:** implement → проверить новое → FAIL? → triage → fix → повтор до green.
 - **Регрессия старого функционала:** после green по новому — домен/смежное; FAIL? → цикл triage→fix;
-  на интеграции волны — `/qa-gate` (ответственный team-lead).
+  на интеграции волны — root Compose service (ответственный team-lead).
 - Docs-sync (rule 55) + skill-лог + 2–5 предложений + передача `*-ver`.
 ```
 
@@ -458,7 +457,7 @@ exact revision, пять execution bounds (число/длительность �
 Few-shot — только когда нужен точный эталон.
 ## 5.4 Сборка результатов и эскалация
 
-- После волны: собрать артефакты, свести verified-статусы, прогнать `/qa-gate`, обновить `STATE.md`.
+- После волны: собрать артефакты, свести verified-статусы, прогнать применимые root Compose services, обновить `STATE.md`.
 - **Эскалация пользователю** при: смене scope, деструктивных действиях, конфликте требований, prod-блокере
   (например PG-03), недостатке информации для решения.
 - **Эскалация роли** при: провале верификации (возврат исполнителю с findings), падении регрессии
@@ -479,7 +478,7 @@ Few-shot — только когда нужен точный эталон.
 - [ ] В условиях задачи явно: цикл качества новой фичи + регрессия старого.
 - [ ] Исполнители выбраны по загрузке и типу работы; нет простаивающих ради занятости.
 - [ ] Scope волны под контролем; расширения эскалируются, не расползаются.
-- [ ] После волны: сборка + `/qa-gate` + `STATE.md` + эскалация блокеров.
+- [ ] После волны: сборка + root Compose service + `STATE.md` + эскалация блокеров.
 
 ---
 
@@ -577,7 +576,7 @@ Few-shot — только когда нужен точный эталон.
 1. **Conclusion-blind, spec-aware.** Верификатор read-only получает exact `TaskContract`/spec,
    `BASE..HEAD` diff, current code и raw check outputs на branch+full HEAD (или artifact digest).
    Generator confidence, готовый вывод и длинное обоснование скрыты до первичного verdict.
-2. **Green-регрессия обязательна.** `verified: true` не ставится без приложенного лога green `/qa-gate`
+2. **Green-регрессия обязательна.** `verified: true` не ставится без приложенного лога green root Compose service
    (или регрессии затронутого слоя).
 3. **Findings классифицируются** (CRITICAL/HIGH/MINOR). CRITICAL/HIGH → возврат исполнителю.
 4. **Oracle hierarchy.** Trusted invariant/contract → focused executable checks → integration/recovery
@@ -619,7 +618,7 @@ verified: false            # true только при 0 CRITICAL/HIGH + green re
 ### Чек-лист верификации (§7)
 
 - [ ] Верификатор conclusion-blind/spec-aware; получил TaskContract, BASE..HEAD diff/current code/raw checks.
-- [ ] Приложен лог green регрессии/`/qa-gate`.
+- [ ] Приложен лог green регрессии/root Compose service.
 - [ ] Findings классифицированы; CRITICAL/HIGH возвращены исполнителю.
 - [ ] `verified: true` только при 0 CRITICAL/HIGH + green + exact revision + дата.
 
@@ -638,14 +637,14 @@ verified: false            # true только при 0 CRITICAL/HIGH + green re
            → FAIL? → test-triage → fix → повтор до green
 
 Старый функционал (регрессия):
-  после green по новому → домен / смежное / на волне `/qa-gate`
+  после green по новому → домен / смежное / на волне root Compose service
                        → FAIL? → test-triage → fix → повтор до green
 ```
 
 Одноразовой проверки недостаточно. `verified: true` и handoff — только после обоих циклов green + лог.
 
 Сразу после изменения кода/конфигурации, затрагивающего поведение, используй
-только versioned outer launcher из [`/qa-gate`](../skills/qa-gate/SKILL.md).
+только `docker compose -f docker-compose.local.yml run --rm <service>`.
 На Windows host запрещены tests/validators/linters/build/vet/Vite/Playwright/
 pytest/Locust. Прямой `docker run`/`compose up` не substitute: launcher обязан
 enforce wall-clock timeout, сохранить exit code, изолировать reports по
@@ -678,19 +677,19 @@ enforce wall-clock timeout, сохранить exit code, изолировать
    `infra|flaky|stop` не разрешают произвольный code/assertion fix.
 
 **Запрещено:** делать тесты зелёными без проверки спецификации. Skill: `.cursor/skills/test-triage/SKILL.md`.
-## 8.4 `/qa-gate` перед handoff
+## 8.4 Root Compose service перед handoff
 
-Финальный чек: build + test + lint + security scan. Останавливается на первой FAIL. Только green `/qa-gate`
+Финальный чек: применимые build/test/lint/security services. Только green root Compose service
 позволяет передать фазу на приёмку `team-lead`.
 
 ```
-/qa-gate → build ✅ → test (race) ✅ → lint (Biome) ✅ → security scan ✅ → e2e-smoke ✅
+root Compose services → build ✅ → test (race) ✅ → lint (Biome) ✅ → security scan ✅ → e2e-smoke ✅
 ```
 
 ### Порядок ворот (диаграмма)
 
 ```
-код → регрессия(green) → docs-sync → *-ver(verified) → /qa-gate(green) → code-reviewer → team-lead
+код → регрессия(green) → docs-sync → *-ver(verified) → root Compose service(green) → code-reviewer → team-lead
         │ FAIL                                   │ FAIL
         ▼                                        ▼
     test-triage → fix                        возврат исполнителю
@@ -701,7 +700,7 @@ enforce wall-clock timeout, сохранить exit code, изолировать
 - [ ] Регрессия затронутого слоя green (лог приложен).
 - [ ] Docs-sync выполнен (STATE + доменный doc).
 - [ ] При падении теста применён test-triage (ROOT зафиксирован).
-- [ ] `/qa-gate` green перед handoff.
+- [ ] Root Compose service green перед handoff.
 
 ---
 
@@ -784,7 +783,7 @@ Hub использует GSD skills (`~/.agents/skills/gsd-*`) + typed agents (`
 
 | Агент | Primary GSD | Secondary GSD | Hub Slash |
 |---|---|---|---|
-| `team-lead` | `gsd-execute-phase`, `gsd-workstreams` | `gsd-progress`, `gsd-next`, `gsd-manager` | `/qa-gate`, `/handoff-sync` |
+| `team-lead` | `gsd-execute-phase`, `gsd-workstreams` | `gsd-progress`, `gsd-next`, `gsd-manager` | root Compose service, `/handoff-sync` |
 | `tech-lead` | `gsd-plan-phase`, `gsd-graphify` | `gsd-phase`, `gsd-review` | — |
 | `product` | `gsd-new-milestone`, `gsd-review-backlog` | `gsd-explore`, `gsd-capture` | — |
 | `product-ver` | `gsd-verify-work` | `gsd-audit-milestone` | — |
@@ -830,7 +829,7 @@ Hub использует GSD skills (`~/.agents/skills/gsd-*`) + typed agents (`
 | Следующий шаг | `gsd-next` | — |
 | Мелкая задача | `gsd-quick`/`gsd-fast` | — |
 | Role/wave handoff; синхронизация STATE | GSD-RU `handoff` | `/handoff-sync` |
-| Полный quality gate | — | `/qa-gate` |
+| Полный quality gate | — | `docker compose -f docker-compose.local.yml run --rm <service>` |
 | Матрица покрытия | Hub-native | `/coverage-audit` |
 | Падает тест/баг | `gsd-debug` | `/test-triage` |
 

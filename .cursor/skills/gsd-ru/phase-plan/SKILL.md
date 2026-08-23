@@ -92,7 +92,7 @@ disable-model-invocation: true
 ## Quality gates (rule 56)
 - Новый контур: implement → тест → triage loop до green
 - Регрессия домена: …
-- `/qa-gate`: на интеграции волны — team-lead; одиночная работа — исполнитель
+- fixed Compose service: на интеграции волны — team-lead; одиночная работа — исполнитель
 
 ## Риски
 | Риск | Impact | Mitigation |
@@ -163,7 +163,7 @@ disable-model-invocation: true
 - [ ] Один writer на ownership boundary; reviewers/verifiers read-only
 - [ ] Fan-out/depth/retry/remediation/time bounds заданы явно
 - [ ] Won't scope зафиксирован
-- [ ] Rule 56 и `/qa-gate` ownership прописаны
+- [ ] Rule 56 и fixed Compose service ownership прописаны
 - [ ] Нет depends-циклов
 - [ ] Security/auth в отдельной ветке при необходимости
 

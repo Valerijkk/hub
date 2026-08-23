@@ -4,7 +4,7 @@
 
 `testframework/pyproject.toml` — единый authority для pytest markers,
 dependencies, formatting/type policy и test discovery. Не создавать отдельные
-Python projects по stage/domain и не переносить legacy runners.
+Python projects по stage/domain и не переносить legacy launch entrypoints.
 
 | Каталог | Назначение |
 |---|---|
@@ -17,7 +17,7 @@ Python projects по stage/domain и не переносить legacy runners.
 | `docker/` | pinned images/Compose/entrypoints |
 | `reports/` | task-owned generated results, не source authority |
 
-## Target runner contract
+## Target service contract
 
 Один образ `hub-testframework:<sha>` должен быть собран из
 `testframework/docker/**` и иметь immutable provenance. Каждый job использует
@@ -72,6 +72,6 @@ Coverage используется для поиска слепых зон, но 
 requirement/risk/TC traceability, sensitive oracle, non-zero collection и
 Docker provenance.
 
-См. [`qa-gate`](../../skills/qa-gate/SKILL.md),
+См. root Compose service API: `docker compose -f docker-compose.local.yml run --rm <service>`,
 [`C20`](../../knowledge/code-practices/controls/hard-controls.md) и
 [`adoption-status`](../../knowledge/code-practices/controls/adoption-status.md).

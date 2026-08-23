@@ -82,8 +82,8 @@ owner обновляет normative docs/decision; затем это отдель
 
 ## 6. Verification
 
-Исправление проверяется target Docker job из
-[`qa-gate`](../qa-gate/SKILL.md), затем смежными risk jobs. Evidence содержит
+Исправление проверяется только через
+`docker compose -f docker-compose.local.yml run --rm <exact-service>`, затем смежными fixed services. Evidence содержит
 source SHA/image/command/resources/result/duration/artifacts/cleanup. Если
 воспроизведение не разрешено task scope, записать `NOT_RUN`.
 

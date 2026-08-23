@@ -183,7 +183,8 @@ Backend units пишутся в `backend/tests/{domain}/**`. DB/broker/storage
 boundaries пишутся с нуля в `testframework/tests/integration/**`, а
 публичное HTTP behavior — в `testframework/tests/api/**`. Reusable DB/broker clients receive an exact task-scoped path under `testframework/src/hub_testkit/integration/**`. Любой test/build/vet
 запуск — только task-owned Docker с лимитами и cleanup; exact
-runner см. в `AGENTS.md` и `.cursor/skills/qa-gate/SKILL.md`.
+service выбирается из восьми фиксированных root Compose services в `AGENTS.md`
+и выполняется только как `docker compose -f docker-compose.local.yml run --rm <service>`.
 
 ## Примеры из Hub
 
