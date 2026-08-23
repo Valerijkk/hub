@@ -281,8 +281,9 @@ envelopes cross the boundary; state ownership does not.
    `STATIC_ACCEPTED / SPEC_PASS / QUALITY_APPROVED / RUNTIME_NOT_RUN` through `41851638` and
    `805ac226`. Prior v1 `8935..52190` is superseded by v2 and not runtime accepted. 6Q2 and 6C0V2
    share Prepare but are complete; the 6C1 persistence contract is frozen and independently
-   reviewed PASS in the implementation plan. Its source is split into folder, message/link/
-   attachment, aggregate, and orchestrator atoms; the next active order remains 6C1 source, then 6C2.
+   reviewed PASS in the implementation plan. Its source is split into folder, membership,
+   attachment, message/thread/tombstone, aggregate, and orchestrator atoms; 6C1F is statically
+   accepted through `da78cf0b`, and the next active order remains the rest of 6C1, then 6C2.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.

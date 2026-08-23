@@ -813,6 +813,8 @@ or runtime action is authorized; all executable evidence remains `NOT_RUN`.
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_projection.go`
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_folders.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_apply_message_links.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_apply_attachments.go`
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_messages.go`
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_aggregates.go`
 
@@ -920,9 +922,12 @@ large folders or threads are never materialized into process memory. It must con
 `*ent.Tx`, map all database errors through the existing content-free repository mapper, and perform
 no provider, network, outbox, account-position, lease, proof, or clock action.
 
-Implement and review the source atoms in dependency order: 6C1F folder snapshot, 6C1M
-message/link/attachment projection, 6C1A folder/thread aggregates, then 6C1O the exact public-private
-orchestrator above. The contract itself passed independent static architecture re-review on
+Implement and review the source atoms in dependency order: 6C1F folder snapshot; 6C1L exact
+folder/label memberships; 6C1X provider attachment reconciliation; 6C1M message/thread/tombstone
+projection consuming those two helpers; 6C1A folder/thread aggregates; then 6C1O the exact
+public-private orchestrator above. 6C1F is statically accepted through `81a6a33b` and correction
+`da78cf0b`; it performs no account query/lock/fence action. The contract itself passed independent
+static architecture re-review on
 2026-08-23; source, generation, build, database, Docker, and runtime evidence remain `NOT_RUN`.
 
 - [ ] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
