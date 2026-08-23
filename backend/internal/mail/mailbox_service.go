@@ -126,7 +126,7 @@ func (service *MailboxService) ResolveOwner(ctx context.Context, actorID uuid.UU
 
 	record, err := service.repository.ResolveMailboxOwner(ctx, actorID)
 	if err != nil {
-		return MailboxOwner{}, mailboxServiceError(MailboxServiceErrorUnavailable)
+		return MailboxOwner{}, mailboxServiceRepositoryError(err)
 	}
 
 	return mailboxOwnerFromRecord(actorID, record)
@@ -236,6 +236,20 @@ func mailboxOwnerRepositoryNil(repository MailboxOwnerRepository) bool {
 
 func mailboxServiceError(kind MailboxServiceErrorKind) error {
 	return &MailboxServiceError{Kind: kind}
+}
+
+func mailboxServiceRepositoryError(err error) error {
+	var serviceError *MailboxServiceError
+	if !errors.As(err, &serviceError) || serviceError == nil {
+		return mailboxServiceError(MailboxServiceErrorUnavailable)
+	}
+
+	switch serviceError.Kind {
+	case MailboxServiceErrorInvalid, MailboxServiceErrorNotFound, MailboxServiceErrorUnavailable, MailboxServiceErrorDeleting:
+		return mailboxServiceError(serviceError.Kind)
+	default:
+		return mailboxServiceError(MailboxServiceErrorUnavailable)
+	}
 }
 
 func validMailboxOwnerState(state MailboxOwnerState) bool {
