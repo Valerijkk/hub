@@ -25,12 +25,13 @@ func (MailDraft) Fields() []ent.Field {
 		field.String("engine_message_id").Optional().Nillable().Validate(validateMailMessageOpaqueID),
 		field.String("engine_version").Optional().Nillable().Validate(validateMailMessageOpaqueID),
 		field.Int64("revision").Default(1).Min(1),
-		field.Enum("status").Values("active", "saving", "submitting", "submitted", "unknown", "deleted"),
+		field.Enum("status").Values("active", "saving", "deleting", "unknown", "submitting", "submitted", "deleted"),
 		field.Bytes("create_idempotency_key_hash").MinLen(sha256.Size).MaxLen(sha256.Size).Immutable(),
 		field.Bytes("create_request_hash").MinLen(sha256.Size).MaxLen(sha256.Size).Immutable(),
 		field.UUID("reply_to_message_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("forward_message_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("last_mutation_id", uuid.UUID{}).Optional().Nillable(),
+		field.Enum("pending_mutation_kind").Values("create", "save", "delete").Optional().Nillable(),
 		field.Time("created_at").Default(nowUTC).Immutable(),
 		field.Time("updated_at").Default(nowUTC).UpdateDefault(nowUTC),
 	}
@@ -43,8 +44,8 @@ func (MailDraft) Annotations() []schema.Annotation {
 			"mail_drafts_engine_pair": "COALESCE((engine_message_id IS NULL AND engine_version IS NULL) OR (octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_version) BETWEEN 1 AND 1024), FALSE)",
 			"mail_drafts_revision":    "COALESCE(revision >= 1, FALSE)",
 			"mail_drafts_hashes":      "COALESCE(octet_length(create_idempotency_key_hash) = 32 AND octet_length(create_request_hash) = 32, FALSE)",
-			"mail_drafts_status_enum": "COALESCE(status IN ('active','saving','submitting','submitted','unknown','deleted'), FALSE)",
-			"mail_drafts_state":       "COALESCE((status IN ('active','submitting','submitted') AND engine_message_id IS NOT NULL AND last_mutation_id IS NULL) OR (status IN ('saving','unknown') AND last_mutation_id IS NOT NULL) OR (status = 'deleted' AND last_mutation_id IS NULL), FALSE)",
+			"mail_drafts_status_enum": "COALESCE(status IN ('active','saving','deleting','unknown','submitting','submitted','deleted'), FALSE)",
+			"mail_drafts_state":       "COALESCE((status IN ('active','submitting','submitted') AND engine_message_id IS NOT NULL AND last_mutation_id IS NULL AND pending_mutation_kind IS NULL) OR (status = 'saving' AND last_mutation_id IS NOT NULL AND pending_mutation_kind IN ('create','save') AND ((pending_mutation_kind = 'create' AND engine_message_id IS NULL) OR (pending_mutation_kind = 'save' AND engine_message_id IS NOT NULL))) OR (status = 'deleting' AND last_mutation_id IS NOT NULL AND pending_mutation_kind = 'delete' AND engine_message_id IS NOT NULL) OR (status = 'unknown' AND last_mutation_id IS NOT NULL AND ((pending_mutation_kind = 'create' AND engine_message_id IS NULL) OR (pending_mutation_kind IN ('save','delete') AND engine_message_id IS NOT NULL))) OR (status = 'deleted' AND last_mutation_id IS NULL AND pending_mutation_kind IS NULL), FALSE)",
 		}),
 	}
 }

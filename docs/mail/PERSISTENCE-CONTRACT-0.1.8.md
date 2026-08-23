@@ -1017,19 +1017,29 @@ stable `engine_draft_key` 1..1,024 bytes; nullable `engine_message_id`/`engine_v
 1..1,024 bytes; required int64 `revision` default 1; status; immutable
 `create_idempotency_key_hash` and `create_request_hash` bytes(32); nullable
 `reply_to_message_id`/`forward_message_id` UUID snapshots; nullable UUID
-`last_mutation_id`; timestamps. No content/address/attachment bytes are stored.
+`last_mutation_id`; nullable enum `pending_mutation_kind` (`create|save|delete`);
+timestamps. No content/address/attachment bytes are stored.
 
 Unique account+draft key, account+draft-client id, account+create-key hash and nullable
 account+engine message id. The engine pair is both-null or both-present. Status is
-`active|saving|unknown|submitting|submitted|deleted`: active/submitting/submitted require the
-pair and null mutation id; saving/unknown require a mutation id and permit a null pair only
-for initial create; deleted is terminal, forbids mutation id and may retain either valid pair
-state. Every selected storage attachment has the same draft-client id and receives this one
-draft edge atomically; an existing different draft edge conflicts before engine I/O. One
-draft owns at most 50 selected storage-backed attachments. Create/save replacement locks the
-draft, validates the complete distinct attachment-id set and resulting row count, and rejects
-a 51st association before any engine I/O. The repository enforces the same transactional
-invariant even when called outside HTTP; a corrupted over-limit draft is never submitted.
+`active|saving|deleting|unknown|submitting|submitted|deleted`: active/submitting/submitted
+require the pair and null mutation id/kind; saving requires a mutation id and `create|save`
+kind, with create requiring a null pair and save requiring the pair; deleting requires a
+mutation id, `delete` kind, and the pair. Unknown requires a mutation id: `create` requires a
+null pair, while `save|delete` require the pair. Deleted is terminal, forbids mutation id/kind,
+and may retain either valid pair state. The existing pair check means every present
+`engine_message_id` also has its complete version pair. Initial `unknown/create` authoritative
+absence is not terminal active: a matching retry may return it to `saving/create` with the same
+`last_mutation_id`, after which exactly one controlled `SaveDraft` is authorized under the
+current live account lease; a read without the matching request body cannot dispatch provider
+I/O and remains reconciliation-required. `unknown/save` and `unknown/delete` retain the pair;
+reconciliation never blindly repeats delete. Every selected storage attachment has the same
+draft-client id and receives this one draft edge atomically; an existing different draft edge
+conflicts before engine I/O. One draft owns at most 50 selected storage-backed attachments.
+Create/save replacement locks the draft, validates the complete distinct attachment-id set and
+resulting row count, and rejects a 51st association before any engine I/O. The repository
+enforces the same transactional invariant even when called outside HTTP; a corrupted over-limit
+draft is never submitted.
 Reply/forward links set null on projected-message hard delete. Any final service-owned account
 deletion is future/BLOCKED and does not authorize a current cascade; individual draft deletion is
 the terminal status transition, not row deletion.
@@ -1149,7 +1159,7 @@ than correction scope; this grants no schema/source authority.
 | Attachment | scan_status/sha256 | text/bytea | status required/no default; hash nullable | no |
 | Draft | id/mail_account_id/draft_client_id/reply_to_message_id/forward_message_id | uuid | first three required (`uuid.New` id); reply/forward nullable | id/account/client yes |
 | Draft | engine_draft_key/create_idempotency_key_hash/create_request_hash | text/bytea/bytea | required/no defaults | yes |
-| Draft | engine_message_id/engine_version/revision/status/last_mutation_id | text/text/int64/text/uuid | pair/mutation nullable; revision `1`; status required/no default | no |
+| Draft | engine_message_id/engine_version/revision/status/last_mutation_id/pending_mutation_kind | text/text/int64/text/uuid/text | pair/mutation/kind nullable; revision `1`; status required/no default | no |
 | Submission | id/mail_account_id/idempotency_key_hash/request_hash/engine_submission_key | uuid/uuid/bytea/bytea/text | required (`uuid.New` id); no defaults except attempts below | id/account/hashes/key yes |
 | Submission | mail_draft_id/engine_submission_id/engine_result_message_id/result_mail_message_id | uuid/text/text/uuid | nullable; draft may become null via FK | service set-once opaque/result, not Ent immutable |
 | Submission | last_error_code/attempt_count/status | text/int32/text | error nullable; attempts `0`; status required/no default | no |
