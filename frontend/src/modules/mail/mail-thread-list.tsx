@@ -81,6 +81,7 @@ export function MailThreadList({
 	const [searchInput, setSearchInput] = useState(mailSearch.q ?? "");
 	const debouncedSearch = useDebouncedValue(searchInput, 300);
 	const mailSearchRef = useRef(mailSearch);
+	const submittedSearchRef = useRef<string | null>(null);
 	const folderID = folderKey === "all" ? undefined : folderKey.toLowerCase();
 	const hasActiveFilters = Boolean(
 		mailSearch.q ||
@@ -89,9 +90,15 @@ export function MailThreadList({
 		mailSearch.has_attachments,
 	);
 
-	const updateSearch = useCallback(
+	const replaceSearch = useCallback(
 		(nextSearch: MailRouteSearch) => {
 			void navigate({ search: nextSearch, replace: true });
+		},
+		[navigate],
+	);
+	const pushSearch = useCallback(
+		(nextSearch: MailRouteSearch) => {
+			void navigate({ search: nextSearch });
 		},
 		[navigate],
 	);
@@ -99,11 +106,12 @@ export function MailThreadList({
 	const applySearch = useCallback(
 		(value: string) => {
 			const q = normalizeMailRouteSearchQuery(value);
+			submittedSearchRef.current = q ?? "";
 			setSearchInput(q ?? "");
 			if (q === mailSearch.q && value === (mailSearch.q ?? "")) return;
-			updateSearch({ ...mailSearch, q });
+			pushSearch({ ...mailSearch, q });
 		},
-		[mailSearch, updateSearch],
+		[mailSearch, pushSearch],
 	);
 
 	useEffect(() => {
@@ -115,14 +123,19 @@ export function MailThreadList({
 	}, [mailSearch.q]);
 
 	useEffect(() => {
-		const currentSearch = mailSearchRef.current;
 		const q = normalizeMailRouteSearchQuery(debouncedSearch);
+		if (submittedSearchRef.current === (q ?? "")) {
+			submittedSearchRef.current = null;
+			return;
+		}
+		if (debouncedSearch !== searchInput) return;
+		const currentSearch = mailSearchRef.current;
 		if (q === currentSearch.q && debouncedSearch === (currentSearch.q ?? "")) {
 			return;
 		}
 		setSearchInput(q ?? "");
-		updateSearch({ ...currentSearch, q });
-	}, [debouncedSearch, updateSearch]);
+		replaceSearch({ ...currentSearch, q });
+	}, [debouncedSearch, replaceSearch, searchInput]);
 
 	const threadQueryParams = useMemo(
 		() => ({
@@ -310,7 +323,10 @@ export function MailThreadList({
 							type="search"
 							aria-label={t("threadList.searchLabel")}
 							value={searchInput}
-							onChange={(event) => setSearchInput(event.target.value)}
+							onChange={(event) => {
+								submittedSearchRef.current = null;
+								setSearchInput(event.target.value);
+							}}
 							placeholder={t("threadList.searchPlaceholder")}
 							className="min-h-11 w-full rounded-[var(--r2)] border border-b1 bg-base px-3 text-sm text-t1 placeholder:text-t3 outline-none transition-colors focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
 						/>
@@ -319,7 +335,7 @@ export function MailThreadList({
 						type="button"
 						aria-pressed={Boolean(mailSearch.unread)}
 						onClick={() =>
-							updateSearch({
+							pushSearch({
 								...mailSearch,
 								unread: mailSearch.unread ? undefined : true,
 							})
@@ -337,7 +353,7 @@ export function MailThreadList({
 						type="button"
 						aria-pressed={Boolean(mailSearch.starred)}
 						onClick={() =>
-							updateSearch({
+							pushSearch({
 								...mailSearch,
 								starred: mailSearch.starred ? undefined : true,
 							})
@@ -355,7 +371,7 @@ export function MailThreadList({
 						type="button"
 						aria-pressed={Boolean(mailSearch.has_attachments)}
 						onClick={() =>
-							updateSearch({
+							pushSearch({
 								...mailSearch,
 								has_attachments: mailSearch.has_attachments
 									? undefined
@@ -375,8 +391,9 @@ export function MailThreadList({
 						<button
 							type="button"
 							onClick={() => {
+								submittedSearchRef.current = null;
 								setSearchInput("");
-								updateSearch({});
+								pushSearch({});
 							}}
 							className="min-h-11 rounded-[var(--r2)] px-3 text-sm font-medium text-t2 transition-colors hover:text-t1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
 						>

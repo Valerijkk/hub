@@ -1,4 +1,10 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
 import { MailShell } from "@/modules/mail/mail-shell";
 
 const MAIL_THREAD_MAX_SEARCH_BYTES = 128;
@@ -37,7 +43,30 @@ export function normalizeMailRouteSearchQuery(
 	return normalized;
 }
 
+function isCanonicalMailRouteSearch(
+	search: Record<string, unknown>,
+	canonical: MailRouteSearch,
+): boolean {
+	return (
+		Object.keys(search).length === Object.keys(canonical).length &&
+		Object.entries(canonical).every(
+			([key, value]) => search[key] === value,
+		)
+	);
+}
+
 function MailRoute() {
+	const navigate = useNavigate();
+	const rawSearch = useRouterState({
+		select: (state) => state.location.search,
+	});
+	const mailSearch = Route.useSearch();
+
+	useEffect(() => {
+		if (isCanonicalMailRouteSearch(rawSearch, mailSearch)) return;
+		void navigate({ search: mailSearch, replace: true });
+	}, [mailSearch, navigate, rawSearch]);
+
 	return (
 		<MailShell>
 			<Outlet />
@@ -46,11 +75,14 @@ function MailRoute() {
 }
 
 export const Route = createFileRoute("/_authenticated/mail")({
-	validateSearch: (search: Record<string, unknown>): MailRouteSearch => ({
-		q: normalizeMailRouteSearchQuery(search.q),
-		unread: search.unread === true ? true : undefined,
-		starred: search.starred === true ? true : undefined,
-		has_attachments: search.has_attachments === true ? true : undefined,
-	}),
+	validateSearch: (search: Record<string, unknown>): MailRouteSearch => {
+		const q = normalizeMailRouteSearchQuery(search.q);
+		return {
+			...(q === undefined ? {} : { q }),
+			...(search.unread === true ? { unread: true } : {}),
+			...(search.starred === true ? { starred: true } : {}),
+			...(search.has_attachments === true ? { has_attachments: true } : {}),
+		};
+	},
 	component: MailRoute,
 });
