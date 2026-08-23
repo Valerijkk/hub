@@ -618,20 +618,32 @@ func cloneCalendarEventUpdatePersistenceResult(result CalendarEventUpdatePersist
 
 func validateCalendarEventUpdateAuthorization(scope EventMutationScope, eventID uuid.UUID, input CalendarEventUpdateInput, authorization CalendarEventUpdateAuthorization) error {
 	current := authorization.Current
-	if current.EventID != eventID || current.OrganizationID != scope.OrganizationID() || current.OrganizerID == nil || *current.OrganizerID != scope.ActorID() {
+	if current.EventID != eventID || current.OrganizationID != scope.OrganizationID() || current.OwnerID != scope.ActorID() ||
+		current.OrganizerID == nil || *current.OrganizerID != scope.ActorID() {
 		return ErrEventNotFound
 	}
 	if _, err := NewCalendarEventCommand(current); err != nil || !validCalendarEventUpdateAuthoritativeCurrent(current) { return ErrEventInvalid }
-	if len(authorization.Attendees) > calendarCreateMaxAttendees { return ErrEventInvalid }
+	if len(authorization.Attendees) > calendarCreateMaxAttendees+1 { return ErrEventInvalid }
 	seenIDs := make(map[uuid.UUID]struct{}, len(authorization.Attendees))
 	seenEmails := make(map[string]struct{}, len(authorization.Attendees))
 	seenUsers := make(map[uuid.UUID]struct{}, len(authorization.Attendees))
+	organizers := 0
 	for _, attendee := range authorization.Attendees {
 		displayName := attendee.DisplayName
-		if attendee.AttendeeID == uuid.Nil || attendee.Version == 0 || !validCalendarCreateEmail(attendee.Email) || attendee.Email != normalizeCalendarCreateEmail(attendee.Email) || !validCalendarEventAttendeeRole(attendee.Role) || attendee.Status.Validate() != nil || !validCalendarCreateDisplayName(&displayName) || (attendee.RespondedAt != nil && attendee.RespondedAt.IsZero()) {
+		if attendee.AttendeeID == uuid.Nil || attendee.Version == 0 || !validCalendarCreateEmail(attendee.Email) || attendee.Email != normalizeCalendarCreateEmail(attendee.Email) ||
+			!validCalendarEventStoredAttendeeRoleState(attendee.Role, attendee.Status, "") || !validCalendarCreateDisplayName(&displayName) ||
+			(attendee.RespondedAt != nil && attendee.RespondedAt.IsZero()) {
 			return ErrEventInvalid
 		}
 		if attendee.UserID != nil && *attendee.UserID == uuid.Nil { return ErrEventInvalid }
+		organizerIdentity := attendee.UserID != nil && *attendee.UserID == current.OwnerID && *attendee.UserID == *current.OrganizerID
+		if attendee.Role == CalendarEventAttendeeRoleOrganizer || organizerIdentity {
+			if attendee.Email != current.OrganizerEmail ||
+				!validCalendarEventStoredOrganizerAttendeeState(attendee.Role, attendee.Status, "", attendee.UserID, current.OwnerID, *current.OrganizerID) {
+				return ErrEventInvalid
+			}
+			organizers++
+		}
 		if _, found := seenIDs[attendee.AttendeeID]; found { return ErrEventInvalid }
 		seenIDs[attendee.AttendeeID] = struct{}{}
 		email := normalizeCalendarCreateEmail(attendee.Email)
@@ -642,6 +654,7 @@ func validateCalendarEventUpdateAuthorization(scope EventMutationScope, eventID 
 			seenUsers[*attendee.UserID] = struct{}{}
 		}
 	}
+	if organizers != 1 { return ErrEventInvalid }
 	if !input.Attendees.Present {
 		if len(authorization.ResolvedAttendees) != 0 { return ErrEventInvalid }
 		return nil

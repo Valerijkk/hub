@@ -42,6 +42,7 @@ func (backend *eventEntTransactionBackend) ResolveCalendarEventUpdate(ctx contex
 		Where(
 			calendarattendee.CalendarEventIDEQ(event.ID),
 			calendarattendee.RemovedAtIsNil(),
+			calendarattendee.RecurrenceIDIsNil(),
 		).
 		Order(ent.Asc(calendarattendee.FieldID)).
 		ForUpdate().
@@ -541,6 +542,15 @@ func eventEntUpdateAttendeeSnapshot(attendee *ent.CalendarAttendee) (CalendarEve
 	if attendee == nil {
 		return CalendarEventUpdateAttendeeSnapshot{}, ErrEventInvalid
 	}
+	var recurrenceID string
+	if attendee.RecurrenceID != nil {
+		recurrenceID = *attendee.RecurrenceID
+	}
+	role := CalendarEventAttendeeRole(attendee.Role)
+	status := RSVPStatus(attendee.RsvpStatus)
+	if !validCalendarEventStoredAttendeeRoleState(role, status, recurrenceID) {
+		return CalendarEventUpdateAttendeeSnapshot{}, ErrEventInvalid
+	}
 	version, ok := eventEntUint(attendee.Version)
 	if !ok {
 		return CalendarEventUpdateAttendeeSnapshot{}, ErrEventInvalid
@@ -550,8 +560,8 @@ func eventEntUpdateAttendeeSnapshot(attendee *ent.CalendarAttendee) (CalendarEve
 		UserID:      eventEntUUIDPointer(attendee.UserID),
 		Email:       attendee.NormalizedEmail,
 		DisplayName: eventEntStringValue(attendee.DisplayName),
-		Role:        CalendarEventAttendeeRole(attendee.Role),
-		Status:      RSVPStatus(attendee.RsvpStatus),
+		Role:        role,
+		Status:      status,
 		RespondedAt: eventEntTimePointer(attendee.RespondedAt),
 		Version:     version,
 	}, nil

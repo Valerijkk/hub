@@ -139,7 +139,8 @@ func (backend *eventEntCallTransactionBackend) eventCallDueProjectionInput(ctx c
 
 func (backend *eventEntCallTransactionBackend) eventCallProjectionInput(ctx context.Context, rows eventEntCallRows, action EventCallProjectionAction, boundary EventCallProjectionBoundary) (EventCallProjectionInput, error) {
 	current, err := eventEntCalendarEventInput(rows.event)
-	if err != nil || current.ScheduledCallID == nil || *current.ScheduledCallID != rows.call.ID || current.OrganizerID == nil || *current.OrganizerID != rows.call.CreatedBy {
+	if err != nil || current.ScheduledCallID == nil || *current.ScheduledCallID != rows.call.ID || current.OrganizerID == nil ||
+		current.OwnerID != *current.OrganizerID || *current.OrganizerID != rows.call.CreatedBy {
 		return EventCallProjectionInput{}, ErrEventConflict
 	}
 	creator, err := backend.eventCallCreatorForUpdate(ctx, rows)
@@ -207,6 +208,19 @@ func (backend *eventEntCallTransactionBackend) eventCallAttendeesForUpdate(ctx c
 		if attendee.UserID == nil {
 			return nil, ErrEventInvalid
 		}
+		var recurrenceID string
+		if attendee.RecurrenceID != nil {
+			recurrenceID = *attendee.RecurrenceID
+		}
+		role := CalendarEventAttendeeRole(attendee.Role)
+		status := RSVPStatus(attendee.RsvpStatus)
+		if !validCalendarEventStoredAttendeeRoleState(role, status, recurrenceID) {
+			return nil, ErrEventInvalid
+		}
+		if role == CalendarEventAttendeeRoleOrganizer && (rows.event.OrganizerID == nil ||
+			!validCalendarEventStoredOrganizerAttendeeState(role, status, recurrenceID, attendee.UserID, rows.event.CalendarOwnerID, *rows.event.OrganizerID)) {
+			return nil, ErrEventConflict
+		}
 		member, err := backend.tx.User.Query().Where(user.IDEQ(*attendee.UserID), user.StatusEQ(user.StatusActive)).ForUpdate().Only(ctx)
 		if err != nil {
 			return nil, calendarEntSafeError(err)
@@ -220,15 +234,11 @@ func (backend *eventEntCallTransactionBackend) eventCallAttendeesForUpdate(ctx c
 		if attendee.NormalizedEmail != member.Email {
 			return nil, ErrEventConflict
 		}
-		var recurrenceID string
-		if attendee.RecurrenceID != nil {
-			recurrenceID = *attendee.RecurrenceID
-		}
 		attendeeID := *attendee.UserID
 		attendees = append(attendees, EventCallProjectionAttendee{
 			UserID: &attendeeID, Email: member.Email, OrganizationID: rows.event.OrganizationID,
-			ProjectID: rows.call.ProjectID, Role: CalendarEventAttendeeRole(attendee.Role),
-			Status: RSVPStatus(attendee.RsvpStatus), RecurrenceID: recurrenceID,
+			ProjectID: rows.call.ProjectID, Role: role,
+			Status: status, RecurrenceID: recurrenceID,
 			Active: true, ActiveProjectMember: true,
 		})
 	}

@@ -802,7 +802,7 @@ func eventCallProjectionParticipants(event EventCallProjectionEvent, creator Eve
 	organizers := 0
 	for _, attendee := range attendees {
 		if attendee.UserID == nil || *attendee.UserID == uuid.Nil || attendee.OrganizationID != event.OrganizationID || attendee.ProjectID != event.ProjectID || !attendee.Active || !attendee.ActiveProjectMember ||
-			!validCalendarEventAttendeeRole(attendee.Role) || attendee.Status.Validate() != nil {
+			!validCalendarEventStoredAttendeeRoleState(attendee.Role, attendee.Status, attendee.RecurrenceID) {
 			return nil, EventCallProjectionInvalid
 		}
 		if _, duplicate := seenUsers[*attendee.UserID]; duplicate {
@@ -822,7 +822,12 @@ func eventCallProjectionParticipants(event EventCallProjectionEvent, creator Eve
 			}
 			continue
 		}
-		if *attendee.UserID == creator.UserID && attendee.Email == creator.Email {
+		organizerIdentity := *attendee.UserID == event.OrganizerID && *attendee.UserID == creator.UserID
+		if attendee.Role == CalendarEventAttendeeRoleOrganizer || organizerIdentity {
+			if attendee.Email != event.OrganizerEmail || attendee.Email != creator.Email ||
+				!validCalendarEventStoredOrganizerAttendeeState(attendee.Role, attendee.Status, attendee.RecurrenceID, attendee.UserID, event.OrganizerID, event.OrganizerID) {
+				return nil, EventCallProjectionInvalid
+			}
 			organizers++
 			continue
 		}

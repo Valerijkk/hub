@@ -329,9 +329,9 @@ func calendarCreatePersistenceCommands(scope EventMutationScope, eventID uuid.UU
 		return CalendarEventCommand{}, CalendarEventAttendeeCommand{}, nil, nil, err
 	}
 	organizerAttendeeID := calendarCreateUUID("hub.calendar.attendee.id.v1", eventID[:], []byte("organizer"))
-	organizer, err := NewCalendarEventAttendeeCommand(CalendarEventAttendeeCommandInput{
+	organizer, err := newCalendarEventOrganizerAttendeeCommand(CalendarEventAttendeeCommandInput{
 		AttendeeID: organizerAttendeeID, EventID: eventID, UserID: &organizerID, Email: normalizeCalendarCreateEmail(authorization.Organizer.Email),
-		DisplayName: calendarCreateDisplayName(authorization.Organizer.DisplayName), Role: CalendarEventAttendeeRoleRequired, Status: RSVPAccepted, Version: 1,
+		DisplayName: calendarCreateDisplayName(authorization.Organizer.DisplayName), Role: CalendarEventAttendeeRoleOrganizer, Status: RSVPAccepted, Version: 1,
 	})
 	if err != nil {
 		return CalendarEventCommand{}, CalendarEventAttendeeCommand{}, nil, nil, err

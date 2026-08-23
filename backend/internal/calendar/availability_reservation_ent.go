@@ -240,15 +240,18 @@ func calendarAvailabilityReservationAttendeesMatch(set CalendarAvailabilityReser
 		if *attendee.UserID == uuid.Nil {
 			return false
 		}
-		if attendee.Role == calendarattendee.RoleOrganizer {
-			if *attendee.UserID != set.OrganizerID() || attendee.RsvpStatus != calendarattendee.RsvpStatusAccepted || organizerRows != 0 {
+		role := CalendarEventAttendeeRole(attendee.Role)
+		status := RSVPStatus(attendee.RsvpStatus)
+		if !validCalendarEventStoredAttendeeRoleState(role, status, "") {
+			return false
+		}
+		organizerIdentity := *attendee.UserID == set.OrganizerID()
+		if role == CalendarEventAttendeeRoleOrganizer || organizerIdentity {
+			if !validCalendarEventStoredOrganizerAttendeeState(role, status, "", attendee.UserID, set.OrganizerID(), set.OrganizerID()) || organizerRows != 0 {
 				return false
 			}
 			organizerRows++
 			continue
-		}
-		if *attendee.UserID == set.OrganizerID() {
-			return false
 		}
 		if _, duplicate := actual[*attendee.UserID]; duplicate {
 			return false

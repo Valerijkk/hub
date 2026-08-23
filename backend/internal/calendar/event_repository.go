@@ -1986,8 +1986,8 @@ func NewCalendarEventAttendeeCommand(input CalendarEventAttendeeCommandInput) (C
 
 func newCalendarEventOrganizerAttendeeCommand(input CalendarEventAttendeeCommandInput) (CalendarEventAttendeeCommand, error) {
 	if input.AttendeeID == uuid.Nil || input.EventID == uuid.Nil || input.UserID == nil || *input.UserID == uuid.Nil ||
-		strings.TrimSpace(input.Email) == "" || input.Role != CalendarEventAttendeeRoleOrganizer || input.Status != RSVPAccepted ||
-		input.RecurrenceID != "" || input.Version == 0 {
+		strings.TrimSpace(input.Email) == "" || input.Role != CalendarEventAttendeeRoleOrganizer ||
+		!validCalendarEventStoredAttendeeRoleState(input.Role, input.Status, input.RecurrenceID) || input.Version == 0 {
 		return CalendarEventAttendeeCommand{}, ErrEventInvalid
 	}
 	input.UserID = copyUUID(input.UserID)
@@ -2188,6 +2188,29 @@ func validCalendarEventStatus(status CalendarEventStatus) bool {
 
 func validCalendarEventAttendeeRole(role CalendarEventAttendeeRole) bool {
 	return role == CalendarEventAttendeeRoleRequired || role == CalendarEventAttendeeRoleOptional
+}
+
+// validCalendarEventStoredAttendeeRoleState is restricted to authoritative
+// internal rows. Caller-selected invitees must use validCalendarEventAttendeeRole.
+func validCalendarEventStoredAttendeeRoleState(role CalendarEventAttendeeRole, status RSVPStatus, recurrenceID string) bool {
+	if status.Validate() != nil {
+		return false
+	}
+	if role == CalendarEventAttendeeRoleOrganizer {
+		return status == RSVPAccepted && recurrenceID == ""
+	}
+	return validCalendarEventAttendeeRole(role)
+}
+
+// validCalendarEventStoredOrganizerAttendeeState accepts the pre-cutover
+// required-role organizer only when the authoritative owner/organizer identity
+// proves it. New organizer rows always use the dedicated organizer role.
+func validCalendarEventStoredOrganizerAttendeeState(role CalendarEventAttendeeRole, status RSVPStatus, recurrenceID string, userID *uuid.UUID, ownerID, organizerID uuid.UUID) bool {
+	if userID == nil || *userID == uuid.Nil || ownerID == uuid.Nil || organizerID == uuid.Nil ||
+		*userID != ownerID || *userID != organizerID || status != RSVPAccepted || recurrenceID != "" {
+		return false
+	}
+	return role == CalendarEventAttendeeRoleOrganizer || role == CalendarEventAttendeeRoleRequired
 }
 
 func copyUUID(value *uuid.UUID) *uuid.UUID {
