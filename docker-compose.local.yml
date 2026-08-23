@@ -37,6 +37,7 @@ x-qa-infrastructure: &qa-infrastructure
 
 x-schema-maintenance-tool: &schema-maintenance-tool
   profiles: [schema-maintenance]
+  platform: linux/amd64
   build:
     context: ./backend
     dockerfile: docker/Dockerfile.schema-maintenance
@@ -260,6 +261,7 @@ services:
 
   schema-maintenance-postgres:
     profiles: [schema-maintenance]
+    platform: linux/amd64
     image: postgres@sha256:e38411452a464af89e5adadb8d223bf53b898d47d6ef918b2d58c08707350449
     user: "999:999"
     read_only: true

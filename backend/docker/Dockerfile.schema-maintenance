@@ -30,4 +30,4 @@ ENV GOTOOLCHAIN=local \
     HOME=/tmp
 
 USER 10001:10001
-ENTRYPOINT ["/usr/local/bin/mail-calendar-schema"]
+ENTRYPOINT ["timeout", "--signal=TERM", "--kill-after=30s", "900", "/usr/local/bin/mail-calendar-schema"]

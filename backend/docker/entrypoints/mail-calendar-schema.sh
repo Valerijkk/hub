@@ -3,7 +3,6 @@ set -eu
 
 readonly EX_USAGE=64
 readonly EX_CONFIG=78
-readonly OPERATION_TIMEOUT_SECONDS=900
 readonly REVIEW_FILE_LIMIT_BYTES=33554432
 readonly SOURCE_ROOT=/opt/hub/backend
 readonly LINEAGE_DIR="$SOURCE_ROOT/migrations/atlas/mail-calendar-v1"
@@ -26,6 +25,8 @@ require_exact_files() {
   shift
 
   [ -d "$LINEAGE_DIR" ] || fail 'schema-maintenance: reviewed Mail/Calendar lineage is absent' "$EX_CONFIG"
+  non_regular_entry="$(find "$LINEAGE_DIR" -mindepth 1 -maxdepth 1 ! -type f -print -quit)"
+  [ -z "$non_regular_entry" ] || fail 'schema-maintenance: lineage inputs contain a non-regular entry' "$EX_CONFIG"
   actual_count="$(find "$LINEAGE_DIR" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')"
   [ "$actual_count" -eq "$expected_count" ] || fail 'schema-maintenance: lineage inputs are incomplete or contain unreviewed files' "$EX_CONFIG"
 
@@ -66,6 +67,8 @@ run_diff() {
     --dir "file://$candidate_dir"
   atlas migrate hash --dir "file://$candidate_dir"
 
+  non_regular_entry="$(find "$candidate_dir" -mindepth 1 -maxdepth 1 ! -type f -print -quit)"
+  [ -z "$non_regular_entry" ] || fail 'schema-maintenance: Atlas candidate contains a non-regular output entry' "$EX_CONFIG"
   require_candidate_files="$(find "$candidate_dir" -mindepth 1 -maxdepth 1 -type f -name '*_mail_calendar_core.sql' | wc -l | tr -d ' ')"
   [ "$require_candidate_files" -eq 1 ] || fail 'schema-maintenance: Atlas did not produce exactly one bounded Mail/Calendar candidate' "$EX_CONFIG"
   candidate_sql="$(find "$candidate_dir" -mindepth 1 -maxdepth 1 -type f -name '*_mail_calendar_core.sql')"
@@ -84,12 +87,6 @@ run_verify() {
 }
 
 [ "$#" -eq 1 ] || fail 'usage: mail-calendar-schema {baseline|diff|verify}' "$EX_USAGE"
-
-if [ "${SCHEMA_MAINTENANCE_DEADLINE_GUARD:-}" != 'active' ]; then
-  [ -z "${SCHEMA_MAINTENANCE_DEADLINE_GUARD:-}" ] || fail 'schema-maintenance: invalid deadline guard state' "$EX_CONFIG"
-  export SCHEMA_MAINTENANCE_DEADLINE_GUARD=active
-  exec timeout --signal=TERM --kill-after=30s "$OPERATION_TIMEOUT_SECONDS" "$0" "$1"
-fi
 
 case "$1" in
   baseline)
