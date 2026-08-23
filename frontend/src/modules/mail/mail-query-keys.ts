@@ -1,4 +1,5 @@
 import {
+	normalizeMailMessageID,
 	normalizeMailThreadDetailParams,
 	normalizeMailThreadID,
 	normalizeMailThreadListParams,
@@ -18,4 +19,6 @@ export const mailKeys = {
 			normalizeMailThreadID(threadId),
 			normalizeMailThreadDetailParams(params),
 		] as const,
+	message: (messageId: string) =>
+		["mail", "message", normalizeMailMessageID(messageId)] as const,
 };

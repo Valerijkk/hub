@@ -142,6 +142,27 @@ export interface MailThreadDetail extends MailThreadSummary {
 	next_cursor: string | null;
 }
 
+export type MailMessageAttachmentDisposition = "attachment" | "inline";
+
+export interface MailMessageAttachment {
+	id: string;
+	filename: string;
+	media_type: string;
+	size_bytes: number;
+	disposition: MailMessageAttachmentDisposition;
+	content_id: string | null;
+	scan_status: "clean";
+	sha256: string;
+}
+
+export interface MailMessageDetail extends MailThreadMessageSummary {
+	plain_body: string;
+	sanitized_html: string | null;
+	remote_images_blocked: boolean;
+	attachments: MailMessageAttachment[];
+	calendar: Record<string, never> | null;
+}
+
 export interface MailThreadListParams {
 	folder_id?: string;
 	label_id?: string;
@@ -263,6 +284,14 @@ export function normalizeMailThreadID(threadId: string): string {
 	return normalized;
 }
 
+export function normalizeMailMessageID(messageId: string): string {
+	const normalized = normalizeMailUUID(messageId);
+	if (normalized === null) {
+		throw new Error("Invalid mail message ID");
+	}
+	return normalized;
+}
+
 function appendMailThreadBoolean(
 	params: URLSearchParams,
 	name: "starred" | "unread" | "has_attachments",
@@ -323,5 +352,12 @@ export function getMailThread(
 			`/mail/threads/${encodeURIComponent(normalizedThreadID)}`,
 			mailThreadDetailSearchParams(normalizeMailThreadDetailParams(params)),
 		),
+	);
+}
+
+export function getMailMessage(messageId: string): Promise<MailMessageDetail> {
+	const normalizedMessageID = normalizeMailMessageID(messageId);
+	return api.get<MailMessageDetail>(
+		`/mail/messages/${encodeURIComponent(normalizedMessageID)}`,
 	);
 }

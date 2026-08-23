@@ -99,6 +99,23 @@
 		"noPreview": "No message preview is available.",
 		"metadataOnly": "Message preview only; full content is not loaded in this view.",
 		"messageSize": "Message size: {{size}}",
+		"body": {
+			"expand": "Read",
+			"collapse": "Close",
+			"loading": "Loading message…",
+			"unavailable": "This message is unavailable right now.",
+			"partialUnavailable": "This loaded message may be out of date.",
+			"remoteImagesBlocked": "Remote images are blocked and were not loaded.",
+			"plainUnavailable": "No plain-text message body is available.",
+			"richUnavailable": "A rich-text version exists but is not displayed in this view.",
+			"attachments": "Attachments ({{count}})",
+			"downloadUnavailable": "Download unavailable",
+			"openCalendar": "Open calendar",
+			"disposition": {
+				"attachment": "Attachment",
+				"inline": "Inline"
+			}
+		},
 		"badges": {
 			"draft": "Draft",
 			"unread": "Unread",
