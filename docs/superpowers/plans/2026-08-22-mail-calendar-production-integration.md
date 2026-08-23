@@ -1196,9 +1196,29 @@ event/durable/V2/V3 proof are respectively approved C/I/M `0/0/0` at
 
 - [ ] **P3: Later Calendar consumer/repository/service/wiring packet**
 
-Only after P0-P2 acceptance may a separate packet own the consumer, repository, service, and
-wiring; it remains pending. No consumer/repository/service/wiring, NATS subscription, or worker
-readiness is accepted by P0-P2.
+**Contract frozen only — `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`.** P3 owns no source in this
+task and remains the explicit Task 10 dependency. Historical 147-02D/02E `GetMessage`, full-body/MIME,
+and legacy `engine_message_id` Calendar-ingestion wording is superseded; no such fallback is permitted.
+
+- **P3-A — abstract Mail port/fake/engine/types/errors:** only future
+  `calendar_part_source.go`, `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and
+  `mailbox_fake.go`. The sealed source admits only Hub identities, locator hash, and 1..1,048,576
+  bytes; it owns the five-second cap, snapshot/recheck, safe error mapping, and private
+  `ReadCalendarPart` path.
+- **P3-B — Calendar transaction port and REPLY factor:** future neutral receipt lock/complete
+  capability plus private in-transaction REPLY helper; no nested transaction, Ent-repository bypass,
+  or duplicate REPLY logic.
+- **P3-C — Mail Ent source:** only after generated Ent is available.
+- **P3-D — receipt/object-state repository, service, and due worker:** only after generation;
+  30-second scan, batch 50, concurrency 4, and durable retry/defer before ACK.
+- **P3-E — NATS stream/consumer and wiring:** only after the concrete engine; EVENTS `mail.>`,
+  durable `calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s,
+  handler timeout 45s, MaxAckPending 16, fetch batch 8, concurrency 4. NAK only when no durable
+  disposition was written.
+
+The Stalwart adapter remains blocked on Phase 145 authority. Generated Ent, migration, SQL,
+build, tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; no merge,
+product, worker, NATS, or readiness claim follows.
 
 ### Task 10: Inbound Mail-to-Calendar consumer
 

@@ -12,6 +12,18 @@ P3 and Task 10 consumer/repository/service/wiring remain pending; no NATS/worker
 Generated Ent artifacts are absent/uncommitted and generation, migration, SQL, compile/build,
 tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 
+## Inbound Mail-to-Calendar P3 source freeze (2026-08-23)
+
+`CONTRACT_FROZEN_ONLY / UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`: Calendar will receive only
+Mail-owned sealed `CalendarPartSource`, never MailEngine/Mail Ent/provider IDs/raw locator/raw MIME.
+The source owns the exact 1..1,048,576-byte and five-second boundary, private `ReadCalendarPart`,
+V1 locator hash, preflight/recheck, safe error mapping and defensive-copy iTIP contract in Phase 147
+CONTRACT §2.6. The receipt-first REPLY transaction, due worker and fixed NATS disposition/ACK policy
+remain future P3-B…P3-E work. Earlier 147-02D/02E GetMessage/full-body/MIME and legacy
+`engine_message_id` Calendar-ingestion paths are superseded with no fallback. Stalwart remains
+Phase-145-blocked; generated Ent/migration/SQL/build/tests/lint/gofmt/parser/validator/Docker/runtime
+are `NOT_RUN`. This creates no worker, NATS, merge, product, or readiness claim.
+
 ## Mail/Calendar HTTP composition static acceptance (2026-08-23)
 
 `STATIC_ACCEPTED / RUNTIME_NOT_RUN` is limited to the accepted source and independent static

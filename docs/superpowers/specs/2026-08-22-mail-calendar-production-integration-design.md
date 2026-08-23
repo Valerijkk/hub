@@ -255,6 +255,24 @@ P3 remains future: no Calendar consumer, repository, service, server wiring, NAT
 or worker is accepted. Generated Ent artifacts are absent/uncommitted; migration, SQL,
 compile/build, test, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 
+### P3-A sealed inbound source freeze
+
+P3 is contract-frozen only, `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Calendar may receive only
+a Mail-owned sealed `CalendarPartSource` request of Hub org/mailbox/message UUIDs, `[32]byte` locator
+hash, and exact `maxBytes=1..1_048_576`, returning only owner ID, normalized sender, method,
+authentication class, and defensive-copy iTIP. Mail owns the five-second end-to-end cap and returns
+whole-result `payload_too_large`, never a prefix. It privately calls `ReadCalendarPart` with engine
+account/message IDs, hash, expected method, max bytes, then one copied matching-hash iTIP part.
+The V1 locator hash formula and preflight/recheck rules are normative in Phase 147 CONTRACT §2.6.
+
+Historic 147-02D `GetMessage`/full-body/MIME parsing and legacy event `engine_message_id` wording is
+superseded for Calendar ingestion only; none is a fallback. P3-B factors existing REPLY application
+into one EventTransaction under receipt-first lock/proof, preserving reply receipt/outbox behavior;
+P3-C/D await Ent generation; P3-E awaits a concrete engine. The transport is future-frozen to EVENTS
+`mail.>`, durable `calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s,
+hard timeout 45s, MaxAckPending 16, fetch batch 8 and concurrency 4. Semantic durable
+terminal/retry/defer dispositions ACK; NAK is only for no durable disposition.
+
 No domain imports or queries the other domain's Ent tables. Shared identifiers and
 envelopes cross the boundary; state ownership does not.
 
@@ -338,8 +356,8 @@ envelopes cross the boundary; state ownership does not.
    Phase 145 founder auth/gateway gates and inaccessible private engine interfaces; Task 8B provider
    and worker lifecycle remains pending/blocked. No item in this paragraph is runtime evidence.
 5. P0-P2 Mail-to-Calendar prerequisite sources are statically accepted; P3 remains the later
-   outbox-backed Calendar consumer/repository/service/wiring packet, followed by the separate
-   Calendar-to-Mail delivery consumer.
+   sealed-source/transaction/repository/worker/NATS sequence (P3-A through P3-E), followed by
+   the separate Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
 7. Docker generation, build, focused verification, migration replay, and runtime
    smoke through the accepted launcher.

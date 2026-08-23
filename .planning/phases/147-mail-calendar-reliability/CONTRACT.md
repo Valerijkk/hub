@@ -206,6 +206,71 @@ authenticated occurrence REQUEST is eligible under the active-master rule. Event
 mutation, object state, finalized message receipt and any calendar outbox event commit
 atomically.
 
+### 2.6 P3 sealed Mail-to-Calendar source boundary
+
+P3 is contract-frozen only: P0-P2 remain accepted, while every P3-A onward source atom is
+`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Calendar receives only Mail-owned sealed
+`CalendarPartSource`, constructed from opaque validated organization, mailbox, and message UUIDs,
+`[32]byte` locator hash, and `maxBytes`. Its opaque result exposes only owner ID, normalized sender,
+method, authentication class, and a defensive-copy iTIP value. Calendar never receives `MailEngine`,
+Mail Ent, provider identifiers, raw locator, raw MIME, or a body-read fallback. `maxBytes` is exactly
+`1..1_048_576`; the source owns a five-second end-to-end context cap and returns whole-result
+`payload_too_large`, never a prefix.
+
+The private engine-only request is `ReadCalendarPart`: private engine account/message IDs, locator
+hash, expected method, and max bytes; its result repeats that hash and contains one copied iTIP part.
+Its locator-hash V1 is exactly
+`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || bytes || u32be(len(engine_message_id)) || bytes || u32be(len(canonical_private_part_locator)) || bytes)`.
+Any future formula change requires a versioned schema/event amendment. For Calendar ingestion, this
+supersedes historic 147-02D/GetMessage/full-body wording: `GetMessage`, body/MIME parsing, and legacy
+event `engine_message_id` are forbidden fallbacks.
+
+The Mail source takes a short durable snapshot before and after engine I/O, never holding a database
+transaction over I/O. Both snapshots must match: same organization, active owner, active account with
+`desired_enabled`, `projection_state=ready`, and engine account ID; a live message belonging to that
+mailbox with the sealed method/authentication/hash/sender. Deleting/deleted is terminal unavailable;
+provisioning, suspended, error, bootstrapping, rebuilding, or degraded is unavailable with zero I/O;
+untrusted is zero I/O. A changed second snapshot discards bytes. Safe error mapping is exact:
+`invalid -> quarantined/internal_error`; `untrusted -> quarantined/untrusted_sender`;
+`message_unavailable|deleting -> terminal message_unavailable`; `part_unavailable -> terminal
+part_unavailable`; `payload_too_large -> terminal resource_limit`; `repository_unavailable -> retry
+database_unavailable`; `engine_unavailable -> retry engine_unavailable`. No mapped error contains
+content or provider detail.
+
+P3-B extends the neutral `EventTransaction` seam with
+`LockCalendarInboundMessageReceipt(claim) -> scope/valid` and a paired complete capability. It factors
+the current public `ApplyInboundITIPReply` into private
+`applyInboundITIPReplyInTransaction`; the public method remains a thin `WithEventTransaction` wrapper.
+The P3 service opens one transaction, locks the message receipt, runs existing REPLY decision/persist/
+outbox behavior in that transaction, then completes the message receipt last. It must not bypass via
+`EventEntRepository`, nest transactions, or duplicate REPLY logic. `applied|observed_no_change` maps
+to message-receipt `applied`, `duplicate` to `duplicate`, `stale` to `ignored_stale`, and
+`quarantined` to `quarantined`; existing reply-receipt/outbox meaning remains intact. Storage/CAS
+rollback retries, and attempt 8 becomes `dead_letter/retry_exhausted`.
+
+The lock order is message receipt, exactly one DB clock
+`SELECT date_trunc('second', clock_timestamp())`, organization, owner, series object state,
+occurrence object state, event, sorted attendees, exception, reply receipt, outbox, then final receipt
+update; REPLY skips object state. Broker payload without a valid envelope ID and
+`(message_id, locator_hash)` is ACKed once with only a rate-limited content-free audit/metric: it
+creates no receipt, read, outbox, or retry. Reconstructable poison is durably quarantined.
+
+The Calendar-owned due worker scans every 30 seconds, batch 50, concurrency 4, and invokes the same
+claim/service through injected `CalendarPartSource`; the existing missing-master schedule and seven-day
+expiry remain authoritative. NATS semantic failure is durably scheduled then ACKed, never broker
+backoff. Transport is frozen to EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, filter
+`mail.received.v1`, explicit ACK, `AckWait=90s`, handler hard timeout 45s, `MaxAckPending=16`, fetch
+batch 8, concurrency 4. Broker NAK is permitted only when no durable disposition could be written;
+hard timeout < 60-second lease < AckWait means no heartbeat is needed.
+
+Future source atoms are closed: P3-A `calendar_part_source.go`, `mailbox_engine.go`,
+`mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go`; P3-B Calendar transaction port plus REPLY
+factor; P3-C Mail Ent source only after generation; P3-D receipt/object-state repository, service, and
+due worker only after generation; P3-E NATS stream/consumer/wiring only after concrete engine. The
+Stalwart adapter remains blocked on Phase 145 authority with no fallback. Generated Ent artifacts,
+migration, SQL, build, tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; no
+merge, product, or readiness claim follows.
+
 ## 3. External-organizer REPLY delivery
 
 ### 3.1 CalendarReplyDelivery

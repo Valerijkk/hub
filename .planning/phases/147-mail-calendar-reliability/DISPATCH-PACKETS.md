@@ -5,6 +5,25 @@
 > **Current state:** all product/test packets are model-blocked; generation/runtime packets
 > also require the accepted launcher and their named founder/external gates.
 
+## P3-A…P3-E inbound source freeze — not an executable packet
+
+`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. This section supersedes prior 147-02D/02E Calendar
+ingestion packets only: they must not use `GetMessage`, full body/MIME parsing, direct MailEngine or
+Mail Ent, provider IDs/raw locator, or legacy event `engine_message_id`. Do not dispatch a fallback.
+
+P3-A's future exact files are `calendar_part_source.go`, `mailbox_engine.go`, `mailbox_types.go`,
+`mailbox_errors.go`, and `mailbox_fake.go`. It supplies sealed `CalendarPartSource` (Hub UUIDs,
+`[32]byte` hash, 1..1,048,576 bytes) and only owner ID/normalized sender/method/authentication/
+defensive-copy iTIP output. It owns the five-second cap and private `ReadCalendarPart`; overflow is
+whole-result `payload_too_large`. P3-B later adds neutral EventTransaction receipt lock/complete and
+factors REPLY without nested transaction, bypass, or duplicate logic. P3-C is Mail Ent after
+generation; P3-D is receipt/object-state repository, service, 30-second batch-50/concurrency-4 due
+worker after generation; P3-E is NATS after concrete engine: EVENTS `mail.>`, durable
+`calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s, hard timeout 45s,
+MaxAckPending 16, fetch 8/concurrency 4. Semantic durable disposition ACKs; NAK only when none
+could be written. Stalwart remains Phase-145-blocked. No source, test, generation, migration,
+SQL, build, lint/gofmt, parser/validator, Docker, runtime, merge, product, or readiness authority.
+
 ## Common execution envelope
 
 - Role: Hub `codex-micro`, atomic Go/TypeScript implementer. Write the stated external-

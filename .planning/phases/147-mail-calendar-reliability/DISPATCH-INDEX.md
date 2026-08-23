@@ -10,6 +10,23 @@ first, owns only its allowed files, makes no commit, and returns `BLOCKED` when 
 model, generation or external gate is missing. Assemble the Common envelope plus exactly
 one matching section from `DISPATCH-PACKETS.md`.
 
+## P3 inbound source boundary — contract frozen, no dispatch
+
+P0-P2 remain accepted. P3-A through P3-E are `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; this
+freeze selects no executable packet. Calendar's only future Mail ingress is sealed
+`CalendarPartSource`: opaque Hub org/mailbox/message UUIDs, `[32]byte` locator hash and 1..1,048,576
+bytes in; owner ID, normalized sender, method, authentication class and defensive-copy iTIP out.
+The Mail-owned five-second read cap, private `ReadCalendarPart`, V1 locator-hash formula, durable
+preflight/recheck, exact safe errors, and receipt/ACK policy are normative in CONTRACT §2.6.
+
+For Calendar ingestion, all earlier 147-02D/02E `GetMessage`, full-body/MIME parsing, direct engine,
+provider/locator, and legacy `engine_message_id` paths are `CONSUMED/HISTORICAL`; they must not be
+dispatched as a fallback. Future atom order is P3-A abstract Mail port/fake/engine/types/errors;
+P3-B EventTransaction receipt capability and REPLY factor; P3-C Mail Ent source after generation;
+P3-D receipt/object-state repository, service and due worker after generation; P3-E NATS stream,
+consumer and wiring after concrete engine. Stalwart remains blocked on Phase 145 authority. Generated
+Ent, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker and runtime remain `NOT_RUN`.
+
 ## Dependency graph
 
 ```text
