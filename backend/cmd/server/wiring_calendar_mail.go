@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
 	calendarmod "github.com/valerii/hub/backend/internal/calendar"
 	mailmod "github.com/valerii/hub/backend/internal/mail"
+	stalwartmod "github.com/valerii/hub/backend/internal/mail/stalwart"
 )
 
 var (
@@ -80,4 +86,156 @@ func wireCalendarMail(d *serverDeps) {
 	if err := mailboxProjectionHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	mailboxIdentityService, err := mailmod.NewMailboxIdentityService(mailboxSvc, mailboxRepo)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxIdentityHandler, err := mailmod.NewMailboxIdentityHandler(mailboxIdentityService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	d.api.Get("/mail/identities", mailboxIdentityHandler.List, d.requireAuth)
+
+	mailboxEngineConfig, err := mailmod.ParseMailboxEngineConfig(os.LookupEnv)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if !mailboxEngineConfig.Enabled {
+		return
+	}
+	if mailboxEngineConfig.Status != mailmod.MailboxEngineConfigStatusConfigured ||
+		mailboxEngineConfig.MailAuthMode != mailmod.MailboxEngineMailAuthModeOAuthAuthorizationCodePKCE {
+		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
+	}
+
+	oauthClientID, clientIDPresent := os.LookupEnv("MAILBOX_ENGINE_OAUTH_CLIENT_ID")
+	oauthRedirectURI, redirectURIPresent := os.LookupEnv("MAILBOX_ENGINE_OAUTH_REDIRECT_URI")
+	stalwartPublicURL, publicURLPresent := os.LookupEnv("STALWART_PUBLIC_URL")
+	if !clientIDPresent || oauthClientID == "" || !redirectURIPresent || oauthRedirectURI == "" ||
+		!publicURLPresent || stalwartPublicURL != mailboxEngineConfig.Origin {
+		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
+	}
+	if oauthClientSecret, clientSecretPresent := os.LookupEnv("MAILBOX_ENGINE_OAUTH_CLIENT_SECRET"); !clientSecretPresent || oauthClientSecret == "" {
+		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
+	}
+
+	mailboxHTTPClient := &http.Client{
+		Transport: &http.Transport{
+			Proxy:                 nil,
+			DialContext:           (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+			MaxIdleConns:          8,
+			MaxIdleConnsPerHost:   4,
+			MaxConnsPerHost:       8,
+			IdleConnTimeout:       30 * time.Second,
+			TLSHandshakeTimeout:   5 * time.Second,
+			ResponseHeaderTimeout: 10 * time.Second,
+			ExpectContinueTimeout: time.Second,
+		},
+		Timeout: 15 * time.Second,
+	}
+	d.addCleanup(mailboxHTTPClient.CloseIdleConnections)
+
+	oauthClientSecretProvider, err := mailmod.NewStalwartOAuthClientSecretProvider(oauthClientID, func(_ context.Context, _ string) ([]byte, error) {
+		clientSecret, present := os.LookupEnv("MAILBOX_ENGINE_OAUTH_CLIENT_SECRET")
+		if !present || clientSecret == "" {
+			return nil, mailmod.ErrMailboxEngineConfigInvalid
+		}
+		return []byte(clientSecret), nil
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	oauthClient, err := stalwartmod.NewOAuthClient(stalwartmod.OAuthConfig{
+		IssuerOrigin:         mailboxEngineConfig.Origin,
+		ResourceOrigin:       mailboxEngineConfig.Origin,
+		ClientID:             oauthClientID,
+		ClientSecretProvider: oauthClientSecretProvider,
+		RedirectURI:          oauthRedirectURI,
+		HTTPClient:           mailboxHTTPClient,
+		Random:               nil,
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	oauthStates, err := mailmod.NewMailboxOAuthRedisStateStore(d.rdb)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	registryAuthorizer := mailmod.NewStalwartMailboxRegistryAuthorizer()
+	oauthAccountProof, err := mailmod.NewStalwartMailboxOAuthAccountProof(mailboxEngineConfig.Origin, mailboxHTTPClient, registryAuthorizer)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxOAuthService, err := mailmod.NewMailboxOAuthService(mailboxRepo, oauthStates, oauthClient, oauthAccountProof, d.integrationCipher, serverUTCClock{}, mailboxEngineConfig.Origin)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxAuthorizers, err := mailmod.NewStalwartMailboxAuthorizerSource(mailboxEngineConfig.Origin, mailboxRepo, mailboxOAuthService, d.integrationCipher, serverUTCClock{})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxClientFactory, err := mailmod.NewStalwartMailboxClientFactory(mailboxEngineConfig.Origin, mailboxHTTPClient, registryAuthorizer, mailboxAuthorizers)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxEngine, err := mailmod.NewStalwartEngine(mailboxClientFactory)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+
+	mailboxOAuthHandler, err := mailmod.NewMailboxOAuthHandler(mailboxOAuthService, mailboxSvc, mailboxRepo, mailmod.MailboxOAuthHandlerConfig{
+		BindingCookieName:      "hub_mail_oauth_binding",
+		BindingCookieSecure:    !d.cfg.Server.DevMode,
+		BindingCookieMaxAgeSec: 600,
+		MaximumJSONBytes:       9216,
+		MaximumQueryBytes:      2048,
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxOAuthHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxMessageService, err := mailmod.NewMailboxMessageService(mailboxSvc, mailboxRepo, mailboxEngine)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxMessageHandler, err := mailmod.NewMailboxMessageHandler(mailboxMessageService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxMessageHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+
+	mailboxSyncService, err := mailmod.NewMailboxSyncService(mailboxEngine, mailboxRepo, mailmod.MailboxSyncServiceConfig{
+		Now:           serverUTCClock{}.Now,
+		NewLeaseID:    uuid.New,
+		NewEventID:    uuid.New,
+		Jitter:        func(time.Duration) time.Duration { return 0 },
+		LeaseDuration: 30 * time.Second,
+		PollInterval:  5 * time.Second,
+		RetryInterval: 15 * time.Second,
+		PageSize:      100,
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSyncWorker, err := mailmod.NewMailboxSyncWorker(mailboxRepo, mailboxSyncService, mailmod.NewMailboxSyncWorkerTimer(), mailmod.MailboxSyncWorkerConfig{
+		Enabled:      true,
+		ScanInterval: 2 * time.Second,
+		StepTimeout:  30 * time.Second,
+		RetryMin:     5 * time.Second,
+		RetryMax:     time.Minute,
+		BatchSize:    25,
+		Concurrency:  2,
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	go func() {
+		if err := mailboxSyncWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
+			slog.Error("mailbox sync worker stopped", "error", err)
+		}
+	}()
 }
