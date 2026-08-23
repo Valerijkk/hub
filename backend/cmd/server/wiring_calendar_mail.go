@@ -147,6 +147,12 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	oauthClientSecret, err := oauthClientSecretProvider.OAuthClientSecret(d.rootCtx, oauthClientID)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	clear(oauthClientSecret)
+
 	oauthClient, err := stalwartmod.NewOAuthClient(stalwartmod.OAuthConfig{
 		IssuerOrigin:         mailboxEngineConfig.Origin,
 		ResourceOrigin:       mailboxEngineConfig.Origin,
