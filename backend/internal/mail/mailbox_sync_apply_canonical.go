@@ -13,21 +13,26 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
-const mailboxSyncCanonicalApplyVersion int32 = 2
-const mailboxSyncCanonicalApplyDomain = "hub.mail.sync.apply.result.v2"
+const (
+	mailboxSyncCanonicalApplyVersion   int32 = 2
+	mailboxSyncCanonicalApplyDomain          = "hub.mail.sync.apply.result.v2"
+	mailboxSyncCanonicalApplyV3Domain        = "hub.mail.sync.apply.result.v3"
+)
 
 // MailboxSyncCanonicalApply is the pure, canonicalized apply handoff for one sync lease.
 type MailboxSyncCanonicalApply struct {
-	Fence         MailboxSyncFence
-	Result        MailboxSyncPolicyResult
-	ExpectedPhase MailboxSyncPhase
-	NextAttemptAt time.Time
-	ResultHash    [sha256.Size]byte
+	Version            MailboxSyncCanonicalVersion
+	Fence              MailboxSyncFence
+	Result             MailboxSyncPolicyResult
+	ExpectedPhase      MailboxSyncPhase
+	NextAttemptAt      time.Time
+	V3ResultHash       [sha256.Size]byte
+	LegacyV2ResultHash [sha256.Size]byte
 }
 
 // CanonicalizeMailboxSyncApplyRequest validates, deep-copies, canonicalizes, and hashes one apply request.
 func CanonicalizeMailboxSyncApplyRequest(request MailboxSyncApplyRequest) (MailboxSyncCanonicalApply, error) {
-	if !syncValidTime(request.Now) || !syncValidTime(request.NextAttemptAt) || !validMailboxSyncFence(request.Fence) {
+	if request.CanonicalVersion != MailboxSyncCanonicalVersionV3 || !syncValidTime(request.Now) || !syncValidTime(request.NextAttemptAt) || !validMailboxSyncFence(request.Fence) {
 		return MailboxSyncCanonicalApply{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 
@@ -43,16 +48,22 @@ func CanonicalizeMailboxSyncApplyRequest(request MailboxSyncApplyRequest) (Mailb
 		return MailboxSyncCanonicalApply{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 
-	stream, err := canonicalMailboxSyncApplyStream(request.Fence, request.NextAttemptAt, result)
+	v3Stream, err := canonicalMailboxSyncApplyV3Stream(request.Fence, request.NextAttemptAt, result)
+	if err != nil {
+		return MailboxSyncCanonicalApply{}, err
+	}
+	legacyV2Stream, err := canonicalMailboxSyncApplyStream(request.Fence, request.NextAttemptAt, result)
 	if err != nil {
 		return MailboxSyncCanonicalApply{}, err
 	}
 	return MailboxSyncCanonicalApply{
-		Fence:         request.Fence,
-		Result:        result,
-		ExpectedPhase: expectedPhase,
-		NextAttemptAt: request.NextAttemptAt,
-		ResultHash:    sha256.Sum256(stream),
+		Version:            MailboxSyncCanonicalVersionV3,
+		Fence:              request.Fence,
+		Result:             result,
+		ExpectedPhase:      expectedPhase,
+		NextAttemptAt:      request.NextAttemptAt,
+		V3ResultHash:       sha256.Sum256(v3Stream),
+		LegacyV2ResultHash: sha256.Sum256(legacyV2Stream),
 	}, nil
 }
 
@@ -169,7 +180,7 @@ func canonicalizeMailboxSyncResult(fence MailboxSyncFence, value MailboxSyncPoli
 		if upsert.FolderIDs == nil || len(upsert.FolderIDs) == 0 || upsert.Labels == nil || value.Upserts[index].ChangedFields == nil {
 			return MailboxSyncPolicyResult{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 		}
-		if !canonicalEqualCalendarMethods(upsert.CalendarMethod, upsert.Projection.CalendarMethod) {
+		if !canonicalEqualCalendarMethods(upsert.CalendarMethod, upsert.Projection.CalendarMethod) || upsert.AuthenticationClass != upsert.Projection.AuthenticationClass || !canonicalEqualCalendarPartLocatorHashes(upsert.CalendarPartLocatorHash, upsert.Projection.CalendarPartLocatorHash) {
 			return MailboxSyncPolicyResult{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 		}
 		if err := canonicalValidateUpsertChangedFields(upsert.ChangedFields); err != nil {
@@ -431,6 +442,10 @@ type canonicalDecodedEvent struct {
 	envelopeBytes []byte
 	eventID       uuid.UUID
 	subject       string
+	occurredAt     time.Time
+	organizationID uuid.UUID
+	actorID        *uuid.UUID
+	correlationID  string
 	received      *mailReceivedEventJSON
 	changed       *mailMessageChangedEventJSON
 }
@@ -493,12 +508,62 @@ type canonicalEnvelopeJSON struct {
 	Payload        json.RawMessage `json:"payload"`
 }
 
+type canonicalLegacyV2ReceivedEventJSON struct {
+	MailboxID       uuid.UUID               `json:"mailbox_id"`
+	MessageID       uuid.UUID               `json:"message_id"`
+	EngineMessageID string                  `json:"engine_message_id"`
+	ThreadID        uuid.UUID               `json:"thread_id"`
+	From            mailEventAddressJSON   `json:"from"`
+	To              []mailEventAddressJSON `json:"to"`
+	ReceivedAt      time.Time               `json:"received_at"`
+	FolderIDs       []uuid.UUID             `json:"folder_ids"`
+	HasAttachments  bool                    `json:"has_attachments"`
+	CalendarMethod  *MailCalendarMethod     `json:"calendar_method"`
+}
+
 func canonicalEventEnvelope(fence MailboxSyncFence, value events.EnvelopeV1) ([]byte, error) {
 	decoded, err := canonicalDecodeEventEnvelope(fence, value)
 	if err != nil {
 		return nil, err
 	}
 	return decoded.envelopeBytes, nil
+}
+
+func canonicalLegacyV2EventEnvelope(fence MailboxSyncFence, value events.EnvelopeV1) ([]byte, error) {
+	decoded, err := canonicalDecodeEventEnvelope(fence, value)
+	if err != nil {
+		return nil, err
+	}
+	if decoded.subject != "mail.received.v1" {
+		return decoded.envelopeBytes, nil
+	}
+	if decoded.received == nil {
+		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	legacy, err := events.NewEnvelopeV1(decoded.subject, decoded.eventID, decoded.occurredAt, decoded.organizationID, syncCopyUUIDPointer(decoded.actorID), decoded.correlationID, canonicalLegacyV2ReceivedEventJSON{
+		MailboxID:       decoded.received.MailboxID,
+		MessageID:       decoded.received.MessageID,
+		EngineMessageID: decoded.received.EngineMessageID,
+		ThreadID:        decoded.received.ThreadID,
+		From:            decoded.received.From,
+		To:              append([]mailEventAddressJSON(nil), decoded.received.To...),
+		ReceivedAt:      decoded.received.ReceivedAt,
+		FolderIDs:       append([]uuid.UUID(nil), decoded.received.FolderIDs...),
+		HasAttachments:  decoded.received.HasAttachments,
+		CalendarMethod:  copyMailCalendarMethod(decoded.received.CalendarMethod),
+	})
+	if err != nil {
+		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	frozen, err := legacy.MarshalJSON()
+	if err != nil || len(frozen) == 0 {
+		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	return canonicalRecord(
+		canonicalTLV(1, []byte(decoded.subject)),
+		canonicalTLV(2, canonicalUUID(decoded.eventID)),
+		canonicalTLV(3, append([]byte(nil), frozen...)),
+	), nil
 }
 
 func canonicalDecodeEventEnvelope(fence MailboxSyncFence, value events.EnvelopeV1) (canonicalDecodedEvent, error) {
@@ -541,6 +606,10 @@ func canonicalDecodeEventEnvelope(fence MailboxSyncFence, value events.EnvelopeV
 	result := canonicalDecodedEvent{
 		eventID: eventID,
 		subject: subject,
+		occurredAt:     *decoded.OccurredAt,
+		organizationID: *decoded.OrganizationID,
+		actorID:        syncCopyUUIDPointer(actorID),
+		correlationID:  *decoded.CorrelationID,
 		envelopeBytes: canonicalRecord(
 			canonicalTLV(1, []byte(subject)),
 			canonicalTLV(2, canonicalUUID(eventID)),
@@ -559,7 +628,11 @@ func canonicalDecodeEventEnvelope(fence MailboxSyncFence, value events.EnvelopeV
 		if received.MailboxID != fence.AccountID {
 			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorAccountMismatch)
 		}
-		rebuilt, err := NewMailReceivedEnvelopeV1(eventID, *decoded.OccurredAt, *decoded.OrganizationID, actorID, *decoded.CorrelationID, canonicalReceivedPayload(fence.AccountID, received))
+		receivedPayload, ok := canonicalReceivedPayload(fence.AccountID, received)
+		if !ok {
+			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		rebuilt, err := NewMailReceivedEnvelopeV1(eventID, *decoded.OccurredAt, *decoded.OrganizationID, actorID, *decoded.CorrelationID, receivedPayload)
 		if err != nil {
 			return canonicalDecodedEvent{}, syncMapMailEventError(err)
 		}
@@ -597,7 +670,11 @@ func canonicalFrozenEnvelopeEqual(frozen []byte, value events.EnvelopeV1) bool {
 	return err == nil && bytes.Equal(frozen, rebuilt)
 }
 
-func canonicalReceivedPayload(accountID uuid.UUID, value mailReceivedEventJSON) MailReceivedEventPayload {
+func canonicalReceivedPayload(accountID uuid.UUID, value mailReceivedEventJSON) (MailReceivedEventPayload, bool) {
+	locatorHash, ok := decodeMailCalendarPartLocatorHash(value.CalendarPartLocatorHash)
+	if !ok {
+		return MailReceivedEventPayload{}, false
+	}
 	return MailReceivedEventPayload{
 		Mailbox:        MailboxEventID{AccountID: accountID, ID: value.MailboxID},
 		Message:        MailboxEventID{AccountID: accountID, ID: value.MessageID},
@@ -609,7 +686,9 @@ func canonicalReceivedPayload(accountID uuid.UUID, value mailReceivedEventJSON) 
 		FolderIDs:      canonicalMailboxEventIDs(accountID, value.FolderIDs),
 		HasAttachments: value.HasAttachments,
 		CalendarMethod:  copyMailCalendarMethod(value.CalendarMethod),
-	}
+		AuthenticationClass:      value.AuthenticationClass,
+		CalendarPartLocatorHash:  locatorHash,
+	}, true
 }
 
 func canonicalChangedPayload(accountID uuid.UUID, value mailMessageChangedEventJSON) MailMessageChangedEventPayload {
@@ -658,7 +737,8 @@ func canonicalAssociateReceivedEvent(eventID uuid.UUID, value mailReceivedEventJ
 		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	upsert := upserts[match]
-	if !canonicalEqualCalendarMethods(value.CalendarMethod, upsert.Projection.CalendarMethod) || !canonicalEqualCalendarMethods(value.CalendarMethod, upsert.CalendarMethod) {
+	locatorHash, ok := decodeMailCalendarPartLocatorHash(value.CalendarPartLocatorHash)
+	if !ok || !canonicalEqualCalendarMethods(value.CalendarMethod, upsert.Projection.CalendarMethod) || !canonicalEqualCalendarMethods(value.CalendarMethod, upsert.CalendarMethod) || value.AuthenticationClass != upsert.AuthenticationClass || value.AuthenticationClass != upsert.Projection.AuthenticationClass || !canonicalEqualCalendarPartLocatorHashes(locatorHash, upsert.CalendarPartLocatorHash) || !canonicalEqualCalendarPartLocatorHashes(locatorHash, upsert.Projection.CalendarPartLocatorHash) {
 		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	if value.MessageID != upsert.Message.ID || value.ThreadID != upsert.Thread.ID || value.EngineMessageID != upsert.Projection.MessageID || upsert.Projection.ReceivedAt == nil || !value.ReceivedAt.Equal(*upsert.Projection.ReceivedAt) || !canonicalEqualUUIDs(value.FolderIDs, canonicalMailboxIDs(upsert.FolderIDs)) || !canonicalEventAddressMatches(value.From, upsert.Projection.From) || !canonicalEventAddressesMatch(value.To, upsert.Projection.To) || value.HasAttachments != (len(upsert.Projection.Attachments) != 0) {
@@ -754,6 +834,13 @@ func canonicalEqualCalendarMethods(left, right *MailCalendarMethod) bool {
 	return *left == *right
 }
 
+func canonicalEqualCalendarPartLocatorHashes(left, right []byte) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return bytes.Equal(left, right)
+}
+
 func canonicalEqualChangedFields(left, right []MailChangedField) bool {
 	if len(left) != len(right) {
 		return false
@@ -841,6 +928,20 @@ func canonicalMailboxSyncApplyStream(fence MailboxSyncFence, nextAttemptAt time.
 	), nil
 }
 
+func canonicalMailboxSyncApplyV3Stream(fence MailboxSyncFence, nextAttemptAt time.Time, result MailboxSyncPolicyResult) ([]byte, error) {
+	encodedResult, err := canonicalV3ResultRecord(fence, result)
+	if err != nil {
+		return nil, err
+	}
+	return canonicalRecord(
+		canonicalTLV(1, []byte(mailboxSyncCanonicalApplyV3Domain)),
+		canonicalTLV(2, canonicalU16(uint16(MailboxSyncCanonicalVersionV3))),
+		canonicalTLV(3, canonicalFenceRecord(fence)),
+		canonicalTLV(4, canonicalTime(nextAttemptAt)),
+		canonicalTLV(5, encodedResult),
+	), nil
+}
+
 func canonicalFenceRecord(value MailboxSyncFence) []byte {
 	return canonicalRecord(
 		canonicalTLV(1, canonicalUUID(value.AccountID)),
@@ -863,6 +964,37 @@ func canonicalResultRecord(fence MailboxSyncFence, value MailboxSyncPolicyResult
 	upserts := make([][]byte, len(value.Upserts))
 	for index, upsert := range value.Upserts {
 		upserts[index] = canonicalUpsertRecord(upsert)
+	}
+	tombstones := make([][]byte, len(value.Tombstones))
+	for index, tombstone := range value.Tombstones {
+		tombstones[index] = canonicalTombstoneRecord(tombstone)
+	}
+	events := make([][]byte, len(value.Events))
+	for index, event := range value.Events {
+		encoded, err := canonicalLegacyV2EventEnvelope(fence, event)
+		if err != nil {
+			return nil, err
+		}
+		events[index] = encoded
+	}
+	return canonicalRecord(
+		canonicalTLV(1, canonicalAdvanceRecord(value.Advance)),
+		canonicalTLV(2, canonicalCollection(folders)),
+		canonicalTLV(3, canonicalCollection(upserts)),
+		canonicalTLV(4, canonicalCollection(tombstones)),
+		canonicalTLV(5, canonicalCountRecord(value.Counts)),
+		canonicalTLV(6, canonicalCollection(events)),
+	), nil
+}
+
+func canonicalV3ResultRecord(fence MailboxSyncFence, value MailboxSyncPolicyResult) ([]byte, error) {
+	folders := make([][]byte, len(value.Folders))
+	for index, folder := range value.Folders {
+		folders[index] = canonicalFolderIntentRecord(folder)
+	}
+	upserts := make([][]byte, len(value.Upserts))
+	for index, upsert := range value.Upserts {
+		upserts[index] = canonicalV3UpsertRecord(upsert)
 	}
 	tombstones := make([][]byte, len(value.Tombstones))
 	for index, tombstone := range value.Tombstones {
@@ -936,6 +1068,14 @@ func canonicalUpsertRecord(value MailboxSyncPolicyMessageIntent) []byte {
 		canonicalTLV(7, received),
 		canonicalTLV(8, canonicalOptionalCalendarMethod(value.CalendarMethod)),
 		canonicalTLV(9, canonicalCollection(changedFields)),
+	)
+}
+
+func canonicalV3UpsertRecord(value MailboxSyncPolicyMessageIntent) []byte {
+	return canonicalRecord(
+		canonicalUpsertRecord(value),
+		canonicalTLV(10, []byte(value.AuthenticationClass)),
+		canonicalTLV(11, canonicalOptionalCalendarPartLocatorHash(value.CalendarPartLocatorHash)),
 	)
 }
 
@@ -1082,4 +1222,11 @@ func canonicalOptionalCalendarMethod(value *MailCalendarMethod) []byte {
 		return []byte{0}
 	}
 	return append([]byte{1}, []byte(*value)...)
+}
+
+func canonicalOptionalCalendarPartLocatorHash(value []byte) []byte {
+	if value == nil {
+		return []byte{0}
+	}
+	return append([]byte{1}, value...)
 }

@@ -1,6 +1,8 @@
 package mail
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"time"
 	"unicode/utf8"
@@ -179,6 +181,8 @@ type MailReceivedEventPayload struct {
 	FolderIDs      []MailboxEventID
 	HasAttachments bool
 	CalendarMethod *MailCalendarMethod
+	AuthenticationClass      MailAuthenticationClass
+	CalendarPartLocatorHash  []byte
 }
 
 // MailSentEventPayload is the bounded source projection for mail.sent.v1.
@@ -219,6 +223,8 @@ type mailReceivedEventJSON struct {
 	FolderIDs      []uuid.UUID             `json:"folder_ids"`
 	HasAttachments bool                    `json:"has_attachments"`
 	CalendarMethod *MailCalendarMethod     `json:"calendar_method"`
+	AuthenticationClass      MailAuthenticationClass `json:"authentication_class"`
+	CalendarPartLocatorHash  *string                 `json:"calendar_part_locator_sha256"`
 }
 
 type mailSentEventJSON struct {
@@ -275,9 +281,10 @@ func NewMailReceivedEnvelopeV1(
 	if err != nil {
 		return events.EnvelopeV1{}, err
 	}
-	if !validMailEventTime(payload.ReceivedAt) || !validMailCalendarMethod(payload.CalendarMethod) {
+	if !validMailEventTime(payload.ReceivedAt) || !validMailCalendarMethod(payload.CalendarMethod) || !validMailAuthenticationClass(payload.AuthenticationClass) || (payload.CalendarMethod == nil) != (payload.CalendarPartLocatorHash == nil) || (payload.CalendarPartLocatorHash != nil && len(payload.CalendarPartLocatorHash) != sha256.Size) {
 		return events.EnvelopeV1{}, mailEventPolicyError(MailEventErrorInvalid)
 	}
+	calendarPartLocatorHash := mailCalendarPartLocatorHash(payload.CalendarPartLocatorHash)
 
 	return events.NewEnvelopeV1("mail.received.v1", eventID, occurredAt, organizationID, actorID, correlationID, mailReceivedEventJSON{
 		MailboxID:       payload.Mailbox.ID,
@@ -290,6 +297,8 @@ func NewMailReceivedEnvelopeV1(
 		FolderIDs:       folderIDs,
 		HasAttachments:  payload.HasAttachments,
 		CalendarMethod:  copyMailCalendarMethod(payload.CalendarMethod),
+		AuthenticationClass:      payload.AuthenticationClass,
+		CalendarPartLocatorHash:  calendarPartLocatorHash,
 	})
 }
 
@@ -513,6 +522,32 @@ func validateMailMessageFlags(values []MailMessageFlag) ([]MailMessageFlag, erro
 
 func validMailCalendarMethod(value *MailCalendarMethod) bool {
 	return value == nil || *value == MailCalendarMethodRequest || *value == MailCalendarMethodCancel || *value == MailCalendarMethodReply
+}
+
+func validMailAuthenticationClass(value MailAuthenticationClass) bool {
+	return value == MailAuthenticationClassTrustedInternal || value == MailAuthenticationClassDMARCAligned || value == MailAuthenticationClassUntrusted
+}
+
+func mailCalendarPartLocatorHash(value []byte) *string {
+	if value == nil {
+		return nil
+	}
+	encoded := hex.EncodeToString(value)
+	return &encoded
+}
+
+func decodeMailCalendarPartLocatorHash(value *string) ([]byte, bool) {
+	if value == nil {
+		return nil, true
+	}
+	if len(*value) != hex.EncodedLen(sha256.Size) {
+		return nil, false
+	}
+	decoded, err := hex.DecodeString(*value)
+	if err != nil || len(decoded) != sha256.Size || hex.EncodeToString(decoded) != *value {
+		return nil, false
+	}
+	return decoded, true
 }
 
 func validMailDeliveryClass(value MailDeliveryClass) bool {

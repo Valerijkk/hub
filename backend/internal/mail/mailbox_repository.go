@@ -101,11 +101,18 @@ type MailboxSyncPreparedPage struct {
 	Input    MailboxSyncPolicyInput
 }
 
+// MailboxSyncCanonicalVersion identifies one canonical sync-apply encoding.
+type MailboxSyncCanonicalVersion int32
+
+// MailboxSyncCanonicalVersionV3 is the current calendar-admission proof encoding.
+const MailboxSyncCanonicalVersionV3 MailboxSyncCanonicalVersion = 3
+
 type MailboxSyncApplyRequest struct {
-	Fence         MailboxSyncFence
-	Result        MailboxSyncPolicyResult
-	Now           time.Time
-	NextAttemptAt time.Time
+	CanonicalVersion MailboxSyncCanonicalVersion
+	Fence            MailboxSyncFence
+	Result           MailboxSyncPolicyResult
+	Now              time.Time
+	NextAttemptAt    time.Time
 }
 
 type MailboxSyncApplyResult struct {

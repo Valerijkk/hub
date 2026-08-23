@@ -237,7 +237,7 @@ func mailboxEntSyncApplyProofFromAccount(account *ent.MailAccount, fence Mailbox
 	if !hasVersion && !hasHash && !hasPhase && !hasNext && !hasApplied {
 		return mailboxEntSyncApplyProof{}, false, nil
 	}
-	if !hasVersion || !hasHash || !hasPhase || !hasNext || !hasApplied || account.SyncLeaseUntil == nil || *account.SyncLeaseResultHashVersion <= 0 || len(account.SyncLeaseResultHash) != sha256.Size || !mailboxEntValidTime(*account.SyncLeaseAppliedNextAt) || !mailboxEntValidTime(*account.SyncLeaseAppliedAt) {
+	if !hasVersion || !hasHash || !hasPhase || !hasNext || !hasApplied || account.SyncLeaseUntil == nil || (*account.SyncLeaseResultHashVersion != mailboxSyncCanonicalApplyVersion && *account.SyncLeaseResultHashVersion != int32(MailboxSyncCanonicalVersionV3)) || len(account.SyncLeaseResultHash) != sha256.Size || !mailboxEntValidTime(*account.SyncLeaseAppliedNextAt) || !mailboxEntValidTime(*account.SyncLeaseAppliedAt) {
 		return mailboxEntSyncApplyProof{}, false, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	phase, ok := mailboxEntSyncLeaseAppliedPhaseFromStored(*account.SyncLeaseAppliedPhase)
@@ -271,10 +271,16 @@ func mailboxEntSyncApplyProofFromAccount(account *ent.MailAccount, fence Mailbox
 }
 
 func mailboxEntSyncApplyProofMatches(canonical MailboxSyncCanonicalApply, proof mailboxEntSyncApplyProof) bool {
-	return proof.hashVersion == mailboxSyncCanonicalApplyVersion &&
-		subtle.ConstantTimeCompare(proof.hash[:], canonical.ResultHash[:]) == 1 &&
-		proof.phase == canonical.ExpectedPhase &&
-		proof.nextAt.Equal(canonical.NextAttemptAt)
+	hashMatches := false
+	switch proof.hashVersion {
+	case mailboxSyncCanonicalApplyVersion:
+		hashMatches = subtle.ConstantTimeCompare(proof.hash[:], canonical.LegacyV2ResultHash[:]) == 1
+	case int32(MailboxSyncCanonicalVersionV3):
+		hashMatches = subtle.ConstantTimeCompare(proof.hash[:], canonical.V3ResultHash[:]) == 1
+	default:
+		return false
+	}
+	return hashMatches && proof.phase == canonical.ExpectedPhase && proof.nextAt.Equal(canonical.NextAttemptAt)
 }
 
 func mailboxEntSyncLeaseAppliedPhaseValue(phase MailboxSyncPhase) (mailaccount.SyncLeaseAppliedPhase, bool) {
@@ -421,20 +427,20 @@ func mailboxEntSyncApplyAppendOutbox(ctx context.Context, transaction *ent.Tx, c
 }
 
 func mailboxEntSyncApplyPersistAccount(ctx context.Context, account *ent.MailAccount, canonical MailboxSyncCanonicalApply, position mailboxEntSyncApplyPosition, transactionTime, leaseUntil time.Time) error {
-	if ctx == nil || account == nil || !mailboxEntValidTime(transactionTime) || !mailboxEntValidTime(leaseUntil) || !leaseUntil.After(canonical.NextAttemptAt) {
+	if ctx == nil || account == nil || canonical.Version != MailboxSyncCanonicalVersionV3 || !mailboxEntValidTime(transactionTime) || !mailboxEntValidTime(leaseUntil) || !leaseUntil.After(canonical.NextAttemptAt) {
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	phase, ok := mailboxEntSyncLeaseAppliedPhaseValue(canonical.ExpectedPhase)
 	if !ok {
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	hash := append([]byte(nil), canonical.ResultHash[:]...)
+	hash := append([]byte(nil), canonical.V3ResultHash[:]...)
 	update := account.Update().
 		SetSyncAttempts(0).
 		SetNextSyncAt(canonical.NextAttemptAt).
 		SetSyncScheduleUpdatedAt(transactionTime).
 		SetSyncLeaseUntil(leaseUntil).
-		SetSyncLeaseResultHashVersion(mailboxSyncCanonicalApplyVersion).
+		SetSyncLeaseResultHashVersion(int32(canonical.Version)).
 		SetSyncLeaseResultHash(hash).
 		SetSyncLeaseAppliedPhase(phase).
 		SetSyncLeaseAppliedNextAt(canonical.NextAttemptAt).

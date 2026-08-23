@@ -221,7 +221,7 @@ func (service *MailboxSyncService) Step(ctx context.Context, accountID uuid.UUID
 	if err := ctx.Err(); err != nil {
 		return MailboxSyncStepResult{}, err
 	}
-	applyRequest := MailboxSyncApplyRequest{Fence: claim.Fence, Result: policyResult, Now: now, NextAttemptAt: nextAttemptAt}
+	applyRequest := MailboxSyncApplyRequest{CanonicalVersion: MailboxSyncCanonicalVersionV3, Fence: claim.Fence, Result: policyResult, Now: now, NextAttemptAt: nextAttemptAt}
 	applied, err := service.repository.ApplyMailboxSyncPage(ctx, applyRequest)
 	if err != nil {
 		if contextErr := ctx.Err(); contextErr != nil { return MailboxSyncStepResult{}, contextErr }
@@ -790,6 +790,7 @@ func cloneMailboxSyncPolicyResult(value MailboxSyncPolicyResult) MailboxSyncPoli
 		result.Upserts[index].FolderIDs = append([]MailboxEventID(nil), upsert.FolderIDs...)
 		result.Upserts[index].Labels = append([]MailboxSyncPolicyLabelState(nil), upsert.Labels...)
 		result.Upserts[index].CalendarMethod = copyMailCalendarMethod(upsert.CalendarMethod)
+		result.Upserts[index].CalendarPartLocatorHash = syncCloneBytes(upsert.CalendarPartLocatorHash)
 		if upsert.ChangedFields != nil {
 			result.Upserts[index].ChangedFields = make([]MailChangedField, len(upsert.ChangedFields))
 			copy(result.Upserts[index].ChangedFields, upsert.ChangedFields)

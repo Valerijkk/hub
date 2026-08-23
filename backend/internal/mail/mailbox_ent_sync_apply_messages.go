@@ -41,6 +41,8 @@ type mailboxEntApplyMessageProjection struct {
 	flags             EngineMessageFlags
 	origin            mailmessage.ProjectionOrigin
 	calendarMethod    *mailmessage.CalendarMethod
+	authenticationClass      mailmessage.AuthenticationClass
+	calendarPartLocatorHash  []byte
 	receivedEventID   *uuid.UUID
 	attachments       []EngineProjectionAttachment
 }
@@ -116,7 +118,7 @@ func (r *MailboxEntRepository) mailboxEntApplySyncMessages(ctx context.Context, 
 }
 
 func mailboxEntApplyCanonicalSyncResult(canonical MailboxSyncCanonicalApply) (MailboxSyncPolicyResult, error) {
-	if !validMailboxSyncFence(canonical.Fence) || canonical.Fence.SyncEpoch > mailboxEntApplySyncEpochMaximum || !syncValidTime(canonical.NextAttemptAt) {
+	if canonical.Version != MailboxSyncCanonicalVersionV3 || !validMailboxSyncFence(canonical.Fence) || canonical.Fence.SyncEpoch > mailboxEntApplySyncEpochMaximum || !syncValidTime(canonical.NextAttemptAt) {
 		return MailboxSyncPolicyResult{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	result, err := canonicalizeMailboxSyncResult(canonical.Fence, canonical.Result)
@@ -127,8 +129,8 @@ func mailboxEntApplyCanonicalSyncResult(canonical MailboxSyncCanonicalApply) (Ma
 	if !ok || expectedPhase != canonical.ExpectedPhase || result.Advance.SyncEpoch != canonical.Fence.SyncEpoch || result.Advance.SyncEpoch > mailboxEntApplySyncEpochMaximum {
 		return MailboxSyncPolicyResult{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	stream, err := canonicalMailboxSyncApplyStream(canonical.Fence, canonical.NextAttemptAt, result)
-	if err != nil || sha256.Sum256(stream) != canonical.ResultHash {
+	stream, err := canonicalMailboxSyncApplyV3Stream(canonical.Fence, canonical.NextAttemptAt, result)
+	if err != nil || sha256.Sum256(stream) != canonical.V3ResultHash {
 		return MailboxSyncPolicyResult{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	return result, nil
@@ -146,7 +148,7 @@ func mailboxEntApplyMessagePlans(accountID uuid.UUID, result MailboxSyncPolicyRe
 		if err := validateMailboxEventIDForAccount(accountID, intent.Message); err != nil || validateMailboxEventIDForAccount(accountID, intent.Thread) != nil || intent.FolderIDs == nil || intent.Labels == nil || intent.ChangedFields == nil {
 			return nil, nil, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		if err := canonicalValidateThreadIdentity(&intent.ThreadIdentity, intent.Projection); err != nil || !canonicalEqualCalendarMethods(intent.CalendarMethod, intent.Projection.CalendarMethod) || canonicalValidateUpsertChangedFields(intent.ChangedFields) != nil {
+		if err := canonicalValidateThreadIdentity(&intent.ThreadIdentity, intent.Projection); err != nil || !canonicalEqualCalendarMethods(intent.CalendarMethod, intent.Projection.CalendarMethod) || intent.AuthenticationClass != intent.Projection.AuthenticationClass || !canonicalEqualCalendarPartLocatorHashes(intent.CalendarPartLocatorHash, intent.Projection.CalendarPartLocatorHash) || canonicalValidateUpsertChangedFields(intent.ChangedFields) != nil {
 			return nil, nil, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 		projection, err := mailboxEntApplyProjectionIntent(intent)
@@ -184,6 +186,9 @@ func mailboxEntApplyMessagePlans(accountID uuid.UUID, result MailboxSyncPolicyRe
 func mailboxEntApplyProjectionIntent(intent MailboxSyncPolicyMessageIntent) (mailboxEntApplyMessageProjection, error) {
 	projection := intent.Projection
 	if err := syncValidateProjection(projection); err != nil {
+		return mailboxEntApplyMessageProjection{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	if !canonicalEqualCalendarMethods(intent.CalendarMethod, projection.CalendarMethod) || intent.AuthenticationClass != projection.AuthenticationClass || !canonicalEqualCalendarPartLocatorHashes(intent.CalendarPartLocatorHash, projection.CalendarPartLocatorHash) {
 		return mailboxEntApplyMessageProjection{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	references := make(schema.MailMessageReferences, len(projection.References))
@@ -237,6 +242,8 @@ func mailboxEntApplyProjectionIntent(intent MailboxSyncPolicyMessageIntent) (mai
 		flags:             projection.Flags,
 		origin:            mailmessage.ProjectionOrigin(projection.Origin),
 		calendarMethod:    calendarMethod,
+		authenticationClass:      mailmessage.AuthenticationClass(intent.AuthenticationClass),
+		calendarPartLocatorHash:  syncCloneBytes(intent.CalendarPartLocatorHash),
 		receivedEventID:   syncCopyUUIDPointer(intent.ReceivedEventID),
 		attachments:       attachments,
 	}, nil
@@ -662,6 +669,7 @@ func mailboxEntApplyCreateMessage(ctx context.Context, tx *ent.Tx, accountID uui
 		SetIsFlagged(plan.projection.flags.Flagged).
 		SetIsJunk(plan.projection.flags.Junk).
 		SetProjectionOrigin(plan.projection.origin).
+		SetAuthenticationClass(plan.projection.authenticationClass).
 		SetFlagsSyncedAt(transactionTime).
 		SetLastSeenSyncEpoch(syncEpoch).
 		SetCreatedAt(transactionTime).
@@ -693,6 +701,9 @@ func mailboxEntApplySetMessageOptionalCreate(create *ent.MailMessageCreate, proj
 	if projection.calendarMethod != nil {
 		create.SetCalendarMethod(*projection.calendarMethod)
 	}
+	if projection.calendarPartLocatorHash != nil {
+		create.SetCalendarPartLocatorHash(syncCloneBytes(projection.calendarPartLocatorHash))
+	}
 	if projection.receivedEventID != nil {
 		create.SetReceivedEventID(*projection.receivedEventID)
 	}
@@ -719,6 +730,7 @@ func mailboxEntApplySetMessageUpdate(update *ent.MailMessageUpdateOne, plan *mai
 		SetIsFlagged(projection.flags.Flagged).
 		SetIsJunk(projection.flags.Junk).
 		SetProjectionOrigin(projection.origin).
+		SetAuthenticationClass(projection.authenticationClass).
 		SetFlagsSyncedAt(transactionTime).
 		SetLastSeenSyncEpoch(syncEpoch)
 	if projection.internetMessageID == nil {
@@ -743,8 +755,10 @@ func mailboxEntApplySetMessageUpdate(update *ent.MailMessageUpdateOne, plan *mai
 	}
 	if projection.calendarMethod == nil {
 		update.ClearCalendarMethod()
+		update.ClearCalendarPartLocatorHash()
 	} else {
 		update.SetCalendarMethod(*projection.calendarMethod)
+		update.SetCalendarPartLocatorHash(syncCloneBytes(projection.calendarPartLocatorHash))
 	}
 	if projection.receivedEventID != nil {
 		update.SetReceivedEventID(*projection.receivedEventID)
@@ -752,7 +766,7 @@ func mailboxEntApplySetMessageUpdate(update *ent.MailMessageUpdateOne, plan *mai
 }
 
 func mailboxEntApplyMessageProjectionMatches(row *ent.MailMessage, plan *mailboxEntApplyMessagePlan) bool {
-	if row == nil || plan == nil || row.MailThreadID != plan.intent.Thread.ID || row.EngineMessageID != plan.projection.engineMessageID || row.EngineVersion != plan.projection.engineVersion || !mailboxEntApplyOptionalStringEqual(row.InternetMessageID, plan.projection.internetMessageID) || !mailboxEntApplyOptionalStringEqual(row.InReplyTo, plan.projection.inReplyTo) || !reflect.DeepEqual(row.References, plan.projection.references) || row.From != plan.projection.from || !reflect.DeepEqual(row.To, plan.projection.to) || !reflect.DeepEqual(row.Cc, plan.projection.cc) || !reflect.DeepEqual(row.Bcc, plan.projection.bcc) || !reflect.DeepEqual(row.ReplyTo, plan.projection.replyTo) || row.Subject != plan.projection.subject || row.Snippet != plan.projection.snippet || !mailboxEntApplyOptionalTimeEqual(row.SentAt, plan.projection.sentAt) || !mailboxEntApplyOptionalTimeEqual(row.ReceivedAt, plan.projection.receivedAt) || row.SizeBytes != plan.projection.sizeBytes || row.Priority != plan.projection.priority || row.IsDraft != plan.projection.flags.Draft || row.IsSeen != plan.projection.flags.Seen || row.IsAnswered != plan.projection.flags.Answered || row.IsFlagged != plan.projection.flags.Flagged || row.IsJunk != plan.projection.flags.Junk || row.ProjectionOrigin != plan.projection.origin || !mailboxEntApplyCalendarMethodEqual(row.CalendarMethod, plan.projection.calendarMethod) {
+	if row == nil || plan == nil || row.MailThreadID != plan.intent.Thread.ID || row.EngineMessageID != plan.projection.engineMessageID || row.EngineVersion != plan.projection.engineVersion || !mailboxEntApplyOptionalStringEqual(row.InternetMessageID, plan.projection.internetMessageID) || !mailboxEntApplyOptionalStringEqual(row.InReplyTo, plan.projection.inReplyTo) || !reflect.DeepEqual(row.References, plan.projection.references) || row.From != plan.projection.from || !reflect.DeepEqual(row.To, plan.projection.to) || !reflect.DeepEqual(row.Cc, plan.projection.cc) || !reflect.DeepEqual(row.Bcc, plan.projection.bcc) || !reflect.DeepEqual(row.ReplyTo, plan.projection.replyTo) || row.Subject != plan.projection.subject || row.Snippet != plan.projection.snippet || !mailboxEntApplyOptionalTimeEqual(row.SentAt, plan.projection.sentAt) || !mailboxEntApplyOptionalTimeEqual(row.ReceivedAt, plan.projection.receivedAt) || row.SizeBytes != plan.projection.sizeBytes || row.Priority != plan.projection.priority || row.IsDraft != plan.projection.flags.Draft || row.IsSeen != plan.projection.flags.Seen || row.IsAnswered != plan.projection.flags.Answered || row.IsFlagged != plan.projection.flags.Flagged || row.IsJunk != plan.projection.flags.Junk || row.ProjectionOrigin != plan.projection.origin || !mailboxEntApplyCalendarMethodEqual(row.CalendarMethod, plan.projection.calendarMethod) || row.AuthenticationClass != plan.projection.authenticationClass || !bytes.Equal(row.CalendarPartLocatorHash, plan.projection.calendarPartLocatorHash) {
 		return false
 	}
 	return true
@@ -779,6 +793,12 @@ func mailboxEntApplyMessageRowValid(row *ent.MailMessage, accountID uuid.UUID) b
 		return false
 	}
 	if row.ProjectionOrigin != mailmessage.ProjectionOrigin(EngineProjectionOriginInboundOrUnknown) && row.ProjectionOrigin != mailmessage.ProjectionOrigin(EngineProjectionOriginConfirmedOwnerSubmission) && row.ProjectionOrigin != mailmessage.ProjectionOrigin(EngineProjectionOriginConfirmedOwnerDraft) {
+		return false
+	}
+	if row.AuthenticationClass != mailmessage.AuthenticationClass(MailAuthenticationClassTrustedInternal) && row.AuthenticationClass != mailmessage.AuthenticationClass(MailAuthenticationClassDMARCAligned) && row.AuthenticationClass != mailmessage.AuthenticationClass(MailAuthenticationClassUntrusted) {
+		return false
+	}
+	if (row.CalendarMethod == nil) != (row.CalendarPartLocatorHash == nil) || (row.CalendarPartLocatorHash != nil && len(row.CalendarPartLocatorHash) != sha256.Size) {
 		return false
 	}
 	if row.CalendarMethod != nil && *row.CalendarMethod != mailmessage.CalendarMethod(MailCalendarMethodRequest) && *row.CalendarMethod != mailmessage.CalendarMethod(MailCalendarMethodCancel) && *row.CalendarMethod != mailmessage.CalendarMethod(MailCalendarMethodReply) {

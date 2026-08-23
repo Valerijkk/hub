@@ -165,6 +165,8 @@ type MailboxSyncPolicyMessageIntent struct {
 	Labels          []MailboxSyncPolicyLabelState
 	ReceivedEventID *uuid.UUID
 	CalendarMethod  *MailCalendarMethod
+	AuthenticationClass      MailAuthenticationClass
+	CalendarPartLocatorHash  []byte
 	ChangedFields   []MailChangedField
 }
 
@@ -672,14 +674,15 @@ func syncClassifyMessage(input MailboxSyncPolicyInput, accountID uuid.UUID, engi
 		Message: message.Message, Thread: message.Thread.Thread, ThreadIdentity: identity,
 		Projection: syncCloneSafeProjection(projection), FolderIDs: syncCopyMailboxIDs(currentFolders),
 		Labels: syncCopyLabelStates(desiredLabels), ReceivedEventID: resultReceived,
-		CalendarMethod: copyMailCalendarMethod(projection.CalendarMethod), ChangedFields: syncCopyChangedFields(changedFields),
+		CalendarMethod: copyMailCalendarMethod(projection.CalendarMethod), AuthenticationClass: projection.AuthenticationClass,
+		CalendarPartLocatorHash: syncCloneBytes(projection.CalendarPartLocatorHash), ChangedFields: syncCopyChangedFields(changedFields),
 	}
 
 	if emitReceived {
 		if message.ChangedEvent.ID != uuid.Nil || message.ChangedEvent.Committed {
 			return MailboxSyncPolicyMessageIntent{}, syncEventRecord{}, nil, nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 		}
-		event, err := syncNewReceivedEvent(input.Event, message.ReceivedEventID, message.Message, message.Thread.Thread, projection, currentFolders)
+		event, err := syncNewReceivedEvent(input.Event, message.ReceivedEventID, intent)
 		if err != nil {
 			return MailboxSyncPolicyMessageIntent{}, syncEventRecord{}, nil, nil, err
 		}
@@ -890,7 +893,8 @@ func syncChangedFields(currentFolders, previousFolders []MailboxEventID, current
 	return result
 }
 
-func syncNewReceivedEvent(context MailboxSyncPolicyEventContext, eventID uuid.UUID, message, thread MailboxEventID, projection EngineMessageProjection, folders []MailboxEventID) (events.EnvelopeV1, error) {
+func syncNewReceivedEvent(context MailboxSyncPolicyEventContext, eventID uuid.UUID, intent MailboxSyncPolicyMessageIntent) (events.EnvelopeV1, error) {
+	projection := intent.Projection
 	from, err := syncEventAddress(projection.From)
 	if err != nil {
 		return events.EnvelopeV1{}, err
@@ -899,7 +903,7 @@ func syncNewReceivedEvent(context MailboxSyncPolicyEventContext, eventID uuid.UU
 	if err != nil {
 		return events.EnvelopeV1{}, err
 	}
-	event, err := NewMailReceivedEnvelopeV1(eventID, context.OccurredAt, context.OrganizationID, syncCopyUUIDPointer(context.ActorID), context.CorrelationID, MailReceivedEventPayload{Mailbox: context.Mailbox, Message: message, EngineMessage: MailboxEventOpaqueID{AccountID: context.Mailbox.AccountID, ID: projection.MessageID}, Thread: thread, From: from, To: to, ReceivedAt: *projection.ReceivedAt, FolderIDs: syncCopyMailboxIDs(folders), HasAttachments: len(projection.Attachments) != 0, CalendarMethod: copyMailCalendarMethod(projection.CalendarMethod)})
+	event, err := NewMailReceivedEnvelopeV1(eventID, context.OccurredAt, context.OrganizationID, syncCopyUUIDPointer(context.ActorID), context.CorrelationID, MailReceivedEventPayload{Mailbox: context.Mailbox, Message: intent.Message, EngineMessage: MailboxEventOpaqueID{AccountID: context.Mailbox.AccountID, ID: projection.MessageID}, Thread: intent.Thread, From: from, To: to, ReceivedAt: *projection.ReceivedAt, FolderIDs: syncCopyMailboxIDs(intent.FolderIDs), HasAttachments: len(projection.Attachments) != 0, CalendarMethod: copyMailCalendarMethod(intent.CalendarMethod), AuthenticationClass: intent.AuthenticationClass, CalendarPartLocatorHash: syncCloneBytes(intent.CalendarPartLocatorHash)})
 	if err != nil {
 		return events.EnvelopeV1{}, syncMapMailEventError(err)
 	}
@@ -1316,6 +1320,13 @@ func syncCloneStrings(values []string) []string {
 	result := make([]string, len(values))
 	copy(result, values)
 	return result
+}
+
+func syncCloneBytes(value []byte) []byte {
+	if value == nil {
+		return nil
+	}
+	return append([]byte{}, value...)
 }
 
 func syncCopyUUIDPointer(value *uuid.UUID) *uuid.UUID {
