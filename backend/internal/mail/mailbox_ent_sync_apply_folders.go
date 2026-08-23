@@ -13,7 +13,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/mailaccount"
 	"github.com/valerii/hub/backend/ent/mailfolder"
 	"github.com/valerii/hub/backend/ent/mailmessagefolder"
 )
@@ -44,15 +43,12 @@ func (r *MailboxEntRepository) mailboxEntApplySyncFolders(ctx context.Context, t
 		return mailboxEntSafeError(err)
 	}
 
-	account, err := tx.MailAccount.Query().
-		Where(mailaccount.IDEQ(accountID)).
-		ForUpdate().
-		Only(ctx)
-	if err != nil {
-		return mailboxEntSafeError(err)
-	}
-	if account == nil || account.ID != accountID || account.SyncEpoch != syncEpoch || account.SyncEpoch < 0 || account.SyncEpoch > 2_147_483_647 || account.EngineAccountID == nil || !syncValidOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) {
-		return mailboxServiceError(MailboxServiceErrorInvalid)
+	engineAccountID := ""
+	if len(folders) > 0 {
+		engineAccountID = folders[0].Snapshot.AccountID
+		if !syncValidOpaque(engineAccountID, MaxEngineOpaqueIDBytes) {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
 	}
 
 	rows, err := tx.MailFolder.Query().
@@ -64,7 +60,7 @@ func (r *MailboxEntRepository) mailboxEntApplySyncFolders(ctx context.Context, t
 		return mailboxEntSafeError(err)
 	}
 
-	plans, absent, err := mailboxEntApplyFolderPreflight(accountID, *account.EngineAccountID, folders, rows)
+	plans, absent, err := mailboxEntApplyFolderPreflight(accountID, engineAccountID, folders, rows)
 	if err != nil {
 		return err
 	}
