@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/unicode/norm"
 )
 
 const maxMailboxFolderProjectionItems = 100
@@ -19,7 +22,9 @@ const (
 	defaultMailboxThreadProjectionLimit = 50
 	maxMailboxThreadProjectionLimit     = 100
 	maxMailboxThreadProjectionCursor    = 512
+	maxMailboxThreadProjectionSearch    = 128
 	mailboxThreadProjectionCursorV1     = 1
+	mailboxThreadProjectionSort         = "pinned_desc,last_message_at_desc,id_desc"
 )
 
 var errMailboxThreadProjectionRequestInvalid = errors.New("mailbox thread projection request invalid")
@@ -165,6 +170,8 @@ type MailboxThreadProjectionQuery struct {
 	LabelID        *uuid.UUID
 	Unread         *bool
 	HasAttachments *bool
+	Starred        *bool
+	Search         *string
 }
 
 // MailboxThreadProjectionCursor is an opaque continuation position bound to one mailbox account.
@@ -173,6 +180,7 @@ type MailboxThreadProjectionCursor struct {
 	isPinned      bool
 	lastMessageAt time.Time
 	id            uuid.UUID
+	filterSignature string
 }
 
 // MailboxThreadProjection is the safe, owner-scoped MailThreadPage read model.
@@ -216,6 +224,18 @@ type mailboxThreadProjectionCursorWire struct {
 	IsPinned      bool   `json:"p"`
 	LastMessageAt string `json:"t"`
 	ID            string `json:"i"`
+	FilterSignature string `json:"f"`
+}
+
+type mailboxThreadProjectionFilterWire struct {
+	Version        int    `json:"v"`
+	Sort           string `json:"s"`
+	FolderID       string `json:"f"`
+	LabelID        string `json:"l"`
+	Unread         string `json:"u"`
+	HasAttachments string `json:"a"`
+	Starred        string `json:"r"`
+	Search         string `json:"q"`
 }
 
 func mailboxThreadProjectionQueryCopy(query MailboxThreadProjectionQuery) MailboxThreadProjectionQuery {
@@ -225,6 +245,8 @@ func mailboxThreadProjectionQueryCopy(query MailboxThreadProjectionQuery) Mailbo
 		LabelID:        mailboxFolderProjectionUUIDPointer(query.LabelID),
 		Unread:         mailboxThreadProjectionBoolPointer(query.Unread),
 		HasAttachments: mailboxThreadProjectionBoolPointer(query.HasAttachments),
+		Starred:        mailboxThreadProjectionBoolPointer(query.Starred),
+		Search:         mailboxFolderProjectionStringPointer(query.Search),
 	}
 	if query.Cursor != nil {
 		cursor := *query.Cursor
@@ -280,6 +302,12 @@ func mailboxThreadProjectionQueryValid(query MailboxThreadProjectionQuery) bool 
 	if query.FolderID != nil && *query.FolderID == uuid.Nil || query.LabelID != nil && *query.LabelID == uuid.Nil {
 		return false
 	}
+	if query.Search != nil {
+		normalized, err := mailboxThreadProjectionNormalizeSearch(*query.Search)
+		if err != nil || normalized != *query.Search {
+			return false
+		}
+	}
 	return query.Cursor == nil || mailboxThreadProjectionCursorValid(*query.Cursor)
 }
 
@@ -288,14 +316,78 @@ func mailboxThreadProjectionQueryForScope(query MailboxThreadProjectionQuery, sc
 		return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
 	}
 	result := mailboxThreadProjectionQueryCopy(query)
-	if result.Cursor != nil && result.Cursor.accountID != scope.AccountID {
+	if result.Cursor != nil && (result.Cursor.accountID != scope.AccountID || result.Cursor.filterSignature != mailboxThreadProjectionQuerySignature(result)) {
 		return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
 	}
 	return result, nil
 }
 
 func mailboxThreadProjectionCursorValid(cursor MailboxThreadProjectionCursor) bool {
-	return cursor.accountID != uuid.Nil && cursor.id != uuid.Nil && syncValidTime(cursor.lastMessageAt)
+	return cursor.accountID != uuid.Nil && cursor.id != uuid.Nil && syncValidTime(cursor.lastMessageAt) && mailboxThreadProjectionFilterSignatureValid(cursor.filterSignature)
+}
+
+func mailboxThreadProjectionFilterSignatureValid(value string) bool {
+	if len(value) != base64.RawURLEncoding.EncodedLen(sha256.Size) {
+		return false
+	}
+	decoded, err := base64.RawURLEncoding.DecodeString(value)
+	return err == nil && len(decoded) == sha256.Size && base64.RawURLEncoding.EncodeToString(decoded) == value
+}
+
+func mailboxThreadProjectionQuerySignature(query MailboxThreadProjectionQuery) string {
+	encoded, err := json.Marshal(mailboxThreadProjectionFilterWire{
+		Version:        mailboxThreadProjectionCursorV1,
+		Sort:           mailboxThreadProjectionSort,
+		FolderID:       mailboxThreadProjectionUUIDSignature(query.FolderID),
+		LabelID:        mailboxThreadProjectionUUIDSignature(query.LabelID),
+		Unread:         mailboxThreadProjectionBoolSignature(query.Unread),
+		HasAttachments: mailboxThreadProjectionBoolSignature(query.HasAttachments),
+		Starred:        mailboxThreadProjectionBoolSignature(query.Starred),
+		Search:         mailboxThreadProjectionSearchSignature(query.Search),
+	})
+	if err != nil {
+		return ""
+	}
+	digest := sha256.Sum256(encoded)
+	return base64.RawURLEncoding.EncodeToString(digest[:])
+}
+
+func mailboxThreadProjectionUUIDSignature(value *uuid.UUID) string {
+	if value == nil {
+		return ""
+	}
+	return value.String()
+}
+
+func mailboxThreadProjectionBoolSignature(value *bool) string {
+	if value == nil {
+		return "any"
+	}
+	if *value {
+		return "true"
+	}
+	return "false"
+}
+
+func mailboxThreadProjectionSearchSignature(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func mailboxThreadProjectionNormalizeSearch(value string) (string, error) {
+	if !syncValidSafeText(value, maxMailboxThreadProjectionSearch, false) {
+		return "", errMailboxThreadProjectionRequestInvalid
+	}
+	normalized := norm.NFC.String(value)
+	normalized = cases.Fold().String(normalized)
+	normalized = norm.NFC.String(normalized)
+	normalized = collapseThreadSubjectSpaces(normalized)
+	if !syncValidSafeText(normalized, maxMailboxThreadProjectionSearch, false) || strings.ContainsAny(normalized, "%_\\") {
+		return "", errMailboxThreadProjectionRequestInvalid
+	}
+	return normalized, nil
 }
 
 func mailboxThreadProjectionDecodeCursor(value string) (*MailboxThreadProjectionCursor, error) {
@@ -323,7 +415,7 @@ func mailboxThreadProjectionDecodeCursor(value string) (*MailboxThreadProjection
 	if err != nil || lastMessageAt.Location() != time.UTC || wire.LastMessageAt != lastMessageAt.UTC().Format(time.RFC3339Nano) || !strings.HasSuffix(wire.LastMessageAt, "Z") {
 		return nil, errMailboxThreadProjectionRequestInvalid
 	}
-	cursor := &MailboxThreadProjectionCursor{accountID: accountID, isPinned: wire.IsPinned, lastMessageAt: lastMessageAt.UTC(), id: id}
+	cursor := &MailboxThreadProjectionCursor{accountID: accountID, isPinned: wire.IsPinned, lastMessageAt: lastMessageAt.UTC(), id: id, filterSignature: wire.FilterSignature}
 	if !mailboxThreadProjectionCursorValid(*cursor) {
 		return nil, errMailboxThreadProjectionRequestInvalid
 	}
@@ -344,6 +436,7 @@ func mailboxThreadProjectionEncodeCursor(cursor MailboxThreadProjectionCursor) (
 		IsPinned:      cursor.isPinned,
 		LastMessageAt: cursor.lastMessageAt.UTC().Format(time.RFC3339Nano),
 		ID:            cursor.id.String(),
+		FilterSignature: cursor.filterSignature,
 	}
 	encoded, err := json.Marshal(wire)
 	if err != nil || len(encoded) == 0 || len(encoded) > maxMailboxThreadProjectionCursor {
@@ -388,7 +481,7 @@ func validateMailboxThreadProjection(projection MailboxThreadProjection, query M
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	cursor, err := mailboxThreadProjectionDecodeCursor(*projection.NextCursor)
-	if err != nil || cursor.accountID != accountID {
+	if err != nil || cursor.accountID != accountID || cursor.filterSignature != mailboxThreadProjectionQuerySignature(query) {
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	last := projection.Items[len(projection.Items)-1]

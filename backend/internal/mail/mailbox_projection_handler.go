@@ -110,7 +110,7 @@ func mailboxThreadProjectionQueryFromRequest(ctx fiber.Ctx) (MailboxThreadProjec
 	}
 	for name, valuesForName := range values {
 		switch name {
-		case "cursor", "limit", "folder_id", "label_id", "unread", "has_attachments":
+		case "cursor", "limit", "folder_id", "label_id", "unread", "has_attachments", "starred", "search":
 			if len(valuesForName) != 1 {
 				return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
 			}
@@ -155,7 +155,21 @@ func mailboxThreadProjectionQueryFromRequest(ctx fiber.Ctx) (MailboxThreadProjec
 		return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
 	}
 	query.HasAttachments, errBool = mailboxThreadProjectionOptionalBool(values, "has_attachments")
-	if errBool != nil || !mailboxThreadProjectionQueryValid(query) {
+	if errBool != nil {
+		return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+	}
+	query.Starred, errBool = mailboxThreadProjectionOptionalBool(values, "starred")
+	if errBool != nil {
+		return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+	}
+	if values.Has("search") {
+		search, err := mailboxThreadProjectionNormalizeSearch(values.Get("search"))
+		if err != nil {
+			return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+		}
+		query.Search = &search
+	}
+	if !mailboxThreadProjectionQueryValid(query) {
 		return MailboxThreadProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
 	}
 	return query, nil
@@ -206,7 +220,7 @@ func mailboxThreadProjectionResponseFromProjection(projection MailboxThreadProje
 			return mailboxThreadProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 		last := projection.Items[len(projection.Items)-1]
-		if cursor.isPinned != last.IsPinned || !cursor.lastMessageAt.Equal(last.LastMessageAt) || cursor.id != last.ID {
+		if cursor.isPinned != last.IsPinned || !cursor.lastMessageAt.Equal(last.LastMessageAt) || cursor.id != last.ID || cursor.filterSignature != mailboxThreadProjectionQuerySignature(query) {
 			return mailboxThreadProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 	}

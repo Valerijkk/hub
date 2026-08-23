@@ -63,6 +63,7 @@ func (service *MailboxFolderProjectionService) ListMailboxThreads(ctx context.Co
 	if !mailboxThreadProjectionQueryValid(query) {
 		return MailboxThreadProjection{}, errMailboxThreadProjectionRequestInvalid
 	}
+	query = mailboxThreadProjectionQueryCopy(query)
 
 	owner, err := service.owners.ResolveOwner(ctx, actorID)
 	if err != nil {

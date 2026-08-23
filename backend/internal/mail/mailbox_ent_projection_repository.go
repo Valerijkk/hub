@@ -3,8 +3,9 @@ package mail
 import (
 	"context"
 	"sort"
-	"time"
+	"strings"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
@@ -220,6 +221,23 @@ func (repository *MailboxEntRepository) ListMailboxThreadProjection(ctx context.
 				mailmessage.HasAttachmentsEQ(true),
 			)))
 		}
+		if query.Starred != nil && *query.Starred {
+			threadQuery = threadQuery.Where(mailthread.HasMessagesWith(
+				mailmessage.MailAccountIDEQ(scope.AccountID),
+				mailmessage.DeletedAtIsNil(),
+				mailmessage.IsFlaggedEQ(true),
+			))
+		}
+		if query.Starred != nil && !*query.Starred {
+			threadQuery = threadQuery.Where(mailthread.Not(mailthread.HasMessagesWith(
+				mailmessage.MailAccountIDEQ(scope.AccountID),
+				mailmessage.DeletedAtIsNil(),
+				mailmessage.IsFlaggedEQ(true),
+			)))
+		}
+		if query.Search != nil {
+			threadQuery = threadQuery.Where(mailboxThreadProjectionSearchPredicate(*query.Search))
+		}
 
 		rows, err := threadQuery.
 			Order(
@@ -248,7 +266,7 @@ func (repository *MailboxEntRepository) ListMailboxThreadProjection(ctx context.
 		}
 		if hasNext {
 			last := projection.Items[len(projection.Items)-1]
-			cursor, err := mailboxThreadProjectionEncodeCursor(MailboxThreadProjectionCursor{accountID: scope.AccountID, isPinned: last.IsPinned, lastMessageAt: last.LastMessageAt, id: last.ID})
+			cursor, err := mailboxThreadProjectionEncodeCursor(MailboxThreadProjectionCursor{accountID: scope.AccountID, isPinned: last.IsPinned, lastMessageAt: last.LastMessageAt, id: last.ID, filterSignature: mailboxThreadProjectionQuerySignature(query)})
 			if err != nil {
 				return mailboxServiceError(MailboxServiceErrorInvalid)
 			}
@@ -305,15 +323,6 @@ func mailboxThreadProjectionLabelPredicate(accountID, labelID uuid.UUID) predica
 	)
 }
 
-type mailboxThreadProjectionAggregate struct {
-	messageCount   int64
-	unreadCount    int64
-	hasAttachments bool
-	lastMessageAt  time.Time
-	lastMessageID  uuid.UUID
-	snippet        string
-}
-
 func mailboxEntThreadProjectionItems(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, rows []*ent.MailThread) ([]MailboxThreadProjectionItem, error) {
 	if ctx == nil || transaction == nil || accountID == uuid.Nil {
 		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
@@ -322,7 +331,7 @@ func mailboxEntThreadProjectionItems(ctx context.Context, transaction *ent.Tx, a
 		return []MailboxThreadProjectionItem{}, nil
 	}
 	threadIDs := make([]uuid.UUID, 0, len(rows))
-	threads := make(map[uuid.UUID]*ent.MailThread, len(rows))
+	threads := make(map[uuid.UUID]struct{}, len(rows))
 	for _, row := range rows {
 		if !mailboxEntApplyThreadRowValid(row, accountID) || row.DeletedAt != nil {
 			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
@@ -330,67 +339,11 @@ func mailboxEntThreadProjectionItems(ctx context.Context, transaction *ent.Tx, a
 		if _, duplicate := threads[row.ID]; duplicate {
 			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		threads[row.ID] = row
+		threads[row.ID] = struct{}{}
 		threadIDs = append(threadIDs, row.ID)
 	}
 	sort.Slice(threadIDs, func(left, right int) bool { return syncLessUUID(threadIDs[left], threadIDs[right]) })
-
-	messages, err := transaction.MailMessage.Query().
-		Where(
-			mailmessage.MailAccountIDEQ(accountID),
-			mailmessage.MailThreadIDIn(threadIDs...),
-			mailmessage.DeletedAtIsNil(),
-		).
-		Order(ent.Asc(mailmessage.FieldID)).
-		All(ctx)
-	if err != nil {
-		return nil, mailboxEntSafeError(err)
-	}
-	messageIDs := make([]uuid.UUID, 0, len(messages))
-	messagesByID := make(map[uuid.UUID]*ent.MailMessage, len(messages))
-	aggregates := make(map[uuid.UUID]mailboxThreadProjectionAggregate, len(rows))
-	for _, message := range messages {
-		if !mailboxEntApplyMessageRowValid(message, accountID) || message.DeletedAt != nil {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		if _, found := threads[message.MailThreadID]; !found {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		if _, duplicate := messagesByID[message.ID]; duplicate {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		messagesByID[message.ID] = message
-		messageIDs = append(messageIDs, message.ID)
-
-		aggregate := aggregates[message.MailThreadID]
-		aggregate.messageCount++
-		if !message.IsSeen {
-			aggregate.unreadCount++
-		}
-		aggregate.hasAttachments = aggregate.hasAttachments || message.HasAttachments
-		effectiveTime := mailboxThreadProjectionMessageEffectiveTime(message)
-		if aggregate.lastMessageID == uuid.Nil || effectiveTime.After(aggregate.lastMessageAt) || effectiveTime.Equal(aggregate.lastMessageAt) && syncLessUUID(aggregate.lastMessageID, message.ID) {
-			aggregate.lastMessageAt = effectiveTime
-			aggregate.lastMessageID = message.ID
-			aggregate.snippet = message.Snippet
-		}
-		aggregates[message.MailThreadID] = aggregate
-	}
-	if len(messagesByID) == 0 {
-		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-	}
-	for _, threadID := range threadIDs {
-		row := threads[threadID]
-		aggregate, found := aggregates[threadID]
-		if !found || aggregate.messageCount != int64(row.MessageCount) || aggregate.unreadCount != int64(row.UnreadCount) || aggregate.hasAttachments != row.HasAttachments || !aggregate.lastMessageAt.Equal(row.LastMessageAt) || aggregate.snippet != row.Snippet {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-	}
-
-	if err := mailboxEntThreadProjectionValidateFolderLinks(ctx, transaction, accountID, messagesByID, messageIDs); err != nil {
-		return nil, err
-	}
-	labelsByThread, err := mailboxEntThreadProjectionLabels(ctx, transaction, accountID, messagesByID, messageIDs)
+	labelsByThread, err := mailboxEntThreadProjectionLabels(ctx, transaction, accountID, threadIDs, threads)
 	if err != nil {
 		return nil, err
 	}
@@ -421,172 +374,124 @@ func mailboxEntThreadProjectionItems(ctx context.Context, transaction *ent.Tx, a
 	return items, nil
 }
 
-func mailboxThreadProjectionMessageEffectiveTime(message *ent.MailMessage) time.Time {
-	if message.SentAt == nil {
-		if message.ReceivedAt != nil {
-			return message.ReceivedAt.UTC()
-		}
-		return message.UpdatedAt.UTC()
-	}
-	if message.ReceivedAt == nil || !message.ReceivedAt.After(*message.SentAt) {
-		return message.SentAt.UTC()
-	}
-	return message.ReceivedAt.UTC()
+func mailboxThreadProjectionSearchPredicate(search string) predicate.MailThread {
+	return predicate.MailThread(func(selector *entsql.Selector) {
+		selector.Where(entsql.Or(
+			mailboxThreadProjectionContainsFold(selector.C(mailthread.FieldNormalizedSubject), search),
+			mailboxThreadProjectionContainsFold(selector.C(mailthread.FieldSnippet), search),
+		))
+	})
 }
 
-func mailboxEntThreadProjectionValidateFolderLinks(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, messagesByID map[uuid.UUID]*ent.MailMessage, messageIDs []uuid.UUID) error {
-	links, err := transaction.MailMessageFolder.Query().
-		Where(mailmessagefolder.MailMessageIDIn(messageIDs...)).
-		Order(ent.Asc(mailmessagefolder.FieldID)).
-		All(ctx)
-	if err != nil {
-		return mailboxEntSafeError(err)
-	}
-	folderIDs := make(map[uuid.UUID]struct{}, len(links))
-	seenByMessage := make(map[uuid.UUID]map[uuid.UUID]struct{}, len(messagesByID))
-	for _, link := range links {
-		if link == nil || link.ID == uuid.Nil || link.MailMessageID == uuid.Nil || link.MailFolderID == uuid.Nil || link.LastSeenSyncEpoch < 0 || link.LastSeenSyncEpoch > 2_147_483_647 || !syncValidTime(link.ProjectedAt) || !syncValidTime(link.CreatedAt) || !syncValidTime(link.UpdatedAt) || link.EngineState != nil && !syncValidSafeText(*link.EngineState, 4_096, false) {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		if _, found := messagesByID[link.MailMessageID]; !found {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		seen, found := seenByMessage[link.MailMessageID]
-		if !found {
-			seen = make(map[uuid.UUID]struct{})
-			seenByMessage[link.MailMessageID] = seen
-		}
-		if _, duplicate := seen[link.MailFolderID]; duplicate {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		seen[link.MailFolderID] = struct{}{}
-		folderIDs[link.MailFolderID] = struct{}{}
-	}
-	if len(folderIDs) == 0 {
-		return nil
-	}
-	ids := mailboxThreadProjectionSortedUUIDSet(folderIDs)
-	folders, err := transaction.MailFolder.Query().
-		Where(mailfolder.MailAccountIDEQ(accountID), mailfolder.IDIn(ids...), mailfolder.DeletedAtIsNil()).
-		Order(ent.Asc(mailfolder.FieldID)).
-		All(ctx)
-	if err != nil {
-		return mailboxEntSafeError(err)
-	}
-	if len(folders) != len(ids) {
-		return mailboxServiceError(MailboxServiceErrorInvalid)
-	}
-	seenFolders := make(map[uuid.UUID]struct{}, len(folders))
-	for _, folder := range folders {
-		state, valid := mailboxEntApplyFolderRowState(folder, accountID)
-		if !valid || state != mailboxEntApplyFolderActive || !syncValidTime(folder.CreatedAt) || !syncValidTime(folder.UpdatedAt) {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		if _, duplicate := seenFolders[folder.ID]; duplicate {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		seenFolders[folder.ID] = struct{}{}
-	}
-	return nil
+func mailboxThreadProjectionContainsFold(column, value string) *entsql.Predicate {
+	return entsql.P(func(builder *entsql.Builder) {
+		builder.Ident(column).WriteString(" ILIKE ").Arg("%" + value + "%")
+	})
 }
 
-func mailboxEntThreadProjectionLabels(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, messagesByID map[uuid.UUID]*ent.MailMessage, messageIDs []uuid.UUID) (map[uuid.UUID][]MailboxThreadProjectionLabel, error) {
-	links, err := transaction.MailMessageLabel.Query().
-		Where(mailmessagelabel.MailMessageIDIn(messageIDs...)).
-		Order(ent.Asc(mailmessagelabel.FieldID)).
-		All(ctx)
-	if err != nil {
-		return nil, mailboxEntSafeError(err)
-	}
-	labelIDs := make(map[uuid.UUID]struct{}, len(links))
-	linksByThread := make(map[uuid.UUID][]*ent.MailMessageLabel)
-	seenByMessage := make(map[uuid.UUID]map[uuid.UUID]struct{}, len(messagesByID))
-	for _, link := range links {
-		if link == nil || link.ID == uuid.Nil || link.MailMessageID == uuid.Nil || link.MailLabelID == uuid.Nil || (!link.Manual && !link.EngineRule) || !syncValidTime(link.CreatedAt) || !syncValidTime(link.UpdatedAt) {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		message, found := messagesByID[link.MailMessageID]
-		if !found {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		seen, found := seenByMessage[link.MailMessageID]
-		if !found {
-			seen = make(map[uuid.UUID]struct{})
-			seenByMessage[link.MailMessageID] = seen
-		}
-		if _, duplicate := seen[link.MailLabelID]; duplicate {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		seen[link.MailLabelID] = struct{}{}
-		labelIDs[link.MailLabelID] = struct{}{}
-		linksByThread[message.MailThreadID] = append(linksByThread[message.MailThreadID], link)
-	}
-	if len(labelIDs) == 0 {
-		return map[uuid.UUID][]MailboxThreadProjectionLabel{}, nil
-	}
-	ids := mailboxThreadProjectionSortedUUIDSet(labelIDs)
-	rows, err := transaction.MailLabel.Query().
-		Where(maillabel.MailAccountIDEQ(accountID), maillabel.IDIn(ids...), maillabel.DeletedAtIsNil()).
-		Order(ent.Asc(maillabel.FieldID)).
-		All(ctx)
-	if err != nil {
-		return nil, mailboxEntSafeError(err)
-	}
-	if len(rows) != len(ids) {
+const mailboxThreadProjectionLabelsSQL = `
+WITH page_threads AS (SELECT unnest($1::uuid[]) AS id)
+SELECT DISTINCT m.mail_thread_id, l.id, l.name, l.color, l.version
+FROM mail_message_labels AS ml
+JOIN mail_messages AS m ON m.id = ml.mail_message_id
+JOIN mail_labels AS l ON l.id = ml.mail_label_id
+JOIN page_threads AS pt ON pt.id = m.mail_thread_id
+WHERE m.mail_account_id = $2::uuid
+  AND m.deleted_at IS NULL
+  AND l.mail_account_id = $2::uuid
+  AND l.deleted_at IS NULL
+  AND (ml.manual OR ml.engine_rule)
+ORDER BY m.mail_thread_id ASC, l.name ASC, l.id ASC
+LIMIT $3`
+
+func mailboxEntThreadProjectionLabels(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, threadIDs []uuid.UUID, threads map[uuid.UUID]struct{}) (map[uuid.UUID][]MailboxThreadProjectionLabel, error) {
+	if ctx == nil || transaction == nil || accountID == uuid.Nil || len(threadIDs) == 0 || len(threadIDs) > maxMailboxThreadProjectionLimit || len(threadIDs) != len(threads) {
 		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	labels := make(map[uuid.UUID]MailboxThreadProjectionLabel, len(rows))
-	for _, row := range rows {
-		if !mailboxThreadProjectionLabelRowValid(row, accountID) {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		if _, duplicate := labels[row.ID]; duplicate {
-			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-		}
-		labels[row.ID] = MailboxThreadProjectionLabel{ID: row.ID, Name: row.Name, Color: row.Color, Version: row.Version}
+	threadArray, ok := mailboxThreadProjectionUUIDArray(threadIDs)
+	if !ok {
+		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-
-	result := make(map[uuid.UUID][]MailboxThreadProjectionLabel, len(linksByThread))
-	for threadID, threadLinks := range linksByThread {
-		seen := make(map[uuid.UUID]struct{}, len(threadLinks))
-		threadLabels := make([]MailboxThreadProjectionLabel, 0, len(threadLinks))
-		for _, link := range threadLinks {
-			if _, duplicate := seen[link.MailLabelID]; duplicate {
-				continue
-			}
-			label, found := labels[link.MailLabelID]
-			if !found {
-				return nil, mailboxServiceError(MailboxServiceErrorInvalid)
-			}
-			seen[link.MailLabelID] = struct{}{}
-			threadLabels = append(threadLabels, label)
+	maximum := len(threadIDs) * maxMailboxThreadProjectionLimit
+	var rows entsql.Rows
+	if err := transaction.Driver().Query(ctx, mailboxThreadProjectionLabelsSQL, []any{threadArray, accountID.String(), maximum + 1}, &rows); err != nil {
+		return nil, mailboxEntSafeError(err)
+	}
+	closed := false
+	defer func() {
+		if !closed {
+			_ = rows.Close()
 		}
-		if len(threadLabels) > maxMailboxThreadProjectionLimit {
+	}()
+
+	result := make(map[uuid.UUID][]MailboxThreadProjectionLabel, len(threadIDs))
+	seen := make(map[uuid.UUID]map[uuid.UUID]struct{}, len(threadIDs))
+	count := 0
+	for rows.Next() {
+		count++
+		if count > maximum {
 			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		sort.Slice(threadLabels, func(left, right int) bool {
-			if threadLabels[left].Name != threadLabels[right].Name {
-				return threadLabels[left].Name < threadLabels[right].Name
+		var threadID, labelID uuid.UUID
+		var name, color string
+		var version int64
+		if err := rows.Scan(&threadID, &labelID, &name, &color, &version); err != nil {
+			return nil, mailboxEntSafeError(err)
+		}
+		if _, found := threads[threadID]; !found || !mailboxThreadProjectionLabelValuesValid(labelID, name, color, version) {
+			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		labels, found := seen[threadID]
+		if !found {
+			labels = make(map[uuid.UUID]struct{}, maxMailboxThreadProjectionLimit)
+			seen[threadID] = labels
+		}
+		if _, duplicate := labels[labelID]; duplicate || len(labels) == maxMailboxThreadProjectionLimit {
+			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		labels[labelID] = struct{}{}
+		result[threadID] = append(result[threadID], MailboxThreadProjectionLabel{ID: labelID, Name: name, Color: color, Version: version})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, mailboxEntSafeError(err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, mailboxEntSafeError(err)
+	}
+	closed = true
+
+	for threadID, labels := range result {
+		sort.Slice(labels, func(left, right int) bool {
+			if labels[left].Name != labels[right].Name {
+				return labels[left].Name < labels[right].Name
 			}
-			return syncLessUUID(threadLabels[left].ID, threadLabels[right].ID)
+			return syncLessUUID(labels[left].ID, labels[right].ID)
 		})
-		result[threadID] = threadLabels
+		result[threadID] = labels
 	}
 	return result, nil
 }
 
-func mailboxThreadProjectionLabelRowValid(row *ent.MailLabel, accountID uuid.UUID) bool {
-	return row != nil && row.ID != uuid.Nil && row.MailAccountID == accountID && row.DeletedAt == nil && row.Version >= 1 && syncValidSafeText(row.Name, 240, false) && syncValidSafeText(row.NormalizedName, 240, false) && syncValidSafeText(row.Color, 128, false) && syncValidOpaque(row.EngineKeyword, 57) && syncValidTime(row.CreatedAt) && syncValidTime(row.UpdatedAt)
+func mailboxThreadProjectionLabelValuesValid(id uuid.UUID, name, color string, version int64) bool {
+	return id != uuid.Nil && version >= 1 && syncValidSafeText(name, 240, false) && syncValidSafeText(color, 128, false) && len(name) <= 240 && len(color) <= 128
 }
 
-func mailboxThreadProjectionSortedUUIDSet(values map[uuid.UUID]struct{}) []uuid.UUID {
-	result := make([]uuid.UUID, 0, len(values))
-	for value := range values {
-		if value == uuid.Nil {
-			return nil
-		}
-		result = append(result, value)
+func mailboxThreadProjectionUUIDArray(values []uuid.UUID) (string, bool) {
+	if len(values) == 0 || len(values) > maxMailboxThreadProjectionLimit {
+		return "", false
 	}
-	sort.Slice(result, func(left, right int) bool { return syncLessUUID(result[left], result[right]) })
-	return result
+	var builder strings.Builder
+	builder.Grow(2 + len(values)*37)
+	builder.WriteByte('{')
+	for index, value := range values {
+		if value == uuid.Nil {
+			return "", false
+		}
+		if index > 0 {
+			builder.WriteByte(',')
+		}
+		builder.WriteString(value.String())
+	}
+	builder.WriteByte('}')
+	return builder.String(), true
 }
