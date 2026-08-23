@@ -16,7 +16,7 @@ containers and Docker cache retained.
 |---|---|---|
 | `backend-unit` | `PASS` | build, vet, unit and race receipts under `testframework/reports/backend-unit/`; target exit `0` |
 | `frontend-unit` | `PASS` | TypeScript `PASS`; Vitest `338/338` suites and `419/419` tests; receipts under `testframework/reports/frontend-unit/` |
-| `python-contract` | `PASS` | framework selftests only: `181/181` passed in 4.51s |
+| `python-contract` | `PASS` | framework selftests only: `181/181` passed in 4.51s; receipt `.planning/audits/test-rebase/python-contract-docker-receipt-2026-08-23.json` |
 
 The owner-bound Calendar WIP test
 `frontend/tests/calls/call-calendar-a11y.test.tsx` is deliberately excluded
