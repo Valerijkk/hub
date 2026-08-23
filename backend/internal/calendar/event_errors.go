@@ -1,5 +1,7 @@
 package calendar
 
+import "github.com/google/uuid"
+
 // EventErrorKind определяет безопасную категорию ошибки канонического календарного события.
 type EventErrorKind string
 
@@ -123,4 +125,65 @@ func newMeetingCreateConflict(kind MeetingCreateConflictKind) error {
 	default:
 		return ErrEventInternal
 	}
+}
+
+type MeetingMutationConflictKind string
+
+const (
+	MeetingMutationConflictIdempotencyKeyReused MeetingMutationConflictKind = "idempotency_key_reused"
+	MeetingMutationConflictSlotUnavailable      MeetingMutationConflictKind = "slot_unavailable"
+	MeetingMutationConflictVersion              MeetingMutationConflictKind = "version_conflict"
+)
+
+type MeetingMutationConflictError struct {
+	kind           MeetingMutationConflictKind
+	eventID        uuid.UUID
+	currentVersion uint
+}
+
+func (err MeetingMutationConflictError) Error() string {
+	switch err.kind {
+	case MeetingMutationConflictIdempotencyKeyReused:
+		return "meeting idempotency key reused"
+	case MeetingMutationConflictSlotUnavailable:
+		return "meeting slot unavailable"
+	case MeetingMutationConflictVersion:
+		return "meeting version conflict"
+	default:
+		return "meeting mutation conflict"
+	}
+}
+
+func (err MeetingMutationConflictError) Unwrap() error { return ErrEventConflict }
+func (err MeetingMutationConflictError) Kind() MeetingMutationConflictKind { return err.kind }
+func (err MeetingMutationConflictError) EventID() (uuid.UUID, bool) {
+	return err.eventID, err.kind == MeetingMutationConflictVersion && err.eventID != uuid.Nil
+}
+func (err MeetingMutationConflictError) CurrentVersion() (uint, bool) {
+	return err.currentVersion, err.kind == MeetingMutationConflictVersion && err.currentVersion != 0
+}
+
+func (err MeetingMutationConflictError) Is(target error) bool {
+	switch value := target.(type) {
+	case MeetingMutationConflictError:
+		return err.kind == value.kind
+	case *MeetingMutationConflictError:
+		return value != nil && err.kind == value.kind
+	default:
+		return false
+	}
+}
+
+func newMeetingMutationConflict(kind MeetingMutationConflictKind) error {
+	if kind == MeetingMutationConflictIdempotencyKeyReused || kind == MeetingMutationConflictSlotUnavailable {
+		return MeetingMutationConflictError{kind: kind}
+	}
+	return ErrEventInternal
+}
+
+func meetingMutationVersionConflict(eventID uuid.UUID, currentVersion uint) error {
+	if eventID == uuid.Nil || currentVersion == 0 {
+		return ErrEventInternal
+	}
+	return MeetingMutationConflictError{kind: MeetingMutationConflictVersion, eventID: eventID, currentVersion: currentVersion}
 }

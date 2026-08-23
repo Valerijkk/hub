@@ -50,6 +50,16 @@ type MeetingTransactionBackend interface {
 	PersistMeetingScheduledCall(context.Context, EventMutationScope, MeetingScheduledCallCommand) (MeetingScheduledCallPersistenceResult, error)
 }
 
+type MeetingUpdateTransactionBackend interface {
+	ResolveMeetingUpdateAuthorization(context.Context, EventMutationScope, MeetingUpdateAuthorizationRequest) (MeetingUpdateAuthorization, error)
+	PersistMeetingUpdate(context.Context, EventMutationScope, MeetingUpdatePersistenceCommand) (MeetingMutationPersistenceResult, error)
+}
+
+type MeetingCancelTransactionBackend interface {
+	ResolveMeetingCancelAuthorization(context.Context, EventMutationScope, uuid.UUID) (MeetingCancelAuthorization, error)
+	PersistMeetingCancel(context.Context, EventMutationScope, MeetingCancelPersistenceCommand) (MeetingMutationPersistenceResult, error)
+}
+
 // CalendarEventUpdateAuthorizationRequest carries only the event identity and,
 // when supplied, the untrusted attendee replacement candidates. The transaction
 // backend is the sole authority for every current event and attendee value.
@@ -740,6 +750,150 @@ func (transaction *EventTransaction) PersistMeetingScheduledCall(ctx context.Con
 	}
 	if result.CallID() != command.callID || result.Version() == 0 {
 		return MeetingScheduledCallPersistenceResult{}, ErrEventInternal
+	}
+	return result, nil
+}
+
+func (transaction *EventTransaction) ResolveMeetingUpdateScope(ctx context.Context, actorID uuid.UUID) (EventMutationScope, error) {
+	if transaction == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(MeetingUpdateTransactionBackend)
+	if !supported || nilMeetingUpdateTransactionBackend(backend) || actorID == uuid.Nil {
+		return EventMutationScope{}, ErrEventInternal
+	}
+	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
+	if err != nil || organizationID == uuid.Nil {
+		return EventMutationScope{}, ErrEventForbidden
+	}
+	return EventMutationScope{actorID: actorID, organizationID: organizationID, receiptOperation: MutationReceiptMeetingUpdate, eventOperation: EventMutationMeetingUpdate, transaction: transaction}, nil
+}
+
+func (transaction *EventTransaction) ResolveMeetingCancelScope(ctx context.Context, actorID uuid.UUID) (EventMutationScope, error) {
+	if transaction == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(MeetingCancelTransactionBackend)
+	if !supported || nilMeetingCancelTransactionBackend(backend) || actorID == uuid.Nil {
+		return EventMutationScope{}, ErrEventInternal
+	}
+	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
+	if err != nil || organizationID == uuid.Nil {
+		return EventMutationScope{}, ErrEventForbidden
+	}
+	return EventMutationScope{actorID: actorID, organizationID: organizationID, receiptOperation: MutationReceiptMeetingCancel, eventOperation: EventMutationMeetingCancel, transaction: transaction}, nil
+}
+
+func (transaction *EventTransaction) ResolveMeetingUpdateAuthorization(ctx context.Context, scope EventMutationScope, request MeetingUpdateAuthorizationRequest) (MeetingUpdateAuthorization, error) {
+	if transaction == nil {
+		return MeetingUpdateAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return MeetingUpdateAuthorization{}, err
+	}
+	if scope.EventOperation() != EventMutationMeetingUpdate || !request.valid() {
+		return MeetingUpdateAuthorization{}, ErrEventInvalid
+	}
+	backend, supported := transaction.backend.(MeetingUpdateTransactionBackend)
+	if !supported || nilMeetingUpdateTransactionBackend(backend) {
+		return MeetingUpdateAuthorization{}, ErrEventInternal
+	}
+	resolved, err := backend.ResolveMeetingUpdateAuthorization(ctx, scope, cloneMeetingUpdateAuthorizationRequest(request))
+	if err != nil {
+		return MeetingUpdateAuthorization{}, err
+	}
+	if !resolved.valid() {
+		return MeetingUpdateAuthorization{}, ErrEventInternal
+	}
+	return cloneMeetingUpdateAuthorization(resolved), nil
+}
+
+func (transaction *EventTransaction) ResolveMeetingCancelAuthorization(ctx context.Context, scope EventMutationScope, eventID uuid.UUID) (MeetingCancelAuthorization, error) {
+	if transaction == nil {
+		return MeetingCancelAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return MeetingCancelAuthorization{}, err
+	}
+	if scope.EventOperation() != EventMutationMeetingCancel || eventID == uuid.Nil {
+		return MeetingCancelAuthorization{}, ErrEventInvalid
+	}
+	backend, supported := transaction.backend.(MeetingCancelTransactionBackend)
+	if !supported || nilMeetingCancelTransactionBackend(backend) {
+		return MeetingCancelAuthorization{}, ErrEventInternal
+	}
+	resolved, err := backend.ResolveMeetingCancelAuthorization(ctx, scope, eventID)
+	if err != nil {
+		return MeetingCancelAuthorization{}, err
+	}
+	if !resolved.valid() {
+		return MeetingCancelAuthorization{}, ErrEventInternal
+	}
+	return cloneMeetingCancelAuthorization(resolved), nil
+}
+
+func (transaction *EventTransaction) PersistMeetingUpdate(ctx context.Context, scope EventMutationScope, command MeetingUpdatePersistenceCommand) (MeetingMutationPersistenceResult, error) {
+	if transaction == nil {
+		return MeetingMutationPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return MeetingMutationPersistenceResult{}, err
+	}
+	if scope.EventOperation() != EventMutationMeetingUpdate || !command.valid() || command.current.OwnerID != scope.ActorID() || command.current.OrganizationID != scope.OrganizationID() {
+		return MeetingMutationPersistenceResult{}, ErrEventForbidden
+	}
+	backend, supported := transaction.backend.(MeetingUpdateTransactionBackend)
+	if !supported || nilMeetingUpdateTransactionBackend(backend) {
+		return MeetingMutationPersistenceResult{}, ErrEventInternal
+	}
+	result, err := backend.PersistMeetingUpdate(ctx, scope, cloneMeetingUpdatePersistenceCommand(command))
+	if err != nil {
+		return MeetingMutationPersistenceResult{}, err
+	}
+	if !result.valid() {
+		return MeetingMutationPersistenceResult{}, ErrEventInternal
+	}
+	return result, nil
+}
+
+func (transaction *EventTransaction) PersistMeetingCancel(ctx context.Context, scope EventMutationScope, command MeetingCancelPersistenceCommand) (MeetingMutationPersistenceResult, error) {
+	if transaction == nil {
+		return MeetingMutationPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return MeetingMutationPersistenceResult{}, err
+	}
+	if scope.EventOperation() != EventMutationMeetingCancel || !command.valid() || command.current.OwnerID != scope.ActorID() || command.current.OrganizationID != scope.OrganizationID() {
+		return MeetingMutationPersistenceResult{}, ErrEventForbidden
+	}
+	backend, supported := transaction.backend.(MeetingCancelTransactionBackend)
+	if !supported || nilMeetingCancelTransactionBackend(backend) {
+		return MeetingMutationPersistenceResult{}, ErrEventInternal
+	}
+	result, err := backend.PersistMeetingCancel(ctx, scope, cloneMeetingCancelPersistenceCommand(command))
+	if err != nil {
+		return MeetingMutationPersistenceResult{}, err
+	}
+	if !result.valid() {
+		return MeetingMutationPersistenceResult{}, ErrEventInternal
 	}
 	return result, nil
 }
@@ -1655,6 +1809,8 @@ const (
 	MutationReceiptLegacyCallCreate MutationReceiptOperation = "legacy_call_create"
 	// MutationReceiptMeetingCreate is the dedicated meeting vertical receipt.
 	MutationReceiptMeetingCreate MutationReceiptOperation = "meeting_create"
+	MutationReceiptMeetingUpdate MutationReceiptOperation = "meeting_update"
+	MutationReceiptMeetingCancel MutationReceiptOperation = "meeting_cancel"
 	// MutationReceiptRSVPSeries соответствует RSVP всей серии.
 	MutationReceiptRSVPSeries MutationReceiptOperation = "rsvp_series"
 	// MutationReceiptRSVPOccurrence соответствует RSVP одного экземпляра серии.
@@ -1669,6 +1825,8 @@ const (
 	EventMutationEventCreate      EventMutationOperation = "event_create"
 	EventMutationLegacyCallCreate EventMutationOperation = "legacy_call_create"
 	EventMutationMeetingCreate    EventMutationOperation = "meeting_create"
+	EventMutationMeetingUpdate    EventMutationOperation = "meeting_update"
+	EventMutationMeetingCancel    EventMutationOperation = "meeting_cancel"
 	EventMutationRSVPSeries       EventMutationOperation = "rsvp_series"
 	EventMutationRSVPOccurrence   EventMutationOperation = "rsvp_occurrence"
 	EventMutationCalendarUpdate   EventMutationOperation = "event_update"
@@ -2131,7 +2289,7 @@ func (descriptor EventOutboxDescriptor) valid() bool {
 
 func validMutationReceiptOperation(operation MutationReceiptOperation) bool {
 	switch operation {
-	case MutationReceiptEventCreate, MutationReceiptLegacyCallCreate, MutationReceiptMeetingCreate, MutationReceiptRSVPSeries, MutationReceiptRSVPOccurrence:
+	case MutationReceiptEventCreate, MutationReceiptLegacyCallCreate, MutationReceiptMeetingCreate, MutationReceiptMeetingUpdate, MutationReceiptMeetingCancel, MutationReceiptRSVPSeries, MutationReceiptRSVPOccurrence:
 		return true
 	default:
 		return false
@@ -2146,6 +2304,10 @@ func eventMutationOperationForReceipt(operation MutationReceiptOperation) (Event
 		return EventMutationLegacyCallCreate, true
 	case MutationReceiptMeetingCreate:
 		return EventMutationMeetingCreate, true
+	case MutationReceiptMeetingUpdate:
+		return EventMutationMeetingUpdate, true
+	case MutationReceiptMeetingCancel:
+		return EventMutationMeetingCancel, true
 	case MutationReceiptRSVPSeries:
 		return EventMutationRSVPSeries, true
 	case MutationReceiptRSVPOccurrence:
@@ -2176,6 +2338,22 @@ func nilMeetingTransactionBackend(backend MeetingTransactionBackend) bool {
 	default:
 		return false
 	}
+}
+
+func nilMeetingUpdateTransactionBackend(backend MeetingUpdateTransactionBackend) bool {
+	if backend == nil {
+		return true
+	}
+	value := reflect.ValueOf(backend)
+	return value.Kind() == reflect.Pointer && value.IsNil()
+}
+
+func nilMeetingCancelTransactionBackend(backend MeetingCancelTransactionBackend) bool {
+	if backend == nil {
+		return true
+	}
+	value := reflect.ValueOf(backend)
+	return value.Kind() == reflect.Pointer && value.IsNil()
 }
 
 func validCalendarEventSource(source CalendarEventSource) bool {

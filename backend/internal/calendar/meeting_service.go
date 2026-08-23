@@ -22,11 +22,14 @@ func NewMeetingService(repository EventRepository, clock EventClock, ids EventID
 	return &MeetingService{repository: repository, clock: clock, ids: ids}
 }
 
+func (service *MeetingService) ready() bool {
+	return service != nil && service.repository != nil && service.clock != nil && service.ids != nil
+}
+
 // CreateMeeting atomically creates the canonical event, attendees,
 // reservations, linked ScheduledCall, outbox intents and replay receipt.
 func (service *MeetingService) CreateMeeting(ctx context.Context, actorID uuid.UUID, command MeetingCreateCommand) (MeetingCreateResult, error) {
-	if service == nil || service.repository == nil || service.clock == nil || service.ids == nil ||
-		actorID == uuid.Nil || !command.valid() || !command.allowsActor(actorID) {
+	if !service.ready() || actorID == uuid.Nil || !command.valid() || !command.allowsActor(actorID) {
 		return MeetingCreateResult{}, ErrEventInvalid
 	}
 	var result MeetingCreateResult
