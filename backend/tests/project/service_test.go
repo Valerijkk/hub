@@ -29,6 +29,7 @@ func constraintErr() error {
 // mockRepo реализует интерфейс project.Repository для тестов.
 type mockRepo struct {
 	projects       map[uuid.UUID]*ent.Project
+	templates      map[uuid.UUID]*ent.ProjectTemplate
 	members        map[uuid.UUID][]*ent.ProjectMember
 	invites        map[string]*ent.Invite // ключ — код приглашения
 	memberCountMap map[uuid.UUID]int
@@ -50,6 +51,7 @@ type mockRepo struct {
 func newMockRepo() *mockRepo {
 	return &mockRepo{
 		projects:       make(map[uuid.UUID]*ent.Project),
+		templates:      make(map[uuid.UUID]*ent.ProjectTemplate),
 		members:        make(map[uuid.UUID][]*ent.ProjectMember),
 		invites:        make(map[string]*ent.Invite),
 		memberCountMap: make(map[uuid.UUID]int),
@@ -57,6 +59,10 @@ func newMockRepo() *mockRepo {
 		teamMembers:    make(map[uuid.UUID]map[uuid.UUID]struct{}),
 		admins:         make(map[uuid.UUID]bool),
 	}
+}
+
+func newTemplateMockRepo() *mockRepo {
+	return newMockRepo()
 }
 
 func (m *mockRepo) FindByID(_ context.Context, id uuid.UUID) (*ent.Project, error) {
@@ -521,19 +527,27 @@ func (m *mockRepo) SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID
 // --- Операции с шаблонами проектов (no-op для unit-тестов) ---
 
 func (m *mockRepo) ListTemplates(_ context.Context) ([]*ent.ProjectTemplate, error) {
-	return nil, nil
+	templates := make([]*ent.ProjectTemplate, 0, len(m.templates))
+	for _, template := range m.templates {
+		templates = append(templates, template)
+	}
+	return templates, nil
 }
 
-func (m *mockRepo) GetTemplate(_ context.Context, _ uuid.UUID) (*ent.ProjectTemplate, error) {
-	return nil, notFoundErr()
+func (m *mockRepo) GetTemplate(_ context.Context, id uuid.UUID) (*ent.ProjectTemplate, error) {
+	template, ok := m.templates[id]
+	if !ok {
+		return nil, notFoundErr()
+	}
+	return template, nil
 }
 
 func (m *mockRepo) GetProjectWithWorkflowStatusesAndLabels(_ context.Context, _ uuid.UUID) (*ent.Project, []string, []string, error) {
 	return nil, nil, nil, notFoundErr()
 }
 
-func (m *mockRepo) CreateTemplate(_ context.Context, name, description string, templateType projecttemplate.TemplateType, config map[string]interface{}, _ *uuid.UUID, isSystem bool) (*ent.ProjectTemplate, error) {
-	return &ent.ProjectTemplate{
+func (m *mockRepo) CreateTemplate(_ context.Context, name, description string, templateType projecttemplate.TemplateType, config map[string]interface{}, createdByID *uuid.UUID, isSystem bool) (*ent.ProjectTemplate, error) {
+	template := &ent.ProjectTemplate{
 		ID:           uuid.New(),
 		Name:         name,
 		Description:  description,
@@ -541,10 +555,19 @@ func (m *mockRepo) CreateTemplate(_ context.Context, name, description string, t
 		Config:       config,
 		IsSystem:     isSystem,
 		CreatedAt:    time.Now(),
-	}, nil
+	}
+	if createdByID != nil {
+		template.Edges.CreatedBy = &ent.User{ID: *createdByID}
+	}
+	m.templates[template.ID] = template
+	return template, nil
 }
 
-func (m *mockRepo) DeleteTemplate(_ context.Context, _ uuid.UUID) error {
+func (m *mockRepo) DeleteTemplate(_ context.Context, id uuid.UUID) error {
+	if _, ok := m.templates[id]; !ok {
+		return notFoundErr()
+	}
+	delete(m.templates, id)
 	return nil
 }
 

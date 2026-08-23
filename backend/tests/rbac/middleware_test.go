@@ -118,3 +118,16 @@ func TestUserIDFromCtx(t *testing.T) {
 	assert.Equal(t, fiber.StatusOK, status)
 	assert.Empty(t, body)
 }
+
+func doGet(t *testing.T, app *fiber.App, path string) (int, string) {
+	t.Helper()
+
+	req := httptest.NewRequest(fiber.MethodGet, path, nil)
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	require.NoError(t, err)
+	return resp.StatusCode, string(body)
+}

@@ -49,7 +49,7 @@ func (r *mockRepo) CreateProvider(_ context.Context, input ai.CreateProviderInpu
 		Models:       append([]string(nil), input.Models...),
 		Enabled:      input.Enabled,
 		Priority:     input.Priority,
-		MaxRPM:       input.MaxRPM,
+		MaxRpm:       input.MaxRPM,
 		RuResident:   input.RuResident,
 		Scope:        aiprovider.Scope(input.Scope),
 		Version:      1,
@@ -90,7 +90,7 @@ func (r *mockRepo) UpdateProvider(ctx context.Context, id uuid.UUID, input ai.Up
 		provider.Priority = *input.Priority
 	}
 	if input.MaxRPM != nil {
-		provider.MaxRPM = *input.MaxRPM
+		provider.MaxRpm = *input.MaxRPM
 	}
 	if input.RuResident != nil {
 		provider.RuResident = *input.RuResident

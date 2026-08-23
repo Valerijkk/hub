@@ -61,6 +61,26 @@ func (m *userMgmtMockRepo) DeleteUserTimeLogs(_ context.Context, _ uuid.UUID) (i
 	return 0, nil
 }
 
+func (*userMgmtMockRepo) DeleteUserFiles(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*userMgmtMockRepo) DeleteUserProjectMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*userMgmtMockRepo) DeleteUserChannelMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*userMgmtMockRepo) DeleteUserTeamMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*userMgmtMockRepo) ScrubUserAuditPII(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
 func (m *userMgmtMockRepo) ReassignReportedIssues(_ context.Context, _, _ uuid.UUID) (int, error) {
 	return 0, nil
 }

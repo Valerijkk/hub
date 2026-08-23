@@ -90,3 +90,55 @@ func (*mockAuditRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error) {
 }
 
 var _ audit.Repository = (*mockAuditRepo)(nil)
+
+type gdprStubRepo struct {
+	mockAuditRepo
+}
+
+func (r *gdprStubRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(r)
+}
+
+func (*gdprStubRepo) ClearUserAssignments(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserComments(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserReactions(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserActivityLogs(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserTimeLogs(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserFiles(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserProjectMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserChannelMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) DeleteUserTeamMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) ScrubUserAuditPII(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (*gdprStubRepo) HardDeleteUser(context.Context, uuid.UUID) error {
+	return nil
+}

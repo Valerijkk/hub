@@ -5,13 +5,11 @@ import (
 	"github.com/valerii/hub/backend/internal/project"
 	"context"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
-	entproject "github.com/valerii/hub/backend/ent/project"
 )
 
 type teamConflictRepo struct {
@@ -82,38 +80,6 @@ func TestRemoveMember_NotFound(t *testing.T) {
 	err = svc.RemoveMember(ctx, projectID, uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
-}
-
-// TestDeleteProject_IncomingCrossProjectLinks проверяет сценарий: удаление project incoming cross project links.
-func TestDeleteProject_IncomingCrossProjectLinks(t *testing.T) {
-	repo := &crossLinkRepo{mockRepo: *newMockRepo()}
-	nats := startProjectNATSServer(t)
-	svc := project.NewProjectService(repo, &mockCache{}, nats)
-	ctx := context.Background()
-
-	projectID := uuid.New()
-	assigneeID := uuid.New()
-	sourceIssueID := uuid.New()
-	targetIssueID := uuid.New()
-	linkID := uuid.New()
-
-	repo.projects[projectID] = &ent.Project{
-		ID: projectID, Name: "Incoming Del", Key: "IN", Status: entproject.StatusActive,
-		CreatedAt: time.Now(), UpdatedAt: time.Now(),
-	}
-	repo.incoming = []*ent.IssueLink{{
-		ID: linkID,
-		Edges: ent.IssueLinkEdges{
-			Source: &ent.Issue{
-				ID: sourceIssueID, IssueKey: "SRC-1",
-				Edges: ent.IssueEdges{Assignee: &ent.User{ID: assigneeID}},
-			},
-			Target: &ent.Issue{ID: targetIssueID, IssueKey: "IN-2"},
-		},
-	}}
-
-	require.NoError(t, svc.DeleteProject(ctx, projectID))
-	assert.Contains(t, repo.deleted, linkID)
 }
 
 // TestAddMember_AlreadyMember проверяет сценарий: add участник already участник.

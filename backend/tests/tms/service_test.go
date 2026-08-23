@@ -32,6 +32,8 @@ var errInjectStatsFail = errors.New("inject stats fail")
 
 type mockRepository struct {
 	testCases    map[uuid.UUID]*ent.TestCase
+	automationIDMap map[uuid.UUID]map[string]*ent.TestCase
+	caseKeyMap      map[uuid.UUID]map[string]*ent.TestCase
 	versions     map[uuid.UUID]*ent.TestCaseVersion
 	runs         map[uuid.UUID]*ent.TestRun
 	results      map[uuid.UUID]*ent.TestResult
@@ -141,6 +143,8 @@ func (m *mockRepository) GetLatestTestRunForEnvironment(ctx context.Context, pro
 func newMockRepo() *mockRepository {
 	return &mockRepository{
 		testCases:      make(map[uuid.UUID]*ent.TestCase),
+		automationIDMap: make(map[uuid.UUID]map[string]*ent.TestCase),
+		caseKeyMap:      make(map[uuid.UUID]map[string]*ent.TestCase),
 		versions:       make(map[uuid.UUID]*ent.TestCaseVersion),
 		runs:           make(map[uuid.UUID]*ent.TestRun),
 		results:        make(map[uuid.UUID]*ent.TestResult),
@@ -153,6 +157,26 @@ func newMockRepo() *mockRepository {
 		projectMembers: make(map[uuid.UUID]map[uuid.UUID]bool),
 		files:          make(map[uuid.UUID]*ent.FileMetadata),
 	}
+}
+
+func newMockMatcherRepo() *mockRepository {
+	return newMockRepo()
+}
+
+func makeMockTestCase(id uuid.UUID, caseKey string) *ent.TestCase {
+	return &ent.TestCase{ID: id, CaseKey: caseKey}
+}
+
+func matcherCaseMap(
+	items map[uuid.UUID]map[string]*ent.TestCase,
+	projectID uuid.UUID,
+) map[string]*ent.TestCase {
+	projectItems, ok := items[projectID]
+	if !ok {
+		projectItems = make(map[string]*ent.TestCase)
+		items[projectID] = projectItems
+	}
+	return projectItems
 }
 
 func (m *mockRepository) CreateTestCase(_ context.Context, projectID uuid.UUID, input tms.CreateTestCaseInput) (*ent.TestCase, error) {
@@ -192,8 +216,13 @@ func (m *mockRepository) GetTestCase(_ context.Context, id uuid.UUID) (*ent.Test
 }
 
 func (m *mockRepository) FindTestCaseByKey(_ context.Context, projectID uuid.UUID, caseKey string) (*ent.TestCase, error) {
+	if tc, ok := m.caseKeyMap[projectID][caseKey]; ok {
+		return tc, nil
+	}
 	for _, tc := range m.testCases {
-		if tc.CaseKey == caseKey {
+		if tc.CaseKey == caseKey &&
+			tc.Edges.Project != nil &&
+			tc.Edges.Project.ID == projectID {
 			return tc, nil
 		}
 	}
@@ -207,9 +236,12 @@ func (m *mockRepository) FindTestCaseByExternalID(_ context.Context, _ uuid.UUID
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockRepository) FindTestCaseByAutomationID(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+func (m *mockRepository) FindTestCaseByAutomationID(_ context.Context, projectID uuid.UUID, automationID string) (*ent.TestCase, error) {
 	if m.findMatchErr != nil {
 		return nil, m.findMatchErr
+	}
+	if tc, ok := m.automationIDMap[projectID][automationID]; ok {
+		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
 }
