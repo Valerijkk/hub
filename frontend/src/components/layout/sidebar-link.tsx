@@ -21,6 +21,7 @@ export const NAV_ICON_COLORS: Record<string, string> = {
 	"/marketplace": "text-lime-400",
 	"/bases": "text-cyan-400",
 	"/messenger": "text-emerald-400",
+	"/mail": "text-sky-400",
 	"/calls": "text-violet-400",
 	"/projects": "text-blue-400",
 	"/intranet": "text-rose-400",

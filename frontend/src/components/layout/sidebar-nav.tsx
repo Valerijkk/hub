@@ -69,6 +69,28 @@ export function SidebarNav({
 				}
 			/>
 			<SidebarLink
+				to="/mail"
+				label={t("nav.mail")}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/mail"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<rect x="2.5" y="4" width="15" height="12" rx="1.5" />
+						<path d="M3.5 5l6.5 5 6.5-5" />
+					</svg>
+				}
+			/>
+			<SidebarLink
 				to="/calendar"
 				label={t("nav.calendar", { defaultValue: "Календарь" })}
 				collapsed={collapsed}
