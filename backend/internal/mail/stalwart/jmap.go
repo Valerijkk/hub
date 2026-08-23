@@ -294,7 +294,11 @@ func parseJMAPResponse(contextKind jmapContext, request JMAPRequest, data []byte
 		return JMAPResponse{}, newError(ErrorProtocol)
 	}
 	var response JMAPResponse
-	if err := json.Unmarshal(data, &response); err != nil || len(response.MethodResponses) != len(request.MethodCalls) {
+	if err := json.Unmarshal(data, &response); err != nil {
+		return JMAPResponse{}, newError(ErrorProtocol)
+	}
+	implicitSubmissionUpdate := len(request.MethodCalls) == 1 && request.MethodCalls[0].Name == "EmailSubmission/set" && len(response.MethodResponses) == 2
+	if len(response.MethodResponses) != len(request.MethodCalls) && !implicitSubmissionUpdate {
 		return JMAPResponse{}, newError(ErrorProtocol)
 	}
 	if response.SessionState != "" && !validOpaque(response.SessionState) {
@@ -307,6 +311,12 @@ func parseJMAPResponse(contextKind jmapContext, request JMAPRequest, data []byte
 		if !validCallID(creationID) || !validOpaque(objectID) {
 			return JMAPResponse{}, newError(ErrorProtocol)
 		}
+	}
+	if implicitSubmissionUpdate {
+		if err := validateImplicitSubmissionUpdate(request.MethodCalls[0], response.MethodResponses); err != nil {
+			return JMAPResponse{}, err
+		}
+		return response, nil
 	}
 	requestNames := make(map[string]string, len(request.MethodCalls))
 	for _, requestMethod := range request.MethodCalls {
@@ -337,6 +347,29 @@ func parseJMAPResponse(contextKind jmapContext, request JMAPRequest, data []byte
 		}
 	}
 	return response, nil
+}
+
+func validateImplicitSubmissionUpdate(request JMAPMethodCall, responses []JMAPMethodResponse) error {
+	if request.Name != "EmailSubmission/set" || len(responses) != 2 {
+		return newError(ErrorProtocol)
+	}
+	first, second := responses[0], responses[1]
+	if first.CallID != request.CallID || second.CallID != request.CallID || !validCallID(first.CallID) || validateJSON(first.Arguments) != nil || validateJSON(second.Arguments) != nil {
+		return newError(ErrorProtocol)
+	}
+	if first.Name == "error" {
+		return newError(ErrorIndeterminate)
+	}
+	if first.Name != "EmailSubmission/set" || !methodAllowed(jmapMailbox, first.Name, nil) {
+		return newError(ErrorProtocol)
+	}
+	if second.Name == "error" {
+		return newError(ErrorIndeterminate)
+	}
+	if second.Name != "Email/set" || !methodAllowed(jmapMailbox, second.Name, nil) {
+		return newError(ErrorProtocol)
+	}
+	return nil
 }
 
 func responseError(arguments json.RawMessage) error {
