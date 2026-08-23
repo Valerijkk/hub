@@ -537,6 +537,13 @@ type CalendarInboundReplyTransactionBackend interface {
 	ResolveCalendarInboundReply(context.Context, CalendarInboundReplyScope, CalendarInboundReplyAuthorizationRequest) (CalendarInboundReplyAuthorization, error)
 	PersistCalendarInboundReply(context.Context, CalendarInboundReplyScope, CalendarInboundReplyPersistenceCommand) (CalendarInboundReplyPersistenceResult, error)
 }
+// CalendarInboundMessageTransactionBackend is an optional receipt-first
+// capability. It remains separate until a durable Calendar adapter owns the
+// inbound-message receipt and its database-clock claim policy.
+type CalendarInboundMessageTransactionBackend interface {
+	LockCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageClaim) (CalendarInboundMessageScope, bool, error)
+	CompleteCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageScope, CalendarInboundMessageCompletion) error
+}
 
 // CalendarEventCreateAttendeeCandidate is an untrusted create-time attendee
 // reference. The transaction resolver owns every identity decision.
@@ -694,6 +701,57 @@ func (transaction *EventTransaction) ResolveCalendarInboundReplyScope(ctx contex
 	return CalendarInboundReplyScope{ownerID: ownerID, organizationID: organizationID, transaction: transaction}, true, nil
 }
 
+// LockCalendarInboundMessageReceipt acquires one already-claimed receipt in
+// the current transaction. A false, nil result is a lease-lost or terminal
+// no-op; it intentionally exposes no scope that could mutate Calendar state.
+func (transaction *EventTransaction) LockCalendarInboundMessageReceipt(ctx context.Context, claim CalendarInboundMessageClaim) (CalendarInboundMessageScope, bool, error) {
+	if transaction == nil {
+		return CalendarInboundMessageScope{}, false, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarInboundMessageScope{}, false, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarInboundMessageTransactionBackend)
+	if !supported || nilCalendarInboundMessageTransactionBackend(backend) || !claim.valid() {
+		return CalendarInboundMessageScope{}, false, ErrEventInvalid
+	}
+	scope, locked, err := backend.LockCalendarInboundMessageReceipt(ctx, claim)
+	if err != nil {
+		return CalendarInboundMessageScope{}, false, err
+	}
+	if !locked {
+		if !scope.zero() {
+			return CalendarInboundMessageScope{}, false, ErrEventInvalid
+		}
+		return CalendarInboundMessageScope{}, false, nil
+	}
+	if !scope.isBackendEchoFor(claim) {
+		return CalendarInboundMessageScope{}, false, ErrEventInvalid
+	}
+	scope.transaction = transaction
+	return scope, true, nil
+}
+
+// CompleteCalendarInboundMessageReceipt finalizes the exact bound receipt.
+// The persistence adapter alone derives due/lease values from its database
+// clock and must receive only a constructor-validated disposition.
+func (transaction *EventTransaction) CompleteCalendarInboundMessageReceipt(ctx context.Context, scope CalendarInboundMessageScope, completion CalendarInboundMessageCompletion) error {
+	if transaction == nil {
+		return ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarInboundMessageTransactionBackend)
+	if !supported || nilCalendarInboundMessageTransactionBackend(backend) || !scope.isBoundTo(transaction) || !completion.valid() {
+		return ErrEventInvalid
+	}
+	return backend.CompleteCalendarInboundMessageReceipt(ctx, scope, cloneCalendarInboundMessageCompletion(completion))
+}
 // ResolveMutationScope разрешает и повторно проверяет actor-to-organization только внутри активной транзакции.
 func (transaction *EventTransaction) ResolveMutationScope(ctx context.Context, actorID uuid.UUID, operation MutationReceiptOperation) (EventMutationScope, error) {
 	if transaction == nil {

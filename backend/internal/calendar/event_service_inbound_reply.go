@@ -99,6 +99,29 @@ func (service *EventService) ApplyInboundITIPReply(ctx context.Context, input Ca
 	if nilCalendarInboundReplyDependency(ctx) || service == nil || nilCalendarInboundReplyDependency(service.repository) || nilCalendarInboundReplyDependency(service.clock) || nilCalendarInboundReplyDependency(service.ids) || input.OwnerID == uuid.Nil {
 		return CalendarInboundReplyResult{}, ErrEventInvalid
 	}
+	err = service.repository.WithEventTransaction(ctx, func(transaction *EventTransaction) error {
+		var applyErr error
+		result, applyErr = service.applyInboundITIPReplyInTransaction(ctx, transaction, input)
+		return applyErr
+	})
+	if err != nil {
+		return CalendarInboundReplyResult{}, calendarInboundReplySafeError(err)
+	}
+	if !result.valid() {
+		return CalendarInboundReplyResult{}, ErrEventInvalid
+	}
+	return result, nil
+}
+
+func (service *EventService) applyInboundITIPReplyInTransaction(ctx context.Context, transaction *EventTransaction, input CalendarInboundReplyInput) (result CalendarInboundReplyResult, err error) {
+	defer func() {
+		if recover() != nil {
+			result, err = CalendarInboundReplyResult{}, ErrEventInvalid
+		}
+	}()
+	if nilCalendarInboundReplyDependency(ctx) || service == nil || nilCalendarInboundReplyDependency(service.repository) || nilCalendarInboundReplyDependency(service.clock) || nilCalendarInboundReplyDependency(service.ids) || input.OwnerID == uuid.Nil {
+		return CalendarInboundReplyResult{}, ErrEventInvalid
+	}
 	canonical, normalized, sender, accepted := calendarInboundReplyPreflight(input.Sender, input.Message)
 	if !accepted {
 		return calendarInboundReplyResult(CalendarInboundReplyQuarantined), nil
@@ -108,7 +131,7 @@ func (service *EventService) ApplyInboundITIPReply(ctx context.Context, input Ca
 		return CalendarInboundReplyResult{}, ErrEventInvalid
 	}
 
-	err = service.repository.WithEventTransaction(ctx, func(transaction *EventTransaction) error {
+	err = func() error {
 		if transaction == nil {
 			return ErrEventInvalid
 		}
@@ -213,7 +236,7 @@ func (service *EventService) ApplyInboundITIPReply(ctx context.Context, input Ca
 		}
 		result = calendarInboundReplyResult(CalendarInboundReplyApplied)
 		return nil
-	})
+	}()
 	if err != nil {
 		return CalendarInboundReplyResult{}, calendarInboundReplySafeError(err)
 	}
