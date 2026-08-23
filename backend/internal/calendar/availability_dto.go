@@ -1,26 +1,26 @@
 package calendar
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type calendarHTTPAvailabilityRequest struct {
-	UserIDs     []uuid.UUID     `json:"user_ids"`
-	From        time.Time       `json:"from"`
-	To          time.Time       `json:"to"`
-	Timezone    string          `json:"timezone"`
-	SlotMinutes json.RawMessage `json:"slot_minutes"`
+	UserIDs     []uuid.UUID             `json:"user_ids"`
+	From        time.Time               `json:"from"`
+	To          time.Time               `json:"to"`
+	Timezone    string                  `json:"timezone"`
+	SlotMinutes calendarHTTPField[int] `json:"slot_minutes"`
 }
 
 func (request calendarHTTPAvailabilityRequest) query() (AvailabilityQuery, error) {
 	slotMinutes := 30
-	if len(request.SlotMinutes) != 0 {
-		if err := json.Unmarshal(request.SlotMinutes, &slotMinutes); err != nil {
-			return AvailabilityQuery{}, err
+	if request.SlotMinutes.present {
+		if request.SlotMinutes.null {
+			return AvailabilityQuery{}, ErrAvailabilitySourceInvalid
 		}
+		slotMinutes = request.SlotMinutes.value
 	}
 	query := AvailabilityQuery{
 		UserIDs:     append([]uuid.UUID(nil), request.UserIDs...),
