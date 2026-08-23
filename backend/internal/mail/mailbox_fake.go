@@ -614,7 +614,7 @@ func (f *FakeMailEngine) GetMessage(_ context.Context, request EngineMessageRead
 }
 
 func (f *FakeMailEngine) GetDraft(_ context.Context, request EngineDraftReadRequest) (EngineMessage, error) {
-	if !validAccountID(request.AccountID) || !validOpaqueID(request.DraftKey) || !validOpaqueID(request.MessageID) || !validOpaqueID(request.ExpectedVersion) || request.MaxContentBytes <= 0 || request.MaxContentBytes > MaxEngineMessageBytes {
+	if !validAccountID(request.AccountID) || !validSafeText(request.DraftKey, MaxEngineOpaqueIDBytes, true) || !validOpaqueID(request.MessageID) || !validOpaqueID(request.ExpectedVersion) || request.MaxContentBytes <= 0 || request.MaxContentBytes > MaxEngineMessageBytes {
 		return EngineMessage{}, fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	f.mu.Lock()

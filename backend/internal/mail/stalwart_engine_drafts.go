@@ -347,7 +347,7 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 // It never accepts actor or organization scope because the service has already
 // resolved the engine account before calling this provider adapter.
 func (engine *StalwartEngine) GetDraft(ctx context.Context, request EngineDraftReadRequest) (EngineMessage, error) {
-	if ctx == nil || !validAccountID(request.AccountID) || !validOpaqueID(request.DraftKey) || !validOpaqueID(request.MessageID) || !validOpaqueID(request.ExpectedVersion) || request.MaxContentBytes < 1 || request.MaxContentBytes > MaxEngineMessageBytes {
+	if ctx == nil || !validAccountID(request.AccountID) || !validSafeText(request.DraftKey, MaxEngineOpaqueIDBytes, true) || !validOpaqueID(request.MessageID) || !validOpaqueID(request.ExpectedVersion) || request.MaxContentBytes < 1 || request.MaxContentBytes > MaxEngineMessageBytes {
 		return EngineMessage{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
 	draftMarker, err := stalwartOpaqueMarker("draft", request.AccountID, request.DraftKey)
