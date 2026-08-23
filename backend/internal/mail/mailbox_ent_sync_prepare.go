@@ -409,8 +409,7 @@ func mailboxEntPrepareLabels(ctx context.Context, transaction *ent.Tx, account *
 }
 
 type mailboxEntPreparePersistedState struct {
-	previous       *MailboxSyncPolicyPreviousMessage
-	calendarMethod *MailCalendarMethod
+	previous *MailboxSyncPolicyPreviousMessage
 }
 
 func mailboxEntPreparePersistedStates(ctx context.Context, transaction *ent.Tx, account *ent.MailAccount, rows map[string]*ent.MailMessage) (map[uuid.UUID]mailboxEntPreparePersistedState, error) {
@@ -515,19 +514,12 @@ func mailboxEntPreparePersistedStates(ctx context.Context, transaction *ent.Tx, 
 			labelState = append(labelState, MailboxSyncPolicyLabelState{Label: MailboxEventID{AccountID: account.ID, ID: link.MailLabelID}, Manual: link.Manual, EngineRule: link.EngineRule})
 		}
 		sort.Slice(labelState, func(left, right int) bool { return syncLessUUID(labelState[left].Label.ID, labelState[right].Label.ID) })
-		var calendarMethod *MailCalendarMethod
-		if row.CalendarMethod != nil {
-			value := MailCalendarMethod(*row.CalendarMethod)
-			if !validMailCalendarMethod(&value) { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
-			calendarMethod = &value
-		}
 		result[messageID] = mailboxEntPreparePersistedState{
 			previous: &MailboxSyncPolicyPreviousMessage{
 				Thread: MailboxEventID{AccountID: account.ID, ID: thread.ID}, FolderIDs: folderState,
 				Flags: flags,
 				Labels: labelState, ReceivedEventID: syncCopyUUIDPointer(row.ReceivedEventID),
 			},
-			calendarMethod: calendarMethod,
 		}
 	}
 	return result, nil
@@ -717,14 +709,12 @@ func mailboxEntPrepareMessages(ctx context.Context, transaction *ent.Tx, account
 		thread, found := threads[projection.MessageID]
 		if !found { return nil, nil, mailboxServiceError(MailboxServiceErrorInvalid) }
 		var previous *MailboxSyncPolicyPreviousMessage
-		var calendarMethod *MailCalendarMethod
 		if row, found := messageRows[projection.MessageID]; found {
 			state, found := states[row.ID]
 			if !found { return nil, nil, mailboxServiceError(MailboxServiceErrorInvalid) }
 			previous = cloneMailboxSyncPrevious(state.previous)
-			if state.calendarMethod != nil { value := *state.calendarMethod; calendarMethod = &value }
 		}
-		messages = append(messages, MailboxSyncPolicyMessage{EngineMessageID: projection.MessageID, Message: MailboxEventID{AccountID: account.ID, ID: messageIDs[projection.MessageID]}, Thread: thread, Previous: previous, Provenance: MailboxSyncPolicyProvenance{ConfirmedSubmission: cloneMailboxSyncProof(provenance[projection.MessageID].ConfirmedSubmission), ConfirmedDraft: cloneMailboxSyncProof(provenance[projection.MessageID].ConfirmedDraft)}, CalendarMethod: calendarMethod})
+		messages = append(messages, MailboxSyncPolicyMessage{EngineMessageID: projection.MessageID, Message: MailboxEventID{AccountID: account.ID, ID: messageIDs[projection.MessageID]}, Thread: thread, Previous: previous, Provenance: MailboxSyncPolicyProvenance{ConfirmedSubmission: cloneMailboxSyncProof(provenance[projection.MessageID].ConfirmedSubmission), ConfirmedDraft: cloneMailboxSyncProof(provenance[projection.MessageID].ConfirmedDraft)}})
 	}
 	destroyed := make([]MailboxSyncPolicyDestroyed, 0)
 	if page.Change != nil {

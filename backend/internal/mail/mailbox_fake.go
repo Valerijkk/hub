@@ -1341,6 +1341,9 @@ func validateProjection(projection EngineMessageProjection) error {
 	if !validAccountID(projection.AccountID) || !validOpaqueID(projection.MessageID) || !validOpaqueID(projection.Version) || !validSafeText(projection.InternetMessageID, MaxEngineHeaderValueBytes, false) || !validSafeText(projection.InReplyTo, MaxEngineHeaderValueBytes, false) || !validStrings(projection.References, MaxEngineReferenceItems, MaxEngineHeaderValueBytes) || !validAddress(projection.From, true) || !validAddresses(projection.To, MaxEngineAddressItems) || !validAddresses(projection.CC, MaxEngineAddressItems) || !validAddresses(projection.BCC, MaxEngineAddressItems) || !validAddresses(projection.ReplyTo, MaxEngineAddressItems) || !uniqueRecipients(projection.To, projection.CC, projection.BCC) || !validSafeText(projection.Subject, MaxEngineHeaderValueBytes, false) || !validSafeText(projection.Snippet, MaxEngineSnippetBytes, false) || len(projection.FolderIDs) < 1 || len(projection.FolderIDs) > MaxEngineFolderItems || !validOpaqueIDs(projection.FolderIDs) || len(projection.ReservedKeywords) > MaxEngineKeywordItems || !validKeywords(projection.ReservedKeywords) || len(projection.Attachments) > MaxEngineAttachmentItems || !validProjectionAttachments(projection.Attachments) || projection.SizeBytes < 0 || projection.SizeBytes > MaxEngineMessageBytes || (projection.Priority != EnginePriorityLow && projection.Priority != EnginePriorityNormal && projection.Priority != EnginePriorityHigh) || (projection.Origin != EngineProjectionOriginInboundOrUnknown && projection.Origin != EngineProjectionOriginConfirmedOwnerDraft && projection.Origin != EngineProjectionOriginConfirmedOwnerSubmission) {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
+	if !validMailCalendarMethod(projection.CalendarMethod) {
+		return fakeEngineError(EngineErrorRejectedPolicy)
+	}
 	if projectionVariableBytes(projection) > MaxEngineProjectionItemBytes {
 		return fakeEngineError(EngineErrorPayloadTooLarge)
 	}
@@ -1632,6 +1635,7 @@ func cloneProjection(projection EngineMessageProjection) EngineMessageProjection
 		instant := *projection.ReceivedAt
 		projection.ReceivedAt = &instant
 	}
+	projection.CalendarMethod = copyMailCalendarMethod(projection.CalendarMethod)
 	return projection
 }
 
@@ -1678,6 +1682,9 @@ func messageVariableBytes(message EngineMessage) int {
 
 func projectionVariableBytes(projection EngineMessageProjection) int {
 	total := len(projection.AccountID) + len(projection.MessageID) + len(projection.Version) + len(projection.InternetMessageID) + len(projection.InReplyTo) + len(projection.Subject) + len(projection.Snippet) + addressBytes(projection.From) + stringBytes(projection.References) + addressSliceBytes(projection.To) + addressSliceBytes(projection.CC) + addressSliceBytes(projection.BCC) + addressSliceBytes(projection.ReplyTo) + stringBytes(projection.FolderIDs)
+	if projection.CalendarMethod != nil {
+		total += len(*projection.CalendarMethod)
+	}
 	for _, keyword := range projection.ReservedKeywords {
 		total += len(keyword)
 	}

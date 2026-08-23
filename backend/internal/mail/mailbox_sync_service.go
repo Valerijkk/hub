@@ -733,6 +733,7 @@ func cloneMailboxSyncProjection(value EngineMessageProjection) EngineMessageProj
 	}
 	if value.SentAt != nil { copied := *value.SentAt; result.SentAt = &copied }
 	if value.ReceivedAt != nil { copied := *value.ReceivedAt; result.ReceivedAt = &copied }
+	result.CalendarMethod = copyMailCalendarMethod(value.CalendarMethod)
 	return result
 }
 
@@ -747,7 +748,6 @@ func cloneMailboxSyncPolicyInput(value MailboxSyncPolicyInput) MailboxSyncPolicy
 		result.Messages[index].Previous = cloneMailboxSyncPrevious(message.Previous)
 		result.Messages[index].Provenance.ConfirmedSubmission = cloneMailboxSyncProof(message.Provenance.ConfirmedSubmission)
 		result.Messages[index].Provenance.ConfirmedDraft = cloneMailboxSyncProof(message.Provenance.ConfirmedDraft)
-		if message.CalendarMethod != nil { method := *message.CalendarMethod; result.Messages[index].CalendarMethod = &method }
 	}
 	result.Destroyed = make([]MailboxSyncPolicyDestroyed, len(value.Destroyed))
 	for index, destroyed := range value.Destroyed {
@@ -786,6 +786,9 @@ func cloneMailboxSyncPolicyResult(value MailboxSyncPolicyResult) MailboxSyncPoli
 		result.Upserts[index].Projection = cloneMailboxSyncProjection(upsert.Projection)
 		result.Upserts[index].FolderIDs = append([]MailboxEventID(nil), upsert.FolderIDs...)
 		result.Upserts[index].Labels = append([]MailboxSyncPolicyLabelState(nil), upsert.Labels...)
+		result.Upserts[index].CalendarMethod = copyMailCalendarMethod(upsert.CalendarMethod)
+		result.Upserts[index].ChangedFields = make([]MailChangedField, len(upsert.ChangedFields))
+		copy(result.Upserts[index].ChangedFields, upsert.ChangedFields)
 		if upsert.ReceivedEventID != nil { eventID := *upsert.ReceivedEventID; result.Upserts[index].ReceivedEventID = &eventID }
 	}
 	result.Tombstones = make([]MailboxSyncPolicyTombstoneIntent, len(value.Tombstones))

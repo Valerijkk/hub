@@ -349,6 +349,7 @@ type EngineMessageProjection struct {
 	Snippet           string
 	SentAt            *time.Time
 	ReceivedAt        *time.Time
+	CalendarMethod    *MailCalendarMethod
 	SizeBytes         int64
 	Priority          EngineMessagePriority
 	FolderIDs         []string

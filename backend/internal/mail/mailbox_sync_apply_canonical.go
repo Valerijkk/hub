@@ -13,8 +13,8 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
-const mailboxSyncCanonicalApplyVersion int32 = 1
-const mailboxSyncCanonicalApplyDomain = "hub.mail.sync.apply.result.v1"
+const mailboxSyncCanonicalApplyVersion int32 = 2
+const mailboxSyncCanonicalApplyDomain = "hub.mail.sync.apply.result.v2"
 
 // MailboxSyncCanonicalApply is the pure, canonicalized apply handoff for one sync lease.
 type MailboxSyncCanonicalApply struct {
@@ -82,6 +82,9 @@ func canonicalizeMailboxSyncResult(fence MailboxSyncFence, value MailboxSyncPoli
 		}
 		if value.Upserts[index].Labels != nil && result.Upserts[index].Labels == nil {
 			result.Upserts[index].Labels = make([]MailboxSyncPolicyLabelState, 0)
+		}
+		if value.Upserts[index].ChangedFields != nil && result.Upserts[index].ChangedFields == nil {
+			result.Upserts[index].ChangedFields = make([]MailChangedField, 0)
 		}
 	}
 	for index := range result.Tombstones {
@@ -163,8 +166,14 @@ func canonicalizeMailboxSyncResult(fence MailboxSyncFence, value MailboxSyncPoli
 		if err := setEngineAccountID(upsert.Projection.AccountID); err != nil {
 			return MailboxSyncPolicyResult{}, err
 		}
-		if upsert.FolderIDs == nil || len(upsert.FolderIDs) == 0 || upsert.Labels == nil {
+		if upsert.FolderIDs == nil || len(upsert.FolderIDs) == 0 || upsert.Labels == nil || value.Upserts[index].ChangedFields == nil {
 			return MailboxSyncPolicyResult{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		if !canonicalEqualCalendarMethods(upsert.CalendarMethod, upsert.Projection.CalendarMethod) {
+			return MailboxSyncPolicyResult{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		if err := canonicalValidateUpsertChangedFields(upsert.ChangedFields); err != nil {
+			return MailboxSyncPolicyResult{}, err
 		}
 		folders, err := canonicalMailboxIDSet(accountID, upsert.FolderIDs)
 		if err != nil {
@@ -649,6 +658,9 @@ func canonicalAssociateReceivedEvent(eventID uuid.UUID, value mailReceivedEventJ
 		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	upsert := upserts[match]
+	if !canonicalEqualCalendarMethods(value.CalendarMethod, upsert.Projection.CalendarMethod) || !canonicalEqualCalendarMethods(value.CalendarMethod, upsert.CalendarMethod) {
+		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
 	if value.MessageID != upsert.Message.ID || value.ThreadID != upsert.Thread.ID || value.EngineMessageID != upsert.Projection.MessageID || upsert.Projection.ReceivedAt == nil || !value.ReceivedAt.Equal(*upsert.Projection.ReceivedAt) || !canonicalEqualUUIDs(value.FolderIDs, canonicalMailboxIDs(upsert.FolderIDs)) || !canonicalEventAddressMatches(value.From, upsert.Projection.From) || !canonicalEventAddressesMatch(value.To, upsert.Projection.To) || value.HasAttachments != (len(upsert.Projection.Attachments) != 0) {
 		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
@@ -657,6 +669,9 @@ func canonicalAssociateReceivedEvent(eventID uuid.UUID, value mailReceivedEventJ
 
 func canonicalAssociateChangedEvent(value mailMessageChangedEventJSON, upserts []MailboxSyncPolicyMessageIntent, tombstones []MailboxSyncPolicyTombstoneIntent) (uuid.UUID, error) {
 	if hasMailChangedField(value.ChangedFields, MailChangedFieldDeleted) {
+		if len(value.ChangedFields) != 1 || value.ChangedFields[0] != MailChangedFieldDeleted {
+			return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
 		match := -1
 		for index := range tombstones {
 			if tombstones[index].Message.ID != value.MessageID {
@@ -682,6 +697,9 @@ func canonicalAssociateChangedEvent(value mailMessageChangedEventJSON, upserts [
 			return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
 		}
 		match = index
+	}
+	if match != -1 && !canonicalEqualChangedFields(value.ChangedFields, upserts[match].ChangedFields) {
+		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	if match == -1 || !canonicalEqualUUIDs(value.FolderIDs, canonicalMailboxIDs(upserts[match].FolderIDs)) || !canonicalEqualFlags(value.Flags, syncEventFlags(upserts[match].Projection.Flags)) || !canonicalEqualUUIDs(value.LabelIDs, canonicalLabelIDs(upserts[match].Labels)) {
 		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
@@ -727,6 +745,64 @@ func canonicalEqualFlags(left, right []MailMessageFlag) bool {
 		}
 	}
 	return true
+}
+
+func canonicalEqualCalendarMethods(left, right *MailCalendarMethod) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
+}
+
+func canonicalEqualChangedFields(left, right []MailChangedField) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
+}
+
+func canonicalValidateUpsertChangedFields(values []MailChangedField) error {
+	if values == nil {
+		return syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	if len(values) > 6 {
+		return syncPolicyError(MailboxSyncPolicyErrorTooLarge)
+	}
+	seen := make(map[MailChangedField]struct{}, len(values))
+	previous := -1
+	for _, value := range values {
+		if _, duplicate := seen[value]; duplicate {
+			return syncPolicyError(MailboxSyncPolicyErrorDuplicate)
+		}
+		seen[value] = struct{}{}
+		order := 0
+		switch value {
+		case MailChangedFieldFolderIDs:
+			order = 1
+		case MailChangedFieldSeen:
+			order = 2
+		case MailChangedFieldAnswered:
+			order = 3
+		case MailChangedFieldFlagged:
+			order = 4
+		case MailChangedFieldJunk:
+			order = 5
+		case MailChangedFieldLabels:
+			order = 6
+		default:
+			return syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		if order <= previous {
+			return syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		previous = order
+	}
+	return nil
 }
 
 func canonicalEventAddressMatches(value mailEventAddressJSON, projection EngineAddress) bool {
@@ -842,6 +918,10 @@ func canonicalUpsertRecord(value MailboxSyncPolicyMessageIntent) []byte {
 	for index, label := range value.Labels {
 		labels[index] = canonicalLabelStateRecord(label)
 	}
+	changedFields := make([][]byte, len(value.ChangedFields))
+	for index, changedField := range value.ChangedFields {
+		changedFields[index] = []byte(changedField)
+	}
 	received := []byte{0}
 	if value.ReceivedEventID != nil {
 		received = append([]byte{1}, canonicalUUID(*value.ReceivedEventID)...)
@@ -854,6 +934,8 @@ func canonicalUpsertRecord(value MailboxSyncPolicyMessageIntent) []byte {
 		canonicalTLV(5, canonicalCollection(folders)),
 		canonicalTLV(6, canonicalCollection(labels)),
 		canonicalTLV(7, received),
+		canonicalTLV(8, canonicalOptionalCalendarMethod(value.CalendarMethod)),
+		canonicalTLV(9, canonicalCollection(changedFields)),
 	)
 }
 
@@ -993,4 +1075,11 @@ func canonicalOptionalTime(value *time.Time) []byte {
 		return []byte{0}
 	}
 	return append([]byte{1}, canonicalTime(*value)...)
+}
+
+func canonicalOptionalCalendarMethod(value *MailCalendarMethod) []byte {
+	if value == nil {
+		return []byte{0}
+	}
+	return append([]byte{1}, []byte(*value)...)
 }

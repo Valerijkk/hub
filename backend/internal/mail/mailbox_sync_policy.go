@@ -47,7 +47,6 @@ type MailboxSyncPolicyMessage struct {
 	Provenance      MailboxSyncPolicyProvenance
 	ReceivedEventID uuid.UUID
 	ChangedEvent    MailboxSyncPolicyEventReservation
-	CalendarMethod  *MailCalendarMethod
 }
 
 // MailboxSyncPolicyThreadResolution contains the complete caller-resolved thread state.
@@ -164,6 +163,8 @@ type MailboxSyncPolicyMessageIntent struct {
 	FolderIDs       []MailboxEventID
 	Labels          []MailboxSyncPolicyLabelState
 	ReceivedEventID *uuid.UUID
+	CalendarMethod  *MailCalendarMethod
+	ChangedFields   []MailChangedField
 }
 
 // MailboxSyncPolicyTombstoneIntent carries deletion state without live folders or flags.
@@ -620,7 +621,7 @@ func syncValidatePageEventIDUniqueness(messages []MailboxSyncPolicyMessage, dest
 }
 
 func syncClassifyMessage(input MailboxSyncPolicyInput, accountID uuid.UUID, engineAccountID string, projection EngineMessageProjection, message MailboxSyncPolicyMessage, folders map[string]MailboxSyncPolicyFolder, labels map[EngineKeywordMarker]MailboxSyncPolicyLabelDefinition) (MailboxSyncPolicyMessageIntent, syncEventRecord, []MailboxEventID, []MailboxEventID, error) {
-	if projection.MessageID != message.EngineMessageID || projection.AccountID != engineAccountID || !validMailCalendarMethod(message.CalendarMethod) {
+	if projection.MessageID != message.EngineMessageID || projection.AccountID != engineAccountID {
 		return MailboxSyncPolicyMessageIntent{}, syncEventRecord{}, nil, nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	if err := syncValidateProjection(projection); err != nil {
@@ -665,24 +666,25 @@ func syncClassifyMessage(input MailboxSyncPolicyInput, accountID uuid.UUID, engi
 	if emitReceived {
 		resultReceived = syncUUIDPointer(message.ReceivedEventID)
 	}
+	changedFields := syncChangedFields(currentFolders, previousFolders, projection.Flags, message.Previous, desiredLabels, previousLabels)
 	intent := MailboxSyncPolicyMessageIntent{
 		Message: message.Message, Thread: message.Thread.Thread, ThreadIdentity: identity,
 		Projection: syncCloneSafeProjection(projection), FolderIDs: syncCopyMailboxIDs(currentFolders),
 		Labels: syncCopyLabelStates(desiredLabels), ReceivedEventID: resultReceived,
+		CalendarMethod: copyMailCalendarMethod(projection.CalendarMethod), ChangedFields: syncCopyChangedFields(changedFields),
 	}
 
 	if emitReceived {
 		if message.ChangedEvent.ID != uuid.Nil || message.ChangedEvent.Committed {
 			return MailboxSyncPolicyMessageIntent{}, syncEventRecord{}, nil, nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 		}
-		event, err := syncNewReceivedEvent(input.Event, message.ReceivedEventID, message.Message, message.Thread.Thread, projection, currentFolders, message.CalendarMethod)
+		event, err := syncNewReceivedEvent(input.Event, message.ReceivedEventID, message.Message, message.Thread.Thread, projection, currentFolders)
 		if err != nil {
 			return MailboxSyncPolicyMessageIntent{}, syncEventRecord{}, nil, nil, err
 		}
 		return intent, syncEventRecord{engineMessageID: projection.MessageID, envelope: event, present: true}, currentFolders, previousFolders, nil
 	}
 
-	changedFields := syncChangedFields(currentFolders, previousFolders, projection.Flags, message.Previous, desiredLabels, previousLabels)
 	if len(changedFields) == 0 {
 		if message.ChangedEvent.ID != uuid.Nil || message.ChangedEvent.Committed {
 			return MailboxSyncPolicyMessageIntent{}, syncEventRecord{}, nil, nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
@@ -887,7 +889,7 @@ func syncChangedFields(currentFolders, previousFolders []MailboxEventID, current
 	return result
 }
 
-func syncNewReceivedEvent(context MailboxSyncPolicyEventContext, eventID uuid.UUID, message, thread MailboxEventID, projection EngineMessageProjection, folders []MailboxEventID, calendarMethod *MailCalendarMethod) (events.EnvelopeV1, error) {
+func syncNewReceivedEvent(context MailboxSyncPolicyEventContext, eventID uuid.UUID, message, thread MailboxEventID, projection EngineMessageProjection, folders []MailboxEventID) (events.EnvelopeV1, error) {
 	from, err := syncEventAddress(projection.From)
 	if err != nil {
 		return events.EnvelopeV1{}, err
@@ -896,7 +898,7 @@ func syncNewReceivedEvent(context MailboxSyncPolicyEventContext, eventID uuid.UU
 	if err != nil {
 		return events.EnvelopeV1{}, err
 	}
-	event, err := NewMailReceivedEnvelopeV1(eventID, context.OccurredAt, context.OrganizationID, syncCopyUUIDPointer(context.ActorID), context.CorrelationID, MailReceivedEventPayload{Mailbox: context.Mailbox, Message: message, EngineMessage: MailboxEventOpaqueID{AccountID: context.Mailbox.AccountID, ID: projection.MessageID}, Thread: thread, From: from, To: to, ReceivedAt: *projection.ReceivedAt, FolderIDs: syncCopyMailboxIDs(folders), HasAttachments: len(projection.Attachments) != 0, CalendarMethod: copyMailCalendarMethod(calendarMethod)})
+	event, err := NewMailReceivedEnvelopeV1(eventID, context.OccurredAt, context.OrganizationID, syncCopyUUIDPointer(context.ActorID), context.CorrelationID, MailReceivedEventPayload{Mailbox: context.Mailbox, Message: message, EngineMessage: MailboxEventOpaqueID{AccountID: context.Mailbox.AccountID, ID: projection.MessageID}, Thread: thread, From: from, To: to, ReceivedAt: *projection.ReceivedAt, FolderIDs: syncCopyMailboxIDs(folders), HasAttachments: len(projection.Attachments) != 0, CalendarMethod: copyMailCalendarMethod(projection.CalendarMethod)})
 	if err != nil {
 		return events.EnvelopeV1{}, syncMapMailEventError(err)
 	}
@@ -973,7 +975,7 @@ func syncValidateProjection(value EngineMessageProjection) error {
 	if value.References == nil || value.To == nil || value.CC == nil || value.BCC == nil || value.ReplyTo == nil || value.FolderIDs == nil || value.ReservedKeywords == nil || value.Attachments == nil {
 		return syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
-	if !syncValidOpaque(value.AccountID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(value.MessageID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(value.Version, MaxEngineOpaqueIDBytes) || (value.InternetMessageID != "" && !validThreadMessageID(value.InternetMessageID)) || (value.InReplyTo != "" && !validThreadMessageID(value.InReplyTo)) || !syncValidSafeText(value.Subject, MaxEngineHeaderValueBytes, true) || !syncValidSafeText(value.Snippet, MaxEngineSnippetBytes, true) || value.SizeBytes < 0 || value.SizeBytes > MaxEngineMessageBytes || !syncValidPriority(value.Priority) || !syncValidOrigin(value.Origin) {
+	if !syncValidOpaque(value.AccountID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(value.MessageID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(value.Version, MaxEngineOpaqueIDBytes) || (value.InternetMessageID != "" && !validThreadMessageID(value.InternetMessageID)) || (value.InReplyTo != "" && !validThreadMessageID(value.InReplyTo)) || !syncValidSafeText(value.Subject, MaxEngineHeaderValueBytes, true) || !syncValidSafeText(value.Snippet, MaxEngineSnippetBytes, true) || !validMailCalendarMethod(value.CalendarMethod) || value.SizeBytes < 0 || value.SizeBytes > MaxEngineMessageBytes || !syncValidPriority(value.Priority) || !syncValidOrigin(value.Origin) {
 		return syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	if value.ReceivedAt != nil && !syncValidTime(*value.ReceivedAt) {
@@ -1222,6 +1224,9 @@ func syncPageBytes(projections []EngineMessageProjection, accountID string, firs
 
 func syncProjectionBytes(value EngineMessageProjection) int {
 	total := len(value.AccountID) + len(value.MessageID) + len(value.Version) + len(value.InternetMessageID) + len(value.InReplyTo) + len(value.Subject) + len(value.Snippet) + len(value.From.Email) + len(value.From.Name) + syncAddressBytes(value.To) + syncAddressBytes(value.CC) + syncAddressBytes(value.BCC) + syncAddressBytes(value.ReplyTo) + syncStringBytes(value.References) + syncStringBytes(value.FolderIDs)
+	if value.CalendarMethod != nil {
+		total += len(*value.CalendarMethod)
+	}
 	for _, keyword := range value.ReservedKeywords {
 		total += len(keyword)
 	}
@@ -1269,6 +1274,7 @@ func syncCloneSafeProjection(value EngineMessageProjection) EngineMessageProject
 		timestamp := *value.ReceivedAt
 		result.ReceivedAt = &timestamp
 	}
+	result.CalendarMethod = copyMailCalendarMethod(value.CalendarMethod)
 	return result
 }
 
@@ -1286,6 +1292,12 @@ func syncCopyMailboxIDs(values []MailboxEventID) []MailboxEventID {
 
 func syncCopyLabelStates(values []MailboxSyncPolicyLabelState) []MailboxSyncPolicyLabelState {
 	result := make([]MailboxSyncPolicyLabelState, len(values))
+	copy(result, values)
+	return result
+}
+
+func syncCopyChangedFields(values []MailChangedField) []MailChangedField {
+	result := make([]MailChangedField, len(values))
 	copy(result, values)
 	return result
 }
