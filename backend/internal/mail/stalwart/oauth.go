@@ -266,8 +266,10 @@ func (client *OAuthClient) doOAuthRequest(ctx context.Context, method, target, e
 			clear(secret)
 			return nil, nil, newOAuthError(OAuthErrorInvalidClient)
 		}
-		request.SetBasicAuth(client.clientID, string(secret))
+		encodedClientID := url.QueryEscape(client.clientID)
+		encodedSecret := url.QueryEscape(string(secret))
 		clear(secret)
+		request.SetBasicAuth(encodedClientID, encodedSecret)
 		defer request.Header.Del("Authorization")
 	}
 	httpClient := *client.httpClient
