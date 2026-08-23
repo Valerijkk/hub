@@ -115,27 +115,85 @@ Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 
 For the future P3 Mail-to-Calendar source only, the owner is `backend/internal/mail` (`package mail`):
 Calendar may import its exported sealed port/types but Mail never imports Calendar. Add
-`MailEngine.ReadCalendarPart` rather than widening Calendar's view of `GetMessage`. It is exported only
-for Go interface implementation, but engine-private semantically: only Mail `CalendarPartSource` may
-call it, never Calendar/server. Request fields are private engine account/message IDs, expected
-`engine_version`, `[32]byte` locator hash, expected method, and `maxBytes`; result repeats the hash and
-returns one copied iTIP part. The engine enumerates private MIME parts, canonicalizes locator internally,
-recomputes hashes, and accepts exactly one match (zero `part_unavailable`, multiple `invalid`); raw
-locator never leaves the adapter. Calendar-facing opaque `CalendarPartReadRequest`/Result use exported
-validated constructor/accessors only, with Hub organization/mailbox/message UUIDs/hash/maxBytes in and
-owner ID/normalized sender/method/authentication/defensive-copy iTIP out. Closed source errors are
-exactly `invalid|untrusted|message_unavailable|deleting|part_unavailable|payload_too_large|
-repository_unavailable|engine_unavailable`; no engine/provider IDs, raw locator, raw MIME, MailEngine,
-or Mail Ent value crosses this boundary.
+`MailEngine.ReadCalendarPart` rather than widening Calendar's view of `GetMessage`. The exact future
+compile shape in `package mail` is:
 
-`maxBytes` is exactly 1..1,048,576 and the Mail source owns a five-second full-operation context cap;
-over-limit produces `payload_too_large` with no partial prefix. V1 locator hash is exactly
-`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || bytes || u32be(len(engine_message_id)) || bytes || u32be(len(engine_version)) || bytes || u32be(len(canonical_private_part_locator)) || bytes)`.
-Changing it requires a versioned schema/event amendment. This P3 clause supersedes only prior
-147-02D Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy
-`engine_message_id`; those are forbidden Calendar fallbacks, not a removal of unrelated existing
-Mail read semantics. Mail snapshot/recheck requires identical private `engine_version`; provider/projection
-recomputes locator hash on its change, creating a new receipt identity while never exposing the version.
+```go
+type CalendarPartReadRequest struct { /* unexported fields */ }
+func NewCalendarPartReadRequest(organizationID, mailboxID, messageID uuid.UUID, locatorHash [sha256.Size]byte, maxBytes int) (CalendarPartReadRequest, error)
+type CalendarPartSource interface { ReadCalendarPart(context.Context, CalendarPartReadRequest) (CalendarPartReadResult, error) }
+type CalendarPartReadResult struct { /* unexported fields */ }
+func (r CalendarPartReadResult) OwnerID() uuid.UUID
+func (r CalendarPartReadResult) Sender() string
+func (r CalendarPartReadResult) Method() MailCalendarMethod
+func (r CalendarPartReadResult) AuthenticationClass() MailAuthenticationClass
+func (r CalendarPartReadResult) ITIP() []byte
+
+type EngineCalendarPartReadRequest struct { AccountID, MessageID, Version string; LocatorHash [sha256.Size]byte; Method MailCalendarMethod; MaxBytes int }
+type EngineCalendarPartReadResult struct { LocatorHash [sha256.Size]byte; ITIP []byte }
+// method added to MailEngine:
+ReadCalendarPart(context.Context, EngineCalendarPartReadRequest) (EngineCalendarPartReadResult, error)
+
+type CalendarInboundDelivery struct { /* unexported fields */ }
+func (d CalendarInboundDelivery) EnvelopeID() uuid.UUID
+func (d CalendarInboundDelivery) OrganizationID() uuid.UUID
+func (d CalendarInboundDelivery) MailboxID() uuid.UUID
+func (d CalendarInboundDelivery) MessageID() uuid.UUID
+func (d CalendarInboundDelivery) Sender() string
+func (d CalendarInboundDelivery) Method() MailCalendarMethod
+func (d CalendarInboundDelivery) AuthenticationClass() MailAuthenticationClass
+func (d CalendarInboundDelivery) LocatorHash() [32]byte
+type CalendarInboundSink interface { HandleCalendarInbound(context.Context, CalendarInboundDelivery) error }
+```
+
+`CalendarPartReadRequest`/Result remain opaque; only the stated constructor/result accessors are
+Calendar-facing. The closed `CalendarPartSourceErrorKind` names/values are exactly
+`invalid|untrusted|message_unavailable|deleting|part_unavailable|payload_too_large|
+repository_unavailable|engine_unavailable`; no other kind exists. No engine/provider ID, raw locator,
+raw MIME, `MailEngine`, or Mail Ent value crosses the source boundary.
+
+`MailEngine.ReadCalendarPart` is exported only for Go interface implementation, but engine-private
+semantically: only Mail `CalendarPartSource` may call it, never Calendar/server. Its request carries
+private account/message IDs, expected `Version`, hash/method/max bytes; its result is one copied iTIP
+part plus hash. The adapter enumerates private MIME parts, canonicalizes locator internally, decodes
+bounded iTIP bytes, recomputes hashes, and accepts exactly one match (zero `part_unavailable`, multiple
+`invalid`); raw locator never leaves the adapter. `maxBytes` is exactly 1..1,048,576 and the Mail source
+owns a five-second full-operation context cap; over-limit produces `payload_too_large` with no partial
+prefix. V1 locator hash is exactly
+`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || engine_account_id || u32be(len(engine_message_id)) || engine_message_id || u32be(len(canonical_private_part_locator)) || canonical_private_part_locator || u32be(32) || SHA-256(decoded_itip_bytes))`.
+`Version` is excluded from hash identity. The engine recomputes from the returned exact decoded iTIP bytes
+and private canonical locator and compares the result to the requested hash; body substitution is an
+integrity failure. Changing the formula requires a versioned schema/event amendment. This P3 clause
+supersedes only prior 147-02D Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy
+`engine_message_id`; those are forbidden Calendar fallbacks, not a removal of unrelated Mail reads.
+Mail snapshot/recheck requires the same private `engine_version` before/after engine I/O for TOCTOU, but
+an engine-version-only flag/folder change neither changes the hash nor loses the existing delivery.
+Provider/projection recomputes the hash only when canonical locator or decoded iTIP bytes change. Mail
+content is immutable: a mismatch maps to `invalid`, durable `quarantined/internal_error`, and a
+content-free integrity-degraded signal, never processing/relabeling an old event.
+
+For P3-B, the exact future `package calendar` transaction port is:
+
+```go
+type CalendarInboundMessageClaim struct { ReceiptID, LeaseToken uuid.UUID; LeaseGeneration int64 }
+type CalendarInboundMessageScope struct { /* opaque transaction-bound */ }
+type CalendarInboundMessageCompletion struct { /* validated constructor-only */ }
+// added to EventTransaction:
+LockCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageClaim) (CalendarInboundMessageScope, bool, error)
+CompleteCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageScope, CalendarInboundMessageCompletion) error
+```
+
+Completion has only constructor-validated terminal, retry, and deferred shapes and carries no raw MIME,
+iTIP, or provider text. `bool=false, nil` (that is, `valid=false, err=nil`) is a lease-lost/terminal
+no-op with no Calendar mutation.
+`ApplyInboundITIPReply` stays a thin `WithEventTransaction` wrapper around
+`applyInboundITIPReplyInTransaction(ctx, tx, input)`.
+
+For P3-E, only Mail's strict v1 decoder constructs opaque `CalendarInboundDelivery`; there is no public
+arbitrary-field constructor. The Mail consumer drops `engine_message_id`, invokes the injected
+Calendar-implemented `CalendarInboundSink`, and never passes/logs provider data. A nil sink result means
+the durable Calendar disposition committed and is ACKed. A content-free/provider-free sink error means no
+durable disposition and uses `NakWithDelay(65s)`/MaxDeliver20; no Calendar package subscribes to v1.
 P3 is `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; the concrete Stalwart adapter remains blocked on
 Phase 145 authority.
 

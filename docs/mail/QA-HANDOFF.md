@@ -17,10 +17,12 @@ tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 `CONTRACT_FROZEN_ONLY / UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`: `backend/internal/mail`
 (`package mail`) owns sealed `CalendarPartSource` opaque constructor/accessors and engine-private
 `ReadCalendarPart`; Calendar can use exported Mail types but never MailEngine/Mail Ent/provider IDs/raw
-locator/raw MIME. Engine-version-bound V1 hash, exact 1..1,048,576-byte/five-second preflight/recheck,
+locator/raw MIME. V1 binds private canonical locator plus decoded bounded iTIP bytes; `engine_version`
+is private before/after TOCTOU state only, never receipt identity. Exact 1..1,048,576-byte/five-second preflight/recheck,
 safe errors and defensive-copy iTIP are in CONTRACT §2.6. Future P3-E is Mail-owned sanitized v1
-consumer-to-sink delivery, never Calendar full-envelope subscription; semantic durable dispositions ACK,
-and no durable disposition uses `NakWithDelay(65s)`/MaxDeliver20 with retained EVENTS manual replay.
+consumer-to-sink delivery, never Calendar full-envelope subscription; nil sink means durable disposition
+then ACK, and a content-free/provider-free no-disposition error uses `NakWithDelay(65s)`/MaxDeliver20
+with retained EVENTS manual replay.
 Earlier 147-02D/02E GetMessage/full-body/MIME and legacy `engine_message_id` paths are superseded with
 no fallback. Stalwart remains Phase-145-blocked; generated Ent/migration/SQL/build/tests/lint/gofmt/
 parser/validator/Docker/runtime are `NOT_RUN`. This creates no worker, NATS, merge, product, or readiness claim.

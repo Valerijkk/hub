@@ -1204,8 +1204,8 @@ and legacy `engine_message_id` Calendar-ingestion wording is superseded; no such
   `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`,
   `mailbox_errors.go`, and `mailbox_fake.go`. `package mail` owns sealed opaque request/result,
   closed source errors, private engine-only `ReadCalendarPart`, five-second/snapshot boundary and
-  engine-version locator identity; Calendar may import exported Mail types but Mail never imports
-  Calendar.
+  locator-plus-decoded-iTIP hash identity; `engine_version` is private TOCTOU state only. Calendar may
+  import exported Mail types but Mail never imports Calendar.
 - **P3-B — Calendar transaction port and REPLY factor:** exact future
   `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and
   `event_service_inbound_message.go` (new). It is transaction-aware policy/ports only: no generated
@@ -1231,45 +1231,17 @@ build, tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`
 product, worker, NATS, or readiness claim follows.
 Docs/STATE sync is separately required after each source atom.
 
-### Task 10: Inbound Mail-to-Calendar consumer
+### Task 10: Inbound Mail-to-Calendar consumer — CONSUMED/HISTORICAL
 
-**Dependency:** Task 10P P0, P1, P2, and P3 prerequisites must be accepted first.
+**Non-dispatchable:** the prior Task 10 Files/Interfaces/Step 1 route, including direct Calendar
+`mail.received.v1` consumption and `backend/internal/calendar/mail_inbound_consumer.go`, is
+`CONSUMED/HISTORICAL — superseded by P3-A..E`. It selects no source, test, or wiring work.
 
-**Files:**
-- Create: `backend/internal/calendar/mail_inbound_consumer.go`
-- Create: `backend/internal/calendar/mail_inbound_repository.go`
-- Create: `backend/internal/calendar/mail_inbound_service.go`
-- Modify: `backend/cmd/server/wiring_calendar_mail.go`
-- Modify: `.planning/phases/147-mail-calendar-reliability/CONTRACT.md`
-- Modify: `.planning/STATE.md`
-
-**Interfaces:**
-- Consumes: `mail.received.v1`, bounded Mail read port, Phase 147 schemas, parser, and accepted Calendar services.
-- Produces: leased claim, trusted-authentication admission, REQUEST/CANCEL ordering, inbound REPLY application, and atomic terminal receipt/outbox.
-
-- [ ] **Step 1: Implement envelope admission**
-
-Require broker/JSON subject equality, schema version 1, valid application event UUID, durable organization/account ownership, and authentication class `trusted_internal|dmarc_aligned`. Finalize all other input as safe quarantine before service dispatch.
-
-- [ ] **Step 2: Implement the two-transaction lease protocol**
-
-Claim transaction locks only the receipt and commits a bounded lease. Load/parse happens outside DB transactions. Terminalization locks receipt first, proves the lease token, then locks Calendar rows in canonical order; lease loss performs no mutation.
-
-- [ ] **Step 3: Implement REQUEST/CANCEL state decisions**
-
-Enforce organizer immutability, per-series/per-occurrence sequence and hash-version comparison, early-cancel tombstones, deferred occurrences, 10,000 unbound cap, seven-day dead-letter, and atomic event/object-state/receipt/outbox commit.
-
-- [ ] **Step 4: Route REPLY through the accepted service**
-
-Pass only canonical parsed identity. Never persist raw MIME/iTIP; duplicate and stale results replay stored outcomes.
-
-- [ ] **Step 5: Exact-scope static review and commit**
-
-Docker verification and all test coverage are deferred to the dedicated post-sync test plan. Until that framework cutover, this production-source packet has only exact-scope static source review and all executable evidence is `NOT_RUN`.
-
-```text
-feat(calendar): consume inbound mail invitations
-```
+**Current future route:** Task 10 has no independent executable path and depends on accepted Task 10P
+P0, P1, P2, and all P3 atoms. Calendar's future role is the sanitized Mail-delivery sink plus its
+repository/service/due worker; only Mail `calendar_inbound_consumer.go` strictly validates and subscribes
+to compatibility `mail.received.v1`. The exact P3-A..E manifests, receipt-first transaction seam,
+Mail-owned source, and `NakWithDelay(65s)` no-durable policy above are the sole future route.
 
 ### Task 11: Calendar-to-Mail delivery consumer
 

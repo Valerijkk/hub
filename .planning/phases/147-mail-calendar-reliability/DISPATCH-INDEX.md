@@ -16,6 +16,10 @@ P0-P2 remain accepted. P3-A through P3-E are `UNIMPLEMENTED / PENDING / RUNTIME_
 freeze selects no executable packet. Calendar's only future Mail ingress is sealed
 `CalendarPartSource`: opaque Hub org/mailbox/message UUIDs, `[32]byte` locator hash and 1..1,048,576
 bytes in; owner ID, normalized sender, method, authentication class and defensive-copy iTIP out.
+The exact opaque `package mail` request/result/delivery/sink and `package calendar`
+claim/scope/completion signatures are frozen in CONTRACT §2.6 and ENGINE-CONTRACT-0.1.8. V1 identity
+binds canonical private locator and decoded bounded iTIP bytes; `engine_version` is private TOCTOU state
+only, never receipt identity.
 The Mail-owned five-second read cap, private `ReadCalendarPart`, V1 locator-hash formula, durable
 preflight/recheck, exact safe errors, and receipt/ACK policy are normative in CONTRACT §2.6.
 
@@ -84,7 +88,7 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-02C | Atomic Ent ingest/receipt transaction | `backend/internal/calendar/event_ent_repository_inbound_invite.go`; no Go DB test | claim/object/event/exception/outbox/final receipt atomic; Python integration handoff; lease recovery | 02B + accepted 143 repository base |
 | 147-02D | `CONSUMED/HISTORICAL — superseded by P3-A..E` | historical source/GetMessage route retained only as record | non-dispatchable; no Calendar ingestion fallback | none |
 | 147-02E | `CONSUMED/HISTORICAL — superseded by P3-A..E` | historical Calendar consumer/bare-NAK route retained only as record | non-dispatchable; no Calendar full-envelope subscription | none |
-| P3-A | Sealed Mail calendar-part source | `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go` | opaque request/result, closed errors, engine-version-bound private read | P0-P2; no source dispatch yet |
+| P3-A | Sealed Mail calendar-part source | `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go` | opaque request/result, closed errors, locator-plus-decoded-iTIP hash and private-version TOCTOU read | P0-P2; no source dispatch yet |
 | P3-B | Calendar transaction-aware REPLY policy/ports | `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, `event_service_inbound_message.go` (new) | receipt-first single transaction; no generated Ent | P3-A; no source dispatch yet |
 | P3-C | Mail Ent calendar-part source | `backend/internal/mail/mailbox_ent_calendar_part.go` (new), `mailbox_ent_repository.go` | after Mail generated Ent; Stalwart excluded | P3-B + generation |
 | P3-D | Calendar inbound repository/service/due worker | `backend/internal/calendar/mail_inbound_repository.go` (new), `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`, `event_ent_inbound_message.go` (new) | after Calendar generated Ent | P3-C + generation |

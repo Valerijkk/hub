@@ -26,6 +26,11 @@ sink; Calendar never subscribes to the full envelope. On no durable disposition 
 semantic durable disposition ACKs. No source, test, generation, migration, SQL, build, lint/gofmt,
 parser/validator, Docker, runtime, merge, product, or readiness authority.
 
+The exact opaque `package mail` request/result/delivery/sink and `package calendar`
+claim/scope/completion transaction signatures are in CONTRACT §2.6 and ENGINE-CONTRACT-0.1.8. V1 identity
+binds canonical private locator plus SHA-256 of decoded bounded iTIP bytes; `engine_version` is private
+before/after TOCTOU state only. A Mail source recomputes returned-byte hash before accepting it.
+
 ## Common execution envelope
 
 - Role: Hub `codex-micro`, atomic Go/TypeScript implementer. Write the stated external-
@@ -159,7 +164,7 @@ parser/validator, Docker, runtime, merge, product, or readiness authority.
 
 > **CONSUMED/HISTORICAL — superseded by P3-A..E; non-dispatchable.** The prior direct
 > Stalwart/GetMessage/test route is preserved only as historical intent. It is replaced by
-> package-mail sealed source, internal exact-one private MIME locator match and engine-version hash;
+> package-mail sealed source, internal exact-one private MIME locator-plus-decoded-iTIP hash;
 > no raw locator/provider/content reaches Calendar, and no source is authorized here.
 
 ## 147-02E — ingest consumer/recovery/wiring

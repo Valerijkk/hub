@@ -192,11 +192,14 @@ cleanup stack; no detached goroutine owns process lifetime.
 
 Cross-domain integration uses the existing shared envelope and durable outbox:
 
-1. Mail projection persistence commits `mail.received.v1` with the safe locator,
-   authentication classification, and optional `request|cancel|reply` iTIP method.
-2. A Calendar consumer validates broker subject equals envelope subject, validates
-   schema version and organization/account ownership, and deduplicates by envelope
-   application `event_id`.
+1. Mail projection persistence commits compatibility `mail.received.v1` with the safe locator,
+   authentication classification, and optional `request|cancel|reply` iTIP method. The future
+   Mail-owned P3-E consumer is the only v1 subscriber: it validates broker subject/schema inside
+   `package mail`, strips ignored legacy `engine_message_id`, and passes only sealed sanitized
+   `CalendarInboundDelivery` to the injected Calendar sink.
+2. The Calendar sink accepts only that sealed delivery, resolves durable organization/account ownership,
+   and deduplicates by application envelope `event_id`; Calendar never receives or subscribes to the
+   full v1 envelope.
 3. Before any body load or parse, the consumer requires authentication class
    `trusted_internal` or `dmarc_aligned`. `untrusted`, absent, or inconsistent
    classification is terminally quarantined and can never dispatch a Calendar
@@ -265,19 +268,23 @@ and exact `maxBytes=1..1_048_576`, returning only owner ID, normalized sender, m
 class, and defensive-copy iTIP. The source owns five seconds and whole-result `payload_too_large`.
 `MailEngine.ReadCalendarPart` is Go-exported only for interface implementation and engine-private:
 only Mail source calls it with engine account/message IDs, expected engine version/hash/method/max bytes.
-The adapter canonicalizes private MIME locators, recomputes hashes, and requires exactly one match;
+The adapter canonicalizes private MIME locators, hashes decoded bounded iTIP bytes, and requires exactly
+one match; V1 identity binds that canonical locator plus decoded iTIP bytes, while engine version is
+private before/after TOCTOU state only and never receipt identity.
 raw locator/version never leaves Mail. The V1 formula and snapshot/recheck are normative in CONTRACT §2.6.
 
 Historic 147-02D `GetMessage`/full-body/MIME parsing and legacy event `engine_message_id` wording is
 superseded for Calendar ingestion only; none is a fallback. P3-B factors existing REPLY application
-into one EventTransaction under receipt-first lock/proof, preserving reply receipt/outbox behavior;
-P3-C/D await the respective Mail/Calendar generation. P3-E is Mail-owned consumer code: it validates
-compatibility `mail.received.v1`, ignores/drops `engine_message_id`, and sends only sanitized
-`CalendarInboundDelivery` to an injected Calendar-implemented sink; it does not make Calendar subscribe
-to the full envelope. The frozen consumer has EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, exact
-filter `mail.received.v1`, explicit ACK, AckWait 90s, hard timeout 45s, MaxAckPending 16, fetch batch
-8, concurrency 4, and MaxDeliver 20. Semantic durable terminal/retry/defer dispositions ACK. Only a
-no-durable-disposition failure uses `NakWithDelay(65s)`; exhaustion retains the message and raises one
+into one receipt-first `EventTransaction` with opaque claim/scope/completion, preserving reply receipt/
+outbox behavior and no nested transaction or duplicate logic; P3-C/D await the respective Mail/Calendar
+generation. P3-E is Mail-owned consumer code: Mail's strict decoder validates compatibility
+`mail.received.v1`, ignores/drops `engine_message_id`, constructs the only opaque sanitized
+`CalendarInboundDelivery`, and invokes an injected Calendar-implemented sink. Calendar does not
+subscribe to the full envelope. A nil sink result means durable disposition then ACK; a content-free,
+provider-free error means no durable disposition and uses `NakWithDelay(65s)`. The frozen consumer has
+EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, exact filter `mail.received.v1`, explicit ACK,
+AckWait 90s, hard timeout 45s, MaxAckPending 16, fetch batch 8, concurrency 4, and MaxDeliver 20.
+Semantic durable terminal/retry/defer dispositions ACK. Exhaustion retains the message and raises one
 content-free degraded/manual-replay signal, never ACK/delete/drop.
 
 No domain imports or queries the other domain's Ent tables. The single explicit exception is

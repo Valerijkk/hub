@@ -211,53 +211,98 @@ atomically.
 P3 is contract-frozen only: P0-P2 remain accepted, while every P3-A onward source atom is
 `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Its owning Go package is
 `backend/internal/mail` (`package mail`): Calendar may import and use the exported sealed Mail
-port/types, but Mail never imports Calendar. Calendar receives only `CalendarPartSource` through
-opaque `CalendarPartReadRequest`/`CalendarPartReadResult` structs with their exported validated
-constructor/accessors: Hub organization, mailbox, and message UUIDs, `[32]byte` locator hash, and
-`maxBytes` in; owner ID, normalized sender, method, authentication class, and defensive-copy iTIP
-out. The closed `CalendarPartSourceErrorKind` is exactly `invalid`, `untrusted`,
+port/types, but Mail never imports Calendar. The exact future compile shape in `package mail` is:
+
+```go
+type CalendarPartReadRequest struct { /* unexported fields */ }
+func NewCalendarPartReadRequest(organizationID, mailboxID, messageID uuid.UUID, locatorHash [sha256.Size]byte, maxBytes int) (CalendarPartReadRequest, error)
+type CalendarPartSource interface { ReadCalendarPart(context.Context, CalendarPartReadRequest) (CalendarPartReadResult, error) }
+type CalendarPartReadResult struct { /* unexported fields */ }
+func (r CalendarPartReadResult) OwnerID() uuid.UUID
+func (r CalendarPartReadResult) Sender() string
+func (r CalendarPartReadResult) Method() MailCalendarMethod
+func (r CalendarPartReadResult) AuthenticationClass() MailAuthenticationClass
+func (r CalendarPartReadResult) ITIP() []byte
+
+type EngineCalendarPartReadRequest struct { AccountID, MessageID, Version string; LocatorHash [sha256.Size]byte; Method MailCalendarMethod; MaxBytes int }
+type EngineCalendarPartReadResult struct { LocatorHash [sha256.Size]byte; ITIP []byte }
+// method added to MailEngine:
+ReadCalendarPart(context.Context, EngineCalendarPartReadRequest) (EngineCalendarPartReadResult, error)
+
+type CalendarInboundDelivery struct { /* unexported fields */ }
+func (d CalendarInboundDelivery) EnvelopeID() uuid.UUID
+func (d CalendarInboundDelivery) OrganizationID() uuid.UUID
+func (d CalendarInboundDelivery) MailboxID() uuid.UUID
+func (d CalendarInboundDelivery) MessageID() uuid.UUID
+func (d CalendarInboundDelivery) Sender() string
+func (d CalendarInboundDelivery) Method() MailCalendarMethod
+func (d CalendarInboundDelivery) AuthenticationClass() MailAuthenticationClass
+func (d CalendarInboundDelivery) LocatorHash() [32]byte
+type CalendarInboundSink interface { HandleCalendarInbound(context.Context, CalendarInboundDelivery) error }
+```
+
+`CalendarPartReadRequest` and `CalendarPartReadResult` are opaque: the validated constructor and
+listed result accessors are the only Calendar-facing surface. The closed
+`CalendarPartSourceErrorKind` names/values are exactly `invalid`, `untrusted`,
 `message_unavailable`, `deleting`, `part_unavailable`, `payload_too_large`,
-`repository_unavailable`, and `engine_unavailable`. Calendar never receives `MailEngine`, Mail Ent,
-provider identifiers, raw locator, raw MIME, or a body-read fallback. `maxBytes` is exactly
-`1..1_048_576`; the source owns a five-second end-to-end context cap and returns whole-result
-`payload_too_large`, never a prefix.
+`repository_unavailable`, and `engine_unavailable`; no other source error kind exists. Calendar
+never receives `MailEngine`, Mail Ent, provider identifiers, raw locator, raw MIME, or a body-read
+fallback. `maxBytes` is exactly `1..1_048_576`; the source owns a five-second end-to-end context cap
+and returns whole-result `payload_too_large`, never a prefix.
 
 The `MailEngine.ReadCalendarPart` method is exported only because Go interface implementation requires
 it; semantically it is engine-private and callable only by Mail `CalendarPartSource`, never by Calendar
-or the server. Its request carries private engine account/message IDs, expected `engine_version`, locator
-hash, expected method, and max bytes; its result repeats that hash and contains one copied iTIP part.
-The engine enumerates private MIME parts, canonicalizes each locator internally, recomputes the hashes,
-and requires exactly one match: zero is `part_unavailable`, multiple is `invalid`; a raw locator never
-leaves the adapter. Locator-hash V1 is exactly
-`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || bytes || u32be(len(engine_message_id)) || bytes || u32be(len(engine_version)) || bytes || u32be(len(canonical_private_part_locator)) || bytes)`.
-Any future formula change requires a versioned schema/event amendment. For Calendar ingestion, this
-supersedes historic 147-02D/GetMessage/full-body wording: `GetMessage`, body/MIME parsing, and legacy
-event `engine_message_id` are forbidden fallbacks.
+or the server. Its request carries private engine account/message IDs, expected `Version`, locator hash,
+expected method, and max bytes; its result repeats that hash and contains one copied iTIP part. The engine
+enumerates private MIME parts, canonicalizes each locator internally, decodes bounded iTIP bytes, recomputes
+the V1 hash, and requires exactly one match: zero is `part_unavailable`, multiple is `invalid`; a raw
+locator never leaves the adapter. Locator-hash V1 is exactly
+`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || engine_account_id || u32be(len(engine_message_id)) || engine_message_id || u32be(len(canonical_private_part_locator)) || canonical_private_part_locator || u32be(32) || SHA-256(decoded_itip_bytes))`.
+`Version` is not part of hash identity. The engine recomputes the same hash from the returned exact decoded
+iTIP bytes and private canonical locator, then compares it to the requested hash; a body substitution
+fails integrity rather than being relabelled as the old event. Any future formula change requires a versioned
+schema/event amendment. For Calendar ingestion, this supersedes historic 147-02D/GetMessage/full-body
+wording: `GetMessage`, body/MIME parsing, and legacy event `engine_message_id` are forbidden fallbacks.
 
 The Mail source takes a short durable snapshot before and after engine I/O, never holding a database
 transaction over I/O. Both snapshots must match: same organization, active owner, active account with
 `desired_enabled`, `projection_state=ready`, and engine account ID; a live message belonging to that
 mailbox with identical private `engine_version` and sealed method/authentication/hash/sender. Projection/
-provider recomputes locator hash whenever `engine_version` changes, so same-ID revised content has a new
-hash and event-receipt identity; version never leaves Mail source. Deleting/deleted is terminal unavailable;
-provisioning, suspended, error, bootstrapping, rebuilding, or degraded is unavailable with zero I/O;
-untrusted is zero I/O. A changed second snapshot discards bytes. Safe error mapping is exact:
+provider recomputes locator hash whenever the canonical locator or decoded iTIP bytes change; a private
+engine-version-only flag/folder update does not change a locator hash or receipt identity. `Version` stays
+private and must match before/after to prevent TOCTOU; a changed second snapshot discards bytes and safely
+retries against the stable snapshot, so ordinary version-only metadata change does not lose delivery.
+Mail message content is immutable: a returned-content/hash mismatch is `invalid`, durably quarantines as
+`internal_error`, emits only a content-free integrity-degraded signal, and never processes or relabels the
+old event. Deleting/deleted is terminal unavailable; provisioning, suspended, error, bootstrapping,
+rebuilding, or degraded is unavailable with zero I/O; untrusted is zero I/O. Safe error mapping is exact:
 `invalid -> quarantined/internal_error`; `untrusted -> quarantined/untrusted_sender`;
 `message_unavailable|deleting -> terminal message_unavailable`; `part_unavailable -> terminal
 part_unavailable`; `payload_too_large -> terminal resource_limit`; `repository_unavailable -> retry
 database_unavailable`; `engine_unavailable -> retry engine_unavailable`. No mapped error contains
 content or provider detail.
 
-P3-B extends the neutral `EventTransaction` seam with
-`LockCalendarInboundMessageReceipt(claim) -> scope/valid` and a paired complete capability. It factors
-the current public `ApplyInboundITIPReply` into private
-`applyInboundITIPReplyInTransaction`; the public method remains a thin `WithEventTransaction` wrapper.
-The P3 service opens one transaction, locks the message receipt, runs existing REPLY decision/persist/
-outbox behavior in that transaction, then completes the message receipt last. It must not bypass via
-`EventEntRepository`, nest transactions, or duplicate REPLY logic. `applied|observed_no_change` maps
-to message-receipt `applied`, `duplicate` to `duplicate`, `stale` to `ignored_stale`, and
-`quarantined` to `quarantined`; existing reply-receipt/outbox meaning remains intact. Storage/CAS
-rollback retries, and attempt 8 becomes `dead_letter/retry_exhausted`.
+P3-B has this exact future `package calendar` transaction port:
+
+```go
+type CalendarInboundMessageClaim struct { ReceiptID, LeaseToken uuid.UUID; LeaseGeneration int64 }
+type CalendarInboundMessageScope struct { /* opaque transaction-bound */ }
+type CalendarInboundMessageCompletion struct { /* validated constructor-only */ }
+// added to EventTransaction:
+LockCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageClaim) (CalendarInboundMessageScope, bool, error)
+CompleteCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageScope, CalendarInboundMessageCompletion) error
+```
+
+`CalendarInboundMessageCompletion` has constructor-only terminal, retry, and deferred shapes; it carries
+no raw MIME, iTIP, provider text, or other unvalidated outcome. `bool=false, nil` (that is,
+`valid=false, err=nil`) means the lease was lost or terminal and causes no Calendar mutation. This seam factors the current public
+`ApplyInboundITIPReply` into `applyInboundITIPReplyInTransaction(ctx, tx, input)`; the public method
+remains a thin `WithEventTransaction` wrapper. The P3 service opens one transaction, locks the message
+receipt, runs existing REPLY decision/persist/outbox behavior in that transaction, then completes the
+message receipt last. It must not bypass via `EventEntRepository`, nest transactions, or duplicate REPLY
+logic. `applied|observed_no_change` maps to message-receipt `applied`, `duplicate` to `duplicate`, `stale`
+to `ignored_stale`, and `quarantined` to `quarantined`; existing reply-receipt/outbox meaning remains
+intact. Storage/CAS rollback retries, and attempt 8 becomes `dead_letter/retry_exhausted`.
 
 The lock order is message receipt, exactly one DB clock
 `SELECT date_trunc('second', clock_timestamp())`, organization, owner, series object state,
@@ -272,8 +317,11 @@ expiry remain authoritative. P3-E is Mail-owned `backend/internal/mail/calendar_
 it subscribes to and strictly validates compatibility `mail.received.v1` inside `package mail`, ignores/
 drops `engine_message_id`, constructs opaque sanitized `CalendarInboundDelivery` containing only
 envelope/organization/mailbox/message UUIDs, authentication, method, locator hash, and safe sender, then
-calls an injected Calendar-implemented sink. No provider ID is passed or logged; no new broker subject
-exists. Transport is EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, exact filter
+calls an injected Calendar-implemented `CalendarInboundSink`. Only Mail's strict v1 decoder constructs the
+delivery; it has no public arbitrary-field constructor. No provider ID is passed or logged; no new broker
+subject exists. A nil sink result means the Calendar durable disposition committed and the Mail consumer
+ACKs. A content-free, provider-free sink error means no durable disposition was written and the consumer
+uses the no-durable broker policy below. Transport is EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, exact filter
 `mail.received.v1`, explicit ACK, `AckWait=90s`, handler hard timeout 45s, `MaxAckPending=16`, fetch
 batch 8, concurrency 4. Semantic durable retry/defer/terminal disposition commits then ACKs. If no durable
 disposition can be written, use exactly `NakWithDelay(65s)` with `MaxDeliver=20`; on exhaustion retain
