@@ -121,6 +121,18 @@ type MailboxSession struct {
 	uploadURL    *url.URL
 	downloadURL  *url.URL
 	capabilities map[string]struct{}
+	accountIDs   map[string]struct{}
+}
+
+// HasAccount reports whether the exact opaque account identifier was present
+// in the validated session. The retained set is deliberately private: callers
+// can prove one expected binding but cannot enumerate provider account data.
+func (session *MailboxSession) HasAccount(accountID string) bool {
+	if session == nil || !validOpaque(accountID) {
+		return false
+	}
+	_, present := session.accountIDs[accountID]
+	return present
 }
 
 // SupportsSieve reports whether the optional standards-based Sieve capability
@@ -408,10 +420,12 @@ func parseMailboxSession(client *Client, data []byte) (*MailboxSession, error) {
 			return nil, newError(ErrorUnsupported)
 		}
 	}
+	accountIDs := make(map[string]struct{}, len(payload.Accounts))
 	for accountID, detail := range payload.Accounts {
 		if !validOpaque(accountID) || int64(len(detail)) > maxSessionBytes || validateJSON(detail) != nil {
 			return nil, newError(ErrorProtocol)
 		}
+		accountIDs[accountID] = struct{}{}
 	}
 	apiURL, ok := parseSessionURL(payload.APIURL, client, "/jmap/", "")
 	if !ok {
@@ -425,7 +439,7 @@ func parseMailboxSession(client *Client, data []byte) (*MailboxSession, error) {
 	if !ok {
 		return nil, newError(ErrorProtocol)
 	}
-	return &MailboxSession{apiURL: apiURL, uploadURL: uploadURL, downloadURL: downloadURL, capabilities: capabilities}, nil
+	return &MailboxSession{apiURL: apiURL, uploadURL: uploadURL, downloadURL: downloadURL, capabilities: capabilities, accountIDs: accountIDs}, nil
 }
 
 func parseSessionURL(value string, client *Client, path, rawQuery string) (*url.URL, bool) {
