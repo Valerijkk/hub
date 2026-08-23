@@ -204,17 +204,17 @@ Each constructor is deterministic and creates no global state. `NewFakeEngineAcc
 - [ ] Implement the object delete/reconcile rows of the behavioral matrix exactly. Deleting a present object removes the tuple and secondary index atomically. A missing delete returns the safe `indeterminate` error; only reconcile may emit `authoritatively_absent`.
 - [ ] Add compile-time local assertions in the fake file only: `var _ EngineAccountDeletionPort = (*FakeEngineAccountDeletionPort)(nil)` and `var _ MailObjectDeletionPort = (*FakeMailObjectDeletionPort)(nil)`. Do not add an assertion involving `MailEngine` or `FakeMailEngine`.
 
-**Static acceptance and commit:** The highest-precedence receipt for immutable plan `3f7aa2c58407ac3a10ad427cfa86256e0a9d340a` authorizes an implementer to inspect the textual staged diff, stage exactly the two named new files by path, and create one atomic commit without AI attribution. This status-alignment carrier does not self-authorize source. The source receipt must record source SHA, parent SHA, tree SHA, both blobs, exact two-path manifest, dispatcher-enforced Terra/xhigh provenance, and `NOT_RUN` executable status for review. No source authority extends beyond this exact2 packet.
+**Static acceptance and commit:** The highest-precedence receipt for immutable plan `3f7aa2c58407ac3a10ad427cfa86256e0a9d340a` authorizes an implementer to inspect the textual staged diff, stage exactly the two named new files by path, and create one atomic commit without AI attribution. This status-alignment carrier does not self-authorize source. Immediately after the source commit, capture its SHA, parent SHA, tree SHA, both blobs, exact two-path manifest, dispatcher-enforced Terra/xhigh provenance, and `NOT_RUN` executable status as **review-dispatch metadata**, explicitly not as a docs receipt. No source authority extends beyond this exact2 packet.
 
 ## Mandatory review and receipt sequence
 
 1. Do not author a docs receipt before the source commit exists and its exact manifest/blob IDs are captured.
-2. Dispatch three independent immutable reviews of that exact source SHA:
+2. Dispatch three independent immutable reviews of that exact source SHA using the review-dispatch metadata:
    - Contract / ABI review at Terra/high: exported shape, validation, aliases, closed states, error surface, no `MailEngine` widening.
    - Security review at Terra/xhigh: no raw identifiers/cause leakage, no missing-delete finalization, no unsafe fake state, no provider/storage creep.
    - Lifecycle review at Terra/high: deterministic locking, exact deletion/reconcile semantics, mismatch handling, scope boundaries, and honest gate status.
 3. Any C/I/M finding blocks docs receipt and all downstream work until a new exact source commit is produced and re-reviewed.
-4. Only C/I/M `0/0/0` on the final immutable source SHA permits a separate docs receipt. The receipt must state `STATIC_SOURCE_ONLY`, not runtime, Docker, release, or product readiness.
+4. Only C/I/M `0/0/0` on the final immutable source SHA permits a separate docs receipt. That receipt repeats the review-dispatch metadata and records all three review outcomes; it must state `STATIC_SOURCE_ONLY`, not runtime, Docker, release, or product readiness.
 
 ## Explicitly deferred and blocked work
 
