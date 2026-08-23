@@ -257,24 +257,33 @@ compile/build, test, lint/gofmt, parser/validator, Docker, and runtime remain `N
 
 ### P3-A sealed inbound source freeze
 
-P3 is contract-frozen only, `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Calendar may receive only
-a Mail-owned sealed `CalendarPartSource` request of Hub org/mailbox/message UUIDs, `[32]byte` locator
-hash, and exact `maxBytes=1..1_048_576`, returning only owner ID, normalized sender, method,
-authentication class, and defensive-copy iTIP. Mail owns the five-second end-to-end cap and returns
-whole-result `payload_too_large`, never a prefix. It privately calls `ReadCalendarPart` with engine
-account/message IDs, hash, expected method, max bytes, then one copied matching-hash iTIP part.
-The V1 locator hash formula and preflight/recheck rules are normative in Phase 147 CONTRACT §2.6.
+P3 is contract-frozen only, `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Its owner is
+`backend/internal/mail` (`package mail`): Calendar may use exported sealed Mail port/types and Mail
+never imports Calendar. `CalendarPartReadRequest`/Result are opaque structs with exported validated
+constructor/accessors. Calendar receives only Hub org/mailbox/message UUIDs, `[32]byte` locator hash,
+and exact `maxBytes=1..1_048_576`, returning only owner ID, normalized sender, method, authentication
+class, and defensive-copy iTIP. The source owns five seconds and whole-result `payload_too_large`.
+`MailEngine.ReadCalendarPart` is Go-exported only for interface implementation and engine-private:
+only Mail source calls it with engine account/message IDs, expected engine version/hash/method/max bytes.
+The adapter canonicalizes private MIME locators, recomputes hashes, and requires exactly one match;
+raw locator/version never leaves Mail. The V1 formula and snapshot/recheck are normative in CONTRACT §2.6.
 
 Historic 147-02D `GetMessage`/full-body/MIME parsing and legacy event `engine_message_id` wording is
 superseded for Calendar ingestion only; none is a fallback. P3-B factors existing REPLY application
 into one EventTransaction under receipt-first lock/proof, preserving reply receipt/outbox behavior;
-P3-C/D await Ent generation; P3-E awaits a concrete engine. The transport is future-frozen to EVENTS
-`mail.>`, durable `calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s,
-hard timeout 45s, MaxAckPending 16, fetch batch 8 and concurrency 4. Semantic durable
-terminal/retry/defer dispositions ACK; NAK is only for no durable disposition.
+P3-C/D await the respective Mail/Calendar generation. P3-E is Mail-owned consumer code: it validates
+compatibility `mail.received.v1`, ignores/drops `engine_message_id`, and sends only sanitized
+`CalendarInboundDelivery` to an injected Calendar-implemented sink; it does not make Calendar subscribe
+to the full envelope. The frozen consumer has EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, exact
+filter `mail.received.v1`, explicit ACK, AckWait 90s, hard timeout 45s, MaxAckPending 16, fetch batch
+8, concurrency 4, and MaxDeliver 20. Semantic durable terminal/retry/defer dispositions ACK. Only a
+no-durable-disposition failure uses `NakWithDelay(65s)`; exhaustion retains the message and raises one
+content-free degraded/manual-replay signal, never ACK/delete/drop.
 
-No domain imports or queries the other domain's Ent tables. Shared identifiers and
-envelopes cross the boundary; state ownership does not.
+No domain imports or queries the other domain's Ent tables. The single explicit exception is
+Calendar importing the exported sealed `package mail` port/types; Mail never imports Calendar, and
+neither domain receives or queries the other's Ent client. Shared identifiers and sanitized envelopes
+cross the boundary; state ownership does not.
 
 ## Failure and security rules
 

@@ -14,15 +14,16 @@ tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 
 ## Inbound Mail-to-Calendar P3 source freeze (2026-08-23)
 
-`CONTRACT_FROZEN_ONLY / UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`: Calendar will receive only
-Mail-owned sealed `CalendarPartSource`, never MailEngine/Mail Ent/provider IDs/raw locator/raw MIME.
-The source owns the exact 1..1,048,576-byte and five-second boundary, private `ReadCalendarPart`,
-V1 locator hash, preflight/recheck, safe error mapping and defensive-copy iTIP contract in Phase 147
-CONTRACT §2.6. The receipt-first REPLY transaction, due worker and fixed NATS disposition/ACK policy
-remain future P3-B…P3-E work. Earlier 147-02D/02E GetMessage/full-body/MIME and legacy
-`engine_message_id` Calendar-ingestion paths are superseded with no fallback. Stalwart remains
-Phase-145-blocked; generated Ent/migration/SQL/build/tests/lint/gofmt/parser/validator/Docker/runtime
-are `NOT_RUN`. This creates no worker, NATS, merge, product, or readiness claim.
+`CONTRACT_FROZEN_ONLY / UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`: `backend/internal/mail`
+(`package mail`) owns sealed `CalendarPartSource` opaque constructor/accessors and engine-private
+`ReadCalendarPart`; Calendar can use exported Mail types but never MailEngine/Mail Ent/provider IDs/raw
+locator/raw MIME. Engine-version-bound V1 hash, exact 1..1,048,576-byte/five-second preflight/recheck,
+safe errors and defensive-copy iTIP are in CONTRACT §2.6. Future P3-E is Mail-owned sanitized v1
+consumer-to-sink delivery, never Calendar full-envelope subscription; semantic durable dispositions ACK,
+and no durable disposition uses `NakWithDelay(65s)`/MaxDeliver20 with retained EVENTS manual replay.
+Earlier 147-02D/02E GetMessage/full-body/MIME and legacy `engine_message_id` paths are superseded with
+no fallback. Stalwart remains Phase-145-blocked; generated Ent/migration/SQL/build/tests/lint/gofmt/
+parser/validator/Docker/runtime are `NOT_RUN`. This creates no worker, NATS, merge, product, or readiness claim.
 
 ## Mail/Calendar HTTP composition static acceptance (2026-08-23)
 

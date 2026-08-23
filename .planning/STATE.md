@@ -12,14 +12,17 @@ mail_calendar_inbound_prerequisites_2026_08_23: >-
   NATS/worker, migration, merge, product, or readiness claim follows.
 mail_calendar_inbound_p3_source_freeze_2026_08_23: >-
   P3 contract frozen only: UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN. P0-P2 remain accepted; P3-A
-  is sealed Mail CalendarPartSource/private ReadCalendarPart, P3-B is receipt-first EventTransaction
+  is sealed `package mail` CalendarPartSource/private engine-only ReadCalendarPart with engine-version
+  locator identity, P3-B is receipt-first EventTransaction
   REPLY factor, P3-C Mail Ent after generation, P3-D receipt/object-state/service/due worker after
   generation, and P3-E NATS/wiring after concrete engine. Historic 147-02D/02E GetMessage/full-body/
   MIME/direct-engine/provider/legacy-engine_message_id Calendar-ingestion wording is
   CONSUMED/HISTORICAL with no fallback. Stalwart remains blocked on Phase 145 authority. Generated
   Ent artifacts are absent/uncommitted; generation, migration, SQL, build, tests, lint/gofmt,
-  parser/validator, Docker and runtime are NOT_RUN. No worker, NATS, merge, product, or readiness
-  claim follows.
+  parser/validator, Docker and runtime are NOT_RUN. P3-E is Mail-owned sanitized delivery, not a
+  Calendar full-envelope subscription; semantic durable disposition ACKs and no-durable failure is
+  `NakWithDelay(65s)`/MaxDeliver20 with retained EVENTS degraded manual replay. No worker, NATS,
+  merge, product, or readiness claim follows.
 mail_144_task_6b_ent_sync_prepare: >-
   STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN at effective HEAD 431022ed after source
   6e788cc7 and live-thread correction 431022ed. The exact effective manifest is

@@ -113,22 +113,31 @@ Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 
 ### P3 Calendar-part private read amendment
 
-For the future P3 Mail-to-Calendar source only, add private `ReadCalendarPart` rather than widening
-Calendar's view of `GetMessage`: request fields are private engine account ID, private engine message
-ID, `[32]byte` locator hash, expected method, and `maxBytes`; result repeats the hash and returns one
-copied iTIP part. The public/Calendar-facing boundary is sealed `CalendarPartSource`, whose opaque
-validated request contains only Hub organization/mailbox/message UUIDs, hash, and `maxBytes` and whose
-opaque result exposes only owner ID, normalized sender, method, authentication class, and defensive-
-copy iTIP. It exposes no engine/provider IDs, raw locator, raw MIME, MailEngine, or Mail Ent value.
+For the future P3 Mail-to-Calendar source only, the owner is `backend/internal/mail` (`package mail`):
+Calendar may import its exported sealed port/types but Mail never imports Calendar. Add
+`MailEngine.ReadCalendarPart` rather than widening Calendar's view of `GetMessage`. It is exported only
+for Go interface implementation, but engine-private semantically: only Mail `CalendarPartSource` may
+call it, never Calendar/server. Request fields are private engine account/message IDs, expected
+`engine_version`, `[32]byte` locator hash, expected method, and `maxBytes`; result repeats the hash and
+returns one copied iTIP part. The engine enumerates private MIME parts, canonicalizes locator internally,
+recomputes hashes, and accepts exactly one match (zero `part_unavailable`, multiple `invalid`); raw
+locator never leaves the adapter. Calendar-facing opaque `CalendarPartReadRequest`/Result use exported
+validated constructor/accessors only, with Hub organization/mailbox/message UUIDs/hash/maxBytes in and
+owner ID/normalized sender/method/authentication/defensive-copy iTIP out. Closed source errors are
+exactly `invalid|untrusted|message_unavailable|deleting|part_unavailable|payload_too_large|
+repository_unavailable|engine_unavailable`; no engine/provider IDs, raw locator, raw MIME, MailEngine,
+or Mail Ent value crosses this boundary.
 
 `maxBytes` is exactly 1..1,048,576 and the Mail source owns a five-second full-operation context cap;
 over-limit produces `payload_too_large` with no partial prefix. V1 locator hash is exactly
-`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || bytes || u32be(len(engine_message_id)) || bytes || u32be(len(canonical_private_part_locator)) || bytes)`.
+`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || bytes || u32be(len(engine_message_id)) || bytes || u32be(len(engine_version)) || bytes || u32be(len(canonical_private_part_locator)) || bytes)`.
 Changing it requires a versioned schema/event amendment. This P3 clause supersedes only prior
 147-02D Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy
 `engine_message_id`; those are forbidden Calendar fallbacks, not a removal of unrelated existing
-Mail read semantics. P3 is `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; the concrete Stalwart
-adapter remains blocked on Phase 145 authority.
+Mail read semantics. Mail snapshot/recheck requires identical private `engine_version`; provider/projection
+recomputes locator hash on its change, creating a new receipt identity while never exposing the version.
+P3 is `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`; the concrete Stalwart adapter remains blocked on
+Phase 145 authority.
 
 ### Closed request and page representation
 

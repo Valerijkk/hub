@@ -1200,25 +1200,36 @@ event/durable/V2/V3 proof are respectively approved C/I/M `0/0/0` at
 task and remains the explicit Task 10 dependency. Historical 147-02D/02E `GetMessage`, full-body/MIME,
 and legacy `engine_message_id` Calendar-ingestion wording is superseded; no such fallback is permitted.
 
-- **P3-A — abstract Mail port/fake/engine/types/errors:** only future
-  `calendar_part_source.go`, `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, and
-  `mailbox_fake.go`. The sealed source admits only Hub identities, locator hash, and 1..1,048,576
-  bytes; it owns the five-second cap, snapshot/recheck, safe error mapping, and private
-  `ReadCalendarPart` path.
-- **P3-B — Calendar transaction port and REPLY factor:** future neutral receipt lock/complete
-  capability plus private in-transaction REPLY helper; no nested transaction, Ent-repository bypass,
-  or duplicate REPLY logic.
-- **P3-C — Mail Ent source:** only after generated Ent is available.
-- **P3-D — receipt/object-state repository, service, and due worker:** only after generation;
-  30-second scan, batch 50, concurrency 4, and durable retry/defer before ACK.
-- **P3-E — NATS stream/consumer and wiring:** only after the concrete engine; EVENTS `mail.>`,
-  durable `calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s,
-  handler timeout 45s, MaxAckPending 16, fetch batch 8, concurrency 4. NAK only when no durable
-  disposition was written.
+- **P3-A — abstract Mail port/fake/engine/types/errors:** exact future
+  `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`,
+  `mailbox_errors.go`, and `mailbox_fake.go`. `package mail` owns sealed opaque request/result,
+  closed source errors, private engine-only `ReadCalendarPart`, five-second/snapshot boundary and
+  engine-version locator identity; Calendar may import exported Mail types but Mail never imports
+  Calendar.
+- **P3-B — Calendar transaction port and REPLY factor:** exact future
+  `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and
+  `event_service_inbound_message.go` (new). It is transaction-aware policy/ports only: no generated
+  Ent references, nested transaction, repository bypass, or duplicate REPLY logic.
+- **P3-C — Mail Ent source:** after Mail generation only, exact future
+  `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`.
+  Stalwart is separately Phase-145-blocked and is not P3-C.
+- **P3-D — Calendar receipt/object-state repository, service, and due worker:** after Calendar
+  generation only, exact future `backend/internal/calendar/mail_inbound_repository.go` (new),
+  `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`,
+  and `event_ent_inbound_message.go` (new); 30-second scan, batch 50, concurrency 4.
+- **P3-E — Mail NATS consumer and server wiring:** after concrete engine/source only, exact future
+  `backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go`
+  (new), `backend/cmd/server/main.go`, and `backend/cmd/server/wiring_calendar_mail.go`. Mail validates
+  legacy v1 and invokes a sanitized sink, not a Calendar full-envelope subscription. EVENTS `mail.>`,
+  durable `calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s, handler
+  timeout 45s, MaxAckPending 16, fetch batch 8, concurrency 4, MaxDeliver 20. Semantic durable
+  dispositions ACK; no durable disposition uses `NakWithDelay(65s)`, and exhaustion retains EVENTS
+  data plus one content-free degraded/manual-replay signal.
 
 The Stalwart adapter remains blocked on Phase 145 authority. Generated Ent, migration, SQL,
 build, tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; no merge,
 product, worker, NATS, or readiness claim follows.
+Docs/STATE sync is separately required after each source atom.
 
 ### Task 10: Inbound Mail-to-Calendar consumer
 

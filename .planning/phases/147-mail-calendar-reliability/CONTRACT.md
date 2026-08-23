@@ -209,18 +209,27 @@ atomically.
 ### 2.6 P3 sealed Mail-to-Calendar source boundary
 
 P3 is contract-frozen only: P0-P2 remain accepted, while every P3-A onward source atom is
-`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Calendar receives only Mail-owned sealed
-`CalendarPartSource`, constructed from opaque validated organization, mailbox, and message UUIDs,
-`[32]byte` locator hash, and `maxBytes`. Its opaque result exposes only owner ID, normalized sender,
-method, authentication class, and a defensive-copy iTIP value. Calendar never receives `MailEngine`,
-Mail Ent, provider identifiers, raw locator, raw MIME, or a body-read fallback. `maxBytes` is exactly
+`UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`. Its owning Go package is
+`backend/internal/mail` (`package mail`): Calendar may import and use the exported sealed Mail
+port/types, but Mail never imports Calendar. Calendar receives only `CalendarPartSource` through
+opaque `CalendarPartReadRequest`/`CalendarPartReadResult` structs with their exported validated
+constructor/accessors: Hub organization, mailbox, and message UUIDs, `[32]byte` locator hash, and
+`maxBytes` in; owner ID, normalized sender, method, authentication class, and defensive-copy iTIP
+out. The closed `CalendarPartSourceErrorKind` is exactly `invalid`, `untrusted`,
+`message_unavailable`, `deleting`, `part_unavailable`, `payload_too_large`,
+`repository_unavailable`, and `engine_unavailable`. Calendar never receives `MailEngine`, Mail Ent,
+provider identifiers, raw locator, raw MIME, or a body-read fallback. `maxBytes` is exactly
 `1..1_048_576`; the source owns a five-second end-to-end context cap and returns whole-result
 `payload_too_large`, never a prefix.
 
-The private engine-only request is `ReadCalendarPart`: private engine account/message IDs, locator
+The `MailEngine.ReadCalendarPart` method is exported only because Go interface implementation requires
+it; semantically it is engine-private and callable only by Mail `CalendarPartSource`, never by Calendar
+or the server. Its request carries private engine account/message IDs, expected `engine_version`, locator
 hash, expected method, and max bytes; its result repeats that hash and contains one copied iTIP part.
-Its locator-hash V1 is exactly
-`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || bytes || u32be(len(engine_message_id)) || bytes || u32be(len(canonical_private_part_locator)) || bytes)`.
+The engine enumerates private MIME parts, canonicalizes each locator internally, recomputes the hashes,
+and requires exactly one match: zero is `part_unavailable`, multiple is `invalid`; a raw locator never
+leaves the adapter. Locator-hash V1 is exactly
+`SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || bytes || u32be(len(engine_message_id)) || bytes || u32be(len(engine_version)) || bytes || u32be(len(canonical_private_part_locator)) || bytes)`.
 Any future formula change requires a versioned schema/event amendment. For Calendar ingestion, this
 supersedes historic 147-02D/GetMessage/full-body wording: `GetMessage`, body/MIME parsing, and legacy
 event `engine_message_id` are forbidden fallbacks.
@@ -228,7 +237,9 @@ event `engine_message_id` are forbidden fallbacks.
 The Mail source takes a short durable snapshot before and after engine I/O, never holding a database
 transaction over I/O. Both snapshots must match: same organization, active owner, active account with
 `desired_enabled`, `projection_state=ready`, and engine account ID; a live message belonging to that
-mailbox with the sealed method/authentication/hash/sender. Deleting/deleted is terminal unavailable;
+mailbox with identical private `engine_version` and sealed method/authentication/hash/sender. Projection/
+provider recomputes locator hash whenever `engine_version` changes, so same-ID revised content has a new
+hash and event-receipt identity; version never leaves Mail source. Deleting/deleted is terminal unavailable;
 provisioning, suspended, error, bootstrapping, rebuilding, or degraded is unavailable with zero I/O;
 untrusted is zero I/O. A changed second snapshot discards bytes. Safe error mapping is exact:
 `invalid -> quarantined/internal_error`; `untrusted -> quarantined/untrusted_sender`;
@@ -257,19 +268,31 @@ creates no receipt, read, outbox, or retry. Reconstructable poison is durably qu
 
 The Calendar-owned due worker scans every 30 seconds, batch 50, concurrency 4, and invokes the same
 claim/service through injected `CalendarPartSource`; the existing missing-master schedule and seven-day
-expiry remain authoritative. NATS semantic failure is durably scheduled then ACKed, never broker
-backoff. Transport is frozen to EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, filter
+expiry remain authoritative. P3-E is Mail-owned `backend/internal/mail/calendar_inbound_consumer.go`:
+it subscribes to and strictly validates compatibility `mail.received.v1` inside `package mail`, ignores/
+drops `engine_message_id`, constructs opaque sanitized `CalendarInboundDelivery` containing only
+envelope/organization/mailbox/message UUIDs, authentication, method, locator hash, and safe sender, then
+calls an injected Calendar-implemented sink. No provider ID is passed or logged; no new broker subject
+exists. Transport is EVENTS `mail.>`, durable `calendar-mail-inbound-v1`, exact filter
 `mail.received.v1`, explicit ACK, `AckWait=90s`, handler hard timeout 45s, `MaxAckPending=16`, fetch
-batch 8, concurrency 4. Broker NAK is permitted only when no durable disposition could be written;
-hard timeout < 60-second lease < AckWait means no heartbeat is needed.
+batch 8, concurrency 4. Semantic durable retry/defer/terminal disposition commits then ACKs. If no durable
+disposition can be written, use exactly `NakWithDelay(65s)` with `MaxDeliver=20`; on exhaustion retain
+the message in EVENTS and emit one content-free degraded alert/manual-replay signal, never ACK/delete/
+drop. `65s > lease60s`, and hard timeout < lease < AckWait, so no heartbeat is needed.
 
-Future source atoms are closed: P3-A `calendar_part_source.go`, `mailbox_engine.go`,
-`mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go`; P3-B Calendar transaction port plus REPLY
-factor; P3-C Mail Ent source only after generation; P3-D receipt/object-state repository, service, and
-due worker only after generation; P3-E NATS stream/consumer/wiring only after concrete engine. The
-Stalwart adapter remains blocked on Phase 145 authority with no fallback. Generated Ent artifacts,
-migration, SQL, build, tests, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`; no
-merge, product, or readiness claim follows.
+Future source atoms are closed: P3-A exact `backend/internal/mail/calendar_part_source.go` (new),
+`mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go`; P3-B exact
+`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`,
+`event_service_inbound_message.go` (new), transaction-aware policy/ports only and no generated Ent;
+P3-C only after Mail generation: `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and
+`mailbox_ent_repository.go`; P3-D only after Calendar generation: `backend/internal/calendar/
+mail_inbound_repository.go` (new), `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new),
+`event_ent_transaction.go`, `event_ent_inbound_message.go` (new); P3-E only after concrete engine:
+`backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go` (new),
+`backend/cmd/server/main.go`, `backend/cmd/server/wiring_calendar_mail.go`. Stalwart is separately
+blocked on Phase 145 and is not P3-C. Docs/STATE sync is separate after each source atom. Generated Ent
+artifacts, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker, and runtime remain
+`NOT_RUN`; no merge, product, or readiness claim follows.
 
 ## 3. External-organizer REPLY delivery
 

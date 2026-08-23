@@ -22,10 +22,14 @@ preflight/recheck, exact safe errors, and receipt/ACK policy are normative in CO
 For Calendar ingestion, all earlier 147-02D/02E `GetMessage`, full-body/MIME parsing, direct engine,
 provider/locator, and legacy `engine_message_id` paths are `CONSUMED/HISTORICAL`; they must not be
 dispatched as a fallback. Future atom order is P3-A abstract Mail port/fake/engine/types/errors;
-P3-B EventTransaction receipt capability and REPLY factor; P3-C Mail Ent source after generation;
-P3-D receipt/object-state repository, service and due worker after generation; P3-E NATS stream,
-consumer and wiring after concrete engine. Stalwart remains blocked on Phase 145 authority. Generated
-Ent, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker and runtime remain `NOT_RUN`.
+P3-B exact Calendar policy/port files are `event_repository.go`, `event_service_inbound_reply.go`, and
+new `event_service_inbound_message.go`; P3-C exact Mail Ent files after generation are new
+`mailbox_ent_calendar_part.go` and `mailbox_ent_repository.go`; P3-D exact Calendar generated-Ent
+files are new `mail_inbound_repository.go`, `mail_inbound_service.go`, `mail_inbound_due_worker.go`,
+`event_ent_transaction.go`, and new `event_ent_inbound_message.go`; P3-E exact files after concrete
+engine/source are `platform/nats/client.go`, new Mail `calendar_inbound_consumer.go`, server `main.go`,
+and `wiring_calendar_mail.go`. Stalwart remains blocked on Phase 145 and is not P3-C. Generated Ent,
+migration, SQL, build, tests, lint/gofmt, parser/validator, Docker and runtime remain `NOT_RUN`.
 
 ## Dependency graph
 
@@ -39,6 +43,7 @@ Ent, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker and runt
 143 parser/policy + 147-01A/B/E
   └─ 147-02A order policy ─ 147-02B invite service ─ 147-02C Ent transaction
 145 message mapper + 144 mailbox read
+[CONSUMED/HISTORICAL — superseded by P3-A..E; do not dispatch the 147-02D/02E branch below]
   └─ 147-02D authenticated calendar-part source ─ 147-02E consumer/recovery/wiring
 
 143 RSVP + 144 draft/submission + 147-01C/E
@@ -77,8 +82,13 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-02A | Pure REQUEST/CANCEL order classifier | `backend/internal/calendar/itip_ingest_policy.go`, `backend/tests/calendar/itip_ingest_policy_test.go` | complete decision table, no I/O/clock, master/occurrence distinct | accepted 143 parser + contract |
 | 147-02B | Incoming REQUEST/CANCEL domain application | `event_service_inbound_invite.go`, `backend/tests/calendar/event_service_inbound_invite_test.go` | auth admission, tombstone/defer/reactivate, one state transition/outbox | 02A + 01E + accepted 143 service |
 | 147-02C | Atomic Ent ingest/receipt transaction | `backend/internal/calendar/event_ent_repository_inbound_invite.go`; no Go DB test | claim/object/event/exception/outbox/final receipt atomic; Python integration handoff; lease recovery | 02B + accepted 143 repository base |
-| 147-02D | Authenticated bounded calendar-part source | `backend/internal/mail/mailbox_types.go`, `backend/internal/mail/calendar_part_source.go`, `backend/internal/mail/stalwart/message.go`, `backend/tests/mail/calendar_part_source_test.go`, `backend/tests/mail/stalwart_calendar_part_test.go` | genuine fake-adapter units; stable part locator; internal/DMARC-aligned enum; owner account; body/request-only | accepted 144 read + G145-1/4/5 + exact engine evidence |
-| 147-02E | `mail.received.v1` consumer, recovery and composition | `backend/internal/calendar/mail_consumer.go`, `event_ingest_recovery.go`, `backend/cmd/server/wiring_calendar_mail.go`, narrow call in `wiring_modules.go`, `backend/tests/calendar/mail_consumer_test.go` | genuine fake-port unit; ack/final vs Nak/transient; bounded deferred scan; no public hydrate; cleanup | 02C/D + accepted NATS admission |
+| 147-02D | `CONSUMED/HISTORICAL — superseded by P3-A..E` | historical source/GetMessage route retained only as record | non-dispatchable; no Calendar ingestion fallback | none |
+| 147-02E | `CONSUMED/HISTORICAL — superseded by P3-A..E` | historical Calendar consumer/bare-NAK route retained only as record | non-dispatchable; no Calendar full-envelope subscription | none |
+| P3-A | Sealed Mail calendar-part source | `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `mailbox_fake.go` | opaque request/result, closed errors, engine-version-bound private read | P0-P2; no source dispatch yet |
+| P3-B | Calendar transaction-aware REPLY policy/ports | `backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, `event_service_inbound_message.go` (new) | receipt-first single transaction; no generated Ent | P3-A; no source dispatch yet |
+| P3-C | Mail Ent calendar-part source | `backend/internal/mail/mailbox_ent_calendar_part.go` (new), `mailbox_ent_repository.go` | after Mail generated Ent; Stalwart excluded | P3-B + generation |
+| P3-D | Calendar inbound repository/service/due worker | `backend/internal/calendar/mail_inbound_repository.go` (new), `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`, `event_ent_inbound_message.go` (new) | after Calendar generated Ent | P3-C + generation |
+| P3-E | Mail sanitized ingress consumer and wiring | `backend/internal/platform/nats/client.go`, `backend/internal/mail/calendar_inbound_consumer.go` (new), `backend/cmd/server/main.go`, `backend/cmd/server/wiring_calendar_mail.go` | Mail validates v1 then sink; durable disposition ACK, 65s no-durable NAK | P3-D + concrete engine/source |
 | 147-03A | External REPLY delivery state machine and sender port | `backend/internal/calendar/reply_delivery.go`, `backend/tests/calendar/reply_delivery_test.go` | stable draft/send keys; unknown reconciles; permanent/transient split | 01C/E + accepted 143 RSVP/serializer |
 | 147-03B | Mailbox reply adapter and bounded worker | `backend/internal/mail/calendar_reply_adapter.go`, `backend/internal/calendar/reply_worker.go`, narrow `backend/cmd/server/wiring_calendar_mail.go`, `backend/tests/mail/calendar_reply_adapter_test.go`, `backend/tests/calendar/reply_worker_test.go` | genuine fake-port units; hidden draft + one submission; no blind retry; attendee status reflects ledger | 03A + accepted 144 draft/submission + engine availability |
 | 147-04A | Pure busy/free interval and occurrence normalization | `backend/internal/calendar/availability_policy.go`, `backend/tests/calendar/availability_policy_test.go` | half-open range; DST/all-day; merge/complement/bounds; no private fields | accepted 143 temporal/recurrence policy |

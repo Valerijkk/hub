@@ -11,18 +11,20 @@
 ingestion packets only: they must not use `GetMessage`, full body/MIME parsing, direct MailEngine or
 Mail Ent, provider IDs/raw locator, or legacy event `engine_message_id`. Do not dispatch a fallback.
 
-P3-A's future exact files are `calendar_part_source.go`, `mailbox_engine.go`, `mailbox_types.go`,
-`mailbox_errors.go`, and `mailbox_fake.go`. It supplies sealed `CalendarPartSource` (Hub UUIDs,
-`[32]byte` hash, 1..1,048,576 bytes) and only owner ID/normalized sender/method/authentication/
-defensive-copy iTIP output. It owns the five-second cap and private `ReadCalendarPart`; overflow is
-whole-result `payload_too_large`. P3-B later adds neutral EventTransaction receipt lock/complete and
-factors REPLY without nested transaction, bypass, or duplicate logic. P3-C is Mail Ent after
-generation; P3-D is receipt/object-state repository, service, 30-second batch-50/concurrency-4 due
-worker after generation; P3-E is NATS after concrete engine: EVENTS `mail.>`, durable
-`calendar-mail-inbound-v1`, filter `mail.received.v1`, explicit ACK, AckWait 90s, hard timeout 45s,
-MaxAckPending 16, fetch 8/concurrency 4. Semantic durable disposition ACKs; NAK only when none
-could be written. Stalwart remains Phase-145-blocked. No source, test, generation, migration,
-SQL, build, lint/gofmt, parser/validator, Docker, runtime, merge, product, or readiness authority.
+P3-A exact files are `backend/internal/mail/calendar_part_source.go` (new), `mailbox_engine.go`,
+`mailbox_types.go`, `mailbox_errors.go`, and `mailbox_fake.go`. P3-B exact files are
+`backend/internal/calendar/event_repository.go`, `event_service_inbound_reply.go`, and new
+`event_service_inbound_message.go`, policy/ports only with no generated Ent. P3-C, after Mail
+generation, is new `backend/internal/mail/mailbox_ent_calendar_part.go` plus
+`mailbox_ent_repository.go`; Stalwart is separately Phase-145-blocked. P3-D, after Calendar
+generation, is new `mail_inbound_repository.go`, `mail_inbound_service.go`, `mail_inbound_due_worker.go`,
+`event_ent_transaction.go`, and new `event_ent_inbound_message.go`. P3-E, after concrete engine/source,
+is `backend/internal/platform/nats/client.go`, new Mail `calendar_inbound_consumer.go`, server `main.go`,
+and `wiring_calendar_mail.go`. Mail validates v1 and sends sanitized delivery to an injected Calendar
+sink; Calendar never subscribes to the full envelope. On no durable disposition use
+`NakWithDelay(65s)`, MaxDeliver20, retained EVENTS plus one content-free degraded/manual-replay signal;
+semantic durable disposition ACKs. No source, test, generation, migration, SQL, build, lint/gofmt,
+parser/validator, Docker, runtime, merge, product, or readiness authority.
 
 ## Common execution envelope
 
@@ -155,35 +157,18 @@ SQL, build, lint/gofmt, parser/validator, Docker, runtime, merge, product, or re
 
 ## 147-02D — authenticated calendar-part source
 
-- Gates: selected engine license/digest/API and G145 mapping evidence. Allowed only
-  `backend/internal/mail/mailbox_types.go`, `calendar_part_source.go`,
-  `backend/internal/mail/stalwart/message.go`,
-  `backend/tests/mail/calendar_part_source_test.go`, and
-  `backend/tests/mail/stalwart_calendar_part_test.go` using in-process fake ports only.
-- Extend authorized `GetMessage` hydration with bounded stable calendar-part descriptors
-  and a server-only auth result. The public message DTO/API does not accept or expose a
-  trust override. Account id is resolved by the source adapter; part locator is hashed
-  before receipt persistence.
-- Oracles: cross-account id zero provider call; byte/count/depth bounds before return;
-  local identity proof and DMARC-aligned mapping; fail/missing/delegated becomes untrusted;
-  provider body/auth headers never reach error/log/projection.
+> **CONSUMED/HISTORICAL — superseded by P3-A..E; non-dispatchable.** The prior direct
+> Stalwart/GetMessage/test route is preserved only as historical intent. It is replaced by
+> package-mail sealed source, internal exact-one private MIME locator match and engine-version hash;
+> no raw locator/provider/content reaches Calendar, and no source is authorized here.
 
 ## 147-02E — ingest consumer/recovery/wiring
 
-- Allowed only `backend/internal/calendar/mail_consumer.go`,
-  `event_ingest_recovery.go`, `backend/cmd/server/wiring_calendar_mail.go`, the narrow call
-  in `backend/cmd/server/wiring_modules.go`, plus
-  `backend/tests/calendar/mail_consumer_test.go` using fake source/service/consumer ports.
-- Consume only a closed complete `mail.received.v1` envelope. Before receipt/domain work,
-  require broker subject equal JSON subject, schema version 1 and a valid application event
-  id; malformed/mismatched/unknown versions dead-letter with zero mutation. Resolve each
-  calendar part through 02D; claim its
-  receipt; call 02B. Ack finalized permanent outcomes, Nak transient failures, and use a
-  bounded recovery scan for deferred/expired leases. Start/stop is context-owned.
-- Oracles: duplicate application event id under same/different `Hub-Event-Id`; duplicate
-  part; subject mismatch; malformed/inner-payload-only envelope; unknown schema dead-letter;
-  transient then success; missing master wake; shutdown cleanup; disabled/unavailable
-  engine safe; no goroutine/listener when dependency absent.
+> **CONSUMED/HISTORICAL — superseded by P3-A..E; non-dispatchable.** The prior Calendar
+> full-envelope consumer and bare transient-NAK route are retained only as history. P3-E is a Mail
+> consumer that validates legacy v1, drops `engine_message_id`, invokes a sanitized Calendar sink,
+> ACKs only after durable semantic disposition, and uses `NakWithDelay(65s)` solely for no durable
+> disposition; no source is authorized here.
 
 ## 147-03A — reply delivery state machine
 
