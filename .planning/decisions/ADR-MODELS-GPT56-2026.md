@@ -1,109 +1,111 @@
-# ADR-MODELS-GPT56-2026: Sol orchestrator → Terra decomposition → Codex Spark code
+# ADR-MODELS-GPT56-2026: Sol orchestrator → Terra downstream
 
-- **Status:** accepted, amended 2026-08-11
-- **Дата решения:** 2026-07-18
-- **Текущий founder lock:** 2026-08-11
-- **Автор:** founder + docs-sync · **Верифицируют:** team-lead, product-ver
-- **Связанные:** `.cursor/playbooks/model-routing.md`, `team-workflow.md`,
+- **Status:** accepted, amended 2026-08-22
+- **Decision date:** 2026-07-18
+- **Current founder lock:** 2026-08-22
+- **Author:** founder + docs-sync · **Verifiers:** team-lead, product-ver
+- **Related:** `.cursor/playbooks/model-routing.md`, `team-workflow.md`,
   `.cursor/REGULATION.md`, `AGENTS.md`, `.cursor/agents/*`
 
 ---
 
-## Контекст
+## Context
 
-До июля 2026 команда использовала Claude/Fable/Opus routing. Переход 2026-07-26
-закрепил GPT-5.6 Sol для orchestrator и динамический downstream. Founder
-amendment 2026-08-11 заменяет динамический `inherit` на точный трёхуровневый
-конвейер, чтобы одновременно использовать отдельные лимиты Sol/Terra и Codex
-Spark без потери доказательности.
+The prior atomic-implementation routing was erroneous. The founder amendment
+of 2026-08-22 replaces it: all downstream work uses one explicit Terra runtime.
+Root Sol / Max remains unchanged.
 
-## Решение
+## Decision
 
-| Уровень | Exact runtime | Кто | Ответственность |
+| Layer | Exact runtime | Who | Responsibility |
 |---|---|---|---|
-| Оркестратор | `gpt-5.6-sol` / `max` | root `team-lead` | цель, архитектура, security/product decisions, волны, финальная приёмка |
-| Judgment layer | `gpt-5.6-terra` / `low|medium|high|xhigh` | 30 downstream role profiles | analysis, decomposition, coordination, authoring, independent review |
-| Atomic code | `gpt-5.3-codex` / `xhigh` | `codex-micro` | функция, малый модуль, точечный тест или одно поведение по frozen contract |
+| Orchestrator | `gpt-5.6-sol` / `max` | root `team-lead` | goal, architecture, security/product decisions, waves, final acceptance |
+| Downstream | `gpt-5.6-terra` / task-routed effort | all downstream role profiles | analysis, decomposition, coordination, authoring, independent review, bounded implementation |
+| Atomic implementation | `gpt-5.6-terra` / `xhigh` | exact-path bounded downstream owner | one function, small module, focused test, or one behaviour after a frozen contract |
 
 ### Founder locks
 
-1. Root — единственный Sol runtime; Sol-субагенты запрещены.
-2. Каждый frontmatter и каждый dispatch содержит literal `model`; каждый
-   dispatch дополнительно содержит literal `reasoning_effort`.
-3. `inherit`, omitted model/effort и full-history model inheritance запрещены.
-4. Terra декомпозирует code backlog до задачи, которую Spark может реализовать
-   без архитектурного/product/security решения.
-5. Spark всегда использует `xhigh`. Он может использовать полное официальное
-   окно 400,000 токенов, если весь контекст релевантен, но ownership остаётся
-   атомарным и exact-path bounded.
-6. Недоступный exact runtime, model mismatch или отсутствующая telemetry дают
-   `UNKNOWN/BLOCKED`; silent fallback между Sol/Terra/Spark запрещён.
-7. Root использует до трёх параллельных субагентов только для независимых
-   workstreams. Пустое дублирование ради заполнения слотов запрещено.
-8. Requested runtime не считается actual runtime. Handoff записывает observed
-   model/evidence или `UNKNOWN`, effort, quota bucket и exact revision.
-9. Сильная модель не заменяет independent verifier, Docker-only evidence,
-   test triage, docs sync или security/authority gate.
+1. Root is the sole Sol runtime; Sol subagents are forbidden.
+2. Every downstream frontmatter and dispatch contains literal
+   `model: gpt-5.6-terra` and an explicit `reasoning_effort`.
+3. `inherit`, omitted model/effort, full-history model inheritance, and silent
+   fallback are forbidden.
+4. Effort is task-routed: `low` for deterministic mechanics/hash/provenance;
+   `medium` for ordinary analysis or authoring; `high` for independent review;
+   `xhigh` for unusually complex downstream audits and every atomic
+   implementation.
+5. Atomic implementation begins only after root/Terra freezes the contract. It
+   is limited to one function, small module, focused test, or one behaviour,
+   with exact paths and acceptance evidence. Architecture, security, and
+   product decisions remain with root/Terra.
+6. Unavailable exact runtime, model mismatch, or missing required telemetry
+   returns `UNKNOWN/BLOCKED`; no automatic model or effort substitution exists.
+7. Requested runtime is not observed runtime. Handoff records observed model
+   evidence or `UNKNOWN`, effort, and exact revision.
+8. A model does not replace an independent verifier, Docker-only evidence, test
+   triage, docs sync, or security/authority gates.
 
 ## Effort routing
 
-| Класс | Runtime |
+| Class | Runtime |
 |---|---|
 | Root orchestration, architecture, final acceptance | Sol / Max |
 | Mechanical identity/hash/provenance | Terra / Low |
 | Ordinary analysis, decomposition, authoring | Terra / Medium |
 | Independent review | Terra / High |
 | Complex cross-domain/security audit | Terra / XHigh |
-| Atomic implementation/test code | 5.3 Codex Spark / XHigh |
+| Atomic implementation/test code after frozen contract | Terra / XHigh |
 
-Spark не повышается до Sol и не расширяет scope. Если brief недостаточен или
-задача не атомарна, Spark возвращает `BLOCKED`; Terra/root уточняет контракт или
-декомпозирует дальше.
+If a brief is incomplete or the task is not atomic, the downstream owner
+returns `BLOCKED`; root/Terra clarifies the contract or decomposes further.
 
-## Frontmatter (applied 2026-08-11)
+## Frontmatter (applied 2026-08-22)
 
-| Профили | `model:` |
+| Profiles | `model:` |
 |---|---|
 | `team-lead` | `gpt-5.6-sol` |
-| `codex-micro` | `gpt-5.3-codex` |
-| остальные 30 downstream profiles, включая deprecated redirect | `gpt-5.6-terra` |
+| every downstream profile, including `codex-micro` and deprecated redirects | `gpt-5.6-terra` |
 
-Frontmatter не кодирует effort, поэтому launch contract обязан передавать
-`reasoning_effort` явно. Runtime, который не принимает этот параметр, не может
-молча считаться compliant.
+`codex-micro` remains a stable legacy role ID; it is not a Codex-runtime
+requirement. Its atomic dispatch remains Terra / `xhigh` and exact-path bounded.
+
+Frontmatter does not encode effort, so every launch contract explicitly passes
+`reasoning_effort`. A runtime that cannot accept it is not silently compliant.
 
 ## Dispatch examples
 
-| Задача | Маршрут |
+| Task | Route |
 |---|---|
-| Milestone, архитектура, conflict resolution, финальный seal | root Sol / Max |
-| Разложить feature/API contract на executable backlog | Terra / High–XHigh |
-| Проверить реализацию или evidence conclusion-blind | Terra / High |
-| Написать одну Go-функцию + regression test по frozen contract | Spark / XHigh |
-| Реализовать небольшой React hook/component по DESIGN-SPEC | Spark / XHigh |
-| Написать Python helper или один test behaviour | Spark / XHigh |
+| Milestone, architecture, conflict resolution, final seal | root Sol / Max |
+| Decompose a feature/API contract into executable backlog | Terra / High–XHigh |
+| Review implementation or evidence conclusion-blind | Terra / High |
+| Write one Go function plus regression test by frozen contract | Terra / XHigh |
+| Implement a small React hook/component by DESIGN-SPEC | Terra / XHigh |
+| Write a Python helper or one test behaviour | Terra / XHigh |
 
-Антипаттерны: Sol downstream; Spark получает неоднозначную архитектуру; Terra
-пишет большой decomposable code block вместо Spark; automatic fallback;
-дублирующие агенты читают один scope; персональная weekly quota угадывается без UI.
+Anti-patterns: Sol downstream; atomic implementation without a frozen contract;
+automatic fallback; inherited model/effort; or treating the legacy
+`codex-micro` name as a runtime request.
 
 ## Protected external zone
 
-`pro-qa-ai/**` остаётся founder-operated Claude Code Opus 5 zone. Internal Hub
-agents не читают и не меняют её без literal founder handoff. Этот ADR не
-расширяет data/process authority ни одной модели.
+`pro-qa-ai/**` remains the founder-operated Claude Code Opus 5 zone. Internal
+Hub agents do not read or change it without a literal founder handoff. This ADR
+does not expand any model's data or process authority.
 
 ## Applied checklist
 
 1. `[done]` root `team-lead` → `gpt-5.6-sol`; effort `max`.
-2. `[done]` `codex-micro` → `gpt-5.3-codex`; effort `xhigh` at dispatch.
-3. `[done]` 30 остальных downstream profiles → `gpt-5.6-terra`.
-4. `[done]` `inherit` удалён из agent frontmatter.
-5. `[done]` AGENTS/REGULATION/model-routing/team workflow synchronized.
-6. `[done]` `pro-qa-ai/**` остаётся external protected zone.
-7. `[pending]` Representative measured routing/eval pilot; docs review не
-   подменяет runtime-quality evidence.
+2. `[done]` every downstream profile, including `codex-micro` →
+   `gpt-5.6-terra`.
+3. `[done]` all atomic implementation dispatches → Terra / `xhigh`, with a
+   frozen contract and exact-path boundary.
+4. `[done]` `inherit`, silent fallback, and Sol subagents prohibited.
+5. `[done]` active obsolete pricing/source rationale removed from routing.
+6. `[done]` `pro-qa-ai/**` remains an external protected zone.
+7. `[pending]` Representative measured routing/eval pilot; documentation review
+   does not substitute for runtime-quality evidence.
 
 ---
 
-*Accepted 2026-07-18 · current amendment 2026-08-11 · explicit models; no inherit*
+*Accepted 2026-07-18 · current amendment 2026-08-22 · explicit Terra downstream; no inherit*
