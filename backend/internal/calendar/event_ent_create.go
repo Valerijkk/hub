@@ -38,7 +38,7 @@ func (backend *eventEntTransactionBackend) ReserveMutationReceipt(ctx context.Co
 			receipt.State != calendarmutationreceipt.StateCompleted ||
 			receipt.ResponseStatus == nil ||
 			!receipt.ExpiresAt.After(now) {
-			return MutationReceiptReservationResult{}, ErrEventConflict
+			return MutationReceiptReservationResult{}, newCalendarEventCreateConflict(CalendarEventCreateConflictIdempotencyKeyReused)
 		}
 		response, err := NewMutationReceiptResponse(*receipt.ResponseStatus, receipt.ResponseJSON)
 		if err != nil {
@@ -60,6 +60,9 @@ func (backend *eventEntTransactionBackend) ReserveMutationReceipt(ctx context.Co
 		SetExpiresAt(expiresAt).
 		Save(ctx)
 	if err != nil {
+		if ent.IsConstraintError(err) {
+			return MutationReceiptReservationResult{}, newCalendarEventCreateConflict(CalendarEventCreateConflictIdempotencyKeyReused)
+		}
 		return MutationReceiptReservationResult{}, calendarEntSafeError(err)
 	}
 	return NewReservedMutationReceiptResult(receipt.ID)

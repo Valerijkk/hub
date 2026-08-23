@@ -255,10 +255,19 @@ func calendarCreateAuthorizationRequest(scope EventMutationScope, input Calendar
 }
 
 func validateCalendarCreateAuthorization(scope EventMutationScope, input CalendarEventCreateInput, authorization CalendarEventCreateAuthorization) error {
+	if !sameCalendarCreateUUID(input.ScheduledCallID, authorization.ScheduledCallID) {
+		return newCalendarEventCreateConflict(CalendarEventCreateConflictScheduledCallLinkMismatch)
+	}
 	if authorization.Organizer.UserID != scope.ActorID() || !validCalendarCreateEmail(authorization.Organizer.Email) ||
-		!validCalendarCreateDisplayName(authorization.Organizer.DisplayName) || len(authorization.Attendees) != len(input.Attendees) ||
-		!sameCalendarCreateUUID(input.ScheduledCallID, authorization.ScheduledCallID) {
+		!validCalendarCreateDisplayName(authorization.Organizer.DisplayName) || len(authorization.Attendees) != len(input.Attendees) {
 		return ErrEventConflict
+	}
+	if authorization.ScheduledCallID != nil {
+		for _, resolved := range authorization.Attendees {
+			if resolved.UserID == nil || *resolved.UserID == uuid.Nil {
+				return newCalendarEventCreateConflict(CalendarEventCreateConflictScheduledCallNotAttachable)
+			}
+		}
 	}
 	seenEmails := map[string]struct{}{normalizeCalendarCreateEmail(authorization.Organizer.Email): {}}
 	seenUsers := map[uuid.UUID]struct{}{authorization.Organizer.UserID: {}}
@@ -286,13 +295,6 @@ func validateCalendarCreateAuthorization(scope EventMutationScope, input Calenda
 			return ErrEventConflict
 		}
 		seenEmails[email] = struct{}{}
-	}
-	if authorization.ScheduledCallID != nil {
-		for _, resolved := range authorization.Attendees {
-			if resolved.UserID == nil || *resolved.UserID == uuid.Nil {
-				return ErrEventConflict
-			}
-		}
 	}
 	return nil
 }
@@ -832,6 +834,10 @@ func calendarCreateUUID(domain string, components ...[]byte) uuid.UUID {
 func calendarCreateIndexBytes(index int) []byte { var value [4]byte; binary.BigEndian.PutUint32(value[:], uint32(index)); return value[:] }
 
 func calendarCreateSafeError(err error) error {
+	var createConflict *CalendarEventCreateConflictError
+	if errors.As(err, &createConflict) && createConflict != nil && validCalendarEventCreateConflictKind(createConflict.Kind()) {
+		return newCalendarEventCreateConflict(createConflict.Kind())
+	}
 	switch { case errors.Is(err, ErrEventNotFound): return ErrEventNotFound; case errors.Is(err, ErrEventForbidden): return ErrEventForbidden; case errors.Is(err, ErrEventConflict): return ErrEventConflict; case errors.Is(err, ErrEventTransactionClosed): return ErrEventTransactionClosed; default: return ErrEventInvalid }
 }
 
