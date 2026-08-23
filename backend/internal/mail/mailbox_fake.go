@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"crypto/sha256"
 	"sort"
 	"strconv"
 	"sync"
@@ -36,6 +37,7 @@ const (
 	FakeMailOperationListMessages         FakeMailOperation = "list_messages"
 	FakeMailOperationGetMessage           FakeMailOperation = "get_message"
 	FakeMailOperationGetBlob              FakeMailOperation = "get_blob"
+	FakeMailOperationReadCalendarPart     FakeMailOperation = "read_calendar_part"
 	FakeMailOperationChanges              FakeMailOperation = "changes"
 	FakeMailOperationEnumerateProjection  FakeMailOperation = "enumerate_projection"
 	FakeMailOperationSaveDraft            FakeMailOperation = "save_draft"
@@ -79,6 +81,28 @@ type FakeMailEnumerationScript struct {
 type fakeDraft struct {
 	message  EngineMessage
 	identity fakeDraftIdentity
+}
+
+// FakeCalendarPart seeds one deterministic private calendar-part read.
+type FakeCalendarPart struct {
+	AccountID   string
+	MessageID   string
+	Version     string
+	LocatorHash [sha256.Size]byte
+	Method      MailCalendarMethod
+	ITIP        []byte
+}
+
+type fakeCalendarPartKey struct {
+	accountID   string
+	messageID   string
+	locatorHash [sha256.Size]byte
+}
+
+type fakeCalendarPart struct {
+	version string
+	method  MailCalendarMethod
+	itip    []byte
 }
 
 type fakeDraftIdentity struct {
@@ -137,6 +161,7 @@ type FakeMailEngine struct {
 	folders      map[string]map[string]EngineFolder
 	messages     map[string]map[string]EngineMessage
 	blobs        map[string]map[string]EngineBlob
+	calendarParts map[fakeCalendarPartKey]fakeCalendarPart
 	drafts       map[string]map[string]fakeDraft
 	submissions  map[string]map[string]fakeSubmission
 	sieves       map[string]EngineSieveState
@@ -174,6 +199,7 @@ func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
 		folders:      make(map[string]map[string]EngineFolder),
 		messages:     make(map[string]map[string]EngineMessage),
 		blobs:        make(map[string]map[string]EngineBlob),
+		calendarParts: make(map[fakeCalendarPartKey]fakeCalendarPart),
 		drafts:       make(map[string]map[string]fakeDraft),
 		submissions:  make(map[string]map[string]fakeSubmission),
 		sieves:       make(map[string]EngineSieveState),
@@ -227,6 +253,24 @@ func (f *FakeMailEngine) PutBlob(blob EngineBlob) {
 		f.blobs[blob.AccountID] = make(map[string]EngineBlob)
 	}
 	f.blobs[blob.AccountID][blob.BlobID] = cloneBlob(blob)
+}
+
+// PutCalendarPart seeds one hash-addressed decoded iTIP part by value.
+func (f *FakeMailEngine) PutCalendarPart(part FakeCalendarPart) {
+	if !validFakeCalendarPart(part) {
+		return
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.calendarParts[fakeCalendarPartKey{
+		accountID:   part.AccountID,
+		messageID:   part.MessageID,
+		locatorHash: part.LocatorHash,
+	}] = fakeCalendarPart{
+		version: part.Version,
+		method:  part.Method,
+		itip:    append([]byte(nil), part.ITIP...),
+	}
 }
 
 // ScriptChanges installs a deterministic response for one account and from cursor.
@@ -585,6 +629,35 @@ func (f *FakeMailEngine) GetBlob(_ context.Context, request EngineBlobReadReques
 		return EngineBlob{}, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
 	return cloneBlob(blob), nil
+}
+
+func (f *FakeMailEngine) ReadCalendarPart(_ context.Context, request EngineCalendarPartReadRequest) (EngineCalendarPartReadResult, error) {
+	if !validFakeCalendarPartReadRequest(request) {
+		return EngineCalendarPartReadResult{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if fault, ok := f.takeFaultLocked(FakeMailOperationReadCalendarPart); ok {
+		return EngineCalendarPartReadResult{}, fakeEngineError(fault.Kind)
+	}
+	part, ok := f.calendarParts[fakeCalendarPartKey{
+		accountID:   request.AccountID,
+		messageID:   request.MessageID,
+		locatorHash: request.LocatorHash,
+	}]
+	if !ok {
+		return EngineCalendarPartReadResult{}, fakeEngineError(EngineErrorNotFound)
+	}
+	if part.version != request.Version || part.method != request.Method {
+		return EngineCalendarPartReadResult{}, fakeEngineError(EngineErrorConflict)
+	}
+	if len(part.itip) > request.MaxBytes {
+		return EngineCalendarPartReadResult{}, fakeEngineError(EngineErrorPayloadTooLarge)
+	}
+	return EngineCalendarPartReadResult{
+		LocatorHash: request.LocatorHash,
+		ITIP:        append([]byte(nil), part.itip...),
+	}, nil
 }
 
 func (f *FakeMailEngine) Changes(_ context.Context, request EngineChangeRequest) (EngineChangePage, error) {
@@ -1335,6 +1408,14 @@ func validateEngineMessage(message EngineMessage) error {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	return nil
+}
+
+func validFakeCalendarPart(part FakeCalendarPart) bool {
+	return validAccountID(part.AccountID) && validOpaqueID(part.MessageID) && validOpaqueID(part.Version) && !calendarPartLocatorHashZero(part.LocatorHash) && validCalendarPartMethod(part.Method) && len(part.ITIP) > 0 && len(part.ITIP) <= MaxCalendarPartBytes
+}
+
+func validFakeCalendarPartReadRequest(request EngineCalendarPartReadRequest) bool {
+	return validAccountID(request.AccountID) && validOpaqueID(request.MessageID) && validOpaqueID(request.Version) && !calendarPartLocatorHashZero(request.LocatorHash) && validCalendarPartMethod(request.Method) && request.MaxBytes >= 1 && request.MaxBytes <= MaxCalendarPartBytes
 }
 
 func validateProjection(projection EngineMessageProjection) error {

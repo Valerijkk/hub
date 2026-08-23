@@ -15,6 +15,7 @@ type MailEngine interface {
 	ListMessages(context.Context, EngineMessageQuery) (EngineProjectionPage, error)
 	GetMessage(context.Context, EngineMessageReadRequest) (EngineMessage, error)
 	GetBlob(context.Context, EngineBlobReadRequest) (EngineBlob, error)
+	ReadCalendarPart(context.Context, EngineCalendarPartReadRequest) (EngineCalendarPartReadResult, error)
 	Changes(context.Context, EngineChangeRequest) (EngineChangePage, error)
 	EnumerateProjection(context.Context, EngineEnumerationRequest) (EngineEnumerationPage, error)
 	SaveDraft(context.Context, EngineDraft) (EngineMessage, error)

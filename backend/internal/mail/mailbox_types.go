@@ -1,6 +1,9 @@
 package mail
 
-import "time"
+import (
+	"crypto/sha256"
+	"time"
+)
 
 const (
 	// MaxEngineOpaqueIDBytes ограничивает непрозрачный идентификатор движка.
@@ -257,6 +260,22 @@ type EngineBlobReadRequest struct {
 	AccountID string
 	BlobID    string
 	MaxBytes  int64
+}
+
+// EngineCalendarPartReadRequest is one private engine read for a decoded iTIP part.
+type EngineCalendarPartReadRequest struct {
+	AccountID   string
+	MessageID   string
+	Version     string
+	LocatorHash [sha256.Size]byte
+	Method      MailCalendarMethod
+	MaxBytes    int
+}
+
+// EngineCalendarPartReadResult is one private engine calendar-part response.
+type EngineCalendarPartReadResult struct {
+	LocatorHash [sha256.Size]byte
+	ITIP        []byte
 }
 
 // EngineChangeRequest — account-scoped запрос инкрементальных изменений от заданного курсора.

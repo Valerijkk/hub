@@ -109,3 +109,69 @@ func (e *EngineError) Unwrap() error {
 		return nil
 	}
 }
+
+// CalendarPartSourceErrorKind is the closed safe failure kind of CalendarPartSource.
+type CalendarPartSourceErrorKind string
+
+const calendarPartSourceErrorText = "mail calendar part source error"
+
+const (
+	CalendarPartSourceErrorInvalid               CalendarPartSourceErrorKind = "invalid"
+	CalendarPartSourceErrorUntrusted             CalendarPartSourceErrorKind = "untrusted"
+	CalendarPartSourceErrorMessageUnavailable    CalendarPartSourceErrorKind = "message_unavailable"
+	CalendarPartSourceErrorDeleting              CalendarPartSourceErrorKind = "deleting"
+	CalendarPartSourceErrorPartUnavailable       CalendarPartSourceErrorKind = "part_unavailable"
+	CalendarPartSourceErrorPayloadTooLarge       CalendarPartSourceErrorKind = "payload_too_large"
+	CalendarPartSourceErrorRepositoryUnavailable CalendarPartSourceErrorKind = "repository_unavailable"
+	CalendarPartSourceErrorEngineUnavailable     CalendarPartSourceErrorKind = "engine_unavailable"
+)
+
+// CalendarPartSourceError contains only one safe source failure kind.
+type CalendarPartSourceError struct {
+	kind CalendarPartSourceErrorKind
+}
+
+// Error returns the same content-free message for every source failure.
+func (e *CalendarPartSourceError) Error() string {
+	return calendarPartSourceErrorText
+}
+
+// Kind returns the validated safe source failure kind.
+func (e *CalendarPartSourceError) Kind() CalendarPartSourceErrorKind {
+	if e == nil || !validCalendarPartSourceErrorKind(e.kind) {
+		return CalendarPartSourceErrorInvalid
+	}
+	return e.kind
+}
+
+// CalendarPartSourceErrorKindOf reports the safe source error kind without exposing a cause.
+func CalendarPartSourceErrorKindOf(err error) (CalendarPartSourceErrorKind, bool) {
+	var sourceError *CalendarPartSourceError
+	if !errors.As(err, &sourceError) || sourceError == nil {
+		return "", false
+	}
+	return sourceError.Kind(), true
+}
+
+func newCalendarPartSourceError(kind CalendarPartSourceErrorKind) *CalendarPartSourceError {
+	if !validCalendarPartSourceErrorKind(kind) {
+		kind = CalendarPartSourceErrorInvalid
+	}
+	return &CalendarPartSourceError{kind: kind}
+}
+
+func validCalendarPartSourceErrorKind(kind CalendarPartSourceErrorKind) bool {
+	switch kind {
+	case CalendarPartSourceErrorInvalid,
+		CalendarPartSourceErrorUntrusted,
+		CalendarPartSourceErrorMessageUnavailable,
+		CalendarPartSourceErrorDeleting,
+		CalendarPartSourceErrorPartUnavailable,
+		CalendarPartSourceErrorPayloadTooLarge,
+		CalendarPartSourceErrorRepositoryUnavailable,
+		CalendarPartSourceErrorEngineUnavailable:
+		return true
+	default:
+		return false
+	}
+}
