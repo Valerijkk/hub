@@ -14,6 +14,7 @@ import (
 	"github.com/valerii/hub/backend/ent/calendarattendee"
 	"github.com/valerii/hub/backend/ent/calendaravailabilityreservation"
 	"github.com/valerii/hub/backend/ent/calendarevent"
+	"github.com/valerii/hub/backend/ent/calendareventexception"
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/organization"
@@ -340,6 +341,9 @@ func (backend *eventEntTransactionBackend) ResolveMeetingUpdateAuthorization(ctx
 	if err != nil {
 		return MeetingUpdateAuthorization{}, err
 	}
+	if request.Desired.ProjectID != rows.snapshot.ProjectID || request.Desired.ChannelID != rows.snapshot.ChannelID {
+		return MeetingUpdateAuthorization{}, newMeetingMutationConflict(MeetingMutationConflictScopeImmutable)
+	}
 	participants, ok := meetingMutationLockParticipants(rows.snapshot, request.Desired.AttendeeUserIDs)
 	if !ok {
 		return MeetingUpdateAuthorization{}, ErrEventInternal
@@ -454,6 +458,22 @@ func (backend *eventEntTransactionBackend) lockMeetingMutationRows(ctx context.C
 	if len(attendees) == 0 || len(attendees) > meetingMutationMaxStoredAttendees {
 		return meetingEntMutationRows{}, ErrEventInternal
 	}
+	hasMaterializedExceptions := false
+	if scope.EventOperation() == EventMutationMeetingUpdate {
+		exceptions, err := backend.tx.CalendarEventException.Query().
+			Where(calendareventexception.CalendarEventIDEQ(event.ID)).
+			Order(ent.Asc(calendareventexception.FieldRecurrenceID), ent.Asc(calendareventexception.FieldID)).
+			ForUpdate().
+			Limit(calendarAvailabilityReservationMaxOccurrences + 1).
+			All(ctx)
+		if err != nil {
+			return meetingEntMutationRows{}, calendarEntSafeError(err)
+		}
+		if len(exceptions) > calendarAvailabilityReservationMaxOccurrences {
+			return meetingEntMutationRows{}, ErrAvailabilityLimitExceeded
+		}
+		hasMaterializedExceptions = len(exceptions) != 0
+	}
 	eventVersion, eventVersionOK := eventEntUint(event.Version)
 	callVersion, callVersionOK := eventEntUint(call.Version)
 	sequence, sequenceOK := eventEntUint(event.Sequence)
@@ -495,7 +515,8 @@ func (backend *eventEntTransactionBackend) lockMeetingMutationRows(ctx context.C
 		EventID: event.ID, ScheduledCallID: call.ID, OrganizationID: event.OrganizationID, OwnerID: event.CalendarOwnerID,
 		UID: event.UID, Title: event.Title, Description: event.Description, ProjectID: call.ProjectID, ChannelID: call.ChannelID,
 		StartsAt: startsAt, EndsAt: endsAt, Timezone: event.Timezone, RRULE: rule, Sequence: sequence,
-		EventVersion: eventVersion, ScheduledCallVersion: callVersion, OrganizerEmail: normalizeCalendarCreateEmail(event.OrganizerEmail),
+		EventVersion: eventVersion, ScheduledCallVersion: callVersion, HasMaterializedExceptions: hasMaterializedExceptions,
+		OrganizerEmail: normalizeCalendarCreateEmail(event.OrganizerEmail),
 		Attendees: stored,
 	}
 	if !snapshot.valid() || !meetingMutationCallParticipantsMatch(snapshot, call.Edges.Participants) {
@@ -630,7 +651,7 @@ func (backend *eventEntTransactionBackend) PersistMeetingUpdate(ctx context.Cont
 	if !meetingMutationSnapshotsEqual(rows.snapshot, command.current) {
 		return MeetingMutationPersistenceResult{}, ErrEventConflict
 	}
-	eventVersion, callVersion, sequence, ok := meetingMutationNextVersions(command.current)
+	eventVersion, callVersion, sequence, ok := meetingMutationUpdateVersions(command.current, command.plan)
 	if !ok {
 		return MeetingMutationPersistenceResult{}, ErrEventInternal
 	}
@@ -651,7 +672,6 @@ func (backend *eventEntTransactionBackend) PersistMeetingUpdate(ctx context.Cont
 		SetTimezone(command.desired.Timezone).
 		SetOrganizerID(scope.ActorID()).
 		SetOrganizerEmail(normalizeCalendarCreateEmail(command.authorization.Organizer.Email)).
-		SetStatus(calendarevent.Status(CalendarEventStatusConfirmed)).
 		SetSequence(sequence).
 		SetVersion(eventVersion)
 	if command.desired.RRULE == "" {
@@ -670,34 +690,38 @@ func (backend *eventEntTransactionBackend) PersistMeetingUpdate(ctx context.Cont
 	if err != nil {
 		return MeetingMutationPersistenceResult{}, err
 	}
-	if err := backend.ReconcileCalendarAvailabilityReservations(ctx, scope, command.reservations); err != nil {
-		return MeetingMutationPersistenceResult{}, err
+	if command.plan.reservationsChanged {
+		if err := backend.ReconcileCalendarAvailabilityReservations(ctx, scope, command.reservations); err != nil {
+			return MeetingMutationPersistenceResult{}, err
+		}
 	}
-	expectedCallVersion, _ := eventEntInt(command.current.ScheduledCallVersion)
-	callUpdate := backend.tx.ScheduledCall.UpdateOneID(command.current.ScheduledCallID).
-		Where(
-			scheduledcall.CalendarEventIDEQ(command.current.EventID),
-			scheduledcall.CreatedByEQ(scope.ActorID()),
-			scheduledcall.VersionEQ(expectedCallVersion),
-			scheduledcall.DeletedAtIsNil(),
-		).
-		SetTitle(command.desired.Title).
-		SetDescription(command.desired.Description).
-		SetScheduledAt(command.desired.StartsAt).
-		SetDurationMinutes(int(command.desired.EndsAt.Sub(command.desired.StartsAt) / time.Minute)).
-		SetProjectID(command.desired.ProjectID).
-		SetChannelID(command.desired.ChannelID).
-		SetParticipantIDs(append([]uuid.UUID(nil), command.desired.AttendeeUserIDs...)...).
-		SetIsActive(true).
-		ClearDeletedAt().
-		SetVersion(callVersion)
-	if command.desired.RRULE == "" {
-		callUpdate.ClearRrule()
-	} else {
-		callUpdate.SetRrule(command.desired.RRULE)
-	}
-	if err := callUpdate.Exec(ctx); err != nil {
-		return MeetingMutationPersistenceResult{}, calendarEntCASFailure(err)
+	if command.plan.callChanged {
+		expectedCallVersion, _ := eventEntInt(command.current.ScheduledCallVersion)
+		callUpdate := backend.tx.ScheduledCall.UpdateOneID(command.current.ScheduledCallID).
+			Where(
+				scheduledcall.CalendarEventIDEQ(command.current.EventID),
+				scheduledcall.CreatedByEQ(scope.ActorID()),
+				scheduledcall.VersionEQ(expectedCallVersion),
+				scheduledcall.DeletedAtIsNil(),
+			).
+			SetTitle(command.desired.Title).
+			SetDescription(command.desired.Description).
+			SetScheduledAt(command.desired.StartsAt).
+			SetDurationMinutes(int(command.desired.EndsAt.Sub(command.desired.StartsAt) / time.Minute)).
+			SetProjectID(command.desired.ProjectID).
+			SetChannelID(command.desired.ChannelID).
+			SetParticipantIDs(append([]uuid.UUID(nil), command.desired.AttendeeUserIDs...)...).
+			SetIsActive(true).
+			ClearDeletedAt().
+			SetVersion(callVersion)
+		if command.desired.RRULE == "" {
+			callUpdate.ClearRrule()
+		} else {
+			callUpdate.SetRrule(command.desired.RRULE)
+		}
+		if err := callUpdate.Exec(ctx); err != nil {
+			return MeetingMutationPersistenceResult{}, calendarEntCASFailure(err)
+		}
 	}
 	return newMeetingMutationPersistenceResult(uint(eventVersion), uint(callVersion), uint(sequence), activeIDs, removedIDs)
 }
@@ -711,30 +735,9 @@ func (backend *eventEntTransactionBackend) persistMeetingUpdateAttendees(ctx con
 		existing[*attendee.UserID] = attendee
 	}
 	organizer := existing[command.current.OwnerID]
-	if organizer == nil || organizer.Version < 1 || organizer.Version == int(^uint(0)>>1) {
+	if organizer == nil || organizer.RemovedAt != nil || organizer.Version < 1 || organizer.Version == int(^uint(0)>>1) ||
+		organizer.RsvpStatus != calendarattendee.RsvpStatus(RSVPAccepted) {
 		return nil, nil, ErrEventInternal
-	}
-	organizerUpdate := backend.tx.CalendarAttendee.UpdateOneID(organizer.ID).
-		Where(
-			calendarattendee.CalendarEventIDEQ(command.current.EventID),
-			calendarattendee.RecurrenceIDIsNil(),
-			calendarattendee.RemovedAtIsNil(),
-			calendarattendee.VersionEQ(organizer.Version),
-		).
-		SetUserID(command.current.OwnerID).
-		SetNormalizedEmail(normalizeCalendarCreateEmail(command.authorization.Organizer.Email)).
-		SetRole(calendarattendee.Role(CalendarEventAttendeeRoleOrganizer)).
-		SetRsvpStatus(calendarattendee.RsvpStatus(RSVPAccepted)).
-		ClearRespondedAt().
-		ClearRemovedAt().
-		SetVersion(organizer.Version + 1)
-	if command.authorization.Organizer.DisplayName == nil {
-		organizerUpdate.ClearDisplayName()
-	} else {
-		organizerUpdate.SetDisplayName(*command.authorization.Organizer.DisplayName)
-	}
-	if err := organizerUpdate.Exec(ctx); err != nil {
-		return nil, nil, calendarEntCASFailure(err)
 	}
 	desired := make(map[uuid.UUID]MeetingCreateMember, len(command.authorization.Attendees))
 	activeIDs := make([]uuid.UUID, 0, len(command.authorization.Attendees))
@@ -764,26 +767,42 @@ func (backend *eventEntTransactionBackend) persistMeetingUpdateAttendees(ctx con
 		if row.Version < 1 || row.Version == int(^uint(0)>>1) {
 			return nil, nil, ErrEventInternal
 		}
-		update := backend.tx.CalendarAttendee.UpdateOneID(row.ID).
-			Where(
-				calendarattendee.CalendarEventIDEQ(command.current.EventID),
-				calendarattendee.RecurrenceIDIsNil(),
-				calendarattendee.VersionEQ(row.Version),
-			).
-			SetUserID(member.UserID).
-			SetNormalizedEmail(normalizeCalendarCreateEmail(member.Email)).
-			SetRole(calendarattendee.Role(CalendarEventAttendeeRoleRequired)).
-			SetRsvpStatus(calendarattendee.RsvpStatus(RSVPNeedsAction)).
-			ClearRespondedAt().
-			ClearRemovedAt().
-			SetVersion(row.Version + 1)
-		if member.DisplayName == nil {
-			update.ClearDisplayName()
-		} else {
-			update.SetDisplayName(*member.DisplayName)
-		}
-		if err := update.Exec(ctx); err != nil {
-			return nil, nil, calendarEntCASFailure(err)
+		if row.RemovedAt != nil {
+			update := backend.tx.CalendarAttendee.UpdateOneID(row.ID).
+				Where(
+					calendarattendee.CalendarEventIDEQ(command.current.EventID),
+					calendarattendee.RecurrenceIDIsNil(),
+					calendarattendee.VersionEQ(row.Version),
+				).
+				SetUserID(member.UserID).
+				SetNormalizedEmail(normalizeCalendarCreateEmail(member.Email)).
+				SetRole(calendarattendee.Role(CalendarEventAttendeeRoleRequired)).
+				SetRsvpStatus(calendarattendee.RsvpStatus(RSVPNeedsAction)).
+				ClearRespondedAt().
+				ClearRemovedAt().
+				SetVersion(row.Version + 1)
+			if member.DisplayName == nil {
+				update.ClearDisplayName()
+			} else {
+				update.SetDisplayName(*member.DisplayName)
+			}
+			if err := update.Exec(ctx); err != nil {
+				return nil, nil, calendarEntCASFailure(err)
+			}
+		} else if calendarEventUpdateResetsNonOrganizers(command.plan.policy) {
+			if err := backend.tx.CalendarAttendee.UpdateOneID(row.ID).
+				Where(
+					calendarattendee.CalendarEventIDEQ(command.current.EventID),
+					calendarattendee.RecurrenceIDIsNil(),
+					calendarattendee.RemovedAtIsNil(),
+					calendarattendee.VersionEQ(row.Version),
+				).
+				SetRsvpStatus(calendarattendee.RsvpStatus(RSVPNeedsAction)).
+				ClearRespondedAt().
+				SetVersion(row.Version + 1).
+				Exec(ctx); err != nil {
+				return nil, nil, calendarEntCASFailure(err)
+			}
 		}
 		activeIDs = append(activeIDs, row.ID)
 	}
@@ -905,6 +924,24 @@ func (backend *eventEntTransactionBackend) PersistMeetingCancel(ctx context.Cont
 		return MeetingMutationPersistenceResult{}, calendarEntCASFailure(err)
 	}
 	return newMeetingMutationPersistenceResult(uint(eventVersion), uint(callVersion), uint(sequence), command.current.activeInviteeRecordIDs(), nil)
+}
+
+func meetingMutationUpdateVersions(snapshot MeetingMutationSnapshot, plan meetingUpdatePlan) (int, int, int, bool) {
+	if !snapshot.valid() || !plan.hasChanges() || plan.policy.VersionIncrement != 1 || plan.policy.SequenceIncrement > 1 ||
+		snapshot.EventVersion > ^uint(0)-plan.policy.VersionIncrement || snapshot.Sequence > ^uint(0)-plan.policy.SequenceIncrement {
+		return 0, 0, 0, false
+	}
+	callIncrement := uint(0)
+	if plan.callChanged {
+		callIncrement = 1
+	}
+	if snapshot.ScheduledCallVersion > ^uint(0)-callIncrement {
+		return 0, 0, 0, false
+	}
+	eventVersion, eventOK := eventEntInt(snapshot.EventVersion + plan.policy.VersionIncrement)
+	callVersion, callOK := eventEntInt(snapshot.ScheduledCallVersion + callIncrement)
+	sequence, sequenceOK := eventEntInt(snapshot.Sequence + plan.policy.SequenceIncrement)
+	return eventVersion, callVersion, sequence, eventOK && callOK && sequenceOK
 }
 
 func meetingMutationNextVersions(snapshot MeetingMutationSnapshot) (int, int, int, bool) {

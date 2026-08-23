@@ -892,7 +892,7 @@ func (transaction *EventTransaction) PersistMeetingCancel(ctx context.Context, s
 	if err != nil {
 		return MeetingMutationPersistenceResult{}, err
 	}
-	if !result.valid() {
+	if !result.valid() || result.Sequence() == 0 {
 		return MeetingMutationPersistenceResult{}, ErrEventInternal
 	}
 	return result, nil

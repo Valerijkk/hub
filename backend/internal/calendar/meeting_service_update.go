@@ -54,6 +54,34 @@ func (service *MeetingService) UpdateMeeting(ctx context.Context, actorID uuid.U
 		if authorization.Current.EventVersion != command.input.ExpectedVersion {
 			return meetingMutationVersionConflict(authorization.Current.EventID, authorization.Current.EventVersion)
 		}
+		if command.input.Desired.ProjectID != authorization.Current.ProjectID || command.input.Desired.ChannelID != authorization.Current.ChannelID {
+			return newMeetingMutationConflict(MeetingMutationConflictScopeImmutable)
+		}
+		plan, err := newMeetingUpdatePlan(authorization.Current, command.input.Desired, command.input.NotifyAttendees)
+		if err != nil {
+			return ErrEventInternal
+		}
+		if authorization.Current.HasMaterializedExceptions && plan.materializedSeriesConflict {
+			return newMeetingMutationConflict(MeetingMutationConflictRecurrence)
+		}
+		if !plan.hasChanges() {
+			response, err := meetingUpdateResponse(
+				authorization.Current.EventID, authorization.Current.ScheduledCallID, scope.ActorID(), command.input.Desired,
+				authorization.Current.EventVersion, authorization.Current.ScheduledCallVersion,
+			)
+			if err != nil {
+				return ErrEventInternal
+			}
+			completion, err := NewMutationReceiptCompletion(reserved.ReceiptID(), &authorization.Current.EventID, response)
+			if err != nil {
+				return ErrEventInternal
+			}
+			if err := transaction.CompleteMutationReceipt(ctx, scope, completion); err != nil {
+				return err
+			}
+			result = MeetingMutationResult{response: response}
+			return nil
+		}
 		occurrences, err := meetingCreateReservationOccurrences(command.input.Desired, authorization.Current.EventID)
 		if err != nil {
 			return err
@@ -67,6 +95,7 @@ func (service *MeetingService) UpdateMeeting(ctx context.Context, actorID uuid.U
 		}
 		persistence, err := NewMeetingUpdatePersistenceCommand(
 			authorization.Current, command.input.Desired, authorization.Desired, reservations, command.input.ExpectedVersion,
+			command.input.NotifyAttendees,
 		)
 		if err != nil {
 			return ErrEventInternal
@@ -75,7 +104,7 @@ func (service *MeetingService) UpdateMeeting(ctx context.Context, actorID uuid.U
 		if err != nil {
 			return err
 		}
-		if err := service.appendMeetingUpdateOutbox(ctx, transaction, scope, command.input.Desired, authorization.Current, persisted); err != nil {
+		if err := service.appendMeetingUpdateOutbox(ctx, transaction, scope, command.input.Desired, authorization.Current, persisted, plan); err != nil {
 			return err
 		}
 		response, err := meetingUpdateResponse(
@@ -183,10 +212,20 @@ func meetingMutationReserveReceipt(ctx context.Context, transaction *EventTransa
 	return transaction.ReserveMutationReceipt(ctx, scope, reservation)
 }
 
-func (service *MeetingService) appendMeetingUpdateOutbox(ctx context.Context, transaction *EventTransaction, scope EventMutationScope, desired MeetingCreateInput, current MeetingMutationSnapshot, persisted MeetingMutationPersistenceResult) error {
+func (service *MeetingService) appendMeetingUpdateOutbox(ctx context.Context, transaction *EventTransaction, scope EventMutationScope, desired MeetingCreateInput, current MeetingMutationSnapshot, persisted MeetingMutationPersistenceResult, plan meetingUpdatePlan) error {
 	removedIDs := persisted.RemovedAttendeeIDs()
-	count := 3
-	if len(removedIDs) != 0 {
+	sendCancel := plan.policy.CancelIntent == CancelIntentRemovedAttendees
+	if !plan.hasChanges() || (len(removedIDs) != 0) != sendCancel {
+		return ErrEventInternal
+	}
+	count := 1
+	if plan.policy.SendRequest {
+		count++
+	}
+	if plan.callChanged {
+		count++
+	}
+	if sendCancel {
 		count++
 	}
 	ids, occurredAt, err := service.meetingMutationEnvelopeIDs(count)
@@ -206,37 +245,42 @@ func (service *MeetingService) appendMeetingUpdateOutbox(ctx context.Context, tr
 	if err != nil {
 		return ErrEventInternal
 	}
-	inviteEnvelope, err := NewCalendarInviteUpdatedEnvelopeV1(
-		ids[1], occurredAt, scope.OrganizationID(), &actorID, correlationID,
-		CalendarInviteUpdatedPayload{
-			EventID: current.EventID, UID: current.UID, Sequence: persisted.Sequence(),
-			AttendeeIDs: persisted.ActiveAttendeeIDs(), ResetRSVP: true,
-			ChangedFields: []CalendarEventChangedField{
-				CalendarEventChangedFieldTitle, CalendarEventChangedFieldDescription,
-				CalendarEventChangedFieldStartsAt, CalendarEventChangedFieldEndsAt,
-				CalendarEventChangedFieldTimezone, CalendarEventChangedFieldRRULE,
-				CalendarEventChangedFieldAttendees,
+	envelopes := make([]events.EnvelopeV1, 0, count)
+	envelopes = append(envelopes, meetingEnvelope)
+	nextID := 1
+	if plan.policy.SendRequest {
+		inviteEnvelope, err := NewCalendarInviteUpdatedEnvelopeV1(
+			ids[nextID], occurredAt, scope.OrganizationID(), &actorID, correlationID,
+			CalendarInviteUpdatedPayload{
+				EventID: current.EventID, UID: current.UID, Sequence: persisted.Sequence(),
+				AttendeeIDs: persisted.ActiveAttendeeIDs(), ResetRSVP: plan.policy.RSVPReset != RSVPResetNone,
+				ChangedFields: append([]CalendarEventChangedField(nil), plan.changedFields...),
 			},
-		},
-	)
-	if err != nil {
-		return ErrEventInternal
+		)
+		if err != nil {
+			return ErrEventInternal
+		}
+		envelopes = append(envelopes, inviteEnvelope)
+		nextID++
 	}
-	callEnvelope, err := events.NewEnvelopeV1(
-		"calls.channel."+desired.ChannelID.String()+".scheduled_updated.v1", ids[2], occurredAt,
-		scope.OrganizationID(), &actorID, correlationID,
-		meetingCallMutationPayload{
-			ScheduledCallID: current.ScheduledCallID, CalendarEventID: current.EventID, ProjectID: desired.ProjectID,
-			ChannelID: desired.ChannelID, CreatorID: actorID, IsActive: true, Version: persisted.CallVersion(),
-		},
-	)
-	if err != nil {
-		return ErrEventInternal
+	if plan.callChanged {
+		callEnvelope, err := events.NewEnvelopeV1(
+			"calls.channel."+desired.ChannelID.String()+".scheduled_updated.v1", ids[nextID], occurredAt,
+			scope.OrganizationID(), &actorID, correlationID,
+			meetingCallMutationPayload{
+				ScheduledCallID: current.ScheduledCallID, CalendarEventID: current.EventID, ProjectID: desired.ProjectID,
+				ChannelID: desired.ChannelID, CreatorID: actorID, IsActive: true, Version: persisted.CallVersion(),
+			},
+		)
+		if err != nil {
+			return ErrEventInternal
+		}
+		envelopes = append(envelopes, callEnvelope)
+		nextID++
 	}
-	envelopes := []events.EnvelopeV1{meetingEnvelope, inviteEnvelope, callEnvelope}
-	if len(removedIDs) != 0 {
+	if sendCancel {
 		cancelled, err := NewCalendarInviteCancelledEnvelopeV1(
-			ids[3], occurredAt, scope.OrganizationID(), &actorID, correlationID,
+			ids[nextID], occurredAt, scope.OrganizationID(), &actorID, correlationID,
 			CalendarInviteCancelledPayload{
 				EventID: current.EventID, UID: current.UID, Sequence: persisted.Sequence(), AttendeeIDs: removedIDs,
 			},

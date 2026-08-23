@@ -12,7 +12,7 @@ import (
 
 const (
 	meetingCreateFingerprintVersion = 1
-	meetingUpdateFingerprintVersion = 1
+	meetingUpdateFingerprintVersion = 2
 	meetingCancelFingerprintVersion = 1
 	meetingCreateMaxAttendees       = 50
 	meetingMutationMaxStoredAttendees = 1000
@@ -146,6 +146,7 @@ type meetingCreateFingerprint struct {
 type MeetingUpdateInput struct {
 	EventID         uuid.UUID
 	ExpectedVersion uint
+	NotifyAttendees bool
 	Desired         MeetingCreateInput
 }
 
@@ -165,9 +166,11 @@ func NewMeetingUpdateCommand(input MeetingUpdateInput) (MeetingUpdateCommand, er
 		Version         int                `json:"version"`
 		EventID         uuid.UUID          `json:"event_id"`
 		ExpectedVersion uint               `json:"expected_version"`
+		NotifyAttendees bool               `json:"notify_attendees"`
 		Desired         meetingCreateFingerprint `json:"desired"`
 	}{
 		Version: meetingUpdateFingerprintVersion, EventID: input.EventID, ExpectedVersion: input.ExpectedVersion,
+		NotifyAttendees: input.NotifyAttendees,
 		Desired: meetingCreateFingerprint{
 			Version: meetingCreateFingerprintVersion, Title: input.Desired.Title, Description: input.Desired.Description,
 			ProjectID: input.Desired.ProjectID, ChannelID: input.Desired.ChannelID, StartsAt: input.Desired.StartsAt,
@@ -193,6 +196,91 @@ func (command MeetingUpdateCommand) valid() bool {
 func (command MeetingUpdateCommand) allowsActor(actorID uuid.UUID) bool {
 	canonical, err := NewMeetingCreateCommand(command.input.Desired)
 	return err == nil && canonical.allowsActor(actorID)
+}
+
+type meetingUpdatePlan struct {
+	policy                     EventUpdatePolicy
+	changedFields              []CalendarEventChangedField
+	callChanged                bool
+	reservationsChanged        bool
+	materializedSeriesConflict bool
+}
+
+func newMeetingUpdatePlan(current MeetingMutationSnapshot, desired MeetingCreateInput, notifyAttendees bool) (meetingUpdatePlan, error) {
+	canonical, err := NewMeetingCreateCommand(desired)
+	if err != nil || !current.valid() {
+		return meetingUpdatePlan{}, ErrEventInvalid
+	}
+	desired = canonical.input
+	fields := make([]CalendarEventChangedField, 0, 7)
+	update := EventUpdate{NotifyAttendees: notifyAttendees}
+	titleChanged := current.Title != desired.Title
+	descriptionChanged := current.Description != desired.Description
+	startsChanged := !current.StartsAt.Equal(desired.StartsAt)
+	endsChanged := !current.EndsAt.Equal(desired.EndsAt)
+	timezoneChanged := current.Timezone != desired.Timezone
+	recurrenceChanged := current.RRULE != desired.RRULE
+	attendeesChanged, addedAttendees, removedAttendees := meetingUpdateAttendeeChanges(current.activeInviteeUserIDs(), desired.AttendeeUserIDs)
+	if titleChanged {
+		fields = append(fields, CalendarEventChangedFieldTitle)
+		update.TitleOrAgendaChanged = true
+	}
+	if descriptionChanged {
+		fields = append(fields, CalendarEventChangedFieldDescription)
+		update.DescriptionChanged = true
+	}
+	if startsChanged {
+		fields = append(fields, CalendarEventChangedFieldStartsAt)
+		update.TimeChanged = true
+	}
+	if endsChanged {
+		fields = append(fields, CalendarEventChangedFieldEndsAt)
+		update.TimeChanged = true
+	}
+	if timezoneChanged {
+		fields = append(fields, CalendarEventChangedFieldTimezone)
+		update.TimezoneChanged = true
+	}
+	if recurrenceChanged {
+		fields = append(fields, CalendarEventChangedFieldRRULE)
+		update.RecurrenceChanged = true
+	}
+	if attendeesChanged {
+		fields = append(fields, CalendarEventChangedFieldAttendees)
+		update.AddedAttendees = addedAttendees
+		update.RemovedAttendees = removedAttendees
+	}
+	return meetingUpdatePlan{
+		policy:                     ClassifyEventUpdate(update),
+		changedFields:              canonicalCalendarEventChangedFields(fields),
+		callChanged:                titleChanged || descriptionChanged || startsChanged || current.EndsAt.Sub(current.StartsAt) != desired.EndsAt.Sub(desired.StartsAt) || recurrenceChanged || attendeesChanged,
+		reservationsChanged:        startsChanged || endsChanged || timezoneChanged || recurrenceChanged || attendeesChanged,
+		materializedSeriesConflict: startsChanged || endsChanged || timezoneChanged || recurrenceChanged || attendeesChanged,
+	}, nil
+}
+
+func (plan meetingUpdatePlan) hasChanges() bool {
+	return plan.policy.VersionIncrement != 0 && len(plan.changedFields) != 0
+}
+
+func meetingUpdateAttendeeChanges(current, desired []uuid.UUID) (changed, added, removed bool) {
+	currentSet := make(map[uuid.UUID]struct{}, len(current))
+	desiredSet := make(map[uuid.UUID]struct{}, len(desired))
+	for _, identifier := range current {
+		currentSet[identifier] = struct{}{}
+	}
+	for _, identifier := range desired {
+		desiredSet[identifier] = struct{}{}
+		if _, retained := currentSet[identifier]; !retained {
+			added = true
+		}
+	}
+	for _, identifier := range current {
+		if _, retained := desiredSet[identifier]; !retained {
+			removed = true
+		}
+	}
+	return added || removed, added, removed
 }
 
 type MeetingCancelInput struct {
@@ -413,6 +501,7 @@ type MeetingMutationSnapshot struct {
 	Sequence            uint
 	EventVersion        uint
 	ScheduledCallVersion uint
+	HasMaterializedExceptions bool
 	OrganizerEmail      string
 	Attendees           []MeetingStoredAttendee
 }
@@ -520,9 +609,11 @@ type MeetingUpdatePersistenceCommand struct {
 	authorization   MeetingCreateAuthorization
 	reservations    CalendarAvailabilityReservationSet
 	expectedVersion uint
+	notifyAttendees bool
+	plan            meetingUpdatePlan
 }
 
-func NewMeetingUpdatePersistenceCommand(current MeetingMutationSnapshot, desired MeetingCreateInput, authorization MeetingCreateAuthorization, reservations CalendarAvailabilityReservationSet, expectedVersion uint) (MeetingUpdatePersistenceCommand, error) {
+func NewMeetingUpdatePersistenceCommand(current MeetingMutationSnapshot, desired MeetingCreateInput, authorization MeetingCreateAuthorization, reservations CalendarAvailabilityReservationSet, expectedVersion uint, notifyAttendees bool) (MeetingUpdatePersistenceCommand, error) {
 	canonical, err := NewMeetingCreateCommand(desired)
 	if err != nil || !current.valid() || !authorization.valid() || !reservations.valid() || expectedVersion == 0 ||
 		!meetingMutationSnapshotsEqual(current, authorization.Current) ||
@@ -544,15 +635,37 @@ func NewMeetingUpdatePersistenceCommand(current MeetingMutationSnapshot, desired
 	if !meetingMutationUUIDsEqual(expectedParticipants, reservations.Participants()) {
 		return MeetingUpdatePersistenceCommand{}, ErrEventInvalid
 	}
+	plan, err := newMeetingUpdatePlan(current, canonical.input, notifyAttendees)
+	if err != nil || !plan.hasChanges() || plan.policy.VersionIncrement != 1 ||
+		plan.policy.SequenceIncrement > 1 || current.HasMaterializedExceptions && plan.materializedSeriesConflict {
+		return MeetingUpdatePersistenceCommand{}, ErrEventInvalid
+	}
 	return MeetingUpdatePersistenceCommand{
 		current: cloneMeetingMutationSnapshot(current), desired: canonical.input, authorization: cloneMeetingCreateAuthorization(authorization),
 		reservations: cloneCalendarAvailabilityReservationSet(reservations), expectedVersion: expectedVersion,
+		notifyAttendees: notifyAttendees, plan: plan,
 	}, nil
 }
 
 func (command MeetingUpdatePersistenceCommand) valid() bool {
-	_, err := NewMeetingUpdatePersistenceCommand(command.current, command.desired, command.authorization, command.reservations, command.expectedVersion)
-	return err == nil
+	rebuilt, err := NewMeetingUpdatePersistenceCommand(command.current, command.desired, command.authorization, command.reservations, command.expectedVersion, command.notifyAttendees)
+	if err != nil {
+		return false
+	}
+	return meetingUpdatePlansEqual(rebuilt.plan, command.plan)
+}
+
+func meetingUpdatePlansEqual(left, right meetingUpdatePlan) bool {
+	if left.policy != right.policy || left.callChanged != right.callChanged || left.reservationsChanged != right.reservationsChanged ||
+		left.materializedSeriesConflict != right.materializedSeriesConflict || len(left.changedFields) != len(right.changedFields) {
+		return false
+	}
+	for index := range left.changedFields {
+		if left.changedFields[index] != right.changedFields[index] {
+			return false
+		}
+	}
+	return true
 }
 
 type MeetingCancelPersistenceCommand struct {
@@ -581,7 +694,7 @@ type MeetingMutationPersistenceResult struct {
 }
 
 func newMeetingMutationPersistenceResult(eventVersion, callVersion, sequence uint, activeAttendeeIDs, removedAttendeeIDs []uuid.UUID) (MeetingMutationPersistenceResult, error) {
-	if eventVersion == 0 || callVersion == 0 || sequence == 0 ||
+	if eventVersion == 0 || callVersion == 0 ||
 		len(activeAttendeeIDs) == 0 || len(activeAttendeeIDs) > meetingCreateMaxAttendees ||
 		len(removedAttendeeIDs) > meetingCreateMaxAttendees {
 		return MeetingMutationPersistenceResult{}, ErrEventInvalid
@@ -676,6 +789,7 @@ func cloneMeetingUpdatePersistenceCommand(command MeetingUpdatePersistenceComman
 	command.desired.AttendeeUserIDs = append([]uuid.UUID(nil), command.desired.AttendeeUserIDs...)
 	command.authorization = cloneMeetingCreateAuthorization(command.authorization)
 	command.reservations = cloneCalendarAvailabilityReservationSet(command.reservations)
+	command.plan.changedFields = append([]CalendarEventChangedField(nil), command.plan.changedFields...)
 	return command
 }
 
@@ -690,7 +804,8 @@ func meetingMutationSnapshotsEqual(left, right MeetingMutationSnapshot) bool {
 		left.ProjectID != right.ProjectID || left.ChannelID != right.ChannelID || !left.StartsAt.Equal(right.StartsAt) ||
 		!left.EndsAt.Equal(right.EndsAt) || left.Timezone != right.Timezone || left.RRULE != right.RRULE ||
 		left.Sequence != right.Sequence || left.EventVersion != right.EventVersion ||
-		left.ScheduledCallVersion != right.ScheduledCallVersion || left.OrganizerEmail != right.OrganizerEmail ||
+		left.ScheduledCallVersion != right.ScheduledCallVersion || left.HasMaterializedExceptions != right.HasMaterializedExceptions ||
+		left.OrganizerEmail != right.OrganizerEmail ||
 		len(left.Attendees) != len(right.Attendees) {
 		return false
 	}

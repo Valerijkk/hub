@@ -34,9 +34,9 @@ func (request calendarHTTPMeetingCreateRequest) command(idempotencyKey string) (
 	})
 }
 
-func (request calendarHTTPMeetingCreateRequest) updateCommand(eventID uuid.UUID, expectedVersion uint, idempotencyKey string) (MeetingUpdateCommand, error) {
+func (request calendarHTTPMeetingCreateRequest) updateCommand(eventID uuid.UUID, expectedVersion uint, idempotencyKey string, notifyAttendees bool) (MeetingUpdateCommand, error) {
 	return NewMeetingUpdateCommand(MeetingUpdateInput{
-		EventID: eventID, ExpectedVersion: expectedVersion,
+		EventID: eventID, ExpectedVersion: expectedVersion, NotifyAttendees: notifyAttendees,
 		Desired: MeetingCreateInput{
 			IdempotencyKey: idempotencyKey, Title: request.Title, Description: request.Description,
 			ProjectID: request.ProjectID, ChannelID: request.ChannelID, StartsAt: request.StartsAt, EndsAt: request.EndsAt,

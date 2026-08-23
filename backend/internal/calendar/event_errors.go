@@ -133,6 +133,8 @@ const (
 	MeetingMutationConflictIdempotencyKeyReused MeetingMutationConflictKind = "idempotency_key_reused"
 	MeetingMutationConflictSlotUnavailable      MeetingMutationConflictKind = "slot_unavailable"
 	MeetingMutationConflictVersion              MeetingMutationConflictKind = "version_conflict"
+	MeetingMutationConflictRecurrence           MeetingMutationConflictKind = "recurrence_conflict"
+	MeetingMutationConflictScopeImmutable       MeetingMutationConflictKind = "scope_immutable"
 )
 
 type MeetingMutationConflictError struct {
@@ -149,6 +151,10 @@ func (err MeetingMutationConflictError) Error() string {
 		return "meeting slot unavailable"
 	case MeetingMutationConflictVersion:
 		return "meeting version conflict"
+	case MeetingMutationConflictRecurrence:
+		return "meeting recurrence conflict"
+	case MeetingMutationConflictScopeImmutable:
+		return "meeting scope is immutable"
 	default:
 		return "meeting mutation conflict"
 	}
@@ -175,7 +181,8 @@ func (err MeetingMutationConflictError) Is(target error) bool {
 }
 
 func newMeetingMutationConflict(kind MeetingMutationConflictKind) error {
-	if kind == MeetingMutationConflictIdempotencyKeyReused || kind == MeetingMutationConflictSlotUnavailable {
+	if kind == MeetingMutationConflictIdempotencyKeyReused || kind == MeetingMutationConflictSlotUnavailable ||
+		kind == MeetingMutationConflictRecurrence || kind == MeetingMutationConflictScopeImmutable {
 		return MeetingMutationConflictError{kind: kind}
 	}
 	return ErrEventInternal

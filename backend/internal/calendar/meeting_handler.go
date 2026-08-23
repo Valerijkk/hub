@@ -39,11 +39,13 @@ func (handler *MeetingHandler) UpdateMeeting(c fiber.Ctx) error {
 	if err != nil { return err }
 	expectedVersion, err := calendarHTTPIfMatch(c)
 	if err != nil { return err }
+	notifyAttendees, err := calendarHTTPNotifyAttendees(c)
+	if err != nil { return err }
 	idempotencyKey, err := calendarHTTPIdempotencyKey(c)
 	if err != nil { return err }
 	var request calendarHTTPMeetingCreateRequest
 	if err := calendarHTTPDecode(c, &request); err != nil { return err }
-	command, err := request.updateCommand(eventID, expectedVersion, idempotencyKey)
+	command, err := request.updateCommand(eventID, expectedVersion, idempotencyKey, notifyAttendees)
 	if err != nil { return meetingHTTPUnprocessable() }
 	result, err := handler.service.UpdateMeeting(c.Context(), actorID, command)
 	if err != nil { return meetingHTTPMutationError(c, err) }
@@ -160,6 +162,10 @@ func meetingHTTPMutationError(c fiber.Ctx, err error) error {
 			c.Set("ETag", strconv.Quote(strconv.FormatUint(uint64(version), 10)))
 			c.Set("Location", fmt.Sprintf("/api/calendar/v2/meetings/%s", eventID.String()))
 			return calendarHTTPConflict(c, "MEETING_VERSION_CONFLICT", "meeting version is stale")
+		case MeetingMutationConflictRecurrence:
+			return calendarHTTPConflict(c, "MEETING_RECURRENCE_CONFLICT", "meeting recurrence conflicts with materialized occurrences")
+		case MeetingMutationConflictScopeImmutable:
+			return calendarHTTPConflict(c, "MEETING_SCOPE_IMMUTABLE", "meeting project and channel are immutable")
 		default:
 			return meetingHTTPInternal()
 		}
