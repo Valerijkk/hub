@@ -580,6 +580,10 @@ acceptance of Tasks 6A and 6B.
 - Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
 - Modify: `backend/internal/mail/mailbox_ent_sync_prepare.go`
 
+**Status:** Tasks 6Q2 and 6V are `STATIC_ACCEPTED / QUALITY_APPROVED / RUNTIME_NOT_RUN` through
+source commits `57b815a1`, `43a6546d`, and `89c47581`. This is static source acceptance only; it
+does not authorize compile, generation, database, Docker, test, or runtime claims.
+
 Freeze the replacement private helper exactly as:
 
 ```go
@@ -627,10 +631,10 @@ is authorized; all executable evidence remains `NOT_RUN`.
 **Files:**
 - Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
 
-Sources `57b` and `43a` are `PENDING_RETRY_CAP_AND_FENCE_GENERATION / RUNTIME_NOT_RUN`, not static
-accepted. `43a` remains state-machine-correct for decoder reconstruction, but final quality cannot
-close until this one-file Claim/6Q2 correction is independently reviewed. The exact source manifest
-remains `backend/internal/mail/mailbox_ent_sync_claim.go`; it changes the decoder plus Claim/Resolve
+Task 6V is included in the `STATIC_ACCEPTED / QUALITY_APPROVED / RUNTIME_NOT_RUN` 6Q2/6V packet
+through source commits `57b815a1`, `43a6546d`, and `89c47581`. `43a6546d` remains
+state-machine-correct for decoder reconstruction. The exact source manifest remains
+`backend/internal/mail/mailbox_ent_sync_claim.go`; it changes the decoder plus Claim/Resolve
 retry-cap and lease-generation behavior only, with no schema, public API, or migration change. The
 locked production-only test rule remains in force.
 
@@ -664,9 +668,8 @@ all executable evidence remain `NOT_RUN`.
 **Files:**
 - Create: `backend/internal/mail/mailbox_sync_apply_canonical.go`
 
-Current 6C0 through source `52190` is `PENDING_PROVENANCE_V2 / RUNTIME_NOT_RUN`; it is not static
-accepted and cannot satisfy 6C1 or 6C2. The following v1 registry is preserved as historical context
-only and is superseded by 6C0V2.
+Prior v1 source range `8935..52190` is `SUPERSEDED_BY_6C0V2 / NOT_RUNTIME_ACCEPTED`; it cannot
+satisfy 6C1 or 6C2. The following v1 registry is preserved as historical context only.
 
 The historical handoff froze the exported-for-internal-package implementation API:
 
@@ -766,6 +769,10 @@ Until then, exact-scope static source review is the only gate and executable evi
 - Modify: `backend/internal/mail/mailbox_sync_service.go`
 - Modify: `backend/internal/mail/mailbox_fake.go`
 - Modify: `backend/internal/mail/mailbox_sync_apply_canonical.go`
+
+**Status:** `STATIC_ACCEPTED / SPEC_PASS / QUALITY_APPROVED / RUNTIME_NOT_RUN` through source commits
+`41851638` and `805ac226`. This is static source/spec acceptance only; it does not authorize compile,
+generation, database, Docker, test, or runtime claims. The next active packets remain 6C1, then 6C2.
 
 `EngineMessageProjection` gains source-authoritative `CalendarMethod *MailCalendarMethod`. Only the
 future provider adapter may derive it, from bounded server-side MIME/calendar parsing; it validates,

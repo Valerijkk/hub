@@ -83,12 +83,12 @@ DB clock owns only lease/due decisions and the schedule marker. Repository code 
 provider I/O. A sync step claims durable state, releases the transaction, performs one bounded
 `MailEngine` call, then opens a new transaction that verifies the exact fence before applying results.
 Handled `transient`, `rejected`, `invalid_cursor`, and `restart_required` Resolve failures all become
-`degraded`. Sources `57b` and `43a` are `PENDING_RETRY_CAP_AND_FENCE_GENERATION / RUNTIME_NOT_RUN`;
-`43a` remains state-machine-correct for decoder reconstruction, but neither can be statically
-accepted until this one-file Claim/6Q2 quality correction has independent review. The only source
-manifest remains `backend/internal/mail/mailbox_ent_sync_claim.go`; it changes the decoder plus
-Claim/Resolve retry-cap and lease-generation behavior only, with no schema, public API, or migration
-change.
+`degraded`. Tasks 6Q2/6V are `STATIC_ACCEPTED / QUALITY_APPROVED / RUNTIME_NOT_RUN` through source
+commits `57b815a1`, `43a6546d`, and `89c47581`; `43a6546d` remains state-machine-correct for decoder
+reconstruction. The only source manifest remains `backend/internal/mail/mailbox_ent_sync_claim.go`;
+it changes the decoder plus Claim/Resolve retry-cap and lease-generation behavior only, with no
+schema, public API, or migration change. Acceptance is static only and does not establish compile,
+generation, database, Docker, test, or runtime evidence.
 `CURSOR_INVALID` and `RESTART_REQUIRED` require nil rebuild fields (`sync_base_cursor` and
 `sync_checkpoint`) and reconstruct empty bootstrap `Enumeration`. For `transient`/`rejected`, no
 base/no checkpoint plus valid `sync_cursor` reconstructs `Incremental` with that cursor; the same
@@ -111,15 +111,18 @@ Apply writes `sync_lease_applied_next_at = NextAttemptAt` and checked exact-seco
 and a new claim is permitted after lease expiry. A matching same-lease proof replays
 without writes. A same-lease mismatch of hash, hash version, phase, next attempt, or
 position returns the existing content-free invalid repository error with zero writes;
-it is never overwritten or re-applied. Task 6C0 through source `52190` is
-`PENDING_PROVENANCE_V2 / RUNTIME_NOT_RUN` and cannot be consumed. 6C0V2 in the implementation plan
-is the single normative v2 SHA-256 wire registry: fixed-width big-endian TLV framing, outer domain
-`hub.mail.sync.apply.result.v2`, format/proof version `2`, exact nested-record tag layout and
-canonical collection ordering. `Upsert` tag `8` is optional source-authoritative `CalendarMethod` enum
-string and tag `9` is the ordered `ChangedFields` enum-string collection. No alternate uvarint,
-RFC3339, JSON, or implementation-order encoding is admissible, except the registered immutable
-`EventEnvelope.FrozenJSON` bytes. A stored v1 proof is a mismatch and fails closed; no migration,
-proof overwrite, or event-JSON authority is introduced.
+it is never overwritten or re-applied. Prior v1 source range `8935..52190` is
+`SUPERSEDED_BY_6C0V2 / NOT_RUNTIME_ACCEPTED` and cannot be consumed. 6C0V2 is
+`STATIC_ACCEPTED / SPEC_PASS / QUALITY_APPROVED / RUNTIME_NOT_RUN` through source commits
+`41851638` and `805ac226`. It is the single normative v2 SHA-256 wire registry: fixed-width
+big-endian TLV framing, outer domain `hub.mail.sync.apply.result.v2`, format/proof version `2`, exact
+nested-record tag layout and canonical collection ordering. `Upsert` tag `8` is optional
+source-authoritative `CalendarMethod` enum string and tag `9` is the ordered `ChangedFields`
+enum-string collection. No alternate uvarint, RFC3339, JSON, or implementation-order encoding is
+admissible, except the registered immutable `EventEnvelope.FrozenJSON` bytes. A stored v1 proof is a
+mismatch and fails closed; no migration, proof overwrite, or event-JSON authority is introduced.
+This acceptance is static/spec-only and does not establish compile, generation, database, Docker,
+test, or runtime evidence.
 
 `EngineMessageProjection.CalendarMethod` is source-authoritative only when a future provider adapter
 derives it from bounded server-side MIME/calendar parsing, validates, copies, and budgets it. It is
@@ -244,10 +247,11 @@ envelopes cross the boundary; state ownership does not.
 1. Migration mechanism and schema diff authority.
 2. Calendar base Ent transaction adapter, followed by RSVP/update/cancel/inbound
    reply capability files.
-3. Mail owner and sync/worker Ent adapters: required prerequisite chain 6W -> 6Q2 -> 6C0V2 ->
-   6C1 -> 6C2. 6Q source `6477` is superseded/pending correction; 6V source `43a` remains
-   state-machine-correct but its final quality waits for 6Q2. 6C0 through `52190` remains pending
-   provenance v2. 6Q2 and 6C0V2 share Prepare and are strictly sequential.
+3. Mail owner and sync/worker Ent adapters: 6Q2/6V are `STATIC_ACCEPTED / QUALITY_APPROVED /
+   RUNTIME_NOT_RUN` through `57b815a1`, `43a6546d`, and `89c47581`; 6C0V2 is
+   `STATIC_ACCEPTED / SPEC_PASS / QUALITY_APPROVED / RUNTIME_NOT_RUN` through `41851638` and
+   `805ac226`. Prior v1 `8935..52190` is superseded by v2 and not runtime accepted. 6Q2 and 6C0V2
+   share Prepare but are complete; the next active order is 6C1, then 6C2.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
