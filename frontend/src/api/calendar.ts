@@ -21,8 +21,6 @@ export interface CalendarEventsResponse {
 	to: string;
 }
 
-export type CalendarAvailabilitySource = "event" | "call" | "leave";
-
 export interface CalendarAvailabilityRequest {
 	user_ids: string[];
 	from: string;
@@ -34,7 +32,6 @@ export interface CalendarAvailabilityRequest {
 export interface CalendarAvailabilityBusyInterval {
 	from: string;
 	to: string;
-	source: CalendarAvailabilitySource;
 }
 
 export interface CalendarAvailabilityFreeInterval {

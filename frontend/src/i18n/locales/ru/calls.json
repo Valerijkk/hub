@@ -31,5 +31,14 @@
 	"duration": "Длительность",
 	"connecting": "Подключение...",
 	"reconnecting": "Переподключение...",
-	"connected": "Подключен"
+	"connected": "Подключен",
+	"meetingDescriptionLabel": "Описание",
+	"meetingDescriptionPlaceholder": "Добавьте контекст для участников",
+	"meetingDescriptionLimit": "Не более {{count}} байт",
+	"meetingTimezoneLabel": "Часовой пояс",
+	"meetingTimezonePlaceholder": "Выберите часовой пояс",
+	"meetingTimezoneInvalid": "Выберите корректный часовой пояс.",
+	"meetingWallTimeInvalid": "Выбранное местное время недействительно или неоднозначно в этом часовом поясе. Выберите другое время.",
+	"meetingDescriptionTooLong": "Описание должно содержать не более {{count}} байт.",
+	"meetingSlotUnavailable": "Это время только что заняли. Выберите другое время и попробуйте снова."
 }

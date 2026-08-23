@@ -36,9 +36,8 @@ func (request calendarHTTPAvailabilityRequest) query() (AvailabilityQuery, error
 }
 
 type calendarHTTPAvailabilityBusyResponse struct {
-	From   time.Time          `json:"from"`
-	To     time.Time          `json:"to"`
-	Source AvailabilitySource `json:"source"`
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
 }
 
 type calendarHTTPAvailabilityFreeResponse struct {
@@ -81,7 +80,7 @@ func calendarHTTPAvailabilityResponseFor(result AvailabilityResult, timezone str
 				return calendarHTTPAvailabilityResponse{}, ErrAvailabilitySourceInvalid
 			}
 			entry.Busy = append(entry.Busy, calendarHTTPAvailabilityBusyResponse{
-				From: from.In(location), To: to.In(location), Source: busy.Source,
+				From: from.In(location), To: to.In(location),
 			})
 		}
 		for _, free := range user.Free {

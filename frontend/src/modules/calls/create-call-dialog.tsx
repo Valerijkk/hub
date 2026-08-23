@@ -64,8 +64,22 @@ const RECURRENCE_OPTIONS: ReadonlyArray<{
 
 const MAX_AVAILABILITY_USERS = 50;
 const MAX_INVITEE_COUNT = MAX_AVAILABILITY_USERS - 1;
+const MAX_DESCRIPTION_BYTES = 2000;
+const MAX_TIMEZONE_BYTES = 64;
+const MAX_TIMEZONE_OFFSET_MS = 14 * 60 * 60 * 1000;
 const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
-const AVAILABILITY_SOURCES = new Set(["event", "call", "leave"]);
+
+interface WallDate {
+	year: number;
+	month: number;
+	day: number;
+	weekday: number;
+}
+
+interface WallTime extends WallDate {
+	hours: number;
+	minutes: number;
+}
 
 interface MeetingInterval {
 	start: Date;
@@ -73,54 +87,206 @@ interface MeetingInterval {
 	startsAt: string;
 	endsAt: string;
 	durationMinutes: number;
+	weekday: number;
 }
 
 type AvailabilityAssessment = "available" | "busy" | "incomplete";
+
+type IntlWithSupportedValuesOf = typeof Intl & {
+	supportedValuesOf?: (key: "timeZone") => string[];
+};
+
+const timeZoneFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function utf8ByteLength(value: string): number {
+	return new TextEncoder().encode(value).length;
+}
+
+function isSafeIanaTimeZone(value: string): boolean {
+	if (
+		!value ||
+		value.trim() !== value ||
+		value.toLowerCase() === "local" ||
+		utf8ByteLength(value) > MAX_TIMEZONE_BYTES
+	) {
+		return false;
+	}
+	try {
+		new Intl.DateTimeFormat("en-US", { timeZone: value }).format(0);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function browserTimeZone(): string {
+	try {
+		return Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+	} catch {
+		return "";
+	}
+}
+
+function safeTimeZoneOptions(): string[] {
+	const fallback = ["UTC", browserTimeZone()].filter(isSafeIanaTimeZone);
+	const supportedValuesOf = (Intl as IntlWithSupportedValuesOf).supportedValuesOf;
+	if (typeof supportedValuesOf !== "function") return fallback;
+	try {
+		return Array.from(
+			new Set([...fallback, ...supportedValuesOf("timeZone")].filter(isSafeIanaTimeZone)),
+		).sort((left, right) =>
+			left === "UTC" ? -1 : right === "UTC" ? 1 : left.localeCompare(right),
+		);
+	} catch {
+		return fallback;
+	}
+}
+
+function defaultTimeZone(options: string[]): string {
+	const browser = browserTimeZone();
+	return options.includes(browser) ? browser : "UTC";
+}
+
+function parseWallDate(value: string): WallDate | null {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+	if (!match) return null;
+	const year = Number(match[1]);
+	const month = Number(match[2]);
+	const day = Number(match[3]);
+	const instant = Date.UTC(year, month - 1, day);
+	const parsed = new Date(instant);
+	if (
+		!Number.isFinite(instant) ||
+		parsed.getUTCFullYear() !== year ||
+		parsed.getUTCMonth() !== month - 1 ||
+		parsed.getUTCDate() !== day
+	) {
+		return null;
+	}
+	return { year, month, day, weekday: parsed.getUTCDay() };
+}
+
+function timeZonePartsAt(instant: number, timeZone: string): WallTime | null {
+	let formatter = timeZoneFormatters.get(timeZone);
+	if (!formatter) {
+		try {
+			formatter = new Intl.DateTimeFormat("en-US", {
+				calendar: "gregory",
+				numberingSystem: "latn",
+				timeZone,
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+				hour: "2-digit",
+				minute: "2-digit",
+				hourCycle: "h23",
+			});
+			timeZoneFormatters.set(timeZone, formatter);
+		} catch {
+			return null;
+		}
+	}
+	const values: Partial<Record<"year" | "month" | "day" | "hour" | "minute", number>> = {};
+	for (const part of formatter.formatToParts(new Date(instant))) {
+		if (part.type === "year" || part.type === "month" || part.type === "day" || part.type === "hour" || part.type === "minute") {
+			values[part.type] = Number(part.value);
+		}
+	}
+	const { year, month, day, hour, minute } = values;
+	if (
+		year === undefined ||
+		month === undefined ||
+		day === undefined ||
+		hour === undefined ||
+		minute === undefined
+	) {
+		return null;
+	}
+	const calendar = new Date(Date.UTC(year, month - 1, day));
+	return {
+		year,
+		month,
+		day,
+		hours: hour,
+		minutes: minute,
+		weekday: calendar.getUTCDay(),
+	};
+}
+
+function resolveWallTime(timeZone: string, wallTime: WallTime): Date | null {
+	const target = Date.UTC(
+		wallTime.year,
+		wallTime.month - 1,
+		wallTime.day,
+		wallTime.hours,
+		wallTime.minutes,
+	);
+	if (!Number.isFinite(target)) return null;
+	let resolved: Date | null = null;
+	for (
+		let instant = target - MAX_TIMEZONE_OFFSET_MS;
+		instant <= target + MAX_TIMEZONE_OFFSET_MS;
+		instant += 60_000
+	) {
+		const parts = timeZonePartsAt(instant, timeZone);
+		if (
+			!parts ||
+			parts.year !== wallTime.year ||
+			parts.month !== wallTime.month ||
+			parts.day !== wallTime.day ||
+			parts.hours !== wallTime.hours ||
+			parts.minutes !== wallTime.minutes
+		) {
+			continue;
+		}
+		if (resolved) return null;
+		resolved = new Date(instant);
+	}
+	return resolved;
+}
 
 function parseMeetingInterval(
 	dateValue: string,
 	timeValue: string,
 	durationValue: string,
+	timeZone: string,
 ): MeetingInterval | null {
-	const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+	const wallDate = parseWallDate(dateValue);
 	const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeValue);
 	const durationMinutes = Number.parseInt(durationValue, 10);
 	if (
-		!dateMatch ||
+		!wallDate ||
 		!timeMatch ||
+		!isSafeIanaTimeZone(timeZone) ||
 		!DURATION_OPTIONS.some((option) => Number(option.value) === durationMinutes)
 	) {
 		return null;
 	}
-
-	const year = Number(dateMatch[1]);
-	const month = Number(dateMatch[2]);
-	const day = Number(dateMatch[3]);
 	const hours = Number(timeMatch[1]);
 	const minutes = Number(timeMatch[2]);
-	const start = new Date(year, month - 1, day, hours, minutes, 0, 0);
-	if (
-		!Number.isFinite(start.getTime()) ||
-		start.getFullYear() !== year ||
-		start.getMonth() !== month - 1 ||
-		start.getDate() !== day ||
-		start.getHours() !== hours ||
-		start.getMinutes() !== minutes
-	) {
-		return null;
-	}
-
+	if (hours > 23 || minutes > 59) return null;
+	const start = resolveWallTime(timeZone, { ...wallDate, hours, minutes });
+	if (!start) return null;
 	const end = new Date(start.getTime() + durationMinutes * 60_000);
-	if (!Number.isFinite(end.getTime()) || end.getTime() <= start.getTime()) {
-		return null;
-	}
 	return {
 		start,
 		end,
 		startsAt: start.toISOString(),
 		endsAt: end.toISOString(),
 		durationMinutes,
+		weekday: wallDate.weekday,
 	};
+}
+
+function formatWallDate(value: string): string | null {
+	const wallDate = parseWallDate(value);
+	if (!wallDate) return null;
+	return new Intl.DateTimeFormat("ru-RU", {
+		weekday: "short",
+		day: "numeric",
+		month: "long",
+		timeZone: "UTC",
+	}).format(new Date(Date.UTC(wallDate.year, wallDate.month - 1, wallDate.day)));
 }
 
 function recurrenceRule(
@@ -133,13 +299,13 @@ function recurrenceRule(
 		case "daily":
 			return "FREQ=DAILY;COUNT=20";
 		case "weekly": {
-			const weekday = WEEKDAY_CODES[interval.start.getDay()];
+			const weekday = WEEKDAY_CODES[interval.weekday];
 			return weekday
 				? `FREQ=WEEKLY;BYDAY=${weekday};COUNT=12`
 				: null;
 		}
 		case "workdays": {
-			const weekday = interval.start.getDay();
+			const weekday = interval.weekday;
 			return weekday === 0 || weekday === 6
 				? null
 				: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;COUNT=12";
@@ -199,7 +365,7 @@ function assessAvailability(
 
 		const coverage: Array<[number, number]> = [];
 		for (const busy of user.busy) {
-			if (!busy || !AVAILABILITY_SOURCES.has(busy.source)) {
+			if (!busy) {
 				return "incomplete";
 			}
 			const parsed = availabilityInterval(busy, requestStart, requestEnd);
@@ -285,16 +451,21 @@ export function CreateCallDialog({
 	const { t } = useTranslation("calls");
 	const queryClient = useQueryClient();
 	const currentUserId = useAuthStore((state) => state.user?.id ?? "");
-	const timezone = useMemo(
-		() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-		[],
+	const timeZoneOptions = useMemo(() => safeTimeZoneOptions(), []);
+	const defaultTimezone = useMemo(
+		() => defaultTimeZone(timeZoneOptions),
+		[timeZoneOptions],
 	);
+	const dialogSessionRef = useRef(0);
+	const [dialogSession, setDialogSession] = useState(0);
 	const idempotencyRef = useRef<{ fingerprint: string; key: string } | null>(
 		null,
 	);
 	const availabilityToastRef = useRef("");
 
 	const [title, setTitle] = useState("");
+	const [description, setDescription] = useState("");
+	const [timezone, setTimezone] = useState(() => defaultTimezone);
 	const [date, setDate] = useState("");
 	const [time, setTime] = useState("10:00");
 	const [duration, setDuration] = useState("60");
@@ -345,7 +516,7 @@ export function CreateCallDialog({
 	});
 
 	const meetingInterval = useMemo(
-		() => parseMeetingInterval(date, time, duration),
+		() => parseMeetingInterval(date, time, duration, timezone),
 		[date, time, duration],
 	);
 	const attendeeUserIds = useMemo(
@@ -494,20 +665,36 @@ export function CreateCallDialog({
 
 	// Сбрасываем форму при открытии с переданными default-значениями
 	useEffect(() => {
-		if (open) {
-			setTitle("");
-			setDate(defaultDate ?? "");
-			setTime(defaultTime ?? "10:00");
-			setDuration("60");
-			setRecurrence("");
-			setChannelId("");
-			setProjectId("");
-			setParticipantIds([]);
-			setParticipantSearch("");
-			idempotencyRef.current = null;
-			availabilityToastRef.current = "";
-		}
-	}, [open, defaultDate, defaultTime]);
+		const nextSession = dialogSessionRef.current + 1;
+		dialogSessionRef.current = nextSession;
+		setDialogSession(nextSession);
+		if (!open) return;
+
+		setTitle("");
+		setDescription("");
+		setDate(defaultDate ?? "");
+		setTime(defaultTime ?? "10:00");
+		setDuration("60");
+		setRecurrence("");
+		setTimezone(defaultTimezone);
+		setChannelId("");
+		setProjectId("");
+		setParticipantIds([]);
+		setParticipantSearch("");
+		idempotencyRef.current = null;
+		availabilityToastRef.current = "";
+	}, [open, defaultDate, defaultTime, defaultTimezone]);
+
+	const invalidateDialogSession = () => {
+		const nextSession = dialogSessionRef.current + 1;
+		dialogSessionRef.current = nextSession;
+		setDialogSession(nextSession);
+	};
+
+	const handleDialogOpenChange = (nextOpen: boolean) => {
+		if (!nextOpen) invalidateDialogSession();
+		onOpenChange(nextOpen);
+	};
 
 	const mutation = useMutation({
 		mutationFn: ({
@@ -516,20 +703,23 @@ export function CreateCallDialog({
 		}: {
 			request: CalendarMeetingCreateRequest;
 			idempotencyKey: string;
+			session: number;
 		}) => createCalendarMeeting(request, { idempotencyKey }),
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			if (variables.session !== dialogSessionRef.current) return;
 			idempotencyRef.current = null;
 			void queryClient.invalidateQueries({ queryKey: ["calendar"] });
 			void queryClient.invalidateQueries({
 				queryKey: ["calendar-availability"],
 			});
 			void queryClient.invalidateQueries({ queryKey: ["calls", "scheduled"] });
-			onOpenChange(false);
+			handleDialogOpenChange(false);
 		},
-		onError: (err) => {
+		onError: (err, variables) => {
+			if (variables.session !== dialogSessionRef.current) return;
 			toast.error(
 				meetingErrorCode(err) === "SLOT_UNAVAILABLE"
-					? "Выбранное время уже занято. Выберите другое время"
+					? t("meetingSlotUnavailable")
 					: "Не удалось создать встречу. Проверьте данные и попробуйте снова",
 			);
 		},
@@ -545,7 +735,9 @@ export function CreateCallDialog({
 		!availabilityFetching &&
 		availabilityAssessment === "available";
 	const trimmedTitle = title.trim();
-	const titleBytes = new TextEncoder().encode(trimmedTitle).length;
+	const trimmedDescription = description.trim();
+	const titleBytes = utf8ByteLength(trimmedTitle);
+	const descriptionBytes = utf8ByteLength(trimmedDescription);
 	const selectedProjectAvailable = projectList.some(
 		(project) => project.id === projectId,
 	);
@@ -557,6 +749,8 @@ export function CreateCallDialog({
 			(member) => member.user_id === userId,
 		),
 	);
+	const timeZoneValid =
+		timeZoneOptions.includes(timezone) && isSafeIanaTimeZone(timezone);
 	const isValid =
 		trimmedTitle.length > 0 &&
 		titleBytes <= 255 &&
@@ -565,8 +759,8 @@ export function CreateCallDialog({
 		selectedProjectAvailable &&
 		selectedChannelAvailable &&
 		selectedAttendeesAvailable &&
-		timezone.length > 0 &&
-		timezone.length <= 64 &&
+		timeZoneValid &&
+		descriptionBytes <= MAX_DESCRIPTION_BYTES &&
 		attendeeUserIds.length > 0 &&
 		attendeeUserIds.length <= MAX_INVITEE_COUNT &&
 		recurrenceRRULE !== null &&
@@ -575,7 +769,13 @@ export function CreateCallDialog({
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!isValid || !meetingInterval || recurrenceRRULE === null) {
-			if (!projectId) {
+			if (!timeZoneValid) {
+				toast.error(t("meetingTimezoneInvalid"));
+			} else if (!meetingInterval) {
+				toast.error(t("meetingWallTimeInvalid"));
+			} else if (descriptionBytes > MAX_DESCRIPTION_BYTES) {
+				toast.error(t("meetingDescriptionTooLong", { count: MAX_DESCRIPTION_BYTES }));
+			} else if (!projectId) {
 				toast.error("Выберите проект");
 			} else if (!channelId) {
 				toast.error("Выберите канал проекта");
@@ -594,7 +794,7 @@ export function CreateCallDialog({
 
 		const request: CalendarMeetingCreateRequest = {
 			title: trimmedTitle,
-			description: "",
+			description: trimmedDescription,
 			project_id: projectId,
 			channel_id: channelId,
 			starts_at: meetingInterval.startsAt,
@@ -624,20 +824,15 @@ export function CreateCallDialog({
 		mutation.mutate({
 			request,
 			idempotencyKey: idempotency.key,
+			session: dialogSessionRef.current,
 		});
 	};
 
 	// Форматируем выбранную дату для отображения в UI
-	const dateDisplay = date
-		? new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU", {
-				weekday: "short",
-				day: "numeric",
-				month: "long",
-			})
-		: null;
+	const dateDisplay = formatWallDate(date);
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog open={open} onOpenChange={handleDialogOpenChange}>
 			<DialogContent className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-[420px]">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader className="px-6 pt-6 pb-4">
@@ -667,6 +862,23 @@ export function CreateCallDialog({
 								autoFocus
 								className="h-11"
 							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="call-description" className="text-sm font-medium">
+								{t("meetingDescriptionLabel")}
+							</Label>
+							<textarea
+								id="call-description"
+								placeholder={t("meetingDescriptionPlaceholder")}
+								value={description}
+								onChange={(event) => setDescription(event.target.value)}
+								maxLength={MAX_DESCRIPTION_BYTES}
+								aria-describedby="call-description-limit"
+								className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
+							/>
+							<p id="call-description-limit" className="text-xs text-t2">
+								{t("meetingDescriptionLimit", { count: MAX_DESCRIPTION_BYTES })}
+							</p>
 						</div>
 
 						{/* Проект — FE-MC-002: fail ≠ «нет проектов» */}
@@ -874,6 +1086,24 @@ export function CreateCallDialog({
 							</div>
 						</div>
 
+						<div className="space-y-2">
+							<Label htmlFor="call-timezone" className="text-sm font-medium">
+								{t("meetingTimezoneLabel")}
+							</Label>
+							<Select value={timezone} onValueChange={setTimezone}>
+								<SelectTrigger id="call-timezone" className="h-11 rounded-xl">
+									<SelectValue placeholder={t("meetingTimezonePlaceholder")} />
+								</SelectTrigger>
+								<SelectContent>
+									{timeZoneOptions.map((timeZoneOption) => (
+										<SelectItem key={timeZoneOption} value={timeZoneOption}>
+											{timeZoneOption}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
 						{/* Длительность — кнопки быстрого выбора */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">
@@ -979,7 +1209,7 @@ export function CreateCallDialog({
 					<div className="px-6 py-5 mt-2">
 						<Button
 							type="submit"
-							disabled={!isValid || mutation.isPending}
+							disabled={!isValid || (mutation.isPending && mutation.variables?.session === dialogSession)}
 							className="w-full h-11 text-base font-semibold"
 							size="lg"
 						>

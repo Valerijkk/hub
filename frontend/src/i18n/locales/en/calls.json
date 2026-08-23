@@ -31,5 +31,14 @@
 	"duration": "Duration",
 	"connecting": "Connecting...",
 	"reconnecting": "Reconnecting...",
-	"connected": "Connected"
+	"connected": "Connected",
+	"meetingDescriptionLabel": "Description",
+	"meetingDescriptionPlaceholder": "Add context for participants",
+	"meetingDescriptionLimit": "Maximum {{count}} bytes",
+	"meetingTimezoneLabel": "Time zone",
+	"meetingTimezonePlaceholder": "Choose time zone",
+	"meetingTimezoneInvalid": "Choose a valid time zone.",
+	"meetingWallTimeInvalid": "This local time is invalid or ambiguous in the selected time zone. Choose another time.",
+	"meetingDescriptionTooLong": "Description must be {{count}} bytes or fewer.",
+	"meetingSlotUnavailable": "That time has just been booked. Choose another time and try again."
 }
