@@ -10,6 +10,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/maillabel"
 	"github.com/valerii/hub/backend/ent/mailfolder"
+	"github.com/valerii/hub/backend/ent/mailmessage"
 	"github.com/valerii/hub/backend/ent/mailmessagefolder"
 	"github.com/valerii/hub/backend/ent/mailmessagelabel"
 )
@@ -20,6 +21,9 @@ func mailboxEntApplyMessageFolderLinks(ctx context.Context, tx *ent.Tx, accountI
 	}
 	if err := ctx.Err(); err != nil {
 		return false, mailboxEntSafeError(err)
+	}
+	if err := mailboxEntApplyLockLiveMessage(ctx, tx, accountID, messageID); err != nil {
+		return false, err
 	}
 
 	desiredByFolderID := make(map[uuid.UUID]struct{}, len(desired))
@@ -150,6 +154,9 @@ func mailboxEntApplyMessageLabelLinks(ctx context.Context, tx *ent.Tx, accountID
 	if err := ctx.Err(); err != nil {
 		return false, mailboxEntSafeError(err)
 	}
+	if err := mailboxEntApplyLockLiveMessage(ctx, tx, accountID, messageID); err != nil {
+		return false, err
+	}
 
 	desiredByLabelID := make(map[uuid.UUID]MailboxSyncPolicyLabelState, len(desired))
 	desiredLabelIDs := make([]uuid.UUID, len(desired))
@@ -271,16 +278,37 @@ func mailboxEntApplyMessageLabelLinks(ctx context.Context, tx *ent.Tx, accountID
 	return semanticChanged, nil
 }
 
-func mailboxEntApplyDeleteMessageFolderLinks(ctx context.Context, tx *ent.Tx, messageID uuid.UUID) (bool, error) {
-	if ctx == nil || tx == nil || messageID == uuid.Nil {
+func mailboxEntApplyDeleteMessageFolderLinks(ctx context.Context, tx *ent.Tx, accountID, messageID uuid.UUID) (bool, error) {
+	if ctx == nil || tx == nil || accountID == uuid.Nil || messageID == uuid.Nil {
 		return false, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	if err := ctx.Err(); err != nil {
 		return false, mailboxEntSafeError(err)
+	}
+	if err := mailboxEntApplyLockLiveMessage(ctx, tx, accountID, messageID); err != nil {
+		return false, err
 	}
 	deleted, err := tx.MailMessageFolder.Delete().Where(mailmessagefolder.MailMessageIDEQ(messageID)).Exec(ctx)
 	if err != nil {
 		return false, mailboxEntSafeError(err)
 	}
 	return deleted > 0, nil
+}
+
+func mailboxEntApplyLockLiveMessage(ctx context.Context, tx *ent.Tx, accountID, messageID uuid.UUID) error {
+	message, err := tx.MailMessage.Query().
+		Where(
+			mailmessage.IDEQ(messageID),
+			mailmessage.MailAccountIDEQ(accountID),
+			mailmessage.DeletedAtIsNil(),
+		).
+		ForUpdate().
+		Only(ctx)
+	if err != nil {
+		return mailboxEntSafeError(err)
+	}
+	if message == nil || message.ID != messageID || message.MailAccountID != accountID || message.DeletedAt != nil {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	return nil
 }
