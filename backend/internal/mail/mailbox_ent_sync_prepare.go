@@ -43,11 +43,11 @@ func (repository *MailboxEntRepository) PrepareMailboxSyncPage(ctx context.Conte
 			}
 			return mailboxEntSafeError(err)
 		}
-		transactionTime, err := mailboxEntTransactionTime(ctx, transaction)
+		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return err
 		}
-		input, prepared, err := mailboxEntPrepareInput(ctx, transaction, account, request, transactionTime)
+		input, prepared, err := mailboxEntPrepareInput(ctx, transaction, account, request, databaseWallClock)
 		if err != nil {
 			return err
 		}

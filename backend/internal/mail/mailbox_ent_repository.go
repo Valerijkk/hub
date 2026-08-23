@@ -78,18 +78,18 @@ func (repository *MailboxEntRepository) mailboxEntNow() (time.Time, error) {
 	return now, nil
 }
 
-func mailboxEntTransactionTime(ctx context.Context, transaction *ent.Tx) (time.Time, error) {
+func mailboxEntDatabaseWallClock(ctx context.Context, transaction *ent.Tx) (time.Time, error) {
 	if ctx == nil || transaction == nil {
 		return time.Time{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 
 	var rows entsql.Rows
-	if err := transaction.Driver().Query(ctx, "SELECT date_trunc('second', CURRENT_TIMESTAMP)", []any{}, &rows); err != nil {
+	if err := transaction.Driver().Query(ctx, "SELECT date_trunc('second', clock_timestamp())", []any{}, &rows); err != nil {
 		return time.Time{}, mailboxEntSafeError(err)
 	}
 
-	var transactionTime time.Time
-	if err := entsql.ScanOne(&rows, &transactionTime); err != nil {
+	var databaseWallClock time.Time
+	if err := entsql.ScanOne(&rows, &databaseWallClock); err != nil {
 		_ = rows.Close()
 		return time.Time{}, mailboxEntSafeError(err)
 	}
@@ -97,11 +97,11 @@ func mailboxEntTransactionTime(ctx context.Context, transaction *ent.Tx) (time.T
 		return time.Time{}, mailboxEntSafeError(err)
 	}
 
-	transactionTime = transactionTime.UTC()
-	if !mailboxEntValidTime(transactionTime) {
+	databaseWallClock = databaseWallClock.UTC()
+	if !mailboxEntValidTime(databaseWallClock) {
 		return time.Time{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	return transactionTime, nil
+	return databaseWallClock, nil
 }
 
 func mailboxEntCheckedTimeAdd(now time.Time, duration time.Duration) (time.Time, bool) {
