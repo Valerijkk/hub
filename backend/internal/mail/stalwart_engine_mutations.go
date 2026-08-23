@@ -25,15 +25,17 @@ type stalwartEmailSetArguments struct {
 }
 
 type stalwartEmailSetResponse struct {
-	AccountID    string                               `json:"accountId"`
-	OldState     string                               `json:"oldState"`
-	NewState     string                               `json:"newState"`
-	Created      map[string]json.RawMessage           `json:"created"`
-	NotCreated   map[string]stalwartMailboxSetFailure `json:"notCreated"`
-	Updated      map[string]json.RawMessage           `json:"updated"`
-	NotUpdated   map[string]stalwartMailboxSetFailure `json:"notUpdated"`
-	Destroyed    []string                             `json:"destroyed"`
-	NotDestroyed map[string]stalwartMailboxSetFailure `json:"notDestroyed"`
+	AccountID       string                               `json:"accountId"`
+	OldState        string                               `json:"oldState"`
+	OldStatePresent bool                                 `json:"-"`
+	OldStateKnown   bool                                 `json:"-"`
+	NewState        string                               `json:"newState"`
+	Created         map[string]json.RawMessage           `json:"created"`
+	NotCreated      map[string]stalwartMailboxSetFailure `json:"notCreated"`
+	Updated         map[string]json.RawMessage           `json:"updated"`
+	NotUpdated      map[string]stalwartMailboxSetFailure `json:"notUpdated"`
+	Destroyed       []string                             `json:"destroyed"`
+	NotDestroyed    map[string]stalwartMailboxSetFailure `json:"notDestroyed"`
 }
 
 // MoveMessages replaces mailboxIds with one exact, prevalidated target. The
@@ -192,17 +194,59 @@ func parseStalwartEmailSetResponse(response stalwart.JMAPResponse, accountID, ex
 	if len(response.MethodResponses) != 1 || response.MethodResponses[0].Name != "Email/set" || response.MethodResponses[0].CallID != stalwartEmailSetCallID {
 		return stalwartEmailSetResponse{}, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	var payload stalwartEmailSetResponse
-	if err := json.Unmarshal(response.MethodResponses[0].Arguments, &payload); err != nil {
+	var wire struct {
+		AccountID    string                               `json:"accountId"`
+		OldState     json.RawMessage                      `json:"oldState"`
+		NewState     string                               `json:"newState"`
+		Created      map[string]json.RawMessage           `json:"created"`
+		NotCreated   map[string]stalwartMailboxSetFailure `json:"notCreated"`
+		Updated      map[string]json.RawMessage           `json:"updated"`
+		NotUpdated   map[string]stalwartMailboxSetFailure `json:"notUpdated"`
+		Destroyed    []string                             `json:"destroyed"`
+		NotDestroyed map[string]stalwartMailboxSetFailure `json:"notDestroyed"`
+	}
+	if err := json.Unmarshal(response.MethodResponses[0].Arguments, &wire); err != nil {
 		return stalwartEmailSetResponse{}, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	if payload.AccountID != accountID {
+	if wire.AccountID != accountID {
 		return stalwartEmailSetResponse{}, stalwartEngineError(EngineErrorUnauthorizedAccount)
 	}
-	if payload.OldState != expectedOldState || !validOpaqueID(payload.NewState) {
+	if !validOpaqueID(wire.NewState) {
 		return stalwartEmailSetResponse{}, stalwartEngineError(EngineErrorIndeterminate)
 	}
+	oldState, oldStatePresent, oldStateKnown, err := stalwartDecodeSetOldState(wire.OldState, expectedOldState)
+	if err != nil {
+		return stalwartEmailSetResponse{}, err
+	}
+	payload := stalwartEmailSetResponse{
+		AccountID:       wire.AccountID,
+		OldState:        oldState,
+		OldStatePresent: oldStatePresent,
+		OldStateKnown:   oldStateKnown,
+		NewState:        wire.NewState,
+		Created:         wire.Created,
+		NotCreated:      wire.NotCreated,
+		Updated:         wire.Updated,
+		NotUpdated:      wire.NotUpdated,
+		Destroyed:       wire.Destroyed,
+		NotDestroyed:    wire.NotDestroyed,
+	}
 	return payload, nil
+}
+
+func stalwartDecodeSetOldState(raw json.RawMessage, expected string) (string, bool, bool, error) {
+	if len(raw) == 0 {
+		return "", false, false, nil
+	}
+	trimmed := bytes.TrimSpace(raw)
+	if bytes.Equal(trimmed, []byte("null")) {
+		return "", true, false, nil
+	}
+	var value string
+	if err := json.Unmarshal(trimmed, &value); err != nil || value != expected {
+		return "", true, false, stalwartEngineError(EngineErrorIndeterminate)
+	}
+	return value, true, true, nil
 }
 
 func stalwartEmailOnlyUpdateSucceeded(payload stalwartEmailSetResponse, messageIDs []string) error {
@@ -210,12 +254,12 @@ func stalwartEmailOnlyUpdateSucceeded(payload stalwartEmailSetResponse, messageI
 		return stalwartEngineError(EngineErrorIndeterminate)
 	}
 	if len(payload.NotUpdated) != 0 {
-		if len(payload.Updated) != 0 || payload.NewState != payload.OldState {
+		if len(payload.Updated) != 0 || payload.OldStateKnown && payload.NewState != payload.OldState {
 			return stalwartEngineError(EngineErrorIndeterminate)
 		}
 		return stalwartEmailSetFailuresFor(payload.NotUpdated, messageIDs)
 	}
-	if payload.NewState == payload.OldState || !stalwartEmailUpdatedExactly(payload.Updated, messageIDs) {
+	if !stalwartEmailUpdatedExactly(payload.Updated, messageIDs) {
 		return stalwartEngineError(EngineErrorIndeterminate)
 	}
 	return nil
@@ -226,12 +270,12 @@ func stalwartEmailOnlyDestroySucceeded(payload stalwartEmailSetResponse, message
 		return stalwartEngineError(EngineErrorIndeterminate)
 	}
 	if len(payload.NotDestroyed) != 0 {
-		if len(payload.Destroyed) != 0 || payload.NewState != payload.OldState {
+		if len(payload.Destroyed) != 0 || payload.OldStateKnown && payload.NewState != payload.OldState {
 			return stalwartEngineError(EngineErrorIndeterminate)
 		}
 		return stalwartEmailSetFailuresFor(payload.NotDestroyed, messageIDs)
 	}
-	if payload.NewState == payload.OldState || !stalwartEmailDestroyedExactly(payload.Destroyed, messageIDs) {
+	if !payload.OldStateKnown || payload.NewState == payload.OldState || !stalwartEmailDestroyedExactly(payload.Destroyed, messageIDs) {
 		return stalwartEngineError(EngineErrorIndeterminate)
 	}
 	return nil
@@ -243,11 +287,23 @@ func stalwartEmailUpdatedExactly(updated map[string]json.RawMessage, messageIDs 
 	}
 	for _, messageID := range messageIDs {
 		value, exists := updated[messageID]
-		if !exists || !bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+		if !exists || !stalwartValidUpdatedValue(value) {
 			return false
 		}
 	}
 	return true
+}
+
+func stalwartValidUpdatedValue(value json.RawMessage) bool {
+	trimmed := bytes.TrimSpace(value)
+	if bytes.Equal(trimmed, []byte("null")) {
+		return true
+	}
+	if len(trimmed) < 2 || trimmed[0] != '{' || trimmed[len(trimmed)-1] != '}' {
+		return false
+	}
+	var object map[string]json.RawMessage
+	return json.Unmarshal(trimmed, &object) == nil && object != nil
 }
 
 func stalwartEmailDestroyedExactly(destroyed, messageIDs []string) bool {
