@@ -43,6 +43,9 @@ func wireCalendarMail(d *serverDeps) {
 	eventSvc := calendarmod.NewEventService(eventRepo, serverUTCClock{}, serverEventIDs{}, serverITIPSerializer{})
 	eventHandler := calendarmod.NewEventHandler(eventSvc)
 	eventHandler.RegisterRoutes(d.api, d.requireAuth)
+	meetingSvc := calendarmod.NewMeetingService(eventRepo, serverUTCClock{}, serverEventIDs{})
+	meetingHandler := calendarmod.NewMeetingHandler(meetingSvc)
+	meetingHandler.RegisterRoutes(d.api, d.requireAuth)
 
 	// Legacy ScheduledCall rows remain the bounded availability source until the
 	// CalendarEvent-to-call bridge has completed its production cutover.

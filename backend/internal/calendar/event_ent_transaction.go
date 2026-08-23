@@ -5,11 +5,16 @@ import (
 	"errors"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/channel"
+	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/organization"
+	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -19,6 +24,7 @@ type eventEntTransactionBackend struct {
 }
 
 var _ EventTransactionBackend = (*eventEntTransactionBackend)(nil)
+var _ MeetingTransactionBackend = (*eventEntTransactionBackend)(nil)
 
 func newEventEntTransactionBackend(transaction *ent.Tx, now func() time.Time) *eventEntTransactionBackend {
 	return &eventEntTransactionBackend{tx: transaction, now: now}
@@ -77,6 +83,192 @@ func (backend *eventEntTransactionBackend) ResolveCalendarEventCreateAuthorizati
 		resolved.Attendees[index] = attendee
 	}
 	return resolved, nil
+}
+
+// ResolveMeetingCreateAuthorization locks only rows already predicated by the
+// validated organization, active project/channel and exact membership set.
+func (backend *eventEntTransactionBackend) ResolveMeetingCreateAuthorization(ctx context.Context, scope EventMutationScope, request MeetingCreateAuthorizationRequest) (MeetingCreateAuthorization, error) {
+	if backend == nil || backend.tx == nil || scope.ActorID() == uuid.Nil || scope.OrganizationID() == uuid.Nil ||
+		scope.EventOperation() != EventMutationMeetingCreate || !request.valid() {
+		return MeetingCreateAuthorization{}, ErrEventForbidden
+	}
+	if _, err := backend.tx.Project.Query().
+		Where(
+			project.IDEQ(request.ProjectID),
+			project.StatusEQ(project.StatusActive),
+			project.DeletedAtIsNil(),
+			project.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+			project.HasMembersWith(projectmember.HasUserWith(
+				user.IDEQ(scope.ActorID()),
+				user.StatusEQ(user.StatusActive),
+				user.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+			)),
+		).
+		ForUpdate().
+		Only(ctx); err != nil {
+		return MeetingCreateAuthorization{}, calendarEntAuthorizationError(err)
+	}
+	if _, err := backend.tx.Channel.Query().
+		Where(
+			channel.IDEQ(request.ChannelID),
+			channel.ProjectIDEQ(request.ProjectID),
+			channel.DeletedAtIsNil(),
+			channel.HasMembersWith(
+				channelmember.UserIDEQ(scope.ActorID()),
+				channelmember.HasUserWith(
+					user.StatusEQ(user.StatusActive),
+					user.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+				),
+			),
+		).
+		ForUpdate().
+		Only(ctx); err != nil {
+		return MeetingCreateAuthorization{}, calendarEntAuthorizationError(err)
+	}
+
+	participantIDs := make([]uuid.UUID, 0, len(request.AttendeeUserIDs)+1)
+	participantIDs = append(participantIDs, scope.ActorID())
+	participantIDs = append(participantIDs, request.AttendeeUserIDs...)
+	memberships, err := backend.tx.ChannelMember.Query().
+		Where(
+			channelmember.ChannelIDEQ(request.ChannelID),
+			channelmember.UserIDIn(participantIDs...),
+			channelmember.HasChannelWith(
+				channel.IDEQ(request.ChannelID),
+				channel.ProjectIDEQ(request.ProjectID),
+				channel.DeletedAtIsNil(),
+			),
+			channelmember.HasUserWith(
+				user.StatusEQ(user.StatusActive),
+				user.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+			),
+		).
+		Order(ent.Asc(channelmember.FieldUserID), ent.Asc(channelmember.FieldID)).
+		ForUpdate().
+		Limit(meetingCreateMaxAttendees + 2).
+		All(ctx)
+	if err != nil {
+		return MeetingCreateAuthorization{}, calendarEntSafeError(err)
+	}
+	if len(memberships) != len(participantIDs) {
+		return MeetingCreateAuthorization{}, ErrEventForbidden
+	}
+	seenMemberships := make(map[uuid.UUID]struct{}, len(memberships))
+	for _, membership := range memberships {
+		if membership == nil || membership.ChannelID != request.ChannelID || membership.UserID == uuid.Nil {
+			return MeetingCreateAuthorization{}, ErrEventForbidden
+		}
+		if _, duplicate := seenMemberships[membership.UserID]; duplicate {
+			return MeetingCreateAuthorization{}, ErrEventForbidden
+		}
+		seenMemberships[membership.UserID] = struct{}{}
+	}
+	for _, participantID := range participantIDs {
+		if _, found := seenMemberships[participantID]; !found {
+			return MeetingCreateAuthorization{}, ErrEventForbidden
+		}
+	}
+
+	users, err := backend.tx.User.Query().
+		Where(
+			user.IDIn(participantIDs...),
+			user.StatusEQ(user.StatusActive),
+			user.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+		).
+		Order(ent.Asc(user.FieldID)).
+		ForUpdate().
+		Limit(meetingCreateMaxAttendees + 2).
+		All(ctx)
+	if err != nil {
+		return MeetingCreateAuthorization{}, calendarEntSafeError(err)
+	}
+	if len(users) != len(participantIDs) {
+		return MeetingCreateAuthorization{}, ErrEventForbidden
+	}
+	resolved := make(map[uuid.UUID]MeetingCreateMember, len(users))
+	for _, member := range users {
+		if member == nil || member.ID == uuid.Nil || !validCalendarCreateEmail(member.Email) {
+			return MeetingCreateAuthorization{}, ErrEventForbidden
+		}
+		resolved[member.ID] = MeetingCreateMember{
+			UserID:      member.ID,
+			Email:       normalizeCalendarCreateEmail(member.Email),
+			DisplayName: eventEntOptionalDisplayName(member.DisplayName),
+		}
+	}
+	organizer, found := resolved[scope.ActorID()]
+	if !found {
+		return MeetingCreateAuthorization{}, ErrEventForbidden
+	}
+	authorization := MeetingCreateAuthorization{
+		ProjectID: request.ProjectID,
+		ChannelID: request.ChannelID,
+		Organizer: organizer,
+		Attendees: make([]MeetingCreateMember, len(request.AttendeeUserIDs)),
+	}
+	for index, attendeeID := range request.AttendeeUserIDs {
+		attendee, found := resolved[attendeeID]
+		if !found {
+			return MeetingCreateAuthorization{}, ErrEventForbidden
+		}
+		authorization.Attendees[index] = attendee
+	}
+	if !authorization.valid() {
+		return MeetingCreateAuthorization{}, ErrEventForbidden
+	}
+	return authorization, nil
+}
+
+// PersistMeetingScheduledCall creates the forward event link first, then fills
+// the immutable reverse link with one parameterized statement on this tx.
+func (backend *eventEntTransactionBackend) PersistMeetingScheduledCall(ctx context.Context, scope EventMutationScope, command MeetingScheduledCallCommand) (MeetingScheduledCallPersistenceResult, error) {
+	if backend == nil || backend.tx == nil || scope.EventOperation() != EventMutationMeetingCreate || !command.valid() ||
+		command.organizationID != scope.OrganizationID() || command.creatorID != scope.ActorID() {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventForbidden
+	}
+	create := backend.tx.ScheduledCall.Create().
+		SetID(command.callID).
+		SetTitle(command.title).
+		SetScheduledAt(command.startsAt).
+		SetDurationMinutes(command.DurationMinutes()).
+		SetChannelID(command.channelID).
+		SetProjectID(command.projectID).
+		SetCreatedBy(command.creatorID).
+		SetCalendarEventID(command.eventID).
+		AddParticipantIDs(command.attendeeUserIDs...)
+	if command.description != "" {
+		create.SetDescription(command.description)
+	}
+	if command.rrule != "" {
+		create.SetRrule(command.rrule)
+	}
+	call, err := create.Save(ctx)
+	if err != nil {
+		return MeetingScheduledCallPersistenceResult{}, calendarEntSafeError(err)
+	}
+	if call == nil || call.ID != command.callID || call.CalendarEventID == nil || *call.CalendarEventID != command.eventID ||
+		call.ProjectID != command.projectID || call.ChannelID != command.channelID || call.CreatedBy != command.creatorID ||
+		!call.ScheduledAt.Equal(command.startsAt) || call.DurationMinutes != command.DurationMinutes() || call.Version < 1 {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventInternal
+	}
+	driver := backend.tx.Driver()
+	if driver == nil {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventInternal
+	}
+	var linkResult sql.Result
+	if err := driver.Exec(
+		ctx,
+		"UPDATE calendar_events SET scheduled_call_id = $1 WHERE id = $2 AND organization_id = $3 AND calendar_owner_id = $4 AND organizer_id = $4 AND scheduled_call_id IS NULL",
+		[]any{command.callID, command.eventID, command.organizationID, command.creatorID},
+		&linkResult,
+	); err != nil {
+		return MeetingScheduledCallPersistenceResult{}, calendarEntSafeError(err)
+	}
+	affected, err := linkResult.RowsAffected()
+	if err != nil || affected != 1 {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventInternal
+	}
+	return NewMeetingScheduledCallPersistenceResult(call.ID, uint(call.Version))
 }
 
 func (backend *eventEntTransactionBackend) activeOrganizationMemberForUpdate(ctx context.Context, memberID, organizationID uuid.UUID) (*ent.User, error) {
@@ -161,6 +353,8 @@ func calendarEntSafeError(err error) error {
 		return ErrEventInvalid
 	case errors.Is(err, ErrEventTransactionClosed):
 		return ErrEventTransactionClosed
+	case errors.Is(err, ErrEventInternal):
+		return ErrEventInternal
 	case ent.IsNotFound(err):
 		return ErrEventNotFound
 	case ent.IsConstraintError(err):

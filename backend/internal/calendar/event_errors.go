@@ -14,6 +14,9 @@ const (
 	EventErrorInvalid EventErrorKind = "invalid"
 	// EventErrorTransactionClosed означает попытку использовать завершённую транзакционную область.
 	EventErrorTransactionClosed EventErrorKind = "transaction_closed"
+	// EventErrorInternal is a fail-closed capability, persistence or invariant
+	// failure that must never be presented as client-invalid input.
+	EventErrorInternal EventErrorKind = "internal"
 )
 
 var (
@@ -27,6 +30,9 @@ var (
 	ErrEventInvalid = EventError{kind: EventErrorInvalid}
 	// ErrEventTransactionClosed используется после возврата callback транзакции.
 	ErrEventTransactionClosed = EventError{kind: EventErrorTransactionClosed}
+	// ErrEventInternal preserves a safe 500 boundary without leaking a storage,
+	// capability, source or invariant cause.
+	ErrEventInternal = EventError{kind: EventErrorInternal}
 )
 
 // EventError представляет типизированную, не содержащую входных данных ошибку календарного домена.
@@ -47,6 +53,8 @@ func (err EventError) Error() string {
 		return "calendar event invalid"
 	case EventErrorTransactionClosed:
 		return "calendar event transaction closed"
+	case EventErrorInternal:
+		return "calendar event internal failure"
 	default:
 		return "calendar event error"
 	}
@@ -66,5 +74,53 @@ func (err EventError) Is(target error) bool {
 		return value != nil && err.kind == value.kind
 	default:
 		return false
+	}
+}
+
+// MeetingCreateConflictKind is the closed safe 409 result set for the meeting
+// create vertical. It intentionally carries no participant, time or source.
+type MeetingCreateConflictKind string
+
+const (
+	MeetingCreateConflictIdempotencyKeyReused MeetingCreateConflictKind = "idempotency_key_reused"
+	MeetingCreateConflictSlotUnavailable      MeetingCreateConflictKind = "slot_unavailable"
+)
+
+// MeetingCreateConflictError exposes only one stable machine-readable kind.
+type MeetingCreateConflictError struct {
+	kind MeetingCreateConflictKind
+}
+
+func (err MeetingCreateConflictError) Error() string {
+	switch err.kind {
+	case MeetingCreateConflictIdempotencyKeyReused:
+		return "meeting idempotency key reused"
+	case MeetingCreateConflictSlotUnavailable:
+		return "meeting slot unavailable"
+	default:
+		return "meeting create conflict"
+	}
+}
+
+func (err MeetingCreateConflictError) Unwrap() error { return ErrEventConflict }
+func (err MeetingCreateConflictError) Kind() MeetingCreateConflictKind { return err.kind }
+
+func (err MeetingCreateConflictError) Is(target error) bool {
+	switch value := target.(type) {
+	case MeetingCreateConflictError:
+		return err.kind == value.kind
+	case *MeetingCreateConflictError:
+		return value != nil && err.kind == value.kind
+	default:
+		return false
+	}
+}
+
+func newMeetingCreateConflict(kind MeetingCreateConflictKind) error {
+	switch kind {
+	case MeetingCreateConflictIdempotencyKeyReused, MeetingCreateConflictSlotUnavailable:
+		return MeetingCreateConflictError{kind: kind}
+	default:
+		return ErrEventInternal
 	}
 }

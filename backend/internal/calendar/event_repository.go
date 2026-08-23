@@ -42,6 +42,14 @@ type AvailabilityReservationTransactionBackend interface {
 	ReconcileCalendarAvailabilityReservations(context.Context, EventMutationScope, CalendarAvailabilityReservationSet) error
 }
 
+// MeetingTransactionBackend is an opt-in atomic meeting port. Capability is
+// proven before resolving actor organization, so legacy backends never fall
+// back to a second transaction or a partially linked ScheduledCall.
+type MeetingTransactionBackend interface {
+	ResolveMeetingCreateAuthorization(context.Context, EventMutationScope, MeetingCreateAuthorizationRequest) (MeetingCreateAuthorization, error)
+	PersistMeetingScheduledCall(context.Context, EventMutationScope, MeetingScheduledCallCommand) (MeetingScheduledCallPersistenceResult, error)
+}
+
 // CalendarEventUpdateAuthorizationRequest carries only the event identity and,
 // when supplied, the untrusted attendee replacement candidates. The transaction
 // backend is the sole authority for every current event and attendee value.
@@ -645,6 +653,95 @@ func (transaction *EventTransaction) ReconcileCalendarAvailabilityReservations(c
 		return ErrAvailabilitySourceInvalid
 	}
 	return backend.ReconcileCalendarAvailabilityReservations(ctx, scope, cloneCalendarAvailabilityReservationSet(set))
+}
+
+// ResolveMeetingCreateScope proves every optional meeting capability before
+// performing the actor-to-organization lookup in this transaction.
+func (transaction *EventTransaction) ResolveMeetingCreateScope(ctx context.Context, actorID uuid.UUID) (EventMutationScope, error) {
+	if transaction == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	meetingBackend, meetingSupported := transaction.backend.(MeetingTransactionBackend)
+	availabilityBackend, availabilitySupported := transaction.backend.(AvailabilityReservationTransactionBackend)
+	if !meetingSupported || nilMeetingTransactionBackend(meetingBackend) ||
+		!availabilitySupported || nilAvailabilityReservationTransactionBackend(availabilityBackend) {
+		return EventMutationScope{}, ErrEventInternal
+	}
+	if actorID == uuid.Nil {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
+	if err != nil || organizationID == uuid.Nil {
+		return EventMutationScope{}, ErrEventForbidden
+	}
+	return EventMutationScope{
+		actorID:          actorID,
+		organizationID:   organizationID,
+		receiptOperation: MutationReceiptMeetingCreate,
+		eventOperation:   EventMutationMeetingCreate,
+		transaction:      transaction,
+	}, nil
+}
+
+// ResolveMeetingCreateAuthorization resolves project, channel and every member
+// only through the transaction-bound meeting capability.
+func (transaction *EventTransaction) ResolveMeetingCreateAuthorization(ctx context.Context, scope EventMutationScope, request MeetingCreateAuthorizationRequest) (MeetingCreateAuthorization, error) {
+	if transaction == nil {
+		return MeetingCreateAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return MeetingCreateAuthorization{}, err
+	}
+	if scope.EventOperation() != EventMutationMeetingCreate || !request.valid() {
+		return MeetingCreateAuthorization{}, ErrEventInvalid
+	}
+	backend, supported := transaction.backend.(MeetingTransactionBackend)
+	if !supported || nilMeetingTransactionBackend(backend) {
+		return MeetingCreateAuthorization{}, ErrEventInternal
+	}
+	resolved, err := backend.ResolveMeetingCreateAuthorization(ctx, scope, cloneMeetingCreateAuthorizationRequest(request))
+	if err != nil {
+		return MeetingCreateAuthorization{}, err
+	}
+	if !resolved.valid() {
+		return MeetingCreateAuthorization{}, ErrEventInternal
+	}
+	return cloneMeetingCreateAuthorization(resolved), nil
+}
+
+// PersistMeetingScheduledCall creates and bidirectionally links one
+// ScheduledCall after the canonical event and reservations are present.
+func (transaction *EventTransaction) PersistMeetingScheduledCall(ctx context.Context, scope EventMutationScope, command MeetingScheduledCallCommand) (MeetingScheduledCallPersistenceResult, error) {
+	if transaction == nil {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return MeetingScheduledCallPersistenceResult{}, err
+	}
+	if scope.EventOperation() != EventMutationMeetingCreate || !command.valid() || command.creatorID != scope.ActorID() || command.organizationID != scope.OrganizationID() {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventForbidden
+	}
+	backend, supported := transaction.backend.(MeetingTransactionBackend)
+	if !supported || nilMeetingTransactionBackend(backend) {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventInternal
+	}
+	result, err := backend.PersistMeetingScheduledCall(ctx, scope, cloneMeetingScheduledCallCommand(command))
+	if err != nil {
+		return MeetingScheduledCallPersistenceResult{}, err
+	}
+	if result.CallID() != command.callID || result.Version() == 0 {
+		return MeetingScheduledCallPersistenceResult{}, ErrEventInternal
+	}
+	return result, nil
 }
 
 // EventMutationScope связывает каждую мутацию с actor, revalidated organization и operation одной транзакции.
@@ -1556,6 +1653,8 @@ const (
 	MutationReceiptEventCreate MutationReceiptOperation = "event_create"
 	// MutationReceiptLegacyCallCreate соответствует созданию через legacy ScheduledCall bridge.
 	MutationReceiptLegacyCallCreate MutationReceiptOperation = "legacy_call_create"
+	// MutationReceiptMeetingCreate is the dedicated meeting vertical receipt.
+	MutationReceiptMeetingCreate MutationReceiptOperation = "meeting_create"
 	// MutationReceiptRSVPSeries соответствует RSVP всей серии.
 	MutationReceiptRSVPSeries MutationReceiptOperation = "rsvp_series"
 	// MutationReceiptRSVPOccurrence соответствует RSVP одного экземпляра серии.
@@ -1569,6 +1668,7 @@ type EventMutationOperation string
 const (
 	EventMutationEventCreate      EventMutationOperation = "event_create"
 	EventMutationLegacyCallCreate EventMutationOperation = "legacy_call_create"
+	EventMutationMeetingCreate    EventMutationOperation = "meeting_create"
 	EventMutationRSVPSeries       EventMutationOperation = "rsvp_series"
 	EventMutationRSVPOccurrence   EventMutationOperation = "rsvp_occurrence"
 	EventMutationCalendarUpdate   EventMutationOperation = "event_update"
@@ -2014,7 +2114,7 @@ func (descriptor EventOutboxDescriptor) valid() bool {
 
 func validMutationReceiptOperation(operation MutationReceiptOperation) bool {
 	switch operation {
-	case MutationReceiptEventCreate, MutationReceiptLegacyCallCreate, MutationReceiptRSVPSeries, MutationReceiptRSVPOccurrence:
+	case MutationReceiptEventCreate, MutationReceiptLegacyCallCreate, MutationReceiptMeetingCreate, MutationReceiptRSVPSeries, MutationReceiptRSVPOccurrence:
 		return true
 	default:
 		return false
@@ -2027,6 +2127,8 @@ func eventMutationOperationForReceipt(operation MutationReceiptOperation) (Event
 		return EventMutationEventCreate, true
 	case MutationReceiptLegacyCallCreate:
 		return EventMutationLegacyCallCreate, true
+	case MutationReceiptMeetingCreate:
+		return EventMutationMeetingCreate, true
 	case MutationReceiptRSVPSeries:
 		return EventMutationRSVPSeries, true
 	case MutationReceiptRSVPOccurrence:
@@ -2044,6 +2146,19 @@ func validEventMutationScope(scope EventMutationScope) bool {
 		return false
 	}
 	return scope.eventOperation == EventMutationCalendarUpdate || scope.eventOperation == EventMutationCalendarOccurrenceCancel
+}
+
+func nilMeetingTransactionBackend(backend MeetingTransactionBackend) bool {
+	if backend == nil {
+		return true
+	}
+	value := reflect.ValueOf(backend)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 func validCalendarEventSource(source CalendarEventSource) bool {

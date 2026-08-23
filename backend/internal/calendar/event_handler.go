@@ -613,6 +613,8 @@ func calendarHTTPValidateExactKeys(data []byte, target any) error {
 		allowed = calendarHTTPRSVPKeyAllowed
 	case *calendarHTTPAvailabilityRequest:
 		allowed = calendarHTTPAvailabilityKeyAllowed
+	case *calendarHTTPMeetingCreateRequest:
+		allowed = calendarHTTPMeetingCreateKeyAllowed
 	default:
 		return errors.New("unsupported calendar request type")
 	}
