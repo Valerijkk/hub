@@ -255,6 +255,16 @@ type EngineMessageReadRequest struct {
 	MaxContentBytes int64
 }
 
+// EngineDraftReadRequest is one exact provider-authoritative draft read.
+// AccountID is already resolved by the service and is never sourced from HTTP.
+type EngineDraftReadRequest struct {
+	AccountID       string
+	DraftKey        string
+	MessageID       string
+	ExpectedVersion string
+	MaxContentBytes int64
+}
+
 // EngineBlobReadRequest — account-scoped запрос двоичного вложения с ограничением размера.
 type EngineBlobReadRequest struct {
 	AccountID string
@@ -342,13 +352,14 @@ const (
 
 // EngineProjectionAttachment — ограниченные метаданные вложения в проекции сообщения.
 type EngineProjectionAttachment struct {
-	BlobID      string
-	ContentID   string
-	Filename    string
-	MediaType   string
-	SizeBytes   int64
-	Disposition EngineAttachmentDisposition
-	SHA256      []byte
+	BlobID        string
+	AttachmentKey string
+	ContentID     string
+	Filename      string
+	MediaType     string
+	SizeBytes     int64
+	Disposition   EngineAttachmentDisposition
+	SHA256        []byte
 }
 
 // MailAuthenticationClass — безопасный класс аутентификации календарного сообщения.

@@ -14,6 +14,7 @@ type MailEngine interface {
 	DeleteFolder(context.Context, string, string) error
 	ListMessages(context.Context, EngineMessageQuery) (EngineProjectionPage, error)
 	GetMessage(context.Context, EngineMessageReadRequest) (EngineMessage, error)
+	GetDraft(context.Context, EngineDraftReadRequest) (EngineMessage, error)
 	GetBlob(context.Context, EngineBlobReadRequest) (EngineBlob, error)
 	ReadCalendarPart(context.Context, EngineCalendarPartReadRequest) (EngineCalendarPartReadResult, error)
 	Changes(context.Context, EngineChangeRequest) (EngineChangePage, error)

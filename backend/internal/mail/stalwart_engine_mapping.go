@@ -624,8 +624,63 @@ func stalwartMapAttachments(values []stalwartEmailBodyPart) ([]EngineProjectionA
 	return result, nil
 }
 
+// stalwartMapDraftAttachments correlates the raw JMAP partId with the mapped
+// attachment only for a confirmed owner draft. The part identifier is opaque;
+// filename, position, checksum, CID, and blob identifier are never used as a
+// substitute for the key.
+func stalwartMapDraftAttachments(raw []stalwartEmailBodyPart, mapped []EngineProjectionAttachment) ([]EngineProjectionAttachment, error) {
+	if len(raw) > MaxEngineAttachmentItems || len(mapped) > MaxEngineAttachmentItems || len(raw) != len(mapped) {
+		return nil, stalwartEngineError(EngineErrorUnavailable)
+	}
+	partIDByBlobID := make(map[string]string, len(raw))
+	partIDs := make(map[string]struct{}, len(raw))
+	for _, attachment := range raw {
+		if !validOpaqueID(attachment.PartID) || !validOpaqueID(attachment.BlobID) {
+			return nil, stalwartEngineError(EngineErrorUnavailable)
+		}
+		if _, duplicate := partIDs[attachment.PartID]; duplicate {
+			return nil, stalwartEngineError(EngineErrorUnavailable)
+		}
+		if _, duplicate := partIDByBlobID[attachment.BlobID]; duplicate {
+			return nil, stalwartEngineError(EngineErrorUnavailable)
+		}
+		partIDs[attachment.PartID] = struct{}{}
+		partIDByBlobID[attachment.BlobID] = attachment.PartID
+	}
+	result := make([]EngineProjectionAttachment, len(mapped))
+	seenBlobIDs := make(map[string]struct{}, len(mapped))
+	for index, attachment := range mapped {
+		if !validOpaqueID(attachment.BlobID) {
+			return nil, stalwartEngineError(EngineErrorUnavailable)
+		}
+		if _, duplicate := seenBlobIDs[attachment.BlobID]; duplicate {
+			return nil, stalwartEngineError(EngineErrorUnavailable)
+		}
+		attachmentKey, ok := partIDByBlobID[attachment.BlobID]
+		if !ok {
+			return nil, stalwartEngineError(EngineErrorUnavailable)
+		}
+		seenBlobIDs[attachment.BlobID] = struct{}{}
+		attachment.AttachmentKey = attachmentKey
+		result[index] = attachment
+	}
+	if len(seenBlobIDs) != len(partIDByBlobID) {
+		return nil, stalwartEngineError(EngineErrorUnavailable)
+	}
+	sort.Slice(result, func(left, right int) bool {
+		if result[left].BlobID != result[right].BlobID {
+			return result[left].BlobID < result[right].BlobID
+		}
+		if result[left].ContentID != result[right].ContentID {
+			return result[left].ContentID < result[right].ContentID
+		}
+		return result[left].Filename < result[right].Filename
+	})
+	return result, nil
+}
+
 func stalwartSameProjectionAttachment(left, right EngineProjectionAttachment) bool {
-	return left.BlobID == right.BlobID && left.ContentID == right.ContentID && left.Filename == right.Filename && left.MediaType == right.MediaType && left.SizeBytes == right.SizeBytes && left.Disposition == right.Disposition && len(left.SHA256) == 0 && len(right.SHA256) == 0
+	return left.BlobID == right.BlobID && left.AttachmentKey == right.AttachmentKey && left.ContentID == right.ContentID && left.Filename == right.Filename && left.MediaType == right.MediaType && left.SizeBytes == right.SizeBytes && left.Disposition == right.Disposition && len(left.SHA256) == 0 && len(right.SHA256) == 0
 }
 
 func stalwartAttachmentDisposition(value string) (EngineAttachmentDisposition, bool) {

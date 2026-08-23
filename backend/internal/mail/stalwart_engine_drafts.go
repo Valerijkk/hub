@@ -343,6 +343,50 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 	return EngineDraftApplied{Message: message}, nil
 }
 
+// GetDraft reads only the exact owner draft selected by its opaque marker.
+// It never accepts actor or organization scope because the service has already
+// resolved the engine account before calling this provider adapter.
+func (engine *StalwartEngine) GetDraft(ctx context.Context, request EngineDraftReadRequest) (EngineMessage, error) {
+	if ctx == nil || !validAccountID(request.AccountID) || !validOpaqueID(request.DraftKey) || !validOpaqueID(request.MessageID) || !validOpaqueID(request.ExpectedVersion) || request.MaxContentBytes < 1 || request.MaxContentBytes > MaxEngineMessageBytes {
+		return EngineMessage{}, stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	draftMarker, err := stalwartOpaqueMarker("draft", request.AccountID, request.DraftKey)
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	folders, _, err := engine.listFolderSnapshot(ctx, request.AccountID)
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	draftsID, err := stalwartExactFolderRole(folders, EngineFolderRoleDrafts)
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	message, found, ambiguous, err := engine.stalwartLookupDraft(ctx, request.AccountID, draftsID, draftMarker, request.MaxContentBytes)
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	if ambiguous {
+		return EngineMessage{}, stalwartEngineError(EngineErrorIndeterminate)
+	}
+	if !found {
+		return EngineMessage{}, stalwartEngineError(EngineErrorNotFound)
+	}
+	if message.Projection.AccountID != request.AccountID || !message.Projection.Flags.Draft || !stalwartExactFolder(message.Projection, draftsID) || !stalwartProjectionHasKeyword(message.Projection, draftMarker) {
+		return EngineMessage{}, stalwartEngineError(EngineErrorUnavailable)
+	}
+	if message.Projection.MessageID != request.MessageID || message.Projection.Version != request.ExpectedVersion {
+		return EngineMessage{}, stalwartEngineError(EngineErrorConflict)
+	}
+	if int64(messageVariableBytes(message)) > request.MaxContentBytes {
+		return EngineMessage{}, stalwartEngineError(EngineErrorPayloadTooLarge)
+	}
+	if err := validateEngineMessage(message); err != nil {
+		return EngineMessage{}, stalwartMappingResponseError(err)
+	}
+	return message, nil
+}
+
 func (engine *StalwartEngine) stalwartResolveInitialDraftConflict(ctx context.Context, draft EngineDraft, conflict error) (EngineMessage, error) {
 	result, err := engine.ReconcileDraft(ctx, EngineDraftReconciliation{
 		AccountID: draft.AccountID, DraftKey: draft.DraftKey, MutationID: draft.MutationID,
@@ -877,6 +921,11 @@ func (engine *StalwartEngine) stalwartReadDraftMessage(ctx context.Context, acco
 	projection.BCC = bcc
 	projection.Priority = priority
 	projection.Origin = EngineProjectionOriginConfirmedOwnerDraft
+	attachments, err := stalwartMapDraftAttachments(record.Attachments, projection.Attachments)
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	projection.Attachments = attachments
 	body, err := stalwartMapEmailBody(record, bodyLimit)
 	if err != nil {
 		return EngineMessage{}, err

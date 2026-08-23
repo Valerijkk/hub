@@ -36,6 +36,7 @@ const (
 	FakeMailOperationDeleteFolder         FakeMailOperation = "delete_folder"
 	FakeMailOperationListMessages         FakeMailOperation = "list_messages"
 	FakeMailOperationGetMessage           FakeMailOperation = "get_message"
+	FakeMailOperationGetDraft             FakeMailOperation = "get_draft"
 	FakeMailOperationGetBlob              FakeMailOperation = "get_blob"
 	FakeMailOperationReadCalendarPart     FakeMailOperation = "read_calendar_part"
 	FakeMailOperationChanges              FakeMailOperation = "changes"
@@ -610,6 +611,35 @@ func (f *FakeMailEngine) GetMessage(_ context.Context, request EngineMessageRead
 		return EngineMessage{}, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
 	return result, nil
+}
+
+func (f *FakeMailEngine) GetDraft(_ context.Context, request EngineDraftReadRequest) (EngineMessage, error) {
+	if !validAccountID(request.AccountID) || !validOpaqueID(request.DraftKey) || !validOpaqueID(request.MessageID) || !validOpaqueID(request.ExpectedVersion) || request.MaxContentBytes <= 0 || request.MaxContentBytes > MaxEngineMessageBytes {
+		return EngineMessage{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if fault, ok := f.takeFaultLocked(FakeMailOperationGetDraft); ok {
+		return EngineMessage{}, fakeEngineError(fault.Kind)
+	}
+	draft, ok := f.drafts[request.AccountID][request.DraftKey]
+	if !ok {
+		return EngineMessage{}, fakeEngineError(EngineErrorNotFound)
+	}
+	message := draft.message
+	if message.Projection.AccountID != request.AccountID || !message.Projection.Flags.Draft || message.Projection.Origin != EngineProjectionOriginConfirmedOwnerDraft {
+		return EngineMessage{}, fakeEngineError(EngineErrorUnavailable)
+	}
+	if message.Projection.MessageID != request.MessageID || message.Projection.Version != request.ExpectedVersion {
+		return EngineMessage{}, fakeEngineError(EngineErrorConflict)
+	}
+	if err := validateEngineMessage(message); err != nil {
+		return EngineMessage{}, fakeEngineError(EngineErrorUnavailable)
+	}
+	if int64(messageVariableBytes(message)) > request.MaxContentBytes {
+		return EngineMessage{}, fakeEngineError(EngineErrorPayloadTooLarge)
+	}
+	return cloneMessage(message), nil
 }
 
 func (f *FakeMailEngine) GetBlob(_ context.Context, request EngineBlobReadRequest) (EngineBlob, error) {
@@ -1241,7 +1271,7 @@ func messageFromDraft(draft EngineDraft, messageID, version string, now time.Tim
 	attachments := make([]EngineProjectionAttachment, 0, len(draft.Message.Attachments))
 	for _, attachment := range draft.Message.Attachments {
 		blobID := attachment.AttachmentKey
-		attachments = append(attachments, EngineProjectionAttachment{BlobID: blobID, ContentID: attachment.ContentID, Filename: attachment.Filename, MediaType: attachment.MediaType, SizeBytes: int64(len(attachment.Bytes)), Disposition: attachment.Disposition, SHA256: append([]byte(nil), attachment.SHA256[:]...)})
+		attachments = append(attachments, EngineProjectionAttachment{BlobID: blobID, AttachmentKey: attachment.AttachmentKey, ContentID: attachment.ContentID, Filename: attachment.Filename, MediaType: attachment.MediaType, SizeBytes: int64(len(attachment.Bytes)), Disposition: attachment.Disposition, SHA256: append([]byte(nil), attachment.SHA256[:]...)})
 	}
 	now = now.UTC()
 	return EngineMessage{Projection: EngineMessageProjection{AccountID: draft.AccountID, MessageID: messageID, Version: version, From: draft.Message.From, To: cloneAddresses(draft.Message.To), CC: cloneAddresses(draft.Message.CC), BCC: cloneAddresses(draft.Message.BCC), ReplyTo: cloneAddresses(draft.Message.ReplyTo), Subject: draft.Message.Subject, InReplyTo: draft.Message.InReplyTo, References: cloneStrings(draft.Message.References), ReceivedAt: &now, AuthenticationClass: MailAuthenticationClassUntrusted, SizeBytes: int64(len(draft.Message.PlainBody) + len(draft.Message.RichBody)), Priority: draft.Message.Priority, FolderIDs: []string{"drafts"}, Flags: EngineMessageFlags{Draft: true}, Attachments: attachments, Origin: EngineProjectionOriginConfirmedOwnerDraft}, Body: EngineMessageBody{Format: draft.Message.Format, PlainBody: draft.Message.PlainBody, RichBody: draft.Message.RichBody}}
@@ -1424,6 +1454,24 @@ func validateProjection(projection EngineMessageProjection) error {
 	}
 	if !validMailCalendarMethod(projection.CalendarMethod) {
 		return fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	if projection.Origin == EngineProjectionOriginConfirmedOwnerDraft {
+		attachmentKeys := make(map[string]struct{}, len(projection.Attachments))
+		for _, attachment := range projection.Attachments {
+			if !validOpaqueID(attachment.AttachmentKey) {
+				return fakeEngineError(EngineErrorRejectedPolicy)
+			}
+			if _, duplicate := attachmentKeys[attachment.AttachmentKey]; duplicate {
+				return fakeEngineError(EngineErrorRejectedPolicy)
+			}
+			attachmentKeys[attachment.AttachmentKey] = struct{}{}
+		}
+	} else {
+		for _, attachment := range projection.Attachments {
+			if attachment.AttachmentKey != "" {
+				return fakeEngineError(EngineErrorRejectedPolicy)
+			}
+		}
 	}
 	if projectionVariableBytes(projection) > MaxEngineProjectionItemBytes {
 		return fakeEngineError(EngineErrorPayloadTooLarge)
@@ -1773,7 +1821,7 @@ func projectionVariableBytes(projection EngineMessageProjection) int {
 		total += len(keyword)
 	}
 	for _, attachment := range projection.Attachments {
-		total += len(attachment.BlobID) + len(attachment.ContentID) + len(attachment.Filename) + len(attachment.MediaType) + len(attachment.SHA256)
+		total += len(attachment.BlobID) + len(attachment.AttachmentKey) + len(attachment.ContentID) + len(attachment.Filename) + len(attachment.MediaType) + len(attachment.SHA256)
 	}
 	return total
 }
