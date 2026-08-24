@@ -127,6 +127,7 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 		// Публикация NATS-события.
 		event := newMessageSentEvent(canonical, resolvedMentions)
 		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, canonical.ChannelID.String()), event)
+		s.publishUserNewMessageNotifications(ctx, canonical)
 
 		s.emitMessageSent(ctx, MessageHookEvent{
 			MessageID:   canonical.ID,
@@ -347,6 +348,7 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 	// NATS-событие в целевой канал для WS-fanout.
 	event := newMessageSentEvent(doc, nil)
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, targetID.String()), event)
+	s.publishUserNewMessageNotifications(ctx, doc)
 
 	return &event.Message, nil
 }

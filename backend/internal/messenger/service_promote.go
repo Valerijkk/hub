@@ -307,5 +307,6 @@ func (s *MessengerService) postPromotionBacklink(
 	// NATS-событие для real-time доставки.
 	event := newMessageSentEvent(doc, nil)
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), event)
+	s.publishUserNewMessageNotifications(ctx, doc)
 	return nil
 }

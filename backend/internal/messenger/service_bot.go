@@ -79,6 +79,7 @@ func (s *MessengerService) SendBotMessage(ctx context.Context, channelID uuid.UU
 
 	event := newMessageSentEvent(doc, nil)
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), event)
+	s.publishUserNewMessageNotifications(ctx, doc)
 
 	return &event.Message, nil
 }
