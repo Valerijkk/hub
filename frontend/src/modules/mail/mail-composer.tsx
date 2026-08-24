@@ -463,6 +463,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	const [errorKey, setErrorKey] = useState<string | null>(null);
 	const [isSending, setIsSending] = useState(false);
 	const [isDiscarding, setIsDiscarding] = useState(false);
+	const [isRemovingAttachment, setIsRemovingAttachment] = useState(false);
 	const [initialSession] = useState<ComposerSession>(() => newSession());
 	const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
 	const [submissionIntent, setSubmissionIntent] = useState<SubmissionIntent | null>(null);
@@ -479,6 +480,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	const submissionIntentRef = useRef<SubmissionIntent | null>(null);
 	const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 	const uploadQueueRef = useRef<Promise<void>>(Promise.resolve());
+	const attachmentRemovalInProgressRef = useRef(false);
 	const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -555,6 +557,8 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 		setErrorKey(null);
 		setIsSending(false);
 		setIsDiscarding(false);
+		attachmentRemovalInProgressRef.current = false;
+		setIsRemovingAttachment(false);
 	}, [replaceAttachments, replaceForm]);
 
 	const applyDraft = useCallback((draft: MailDraft) => {
@@ -1019,30 +1023,69 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 
 	const removeAttachment = async (item: ComposerAttachment) => {
 		const session = sessionRef.current;
-		if (session.controller.signal.aborted) return;
-		if (isInteractionLocked || item.state === "uploading" || item.state === "removing") return;
-		updateAttachment(item.localId, { state: "removing" });
+		const currentAttachments = attachmentsRef.current;
+		const attachmentIndex = currentAttachments.findIndex(
+			(candidate) => candidate.localId === item.localId,
+		);
+		const attachment = currentAttachments[attachmentIndex];
+		if (
+			session.controller.signal.aborted ||
+			attachmentRemovalInProgressRef.current ||
+			isInteractionLocked ||
+			attachment === undefined ||
+			attachment.state === "uploading" ||
+			attachment.state === "removing"
+		) {
+			return;
+		}
+
+		attachmentRemovalInProgressRef.current = true;
+		setIsRemovingAttachment(true);
+		updateAttachment(attachment.localId, { state: "removing" });
+		replaceAttachments(
+			attachmentsRef.current.filter(
+				(candidate) => candidate.localId !== attachment.localId,
+			),
+		);
+		let isAuthoritativelyDetached = false;
 		try {
-			if (item.attachmentId !== null) {
-				await deleteMailAttachment(item.attachmentId, { signal: session.controller.signal });
-			}
+			await flushLatest();
 			if (session !== sessionRef.current || session.controller.signal.aborted) {
 				return;
 			}
-			replaceAttachments(
-				attachmentsRef.current.filter(
-					(candidate) => candidate.localId !== item.localId,
-				),
-			);
-			await flushLatest();
+			isAuthoritativelyDetached = true;
+			if (attachment.attachmentId !== null) {
+				await deleteMailAttachment(attachment.attachmentId, {
+					signal: session.controller.signal,
+				});
+			}
 		} catch (error) {
 			if (
 				isAbortError(error) ||
 				session !== sessionRef.current ||
 				session.controller.signal.aborted
 			) return;
-			updateAttachment(item.localId, { state: item.state });
-			setErrorKey(safeErrorKey(error, "compose.errors.removeFailed"));
+			if (!isAuthoritativelyDetached) {
+				const nextAttachments = [...attachmentsRef.current];
+				if (
+					!nextAttachments.some(
+						(candidate) => candidate.localId === attachment.localId,
+					)
+				) {
+					nextAttachments.splice(
+						Math.min(attachmentIndex, nextAttachments.length),
+						0,
+						attachment,
+					);
+					replaceAttachments(nextAttachments);
+				}
+			}
+			setErrorKey("compose.errors.removeFailed");
+		} finally {
+			if (session === sessionRef.current && !session.controller.signal.aborted) {
+				attachmentRemovalInProgressRef.current = false;
+				setIsRemovingAttachment(false);
+			}
 		}
 	};
 
@@ -1338,6 +1381,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	};
 
 	const requestClose = async () => {
+		if (attachmentRemovalInProgressRef.current) return;
 		if (isSending || isDiscarding) return;
 		if (submissionIntentRef.current !== null) {
 			setErrorKey("compose.errors.sendFailed");
@@ -1382,6 +1426,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	const isBusy =
 		saveState === "saving" ||
 		isUploading ||
+		isRemovingAttachment ||
 		isSending ||
 		isDiscarding;
 	const isSubmissionFrozen = submissionIntent !== null;

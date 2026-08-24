@@ -77,7 +77,7 @@ class ApiClient {
 		options?: ApiRequestOptions,
 	): Record<string, string> {
 		const headers: Record<string, string> = {};
-		if (!(body instanceof FormData)) {
+		if (body !== undefined && body !== null && !(body instanceof FormData)) {
 			headers["Content-Type"] = "application/json";
 		}
 		const token = useAuthStore.getState().accessToken;
