@@ -78,5 +78,6 @@ func (MailDraft) Indexes() []ent.Index {
 		index.Fields("mail_account_id", "create_idempotency_key_hash").Unique().StorageKey("mail_drafts_account_create_key_uidx"),
 		index.Fields("mail_account_id", "engine_message_id").Unique().StorageKey("mail_drafts_account_engine_message_uidx").Annotations(entsql.IndexWhere("engine_message_id IS NOT NULL")),
 		index.Fields("from_identity_id").StorageKey("mail_drafts_from_identity_idx"),
+		index.Fields("pending_from_identity_id").StorageKey("mail_drafts_pending_from_identity_idx").Annotations(entsql.IndexWhere("pending_from_identity_id IS NOT NULL")),
 	}
 }

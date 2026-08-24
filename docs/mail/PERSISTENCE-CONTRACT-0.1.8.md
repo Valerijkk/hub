@@ -1027,7 +1027,9 @@ nullable UUID `last_mutation_id`; nullable enum `pending_mutation_kind`
 (`create|save|delete`); timestamps. No content/address/attachment bytes are stored.
 
 Unique account+draft key, account+draft-client id, account+create-key hash and nullable
-account+engine message id; `from_identity_id` is indexed. The engine pair is both-null or
+account+engine message id; `from_identity_id` is indexed. The nullable pending identity has the
+partial `mail_drafts_pending_from_identity_idx` index where
+`pending_from_identity_id IS NOT NULL`. The engine pair is both-null or
 both-present. Status is
 `active|saving|deleting|unknown|submitting|submitted|deleted`: active/submitting/submitted
 require the pair and null mutation id/kind; saving requires a mutation id and `create|save`
@@ -1055,6 +1057,25 @@ edges are `RESTRICT`, as is the pending attachment edge. The pending attachment 
 indexed. The service proves each identity/message/attachment belongs to the locked account;
 the database intentionally does not attempt cross-row account or immutable-client-id equality.
 
+#### Staged migration gate (`NOT_MIGRATED`)
+
+The physical migration is deliberately staged. First add every column that is new to the target
+database as nullable, including the pending save columns and, where absent in the legacy table,
+the confirmed identity link; add the partial pending-identity index without a fabricated default.
+Before backfill, a first-release preflight that proves `mail_drafts` has zero rows is accepted:
+there is then no legacy row to resolve. If any row exists, each row requires an exact provider
+`GetDraft` read and an owner-scoped mapping from that draft's canonical `From` to exactly one
+same-owner `MailIdentity` whose `status='active'` and `send_allowed=true`. The provider evidence
+must prove the row's current draft/pair and owner scope. An unprovable read, ambiguous mapping,
+foreign identity, or deleted identity without explicit authoritative proof blocks the migration;
+the migrator must never default, guess, or fabricate an identity or pending value.
+
+Only after every existing row has that proof-backed representation may the migration validate the
+candidate data and enforce the target foreign keys, `NOT NULL` requirements, and state/check
+constraints (including `mail_drafts_pending_save_state`). A blocked row leaves the database on
+the nullable staged form for remediation rather than partially enforcing a false invariant.
+Generated Ent output and the physical migration remain `NOT_GENERATED` / `NOT_MIGRATED`.
+
 `Reserve` locks `MailAccount`, then `MailDraft`, then the complete union of confirmed and
 selected attachment rows in ascending raw UUID order. It validates the complete distinct D set
 and its <=50 row count, preserves O, writes D atomically, and performs no provider I/O while
@@ -1065,12 +1086,16 @@ cleanup garbage or permission to reclaim an upload.
 
 `Applied` is a separately locked completion: it promotes D to the new confirmed graph O,
 clears confirmed links for O\D, and clears all D scalars/attachment links in the same durable
-transition. `SaveRetained` is permitted only after exact reconciliation proves the provider
-retained the old pair and confirmed attachment set: it preserves O and clears D. `Unknown`
-preserves both O and D for reconciliation; it neither repeats provider I/O nor performs
-attachment cleanup. Every completion reacquires the same lock order and validates the exact
-mutation/fence before change. Lifecycle authority remains with the repository state machine;
-the engine only reports an outcome and cannot mutate O or D.
+transition. The schema can represent a future discard-D completion, but current source has no
+representable `SaveRetained` result and the repository has no corresponding proof path. Until a
+separately implemented sealed `EngineDraftRetained{Message EngineMessage}` result and the exact
+repository proof in the engine contract exist, `SaveRetained` is forbidden: every non-`Applied`
+outcome preserves O and D and remains `unknown` for reconciliation. A future retained completion
+may clear D only after its exact-old-pair/currentness proof and the matching locked
+account/draft/mutation/fence revalidation; it leaves O unchanged. It is
+`SOURCE_NOT_IMPLEMENTED`, not current schema behavior. Every completion reacquires the same lock
+order and validates the exact mutation/fence before change. Lifecycle authority remains with the
+repository state machine; the engine only reports an outcome and cannot mutate O or D.
 
 Every selected storage attachment has the same draft-client id and receives its pending edge
 atomically; an existing different confirmed or pending draft edge conflicts before engine I/O.

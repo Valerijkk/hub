@@ -10,14 +10,26 @@ pending from identity plus exact 32-byte request hash; its optional reply/forwar
 pending storage-backed attachments are desired state, never a replacement for O before a
 confirmed completion. Pending identity/message/attachment foreign keys are `RESTRICT`; the
 attachment owner check permits confirmed plus pending ownership only for the same draft and
-never alongside a message. Engine-backed attachments forbid pending ownership.
+never alongside a message. Engine-backed attachments forbid pending ownership. The nullable
+pending identity has partial index `mail_drafts_pending_from_identity_idx` where
+`pending_from_identity_id IS NOT NULL`.
 
 The lifecycle remains repository-owned: `Reserve` preserves O and writes D in the short locked
-transaction; provider I/O follows commit. `Applied` promotes D, `SaveRetained` preserves O and
-clears D only after exact reconciliation, and `Unknown` retains both graphs. Pending attachment
-links are live state, so O∩D, O\D, and D\O do not permit generic cleanup or provider work.
-This is schema/source-only: generated Ent is `NOT_GENERATED`, migrations are `NOT_MIGRATED`, and
-build, tests, Docker, and runtime are `NOT_RUN`.
+transaction; provider I/O follows commit. `Applied` promotes D. Current source does not
+represent `SaveRetained`, so it is forbidden and every non-`Applied` outcome retains O and D as
+`unknown`. The schema supports only a future discard-D path: a separately implemented sealed
+`EngineDraftRetained{Message EngineMessage}` plus exact old-pair/currentness and repository
+fence proof would be required before it could clear D; that source is `SOURCE_NOT_IMPLEMENTED`.
+Pending attachment links are live state, so O∩D, O\D, and D\O do not permit generic cleanup or
+provider work.
+
+Migration is staged and remains `NOT_MIGRATED`: add target columns nullable first, with no
+default; a zero-row `mail_drafts` first-release preflight is accepted. Existing rows require an
+exact provider `GetDraft` plus one owner-scoped active, `send_allowed` `MailIdentity` mapping for
+the canonical `From`. Unprovable, ambiguous, foreign, or deleted-without-proof rows block rather
+than defaulting or fabricating data. Only validated rows may then receive target foreign keys,
+`NOT NULL`, and checks. Generated Ent remains `NOT_GENERATED`; build, tests, Docker, and runtime
+are `NOT_RUN`.
 
 ## 2026-08-23 - Mail-to-Calendar inbound admission additive prerequisite
 
