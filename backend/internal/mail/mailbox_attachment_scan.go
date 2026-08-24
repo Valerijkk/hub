@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -8,6 +9,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/mailattachment"
+	"github.com/valerii/hub/backend/ent/mailobject"
 )
 
 const mailboxAttachmentScanBufferBytes = 32 * 1024
@@ -112,137 +117,6 @@ type mailboxAttachmentScanFence struct {
 	ObjectUpdatedAt     time.Time
 }
 
-// mailboxAttachmentScanPrepareRequest carries the exact resolved caller scope into a short repository transaction.
-type mailboxAttachmentScanPrepareRequest struct {
-	ActorID        uuid.UUID
-	OrganizationID uuid.UUID
-	AccountID      uuid.UUID
-	AttachmentID   uuid.UUID
-}
-
-// mailboxAttachmentScanPrepared is an opaque, copied read authority for one object stream.
-type mailboxAttachmentScanPrepared struct {
-	Object        MailboxObjectLocator
-	ContentLength int64
-	Fence         *mailboxAttachmentScanFence
-}
-
-// mailboxAttachmentScanCompleteRequest is one terminal clean or rejected compare-and-swap.
-type mailboxAttachmentScanCompleteRequest struct {
-	ActorID        uuid.UUID
-	OrganizationID uuid.UUID
-	AccountID      uuid.UUID
-	AttachmentID   uuid.UUID
-	ScanStatus     AttachmentScanStatus
-	Fence          *mailboxAttachmentScanFence
-}
-
-// MailboxAttachmentScanResult contains no attachment content or scanner diagnostics.
-type MailboxAttachmentScanResult struct {
-	AttachmentID uuid.UUID
-	ScanStatus   AttachmentScanStatus
-}
-
-type mailboxAttachmentScanCompletion struct {
-	attachmentID uuid.UUID
-	scanStatus   AttachmentScanStatus
-}
-
-// mailboxAttachmentScanRepository keeps lock-owning persistence separate from streaming I/O.
-type mailboxAttachmentScanRepository interface {
-	prepareMailboxAttachmentScan(context.Context, mailboxAttachmentScanPrepareRequest) (mailboxAttachmentScanPrepared, error)
-	completeMailboxAttachmentScan(context.Context, mailboxAttachmentScanCompleteRequest) (mailboxAttachmentScanCompletion, error)
-}
-
-// MailboxAttachmentScanService verifies an uploaded object and makes its scanner decision durable.
-type MailboxAttachmentScanService struct {
-	owners      mailboxOwnerResolver
-	repository  mailboxAttachmentScanRepository
-	objectStore MailboxObjectStore
-	scanner     MailboxAttachmentMalwareScanner
-}
-
-func NewMailboxAttachmentScanService(
-	owners mailboxOwnerResolver,
-	repository mailboxAttachmentScanRepository,
-	objectStore MailboxObjectStore,
-	scanner MailboxAttachmentMalwareScanner,
-) (*MailboxAttachmentScanService, error) {
-	if mailboxAttachmentStagingDependencyNil(owners) || mailboxAttachmentStagingDependencyNil(repository) || mailboxAttachmentStagingDependencyNil(objectStore) || mailboxAttachmentStagingDependencyNil(scanner) {
-		return nil, mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
-	}
-	return &MailboxAttachmentScanService{owners: owners, repository: repository, objectStore: objectStore, scanner: scanner}, nil
-}
-
-// ScanMailboxAttachment streams a drain-complete, confirmed object through the malware scanner before one terminal CAS.
-func (service *MailboxAttachmentScanService) ScanMailboxAttachment(ctx context.Context, actorID, attachmentID uuid.UUID) (MailboxAttachmentScanResult, error) {
-	if !mailboxAttachmentScanServiceValid(service) || ctx == nil || actorID == uuid.Nil || attachmentID == uuid.Nil {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
-	}
-
-	owner, err := service.owners.ResolveOwner(ctx, actorID)
-	if err != nil {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanOwnerError(err)
-	}
-	if owner.State() == MailboxOwnerDeleting {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorDeleting)
-	}
-	accountID, hasAccount := owner.AccountID()
-	if owner.State() != MailboxOwnerActive || owner.OrganizationID() == uuid.Nil || !hasAccount || accountID == uuid.Nil {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
-	}
-
-	prepared, err := service.repository.prepareMailboxAttachmentScan(ctx, mailboxAttachmentScanPrepareRequest{
-		ActorID:        actorID,
-		OrganizationID: owner.OrganizationID(),
-		AccountID:      accountID,
-		AttachmentID:   attachmentID,
-	})
-	if err != nil {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanRepositoryError(err)
-	}
-	if !mailboxAttachmentScanPreparedValid(prepared, actorID, owner.OrganizationID(), accountID, attachmentID) {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
-	}
-
-	integrityClean, verdict, err := mailboxAttachmentScanStream(service.objectStore, service.scanner, ctx, prepared.Object, prepared.ContentLength, prepared.Fence.ExpectedSHA256)
-	if err != nil {
-		return MailboxAttachmentScanResult{}, err
-	}
-	status := AttachmentScanStatusRejected
-	if integrityClean && verdict == MailboxAttachmentMalwareVerdictClean {
-		status = AttachmentScanStatusClean
-	}
-
-	completed, err := service.repository.completeMailboxAttachmentScan(ctx, mailboxAttachmentScanCompleteRequest{
-		ActorID:        actorID,
-		OrganizationID: owner.OrganizationID(),
-		AccountID:      accountID,
-		AttachmentID:   attachmentID,
-		ScanStatus:     status,
-		Fence:          mailboxAttachmentScanFenceCopy(prepared.Fence),
-	})
-	if err != nil {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanRepositoryError(err)
-	}
-	if completed.attachmentID != attachmentID || completed.scanStatus != status {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
-	}
-	return MailboxAttachmentScanResult{AttachmentID: completed.attachmentID, ScanStatus: completed.scanStatus}, nil
-}
-
-func mailboxAttachmentScanServiceValid(service *MailboxAttachmentScanService) bool {
-	return service != nil && !mailboxAttachmentStagingDependencyNil(service.owners) && !mailboxAttachmentStagingDependencyNil(service.repository) && !mailboxAttachmentStagingDependencyNil(service.objectStore) && !mailboxAttachmentStagingDependencyNil(service.scanner)
-}
-
-func mailboxAttachmentScanPreparedValid(prepared mailboxAttachmentScanPrepared, actorID, organizationID, accountID, attachmentID uuid.UUID) bool {
-	if !validMailboxObjectLocator(prepared.Object) || prepared.ContentLength < 1 || prepared.ContentLength > MaxEngineAttachmentBytes || !mailboxAttachmentScanFenceValid(prepared.Fence) {
-		return false
-	}
-	fence := prepared.Fence
-	return fence.UploaderID == actorID && fence.OrganizationID == organizationID && fence.AccountID == accountID && fence.AttachmentID == attachmentID && prepared.ContentLength == fence.ExpectedSizeBytes && prepared.Object == (MailboxObjectLocator{Bucket: fence.Bucket, Key: fence.ObjectKey})
-}
-
 func mailboxAttachmentScanFenceValid(fence *mailboxAttachmentScanFence) bool {
 	if fence == nil || fence.OrganizationID == uuid.Nil || fence.AccountID == uuid.Nil || fence.UploaderID == uuid.Nil || fence.DraftClientID == uuid.Nil || fence.AttachmentID == uuid.Nil || fence.ObjectID == uuid.Nil || fence.AttachmentID == fence.ObjectID || fence.ExpectedSizeBytes < 1 || fence.ExpectedSizeBytes > MaxEngineAttachmentBytes || !mailboxEntValidTime(fence.ObjectExpiresAt) || !mailboxEntValidTime(fence.UploadDrainUntil) || !mailboxEntValidTime(fence.AttachmentUpdatedAt) || !mailboxEntValidTime(fence.ObjectUpdatedAt) {
 		return false
@@ -253,12 +127,20 @@ func mailboxAttachmentScanFenceValid(fence *mailboxAttachmentScanFence) bool {
 	return validMailboxObjectLocator(MailboxObjectLocator{Bucket: fence.Bucket, Key: fence.ObjectKey})
 }
 
-func mailboxAttachmentScanFenceCopy(fence *mailboxAttachmentScanFence) *mailboxAttachmentScanFence {
-	if fence == nil {
-		return nil
+// mailboxAttachmentScanConfirmedRowsValid protects the durable worker's claim
+// and finalization paths from scanning any object other than its confirmed
+// attachment object.
+func mailboxAttachmentScanConfirmedRowsValid(attachment *ent.MailAttachment, object *ent.MailObject) bool {
+	if attachment == nil || object == nil || attachment.ID == uuid.Nil || object.ID == uuid.Nil || attachment.MailMessageID != nil || attachment.MailDraftID != nil || attachment.PendingMailDraftID != nil || attachment.DraftClientID == nil || *attachment.DraftClientID == uuid.Nil || attachment.StorageObjectID == nil || *attachment.StorageObjectID != object.ID || attachment.EngineBlobID != nil || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || attachment.ScanStatus != mailattachment.ScanStatus("pending") || len(attachment.SHA256) != sha256.Size || !mailboxEntValidTime(attachment.CreatedAt) || !mailboxEntValidTime(attachment.UpdatedAt) {
+		return false
 	}
-	copied := *fence
-	return &copied
+	if !mailboxAttachmentConfirmPendingMetadataValid(attachment) {
+		return false
+	}
+	if object.OrganizationID == uuid.Nil || object.MailAccountID == uuid.Nil || object.UploaderUserID == uuid.Nil || object.DraftClientID != *attachment.DraftClientID || object.Bucket == "" || object.ObjectKey != mailboxAttachmentPresignObjectKey(object.OrganizationID, object.MailAccountID, object.ID) || !validMailboxObjectLocator(MailboxObjectLocator{Bucket: object.Bucket, Key: object.ObjectKey}) || object.ExpectedSizeBytes != attachment.SizeBytes || object.ExpectedSizeBytes < 1 || object.ExpectedSizeBytes > MaxEngineAttachmentBytes || object.ActualSizeBytes == nil || *object.ActualSizeBytes != object.ExpectedSizeBytes || object.Filename != attachment.Filename || object.MediaType != attachment.MediaType || len(object.SHA256) != sha256.Size || !bytes.Equal(object.SHA256, attachment.SHA256) || object.UploadState != mailobject.UploadState("confirmed") || object.NextDeleteAt != nil || object.DeleteLeaseToken != nil || object.DeleteLeaseUntil != nil || !mailboxEntValidTime(object.ExpiresAt) || !mailboxEntValidTime(object.UploadDrainUntil) || !object.UploadDrainUntil.Equal(object.ExpiresAt.Add(mailboxAttachmentPresignObjectDrainLifetime)) || !mailboxEntValidTime(object.CreatedAt) || !mailboxEntValidTime(object.UpdatedAt) {
+		return false
+	}
+	return true
 }
 
 type mailboxAttachmentScanIntegrity uint8
@@ -394,30 +276,6 @@ func mailboxAttachmentScanCopyAndHash(body io.Reader, scanner io.Writer, content
 
 func validMailboxAttachmentMalwareVerdict(verdict MailboxAttachmentMalwareVerdict) bool {
 	return verdict == MailboxAttachmentMalwareVerdictClean || verdict == MailboxAttachmentMalwareVerdictRejected
-}
-
-func mailboxAttachmentScanOwnerError(err error) error {
-	var serviceError *MailboxServiceError
-	if !errors.As(err, &serviceError) || serviceError == nil {
-		return mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
-	}
-	switch serviceError.Kind {
-	case MailboxServiceErrorInvalid:
-		return mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
-	case MailboxServiceErrorNotFound:
-		return mailboxAttachmentScanError(MailboxAttachmentScanErrorNotFound)
-	case MailboxServiceErrorDeleting:
-		return mailboxAttachmentScanError(MailboxAttachmentScanErrorDeleting)
-	default:
-		return mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
-	}
-}
-
-func mailboxAttachmentScanRepositoryError(err error) error {
-	if kind, ok := MailboxAttachmentScanErrorKindOf(err); ok {
-		return mailboxAttachmentScanError(kind)
-	}
-	return mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 }
 
 func mailboxAttachmentScanObjectStoreError(err error) error {
