@@ -1,5 +1,11 @@
 # Hub Mail contract changelog
 
+## 2026-08-24 - Draft request canonicalization and hash V1 source seam
+
+`SOURCE_IMPLEMENTED_STATIC_ONLY / RUNTIME_NOT_RUN`. `CanonicalizeMailboxDraftRequest` produces one deep-copied canonical request and its SHA-256 over the versioned ordered TLV frame `hub-mail-draft-request-hash-v1`. The fixed scope is identity UUIDs, normalized address sets, headers/threading, priority, optional reply/forward message presence values, ordered attachment UUID+digest records, content source format/sanitizer version, and digests of canonical plain and sanitized rich content; raw body bytes never enter the frame. It validates bounded safe headers, exact thread identifiers, recipient and attachment uniqueness/caps, nonzero IDs/digests, and an exact V1 remote-blocked body by repeat normalization. Empty canonical rich content is allowed.
+
+Future DraftService work must dispatch only the returned canonical values and server-generate mutation IDs afterwards, preventing hash-normalized/dispatch-raw drift. No provider dispatch, persistence wiring/body storage, Ent/schema/migration, API/UI, runtime or release work is included. The repository remains content-free; stale content tests are deferred and build, tests, lint, gofmt, Docker, and runtime are `NOT_RUN`.
+
 ## 2026-08-24 - Mail 144-05E deterministic rich receive sanitizer source
 
 `SOURCE_IMPLEMENTED_STATIC_ONLY / RUNTIME_NOT_RUN`. The existing bounded `x/net/html` tokenizer now emits both retained text and deterministic sanitized HTML in one pass, then derives canonical plain text only from that retained text. `MailboxContentResult` replaces `Format` with exact `SourceFormat`, `SanitizerVersion`, `PlainBody`, `SanitizedHTML`, and `RemoteImagesBlocked` fields; V1 is the only accepted version and the separate sanitized HTML byte ceiling is `8_388_608`, including escaping. Plain input returns canonical plain with empty HTML; rich input returns its source format and safe HTML, including an allowed empty result. Every sanitizer failure returns the zero result.
