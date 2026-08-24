@@ -706,3 +706,199 @@ export function deleteMailAttachment(
 		options,
 	);
 }
+
+
+export type MailMessageMutationAction =
+	| "move"
+	| "mark_read"
+	| "mark_unread"
+	| "flag"
+	| "unflag"
+	| "trash";
+
+export interface MailMessageMutationIntent {
+	readonly targetType: "message";
+	readonly targetIDs: readonly [string];
+	readonly action: MailMessageMutationAction;
+	readonly folderID: string | null;
+	readonly idempotencyKey: string;
+}
+
+export type MailMessageMutationOutcome =
+	| "succeeded"
+	| "partial"
+	| "failed"
+	| "unknown";
+
+const MAIL_UUID_V4_PATTERN =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function normalizeMailMessageMutationFolderID(folderID: string): string {
+	const normalized = normalizeMailUUID(folderID);
+	if (normalized === null) {
+		throw new Error("Invalid mail mutation folder ID");
+	}
+	return normalized;
+}
+
+function mailMessageMutationActionValid(
+	action: MailMessageMutationAction,
+): boolean {
+	return (
+		action === "move" ||
+		action === "mark_read" ||
+		action === "mark_unread" ||
+		action === "flag" ||
+		action === "unflag" ||
+		action === "trash"
+	);
+}
+
+export function createMailMessageMutationIntent(
+	messageID: string,
+	action: MailMessageMutationAction,
+	folderID?: string,
+): MailMessageMutationIntent {
+	if (!mailMessageMutationActionValid(action)) {
+		throw new Error("Invalid mail message mutation action");
+	}
+	const normalizedMessageID = normalizeMailMessageID(messageID);
+	const normalizedFolderID =
+		action === "move"
+			? normalizeMailMessageMutationFolderID(folderID ?? "")
+			: null;
+	if (action !== "move" && folderID !== undefined) {
+		throw new Error("Unexpected mail mutation folder ID");
+	}
+	const idempotencyKey = globalThis.crypto?.randomUUID?.();
+	if (
+		typeof idempotencyKey !== "string" ||
+		!MAIL_UUID_V4_PATTERN.test(idempotencyKey)
+	) {
+		throw new Error("Unable to create mail mutation idempotency key");
+	}
+	return Object.freeze({
+		targetType: "message" as const,
+		targetIDs: Object.freeze([normalizedMessageID]) as readonly [string],
+		action,
+		folderID: normalizedFolderID,
+		idempotencyKey: idempotencyKey.toLowerCase(),
+	});
+}
+
+function isMailMessageMutationRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isMailMessageMutationNonNegativeInteger(value: unknown): value is number {
+	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function mailMessageMutationResponseMatches(
+	value: unknown,
+	intent: MailMessageMutationIntent,
+	status: 200 | 202,
+): MailMessageMutationOutcome | null {
+	if (!isMailMessageMutationRecord(value) || !Array.isArray(value.results)) {
+		return null;
+	}
+	if (value.results.length !== 1 || intent.targetIDs.length !== 1) {
+		return null;
+	}
+	const target = value.results[0];
+	if (
+		!isMailMessageMutationRecord(target) ||
+		target.target_type !== intent.targetType ||
+		target.target_id !== intent.targetIDs[0] ||
+		target.training_status !== "not_requested" ||
+		!isMailMessageMutationNonNegativeInteger(target.affected_message_count) ||
+		!isMailMessageMutationNonNegativeInteger(target.succeeded_message_count) ||
+		!isMailMessageMutationNonNegativeInteger(target.failed_message_count) ||
+		target.affected_message_count > 200 ||
+		target.succeeded_message_count > 200 ||
+		target.failed_message_count > 200 ||
+		target.succeeded_message_count + target.failed_message_count >
+			target.affected_message_count
+	) {
+		return null;
+	}
+	if (status === 200) {
+		if (
+			target.status === "succeeded" &&
+			target.affected_message_count >= 1 &&
+			target.succeeded_message_count === target.affected_message_count &&
+			target.failed_message_count === 0 &&
+			target.code === null
+		) {
+			return "succeeded";
+		}
+		if (
+			target.status === "partial" &&
+			target.affected_message_count >= 2 &&
+			target.succeeded_message_count >= 1 &&
+			target.failed_message_count >= 1 &&
+			target.succeeded_message_count + target.failed_message_count ===
+				target.affected_message_count &&
+			target.code === "MAIL_ACTION_REJECTED"
+		) {
+			return "partial";
+		}
+		if (
+			target.status === "failed" &&
+			((target.affected_message_count === 0 &&
+				target.succeeded_message_count === 0 &&
+				target.failed_message_count === 0 &&
+				(target.code === "MAIL_TARGET_UNAVAILABLE" ||
+					target.code === "MAIL_FOLDER_UNAVAILABLE")) ||
+				(target.affected_message_count >= 1 &&
+					target.succeeded_message_count === 0 &&
+					target.failed_message_count === target.affected_message_count &&
+					target.code === "MAIL_ACTION_REJECTED"))
+		) {
+			return "failed";
+		}
+		return null;
+	}
+	return (
+		target.status === "unknown" &&
+		target.affected_message_count >= 1 &&
+		target.succeeded_message_count + target.failed_message_count <
+			target.affected_message_count &&
+		target.code === "MAIL_ENGINE_OUTCOME_UNKNOWN"
+			? "unknown"
+			: null
+	);
+}
+
+export async function mutateMailMessage(
+	intent: MailMessageMutationIntent,
+): Promise<MailMessageMutationOutcome> {
+	const request = {
+		target_type: intent.targetType,
+		target_ids: [...intent.targetIDs],
+		action: intent.action,
+		...(intent.folderID === null ? {} : { folder_id: intent.folderID }),
+	};
+	const response = await api.postWithResponse<unknown>(
+		"/mail/messages/bulk",
+		request,
+		{ idempotencyKey: intent.idempotencyKey },
+	);
+	if (response.status === 200) {
+		const outcome = mailMessageMutationResponseMatches(response.data, intent, 200);
+		if (outcome === "succeeded" || outcome === "partial" || outcome === "failed") {
+			return outcome;
+		}
+	}
+	if (response.status === 202) {
+		const outcome = mailMessageMutationResponseMatches(response.data, intent, 202);
+		if (outcome === "unknown") return outcome;
+	}
+	throw new Error("Invalid mail message mutation response");
+}
+
+export function normalizeMailMessageMutationFolderIDForRoute(
+	folderID: string,
+): string {
+	return normalizeMailMessageMutationFolderID(folderID);
+}

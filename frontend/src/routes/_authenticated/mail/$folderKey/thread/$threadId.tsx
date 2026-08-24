@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	CalendarDays,
 	ChevronDown,
@@ -7,7 +7,7 @@ import {
 	ImageOff,
 	Paperclip,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	getMailMessage,
@@ -24,6 +24,7 @@ import {
 	isValidMailFolderKey,
 	MailThreadList,
 } from "@/modules/mail/mail-thread-list";
+import { MailMessageActions } from "@/modules/mail/mail-message-actions";
 import { mailKeys } from "@/modules/mail/mail-query-keys";
 
 const MAIL_THREAD_DETAIL_PAGE_SIZE = 25;
@@ -88,6 +89,10 @@ interface MessageCardProps {
 	message: MailThreadMessageSummary;
 	expanded: boolean;
 	onToggle: () => void;
+	onMovedOrTrashed: (
+		action: "move" | "trash",
+		folderID: string | null,
+	) => void | Promise<void>;
 }
 
 function messageDetailMatchesSummary(
@@ -102,7 +107,12 @@ function messageDetailMatchesSummary(
 	);
 }
 
-function MessageCard({ message, expanded, onToggle }: MessageCardProps) {
+function MessageCard({
+	message,
+	expanded,
+	onToggle,
+	onMovedOrTrashed,
+}: MessageCardProps) {
 	const { i18n, t } = useTranslation("mail");
 	const timestamp = message.received_at ?? message.sent_at;
 	const messageID = message.id.toLowerCase();
@@ -321,6 +331,11 @@ function MessageCard({ message, expanded, onToggle }: MessageCardProps) {
 									<span>{t(`reader.calendar.${message.calendar_method}`)}</span>
 								) : null}
 							</div>
+							<MailMessageActions
+								message={message}
+								threadID={message.thread_id.toLowerCase()}
+								onMovedOrTrashed={onMovedOrTrashed}
+							/>
 						</div>
 						{bodyContent}
 					</div>
@@ -338,6 +353,7 @@ function ThreadReader({
 	threadId: string;
 }) {
 	const { t } = useTranslation("mail");
+	const navigate = useNavigate();
 	const [selection, setSelection] = useState<{
 		threadId: string;
 		messageId: string;
@@ -374,6 +390,22 @@ function ThreadReader({
 		selection?.threadId === threadId ? selection.messageId : null;
 	const thread = detailQuery.data?.pages[0];
 	const hasLoadedPages = (detailQuery.data?.pages.length ?? 0) > 0;
+	const navigateAfterRelocation = useCallback(
+		async (action: "move" | "trash", destinationFolderID: string | null) => {
+			const targetFolderKey =
+				action === "move" &&
+				destinationFolderID !== null &&
+				isValidMailEntityID(destinationFolderID)
+					? destinationFolderID.toLowerCase()
+					: folderKey;
+			await navigate({
+				to: "/mail/$folderKey",
+				params: { folderKey: targetFolderKey },
+				replace: true,
+			});
+		},
+		[folderKey, navigate],
+	);
 
 	let content;
 	if (detailQuery.isPending) {
@@ -437,6 +469,7 @@ function ThreadReader({
 										: { threadId, messageId: messageID },
 								)
 							}
+							onMovedOrTrashed={navigateAfterRelocation}
 						/>
 					);
 				})}
