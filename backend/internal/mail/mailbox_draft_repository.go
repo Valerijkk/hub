@@ -359,6 +359,39 @@ type MailboxDraftResumeCreateRequest struct {
 	Confirmed                MailboxDraftEffectiveState
 }
 
+// MailboxDraftRestartCreateUploadRequest authorizes one controlled retry of an unknown attachment upload.
+// The repository validates the exact recovered mutation, attempt, idempotency binding, and acquired fence before
+// rotating the mutation identity and returning new upload work.
+type MailboxDraftRestartCreateUploadRequest struct {
+	Fence              MailboxEngineCommandFence
+	DraftID            uuid.UUID
+	ExpectedMutationID uuid.UUID
+	ExpectedAttempt    int
+	NextMutationID     uuid.UUID
+	IdempotencyKeyHash [sha256.Size]byte
+	RequestHash        [sha256.Size]byte
+	FingerprintVersion int32
+}
+
+// MailboxDraftAbandonCreateUploadRequest records a terminal local tombstone for an unknown attachment upload.
+// It requires the exact recovered mutation, attempt, idempotency binding, and acquired fence.
+type MailboxDraftAbandonCreateUploadRequest struct {
+	Fence              MailboxEngineCommandFence
+	DraftID            uuid.UUID
+	ExpectedMutationID uuid.UUID
+	ExpectedAttempt    int
+	IdempotencyKeyHash [sha256.Size]byte
+	RequestHash        [sha256.Size]byte
+	FingerprintVersion int32
+}
+
+// MailboxDraftRecoveryResult is a replayed durable draft or a fresh restart reservation.
+// Reservation is nonnil only for a fresh restart.
+type MailboxDraftRecoveryResult struct {
+	Replayed    bool
+	Draft       MailboxDraftRecord
+	Reservation *MailboxDraftReservation
+}
 // MailboxDraftFinishOutcome is sealed to the closed outcomes that may finish a pending engine command.
 type MailboxDraftFinishOutcome interface {
 	mailboxDraftFinishOutcome()
@@ -431,6 +464,8 @@ type MailboxDraftRepository interface {
 	AbortMailboxDraftReservation(context.Context, MailboxDraftAbortRequest) (MailboxDraftAbortResult, error)
 	PrepareMailboxDraftReconciliation(context.Context, MailboxDraftReconcileRequest) (MailboxDraftReconcilePlan, error)
 	ResumeMailboxDraftCreateAfterAbsence(context.Context, MailboxDraftResumeCreateRequest) (MailboxDraftReservation, error)
+	RestartMailboxDraftCreateUpload(context.Context, MailboxDraftRestartCreateUploadRequest) (MailboxDraftRecoveryResult, error)
+	AbandonMailboxDraftCreateUpload(context.Context, MailboxDraftAbandonCreateUploadRequest) (MailboxDraftRecoveryResult, error)
 	FinishEngineCommand(context.Context, MailboxDraftFinishRequest) (MailboxDraftFinishResult, error)
 	RecheckMailboxDraftRead(context.Context, MailboxDraftReadRecheckRequest) (MailboxDraftReadRecheckResult, error)
 }
