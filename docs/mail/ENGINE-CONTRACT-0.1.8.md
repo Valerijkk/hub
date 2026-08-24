@@ -655,6 +655,23 @@ opaque message id/version; definitive absence permits the domain to retry the sa
 `DraftKey`; indeterminate state permits no save. Later saves additionally require the last
 confirmed message id/version plus a fresh stable mutation id.
 
+### Two-phase draft save representation
+
+For a save, persistence owns the two durable graphs: confirmed O and reserved desired D. The
+repository writes D only through `Reserve` under its account/draft/attachment lock order, then
+commits before calling `SaveDraft`; no provider I/O, adapter callback, or reconciliation read is
+permitted while that transaction or lock set is held. The engine receives the reserved requested
+value but never owns or mutates durable O/D links.
+
+`Applied` permits the repository to promote D to confirmed O only after the exact mutation and
+fence are revalidated. A reconciliation finding that the provider retained the old
+message/version and confirmed attachment set is `SaveRetained`, not Applied: O remains current
+and D is cleared only in the matching completion. `Unknown` retains both O and D and has no
+implicit retry or cleanup. Pending attachment ownership is live persistence state; the adapter
+must not interpret O∩D, O\D, or D\O as duplicate upload/delete work. This source/schema-only
+contract authorizes neither generated Ent output (`NOT_GENERATED`), a migration
+(`NOT_MIGRATED`), nor execution, build, tests, Docker, or runtime (`NOT_RUN`).
+
 ## Submission result identity
 
 The unchanged closed success value is

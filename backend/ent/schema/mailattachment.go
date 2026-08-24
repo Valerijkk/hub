@@ -19,6 +19,7 @@ func (MailAttachment) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable(),
 		field.UUID("mail_message_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("mail_draft_id", uuid.UUID{}).Optional().Nillable(),
+		field.UUID("pending_mail_draft_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("draft_client_id", uuid.UUID{}).Optional().Nillable().Immutable(),
 		field.UUID("storage_object_id", uuid.UUID{}).Optional().Nillable().Immutable(),
 		field.String("engine_blob_id").Optional().Nillable().Validate(validateMailMessageOpaqueID).Immutable(),
@@ -37,15 +38,16 @@ func (MailAttachment) Fields() []ent.Field {
 func (MailAttachment) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
-			"mail_attachments_text":            "COALESCE((engine_blob_id IS NULL OR octet_length(engine_blob_id) BETWEEN 1 AND 1024) AND (content_id IS NULL OR (char_length(content_id) BETWEEN 1 AND 255 AND octet_length(content_id) BETWEEN 1 AND 1020)) AND char_length(filename) BETWEEN 1 AND 255 AND octet_length(filename) BETWEEN 1 AND 1020 AND char_length(media_type) BETWEEN 1 AND 255 AND octet_length(media_type) BETWEEN 1 AND 1020 AND size_bytes BETWEEN 0 AND 26214400 AND (sha256 IS NULL OR octet_length(sha256) = 32), FALSE)",
-			"mail_attachments_backing_xor":     "COALESCE((storage_object_id IS NOT NULL) <> (engine_blob_id IS NOT NULL), FALSE)",
-			"mail_attachments_owner_exclusive": "COALESCE(NOT (mail_message_id IS NOT NULL AND mail_draft_id IS NOT NULL), FALSE)",
-			"mail_attachments_storage_shape":   "COALESCE(storage_object_id IS NULL OR (draft_client_id IS NOT NULL AND size_bytes >= 1), FALSE)",
-			"mail_attachments_engine_shape":    "COALESCE(engine_blob_id IS NULL OR (mail_message_id IS NOT NULL AND mail_draft_id IS NULL AND draft_client_id IS NULL), FALSE)",
-			"mail_attachments_inline_content":  "COALESCE(disposition <> 'inline' OR content_id IS NOT NULL, FALSE)",
-			"mail_attachments_disposition":     "COALESCE(disposition IN ('attachment','inline'), FALSE)",
-			"mail_attachments_scan_enum":       "COALESCE(scan_status IN ('pending','clean','rejected','error'), FALSE)",
-			"mail_attachments_hash_scan":       "COALESCE(scan_status NOT IN ('clean','rejected') OR sha256 IS NOT NULL, FALSE)",
+			"mail_attachments_text":                  "COALESCE((engine_blob_id IS NULL OR octet_length(engine_blob_id) BETWEEN 1 AND 1024) AND (content_id IS NULL OR (char_length(content_id) BETWEEN 1 AND 255 AND octet_length(content_id) BETWEEN 1 AND 1020)) AND char_length(filename) BETWEEN 1 AND 255 AND octet_length(filename) BETWEEN 1 AND 1020 AND char_length(media_type) BETWEEN 1 AND 255 AND octet_length(media_type) BETWEEN 1 AND 1020 AND size_bytes BETWEEN 0 AND 26214400 AND (sha256 IS NULL OR octet_length(sha256) = 32), FALSE)",
+			"mail_attachments_backing_xor":           "COALESCE((storage_object_id IS NOT NULL) <> (engine_blob_id IS NOT NULL), FALSE)",
+			"mail_attachments_owner_exclusive":       "COALESCE(NOT (mail_message_id IS NOT NULL AND (mail_draft_id IS NOT NULL OR pending_mail_draft_id IS NOT NULL)) AND (mail_draft_id IS NULL OR pending_mail_draft_id IS NULL OR mail_draft_id = pending_mail_draft_id), FALSE)",
+			"mail_attachments_storage_shape":         "COALESCE(storage_object_id IS NULL OR (draft_client_id IS NOT NULL AND size_bytes >= 1), FALSE)",
+			"mail_attachments_pending_storage_shape": "COALESCE(pending_mail_draft_id IS NULL OR (storage_object_id IS NOT NULL AND draft_client_id IS NOT NULL AND size_bytes >= 1), FALSE)",
+			"mail_attachments_engine_shape":          "COALESCE(engine_blob_id IS NULL OR (mail_message_id IS NOT NULL AND mail_draft_id IS NULL AND pending_mail_draft_id IS NULL AND draft_client_id IS NULL), FALSE)",
+			"mail_attachments_inline_content":        "COALESCE(disposition <> 'inline' OR content_id IS NOT NULL, FALSE)",
+			"mail_attachments_disposition":           "COALESCE(disposition IN ('attachment','inline'), FALSE)",
+			"mail_attachments_scan_enum":             "COALESCE(scan_status IN ('pending','clean','rejected','error'), FALSE)",
+			"mail_attachments_hash_scan":             "COALESCE(scan_status NOT IN ('clean','rejected') OR sha256 IS NOT NULL, FALSE)",
 		}),
 	}
 }
@@ -55,6 +57,7 @@ func (MailAttachment) Edges() []ent.Edge {
 		edge.From("storage_object", MailObject.Type).Ref("attachment").Field("storage_object_id").Unique().Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.From("message", MailMessage.Type).Ref("attachments").Field("mail_message_id").Unique().Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.From("draft", MailDraft.Type).Ref("attachments").Field("mail_draft_id").Unique().Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("pending_draft", MailDraft.Type).Ref("pending_attachments").Field("pending_mail_draft_id").Unique().Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 
@@ -63,6 +66,7 @@ func (MailAttachment) Indexes() []ent.Index {
 		index.Fields("storage_object_id").Unique().StorageKey("mail_attachments_storage_object_uidx").Annotations(entsql.IndexWhere("storage_object_id IS NOT NULL")),
 		index.Fields("mail_message_id").StorageKey("mail_attachments_message_idx"),
 		index.Fields("mail_draft_id").StorageKey("mail_attachments_draft_idx"),
+		index.Fields("pending_mail_draft_id").StorageKey("mail_attachments_pending_draft_idx"),
 	}
 }
 

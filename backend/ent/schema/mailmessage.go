@@ -95,6 +95,8 @@ func (MailMessage) Edges() []ent.Edge {
 		edge.To("attachments", MailAttachment.Type),
 		edge.To("reply_drafts", MailDraft.Type),
 		edge.To("forward_drafts", MailDraft.Type),
+		edge.To("pending_reply_drafts", MailDraft.Type),
+		edge.To("pending_forward_drafts", MailDraft.Type),
 	}
 }
 

@@ -2,6 +2,23 @@
 > **Current narrow deletion-source authority (2026-08-23; highest precedence):** accepted plan `3f7aa2c58407ac3a10ad427cfa86256e0a9d340a` is `DOCS_PLAN_STATIC_ACCEPTED / SOURCE_AUTHORITY_ACCEPTED` only for one future atomic no-test exact2 production packet: `backend/internal/mail/mailbox_deletion.go` and `backend/internal/mail/mailbox_deletion_fake.go`. Plan Contract/high, Security/xhigh and Lifecycle/high reviews are C/I/M `0/0/0`; `provenance_source: dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. Source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its own commit and immutable C/S/L triple `0/0/0`. Adapter capability proof is not required only for this provider-neutral ABI plus two standalone fakes exception, but remains mandatory for every concrete provider adapter. Persistence/Ent/schema/generation/migration/SQL/worker/storage drain/account finalization/User-GDPR/HTTP/NATS/Docker/runtime stay `BLOCKED` / `NOT_RUN`. Old blanket deletion-source-blocked or plan-pending claims are `CONSUMED/HISTORICAL` only within this exact2 scope; unrelated gates are unchanged.
 > **Engine deletion-port adjudication (2026-08-23):** `STATIC_ACCEPTED / DOCS_DESIGN_ONLY`; former deletion-port-next selection is `CONSUMED/HISTORICAL`, never source authority. Freeze separate opaque future ports: `EngineAccountDeletionPort` (`DeleteAccount`, `ReconcileAccountAbsence`) and `MailObjectDeletionPort` (`DeleteObject`, `ReconcileObjectAbsence`); do not widen normal `MailEngine` or combine account delete with drain. Requests durably retain nonzero `DeletionID` plus account provisioning key+engine account ID or object bucket+key; opaque IDs use `MaxEngineOpaqueIDBytes` and bucket/key existing storage bounds. Results are `deleted|authoritatively_absent`, observations `present|authoritatively_absent`; bare `NotFound` preserves intent unless scoped authoritative absence is proven. No provider/raw IDs or causes are public/logged. Private intent/control is not owner projection; short lease transactions keep I/O outside locks, use exact token+generation+scope CAS, reclaim expired lease only, and stale token/zero rows cause no I/O/compensation. Object drain starts after `upload_drain_until` and attachment/reference terminality; account removal is last after exact child/object/receipt/control/activity manifest; hard-delete only after closed evidence. No Stalwart route/OAuth/DNS/OpenAPI assumption. Adapter capability and independent contract/security/lifecycle reviews are mandatory; future source is bounded ABI/fake then separately planned persistence/worker. Ent/source/generated/migration/SQL/tests/Docker/runtime and physical User/GDPR remain `BLOCKED` / `NOT_RUN`.
 
+## 2026-08-24 - Draft two-phase O/D save representation
+
+`MailDraft` now distinguishes confirmed O (`from_identity_id`, reply/forward links, and
+confirmed attachments) from a reserved pending D graph. A pending save requires the nullable
+pending from identity plus exact 32-byte request hash; its optional reply/forward values and
+pending storage-backed attachments are desired state, never a replacement for O before a
+confirmed completion. Pending identity/message/attachment foreign keys are `RESTRICT`; the
+attachment owner check permits confirmed plus pending ownership only for the same draft and
+never alongside a message. Engine-backed attachments forbid pending ownership.
+
+The lifecycle remains repository-owned: `Reserve` preserves O and writes D in the short locked
+transaction; provider I/O follows commit. `Applied` promotes D, `SaveRetained` preserves O and
+clears D only after exact reconciliation, and `Unknown` retains both graphs. Pending attachment
+links are live state, so O∩D, O\D, and D\O do not permit generic cleanup or provider work.
+This is schema/source-only: generated Ent is `NOT_GENERATED`, migrations are `NOT_MIGRATED`, and
+build, tests, Docker, and runtime are `NOT_RUN`.
+
 ## 2026-08-23 - Mail-to-Calendar inbound admission additive prerequisite
 
 Documentation-only P0 prerequisite; no source implementation, testframework change, migration,

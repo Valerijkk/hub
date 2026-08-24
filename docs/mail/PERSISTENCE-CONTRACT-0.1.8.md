@@ -988,40 +988,47 @@ blocked, not an active Account-to-Object exception.
 
 ### `MailAttachment`
 
-Fields: UUID `id`; nullable `mail_message_id` and `mail_draft_id`; nullable immutable
-UUID `draft_client_id`; nullable unique `storage_object_id`; nullable `engine_blob_id` string
+Fields: UUID `id`; nullable `mail_message_id`, confirmed `mail_draft_id`, and pending
+`pending_mail_draft_id`; nullable immutable UUID `draft_client_id`; nullable unique
+`storage_object_id`; nullable `engine_blob_id` string
 1..1,024 bytes; nullable `content_id` <=255 chars/1,020 bytes; required normalized
 `filename`/`media_type` each 1..255 chars/1,020 bytes; `size_bytes` 0..26,214,400
 (storage uploads remain non-empty; an engine-backed MIME attachment may be empty);
 `disposition` `attachment|inline`; `scan_status` `pending|clean|rejected|error`; nullable
 `sha256` bytes(32); timestamps.
 
-Named checks enforce exactly one backing path. Storage backing requires storage object plus
-`draft_client_id`, permits message/draft to be null while unclaimed, and once claimed the
-draft's immutable client id must equal the attachment scope. Engine backing forbids
-`draft_client_id`/draft id and requires a message owner. Clean/rejected require hash; pending
-may retain the confirmed object hash while scanning; error retains any known hash. Inline
-requires a non-empty content id. Storage object deletion is restricted while attached.
+Named checks enforce exactly one backing path. A message cannot coexist with either draft
+owner. Confirmed and pending draft owners may coexist only when both reference the same draft.
+Storage backing requires storage object plus `draft_client_id`, permits message/draft to be
+null while unclaimed, and once claimed the draft's immutable client id must equal the
+attachment scope. A pending draft owner is therefore storage-backed, has a draft client id,
+and has positive size. Engine backing forbids `draft_client_id`, both draft owners, and pending
+ownership, and requires a message owner. Clean/rejected require hash; pending may retain the
+confirmed object hash while scanning; error retains any known hash. Inline requires a non-empty
+content id. Storage object deletion is restricted while attached.
 Message hard deletion cascades its engine-backed metadata and is service-ordered with
 storage-backed attachment/object retention. The message foreign key is `RESTRICT`: before
 message hard-delete, the service deletes engine-backed metadata and clears the message link
 from retained storage-backed rows in one ordered transaction, so the backing XOR can never be
-violated by an automatic `SET NULL`. Draft rows are not hard-deleted independently, so their
-foreign key is also `RESTRICT` and preserves lifetime staging consumption. Same-account
-equality is proved under account lock before either optional owner edge is set.
+violated by an automatic `SET NULL`. Draft rows are not hard-deleted independently, so both
+their confirmed and pending foreign keys are `RESTRICT` and preserve live staging consumption.
+Same-account equality is proved under account lock before either optional owner edge is set.
 
 ### `MailDraft`
 
-Fields: UUID `id`/`mail_account_id`; required immutable UUID `draft_client_id`; required immutable
-stable `engine_draft_key` 1..1,024 bytes; nullable `engine_message_id`/`engine_version`, each
-1..1,024 bytes; required int64 `revision` default 1; status; immutable
-`create_idempotency_key_hash` and `create_request_hash` bytes(32); nullable
-`reply_to_message_id`/`forward_message_id` UUID snapshots; nullable UUID
-`last_mutation_id`; nullable enum `pending_mutation_kind` (`create|save|delete`);
-timestamps. No content/address/attachment bytes are stored.
+Fields: UUID `id`/`mail_account_id`; required confirmed `from_identity_id`; required immutable
+UUID `draft_client_id`; required immutable stable `engine_draft_key` 1..1,024 bytes; nullable
+`engine_message_id`/`engine_version`, each 1..1,024 bytes; required int64 `revision` default
+1; status; immutable `create_idempotency_key_hash` and `create_request_hash` bytes(32);
+nullable confirmed `reply_to_message_id`/`forward_message_id` UUID snapshots; nullable pending
+`pending_from_identity_id`, `pending_reply_to_message_id`, and
+`pending_forward_message_id` UUID snapshots; nullable `pending_save_request_hash` bytes(32);
+nullable UUID `last_mutation_id`; nullable enum `pending_mutation_kind`
+(`create|save|delete`); timestamps. No content/address/attachment bytes are stored.
 
 Unique account+draft key, account+draft-client id, account+create-key hash and nullable
-account+engine message id. The engine pair is both-null or both-present. Status is
+account+engine message id; `from_identity_id` is indexed. The engine pair is both-null or
+both-present. Status is
 `active|saving|deleting|unknown|submitting|submitted|deleted`: active/submitting/submitted
 require the pair and null mutation id/kind; saving requires a mutation id and `create|save`
 kind, with create requiring a null pair and save requiring the pair; deleting requires a
@@ -1033,13 +1040,44 @@ absence is not terminal active: a matching retry may return it to `saving/create
 `last_mutation_id`, after which exactly one controlled `SaveDraft` is authorized under the
 current live account lease; a read without the matching request body cannot dispatch provider
 I/O and remains reconciliation-required. `unknown/save` and `unknown/delete` retain the pair;
-reconciliation never blindly repeats delete. Every selected storage attachment has the same
-draft-client id and receives this one draft edge atomically; an existing different draft edge
-conflicts before engine I/O. One draft owns at most 50 selected storage-backed attachments.
-Create/save replacement locks the draft, validates the complete distinct attachment-id set and
-resulting row count, and rejects a 51st association before any engine I/O. The repository
-enforces the same transactional invariant even when called outside HTTP; a corrupted over-limit
-draft is never submitted.
+reconciliation never blindly repeats delete.
+
+#### Confirmed O and pending D save graph
+
+The confirmed graph O is `from_identity_id`, the confirmed reply/forward snapshots, and
+attachments whose `mail_draft_id` is this draft. A pending save graph D is carried only while
+`pending_mutation_kind='save'`: `pending_from_identity_id` is required, the pending
+reply/forward snapshots are nullable desired values, `pending_save_request_hash` is exactly
+32 bytes, and selected storage-backed attachments use `pending_mail_draft_id`. The exact
+`mail_drafts_pending_save_state` check requires the pending from identity and hash for save;
+for every non-save mutation all four pending scalars are null. Pending identity and message
+edges are `RESTRICT`, as is the pending attachment edge. The pending attachment foreign key is
+indexed. The service proves each identity/message/attachment belongs to the locked account;
+the database intentionally does not attempt cross-row account or immutable-client-id equality.
+
+`Reserve` locks `MailAccount`, then `MailDraft`, then the complete union of confirmed and
+selected attachment rows in ascending raw UUID order. It validates the complete distinct D set
+and its <=50 row count, preserves O, writes D atomically, and performs no provider I/O while
+the transaction or any of these locks is held. `O∩D` carries both confirmed and pending owner
+links to the same draft; `O\D` remains confirmed only until a confirmed replacement; `D\O` is
+pending-only staging. `pending_mail_draft_id` is live durable reservation state, never generic
+cleanup garbage or permission to reclaim an upload.
+
+`Applied` is a separately locked completion: it promotes D to the new confirmed graph O,
+clears confirmed links for O\D, and clears all D scalars/attachment links in the same durable
+transition. `SaveRetained` is permitted only after exact reconciliation proves the provider
+retained the old pair and confirmed attachment set: it preserves O and clears D. `Unknown`
+preserves both O and D for reconciliation; it neither repeats provider I/O nor performs
+attachment cleanup. Every completion reacquires the same lock order and validates the exact
+mutation/fence before change. Lifecycle authority remains with the repository state machine;
+the engine only reports an outcome and cannot mutate O or D.
+
+Every selected storage attachment has the same draft-client id and receives its pending edge
+atomically; an existing different confirmed or pending draft edge conflicts before engine I/O.
+One draft owns at most 50 selected storage-backed attachments. Create/save replacement locks the
+draft, validates the complete distinct attachment-id set and resulting row count, and rejects a
+51st association before any engine I/O. The repository enforces the same transactional invariant
+even when called outside HTTP; a corrupted over-limit draft is never submitted.
 Reply/forward links set null on projected-message hard delete. Any final service-owned account
 deletion is future/BLOCKED and does not authorize a current cascade; individual draft deletion is
 the terminal status transition, not row deletion.
