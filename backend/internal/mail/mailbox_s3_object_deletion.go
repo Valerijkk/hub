@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -127,20 +128,21 @@ func mailboxS3ObjectDeletionAbsenceAuthoritative(err error) bool {
 	if errors.As(err, &noSuchKey) && noSuchKey != nil {
 		return true
 	}
-	var apiError smithy.APIError
-	if errors.As(err, &apiError) && apiError != nil {
-		switch apiError.ErrorCode() {
-		case "NoSuchKey", "NotFound":
-			return true
-		}
+	apiError, ok := mailboxS3ObjectDeletionSafeAPIError(err)
+	if !ok {
+		return false
 	}
-	var responseError *smithyhttp.ResponseError
-	return errors.As(err, &responseError) && responseError != nil && responseError.HTTPResponse() != nil && responseError.HTTPStatusCode() == http.StatusNotFound
+	switch apiError.ErrorCode() {
+	case "NoSuchKey", "NotFound":
+		return true
+	default:
+		return false
+	}
 }
 
 func mailboxS3ObjectDeletionAPIErrorKind(err error, deleteCall bool) (MailObjectDeletionErrorKind, bool) {
-	var apiError smithy.APIError
-	if !errors.As(err, &apiError) || apiError == nil {
+	apiError, ok := mailboxS3ObjectDeletionSafeAPIError(err)
+	if !ok {
 		return "", false
 	}
 	switch apiError.ErrorCode() {
@@ -163,6 +165,21 @@ func mailboxS3ObjectDeletionAPIErrorKind(err error, deleteCall bool) (MailObject
 	default:
 		return "", false
 	}
+}
+
+func mailboxS3ObjectDeletionSafeAPIError(err error) (smithy.APIError, bool) {
+	var apiError smithy.APIError
+	if !errors.As(err, &apiError) || apiError == nil {
+		return nil, false
+	}
+	value := reflect.ValueOf(apiError)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		if value.IsNil() {
+			return nil, false
+		}
+	}
+	return apiError, true
 }
 
 func mailboxS3ObjectDeletionResponseErrorKind(err error, deleteCall bool) (MailObjectDeletionErrorKind, bool) {
