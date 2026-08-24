@@ -2359,6 +2359,118 @@ Sources: [`PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-M
 
 ---
 
+## Communications and self-hosted OSS replacements (Founder lock 2026-08-24)
+
+Binding decision: `.planning/decisions/ADR-COMMS-OSS-REPLACEMENT-2026-08-24.md`.
+Phases 142-148 remain reserved for the protected Mail/Calendar workstream.
+
+### Phase 149: Messenger correctness and realtime foundation
+**Goal:** Make Messenger writes and realtime delivery safe enough for workplace features: channel-bound threads, idempotent sends, authorized subscriptions, and recoverable delivery.
+**Depends on:** Phase 141
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 1 and 4
+**Success Criteria:** cross-channel thread injection is rejected; one `client_nonce` creates one message; channel/user subjects are authorized and produced; reconnect restores missed state.
+**Plans:** 0 plans - run `$gsd-plan-phase 149`.
+
+### Phase 150: Self-hosted Jitsi deployment and provider foundation
+**Goal:** Add a pinned Hub-owned Jitsi deployment and a provider-neutral calls boundary while LiveKit remains only as a reversible shadow path.
+**Depends on:** Phase 141
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 2 and 4
+**Success Criteria:** no JaaS or `meet.jit.si`; versions and digests are pinned; local auth/config/branding are documented; call-domain authorization stays in Hub.
+**Plans:** 0 plans - run `$gsd-plan-phase 150`.
+
+### Phase 151: Messenger channels, threads, and unread foundation
+**Goal:** Deliver workplace channel types, side-panel threads, follow state, and separate channel/DM/mention/thread unread semantics.
+**Depends on:** Phase 149
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 section 1
+**Success Criteria:** channel permissions work; thread replies stay outside the main timeline by default; follow and unread rules remain correct across devices and reconnects.
+**Plans:** 0 plans - run `$gsd-plan-phase 151`.
+
+### Phase 152: Jitsi Hub adapter and branded conference surface
+**Goal:** Join the self-hosted ready Jitsi client from the native Hub Calls shell with Hub identity, RBAC, invite policy, lifecycle, and branding.
+**Depends on:** Phase 150
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 section 2
+**Success Criteria:** allowed users and guests can join; required conference controls work; upstream admin UI is not the product surface; call-domain events remain in Hub.
+**Plans:** 0 plans - run `$gsd-plan-phase 152`.
+
+### Phase 153: Messenger workplace feature completeness
+**Goal:** Complete the required Slack-class workplace capability set without copying Slack's UI.
+**Depends on:** Phase 151
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 section 1
+**Success Criteria:** DMs, reactions, edits/deletes, pins, saved items, files, mentions, presence/typing, search, notifications, moderation, and audit form a coherent native Hub UX.
+**Plans:** 0 plans - run `$gsd-plan-phase 153`.
+
+### Phase 154: Jitsi recording, controlled cutover, and LiveKit retirement
+**Goal:** Add self-hosted recording and complete a reversible Jitsi cutover before removing LiveKit runtime code and deployment assets.
+**Depends on:** Phase 152
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 section 2 and acceptance boundary
+**Success Criteria:** recording is Hub-owned; migration and rollback are proven; active work is drained; LiveKit is removed only after the exit gate passes.
+**Plans:** 0 plans - run `$gsd-plan-phase 154`.
+
+### Phase 155: Communications end-to-end acceptance and documentation
+**Goal:** Prove combined Messenger and Calls workflows, operational controls, regression safety, and documentation before sign-off.
+**Depends on:** Phase 153, Phase 154
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 acceptance boundary
+**Success Criteria:** applicable Docker-only gates have fresh evidence; authz, tenancy, backup/restore, upgrade/rollback, and runbooks are verified; gaps stay explicit.
+**Plans:** 0 plans - run `$gsd-plan-phase 155`.
+
+### Phase 156: Self-hosted OSS platform integration boundary
+**Goal:** Freeze identity, RBAC, audit, storage, navigation, database, egress, provenance, upgrade, and rollback contracts for queued OSS modules.
+**Depends on:** Phase 155
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Success Criteria:** one writable system of record per object; separate supported data stores; explicit local adapters; default-deny egress; executable license and supply-chain gates.
+**Plans:** 0 plans - run `$gsd-plan-phase 156`.
+
+### Phase 157: Excalidraw whiteboards integration
+**Goal:** Embed the upstream Excalidraw canvas in a native Hub whiteboard lifecycle with Hub ACL, persistence, navigation, and audit.
+**Depends on:** Phase 156
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Plans:** 0 plans - run `$gsd-plan-phase 157`.
+
+### Phase 158: Baserow full Bases replacement
+**Goal:** Replace native `Bases` with self-hosted Baserow under Hub identity, permissions, navigation, audit, and controlled migration/rollback.
+**Depends on:** Phase 156
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Plans:** 0 plans - run `$gsd-plan-phase 158`.
+
+### Phase 159: Activepieces full Automations replacement
+**Goal:** Replace the corresponding native automation engine with self-hosted Activepieces Community Edition under Hub policy, approval, audit, and egress controls.
+**Depends on:** Phase 156
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Plans:** 0 plans - run `$gsd-plan-phase 159`.
+
+### Phase 160: Apache Superset analytics integration
+**Goal:** Add self-hosted Superset for advanced BI over read-only reporting projections without writes to Hub operational databases.
+**Depends on:** Phase 156
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Plans:** 0 plans - run `$gsd-plan-phase 160`.
+
+### Phase 161: ONLYOFFICE collaborative documents integration
+**Goal:** Add self-hosted ONLYOFFICE Docs as the specialist editor while Hub owns files, ACL, lifecycle, navigation, callbacks, and audit.
+**Depends on:** Phase 156
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Plans:** 0 plans - run `$gsd-plan-phase 161`.
+
+### Phase 162: Documenso electronic signature integration
+**Goal:** Add self-hosted Documenso and import signed artifacts and evidence into Hub-controlled storage.
+**Depends on:** Phase 156, Phase 161
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Plans:** 0 plans - run `$gsd-plan-phase 162`.
+
+### Phase 163: Chatwoot external helpdesk integration
+**Goal:** Add self-hosted Chatwoot for external customer support without replacing the internal Messenger.
+**Depends on:** Phase 156
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 sections 3 and 4
+**Plans:** 0 plans - run `$gsd-plan-phase 163`.
+
+### Phase 164: Post-Mail/Calendar cross-module integration acceptance
+**Goal:** After Mail/Calendar merges to `master`, merge that state into this branch and verify cross-module communication, documents, automations, and notifications.
+**Depends on:** Phase 155, Phases 157-163; external gate: Mail/Calendar merged to `master`
+**Requirements:** ADR-COMMS-OSS-REPLACEMENT-2026-08-24 delivery order
+**Plans:** 0 plans - blocked until the protected Mail/Calendar workstream is merged.
+
+---
+
+
 ## Backlog
 
 > Unsequenced ideas (999.x). Promote via `/gsd-review-backlog` when ready.
