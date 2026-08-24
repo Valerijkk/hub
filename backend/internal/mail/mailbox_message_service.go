@@ -144,24 +144,29 @@ func mailboxMessageNormalizeEngineBody(body EngineMessageBody) (MailboxContentRe
 			return MailboxContentResult{}, mailboxMessageReadError(MailboxMessageReadErrorUnavailable)
 		}
 	}
-	if content.Format != MailboxContentFormatPlain || !content.RemoteImagesBlocked || len(content.PlainBody) > MailboxContentMaxPlainBytes {
+	if content.SourceFormat != input.SourceFormat || !mailboxContentResultValid(content) {
 		return MailboxContentResult{}, mailboxMessageReadError(MailboxMessageReadErrorInvalid)
 	}
 	return content, nil
 }
 
 func mailboxMessageDetailFromSnapshot(snapshot MailboxMessageSnapshot, content MailboxContentResult) (MailboxMessageDetail, error) {
-	if !mailboxMessageSnapshotValid(snapshot) || content.Format != MailboxContentFormatPlain || !content.RemoteImagesBlocked {
+	if !mailboxMessageSnapshotValid(snapshot) || !mailboxContentResultValid(content) {
 		return MailboxMessageDetail{}, mailboxMessageReadError(MailboxMessageReadErrorInvalid)
 	}
 	summary := mailboxThreadDetailProjectionMessageCopy(snapshot.summary)
+	var sanitizedHTML *string
+	if content.SourceFormat == MailboxContentFormatRich {
+		value := content.SanitizedHTML
+		sanitizedHTML = &value
+	}
 	detail := MailboxMessageDetail{
 		ID: summary.ID, ThreadID: summary.ThreadID, From: summary.From, To: summary.To, CC: summary.CC,
 		Subject: summary.Subject, Snippet: summary.Snippet, SentAt: summary.SentAt, ReceivedAt: summary.ReceivedAt,
 		Priority: summary.Priority, SizeBytes: summary.SizeBytes, HasAttachments: summary.HasAttachments,
 		IsDraft: summary.IsDraft, FolderIDs: summary.FolderIDs, Seen: summary.Seen, Flagged: summary.Flagged,
 		Answered: summary.Answered, Junk: summary.Junk, CalendarMethod: summary.CalendarMethod,
-		CalendarEventID: summary.CalendarEventID, PlainBody: content.PlainBody, SanitizedHTML: nil,
+		CalendarEventID: summary.CalendarEventID, PlainBody: content.PlainBody, SanitizedHTML: sanitizedHTML,
 		RemoteImagesBlocked: true, Attachments: make([]MailboxMessageAttachment, len(snapshot.attachments)), Calendar: nil,
 	}
 	for index, attachment := range snapshot.attachments {

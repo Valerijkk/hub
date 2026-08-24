@@ -436,7 +436,8 @@ func mailboxMessageDetailValid(detail MailboxMessageDetail) bool {
 		CalendarEventID: detail.CalendarEventID, createdAt: time.Unix(1, 0).UTC(),
 	}
 	if !validMailboxThreadDetailProjectionMessage(summary, detail.ThreadID) || len(detail.PlainBody) > MailboxContentMaxPlainBytes ||
-		utf8.RuneCountInString(detail.PlainBody) > MailboxContentMaxRunes || detail.SanitizedHTML != nil ||
+		utf8.RuneCountInString(detail.PlainBody) > MailboxContentMaxRunes || detail.SanitizedHTML != nil &&
+		(len(*detail.SanitizedHTML) > MailboxContentMaxSanitizedHTMLBytes || !utf8.ValidString(*detail.SanitizedHTML) || strings.ContainsRune(*detail.SanitizedHTML, '\x00')) ||
 		!detail.RemoteImagesBlocked || len(detail.Attachments) > MaxEngineAttachmentItems || detail.HasAttachments != (len(detail.Attachments) != 0) || detail.Calendar != nil {
 		return false
 	}

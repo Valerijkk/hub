@@ -568,13 +568,17 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     The 30-day clock begins at first terminal commit; in-progress/unknown never compact and
     remain safely reconcilable/observable rather than silently becoming expired.
 23. Rich draft/signature input is sanitized on the server and its plain form is derived
-    there; clients cannot supply two independent canonical bodies. Without the approved
-    sanitizer, rich mode fails closed to plain-only. Received hostile HTML cannot retain
-    active/fetch primitives. Remote images remain blocked until explicit action/trusted
+    there; clients cannot supply two independent canonical bodies. The V1 receive sanitizer is
+    implemented static-only: it keeps only its fixed structural allowlist, strips every
+    attribute and remote/image primitive, and `GET` message read may expose copied
+    `sanitized_html` only for rich input; plain input exposes no HTML. Received hostile HTML
+    cannot retain active/fetch primitives. Remote images remain blocked until explicit action/trusted
     policy and use only owner/message/expiry-bound tokens; every redirect/connect is
     SSRF-validated and origin URLs never reach DOM, API output, search, logs or errors. A
     successful proxy response is bytes with exact private five-minute cache, `nosniff`,
     `no-referrer` and restrictive CSP headers; it never redirects to an origin/cache URL.
+    Sanitizer fixtures/oracles are `DEFERRED` under the founder no-test lock; build, tests,
+    lint, gofmt, Docker and runtime are `NOT_RUN`.
 24. Rule CRUD commits only the complete Hub desired generation/hash and returns deployment
     `pending|applying|ready|unknown|error`. The bounded worker owns one fixed script, compares
     generation/hash through Get-before-retry after lost response, cannot finalize a stale
