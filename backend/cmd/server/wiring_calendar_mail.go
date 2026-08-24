@@ -229,6 +229,28 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	mailboxDraftMaterializer, err := mailmod.NewMailboxEntDraftAttachmentMaterializer(mailboxRepo, mailboxObjectStore)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxDraftService, err := mailmod.NewMailboxDraftService(
+		mailboxSvc,
+		mailboxRepo,
+		mailboxEngine,
+		mailboxRepo,
+		mailboxRepo,
+		mailboxDraftMaterializer,
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxDraftHandler, err := mailmod.NewMailboxDraftCreateHandler(mailboxDraftService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxDraftHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 
 	mailboxOAuthHandler, err := mailmod.NewMailboxOAuthHandler(mailboxOAuthService, mailboxSvc, mailboxRepo, mailmod.MailboxOAuthHandlerConfig{
 		BindingCookieName:      "hub_mail_oauth_binding",

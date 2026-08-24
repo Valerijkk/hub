@@ -122,8 +122,7 @@ paths:
     operations: [listMailFolders, createMailFolder, updateMailFolder, deleteMailFolder,
       listMailLabels, createMailLabel, updateMailLabel, deleteMailLabel, listMailThreads,
       getMailThread, getMailMessage, proxyMailRemoteImage, bulkMutateMailMessages,
-      createMailDraft, getMailDraft, updateMailDraft, deleteMailDraft, sendMailDraft,
-      getMailSubmission, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
+      createMailDraft, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
       deleteMailAttachment, searchMail, suggestMailContacts, getMailUserSettings,
       updateMailUserSettings, listMailIdentities, listMailSignatures, createMailSignature,
       updateMailSignature, deleteMailSignature, listMailRules, createMailRule, updateMailRule,
@@ -473,102 +472,29 @@ paths:
       tags: [MailDrafts]
       operationId: createMailDraft
       x-hub-authz: mailbox-owner
+      description: >-
+        Creates exactly one durable active draft. The request has no query parameters, is one
+        JSON object of at most 20 MiB raw bytes, and never returns an indeterminate 202 result.
       parameters:
-        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/MailDraftCreateIdempotencyKey"}
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: "#/components/schemas/SaveDraftRequest"}
+            schema: {$ref: "#/components/schemas/CreateMailDraftRequest"}
       responses:
         "201":
-          description: Draft created
+          description: Durable active draft only
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailDraft"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/MailDraftIdempotencyConflict"}
+        "413": {$ref: "#/components/responses/Error"}
         "423": {$ref: "#/components/responses/MailAccountBusy"}
-        default: {$ref: "#/components/responses/Error"}
-  /mail/drafts/{draftId}:
-    parameters:
-      - {$ref: "#/components/parameters/DraftId"}
-    get:
-      tags: [MailDrafts]
-      operationId: getMailDraft
-      x-hub-authz: mailbox-owner
-      responses:
-        "200":
-          description: Current draft revision
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/MailDraft"}
-        "409": {$ref: "#/components/responses/MailAccountDeleting"}
-        default: {$ref: "#/components/responses/Error"}
-    patch:
-      tags: [MailDrafts]
-      operationId: updateMailDraft
-      x-hub-authz: mailbox-owner
-      parameters:
-        - {$ref: "#/components/parameters/IfMatch"}
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: "#/components/schemas/SaveDraftRequest"}
-      responses:
-        "200":
-          description: New draft revision
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/MailDraft"}
-        "409": {$ref: "#/components/responses/MailDraftMutationConflict"}
-        "423": {$ref: "#/components/responses/MailAccountBusy"}
-        default: {$ref: "#/components/responses/Error"}
-    delete:
-      tags: [MailDrafts]
-      operationId: deleteMailDraft
-      x-hub-authz: mailbox-owner
-      parameters:
-        - {$ref: "#/components/parameters/IfMatch"}
-      responses:
-        "204": {description: Draft moved to trash or deleted by policy}
-        "409": {$ref: "#/components/responses/MailDraftMutationConflict"}
-        "423": {$ref: "#/components/responses/MailAccountBusy"}
-        default: {$ref: "#/components/responses/Error"}
-  /mail/drafts/{draftId}/send:
-    post:
-      tags: [MailDrafts]
-      operationId: sendMailDraft
-      x-hub-authz: mailbox-owner
-      parameters:
-        - {$ref: "#/components/parameters/DraftId"}
-        - {$ref: "#/components/parameters/IdempotencyKey"}
-        - {$ref: "#/components/parameters/IfMatch"}
-      responses:
-        "202":
-          description: Submission accepted or reconciled
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/MailSubmission"}
-        "409": {$ref: "#/components/responses/MailSubmissionConflict"}
-        "423": {$ref: "#/components/responses/MailAccountBusy"}
-        default: {$ref: "#/components/responses/Error"}
-  /mail/submissions/{submissionId}:
-    get:
-      tags: [MailDrafts]
-      operationId: getMailSubmission
-      x-hub-authz: mailbox-owner
-      description: Returns the owner-scoped receipt; an unknown receipt is reconciled with the engine before another submit is allowed
-      parameters:
-        - {$ref: "#/components/parameters/SubmissionId"}
-      responses:
-        "200":
-          description: Current reconciled submission state
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/MailSubmission"}
-        "409": {$ref: "#/components/responses/MailAccountDeleting"}
-        default: {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+        "503": {$ref: "#/components/responses/Error"}
   /mail/attachments/presign:
     post:
       tags: [MailAttachments]
@@ -1841,6 +1767,12 @@ components:
       required: true
       schema: {type: string, minLength: 16, maxLength: 128}
       example: 33333333-3333-4333-8333-333333333333
+    MailDraftCreateIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: UTF-8 control-free key of 1 through 128 bytes, kept identical for every retry of one immutable draft-create intent
+      schema: {type: string, minLength: 1, maxLength: 128, x-hub-max-utf8-bytes: 128}
     MailMutationIdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -2733,7 +2665,7 @@ components:
         id: {type: string, format: uuid}
         draft_client_id: {type: string, format: uuid}
         revision: {type: integer, minimum: 1}
-        status: {type: string, enum: [active, saving, unknown, submitting, submitted]}
+        status: {type: string, enum: [active]}
         from_identity_id: {type: string, format: uuid}
         to:
           type: array
@@ -2768,7 +2700,7 @@ components:
         reply_to_message_id: {type: [string, "null"], format: uuid}
         forward_message_id: {type: [string, "null"], format: uuid}
         updated_at: {type: string, format: date-time}
-    SaveDraftRequest:
+    CreateMailDraftRequest:
       type: object
       additionalProperties: false
       required: [draft_client_id, from_identity_id, to, cc, bcc, subject, body_format, priority, attachment_ids]
@@ -2776,7 +2708,7 @@ components:
         draft_client_id:
           type: string
           format: uuid
-          description: Immutable one-draft staging scope; PATCH must equal the stored value
+          description: Immutable one-draft staging scope
         from_identity_id: {type: string, format: uuid}
         to:
           type: array
