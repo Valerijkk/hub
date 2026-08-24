@@ -127,7 +127,7 @@ frontend contract and must be confirmed by the backend plan.
 | Gate and folders | `GET /api/mail/account` returns provisioning/status/error-safe mailbox snapshot. `GET /api/mail/folders` returns IDs, system kind/custom name, ordering, selectable state, and bounded counts. |
 | Bounded triage | `GET /api/mail/threads?folder_id=&q=&cursor=&limit=&sort=` returns a bounded ordered page of row-safe summaries, `next_cursor`, and no MIME/body. |
 | Reader | `GET /api/mail/threads/:thread_id` returns bounded message metadata. `GET /api/mail/messages/:message_id` returns one display-safe body representation, headers allowed for UI, attachments, and optional calendar-card metadata. |
-| Write/compose | `POST /api/mail/drafts`, `PATCH /api/mail/drafts/:id`, `POST /api/mail/drafts/:id/send`; reply/reply-all/forward are typed compose modes with server-resolved recipients/thread references. Draft save returns revision/version and canonical draft ID. |
+| Write/compose | `POST /api/mail/drafts`, `PATCH /api/mail/drafts/:id`, `POST /api/mail/drafts/:id/send`; `POST /api/mail/messages/:message_id/reply-draft` and `POST /api/mail/messages/:message_id/forward-draft` bootstrap typed server-authoritative reply/forward modes. The server resolves the owned source and derives content; it accepts no source attachment, recipient, body, or threading field from the client. Reply-all remains a future distinct typed mode. Draft save returns revision/version and canonical draft ID. |
 | Message state | `POST /api/mail/messages/:id/actions` and `POST /api/mail/threads/actions` accept an allowlisted action plus server-validated IDs: `mark_read`, `mark_unread`, `flag`, `unflag`, `move`, `archive`, `delete`, `junk`, `not_junk`. Batch returns per-item accepted/rejected/unknown outcome; a transport success is not assumed to mean every item succeeded. |
 | Attachments | `GET /api/mail/messages/:id/attachments/:attachment_id/download` authenticates and authorizes on every request and streams bytes with safe disposition/type headers. A list payload contains only display metadata and download URL/id, never provider URLs or raw MIME. |
 | Calendar RSVP | `POST /api/calendar/v2/events/:event_id/rsvp` accepts an allowlisted RSVP for a series event. When structured card metadata identifies an occurrence, `POST /api/calendar/v2/events/:event_id/instances/:recurrence_id/rsvp` is required instead. Both return canonical `CalendarAttendee` RSVP state. Mail never interprets an iTIP body into a write request. |
@@ -161,7 +161,11 @@ promptly.
 ## Compose, actions, and offline states
 
 Compose uses controlled fields with recipient/subject/body validation and
-server-provided reply context. Autosave is debounced, serialized per draft, and
+server-provided reply or forward context. Reply and forward bootstrap use the
+canonical path only to locate the source; their JSON body carries only a local
+draft-client ID and the selected sending identity, with the idempotency key in
+the request header. The server alone resolves the source and derives the body without copying source
+attachments. Reply-all remains a future distinct typed mode. Autosave is debounced, serialized per draft, and
 uses the returned revision; a newer local edit is never overwritten by an older
 save response. Closing with unsaved content asks to keep the local draft open
 or discard; it does not silently lose text. Send disables duplicate submission.
