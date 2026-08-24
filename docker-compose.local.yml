@@ -226,6 +226,43 @@ services:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa
       target: backend-unit
+    volumes:
+      - type: bind
+        source: ./testframework/reports
+        target: /reports
+      - type: bind
+        source: ./backend/cmd
+        target: /opt/hub/source/backend/cmd
+        read_only: true
+      - type: bind
+        source: ./backend/internal
+        target: /opt/hub/source/backend/internal
+        read_only: true
+      - type: bind
+        source: ./backend/tests
+        target: /opt/hub/source/backend/tests
+        read_only: true
+      - type: bind
+        source: ./backend/ent/schema
+        target: /opt/hub/source/backend/ent/schema
+        read_only: true
+      - type: bind
+        source: ./backend/migrations
+        target: /opt/hub/source/backend/migrations
+        read_only: true
+      - type: bind
+        source: ./backend/testframework
+        target: /opt/hub/source/backend/testframework
+        read_only: true
+    environment:
+      GOCACHE: /var/cache/hub-go
+      GOTMPDIR: /var/tmp/hub-go
+    cpus: 6.0
+    mem_limit: 10g
+    tmpfs:
+      - "/tmp:rw,noexec,nosuid,nodev,size=64m"
+      - "/var/cache/hub-go:rw,noexec,nosuid,nodev,size=3g,uid=10001,gid=10001,mode=1770"
+      - "/var/tmp/hub-go:rw,nosuid,nodev,exec,size=4g,uid=10001,gid=10001,mode=1770"
     command: []
 
   frontend-unit:

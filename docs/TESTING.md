@@ -36,6 +36,34 @@
 4. **E2E:** legacy TypeScript inventory удаляется, greenfield target — Python suite.
 5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
 
+### `backend-unit`: current-source, low-disk profile
+
+Use the canonical command exactly as declared above:
+
+```text
+docker compose -f docker-compose.local.yml run --rm backend-unit
+```
+
+`backend-unit` uses a **partial source overlay**: exactly these current checkout
+roots are mounted read-only at matching `/opt/hub/source/backend/**` targets:
+`backend/cmd`, `backend/internal`, `backend/tests`, `backend/ent/schema`,
+`backend/migrations`, and `backend/testframework`. It deliberately does not
+mount either the `backend/` or `backend/ent/` root, so generated Ent packages
+from the QA image remain authoritative while ordinary edits in those six roots
+are visible without rebuilding the image.
+
+The image retains the resolved Go module cache; `/reports` remains a host bind
+only for receipts and logs. Go build cache uses a per-run, `noexec` tmpfs at
+`/var/cache/hub-go` (3 GiB ceiling); Go temporary files use a separate,
+executable tmpfs at `/var/tmp/hub-go` (4 GiB ceiling). Both tmpfs mounts are
+owned by UID/GID 10001 with mode 1770. `backend-unit` has a 6.0 CPU and 10 GiB
+memory ceiling, and tmpfs use remains bounded by that cgroup.
+
+An explicit, separately authorized rebuild is required for `backend/go.mod` or
+`backend/go.sum` changes, generated Ent output (including a schema change that
+requires regeneration), or edits outside the six overlaid roots. Do not add
+`--build` for ordinary source or test edits within the partial overlay.
+
 ### Исторический inventory snapshot (2026-07-29)
 
 | Слой | Метрика |

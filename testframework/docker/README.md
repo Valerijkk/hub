@@ -19,6 +19,34 @@ resolution occurs only during image construction. Backend and frontend test
 sequences execute only from their fixed container entrypoints, while Python
 profiles dispatch only to literal pytest or Locust commands.
 
+## `backend-unit` low-disk execution
+
+Run the backend unit gate only through the canonical root-Compose command:
+
+```text
+docker compose -f docker-compose.local.yml run --rm backend-unit
+```
+
+The service uses a **partial source overlay**: these six current checkout roots
+are read-only binds at matching `/opt/hub/source/backend/**` targets:
+`backend/cmd`, `backend/internal`, `backend/tests`, `backend/ent/schema`,
+`backend/migrations`, and `backend/testframework`. It does not bind the
+`backend/` or `backend/ent/` root; the image-generated Ent packages therefore
+remain authoritative. `/reports` remains the host bind for compact receipts and
+logs, while the image still supplies the resolved Go module cache.
+
+For each disposable run, `GOCACHE` uses a separate 3 GiB `noexec` tmpfs at
+`/var/cache/hub-go`; `GOTMPDIR` uses a separate executable 4 GiB tmpfs at
+`/var/tmp/hub-go`. Both are owned by UID/GID 10001 with mode 1770.
+`backend-unit` alone has a 6.0 CPU and 10 GiB memory ceiling; tmpfs ceilings
+remain subject to that cgroup memory limit.
+
+This avoids an image rebuild for ordinary source and unit-test edits within the
+six overlaid roots. `backend/go.mod`, `backend/go.sum`, generated Ent output
+(including a schema change requiring regeneration), and edits outside those
+roots require an explicitly, separately authorized image rebuild; the normal
+command never adds `--build`.
+
 ## Retained files
 
 The closed retained set is `Dockerfile.qa`, this README, three entrypoints, and
