@@ -1265,13 +1265,39 @@ paths:
       tags: [CalendarEvents]
       operationId: getCalendarEvent
       x-hub-authz: calendar-event-reader
+      description: >-
+        Returns one authorization-filtered master event. Query parameters, a request body, and
+        Content-Type are rejected; eventId must be a non-zero canonical lowercase UUID.
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            not: {const: 00000000-0000-0000-0000-000000000000}
       responses:
         "200":
           description: Canonical event and attendee state
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/CalendarEvent"}
-        default: {$ref: "#/components/responses/Error"}
+              schema: {$ref: "#/components/schemas/CalendarEventDetail"}
+        "400":
+          description: Invalid event ID, query string, request body, or Content-Type
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "404":
+          description: Event does not exist or is not visible to the authenticated actor
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "500":
+          description: Calendar event is unavailable; internal repository details are not exposed
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     patch:
       tags: [CalendarEvents]
       operationId: updateCalendarEvent
@@ -3230,6 +3256,85 @@ components:
           items: {$ref: "#/components/schemas/LegacyCalendarAggregateEvent"}
         from: {type: string, format: date-time}
         to: {type: string, format: date-time}
+    CalendarEventReadAttendee:
+      type: object
+      additionalProperties: false
+      required: [id, user_id, email, role, rsvp_status, version, responded_at]
+      properties:
+        id: {type: string, format: uuid}
+        user_id: {type: [string, "null"], format: uuid}
+        email: {type: string, format: email, maxLength: 320, x-hub-max-utf8-bytes: 320}
+        role: {type: string, enum: [organizer, required, optional]}
+        rsvp_status: {type: string, enum: [needs_action, accepted, declined, tentative]}
+        version: {type: integer, minimum: 1}
+        responded_at: {type: [string, "null"], format: date-time}
+    CalendarEventDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - description
+        - location
+        - starts_at
+        - ends_at
+        - start_date
+        - end_date_exclusive
+        - all_day
+        - timezone
+        - rrule
+        - exdates
+        - sequence
+        - status
+        - version
+        - organizer_id
+        - organizer_email
+        - attendees
+        - viewer_attendee
+        - can_rsvp
+      oneOf:
+        - properties:
+            all_day: {const: true}
+            starts_at: {type: "null"}
+            ends_at: {type: "null"}
+            start_date: {type: string, format: date}
+            end_date_exclusive: {type: string, format: date}
+        - properties:
+            all_day: {const: false}
+            starts_at: {type: string, format: date-time}
+            ends_at: {type: string, format: date-time}
+            start_date: {type: "null"}
+            end_date_exclusive: {type: "null"}
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string, minLength: 1, maxLength: 500, x-hub-max-utf8-bytes: 500}
+        description: {type: string, maxLength: 200000, x-hub-max-utf8-bytes: 200000}
+        location: {type: string, maxLength: 500, x-hub-max-utf8-bytes: 500}
+        starts_at: {type: [string, "null"], format: date-time}
+        ends_at: {type: [string, "null"], format: date-time}
+        start_date: {type: [string, "null"], format: date}
+        end_date_exclusive: {type: [string, "null"], format: date}
+        all_day: {type: boolean}
+        timezone: {type: string, minLength: 1, maxLength: 64, x-hub-max-utf8-bytes: 64}
+        rrule: {type: [string, "null"], minLength: 1, maxLength: 1000, x-hub-max-utf8-bytes: 1000}
+        exdates:
+          type: array
+          maxItems: 1000
+          items: {type: string, maxLength: 20, x-hub-max-utf8-bytes: 20}
+        sequence: {type: integer, minimum: 0}
+        status: {type: string, enum: [confirmed, tentative, cancelled]}
+        version: {type: integer, minimum: 1}
+        organizer_id: {type: [string, "null"], format: uuid}
+        organizer_email: {type: string, format: email, maxLength: 320, x-hub-max-utf8-bytes: 320}
+        attendees:
+          type: array
+          maxItems: 201
+          items: {$ref: "#/components/schemas/CalendarEventReadAttendee"}
+        viewer_attendee:
+          oneOf:
+            - {$ref: "#/components/schemas/CalendarEventReadAttendee"}
+            - {type: "null"}
+        can_rsvp: {type: boolean}
     CalendarAttendee:
       type: object
       additionalProperties: false
