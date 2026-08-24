@@ -153,7 +153,11 @@ func mailboxObjectDeletionClaimedItemValid(item mailboxObjectDeletionClaimedItem
 
 func mailboxObjectDeletionClaimResultCopy(result mailboxObjectDeletionClaimResult) mailboxObjectDeletionClaimResult {
 	copied := result
-	copied.Items = append([]mailboxObjectDeletionClaimedItem(nil), result.Items...)
+	if result.Items == nil {
+		return copied
+	}
+	copied.Items = make([]mailboxObjectDeletionClaimedItem, len(result.Items))
+	copy(copied.Items, result.Items)
 	return copied
 }
 
