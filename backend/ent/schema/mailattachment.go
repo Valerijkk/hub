@@ -30,6 +30,12 @@ func (MailAttachment) Fields() []ent.Field {
 		field.Enum("disposition").Values("attachment", "inline").Immutable(),
 		field.Enum("scan_status").Values("pending", "clean", "rejected", "error"),
 		field.Bytes("sha256").Optional().Nillable().MinLen(32).MaxLen(32),
+		field.UUID("scan_lease_token", uuid.UUID{}).Optional().Nillable(),
+		field.Int64("scan_lease_generation").Default(0).NonNegative(),
+		field.Time("scan_lease_until").Optional().Nillable(),
+		field.Int32("scan_attempts").Default(0).Min(0).Max(10),
+		field.Time("next_scan_at").Optional().Nillable(),
+		field.Time("scan_terminal_at").Optional().Nillable(),
 		field.Time("created_at").Default(nowUTC).Immutable(),
 		field.Time("updated_at").Default(nowUTC).UpdateDefault(nowUTC),
 	}
@@ -48,6 +54,9 @@ func (MailAttachment) Annotations() []schema.Annotation {
 			"mail_attachments_disposition":           "COALESCE(disposition IN ('attachment','inline'), FALSE)",
 			"mail_attachments_scan_enum":             "COALESCE(scan_status IN ('pending','clean','rejected','error'), FALSE)",
 			"mail_attachments_hash_scan":             "COALESCE(scan_status NOT IN ('clean','rejected') OR sha256 IS NOT NULL, FALSE)",
+			"mail_attachments_scan_lease_pair":       "COALESCE((scan_lease_token IS NULL) = (scan_lease_until IS NULL), FALSE)",
+			"mail_attachments_scan_retry_bounds":     "COALESCE(scan_lease_generation >= 0 AND scan_attempts BETWEEN 0 AND 10, FALSE)",
+			"mail_attachments_scan_schedule":         "COALESCE((storage_object_id IS NULL AND scan_lease_token IS NULL AND scan_lease_generation = 0 AND scan_lease_until IS NULL AND scan_attempts = 0 AND next_scan_at IS NULL AND scan_terminal_at IS NULL) OR (storage_object_id IS NOT NULL AND ((scan_status = 'pending' AND sha256 IS NULL AND scan_lease_token IS NULL AND scan_lease_generation = 0 AND scan_lease_until IS NULL AND scan_attempts = 0 AND next_scan_at IS NULL AND scan_terminal_at IS NULL) OR (scan_status = 'pending' AND sha256 IS NOT NULL AND scan_terminal_at IS NULL AND next_scan_at IS NOT NULL AND ((scan_attempts BETWEEN 0 AND 9 AND (scan_lease_token IS NULL OR scan_lease_generation >= 1)) OR (scan_attempts = 10 AND scan_lease_token IS NOT NULL AND scan_lease_generation >= 1))) OR (scan_status IN ('clean','rejected') AND sha256 IS NOT NULL AND scan_lease_token IS NULL AND scan_lease_until IS NULL AND next_scan_at IS NULL AND scan_terminal_at IS NOT NULL AND scan_attempts BETWEEN 1 AND 10 AND scan_lease_generation >= 1) OR (scan_status = 'error' AND sha256 IS NOT NULL AND scan_lease_token IS NULL AND scan_lease_until IS NULL AND next_scan_at IS NULL AND scan_terminal_at IS NOT NULL AND scan_attempts = 10 AND scan_lease_generation >= 1))), FALSE)",
 		}),
 	}
 }
@@ -67,6 +76,7 @@ func (MailAttachment) Indexes() []ent.Index {
 		index.Fields("mail_message_id").StorageKey("mail_attachments_message_idx"),
 		index.Fields("mail_draft_id").StorageKey("mail_attachments_draft_idx"),
 		index.Fields("pending_mail_draft_id").StorageKey("mail_attachments_pending_draft_idx"),
+		index.Fields("next_scan_at", "id").StorageKey("mail_attachments_scan_due_idx").Annotations(entsql.IndexWhere("storage_object_id IS NOT NULL AND scan_status = 'pending' AND scan_terminal_at IS NULL AND next_scan_at IS NOT NULL")),
 	}
 }
 
