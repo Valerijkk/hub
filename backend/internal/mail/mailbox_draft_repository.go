@@ -231,6 +231,19 @@ type MailboxDraftDeleteRequest struct {
 	MutationID       uuid.UUID
 }
 
+// MailboxDraftAbortRequest aborts the exact pending draft mutation under the exact acquired fence.
+type MailboxDraftAbortRequest struct {
+	Fence      MailboxEngineCommandFence
+	DraftID    uuid.UUID
+	MutationID uuid.UUID
+}
+
+// MailboxDraftAbortResult reports whether abort removed a provisional create or restored a durable active draft.
+type MailboxDraftAbortResult struct {
+	DraftDeleted bool
+	Draft        *MailboxDraftRecord
+}
+
 // MailboxDraftWorkKind identifies one provider-neutral draft operation or recovery operation.
 type MailboxDraftWorkKind string
 
@@ -374,6 +387,7 @@ type MailboxDraftRepository interface {
 	ReserveMailboxDraftCreate(context.Context, MailboxDraftCreateRequest) (MailboxDraftReservation, error)
 	ReserveMailboxDraftSave(context.Context, MailboxDraftSaveRequest) (MailboxDraftReservation, error)
 	ReserveMailboxDraftDelete(context.Context, MailboxDraftDeleteRequest) (MailboxDraftReservation, error)
+	AbortMailboxDraftReservation(context.Context, MailboxDraftAbortRequest) (MailboxDraftAbortResult, error)
 	PrepareMailboxDraftReconciliation(context.Context, MailboxDraftReconcileRequest) (MailboxDraftReconcilePlan, error)
 	ResumeMailboxDraftCreateAfterAbsence(context.Context, MailboxDraftResumeCreateRequest) (MailboxDraftReservation, error)
 	FinishEngineCommand(context.Context, MailboxDraftFinishRequest) (MailboxDraftFinishResult, error)

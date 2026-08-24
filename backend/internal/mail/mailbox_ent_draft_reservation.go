@@ -170,11 +170,120 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftDelete(ctx context.Co
 	return result, nil
 }
 
+// AbortMailboxDraftReservation abandons an exact pending draft mutation without engine I/O.
+func (repository *MailboxEntRepository) AbortMailboxDraftReservation(ctx context.Context, request MailboxDraftAbortRequest) (MailboxDraftAbortResult, error) {
+	if repository == nil || repository.client == nil || ctx == nil {
+		return MailboxDraftAbortResult{}, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
+	}
+	if kind := mailboxEntDraftAbortRequestKind(request); kind != "" {
+		return MailboxDraftAbortResult{}, NewMailboxDraftRepositoryError(kind)
+	}
+
+	var result MailboxDraftAbortResult
+	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
+		account, databaseWallClock, err := mailboxEntDraftCreateLockAccount(ctx, transaction, request.Fence)
+		if err != nil {
+			return err
+		}
+		if kind := mailboxEntDraftCreateAccountKind(account); kind != "" {
+			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
+		}
+		draft, kind := mailboxEntDraftReservationLockDraft(ctx, transaction, request.Fence.AccountID, request.DraftID)
+		if kind != "" {
+			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
+		}
+		attachments, kind := mailboxEntDraftReadAttachmentState(ctx, transaction, draft, MailboxDraftRepositoryErrorStateConflict)
+		if kind != "" {
+			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
+		}
+		record, ok := mailboxEntDraftReadRecord(draft, attachments)
+		if !ok {
+			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+		}
+
+		switch record.Status {
+		case MailboxDraftStatusSaving:
+			if record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.PendingMutationKind == nil {
+				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			}
+			switch *record.PendingMutationKind {
+			case MailboxDraftMutationCreate:
+				if record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || len(attachments.PendingAttachmentIDs) != 0 {
+					return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+				}
+				if len(record.Confirmed.AttachmentIDs) != 0 {
+					if err := draft.Update().RemoveAttachmentIDs(record.Confirmed.AttachmentIDs...).Exec(ctx); err != nil {
+						return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+					}
+				}
+				if err := draft.Delete().Exec(ctx); err != nil {
+					return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+				}
+				if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, databaseWallClock); err != nil {
+					return err
+				}
+				result.DraftDeleted = true
+				return nil
+			case MailboxDraftMutationSave:
+				if record.PendingSave == nil {
+					return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+				}
+				if err := draft.Update().SetStatus(maildraft.StatusActive).ClearLastMutationID().ClearPendingMutationKind().ClearPendingFromIdentityID().ClearPendingReplyToMessageID().ClearPendingForwardMessageID().ClearPendingSaveRequestHash().ClearPendingAttachments().SetUpdatedAt(databaseWallClock).Exec(ctx); err != nil {
+					return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+				}
+				updated := mailboxEntDraftRecordCopy(record)
+				updated.Status = MailboxDraftStatusActive
+				updated.PendingSave = nil
+				updated.LastMutationID = nil
+				updated.PendingMutationKind = nil
+				updated.UpdatedAt = databaseWallClock.UTC()
+				if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, databaseWallClock); err != nil {
+					return err
+				}
+				result.Draft = &updated
+				return nil
+			default:
+				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			}
+		case MailboxDraftStatusDeleting:
+			if record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationDelete || record.PendingSave != nil || len(attachments.PendingAttachmentIDs) != 0 {
+				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			}
+			if err := draft.Update().SetStatus(maildraft.StatusActive).ClearLastMutationID().ClearPendingMutationKind().SetUpdatedAt(databaseWallClock).Exec(ctx); err != nil {
+				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+			}
+			updated := mailboxEntDraftRecordCopy(record)
+			updated.Status = MailboxDraftStatusActive
+			updated.LastMutationID = nil
+			updated.PendingMutationKind = nil
+			updated.UpdatedAt = databaseWallClock.UTC()
+			if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, databaseWallClock); err != nil {
+				return err
+			}
+			result.Draft = &updated
+			return nil
+		default:
+			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+		}
+	})
+	if err != nil {
+		return MailboxDraftAbortResult{}, mailboxEntDraftRepositoryError(err)
+	}
+	return result, nil
+}
+
 func mailboxEntDraftReservationSaveRequestKind(request MailboxDraftSaveRequest) MailboxDraftRepositoryErrorKind {
 	if !mailboxEntEngineCommandFenceValid(request.Fence) || request.DraftID == uuid.Nil || request.DraftClientID == uuid.Nil || request.ExpectedRevision < 1 || request.MutationID == uuid.Nil || !mailboxEntDraftCreateHashPresent(request.PendingSave.RequestHash) {
 		return MailboxDraftRepositoryErrorInvalid
 	}
 	return mailboxEntDraftEffectiveStateKind(request.PendingSave.EffectiveState)
+}
+
+func mailboxEntDraftAbortRequestKind(request MailboxDraftAbortRequest) MailboxDraftRepositoryErrorKind {
+	if !mailboxEntEngineCommandFenceValid(request.Fence) || request.DraftID == uuid.Nil || request.MutationID == uuid.Nil {
+		return MailboxDraftRepositoryErrorInvalid
+	}
+	return ""
 }
 
 func mailboxEntDraftReservationDeleteRequestKind(request MailboxDraftDeleteRequest) MailboxDraftRepositoryErrorKind {
