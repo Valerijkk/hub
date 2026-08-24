@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,24 +20,24 @@ const (
 	transferDeadline = 60 * time.Second
 )
 
-// ContextReadCloser is the upload pre-read boundary. ReadContext must return
+// ContextReadCloser is the upload stream boundary. ReadContext must return
 // when ctx is cancelled; the transport does not start helper goroutines to
-// interrupt an opaque io.Reader. UploadMailboxBlob owns and closes it after
-// the bounded pre-read, including every cancellation path.
+// interrupt an opaque io.Reader. UploadMailboxBlob owns and closes it on every
+// exit path.
 type ContextReadCloser interface {
 	io.ReadCloser
 	ReadContext(context.Context, []byte) (int, error)
 }
 
-// UploadRequest makes the caller select a bounded body size and provide a
-// cancellation-aware stream. The transport additionally caps it at 50 MiB and
+// UploadRequest makes the caller provide the exact body size and a
+// cancellation-aware stream. The transport caps ContentBytes at 50 MiB and
 // never records the content after the call.
 type UploadRequest struct {
 	Session      *MailboxSession
 	AccountID    string
 	ContentType  string
 	Content      ContextReadCloser
-	MaximumBytes int64
+	ContentBytes int64
 }
 
 // UploadResult contains only the provider-private blob identifiers needed by
@@ -144,18 +145,15 @@ func (c *Client) CallMailbox(ctx context.Context, session *MailboxSession, reque
 	return parsed, nil
 }
 
-// UploadMailboxBlob posts a bounded body to the exact session upload template.
-// It pre-reads at most the permitted bytes so an oversize caller stream causes
-// no partial provider write.
+// UploadMailboxBlob streams an exact-size body to the session upload template.
+// Any transport ambiguity after dispatch is indeterminate and is never retried
+// by this transport.
 func (c *Client) UploadMailboxBlob(ctx context.Context, request UploadRequest) (UploadResult, error) {
-	maximum, ok := boundedLimit(request.MaximumBytes, maxUploadContentBytes)
-	if ctx == nil || !ok || request.Session == nil || !validOpaque(request.AccountID) || !validContentType(request.ContentType) || request.Content == nil || !c.validUploadURL(request.Session) {
-		return UploadResult{}, newError(ErrorInvalidRequest)
+	if request.Content != nil {
+		defer request.Content.Close()
 	}
-	defer request.Content.Close()
-	content, err := readBounded(ctx, request.Content, maximum)
-	if err != nil {
-		return UploadResult{}, err
+	if _, ok := boundedLimit(request.ContentBytes, maxUploadContentBytes); ctx == nil || !ok || request.Session == nil || !validOpaque(request.AccountID) || !validContentType(request.ContentType) || request.Content == nil || !c.validUploadURL(request.Session) {
+		return UploadResult{}, newError(ErrorInvalidRequest)
 	}
 	if ctx.Err() != nil {
 		return UploadResult{}, requestError(ctx)
@@ -164,14 +162,24 @@ func (c *Client) UploadMailboxBlob(ctx context.Context, request UploadRequest) (
 	if !ok {
 		return UploadResult{}, newError(ErrorProtocol)
 	}
-	status, _, payload, err := c.doRequest(ctx, transferDeadline, http.MethodPost, target, bytes.NewReader(content), request.ContentType, c.authorizeMailbox, maxJMAPBytes)
+	status, _, payload, err := c.doUploadRequest(ctx, target, request.Content, request.ContentBytes, request.ContentType)
+	if err != nil {
+		return UploadResult{}, err
+	}
+	if status != http.StatusCreated {
+		if status >= http.StatusOK && status < http.StatusMultipleChoices {
+			return UploadResult{}, newError(ErrorIndeterminate)
+		}
+		return UploadResult{}, mutationError(errorFromStatus(status), true)
+	}
+	result, err := parseUploadResult(request.AccountID, payload)
 	if err != nil {
 		return UploadResult{}, newError(ErrorIndeterminate)
 	}
-	if status != http.StatusCreated {
-		return UploadResult{}, mutationError(errorFromStatus(status), true)
+	if result.Size != request.ContentBytes {
+		return UploadResult{}, newError(ErrorIndeterminate)
 	}
-	return parseUploadResult(request.AccountID, payload)
+	return result, nil
 }
 
 // DownloadMailboxBlob reads a bounded blob through the exact session download
@@ -229,6 +237,129 @@ func (c *Client) authorizeMailbox(ctx context.Context, request *http.Request) er
 }
 
 type requestAuthorizer func(context.Context, *http.Request) error
+
+type uploadBodyReader struct {
+	content      ContextReadCloser
+	request      *http.Request
+	contentBytes int64
+
+	mu          sync.Mutex
+	readBytes   int64
+	lookedAhead bool
+	err         error
+}
+
+func (reader *uploadBodyReader) Read(buffer []byte) (int, error) {
+	if reader == nil || reader.content == nil || reader.request == nil {
+		return 0, io.ErrUnexpectedEOF
+	}
+	n, err := reader.content.ReadContext(reader.request.Context(), buffer)
+
+	reader.mu.Lock()
+	defer reader.mu.Unlock()
+
+	if n < 0 || n > len(buffer) {
+		reader.err = io.ErrUnexpectedEOF
+		return 0, reader.err
+	}
+	reader.readBytes += int64(n)
+	if reader.readBytes > reader.contentBytes {
+		reader.err = io.ErrUnexpectedEOF
+		return 0, reader.err
+	}
+	if err != nil && err != io.EOF {
+		reader.err = err
+	}
+	if n == 0 && err == nil {
+		reader.err = io.ErrNoProgress
+		return 0, reader.err
+	}
+	if err == io.EOF && reader.readBytes < reader.contentBytes {
+		reader.err = io.ErrUnexpectedEOF
+		return n, reader.err
+	}
+	if reader.err == nil && reader.readBytes == reader.contentBytes && !reader.lookedAhead {
+		if reader.request.Context().Err() != nil {
+			reader.err = io.ErrUnexpectedEOF
+			return n, reader.err
+		}
+
+		reader.lookedAhead = true
+		var lookAhead [1]byte
+		extraBytes, extraErr := reader.content.ReadContext(reader.request.Context(), lookAhead[:])
+		if reader.request.Context().Err() != nil ||
+			extraBytes < 0 ||
+			extraBytes > len(lookAhead) ||
+			extraBytes > 0 ||
+			!errors.Is(extraErr, io.EOF) {
+			reader.err = io.ErrUnexpectedEOF
+			return n, reader.err
+		}
+	}
+
+	return n, err
+}
+
+func (reader *uploadBodyReader) result() (int64, error) {
+	reader.mu.Lock()
+	defer reader.mu.Unlock()
+	if reader.err == nil && (reader.readBytes != reader.contentBytes || !reader.lookedAhead) {
+		reader.err = io.ErrUnexpectedEOF
+	}
+	return reader.readBytes, reader.err
+}
+
+func (c *Client) doUploadRequest(ctx context.Context, target *url.URL, content ContextReadCloser, contentBytes int64, contentType string) (int, http.Header, []byte, error) {
+	if c == nil || c.httpClient == nil || target == nil || !c.sameOrigin(target) || target.User != nil || target.Fragment != "" || target.ForceQuery || ctx == nil || content == nil || contentBytes < 1 || contentBytes > maxUploadContentBytes || !validContentType(contentType) {
+		return 0, nil, nil, newError(ErrorInvalidRequest)
+	}
+	requestContext, cancel := context.WithTimeout(ctx, transferDeadline)
+	defer cancel()
+
+	body := &uploadBodyReader{content: content, contentBytes: contentBytes}
+	request, err := http.NewRequestWithContext(requestContext, http.MethodPost, target.String(), body)
+	if err != nil {
+		return 0, nil, nil, newError(ErrorInvalidRequest)
+	}
+	body.request = request
+	request.ContentLength = contentBytes
+	request.TransferEncoding = nil
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("Content-Type", contentType)
+	if err := c.authorizeMailbox(requestContext, request); err != nil {
+		return 0, nil, nil, err
+	}
+	if !sameExactURL(request.URL, target) {
+		return 0, nil, nil, newError(ErrorProtocol)
+	}
+	request.ContentLength = contentBytes
+	request.TransferEncoding = nil
+	request.Header.Del("Transfer-Encoding")
+
+	client := *c.httpClient
+	client.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	response, err := client.Do(request)
+	if err != nil || response == nil || response.Body == nil {
+		return 0, nil, nil, newError(ErrorIndeterminate)
+	}
+	defer response.Body.Close()
+
+	readBytes, streamErr := body.result()
+	if streamErr != nil || readBytes != contentBytes || response.StatusCode < http.StatusOK || response.StatusCode > 599 {
+		return 0, nil, nil, newError(ErrorIndeterminate)
+	}
+	if response.StatusCode >= http.StatusMultipleChoices {
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 1024))
+		return response.StatusCode, response.Header.Clone(), nil, nil
+	}
+	payload, err := readHTTPBody(response.Body, maxJMAPBytes)
+	if err != nil {
+		return response.StatusCode, response.Header.Clone(), nil, newError(ErrorIndeterminate)
+	}
+	return response.StatusCode, response.Header.Clone(), payload, nil
+}
 
 func (c *Client) doRequest(ctx context.Context, deadline time.Duration, method string, target *url.URL, body io.Reader, contentType string, authorize requestAuthorizer, maximum int64) (int, http.Header, []byte, error) {
 	if c == nil || c.httpClient == nil || target == nil || !c.sameOrigin(target) || target.User != nil || target.Fragment != "" || target.ForceQuery || ctx == nil || maximum < 1 {
@@ -322,47 +453,6 @@ func (c *Client) renderDownloadURL(accountID, blobID, name, contentType string) 
 
 func boundedLimit(value, hardLimit int64) (int64, bool) {
 	return value, value > 0 && value <= hardLimit
-}
-
-func readBounded(ctx context.Context, source ContextReadCloser, maximum int64) ([]byte, error) {
-	if ctx == nil || source == nil || maximum < 1 {
-		return nil, newError(ErrorInvalidRequest)
-	}
-	const chunkSize = 32 << 10
-	buffer := make([]byte, chunkSize)
-	content := bytes.NewBuffer(make([]byte, 0, chunkSize))
-	for {
-		if ctx.Err() != nil {
-			return nil, requestError(ctx)
-		}
-		remaining := maximum + 1 - int64(content.Len())
-		if remaining < 1 {
-			return nil, newError(ErrorPayloadTooLarge)
-		}
-		readSize := int64(len(buffer))
-		if remaining < readSize {
-			readSize = remaining
-		}
-		n, err := source.ReadContext(ctx, buffer[:readSize])
-		if n < 0 || n > int(readSize) {
-			return nil, newError(ErrorUnavailable)
-		}
-		if n > 0 {
-			_, _ = content.Write(buffer[:n])
-			if int64(content.Len()) > maximum {
-				return nil, newError(ErrorPayloadTooLarge)
-			}
-		}
-		if ctx.Err() != nil {
-			return nil, requestError(ctx)
-		}
-		if err == io.EOF {
-			return content.Bytes(), nil
-		}
-		if err != nil || n == 0 {
-			return nil, newError(ErrorUnavailable)
-		}
-	}
 }
 
 func readHTTPBody(source io.Reader, maximum int64) ([]byte, error) {
