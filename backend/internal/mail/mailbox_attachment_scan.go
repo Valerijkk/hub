@@ -323,11 +323,14 @@ func mailboxAttachmentScanStream(objectStore MailboxObjectStore, scanner Mailbox
 		verdict, verdictErr = session.Verdict(ctx)
 	}
 
-	if integrity == mailboxAttachmentScanIntegrityRejected || (verdictErr == nil && verdict == MailboxAttachmentMalwareVerdictRejected) {
+	if integrity == mailboxAttachmentScanIntegrityRejected {
 		return false, MailboxAttachmentMalwareVerdictRejected, nil
 	}
 	if copyErr != nil || streamCloseErr != nil || scannerCloseErr != nil || verdictErr != nil || integrity != mailboxAttachmentScanIntegrityExact || !validMailboxAttachmentMalwareVerdict(verdict) {
 		return false, "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
+	}
+	if verdict == MailboxAttachmentMalwareVerdictRejected {
+		return false, MailboxAttachmentMalwareVerdictRejected, nil
 	}
 	return true, verdict, nil
 }
