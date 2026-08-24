@@ -169,6 +169,21 @@ type MailboxDraftGetResult struct {
 	Draft *MailboxDraftRecord
 }
 
+// MailboxDraftCreateReplayLookupRequest identifies one account-scoped prior draft-create request.
+type MailboxDraftCreateReplayLookupRequest struct {
+	AccountID                uuid.UUID
+	DraftClientID            uuid.UUID
+	CreateIdempotencyKeyHash [sha256.Size]byte
+	CreateRequestHash        [sha256.Size]byte
+}
+
+// MailboxDraftCreateReplayLookupResult contains the exact durable replay identity when Found is true.
+type MailboxDraftCreateReplayLookupResult struct {
+	Found          bool
+	DraftID        uuid.UUID
+	LastMutationID *uuid.UUID
+}
+
 // MailboxDraftReadRecheckRequest seals the local active draft revision and exact engine message/version pair.
 type MailboxDraftReadRecheckRequest struct {
 	AccountID       uuid.UUID
@@ -355,6 +370,7 @@ type MailboxDraftFinishResult struct {
 type MailboxDraftRepository interface {
 	BeginEngineCommand(context.Context, MailboxEngineCommandBeginRequest) (MailboxEngineCommandBeginResult, error)
 	GetMailboxDraft(context.Context, MailboxDraftGetRequest) (MailboxDraftGetResult, error)
+	LookupMailboxDraftCreateReplay(context.Context, MailboxDraftCreateReplayLookupRequest) (MailboxDraftCreateReplayLookupResult, error)
 	ReserveMailboxDraftCreate(context.Context, MailboxDraftCreateRequest) (MailboxDraftReservation, error)
 	ReserveMailboxDraftSave(context.Context, MailboxDraftSaveRequest) (MailboxDraftReservation, error)
 	ReserveMailboxDraftDelete(context.Context, MailboxDraftDeleteRequest) (MailboxDraftReservation, error)

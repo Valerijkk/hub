@@ -19,6 +19,60 @@ import (
 	"github.com/valerii/hub/backend/ent/mailobject"
 )
 
+// LookupMailboxDraftCreateReplay returns one compatible durable create replay without reserving work or locking attachments.
+func (repository *MailboxEntRepository) LookupMailboxDraftCreateReplay(ctx context.Context, request MailboxDraftCreateReplayLookupRequest) (MailboxDraftCreateReplayLookupResult, error) {
+	if repository == nil || repository.client == nil || ctx == nil || request.AccountID == uuid.Nil || request.DraftClientID == uuid.Nil || !mailboxEntDraftReadHashValid(request.CreateIdempotencyKeyHash[:]) || !mailboxEntDraftReadHashValid(request.CreateRequestHash[:]) {
+		return MailboxDraftCreateReplayLookupResult{}, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
+	}
+
+	var result MailboxDraftCreateReplayLookupResult
+	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
+		if err := mailboxEntDraftReadLockAccount(ctx, transaction, request.AccountID); err != nil {
+			return err
+		}
+		rows, err := transaction.MailDraft.Query().
+			Where(maildraft.MailAccountIDEQ(request.AccountID), maildraft.Or(maildraft.DraftClientIDEQ(request.DraftClientID), maildraft.CreateIdempotencyKeyHashEQ(request.CreateIdempotencyKeyHash[:]...))).
+			Order(ent.Asc(maildraft.FieldID)).
+			ForUpdate().
+			All(ctx)
+		if err != nil {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+		}
+		if len(rows) == 0 {
+			return nil
+		}
+		if len(rows) != 1 {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorIdempotencyConflict)
+		}
+		draft := rows[0]
+		if !mailboxEntDraftReadRowValid(draft, request.AccountID, draft.ID) {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+		}
+		if draft.DraftClientID != request.DraftClientID || !bytes.Equal(draft.CreateIdempotencyKeyHash, request.CreateIdempotencyKeyHash[:]) || !bytes.Equal(draft.CreateRequestHash, request.CreateRequestHash[:]) {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorIdempotencyConflict)
+		}
+
+		switch MailboxDraftStatus(draft.Status) {
+		case MailboxDraftStatusActive, MailboxDraftStatusSubmitting, MailboxDraftStatusSubmitted, MailboxDraftStatusDeleted:
+			result = MailboxDraftCreateReplayLookupResult{Found: true, DraftID: draft.ID}
+			return nil
+		case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
+			pendingKind, ok := mailboxEntDraftReadPendingKind(draft.PendingMutationKind)
+			if !ok || pendingKind == nil || *pendingKind != MailboxDraftMutationCreate || draft.LastMutationID == nil {
+				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+			}
+			result = MailboxDraftCreateReplayLookupResult{Found: true, DraftID: draft.ID, LastMutationID: mailboxEntDraftReadUUIDPointerCopy(draft.LastMutationID)}
+			return nil
+		default:
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+		}
+	})
+	if err != nil {
+		return MailboxDraftCreateReplayLookupResult{}, err
+	}
+	return result, nil
+}
+
 // ReserveMailboxDraftCreate persists or recovers one draft-create operation under the exact acquired fence.
 func (repository *MailboxEntRepository) ReserveMailboxDraftCreate(ctx context.Context, request MailboxDraftCreateRequest) (MailboxDraftReservation, error) {
 	if repository == nil || repository.client == nil || ctx == nil {
