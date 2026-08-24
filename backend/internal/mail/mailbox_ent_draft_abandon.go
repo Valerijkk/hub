@@ -129,7 +129,7 @@ func (repository *MailboxEntRepository) AbandonMailboxDraftCreateUpload(ctx cont
 		updated.UpdatedAt = freshDatabaseWallClock.UTC()
 		emptyAttachments := mailboxEntDraftAttachmentState{ConfirmedAttachmentIDs: []uuid.UUID{}, PendingAttachmentIDs: []uuid.UUID{}}
 		if !mailboxEntDraftAbandonPostStateValid(updated, emptyAttachments, request) {
-			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 		}
 		if _, kind := mailboxEntDraftRecoveryReceiptComplete(ctx, transaction, account, receiptInput, freshDatabaseWallClock); kind != "" {
 			return NewMailboxDraftRepositoryError(kind)
