@@ -77,7 +77,7 @@ func (store *MailboxS3ObjectStore) PresignPut(ctx context.Context, request Mailb
 	if request.Object.Bucket != store.bucket {
 		return MailboxObjectPresignPutResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorRejected, nil)
 	}
-	lifetime, ok := mailboxS3ObjectStoreExactLifetime(request.IssuedAt, request.ExpiresAt, mailboxObjectStoreMaximumPutLifetime)
+	lifetime, ok := mailboxS3ObjectStoreRemainingLifetime(request.ExpiresAt, mailboxObjectStoreMaximumPutLifetime)
 	if !ok {
 		return MailboxObjectPresignPutResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorInvalid, nil)
 	}
@@ -95,14 +95,27 @@ func (store *MailboxS3ObjectStore) PresignPut(ctx context.Context, request Mailb
 	if err != nil {
 		return MailboxObjectPresignPutResult{}, mailboxS3ObjectStoreProviderError(ctx, err)
 	}
-	if presigned == nil || !mailboxS3ObjectStorePresignURLValid(store.publicOrigin, presigned.URL, lifetime) {
+	if presigned == nil {
 		return MailboxObjectPresignPutResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorUnavailable, nil)
 	}
-	headers, ok := mailboxS3ObjectStorePutHeaders(presigned.SignedHeader, request)
+	proof, ok := mailboxS3ObjectStorePresignProof(
+		store.publicOrigin,
+		request.Object,
+		presigned.URL,
+		presigned.Method,
+		http.MethodPut,
+		lifetime,
+		mailboxObjectStoreMaximumPutLifetime,
+		request.ExpiresAt,
+	)
+	if !ok {
+		return MailboxObjectPresignPutResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorUnavailable, nil)
+	}
+	headers, ok := mailboxS3ObjectStorePutHeaders(presigned.SignedHeader, request, proof)
 	if !ok || !validMailboxObjectPresignPutResult(request, MailboxObjectPresignPutResult{
 		URL:       presigned.URL,
 		Headers:   headers,
-		ExpiresAt: request.ExpiresAt,
+		ExpiresAt: proof.expiresAt,
 	}) {
 		return MailboxObjectPresignPutResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorUnavailable, nil)
 	}
@@ -110,7 +123,7 @@ func (store *MailboxS3ObjectStore) PresignPut(ctx context.Context, request Mailb
 	return MailboxObjectPresignPutResult{
 		URL:       presigned.URL,
 		Headers:   headers,
-		ExpiresAt: request.ExpiresAt,
+		ExpiresAt: proof.expiresAt,
 	}, nil
 }
 
@@ -149,7 +162,7 @@ func (store *MailboxS3ObjectStore) PresignGet(ctx context.Context, request Mailb
 	if request.Object.Bucket != store.bucket {
 		return MailboxObjectPresignGetResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorRejected, nil)
 	}
-	lifetime, ok := mailboxS3ObjectStoreExactLifetime(request.IssuedAt, request.ExpiresAt, mailboxObjectStoreMaximumGetLifetime)
+	lifetime, ok := mailboxS3ObjectStoreRemainingLifetime(request.ExpiresAt, mailboxObjectStoreMaximumGetLifetime)
 	if !ok {
 		return MailboxObjectPresignGetResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorInvalid, nil)
 	}
@@ -162,11 +175,24 @@ func (store *MailboxS3ObjectStore) PresignGet(ctx context.Context, request Mailb
 	if err != nil {
 		return MailboxObjectPresignGetResult{}, mailboxS3ObjectStoreProviderError(ctx, err)
 	}
-	if presigned == nil || !mailboxS3ObjectStorePresignURLValid(store.publicOrigin, presigned.URL, lifetime) || !validMailboxObjectPresignGetResult(request, MailboxObjectPresignGetResult{URL: presigned.URL, ExpiresAt: request.ExpiresAt}) {
+	if presigned == nil {
+		return MailboxObjectPresignGetResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorUnavailable, nil)
+	}
+	proof, ok := mailboxS3ObjectStorePresignProof(
+		store.publicOrigin,
+		request.Object,
+		presigned.URL,
+		presigned.Method,
+		http.MethodGet,
+		lifetime,
+		mailboxObjectStoreMaximumGetLifetime,
+		request.ExpiresAt,
+	)
+	if !ok || !validMailboxObjectPresignGetResult(request, MailboxObjectPresignGetResult{URL: presigned.URL, ExpiresAt: proof.expiresAt}) {
 		return MailboxObjectPresignGetResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorUnavailable, nil)
 	}
 
-	return MailboxObjectPresignGetResult{URL: presigned.URL, ExpiresAt: request.ExpiresAt}, nil
+	return MailboxObjectPresignGetResult{URL: presigned.URL, ExpiresAt: proof.expiresAt}, nil
 }
 
 func mailboxS3ObjectStoreReady(store *MailboxS3ObjectStore) bool {
@@ -238,53 +264,216 @@ func mailboxS3ObjectStoreTextValid(value string, maximum int) bool {
 	return value != "" && len(value) <= maximum && utf8.ValidString(value) && mailboxObjectStoreControlFree(value)
 }
 
-func mailboxS3ObjectStoreExactLifetime(issuedAt, expiresAt time.Time, maximum time.Duration) (time.Duration, bool) {
-	if !validMailboxObjectStoreLifetime(issuedAt, expiresAt, maximum) {
+func mailboxS3ObjectStoreRemainingLifetime(expiresAt time.Time, maximum time.Duration) (time.Duration, bool) {
+	if !validMailboxObjectStoreTime(expiresAt) || maximum < time.Second || maximum%time.Second != 0 {
 		return 0, false
 	}
-	lifetime := expiresAt.Sub(issuedAt)
-	return lifetime, lifetime%time.Second == 0
+	remaining := expiresAt.Sub(time.Now().UTC()).Truncate(time.Second)
+	if remaining < time.Second || remaining > maximum {
+		return 0, false
+	}
+	return remaining, true
 }
 
-func mailboxS3ObjectStorePresignURLValid(origin *url.URL, value string, lifetime time.Duration) bool {
-	if origin == nil || !validMailboxObjectStoreURL(value) || lifetime < time.Second || lifetime%time.Second != 0 {
-		return false
+type mailboxS3ObjectStorePresignProof struct {
+	expiresAt     time.Time
+	signedHeaders map[string]struct{}
+	authority     string
+}
+
+func mailboxS3ObjectStorePresignProof(origin *url.URL, object MailboxObjectLocator, value, method, expectedMethod string, lifetime, maximum time.Duration, requestExpiresAt time.Time) (mailboxS3ObjectStorePresignProof, bool) {
+	if origin == nil || !validMailboxObjectStoreURL(value) || !validMailboxObjectStoreTime(requestExpiresAt) ||
+		method != expectedMethod || lifetime < time.Second || lifetime > maximum || lifetime%time.Second != 0 {
+		return mailboxS3ObjectStorePresignProof{}, false
 	}
 	parsed, err := url.ParseRequestURI(value)
-	if err != nil || parsed == nil || !strings.EqualFold(parsed.Scheme, origin.Scheme) || !strings.EqualFold(parsed.Host, origin.Host) {
-		return false
+	if err != nil || parsed == nil || !strings.EqualFold(parsed.Scheme, origin.Scheme) || !strings.EqualFold(parsed.Host, origin.Host) ||
+		!mailboxS3ObjectStorePresignPathValid(parsed, object) {
+		return mailboxS3ObjectStorePresignProof{}, false
 	}
-	expires := parsed.Query()["X-Amz-Expires"]
-	return len(expires) == 1 && expires[0] == strconv.FormatInt(int64(lifetime/time.Second), 10)
+	authority, ok := mailboxS3ObjectStoreCanonicalAuthority(parsed)
+	if !ok {
+		return mailboxS3ObjectStorePresignProof{}, false
+	}
+	query, err := url.ParseQuery(parsed.RawQuery)
+	if err != nil {
+		return mailboxS3ObjectStorePresignProof{}, false
+	}
+	signature, ok := mailboxS3ObjectStoreSigV4Query(query)
+	if !ok || signature.algorithm != `AWS4-HMAC-SHA256` ||
+		signature.expires != int64(lifetime/time.Second) || signature.expires > int64(maximum/time.Second) {
+		return mailboxS3ObjectStorePresignProof{}, false
+	}
+	expiresAt := signature.issuedAt.Add(time.Duration(signature.expires) * time.Second)
+	if !expiresAt.After(signature.issuedAt) || expiresAt.After(requestExpiresAt) {
+		return mailboxS3ObjectStorePresignProof{}, false
+	}
+	return mailboxS3ObjectStorePresignProof{expiresAt: expiresAt, signedHeaders: signature.signedHeaders, authority: authority}, true
 }
 
-func mailboxS3ObjectStorePutHeaders(headers http.Header, request MailboxObjectPresignPutRequest) (map[string]string, bool) {
+type mailboxS3ObjectStoreSigV4Signature struct {
+	algorithm     string
+	issuedAt      time.Time
+	expires       int64
+	signedHeaders map[string]struct{}
+}
+
+func mailboxS3ObjectStoreSigV4Query(query url.Values) (mailboxS3ObjectStoreSigV4Signature, bool) {
+	values := make(map[string]string)
+	for name, entries := range query {
+		lowerName := strings.ToLower(name)
+		if !strings.HasPrefix(lowerName, `x-amz-`) {
+			continue
+		}
+		if _, exists := values[lowerName]; exists || len(entries) != 1 || !validMailboxObjectStoreText(entries[0], mailboxObjectStoreMaximumURLBytes, true) {
+			return mailboxS3ObjectStoreSigV4Signature{}, false
+		}
+		values[lowerName] = entries[0]
+	}
+	algorithm, algorithmOK := values[`x-amz-algorithm`]
+	credential, credentialOK := values[`x-amz-credential`]
+	date, dateOK := values[`x-amz-date`]
+	expires, expiresOK := values[`x-amz-expires`]
+	signedHeaders, signedHeadersOK := values[`x-amz-signedheaders`]
+	signature, signatureOK := values[`x-amz-signature`]
+	if !algorithmOK || !credentialOK || !dateOK || !expiresOK || !signedHeadersOK || !signatureOK || credential == `` || signature == `` {
+		return mailboxS3ObjectStoreSigV4Signature{}, false
+	}
+	issuedAt, err := time.Parse(`20060102T150405Z`, date)
+	if err != nil || issuedAt.Location() != time.UTC {
+		return mailboxS3ObjectStoreSigV4Signature{}, false
+	}
+	seconds, err := strconv.ParseInt(expires, 10, 64)
+	if err != nil || seconds < 1 || strconv.FormatInt(seconds, 10) != expires {
+		return mailboxS3ObjectStoreSigV4Signature{}, false
+	}
+	headers, ok := mailboxS3ObjectStoreSignedHeaders(signedHeaders)
+	if !ok {
+		return mailboxS3ObjectStoreSigV4Signature{}, false
+	}
+	return mailboxS3ObjectStoreSigV4Signature{algorithm: algorithm, issuedAt: issuedAt, expires: seconds, signedHeaders: headers}, true
+}
+
+func mailboxS3ObjectStoreSignedHeaders(value string) (map[string]struct{}, bool) {
+	if !validMailboxObjectStoreText(value, mailboxObjectStoreMaximumHeaderValue, true) {
+		return nil, false
+	}
+	result := make(map[string]struct{})
+	for _, name := range strings.Split(value, `;`) {
+		if name == `` || name != strings.ToLower(name) || !validMailboxObjectStoreHeaderName(name) {
+			return nil, false
+		}
+		if _, duplicate := result[name]; duplicate {
+			return nil, false
+		}
+		result[name] = struct{}{}
+	}
+	_, hasHost := result[`host`]
+	return result, hasHost
+}
+func mailboxS3ObjectStorePresignPathValid(parsed *url.URL, object MailboxObjectLocator) bool {
+	if parsed == nil || !validMailboxObjectLocator(object) {
+		return false
+	}
+	expected := (&url.URL{Path: `/` + object.Bucket + `/` + object.Key}).EscapedPath()
+	return expected != `` && parsed.EscapedPath() == expected
+}
+
+func mailboxS3ObjectStoreCanonicalAuthority(parsed *url.URL) (string, bool) {
+	if parsed == nil || parsed.Host == `` || parsed.Hostname() == `` || parsed.User != nil {
+		return ``, false
+	}
+	authority := strings.ToLower(parsed.Host)
+	if authority == `` || strings.ContainsAny(authority, string([]byte{32, 9, 13, 10})) {
+		return ``, false
+	}
+	return authority, true
+}
+
+
+func mailboxS3ObjectStorePutHeaders(headers http.Header, request MailboxObjectPresignPutRequest, proof mailboxS3ObjectStorePresignProof) (map[string]string, bool) {
 	if headers == nil || len(headers) == 0 || len(headers) > mailboxObjectStoreMaximumHeaders {
 		return nil, false
 	}
 	result := make(map[string]string, len(headers))
+	seen := make(map[string]struct{}, len(headers))
 	contentLength := strconv.FormatInt(request.ContentLength, 10)
+	hasHost := false
 	hasContentLength := false
+	hasContentType := false
 	for name, values := range headers {
 		canonicalName := http.CanonicalHeaderKey(name)
-		if canonicalName == "" || !validMailboxObjectStoreHeaderName(canonicalName) || len(values) != 1 || !validMailboxObjectStoreText(values[0], mailboxObjectStoreMaximumHeaderValue, false) {
+		if canonicalName == `` || !validMailboxObjectStoreHeaderName(canonicalName) || len(values) != 1 || !validMailboxObjectStoreText(values[0], mailboxObjectStoreMaximumHeaderValue, false) {
 			return nil, false
 		}
-		if _, duplicate := result[canonicalName]; duplicate {
+		if _, duplicate := seen[canonicalName]; duplicate {
 			return nil, false
 		}
-		if canonicalName == "Content-Length" {
+		seen[canonicalName] = struct{}{}
+		lowerName := strings.ToLower(canonicalName)
+		if _, signed := proof.signedHeaders[lowerName]; !signed {
+			return nil, false
+		}
+		switch canonicalName {
+		case `Host`:
+			if values[0] != proof.authority {
+				return nil, false
+			}
+			hasHost = true
+		case `Content-Length`:
 			if values[0] != contentLength {
 				return nil, false
 			}
 			hasContentLength = true
+		case `Content-Type`:
+			if values[0] != request.ContentType {
+				return nil, false
+			}
+			hasContentType = true
+		default:
+			if !mailboxS3ObjectStoreBrowserHeaderSafe(canonicalName) {
+				return nil, false
+			}
 		}
-		if canonicalName == "Content-Type" && values[0] != request.ContentType {
+		if canonicalName != `Host` && canonicalName != `Content-Length` {
+			if !mailboxS3ObjectStoreBrowserHeaderSafe(canonicalName) {
+				return nil, false
+			}
+			result[canonicalName] = values[0]
+		}
+	}
+	if !hasHost || !hasContentLength || !hasContentType {
+		return nil, false
+	}
+	for name := range proof.signedHeaders {
+		if name == `host` || name == `content-length` {
+			continue
+		}
+		canonicalName := http.CanonicalHeaderKey(name)
+		if canonicalName == `` || !mailboxS3ObjectStoreBrowserHeaderSafe(canonicalName) {
 			return nil, false
 		}
-		result[canonicalName] = values[0]
+		if _, found := result[canonicalName]; !found {
+			return nil, false
+		}
 	}
-	return result, hasContentLength
+	return result, true
+}
+
+
+func mailboxS3ObjectStoreBrowserHeaderSafe(name string) bool {
+	lowerName := strings.ToLower(name)
+	if strings.HasPrefix(lowerName, `proxy-`) || strings.HasPrefix(lowerName, `sec-`) || strings.HasPrefix(lowerName, `x-forwarded-`) {
+		return false
+	}
+	switch lowerName {
+	case `accept-charset`, `accept-encoding`, `access-control-request-headers`, `access-control-request-method`, `authorization`, `connection`, `content-length`, `cookie`, `cookie2`, `date`, `dnt`, `expect`, `forwarded`, `host`, `keep-alive`, `origin`, `permissions-policy`, `referer`, `te`, `trailer`, `transfer-encoding`, `upgrade`, `user-agent`, `via`, `x-amz-acl`, `x-amz-bypass-governance-retention`, `x-amz-expected-bucket-owner`, `x-amz-grant-full-control`, `x-amz-grant-read`, `x-amz-grant-read-acp`, `x-amz-grant-write-acp`, `x-amz-object-lock-legal-hold`, `x-amz-object-lock-mode`, `x-amz-object-lock-retain-until-date`, `x-amz-request-payer`, `x-amz-security-token`, `x-amz-server-side-encryption`, `x-amz-server-side-encryption-aws-kms-key-id`, `x-amz-server-side-encryption-bucket-key-enabled`, `x-amz-server-side-encryption-context`, `x-amz-storage-class`, `x-amz-tagging`, `x-amz-website-redirect-location`:
+		return false
+	case `content-type`:
+		return true
+	default:
+		return strings.HasPrefix(lowerName, `x-amz-checksum-`)
+	}
 }
 
 func mailboxS3ObjectStoreProviderError(ctx context.Context, err error) error {
