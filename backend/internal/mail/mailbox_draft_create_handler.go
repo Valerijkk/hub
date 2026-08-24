@@ -9,6 +9,7 @@ import (
 	"math"
 	"mime"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ const mailboxDraftCreateHTTPJSONBodyMaxBytes = 20 * 1024 * 1024
 type mailboxDraftCreateService interface {
 	CreateMailboxDraft(context.Context, uuid.UUID, MailboxDraftCreateInput) (MailboxDraftView, error)
 	GetMailboxDraft(context.Context, uuid.UUID, uuid.UUID) (MailboxDraftView, error)
+	SaveMailboxDraft(context.Context, uuid.UUID, uuid.UUID, MailboxDraftSaveInput) (MailboxDraftView, error)
 }
 
 // MailboxDraftCreateHandler exposes the authenticated durable draft-create transport.
@@ -45,6 +47,7 @@ func (handler *MailboxDraftCreateHandler) RegisterRoutes(api fiber.Router, authM
 	routes := api.Group("/mail", authMiddleware)
 	routes.Post("/drafts", handler.create)
 	routes.Get("/drafts/:draftId", handler.get)
+	routes.Patch("/drafts/:draftId", handler.save)
 	return nil
 }
 
@@ -63,6 +66,22 @@ type mailboxDraftCreateHTTPRequest struct {
 	ReplyToMessageID *string                          `json:"reply_to_message_id"`
 	ForwardMessageID *string                          `json:"forward_message_id"`
 }
+
+type mailboxDraftSaveHTTPRequest struct {
+	DraftClientID  string                           `json:"draft_client_id"`
+	FromIdentityID string                           `json:"from_identity_id"`
+	To             *[]mailboxDraftCreateHTTPAddress `json:"to"`
+	CC             *[]mailboxDraftCreateHTTPAddress `json:"cc"`
+	BCC            *[]mailboxDraftCreateHTTPAddress `json:"bcc"`
+	Subject        *string                          `json:"subject"`
+	BodyFormat     string                           `json:"body_format"`
+	RichBody       mailboxDraftCreateHTTPBodyField   `json:"rich_body"`
+	PlainBody      mailboxDraftCreateHTTPBodyField   `json:"plain_body"`
+	Priority       string                           `json:"priority"`
+	AttachmentIDs  *[]string                        `json:"attachment_ids"`
+}
+
+var mailboxDraftSaveHTTPIfMatchPattern = regexp.MustCompile(`^"[1-9][0-9]*"$`)
 
 type mailboxDraftCreateHTTPAddress struct {
 	Email string  `json:"email"`
@@ -160,6 +179,47 @@ func (handler *MailboxDraftCreateHandler) get(ctx fiber.Ctx) error {
 	view, err := handler.service.GetMailboxDraft(ctx.Context(), actorID, draftID)
 	if err != nil {
 		return mailboxDraftReadHTTPServiceError(ctx, err)
+	}
+	response, ok := mailboxDraftCreateHTTPResponseFromView(view)
+	if !ok {
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+	return ctx.Status(http.StatusOK).JSON(response)
+}
+
+func (handler *MailboxDraftCreateHandler) save(ctx fiber.Ctx) error {
+	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+	if err := mailboxDraftCreateHTTPRejectQuery(ctx); err != nil {
+		return err
+	}
+	if err := mailboxDraftSaveHTTPRejectIdempotencyKey(ctx); err != nil {
+		return err
+	}
+	actorID, err := mailboxActorID(ctx)
+	if err != nil {
+		return err
+	}
+	draftID, err := mailboxDraftCreateHTTPCanonicalUUID(ctx.Params("draftId"))
+	if err != nil {
+		return err
+	}
+	expectedRevision, err := mailboxDraftSaveHTTPExpectedRevision(ctx.Get("If-Match"))
+	if err != nil {
+		return err
+	}
+	var request mailboxDraftSaveHTTPRequest
+	if err := mailboxDraftCreateHTTPDecodeJSON(ctx, &request); err != nil {
+		return err
+	}
+	input, err := mailboxDraftSaveHTTPInput(request, expectedRevision)
+	if err != nil {
+		return err
+	}
+	view, err := handler.service.SaveMailboxDraft(ctx.Context(), actorID, draftID, input)
+	if err != nil {
+		return mailboxDraftSaveHTTPServiceError(ctx, err)
 	}
 	response, ok := mailboxDraftCreateHTTPResponseFromView(view)
 	if !ok {
@@ -270,6 +330,80 @@ func mailboxDraftCreateHTTPInput(request mailboxDraftCreateHTTPRequest, idempote
 		},
 		IdempotencyKey: idempotencyKey,
 	}, nil
+}
+
+func mailboxDraftSaveHTTPInput(request mailboxDraftSaveHTTPRequest, expectedRevision int64) (MailboxDraftSaveInput, error) {
+	draftClientID, err := mailboxDraftCreateHTTPCanonicalUUID(request.DraftClientID)
+	if err != nil {
+		return MailboxDraftSaveInput{}, err
+	}
+	fromIdentityID, err := mailboxDraftCreateHTTPCanonicalUUID(request.FromIdentityID)
+	if err != nil {
+		return MailboxDraftSaveInput{}, err
+	}
+	if expectedRevision < 1 || request.To == nil || request.CC == nil || request.BCC == nil || request.Subject == nil || request.AttachmentIDs == nil {
+		return MailboxDraftSaveInput{}, mailboxDraftCreateHTTPInvalidRequest()
+	}
+	if len(*request.AttachmentIDs) != 0 {
+		return MailboxDraftSaveInput{}, fiber.NewError(http.StatusUnprocessableEntity, "mail draft attachments cannot be saved")
+	}
+	to, err := mailboxDraftCreateHTTPAddresses(*request.To)
+	if err != nil {
+		return MailboxDraftSaveInput{}, err
+	}
+	cc, err := mailboxDraftCreateHTTPAddresses(*request.CC)
+	if err != nil {
+		return MailboxDraftSaveInput{}, err
+	}
+	bcc, err := mailboxDraftCreateHTTPAddresses(*request.BCC)
+	if err != nil {
+		return MailboxDraftSaveInput{}, err
+	}
+	content, err := mailboxDraftCreateHTTPContent(request.BodyFormat, request.RichBody, request.PlainBody)
+	if err != nil {
+		return MailboxDraftSaveInput{}, err
+	}
+	priority, err := mailboxDraftCreateHTTPPriority(request.Priority)
+	if err != nil {
+		return MailboxDraftSaveInput{}, err
+	}
+	return MailboxDraftSaveInput{
+		MailboxDraftWriteInput: MailboxDraftWriteInput{
+			DraftClientID:    draftClientID,
+			FromIdentityID:   fromIdentityID,
+			To:               to,
+			CC:               cc,
+			BCC:              bcc,
+			ReplyTo:          nil,
+			Subject:          *request.Subject,
+			InReplyTo:        "",
+			References:       nil,
+			Priority:         priority,
+			ReplyToMessageID: nil,
+			ForwardMessageID: nil,
+			Attachments:      nil,
+			Content:          content,
+		},
+		ExpectedRevision: expectedRevision,
+	}, nil
+}
+
+func mailboxDraftSaveHTTPRejectIdempotencyKey(ctx fiber.Ctx) error {
+	if ctx == nil || ctx.Request().Header.Peek("Idempotency-Key") != nil {
+		return mailboxDraftCreateHTTPInvalidRequest()
+	}
+	return nil
+}
+
+func mailboxDraftSaveHTTPExpectedRevision(raw string) (int64, error) {
+	if !mailboxDraftSaveHTTPIfMatchPattern.MatchString(raw) {
+		return 0, mailboxDraftCreateHTTPInvalidRequest()
+	}
+	revision, err := strconv.ParseInt(raw[1:len(raw)-1], 10, 64)
+	if err != nil || revision < 1 {
+		return 0, mailboxDraftCreateHTTPInvalidRequest()
+	}
+	return revision, nil
 }
 
 func mailboxDraftCreateHTTPCanonicalUUID(raw string) (uuid.UUID, error) {
@@ -507,6 +641,36 @@ func mailboxDraftReadHTTPServiceError(ctx fiber.Ctx, err error) error {
 	case MailboxDraftServiceErrorConflict, MailboxDraftServiceErrorReconciliationRequired:
 		ctx.Set("X-Hub-Error-Code", "MAIL_DRAFT_RECONCILIATION_REQUIRED")
 		return fiber.NewError(http.StatusConflict, "mail draft reconciliation required")
+	default:
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+}
+
+func mailboxDraftSaveHTTPServiceError(ctx fiber.Ctx, err error) error {
+	var serviceErr *MailboxDraftServiceError
+	if !errors.As(err, &serviceErr) || serviceErr == nil {
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+	switch serviceErr.Kind() {
+	case MailboxDraftServiceErrorInvalid:
+		return mailboxDraftCreateHTTPInvalidRequest()
+	case MailboxDraftServiceErrorNotFound:
+		return fiber.NewError(http.StatusNotFound, "mail draft unavailable")
+	case MailboxDraftServiceErrorDeleting:
+		ctx.Set("X-Hub-Error-Code", "MAIL_ACCOUNT_DELETING")
+		return fiber.NewError(http.StatusConflict, "mail account is deleting")
+	case MailboxDraftServiceErrorPreconditionFailed:
+		ctx.Set("X-Hub-Error-Code", "MAIL_DRAFT_VERSION_CONFLICT")
+		return fiber.NewError(http.StatusConflict, "mail draft version conflict")
+	case MailboxDraftServiceErrorConflict, MailboxDraftServiceErrorReconciliationRequired:
+		ctx.Set("X-Hub-Error-Code", "MAIL_DRAFT_RECONCILIATION_REQUIRED")
+		return fiber.NewError(http.StatusConflict, "mail draft reconciliation required")
+	case MailboxDraftServiceErrorPayloadTooLarge, MailboxDraftServiceErrorAttachmentLimit:
+		return fiber.NewError(http.StatusRequestEntityTooLarge, "mail draft request exceeds limits")
+	case MailboxDraftServiceErrorAttachmentConflict, MailboxDraftServiceErrorUnprocessable:
+		return fiber.NewError(http.StatusUnprocessableEntity, "mail draft request cannot be processed")
+	case MailboxDraftServiceErrorBusy:
+		return mailboxDraftCreateHTTPBusy(ctx, serviceErr)
 	default:
 		return mailboxDraftCreateHTTPUnavailable()
 	}

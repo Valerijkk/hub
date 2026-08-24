@@ -551,6 +551,44 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/MailDraftMutationConflict"}
         "503": {$ref: "#/components/responses/Error"}
+    patch:
+      tags: [MailDrafts]
+      operationId: saveMailDraft
+      x-hub-authz: mailbox-owner
+      description: >-
+        Saves one owner-scoped active draft under the exact quoted revision in `If-Match`.
+        The request accepts no query parameters or `Idempotency-Key`, is one JSON object of at
+        most 20 MiB raw bytes, and does not accept attachment, reply, forward, `Reply-To`,
+        `In-Reply-To`, or `References` edits. For a reply draft, the server preserves its
+        source/threading proof. This operation never returns 202.
+      parameters:
+        - {$ref: "#/components/parameters/IfMatch"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SaveMailDraftRequest"}
+      responses:
+        "200":
+          description: Durable active draft only
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailDraft"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409":
+          description: Version precondition, durable reconciliation, or mailbox-deleting conflict
+          headers:
+            X-Hub-Error-Code:
+              required: true
+              schema: {type: string, enum: [MAIL_DRAFT_VERSION_CONFLICT, MAIL_DRAFT_RECONCILIATION_REQUIRED, MAIL_ACCOUNT_DELETING]}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "413": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
+        "503": {$ref: "#/components/responses/Error"}
   /mail/attachments/presign:
     post:
       tags: [MailAttachments]
@@ -2803,6 +2841,48 @@ components:
           items: {type: string, format: uuid}
         reply_to_message_id: {type: [string, "null"], format: uuid}
         forward_message_id: {type: [string, "null"], format: uuid}
+      oneOf:
+        - properties:
+            body_format: {const: rich}
+            plain_body: false
+          required: [rich_body]
+        - properties:
+            body_format: {const: plain}
+            rich_body: false
+          required: [plain_body]
+    SaveMailDraftRequest:
+      type: object
+      additionalProperties: false
+      required: [draft_client_id, from_identity_id, to, cc, bcc, subject, body_format, priority, attachment_ids]
+      properties:
+        draft_client_id:
+          type: string
+          format: uuid
+          description: Immutable one-draft staging scope
+        from_identity_id: {type: string, format: uuid}
+        to:
+          type: array
+          maxItems: 100
+          items: {$ref: "#/components/schemas/MailRecipientInput"}
+        cc:
+          type: array
+          maxItems: 100
+          items: {$ref: "#/components/schemas/MailRecipientInput"}
+        bcc:
+          type: array
+          maxItems: 100
+          items: {$ref: "#/components/schemas/MailRecipientInput"}
+        subject: {type: string, maxLength: 998, x-hub-max-utf8-bytes: 998}
+        body_format: {type: string, enum: [rich, plain]}
+        rich_body: {type: string, maxLength: 2000000, x-hub-max-utf8-bytes: 8388608}
+        plain_body: {type: string, maxLength: 2000000, x-hub-max-utf8-bytes: 8388608}
+        priority: {type: string, enum: [low, normal, high], default: normal}
+        attachment_ids:
+          type: array
+          minItems: 0
+          maxItems: 0
+          items: {type: string, format: uuid}
+          description: Required empty array; attachment lifecycle is not accepted by this transport.
       oneOf:
         - properties:
             body_format: {const: rich}
