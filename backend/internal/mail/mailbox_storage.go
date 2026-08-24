@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"mime"
 	"net/url"
 	"strings"
 	"time"
@@ -137,7 +138,7 @@ func validMailboxObjectPresignPutRequest(request MailboxObjectPresignPutRequest)
 func validMailboxObjectPresignPutResult(request MailboxObjectPresignPutRequest, result MailboxObjectPresignPutResult) bool {
 	return validMailboxObjectStoreURL(result.URL) &&
 		validMailboxObjectStoreHeaders(result.Headers) &&
-		validMailboxObjectStoreResultExpiry(request.ExpiresAt, result.ExpiresAt)
+		validMailboxObjectStoreResultExpiry(request.IssuedAt, request.ExpiresAt, result.ExpiresAt)
 }
 
 func cloneMailboxObjectPresignPutResult(result MailboxObjectPresignPutResult) MailboxObjectPresignPutResult {
@@ -160,7 +161,7 @@ func validMailboxObjectPresignGetRequest(request MailboxObjectPresignGetRequest)
 
 func validMailboxObjectPresignGetResult(request MailboxObjectPresignGetRequest, result MailboxObjectPresignGetResult) bool {
 	return validMailboxObjectStoreURL(result.URL) &&
-		validMailboxObjectStoreResultExpiry(request.ExpiresAt, result.ExpiresAt)
+		validMailboxObjectStoreResultExpiry(request.IssuedAt, request.ExpiresAt, result.ExpiresAt)
 }
 
 func validMailboxObjectLocator(locator MailboxObjectLocator) bool {
@@ -169,7 +170,14 @@ func validMailboxObjectLocator(locator MailboxObjectLocator) bool {
 }
 
 func validMailboxObjectStoreContentType(value string) bool {
-	return validMailboxObjectStoreText(value, MaxEngineMIMEFieldBytes, true)
+	if !validMailboxObjectStoreText(value, MaxEngineMIMEFieldBytes, true) {
+		return false
+	}
+	mediaType, parameters, err := mime.ParseMediaType(value)
+	if err != nil || !validMailboxObjectStoreMediaType(mediaType) {
+		return false
+	}
+	return mime.FormatMediaType(mediaType, parameters) == value
 }
 
 func validMailboxObjectStoreLifetime(issuedAt, expiresAt time.Time, maximum time.Duration) bool {
@@ -180,8 +188,8 @@ func validMailboxObjectStoreLifetime(issuedAt, expiresAt time.Time, maximum time
 	return lifetime > 0 && lifetime <= maximum
 }
 
-func validMailboxObjectStoreResultExpiry(requestExpiry, resultExpiry time.Time) bool {
-	return validMailboxObjectStoreTime(resultExpiry) && !resultExpiry.After(requestExpiry)
+func validMailboxObjectStoreResultExpiry(requestIssuedAt, requestExpiry, resultExpiry time.Time) bool {
+	return validMailboxObjectStoreTime(resultExpiry) && resultExpiry.After(requestIssuedAt) && !resultExpiry.After(requestExpiry)
 }
 
 func validMailboxObjectStoreTime(value time.Time) bool {
@@ -202,7 +210,7 @@ func validMailboxObjectStoreHeaders(headers map[string]string) bool {
 		return false
 	}
 	for name, value := range headers {
-		if !validMailboxObjectStoreText(name, mailboxObjectStoreMaximumHeaderName, true) ||
+		if !validMailboxObjectStoreHeaderName(name) ||
 			!validMailboxObjectStoreText(value, mailboxObjectStoreMaximumHeaderValue, false) {
 			return false
 		}
@@ -232,6 +240,31 @@ func validMailboxObjectStoreErrorKind(kind MailboxObjectStoreErrorKind) bool {
 	default:
 		return false
 	}
+}
+
+func validMailboxObjectStoreMediaType(value string) bool {
+	typeName, subtype, found := strings.Cut(value, "/")
+	return found && typeName != "" && subtype != "" && !strings.Contains(subtype, "/")
+}
+
+func validMailboxObjectStoreHeaderName(value string) bool {
+	if !validMailboxObjectStoreText(value, mailboxObjectStoreMaximumHeaderName, true) {
+		return false
+	}
+	for index := 0; index < len(value); index++ {
+		character := value[index]
+		if character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' ||
+			character >= '0' && character <= '9' {
+			continue
+		}
+		switch character {
+		case '!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func validMailboxObjectStoreText(value string, maximum int, required bool) bool {
