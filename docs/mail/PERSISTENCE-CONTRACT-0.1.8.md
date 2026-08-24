@@ -1086,13 +1086,16 @@ cleanup garbage or permission to reclaim an upload.
 
 `Applied` is a separately locked completion: it promotes D to the new confirmed graph O,
 clears confirmed links for O\D, and clears all D scalars/attachment links in the same durable
-transition. The sealed `EngineDraftRetained{Message EngineMessage}` engine observation is now
-implemented, but the repository has no corresponding durable proof path: `SaveRetained` remains
-`SOURCE_NOT_IMPLEMENTED` and forbidden. Every non-`Applied` outcome, including this observation,
-preserves O and D and remains `unknown` for reconciliation. A bare or unsealed old pair is not
-proof. Only a sealed live reconcile result combined with the exact persisted O pair and binding
-is sufficient evidence for a later separately authorized retained-completion packet; it needs no
-reverse mapping of provider attachment ids to Hub UUIDs and no `confirmed_request_hash`.
+transition. The provider-neutral sealed `EngineDraftRetained{Message EngineMessage}` and the Fake
+engine's authoritative current-store proof exist, but the repository has no durable proof path:
+`SaveRetained` remains `SOURCE_NOT_IMPLEMENTED` and forbidden. Stalwart retained observation is
+also `SOURCE_NOT_IMPLEMENTED` and fail-closed because the current reconciliation request has no
+exact prior `draft-mutation` marker binding; a generic syntactically valid Hub keyword never
+substitutes for it. Every non-`Applied` outcome preserves O and D and remains `unknown` for
+reconciliation. A bare or unsealed old pair is not proof. A sealed live reconcile result combined
+with the exact persisted O pair and binding can be evidence only in a later separately authorized
+provider-specific retained-completion packet; it needs no reverse mapping of provider attachment
+ids to Hub UUIDs and no `confirmed_request_hash`.
 
 That future completion may clear D only after its exact-old-pair/currentness proof and matching
 locked account/draft/mutation/fence/binding revalidation; it leaves O unchanged. The engine result

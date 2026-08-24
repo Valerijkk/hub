@@ -664,25 +664,30 @@ permitted while that transaction or lock set is held. The engine receives the re
 value but never owns or mutates durable O/D links.
 
 `Applied` permits the repository to promote D to confirmed O only after the exact mutation and
-fence are revalidated. The sealed `EngineDraftRetained{Message EngineMessage}` observation is
-implemented, but the durable repository/service `SaveRetained` completion remains
-`SOURCE_NOT_IMPLEMENTED` and forbidden. Every non-`Applied` outcome, including
-`EngineDraftRetained`, therefore retains O and D in `unknown`; the new engine result cannot clear
-D, finalize a request, retry, or clean up anything by itself. Pending attachment ownership is live
-persistence state; the adapter must not interpret O∩D, O\D, or D\O as duplicate upload/delete work.
+fence are revalidated. The provider-neutral sealed `EngineDraftRetained{Message EngineMessage}`
+alternative and the Fake engine's authoritative current-store proof are implemented. Stalwart
+`EngineDraftRetained` is `SOURCE_NOT_IMPLEMENTED` and fail-closed: the current reconciliation
+request does not carry an exact prior `draft-mutation` marker binding. A same-account live old
+pair, stable draft marker, or generic syntactically valid Hub keyword is therefore not proof.
+The durable repository/service `SaveRetained` completion also remains `SOURCE_NOT_IMPLEMENTED`
+and forbidden. Every non-`Applied` outcome retains O and D in `unknown`; no engine observation
+can clear D, finalize a request, retry, or clean up anything by itself. Pending attachment
+ownership is live persistence state; the adapter must not interpret O∩D, O\D, or D\O as duplicate
+upload/delete work.
 
 `EngineDraftRetained` is a sealed result alternative containing exactly `Message EngineMessage`.
 It may be returned only for the same authorized save/reconciliation request whose `AccountID`,
 `DraftKey`, `MutationID`, `MessageID`, and `PreviousVersion` exactly equal the durably reserved
 mutation and confirmed O pair. Its `Message.Projection.AccountID`,
 `Message.Projection.MessageID`, and `Message.Projection.Version` must respectively equal that
-account, old message id, and old version. The adapter establishes this from one live, bounded
-reconciliation read of the authoritative current draft representation, never a cache, synthetic,
-or stale snapshot; it validates the existing message/projection bounds and confirmed attachment
-set. A bare or unsealed old-pair observation remains insufficient. The sealed live reconciliation
-result plus the exact persisted O pair and binding is sufficient evidence for a later, separately
-authorized repository proof packet; it requires neither reverse mapping of provider attachment
-ids to Hub UUIDs nor a `confirmed_request_hash`.
+account, old message id, and old version. The Fake establishes this from its mutex-protected
+authoritative current draft/message stores with the existing message/projection validation and
+bounds. For Stalwart, after the exact current-mutation `Applied` branch every save old-pair
+observation returns `EngineDraftIndeterminate` until a later packet carries and verifies the exact
+prior `draft-mutation` marker binding. A bare or unsealed old-pair observation remains
+insufficient. A sealed live reconcile result plus the exact persisted O pair and binding can be
+evidence only in a later separately authorized provider-specific proof packet; it requires neither
+reverse mapping of provider attachment ids to Hub UUIDs nor a `confirmed_request_hash`.
 
 That later repository packet must reacquire the established lock order and prove the exact current
 account/draft/mutation/fence, unchanged O pair, binding, and still-reserved D before it clears D;
