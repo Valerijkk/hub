@@ -136,6 +136,37 @@ type MailboxAttachmentDownloadRepositoryResult struct {
 	IssuedAt time.Time
 }
 
+type MailboxAttachmentAbandonRepositoryRequest struct {
+	ActorID                  uuid.UUID
+	OrganizationID           uuid.UUID
+	AccountID                uuid.UUID
+	AttachmentID             uuid.UUID
+	MinimumObjectDeleteDelay time.Duration
+}
+
+type MailboxAttachmentAbandonRepositoryResultKind string
+
+const (
+	MailboxAttachmentAbandonRepositoryResultAbandoned MailboxAttachmentAbandonRepositoryResultKind = "abandoned"
+	MailboxAttachmentAbandonRepositoryResultAbsent    MailboxAttachmentAbandonRepositoryResultKind = "absent"
+	MailboxAttachmentAbandonRepositoryResultConflict  MailboxAttachmentAbandonRepositoryResultKind = "conflict"
+	MailboxAttachmentAbandonRepositoryResultDeleting  MailboxAttachmentAbandonRepositoryResultKind = "deleting"
+)
+
+type MailboxAttachmentAbandonRepositoryConflictKind string
+
+const (
+	MailboxAttachmentAbandonRepositoryConflictMessage      MailboxAttachmentAbandonRepositoryConflictKind = "message"
+	MailboxAttachmentAbandonRepositoryConflictDraft        MailboxAttachmentAbandonRepositoryConflictKind = "draft"
+	MailboxAttachmentAbandonRepositoryConflictPendingDraft MailboxAttachmentAbandonRepositoryConflictKind = "pending_draft"
+	MailboxAttachmentAbandonRepositoryConflictStorage      MailboxAttachmentAbandonRepositoryConflictKind = "storage"
+)
+
+type MailboxAttachmentAbandonRepositoryResult struct {
+	Kind     MailboxAttachmentAbandonRepositoryResultKind
+	Conflict MailboxAttachmentAbandonRepositoryConflictKind
+}
+
 type MailboxAttachmentPresignRepository interface {
 	ReserveMailboxAttachmentPresign(context.Context, MailboxAttachmentPresignRepositoryRequest) (MailboxAttachmentPresignRepositoryResult, error)
 }
@@ -146,6 +177,12 @@ type MailboxAttachmentConfirmRepository interface {
 
 type MailboxAttachmentDownloadRepository interface {
 	ResolveMailboxAttachmentDownload(context.Context, MailboxAttachmentDownloadRepositoryRequest) (MailboxAttachmentDownloadRepositoryResult, error)
+}
+
+// MailboxAttachmentAbandonRepository atomically deletes one unlinked attachment and retains its object deletion intent.
+// The adapter owns owner -> attachment -> object locking and must never perform object-store I/O in this operation.
+type MailboxAttachmentAbandonRepository interface {
+	AbandonMailboxAttachment(context.Context, MailboxAttachmentAbandonRepositoryRequest) (MailboxAttachmentAbandonRepositoryResult, error)
 }
 
 type MailboxAttachmentStagingServiceAPI interface {
