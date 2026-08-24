@@ -19,7 +19,7 @@ func (MailMutationReceiptTarget) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable(),
 		field.UUID("receipt_id", uuid.UUID{}).Immutable(),
 		field.Int32("request_index").Min(0).Max(199).Immutable(),
-		field.Enum("target_type").Values("message", "thread").Immutable(),
+		field.Enum("target_type").Values("message", "thread", "attachment").Immutable(),
 		field.UUID("target_id", uuid.UUID{}).Immutable(),
 		field.Enum("status").Values("succeeded", "partial", "failed", "unknown"),
 		field.Int32("affected_count").Min(0).Max(200),
