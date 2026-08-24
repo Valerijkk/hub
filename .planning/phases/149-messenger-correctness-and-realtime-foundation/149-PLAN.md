@@ -234,15 +234,19 @@ Record each slice independently in the SDD ledger. Task 2 is accepted only when 
 - Modify: `frontend/src/api/messenger.ts`
 - Modify: `frontend/src/components/messenger/message-composer.tsx`
 - Create: `frontend/tests/messenger/message-composer-retry-nonce.test.tsx`
+- Modify: `docs/TECHNICAL.md`
+- Modify: `docs/TESTING.md`
 
 **Interfaces:**
 
 - Consumes/produces: `SendMessageRequest.client_nonce?: string` and `Message.client_nonce?: string`.
 - Logical submit state retains one `crypto.randomUUID()` through retry; a later distinct submit gets a new UUID.
+- Every text, attachment, GIF, sticker, and voice submit creates an immutable payload snapshot before the first request. Text/attachment/mention/reply editor state is cleared optimistically at that boundary; a later retry must never clear or overwrite a newer draft.
+- A failed snapshot is kept only in the mounted composer and exposed by one persistent, non-dismissible Sonner error toast with primary `Повторить` and secondary `Отменить отправку` actions. Retry reuses the exact snapshot and nonce; discard deletes it. Route change/reload/offline replay remains `NOT_READY` and must not be described as an outbox.
 
 - [ ] **Step 1: Write failing text/GIF/sticker/voice nonce tests**
 
-Mock `sendMessage` and `crypto.randomUUID`. Cover all four send routes. Force the first request to reject, invoke retry through the existing error/retry UI path, and assert both calls carry the same nonce. Then complete a new submit and assert a different nonce.
+Mock `sendMessage`, `crypto.randomUUID`, and Sonner. Cover text/attachment, GIF, sticker, and voice routes. Force the first request to reject, invoke the toast `Повторить` action, and assert both calls use the exact same payload snapshot and nonce. Type a newer draft before the retry resolves and assert retry success does not clear it. Exercise `Отменить отправку`, then complete a new logical submit and assert it receives a different nonce. Assert route unmount dismisses its owned pending toasts.
 
 - [ ] **Step 2: Run the Docker red gate**
 
@@ -250,7 +254,7 @@ Run `frontend-unit`. Expected: FAIL because current requests contain no `client_
 
 - [ ] **Step 3: Implement one nonce per logical submission**
 
-Add the optional TS fields and a composer-owned pending-send object containing the payload plus nonce. Generate the nonce before the first API call, reuse the same object for retry, and clear it only after success or explicit discard. Do not generate the nonce inside the API client.
+Add the optional TS fields and a composer-owned `Map` of pending immutable send snapshots keyed by nonce. Route all composer send handlers through one submit/attempt path. Generate the nonce before the first API call, register the snapshot, optimistically reset only the editor state captured by that new submit, and never mutate current editor state from a later retry. On failure render `toast.error(..., {duration: Infinity, dismissible: false, action, cancel})`; retry calls the same snapshot, success invalidates messages and dismisses/deletes only its toast, and discard deletes only that snapshot. Dismiss all composer-owned pending toasts on unmount. Do not generate a nonce in the API client and do not add reconnect/reload replay in this task.
 
 - [ ] **Step 4: Run frontend regression to green**
 
@@ -259,7 +263,7 @@ Run `frontend-unit`. Expected: TypeScript and Vitest PASS. Triage any failure ag
 - [ ] **Step 5: Commit exact paths**
 
 ```powershell
-git add frontend/src/api/messenger.ts frontend/src/components/messenger/message-composer.tsx frontend/tests/messenger/message-composer-retry-nonce.test.tsx
+git add frontend/src/api/messenger.ts frontend/src/components/messenger/message-composer.tsx frontend/tests/messenger/message-composer-retry-nonce.test.tsx docs/TECHNICAL.md docs/TESTING.md
 git commit -m "feat(messenger): preserve send nonce across retries"
 ```
 
