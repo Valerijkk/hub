@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -222,11 +223,18 @@ func (repository *MailboxEntRepository) FinishEngineCommand(ctx context.Context,
 		if !ok || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.PendingMutationKind == nil || *record.PendingMutationKind != request.Kind {
 			return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
-		updated, kind := mailboxEntDraftReconciliationFinishTransition(ctx, draft, record, request, databaseWallClock)
-		if kind != "" {
-			return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, kind)
+		freshDatabaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
+		if err != nil {
+			return mailboxEntDraftRepositoryError(err)
 		}
-		if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, databaseWallClock); err != nil {
+		if !mailboxEntDraftCreateFenceMatches(account, request.Fence, freshDatabaseWallClock) {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorFenceLost)
+		}
+		updated, kind := mailboxEntDraftReconciliationFinishTransition(ctx, draft, record, request, freshDatabaseWallClock)
+		if kind != "" {
+			return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, kind)
+		}
+		if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, freshDatabaseWallClock); err != nil {
 			return err
 		}
 		result = MailboxDraftFinishResult{Draft: mailboxEntDraftRecordCopy(updated)}

@@ -4,6 +4,8 @@
 
 ## 2026-08-24 - Draft two-phase O/D save representation
 
+- Static review restored the `bytes` import and added final fresh DB-clock lease revalidation before the finish transition; generation, build, and runtime remain `NOT_RUN`.
+
 `MailDraft` now distinguishes confirmed O (`from_identity_id`, reply/forward links, and
 confirmed attachments) from a reserved pending D graph. A pending save requires the nullable
 pending from identity plus exact 32-byte request hash; its optional reply/forward values and
