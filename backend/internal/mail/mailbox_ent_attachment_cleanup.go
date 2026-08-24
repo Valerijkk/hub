@@ -129,9 +129,9 @@ func mailboxEntDraftAbandonCleanup(ctx context.Context, transaction *ent.Tx, acc
 		}
 	}
 	for _, object := range locked.objects {
-		nextDeleteAt := databaseNow
-		if object.UploadDrainUntil.After(nextDeleteAt) {
-			nextDeleteAt = object.UploadDrainUntil.UTC()
+		nextDeleteAt, ok := mailboxEntAttachmentObjectDeleteDueAt(object.UploadDrainUntil, databaseNow, mailboxObjectStoreMaximumGetLifetime)
+		if !ok {
+			return MailboxDraftRepositoryErrorStateConflict
 		}
 		if err := object.Update().
 			SetUploadState(mailobject.UploadState("deleted")).
@@ -147,6 +147,22 @@ func mailboxEntDraftAbandonCleanup(ctx context.Context, transaction *ent.Tx, acc
 		}
 	}
 	return ""
+}
+
+// mailboxEntAttachmentObjectDeleteDueAt retains an object until both the
+// upload drain and the longest issued download URL have elapsed.
+func mailboxEntAttachmentObjectDeleteDueAt(uploadDrainUntil, databaseNow time.Time, minimumDelay time.Duration) (time.Time, bool) {
+	if !mailboxEntValidTime(uploadDrainUntil) || !mailboxEntValidTime(databaseNow) || minimumDelay < mailboxObjectStoreMaximumGetLifetime || minimumDelay%time.Second != 0 {
+		return time.Time{}, false
+	}
+	minimumDueAt, ok := mailboxEntCheckedTimeAdd(databaseNow, minimumDelay)
+	if !ok {
+		return time.Time{}, false
+	}
+	if uploadDrainUntil.After(minimumDueAt) {
+		return uploadDrainUntil, true
+	}
+	return minimumDueAt, true
 }
 
 func mailboxEntDraftAbandonAttachmentValid(attachment *ent.MailAttachment, draft *ent.MailDraft) bool {
