@@ -1258,6 +1258,8 @@ backend/internal/
 - MongoDB reserves non-empty `(sender_id, client_nonce)` with the named unique partial index `messages_sender_client_nonce_unique`; `FindMessageByClientNonce` deliberately includes soft-deleted documents so a nonce is never released by soft deletion.
 - Task 2A supplies the persistence contract only. Send-flow lookup, compatibility checks, and side-effect suppression belong to Task 2C.
 - Mock/DTO unit coverage is part of `backend-unit`; real Mongo index and upsert concurrency execution are `NOT_RUN` pending a phase-owned Python integration case.
+- Task 2B makes the required Messenger index a startup prerequisite: after preserving the structured `failed to ensure messenger indexes` log, `wireMessenger` calls `os.Exit(1)` immediately. A failed index establishment therefore cannot construct the Messenger combined repository, services, or routes.
+- A real failing-startup process check and MongoDB integration execution for this policy are both `NOT_RUN`; Docker `backend-unit` regression evidence is recorded separately in `docs/TESTING.md` and does not exercise server startup.
 
 ### TMS (47 эндпоинтов)
 

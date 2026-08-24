@@ -61,6 +61,7 @@ func wireMessenger(d *serverDeps) {
 	messengerMongoRepo := messengermod.NewMongoRepository(mongoDB)
 	if err := messengerMongoRepo.EnsureIndexes(d.ctx); err != nil {
 		slog.Error("failed to ensure messenger indexes", "error", err)
+		os.Exit(1)
 	}
 	// P1-BE-34 / TASK-023: GDPR erase стирает Mongo-сообщения по sender_id.
 	// C-W19-002 / TASK-178: post-Commit fail → JetStream compensating retry (идемпотентный DeleteMany).

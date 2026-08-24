@@ -143,6 +143,12 @@ QA services disposable, а integration/e2e используют изолиров
 - Real MongoDB unique-index and upsert concurrency behavior is `NOT_RUN`: mock/unit evidence must not be treated as Mongo integration evidence.
 - Runtime verdict for the current source is recorded only from the canonical Docker `backend-unit` receipt.
 
+##### Phase 149 Task 2B: mandatory Messenger index startup
+
+- If `messengerMongoRepo.EnsureIndexes(d.ctx)` fails, `wireMessenger` preserves the structured error log and exits with status 1 before constructing the Messenger combined repository, services, or routes.
+- The sole canonical `backend-unit` Docker regression run completed `PASS` for build/vet/unit/race (`result.json`: `first_exit:0`; aggregate receipt `2026-08-24T17:31:34.1795517Z`). It does not exercise a running server.
+- A real failing-startup process test is `NOT_RUN` because this direct `os.Exit` path has no genuine isolated unit seam; MongoDB integration execution of the required-index failure is also `NOT_RUN`.
+
 #### TMS
 
 | Endpoint | 200/201 | 400 | 401 | 403 | 404 |
