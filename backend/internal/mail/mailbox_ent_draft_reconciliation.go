@@ -321,9 +321,7 @@ func mailboxEntDraftReconciliationFinishFormKind(request MailboxDraftFinishReque
 			return MailboxDraftRepositoryErrorInvalid
 		}
 	case MailboxDraftSaveRetained:
-		if kind := mailboxEntDraftReservationAttachmentIDsKind(outcome.ProviderConfirmedAttachmentIDs); kind != "" {
-			return MailboxDraftRepositoryErrorInvalid
-		}
+		return MailboxDraftRepositoryErrorInvalid
 	case MailboxDraftDeleteRetained, MailboxDraftDeleted, MailboxDraftUnknown:
 	default:
 		return MailboxDraftRepositoryErrorInvalid
@@ -404,23 +402,7 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 			updated.PendingMutationKind = nil
 			return updated, ""
 		case MailboxDraftSaveRetained:
-			if kind := mailboxEntDraftReservationAttachmentIDsKind(outcome.ProviderConfirmedAttachmentIDs); kind != "" {
-				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorInvalid
-			}
-			if !mailboxEntDraftReservationUUIDSetsEqual(record.SelectedAttachmentIDs, outcome.ProviderConfirmedAttachmentIDs) {
-				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorStateConflict
-			}
-			if err := update.
-				SetStatus(maildraft.StatusActive).
-				ClearLastMutationID().
-				ClearPendingMutationKind().
-				Exec(ctx); err != nil {
-				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorUnavailable
-			}
-			updated.Status = MailboxDraftStatusActive
-			updated.LastMutationID = nil
-			updated.PendingMutationKind = nil
-			return updated, ""
+			return MailboxDraftRecord{}, MailboxDraftRepositoryErrorInvalid
 		case MailboxDraftUnknown:
 			if err := update.SetStatus(maildraft.StatusUnknown).Exec(ctx); err != nil {
 				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorUnavailable
