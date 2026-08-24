@@ -783,7 +783,27 @@ func (f *FakeMailEngine) EnumerateProjection(_ context.Context, request EngineEn
 	return f.enumerationPageLocked(request, checkpoint.base, checkpoint.offset)
 }
 
-func (f *FakeMailEngine) SaveDraft(_ context.Context, draft EngineDraft) (EngineMessage, error) {
+func (f *FakeMailEngine) SaveDraft(ctx context.Context, draft EngineDraft) (EngineMessage, error) {
+	capability, sourceMode, capabilityErr := mailboxDraftAttachmentCapabilityFromContext(ctx, draft)
+	if capabilityErr != nil {
+		return EngineMessage{}, capabilityErr
+	}
+	if sourceMode {
+		base := draft
+		base.Message.Attachments = nil
+		if err := validateDraftRequest(base); err != nil {
+			return EngineMessage{}, err
+		}
+		plan, err := mailboxDraftMIMEPlanForDraft(ctx, draft, capability)
+		if err != nil {
+			return EngineMessage{}, err
+		}
+		materialized, err := mailboxDraftMIMEMaterializeAttachments(ctx, plan)
+		if err != nil {
+			return EngineMessage{}, err
+		}
+		draft = materialized
+	}
 	if err := validateDraftRequest(draft); err != nil {
 		return EngineMessage{}, err
 	}
