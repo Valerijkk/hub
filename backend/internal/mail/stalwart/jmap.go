@@ -195,6 +195,7 @@ var mailboxMethods = map[string]struct{}{
 	"Email/changes":           {},
 	"Email/query":             {},
 	"Email/queryChanges":      {},
+	"Email/import":            {},
 	"Thread/get":              {},
 	"Thread/changes":          {},
 	"Identity/get":            {},
@@ -309,7 +310,7 @@ func methodAllowed(contextKind jmapContext, method string, session *MailboxSessi
 }
 
 func isMutation(method string) bool {
-	return strings.HasSuffix(method, "/set") || method == "Blob/copy"
+	return strings.HasSuffix(method, "/set") || method == "Blob/copy" || method == "Email/import"
 }
 
 func parseJMAPResponse(contextKind jmapContext, request JMAPRequest, data []byte, session *MailboxSession) (JMAPResponse, error) {

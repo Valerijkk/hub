@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"errors"
+	"io"
 
 	"github.com/valerii/hub/backend/internal/mail/stalwart"
 )
@@ -17,7 +18,33 @@ import (
 type StalwartMailboxClient interface {
 	AccountID() string
 	CallMailbox(context.Context, stalwart.JMAPRequest) (stalwart.JMAPResponse, error)
+	UploadBlob(context.Context, StalwartMailboxUploadRequest) (StalwartMailboxUploadResult, error)
 	DownloadBlob(context.Context, string, int64) (StalwartMailboxBlob, error)
+}
+
+// StalwartMailboxUploadContent is an exact-size, cancellation-aware source
+// owned by UploadBlob. It deliberately carries neither a provider URL nor
+// authorization material. ReadContext must return after context cancellation.
+type StalwartMailboxUploadContent interface {
+	io.ReadCloser
+	ReadContext(context.Context, []byte) (int, error)
+}
+
+// StalwartMailboxUploadRequest is one account-bound upload. The caller must
+// provide the exact byte length; implementations own and close Content on all
+// return paths and never retry an upload after dispatch.
+type StalwartMailboxUploadRequest struct {
+	ContentType string
+	Content     StalwartMailboxUploadContent
+	SizeBytes   int64
+}
+
+// StalwartMailboxUploadResult exposes only the opaque values required for a
+// subsequent import. It has no provider URL or authorization material.
+type StalwartMailboxUploadResult struct {
+	AccountID string
+	BlobID    string
+	SizeBytes int64
 }
 
 // StalwartMailboxBlob is the provider-neutral result of one bounded download.

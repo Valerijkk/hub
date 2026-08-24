@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/valerii/hub/backend/internal/mail/stalwart"
@@ -43,6 +44,40 @@ type productionStalwartMailboxClientFactory struct {
 type accountBoundStalwartMailboxClient struct {
 	accountID string
 	client    *stalwart.Client
+}
+
+// mailboxUploadContentOwner makes the factory own the source for every local
+// validation failure while still letting the lower transport close it on all
+// of its paths. The shared once keeps the caller-provided source exactly-once
+// closed when both layers unwind.
+type mailboxUploadContentOwner struct {
+	content StalwartMailboxUploadContent
+	once    sync.Once
+	err     error
+}
+
+func (owner *mailboxUploadContentOwner) Read(buffer []byte) (int, error) {
+	if owner == nil || owner.content == nil {
+		return 0, stalwart.ErrInvalidRequest
+	}
+	return owner.content.Read(buffer)
+}
+
+func (owner *mailboxUploadContentOwner) ReadContext(ctx context.Context, buffer []byte) (int, error) {
+	if owner == nil || owner.content == nil {
+		return 0, stalwart.ErrInvalidRequest
+	}
+	return owner.content.ReadContext(ctx, buffer)
+}
+
+func (owner *mailboxUploadContentOwner) Close() error {
+	if owner == nil || owner.content == nil {
+		return nil
+	}
+	owner.once.Do(func() {
+		owner.err = owner.content.Close()
+	})
+	return owner.err
 }
 
 // NewStalwartMailboxClientFactory validates fixed dependencies without I/O.
@@ -114,6 +149,62 @@ func (client *accountBoundStalwartMailboxClient) CallMailbox(ctx context.Context
 		return stalwart.JMAPResponse{}, err
 	}
 	return client.client.CallMailbox(ctx, session, request)
+}
+
+// UploadBlob streams one exact-size, account-bound MIME payload. The caller's
+// source is closed exactly once on every path; session discovery happens before
+// the single provider upload, and no retry or buffering is introduced here.
+func (client *accountBoundStalwartMailboxClient) UploadBlob(ctx context.Context, request StalwartMailboxUploadRequest) (StalwartMailboxUploadResult, error) {
+	var content *mailboxUploadContentOwner
+	if request.Content != nil {
+		content = &mailboxUploadContentOwner{content: request.Content}
+		defer content.Close()
+	}
+	if client == nil || client.client == nil || !validAccountID(client.accountID) || ctx == nil || content == nil || request.SizeBytes < 1 || request.SizeBytes > MaxEngineMessageBytes || strings.TrimSpace(request.ContentType) == "" {
+		return StalwartMailboxUploadResult{}, stalwart.ErrInvalidRequest
+	}
+	contentType, err := canonicalStalwartBlobMediaType(request.ContentType)
+	if err != nil {
+		return StalwartMailboxUploadResult{}, stalwart.ErrInvalidRequest
+	}
+	if err := stalwartMailboxContextError(ctx); err != nil {
+		return StalwartMailboxUploadResult{}, err
+	}
+	session, err := client.client.DiscoverMailboxSession(ctx)
+	if err != nil {
+		return StalwartMailboxUploadResult{}, err
+	}
+	if !session.HasAccount(client.accountID) {
+		return StalwartMailboxUploadResult{}, stalwart.ErrUnauthorized
+	}
+	if err := stalwartMailboxContextError(ctx); err != nil {
+		return StalwartMailboxUploadResult{}, err
+	}
+	result, err := client.client.UploadMailboxBlob(ctx, stalwart.UploadRequest{
+		Session:      session,
+		AccountID:    client.accountID,
+		ContentType:  contentType,
+		Content:      content,
+		ContentBytes: request.SizeBytes,
+	})
+	if err != nil {
+		return StalwartMailboxUploadResult{}, err
+	}
+	if result.AccountID != client.accountID || !validOpaqueID(result.AccountID) || !validOpaqueID(result.BlobID) || result.Size != request.SizeBytes {
+		return StalwartMailboxUploadResult{}, stalwart.ErrIndeterminate
+	}
+	if strings.TrimSpace(result.Type) == "" {
+		return StalwartMailboxUploadResult{}, stalwart.ErrIndeterminate
+	}
+	resultType, err := canonicalStalwartBlobMediaType(result.Type)
+	if err != nil || resultType != contentType {
+		return StalwartMailboxUploadResult{}, stalwart.ErrIndeterminate
+	}
+	return StalwartMailboxUploadResult{
+		AccountID: result.AccountID,
+		BlobID:    result.BlobID,
+		SizeBytes: result.Size,
+	}, nil
 }
 
 func (client *accountBoundStalwartMailboxClient) DownloadBlob(ctx context.Context, blobID string, maxBytes int64) (StalwartMailboxBlob, error) {
