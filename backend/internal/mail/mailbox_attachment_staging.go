@@ -55,6 +55,8 @@ type MailboxAttachmentDownloadResult struct {
 
 type MailboxAttachmentPresignRepositoryRequest struct {
 	ActorID            uuid.UUID
+	OrganizationID     uuid.UUID
+	AccountID          uuid.UUID
 	IdempotencyKeyHash [sha256.Size]byte
 	RequestHash        [sha256.Size]byte
 	DraftClientID      uuid.UUID
@@ -67,8 +69,6 @@ type MailboxAttachmentPresignRepositoryRequest struct {
 	ContentID          *string
 	Disposition        EngineAttachmentDisposition
 	SizeBytes          int64
-	ObjectExpiresAt    time.Time
-	UploadDrainUntil   time.Time
 	FingerprintVersion int32
 }
 
