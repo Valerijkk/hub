@@ -169,6 +169,7 @@ const (
 	MailboxDraftServiceErrorUnavailable            MailboxDraftServiceErrorKind = "unavailable"
 	MailboxDraftServiceErrorPreconditionFailed     MailboxDraftServiceErrorKind = "precondition_failed"
 	MailboxDraftServiceErrorConflict               MailboxDraftServiceErrorKind = "conflict"
+	MailboxDraftServiceErrorBusy                   MailboxDraftServiceErrorKind = "busy"
 	MailboxDraftServiceErrorIdempotencyConflict    MailboxDraftServiceErrorKind = "idempotency_conflict"
 	MailboxDraftServiceErrorAttachmentConflict     MailboxDraftServiceErrorKind = "attachment_conflict"
 	MailboxDraftServiceErrorAttachmentLimit        MailboxDraftServiceErrorKind = "attachment_limit"
@@ -181,7 +182,8 @@ const (
 const mailboxDraftServiceErrorText = "mailbox draft service error"
 
 type MailboxDraftServiceError struct {
-	kind MailboxDraftServiceErrorKind
+	kind      MailboxDraftServiceErrorKind
+	busyUntil *time.Time
 }
 
 func (err *MailboxDraftServiceError) Error() string {
@@ -193,6 +195,17 @@ func (err *MailboxDraftServiceError) Kind() MailboxDraftServiceErrorKind {
 		return MailboxDraftServiceErrorInvalid
 	}
 	return err.kind
+}
+
+// BusyUntil returns a copy of the DB-derived engine-command lease deadline
+// only for a busy error. A future HTTP adapter may derive Retry-After from
+// this value; callers must not treat it as provider-dispatch authority.
+func (err *MailboxDraftServiceError) BusyUntil() *time.Time {
+	if err == nil || err.Kind() != MailboxDraftServiceErrorBusy || err.busyUntil == nil || !mailboxEntValidTime(*err.busyUntil) {
+		return nil
+	}
+	value := *err.busyUntil
+	return &value
 }
 
 func MailboxDraftServiceErrorKindOf(err error) (MailboxDraftServiceErrorKind, bool) {
@@ -251,6 +264,14 @@ func mailboxDraftServiceError(kind MailboxDraftServiceErrorKind) error {
 	return &MailboxDraftServiceError{kind: kind}
 }
 
+func mailboxDraftServiceBusyError(busyUntil time.Time) error {
+	if !mailboxEntValidTime(busyUntil) {
+		return mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+	value := busyUntil
+	return &MailboxDraftServiceError{kind: MailboxDraftServiceErrorBusy, busyUntil: &value}
+}
+
 func validMailboxDraftServiceErrorKind(kind MailboxDraftServiceErrorKind) bool {
 	switch kind {
 	case MailboxDraftServiceErrorInvalid,
@@ -259,6 +280,7 @@ func validMailboxDraftServiceErrorKind(kind MailboxDraftServiceErrorKind) bool {
 		MailboxDraftServiceErrorUnavailable,
 		MailboxDraftServiceErrorPreconditionFailed,
 		MailboxDraftServiceErrorConflict,
+		MailboxDraftServiceErrorBusy,
 		MailboxDraftServiceErrorIdempotencyConflict,
 		MailboxDraftServiceErrorAttachmentConflict,
 		MailboxDraftServiceErrorAttachmentLimit,

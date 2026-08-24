@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/valerii/hub/backend/internal/mail/stalwart"
@@ -72,6 +73,16 @@ type stalwartEmailImportError struct {
 // callers must reconcile an indeterminate result with the exact durable
 // draft/mutation markers before any subsequent mutation.
 func (engine *StalwartEngine) ImportDraftMIME(ctx context.Context, request StalwartDraftMIMEImportRequest) (StalwartDraftMIMEImportResult, error) {
+	result, err := engine.stalwartImportDraftMIME(ctx, request)
+	if errors.Is(err, errStalwartDraftMIMEImportExactBlobNotFound) {
+		return StalwartDraftMIMEImportResult{}, stalwartEngineError(EngineErrorRestartRequired)
+	}
+	return result, err
+}
+
+// stalwartImportDraftMIME keeps the response-proof path private so
+// ApplyDraftMIMEImport can distinguish it from provider-wide restart errors.
+func (engine *StalwartEngine) stalwartImportDraftMIME(ctx context.Context, request StalwartDraftMIMEImportRequest) (StalwartDraftMIMEImportResult, error) {
 	if !stalwartValidDraftMIMEImportRequest(ctx, request) {
 		return StalwartDraftMIMEImportResult{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
@@ -192,7 +203,7 @@ func stalwartDraftMIMEImportFailure(payload stalwartEmailImportResponse, oldStat
 		if len(failure.NotFound) != 1 || !validOpaqueID(failure.NotFound[0]) || failure.NotFound[0] != expectedBlobID {
 			return stalwartEngineError(EngineErrorIndeterminate)
 		}
-		return stalwartEngineError(EngineErrorRestartRequired)
+		return errStalwartDraftMIMEImportExactBlobNotFound
 	}
 	// RFC 8621 does not make alreadyExists proof that this draft/mutation was
 	// applied. Only a separate exact-marker reconciliation can establish that.

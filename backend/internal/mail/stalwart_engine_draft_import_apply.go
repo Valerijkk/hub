@@ -2,8 +2,14 @@ package mail
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+// errStalwartDraftMIMEImportExactBlobNotFound is private proof that one
+// validated Email/import response rejected only the exact persisted blob
+// before any import mutation was applied.
+var errStalwartDraftMIMEImportExactBlobNotFound = errors.New("stalwart draft MIME import exact blob not found")
 
 // StalwartDraftMIMEImportApplyRequest identifies one persisted, already
 // uploaded MIME blob and the exact initial-draft mutation that owns it.
@@ -45,7 +51,7 @@ func (engine *StalwartEngine) ApplyDraftMIMEImport(ctx context.Context, request 
 	if err != nil {
 		return EngineMessage{}, err
 	}
-	imported, err := engine.ImportDraftMIME(ctx, StalwartDraftMIMEImportRequest{
+	imported, err := engine.stalwartImportDraftMIME(ctx, StalwartDraftMIMEImportRequest{
 		AccountID:       request.AccountID,
 		DraftsMailboxID: draftsID,
 		BlobID:          request.BlobID,
