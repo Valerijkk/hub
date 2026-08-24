@@ -305,7 +305,7 @@ func mailboxAttachmentScanStream(objectStore MailboxObjectStore, scanner Mailbox
 }
 
 func mailboxAttachmentScanCopyAndHash(body io.Reader, scanner io.Writer, contentLength, expectedSizeBytes int64, expectedSHA256 [sha256.Size]byte) (bool, error) {
-	if body == nil || scanner == nil || contentLength < 1 || contentLength > MaxEngineAttachmentBytes || expectedSizeBytes < 1 || expectedSizeBytes > MaxEngineAttachmentBytes {
+	if body == nil || scanner == nil || contentLength < 0 || expectedSizeBytes < 1 || expectedSizeBytes > MaxEngineAttachmentBytes {
 		return false, errors.New("mailbox attachment scan stream unavailable")
 	}
 
