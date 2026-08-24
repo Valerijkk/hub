@@ -136,6 +136,13 @@ QA services disposable, а integration/e2e используют изолиров
 | POST /messenger/channels/:id/join | Присоединён | - | Нет токена | Приватный канал |
 | POST /messenger/dm | DM создан/получен | Невалидный userId | Нет токена | - |
 
+##### Phase 149 Task 2A: message persistence contract
+
+- `backend/tests/messenger/message_idempotency_persistence_test.go` covers DTO/response nonce fields, sender-and-nonce isolation, the empty-nonce transitional insert, and concurrent mock create-or-return with one canonical ID.
+- Both Messenger repository implementations are compile-checked through `backend-unit`; the test mock exposes a synchronized nonce index, create-call counter, and deterministic result override for Task 2C service units.
+- Real MongoDB unique-index and upsert concurrency behavior is `NOT_RUN`: mock/unit evidence must not be treated as Mongo integration evidence.
+- Runtime verdict for the current source is recorded only from the canonical Docker `backend-unit` receipt.
+
 #### TMS
 
 | Endpoint | 200/201 | 400 | 401 | 403 | 404 |

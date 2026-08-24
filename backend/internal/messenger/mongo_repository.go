@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -56,6 +57,22 @@ func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
 				{Key: "content_text", Value: "text"},
 			},
 		},
+		{
+			Keys: bson.D{
+				{Key: "sender_id", Value: 1},
+				{Key: "client_nonce", Value: 1},
+			},
+			Options: options.Index().
+				SetName("messages_sender_client_nonce_unique").
+				SetUnique(true).
+				SetPartialFilterExpression(bson.D{{
+					Key: "$and",
+					Value: bson.A{
+						bson.D{{Key: "client_nonce", Value: bson.D{{Key: "$type", Value: "string"}}}},
+						bson.D{{Key: "client_nonce", Value: bson.D{{Key: "$gt", Value: ""}}}},
+					},
+				}}),
+		},
 	}
 
 	_, err := coll.Indexes().CreateMany(ctx, indexes)
@@ -78,6 +95,63 @@ func (r *MongoRepository) InsertMessage(ctx context.Context, doc *MessageDocumen
 		return "", err
 	}
 	return doc.ID, nil
+}
+
+// CreateMessageIdempotent atomically creates a message or returns its canonical nonce record.
+func (r *MongoRepository) CreateMessageIdempotent(ctx context.Context, doc *MessageDocument) (*CreateMessageResult, error) {
+	if doc.ID == "" {
+		doc.ID = uuid.New().String()
+	}
+	if doc.CreatedAt.IsZero() {
+		doc.CreatedAt = time.Now().UTC()
+	}
+
+	if doc.ClientNonce == "" {
+		if _, err := r.messages().InsertOne(ctx, doc); err != nil {
+			return nil, err
+		}
+		return &CreateMessageResult{Message: doc, Created: true}, nil
+	}
+
+	filter := bson.M{
+		"sender_id":    doc.SenderID,
+		"client_nonce": doc.ClientNonce,
+	}
+	update := bson.M{"$setOnInsert": doc}
+	result, err := r.messages().UpdateOne(ctx, filter, update, options.UpdateOne().SetUpsert(true))
+	if err != nil {
+		if !mongo.IsDuplicateKeyError(err) {
+			return nil, err
+		}
+
+		canonical, findErr := r.FindMessageByClientNonce(ctx, doc.SenderID, doc.ClientNonce)
+		if findErr != nil {
+			return nil, findErr
+		}
+		return &CreateMessageResult{Message: canonical, Created: false}, nil
+	}
+
+	canonical, err := r.FindMessageByClientNonce(ctx, doc.SenderID, doc.ClientNonce)
+	if err != nil {
+		return nil, err
+	}
+	return &CreateMessageResult{Message: canonical, Created: result.UpsertedCount == 1}, nil
+}
+
+// FindMessageByClientNonce intentionally includes soft-deleted messages because the nonce remains reserved.
+func (r *MongoRepository) FindMessageByClientNonce(ctx context.Context, senderID uuid.UUID, clientNonce string) (*MessageDocument, error) {
+	var doc MessageDocument
+	err := r.messages().FindOne(ctx, bson.M{
+		"sender_id":    senderID,
+		"client_nonce": clientNonce,
+	}).Decode(&doc)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &doc, nil
 }
 
 // FindMessageByID возвращает сообщение по ID.
@@ -319,9 +393,9 @@ func (r *MongoRepository) SearchMessages(ctx context.Context, query string, chan
 	}
 
 	filter := bson.M{
-		"$text":       bson.M{"$search": query},
-		"deleted_at":  nil,
-		"channel_id":  bson.M{"$in": channelIDs},
+		"$text":      bson.M{"$search": query},
+		"deleted_at": nil,
+		"channel_id": bson.M{"$in": channelIDs},
 	}
 
 	opts := options.Find().

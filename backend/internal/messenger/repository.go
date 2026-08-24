@@ -57,10 +57,20 @@ type StarMuteRepository interface {
 	GetUserChannelMemberships(ctx context.Context, userID uuid.UUID) ([]*ent.ChannelMember, error)
 }
 
+// CreateMessageResult содержит каноническое сообщение и признак новой записи.
+type CreateMessageResult struct {
+	Message *MessageDocument
+	Created bool
+}
+
 // MessageRepository управляет сообщениями и тредами (MongoDB).
 type MessageRepository interface {
 	// InsertMessage сохраняет сообщение в MongoDB.
 	InsertMessage(ctx context.Context, doc *MessageDocument) (string, error)
+	// CreateMessageIdempotent атомарно создаёт сообщение или возвращает каноническое по nonce.
+	CreateMessageIdempotent(ctx context.Context, doc *MessageDocument) (*CreateMessageResult, error)
+	// FindMessageByClientNonce возвращает каноническое сообщение, включая soft-deleted.
+	FindMessageByClientNonce(ctx context.Context, senderID uuid.UUID, clientNonce string) (*MessageDocument, error)
 	// FindMessageByID возвращает сообщение по ID.
 	FindMessageByID(ctx context.Context, messageID string) (*MessageDocument, error)
 	// ListMessages возвращает сообщения канала с курсорной пагинацией.

@@ -1,4 +1,4 @@
-﻿package messenger_test
+package messenger_test
 
 // Тесты репозитория мессенджера: интеграционные и unit-сценарии testframework.
 // W3-A3-011 / P3-BE-02: файл — mock-фикстура + контрактный Test* (не assert-free «мёртвый» *_test.go).
@@ -6,6 +6,7 @@
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,23 +26,27 @@ import (
 // mockRepository реализует интерфейс messenger.Repository для unit-тестов.
 type mockRepository struct {
 	// Каналы
-	channels       map[uuid.UUID]*ent.Channel
-	members        map[uuid.UUID]map[uuid.UUID]*ent.ChannelMember // channelID -> userID -> участник
-	dmChannels     map[string]*ent.Channel                        // dmKey -> канал
+	channels   map[uuid.UUID]*ent.Channel
+	members    map[uuid.UUID]map[uuid.UUID]*ent.ChannelMember // channelID -> userID -> участник
+	dmChannels map[string]*ent.Channel                        // dmKey -> канал
 	// Сообщения
-	messages       map[string]*messenger.MessageDocument
+	messageMu                   sync.Mutex
+	messages                    map[string]*messenger.MessageDocument
+	messagesBySenderNonce       map[string]string
+	createMessageCalls          int
+	createMessageResultOverride *messenger.CreateMessageResult
 	// Пины
-	pins           map[string]bool // channelID:messageID -> существует
+	pins map[string]bool // channelID:messageID -> существует
 	// Закладки
-	bookmarks      map[uuid.UUID][]*ent.Bookmark
-	bookmarksByID  map[uuid.UUID]*ent.Bookmark
+	bookmarks     map[uuid.UUID][]*ent.Bookmark
+	bookmarksByID map[uuid.UUID]*ent.Bookmark
 	// Приглашения
 	invites        map[uuid.UUID]*ent.ChannelInvite
 	invitesByToken map[string]*ent.ChannelInvite
 	// Опросы
-	polls          map[uuid.UUID]*ent.Poll
-	pollOptions    map[uuid.UUID][]*ent.PollOption // pollID -> варианты
-	pollVotes      map[uuid.UUID][]*ent.PollVote   // pollID -> голоса
+	polls       map[uuid.UUID]*ent.Poll
+	pollOptions map[uuid.UUID][]*ent.PollOption // pollID -> варианты
+	pollVotes   map[uuid.UUID][]*ent.PollVote   // pollID -> голоса
 	// Упоминания
 	displayNames         map[uuid.UUID]string
 	projectMembersByRole map[uuid.UUID]map[string][]uuid.UUID
@@ -50,33 +55,34 @@ type mockRepository struct {
 	starred map[string]bool
 	muted   map[string]*time.Time
 	// Инъекция ошибок для тестов TASK-108 / TASK-144.
-	addMembersErr            error
-	addMembersErrExceptOwner error // fail только role != "owner" (A3W3-2-002)
-	isMemberErr              error
+	addMembersErr             error
+	addMembersErrExceptOwner  error // fail только role != "owner" (A3W3-2-002)
+	isMemberErr               error
 	findMessageIncludeDeleted bool
-	deleteChannelErr         error
-	addMembersCalls          int // счётчик вызовов AddMembers (для denial Join)
+	deleteChannelErr          error
+	addMembersCalls           int // счётчик вызовов AddMembers (для denial Join)
 }
 
 func newMockRepository() *mockRepository {
 	return &mockRepository{
-		channels:             make(map[uuid.UUID]*ent.Channel),
-		members:              make(map[uuid.UUID]map[uuid.UUID]*ent.ChannelMember),
-		dmChannels:           make(map[string]*ent.Channel),
-		messages:             make(map[string]*messenger.MessageDocument),
-		pins:                 make(map[string]bool),
-		bookmarks:            make(map[uuid.UUID][]*ent.Bookmark),
-		bookmarksByID:        make(map[uuid.UUID]*ent.Bookmark),
-		invites:              make(map[uuid.UUID]*ent.ChannelInvite),
-		invitesByToken:       make(map[string]*ent.ChannelInvite),
-		polls:                make(map[uuid.UUID]*ent.Poll),
-		pollOptions:          make(map[uuid.UUID][]*ent.PollOption),
-		pollVotes:            make(map[uuid.UUID][]*ent.PollVote),
-		displayNames:         make(map[uuid.UUID]string),
-		projectMembersByRole: make(map[uuid.UUID]map[string][]uuid.UUID),
-		projectMembers:       make(map[uuid.UUID]map[uuid.UUID]bool),
-		starred:              make(map[string]bool),
-		muted:                make(map[string]*time.Time),
+		channels:              make(map[uuid.UUID]*ent.Channel),
+		members:               make(map[uuid.UUID]map[uuid.UUID]*ent.ChannelMember),
+		dmChannels:            make(map[string]*ent.Channel),
+		messages:              make(map[string]*messenger.MessageDocument),
+		messagesBySenderNonce: make(map[string]string),
+		pins:                  make(map[string]bool),
+		bookmarks:             make(map[uuid.UUID][]*ent.Bookmark),
+		bookmarksByID:         make(map[uuid.UUID]*ent.Bookmark),
+		invites:               make(map[uuid.UUID]*ent.ChannelInvite),
+		invitesByToken:        make(map[string]*ent.ChannelInvite),
+		polls:                 make(map[uuid.UUID]*ent.Poll),
+		pollOptions:           make(map[uuid.UUID][]*ent.PollOption),
+		pollVotes:             make(map[uuid.UUID][]*ent.PollVote),
+		displayNames:          make(map[uuid.UUID]string),
+		projectMembersByRole:  make(map[uuid.UUID]map[string][]uuid.UUID),
+		projectMembers:        make(map[uuid.UUID]map[uuid.UUID]bool),
+		starred:               make(map[string]bool),
+		muted:                 make(map[string]*time.Time),
 	}
 }
 
@@ -297,6 +303,54 @@ func (m *mockRepository) InsertMessage(_ context.Context, doc *messenger.Message
 	}
 	m.messages[doc.ID] = doc
 	return doc.ID, nil
+}
+
+func messageSenderNonceKey(senderID uuid.UUID, clientNonce string) string {
+	return senderID.String() + "\x00" + clientNonce
+}
+
+func (m *mockRepository) CreateMessageIdempotent(_ context.Context, doc *messenger.MessageDocument) (*messenger.CreateMessageResult, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
+	m.createMessageCalls++
+	if doc.ID == "" {
+		doc.ID = uuid.New().String()
+	}
+	if doc.CreatedAt.IsZero() {
+		doc.CreatedAt = time.Now().UTC()
+	}
+
+	created := true
+	canonical := doc
+	if doc.ClientNonce != "" {
+		key := messageSenderNonceKey(doc.SenderID, doc.ClientNonce)
+		if messageID, ok := m.messagesBySenderNonce[key]; ok {
+			canonical = m.messages[messageID]
+			created = false
+		} else {
+			m.messages[doc.ID] = doc
+			m.messagesBySenderNonce[key] = doc.ID
+		}
+	} else {
+		m.messages[doc.ID] = doc
+	}
+
+	if m.createMessageResultOverride != nil {
+		return m.createMessageResultOverride, nil
+	}
+	return &messenger.CreateMessageResult{Message: canonical, Created: created}, nil
+}
+
+func (m *mockRepository) FindMessageByClientNonce(_ context.Context, senderID uuid.UUID, clientNonce string) (*messenger.MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
+	messageID, ok := m.messagesBySenderNonce[messageSenderNonceKey(senderID, clientNonce)]
+	if !ok {
+		return nil, nil
+	}
+	return m.messages[messageID], nil
 }
 
 func (m *mockRepository) FindMessageByID(_ context.Context, messageID string) (*messenger.MessageDocument, error) {
@@ -805,4 +859,3 @@ func TestMockRepository_AddReactionContract(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, list, 1)
 }
-

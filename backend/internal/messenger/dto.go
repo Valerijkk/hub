@@ -27,6 +27,7 @@ type SendMessageRequest struct {
 	ContentJSON     map[string]interface{} `json:"content_json" validate:"required"`
 	ContentText     string                 `json:"content_text,omitempty"`
 	ThreadID        string                 `json:"thread_id,omitempty"`
+	ClientNonce     string                 `json:"client_nonce,omitempty" validate:"omitempty,min=8,max=128"`
 	Attachments     []AttachmentRef        `json:"attachments,omitempty"`
 	Mentions        []string               `json:"mentions,omitempty"`
 	MentionGroups   []string               `json:"mention_groups,omitempty"`
@@ -112,6 +113,7 @@ type MessageResponse struct {
 	ContentJSON     map[string]interface{} `json:"content_json"`
 	ContentText     string                 `json:"content_text,omitempty"`
 	ThreadID        string                 `json:"thread_id,omitempty"`
+	ClientNonce     string                 `json:"client_nonce,omitempty"`
 	ReplyCount      int                    `json:"reply_count"`
 	ForwardedFromID string                 `json:"forwarded_from_id,omitempty"`
 	VoiceURL        string                 `json:"voice_url,omitempty"`
@@ -159,6 +161,7 @@ type MessageDocument struct {
 	ContentJSON     map[string]interface{} `bson:"content_json"`
 	ContentText     string                 `bson:"content_text,omitempty"`
 	ThreadID        string                 `bson:"thread_id,omitempty"`
+	ClientNonce     string                 `bson:"client_nonce,omitempty"`
 	ReplyCount      int                    `bson:"reply_count"`
 	ForwardedFromID string                 `bson:"forwarded_from_id,omitempty"`
 	VoiceURL        string                 `bson:"voice_url,omitempty"`
@@ -206,10 +209,10 @@ type VotePollRequest struct {
 
 // PollOptionResponse — вариант ответа в опросе.
 type PollOptionResponse struct {
-	ID       string   `json:"id"`
-	Text     string   `json:"text"`
-	Position int      `json:"position"`
-	Count    int      `json:"count"`
+	ID       string `json:"id"`
+	Text     string `json:"text"`
+	Position int    `json:"position"`
+	Count    int    `json:"count"`
 	// VoterIDs содержит ID проголосовавших (пусто при анонимном голосовании).
 	VoterIDs []string `json:"voter_ids,omitempty"`
 	// Voted — проголосовал ли текущий пользователь за этот вариант.
@@ -241,6 +244,7 @@ func toMessageResponse(doc *MessageDocument) *MessageResponse {
 		ContentJSON:     doc.ContentJSON,
 		ContentText:     doc.ContentText,
 		ThreadID:        doc.ThreadID,
+		ClientNonce:     doc.ClientNonce,
 		ReplyCount:      doc.ReplyCount,
 		ForwardedFromID: doc.ForwardedFromID,
 		VoiceURL:        doc.VoiceURL,

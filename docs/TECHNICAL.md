@@ -1251,6 +1251,14 @@ backend/internal/
 | GET | /messenger/invites/:token | Валидация invite | JWT |
 | POST | /messenger/invites/:token/accept | Принять invite | JWT |
 
+#### Message persistence idempotency (Phase 149 Task 2A)
+
+- The request, Mongo document, and response models expose optional `client_nonce`; the request bound is `omitempty,min=8,max=128`.
+- `MessageRepository.CreateMessageIdempotent` atomically creates-or-returns one canonical record. An empty nonce remains an explicit transitional `InsertOne` path.
+- MongoDB reserves non-empty `(sender_id, client_nonce)` with the named unique partial index `messages_sender_client_nonce_unique`; `FindMessageByClientNonce` deliberately includes soft-deleted documents so a nonce is never released by soft deletion.
+- Task 2A supplies the persistence contract only. Send-flow lookup, compatibility checks, and side-effect suppression belong to Task 2C.
+- Mock/DTO unit coverage is part of `backend-unit`; real Mongo index and upsert concurrency execution are `NOT_RUN` pending a phase-owned Python integration case.
+
 ### TMS (47 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
