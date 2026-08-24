@@ -58,8 +58,8 @@ func mailboxDraftMIMEPlanForDraft(ctx context.Context, draft EngineDraft, capabi
 	plan := mailboxDraftMIMEPlan{draft: draft, sources: capability, pieces: make([]mailboxDraftMIMEPiece, 0, 24+sourceCount*8)}
 	plan.addText(headers)
 	if capability == nil {
-		plan.addText("\r\n")
 		if draft.Message.Format == EngineBodyRich {
+			plan.addText("\r\n")
 			plan.addText("--" + altBoundary + "\r\n")
 			plan.addText("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
 			plan.addBody([]byte(draft.Message.PlainBody))
@@ -504,7 +504,7 @@ func mailboxDraftMIMEEncodedWords(value string) string {
 }
 
 func mailboxDraftMIMEFoldHeader(name, value string) (string, error) {
-	if name == "" || value == "" || len(name)+2 > 78 || !utf8.ValidString(value) {
+	if name == "" || value == "" || len(name)+1 > 998 || !utf8.ValidString(value) {
 		return "", fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	words := strings.Fields(value)
@@ -517,7 +517,7 @@ func mailboxDraftMIMEFoldHeader(name, value string) (string, error) {
 		if len(word) > 997 {
 			return "", fakeEngineError(EngineErrorRejectedPolicy)
 		}
-		if len(line) > len(name)+1 && len(line)+1+len(word) > 78 {
+		if len(line)+1+len(word) > 78 {
 			builder.WriteString(line)
 			builder.WriteString("\r\n")
 			line = " " + word
