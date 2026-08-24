@@ -331,7 +331,7 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 		return MailboxDraftRecord{}, false
 	}
 	pendingCreateAttachmentPhase, ok := mailboxEntDraftReadCreateAttachmentPhase(draft.PendingCreateAttachmentPhase)
-	if !ok || pendingCreateAttachmentPhase != nil && len(attachments.ConfirmedAttachmentIDs) == 0 {
+	if !ok || pendingKind != nil && *pendingKind == MailboxDraftMutationCreate && (pendingCreateAttachmentPhase == nil) != (len(attachments.ConfirmedAttachmentIDs) == 0) {
 		return MailboxDraftRecord{}, false
 	}
 	if pendingKind != nil && *pendingKind == MailboxDraftMutationSave {

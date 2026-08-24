@@ -183,7 +183,8 @@ func mailboxDraftGetStatusValid(status MailboxDraftStatus) bool {
 		MailboxDraftStatusUnknown,
 		MailboxDraftStatusSubmitting,
 		MailboxDraftStatusSubmitted,
-		MailboxDraftStatusDeleted:
+		MailboxDraftStatusDeleted,
+		MailboxDraftStatusAbandoned:
 		return true
 	default:
 		return false
