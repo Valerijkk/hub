@@ -119,6 +119,7 @@ interface NormalizedRecipients {
 
 interface MailComposerProps {
 	open: boolean;
+	bootstrapDraft: MailDraft | null;
 	onOpenChange: (open: boolean) => void;
 }
 
@@ -164,9 +165,9 @@ function createUUID(): string {
 	)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-function newSession(): ComposerSession {
+function newSession(draftClientId = createUUID()): ComposerSession {
 	return {
-		draftClientId: createUUID(),
+		draftClientId,
 		createKey: createUUID(),
 		sendKey: createUUID(),
 		controller: new AbortController(),
@@ -421,8 +422,8 @@ function draftRequestFromServer(draft: MailDraft): SaveMailDraftRequest {
 	if (
 		draft.status !== "active" ||
 		draft.body_format !== "plain" ||
-		draft.reply_to_message_id ||
-		draft.forward_message_id
+		draft.forward_message_id !== undefined &&
+		draft.forward_message_id !== null
 	) {
 		throw new ComposerValidationError("compose.errors.conflict");
 	}
@@ -442,6 +443,17 @@ function draftRequestFromServer(draft: MailDraft): SaveMailDraftRequest {
 	};
 }
 
+function composerFormFromDraft(draft: MailDraft): ComposerForm {
+	return {
+		to: draft.to.map(({ email }) => email).join(", "),
+		cc: draft.cc.map(({ email }) => email).join(", "),
+		bcc: draft.bcc.map(({ email }) => email).join(", "),
+		subject: draft.subject,
+		body: draft.plain_body,
+		priority: draft.priority,
+	};
+}
+
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 	if (typeof globalThis.crypto?.subtle?.digest !== "function") {
 		throw new Error("SHA-256 unavailable");
@@ -452,7 +464,11 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 	).join("");
 }
 
-export function MailComposer({ open, onOpenChange }: MailComposerProps) {
+export function MailComposer({
+	open,
+	bootstrapDraft,
+	onOpenChange,
+}: MailComposerProps) {
 	const { t } = useTranslation("mail");
 	const queryClient = useQueryClient();
 	const [form, setForm] = useState<ComposerForm>(emptyForm);
@@ -468,6 +484,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
 	const [submissionIntent, setSubmissionIntent] = useState<SubmissionIntent | null>(null);
 	const [recoveryRequired, setRecoveryRequired] = useState(false);
+	const [isLinkedReply, setIsLinkedReply] = useState(false);
 	const sessionRef = useRef<ComposerSession>(initialSession);
 	const formRef = useRef(form);
 	const attachmentsRef = useRef(attachments);
@@ -483,6 +500,8 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	const attachmentRemovalInProgressRef = useRef(false);
 	const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const bootstrapDraftKeyRef = useRef<string | null>(null);
+	const linkedReplyRef = useRef(false);
 
 	const identitiesQuery = useQuery({
 		queryKey: ["mail", "identities"],
@@ -547,6 +566,8 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 		serverSnapshotRef.current = null;
 		uploadQueueRef.current = Promise.resolve();
 		saveRecoveryBlockedRef.current = false;
+		linkedReplyRef.current = false;
+		setIsLinkedReply(false);
 		replaceForm(emptyForm());
 		replaceAttachments([]);
 		setShowCc(false);
@@ -564,6 +585,69 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	const applyDraft = useCallback((draft: MailDraft) => {
 		draftRef.current = { id: draft.id, revision: draft.revision };
 	}, []);
+
+	useEffect(() => {
+		if (bootstrapDraft === null) {
+			bootstrapDraftKeyRef.current = null;
+			return;
+		}
+		if (!open) return;
+		const bootstrapKey = `${bootstrapDraft.id}:${bootstrapDraft.revision}:${bootstrapDraft.updated_at}`;
+		if (bootstrapDraftKeyRef.current === bootstrapKey) return;
+		try {
+			if (
+				bootstrapDraft.reply_to_message_id == null ||
+				bootstrapDraft.forward_message_id != null ||
+				bootstrapDraft.attachment_ids.length !== 0
+			) {
+				throw new ComposerValidationError("compose.errors.conflict");
+			}
+			const snapshot = draftRequestFromServer(bootstrapDraft);
+			if (autosaveTimerRef.current) {
+				clearTimeout(autosaveTimerRef.current);
+				autosaveTimerRef.current = null;
+			}
+			sessionRef.current.controller.abort();
+			sessionRef.current = newSession(bootstrapDraft.draft_client_id);
+			draftRef.current = null;
+			immutableCreatePayloadRef.current = null;
+			lastSavedFingerprintRef.current = draftFingerprint(snapshot);
+			serverSnapshotRef.current = snapshot;
+			saveQueueRef.current = Promise.resolve();
+			uploadQueueRef.current = Promise.resolve();
+			saveRecoveryBlockedRef.current = false;
+			replaceSubmissionIntent(null);
+			replaceForm(composerFormFromDraft(bootstrapDraft));
+			replaceAttachments([]);
+			linkedReplyRef.current = true;
+			setIsLinkedReply(true);
+			setShowCc(bootstrapDraft.cc.length > 0);
+			setShowBcc(bootstrapDraft.bcc.length > 0);
+			identityIdRef.current = bootstrapDraft.from_identity_id;
+			setSelectedIdentityId(bootstrapDraft.from_identity_id);
+			applyDraft(bootstrapDraft);
+			setRecoveryRequired(false);
+			setSaveState("saved");
+			setErrorKey(null);
+			bootstrapDraftKeyRef.current = bootstrapKey;
+		} catch (error) {
+			linkedReplyRef.current = false;
+			setIsLinkedReply(false);
+			setSaveState("error");
+			setErrorKey(
+				error instanceof ComposerValidationError
+					? error.translationKey
+					: "compose.errors.conflict",
+			);
+		}
+	}, [
+		applyDraft,
+		bootstrapDraft,
+		open,
+		replaceAttachments,
+		replaceForm,
+		replaceSubmissionIntent,
+	]);
 
 	const reconcileDraftAfterSaveFailure = useCallback(
 		async (session: ComposerSession): Promise<boolean> => {
@@ -903,6 +987,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 
 	const uploadAttachment = useCallback(
 		async (item: ComposerAttachment) => {
+			if (linkedReplyRef.current) return;
 			const session = sessionRef.current;
 			if (session.controller.signal.aborted) return;
 			updateAttachment(item.localId, { state: "uploading" });
@@ -976,6 +1061,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 
 	const enqueueUpload = useCallback(
 		(item: ComposerAttachment) => {
+			if (linkedReplyRef.current) return;
 			const task = () => uploadAttachment(item);
 			uploadQueueRef.current = uploadQueueRef.current.then(task, task);
 		},
@@ -983,7 +1069,10 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	);
 
 	const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
-		if (isInteractionLocked) return;
+		if (linkedReplyRef.current || isInteractionLocked) {
+			event.target.value = "";
+			return;
+		}
 		const files = Array.from(event.target.files ?? []);
 		event.target.value = "";
 		if (files.length === 0) return;
@@ -1090,7 +1179,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 	};
 
 	const retryAttachment = (item: ComposerAttachment) => {
-		if (isInteractionLocked || item.state !== "failed") return;
+		if (linkedReplyRef.current || isInteractionLocked || item.state !== "failed") return;
 		enqueueUpload(item);
 	};
 
@@ -1599,7 +1688,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 							className="min-h-[260px] resize-none border-0 bg-transparent px-0 shadow-none focus-visible:scale-100 focus-visible:shadow-none"
 						/>
 					</div>
-					{attachments.length > 0 ? (
+					{!isLinkedReply && attachments.length > 0 ? (
 						<ul
 							className="space-y-2 border-t border-b1 px-5 py-3"
 							aria-label={t("compose.attachments")}
@@ -1683,13 +1772,18 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 						multiple
 						className="sr-only"
 						onChange={handleFiles}
+						disabled={isLinkedReply || isInteractionLocked}
 						aria-label={t("compose.attach")}
 					/>
 					<Button
 						size="icon"
 						variant="ghost"
 						onClick={() => fileInputRef.current?.click()}
-						disabled={attachments.length >= MAX_ATTACHMENTS || isInteractionLocked}
+						disabled={
+							isLinkedReply ||
+							attachments.length >= MAX_ATTACHMENTS ||
+							isInteractionLocked
+						}
 						aria-label={t("compose.attach")}
 					>
 						<Paperclip aria-hidden="true" />

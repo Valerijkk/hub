@@ -198,6 +198,20 @@
 				"high": "High priority"
 			}
 		},
+		"reply": {
+			"label": "Reply to message",
+			"identity": "From",
+			"identityLoading": "Loading sender…",
+			"identityUnavailable": "No sending address is available.",
+			"action": "Reply",
+			"creating": "Creating reply…",
+			"busy": "Mail is temporarily busy. Retry in {{seconds}} s.",
+			"conflict": "This reply cannot be repeated safely. Start a new reply.",
+			"unavailable": "Reply is unavailable right now.",
+			"unknown": "The reply result is unknown. Do not retry automatically.",
+			"retry": "Retry reply",
+			"retryWait": "Retry in {{seconds}} s"
+		},
 		"actions": {
 			"label": "Message actions",
 			"markRead": "Mark read",

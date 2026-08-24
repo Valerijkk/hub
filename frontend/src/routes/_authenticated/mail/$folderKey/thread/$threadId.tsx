@@ -25,6 +25,7 @@ import {
 	MailThreadList,
 } from "@/modules/mail/mail-thread-list";
 import { MailMessageActions } from "@/modules/mail/mail-message-actions";
+import { MailMessageReplyAction } from "@/modules/mail/mail-message-reply-action";
 import { mailKeys } from "@/modules/mail/mail-query-keys";
 
 const MAIL_THREAD_DETAIL_PAGE_SIZE = 25;
@@ -331,6 +332,7 @@ function MessageCard({
 									<span>{t(`reader.calendar.${message.calendar_method}`)}</span>
 								) : null}
 							</div>
+							<MailMessageReplyAction messageID={messageID} />
 							<MailMessageActions
 								message={message}
 								threadID={message.thread_id.toLowerCase()}
