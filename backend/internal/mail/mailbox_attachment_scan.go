@@ -112,23 +112,23 @@ type mailboxAttachmentScanFence struct {
 	ObjectUpdatedAt     time.Time
 }
 
-// MailboxAttachmentScanPrepareRequest carries the exact resolved caller scope into a short repository transaction.
-type MailboxAttachmentScanPrepareRequest struct {
+// mailboxAttachmentScanPrepareRequest carries the exact resolved caller scope into a short repository transaction.
+type mailboxAttachmentScanPrepareRequest struct {
 	ActorID        uuid.UUID
 	OrganizationID uuid.UUID
 	AccountID      uuid.UUID
 	AttachmentID   uuid.UUID
 }
 
-// MailboxAttachmentScanPrepared is an opaque, copied read authority for one object stream.
-type MailboxAttachmentScanPrepared struct {
+// mailboxAttachmentScanPrepared is an opaque, copied read authority for one object stream.
+type mailboxAttachmentScanPrepared struct {
 	Object        MailboxObjectLocator
 	ContentLength int64
 	Fence         *mailboxAttachmentScanFence
 }
 
-// MailboxAttachmentScanCompleteRequest is one terminal clean or rejected compare-and-swap.
-type MailboxAttachmentScanCompleteRequest struct {
+// mailboxAttachmentScanCompleteRequest is one terminal clean or rejected compare-and-swap.
+type mailboxAttachmentScanCompleteRequest struct {
 	ActorID        uuid.UUID
 	OrganizationID uuid.UUID
 	AccountID      uuid.UUID
@@ -143,23 +143,28 @@ type MailboxAttachmentScanResult struct {
 	ScanStatus   AttachmentScanStatus
 }
 
-// MailboxAttachmentScanRepository keeps lock-owning persistence separate from streaming I/O.
-type MailboxAttachmentScanRepository interface {
-	PrepareMailboxAttachmentScan(context.Context, MailboxAttachmentScanPrepareRequest) (MailboxAttachmentScanPrepared, error)
-	CompleteMailboxAttachmentScan(context.Context, MailboxAttachmentScanCompleteRequest) (MailboxAttachmentScanResult, error)
+type mailboxAttachmentScanCompletion struct {
+	attachmentID uuid.UUID
+	scanStatus   AttachmentScanStatus
+}
+
+// mailboxAttachmentScanRepository keeps lock-owning persistence separate from streaming I/O.
+type mailboxAttachmentScanRepository interface {
+	prepareMailboxAttachmentScan(context.Context, mailboxAttachmentScanPrepareRequest) (mailboxAttachmentScanPrepared, error)
+	completeMailboxAttachmentScan(context.Context, mailboxAttachmentScanCompleteRequest) (mailboxAttachmentScanCompletion, error)
 }
 
 // MailboxAttachmentScanService verifies an uploaded object and makes its scanner decision durable.
 type MailboxAttachmentScanService struct {
 	owners      mailboxOwnerResolver
-	repository  MailboxAttachmentScanRepository
+	repository  mailboxAttachmentScanRepository
 	objectStore MailboxObjectStore
 	scanner     MailboxAttachmentMalwareScanner
 }
 
 func NewMailboxAttachmentScanService(
 	owners mailboxOwnerResolver,
-	repository MailboxAttachmentScanRepository,
+	repository mailboxAttachmentScanRepository,
 	objectStore MailboxObjectStore,
 	scanner MailboxAttachmentMalwareScanner,
 ) (*MailboxAttachmentScanService, error) {
@@ -187,7 +192,7 @@ func (service *MailboxAttachmentScanService) ScanMailboxAttachment(ctx context.C
 		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 	}
 
-	prepared, err := service.repository.PrepareMailboxAttachmentScan(ctx, MailboxAttachmentScanPrepareRequest{
+	prepared, err := service.repository.prepareMailboxAttachmentScan(ctx, mailboxAttachmentScanPrepareRequest{
 		ActorID:        actorID,
 		OrganizationID: owner.OrganizationID(),
 		AccountID:      accountID,
@@ -209,7 +214,7 @@ func (service *MailboxAttachmentScanService) ScanMailboxAttachment(ctx context.C
 		status = AttachmentScanStatusClean
 	}
 
-	completed, err := service.repository.CompleteMailboxAttachmentScan(ctx, MailboxAttachmentScanCompleteRequest{
+	completed, err := service.repository.completeMailboxAttachmentScan(ctx, mailboxAttachmentScanCompleteRequest{
 		ActorID:        actorID,
 		OrganizationID: owner.OrganizationID(),
 		AccountID:      accountID,
@@ -220,17 +225,17 @@ func (service *MailboxAttachmentScanService) ScanMailboxAttachment(ctx context.C
 	if err != nil {
 		return MailboxAttachmentScanResult{}, mailboxAttachmentScanRepositoryError(err)
 	}
-	if completed.AttachmentID != attachmentID || completed.ScanStatus != status {
+	if completed.attachmentID != attachmentID || completed.scanStatus != status {
 		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 	}
-	return completed, nil
+	return MailboxAttachmentScanResult{AttachmentID: completed.attachmentID, ScanStatus: completed.scanStatus}, nil
 }
 
 func mailboxAttachmentScanServiceValid(service *MailboxAttachmentScanService) bool {
 	return service != nil && !mailboxAttachmentStagingDependencyNil(service.owners) && !mailboxAttachmentStagingDependencyNil(service.repository) && !mailboxAttachmentStagingDependencyNil(service.objectStore) && !mailboxAttachmentStagingDependencyNil(service.scanner)
 }
 
-func mailboxAttachmentScanPreparedValid(prepared MailboxAttachmentScanPrepared, actorID, organizationID, accountID, attachmentID uuid.UUID) bool {
+func mailboxAttachmentScanPreparedValid(prepared mailboxAttachmentScanPrepared, actorID, organizationID, accountID, attachmentID uuid.UUID) bool {
 	if !validMailboxObjectLocator(prepared.Object) || prepared.ContentLength < 1 || prepared.ContentLength > MaxEngineAttachmentBytes || !mailboxAttachmentScanFenceValid(prepared.Fence) {
 		return false
 	}
@@ -256,6 +261,14 @@ func mailboxAttachmentScanFenceCopy(fence *mailboxAttachmentScanFence) *mailboxA
 	return &copied
 }
 
+type mailboxAttachmentScanIntegrity uint8
+
+const (
+	mailboxAttachmentScanIntegrityUnknown mailboxAttachmentScanIntegrity = iota
+	mailboxAttachmentScanIntegrityExact
+	mailboxAttachmentScanIntegrityRejected
+)
+
 func mailboxAttachmentScanStream(objectStore MailboxObjectStore, scanner MailboxAttachmentMalwareScanner, ctx context.Context, object MailboxObjectLocator, expectedSizeBytes int64, expectedSHA256 [sha256.Size]byte) (bool, MailboxAttachmentMalwareVerdict, error) {
 	if mailboxAttachmentStagingDependencyNil(objectStore) || mailboxAttachmentStagingDependencyNil(scanner) || ctx == nil || !validMailboxObjectLocator(object) || expectedSizeBytes < 1 || expectedSizeBytes > MaxEngineAttachmentBytes {
 		return false, "", mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
@@ -274,88 +287,106 @@ func mailboxAttachmentScanStream(objectStore MailboxObjectStore, scanner Mailbox
 
 	stream, err := objectStore.Open(ctx, MailboxObjectReadRequest{Object: object})
 	if err != nil {
-		if stream.Body != nil {
+		if !mailboxAttachmentStagingDependencyNil(stream.Body) {
 			_ = stream.Body.Close()
 		}
-		closeErr := session.Close()
-		if closeErr != nil {
+		if !mailboxAttachmentStagingDependencyNil(session) && session.Close() != nil {
 			return false, "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 		}
 		return false, "", mailboxAttachmentScanObjectStoreError(err)
 	}
-	if stream.Body == nil {
-		closeErr := session.Close()
-		if closeErr != nil {
+	if mailboxAttachmentStagingDependencyNil(stream.Body) {
+		if !mailboxAttachmentStagingDependencyNil(session) && session.Close() != nil {
 			return false, "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 		}
 		return false, "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 	}
 
-	integrityClean, streamErr := mailboxAttachmentScanCopyAndHash(stream.Body, session, stream.ContentLength, expectedSizeBytes, expectedSHA256)
-	streamCloseErr := stream.Body.Close()
-	scannerCloseErr := session.Close()
-	if streamErr != nil || streamCloseErr != nil || scannerCloseErr != nil {
+	integrity, copyErr := mailboxAttachmentScanCopyAndHash(stream.Body, session, stream.ContentLength, expectedSizeBytes, expectedSHA256)
+	var streamCloseErr error
+	if mailboxAttachmentStagingDependencyNil(stream.Body) {
+		streamCloseErr = errors.New("mailbox attachment scan stream unavailable")
+	} else {
+		streamCloseErr = stream.Body.Close()
+	}
+	var scannerCloseErr error
+	if mailboxAttachmentStagingDependencyNil(session) {
+		scannerCloseErr = errors.New("mailbox attachment scan session unavailable")
+	} else {
+		scannerCloseErr = session.Close()
+	}
+	var verdict MailboxAttachmentMalwareVerdict
+	var verdictErr error
+	if mailboxAttachmentStagingDependencyNil(session) {
+		verdictErr = errors.New("mailbox attachment scan session unavailable")
+	} else {
+		verdict, verdictErr = session.Verdict(ctx)
+	}
+
+	if integrity == mailboxAttachmentScanIntegrityRejected || (verdictErr == nil && verdict == MailboxAttachmentMalwareVerdictRejected) {
+		return false, MailboxAttachmentMalwareVerdictRejected, nil
+	}
+	if copyErr != nil || streamCloseErr != nil || scannerCloseErr != nil || verdictErr != nil || integrity != mailboxAttachmentScanIntegrityExact || !validMailboxAttachmentMalwareVerdict(verdict) {
 		return false, "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 	}
-	verdict, verdictErr := session.Verdict(ctx)
-	if verdictErr != nil || !validMailboxAttachmentMalwareVerdict(verdict) {
-		return false, "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
-	}
-	return integrityClean, verdict, nil
+	return true, verdict, nil
 }
 
-func mailboxAttachmentScanCopyAndHash(body io.Reader, scanner io.Writer, contentLength, expectedSizeBytes int64, expectedSHA256 [sha256.Size]byte) (bool, error) {
-	if body == nil || scanner == nil || contentLength < 0 || expectedSizeBytes < 1 || expectedSizeBytes > MaxEngineAttachmentBytes {
-		return false, errors.New("mailbox attachment scan stream unavailable")
+func mailboxAttachmentScanCopyAndHash(body io.Reader, scanner io.Writer, contentLength, expectedSizeBytes int64, expectedSHA256 [sha256.Size]byte) (mailboxAttachmentScanIntegrity, error) {
+	if mailboxAttachmentStagingDependencyNil(body) || mailboxAttachmentStagingDependencyNil(scanner) || contentLength < 0 || expectedSizeBytes < 1 || expectedSizeBytes > MaxEngineAttachmentBytes {
+		return mailboxAttachmentScanIntegrityUnknown, errors.New("mailbox attachment scan stream unavailable")
 	}
 
-	integrityClean := contentLength == expectedSizeBytes
+	integrity := mailboxAttachmentScanIntegrityExact
+	if contentLength != expectedSizeBytes {
+		integrity = mailboxAttachmentScanIntegrityRejected
+	}
 	hash := sha256.New()
 	var buffer [mailboxAttachmentScanBufferBytes]byte
 	var sizeBytes int64
 	for {
-		limit := len(buffer)
 		remaining := expectedSizeBytes - sizeBytes
+		limit := len(buffer)
 		if remaining < int64(limit) {
 			limit = int(remaining + 1)
 		}
-		if limit < 1 {
-			return false, errors.New("mailbox attachment scan stream unavailable")
+		if limit < 1 || mailboxAttachmentStagingDependencyNil(body) || mailboxAttachmentStagingDependencyNil(scanner) {
+			return integrity, errors.New("mailbox attachment scan stream unavailable")
 		}
+
 		read, readErr := body.Read(buffer[:limit])
 		if read < 0 || read > limit {
-			return false, errors.New("mailbox attachment scan stream unavailable")
+			return integrity, errors.New("mailbox attachment scan stream unavailable")
 		}
 		if read > 0 {
 			if _, err := hash.Write(buffer[:read]); err != nil {
-				return false, errors.New("mailbox attachment scan stream unavailable")
+				return integrity, errors.New("mailbox attachment scan stream unavailable")
 			}
 			written, writeErr := scanner.Write(buffer[:read])
 			if writeErr != nil || written != read {
-				return false, errors.New("mailbox attachment scan stream unavailable")
+				return integrity, errors.New("mailbox attachment scan stream unavailable")
 			}
 			sizeBytes += int64(read)
+		}
+		if sizeBytes > expectedSizeBytes {
+			return mailboxAttachmentScanIntegrityRejected, nil
 		}
 		if readErr == io.EOF {
 			break
 		}
 		if readErr != nil || read == 0 {
-			return false, errors.New("mailbox attachment scan stream unavailable")
-		}
-		if sizeBytes > expectedSizeBytes {
-			integrityClean = false
-			break
+			return integrity, errors.New("mailbox attachment scan stream unavailable")
 		}
 	}
 	if sizeBytes != expectedSizeBytes {
-		integrityClean = false
+		integrity = mailboxAttachmentScanIntegrityRejected
 	}
 	var actualSHA256 [sha256.Size]byte
 	copy(actualSHA256[:], hash.Sum(nil))
 	if actualSHA256 != expectedSHA256 {
-		integrityClean = false
+		integrity = mailboxAttachmentScanIntegrityRejected
 	}
-	return integrityClean, nil
+	return integrity, nil
 }
 
 func validMailboxAttachmentMalwareVerdict(verdict MailboxAttachmentMalwareVerdict) bool {

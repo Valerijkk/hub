@@ -13,15 +13,15 @@ import (
 	"github.com/valerii/hub/backend/ent/mailobject"
 )
 
-var _ MailboxAttachmentScanRepository = (*MailboxEntRepository)(nil)
+var _ mailboxAttachmentScanRepository = (*MailboxEntRepository)(nil)
 
-// PrepareMailboxAttachmentScan locks the durable proof for one drain-complete confirmed attachment.
-func (repository *MailboxEntRepository) PrepareMailboxAttachmentScan(ctx context.Context, request MailboxAttachmentScanPrepareRequest) (MailboxAttachmentScanPrepared, error) {
+// prepareMailboxAttachmentScan locks the durable proof for one drain-complete confirmed attachment.
+func (repository *MailboxEntRepository) prepareMailboxAttachmentScan(ctx context.Context, request mailboxAttachmentScanPrepareRequest) (mailboxAttachmentScanPrepared, error) {
 	if repository == nil || repository.client == nil || ctx == nil || !mailboxAttachmentScanPrepareRequestValid(request) {
-		return MailboxAttachmentScanPrepared{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
+		return mailboxAttachmentScanPrepared{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
 	}
 
-	var prepared MailboxAttachmentScanPrepared
+	var prepared mailboxAttachmentScanPrepared
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		owner, err := mailboxAttachmentScanLockOwner(ctx, transaction, request.ActorID, request.OrganizationID, request.AccountID)
 		if err != nil {
@@ -46,7 +46,7 @@ func (repository *MailboxEntRepository) PrepareMailboxAttachmentScan(ctx context
 		if !ok {
 			return mailboxAttachmentScanError(MailboxAttachmentScanErrorStateConflict)
 		}
-		prepared = MailboxAttachmentScanPrepared{
+		prepared = mailboxAttachmentScanPrepared{
 			Object:        MailboxObjectLocator{Bucket: object.Bucket, Key: object.ObjectKey},
 			ContentLength: object.ExpectedSizeBytes,
 			Fence:         mailboxAttachmentScanFenceCopy(&fence),
@@ -54,21 +54,21 @@ func (repository *MailboxEntRepository) PrepareMailboxAttachmentScan(ctx context
 		return nil
 	})
 	if err != nil {
-		return MailboxAttachmentScanPrepared{}, mailboxAttachmentScanEntError(err)
+		return mailboxAttachmentScanPrepared{}, mailboxAttachmentScanEntError(err)
 	}
 	if !mailboxAttachmentScanPreparedValid(prepared, request.ActorID, request.OrganizationID, request.AccountID, request.AttachmentID) {
-		return MailboxAttachmentScanPrepared{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
+		return mailboxAttachmentScanPrepared{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 	}
 	return prepared, nil
 }
 
-// CompleteMailboxAttachmentScan records exactly one clean or rejected scanner verdict under a fresh durable fence.
-func (repository *MailboxEntRepository) CompleteMailboxAttachmentScan(ctx context.Context, request MailboxAttachmentScanCompleteRequest) (MailboxAttachmentScanResult, error) {
+// completeMailboxAttachmentScan records exactly one clean or rejected scanner verdict under a fresh durable fence.
+func (repository *MailboxEntRepository) completeMailboxAttachmentScan(ctx context.Context, request mailboxAttachmentScanCompleteRequest) (mailboxAttachmentScanCompletion, error) {
 	if repository == nil || repository.client == nil || ctx == nil || !mailboxAttachmentScanCompleteRequestValid(request) {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
+		return mailboxAttachmentScanCompletion{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorInvalid)
 	}
 
-	var result MailboxAttachmentScanResult
+	var result mailboxAttachmentScanCompletion
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		owner, err := mailboxAttachmentScanLockOwner(ctx, transaction, request.ActorID, request.OrganizationID, request.AccountID)
 		if err != nil {
@@ -112,24 +112,24 @@ func (repository *MailboxEntRepository) CompleteMailboxAttachmentScan(ctx contex
 		if updated != 1 {
 			return mailboxAttachmentScanError(MailboxAttachmentScanErrorStateConflict)
 		}
-		result = MailboxAttachmentScanResult{AttachmentID: attachment.ID, ScanStatus: request.ScanStatus}
+		result = mailboxAttachmentScanCompletion{attachmentID: attachment.ID, scanStatus: request.ScanStatus}
 		return nil
 	})
 	if err != nil {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanEntError(err)
+		return mailboxAttachmentScanCompletion{}, mailboxAttachmentScanEntError(err)
 	}
-	if result.AttachmentID != request.AttachmentID || result.ScanStatus != request.ScanStatus {
-		return MailboxAttachmentScanResult{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
+	if result.attachmentID != request.AttachmentID || result.scanStatus != request.ScanStatus {
+		return mailboxAttachmentScanCompletion{}, mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 	}
 	return result, nil
 }
 
-func mailboxAttachmentScanPrepareRequestValid(request MailboxAttachmentScanPrepareRequest) bool {
+func mailboxAttachmentScanPrepareRequestValid(request mailboxAttachmentScanPrepareRequest) bool {
 	return request.ActorID != uuid.Nil && request.OrganizationID != uuid.Nil && request.AccountID != uuid.Nil && request.AttachmentID != uuid.Nil
 }
 
-func mailboxAttachmentScanCompleteRequestValid(request MailboxAttachmentScanCompleteRequest) bool {
-	return mailboxAttachmentScanPrepareRequestValid(MailboxAttachmentScanPrepareRequest{
+func mailboxAttachmentScanCompleteRequestValid(request mailboxAttachmentScanCompleteRequest) bool {
+	return mailboxAttachmentScanPrepareRequestValid(mailboxAttachmentScanPrepareRequest{
 		ActorID:        request.ActorID,
 		OrganizationID: request.OrganizationID,
 		AccountID:      request.AccountID,
