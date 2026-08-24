@@ -54,14 +54,29 @@ func (repository *MailboxEntRepository) LookupMailboxDraftCreatePreHashLocator(c
 
 		switch MailboxDraftStatus(draft.Status) {
 		case MailboxDraftStatusActive:
-			result = MailboxDraftCreatePreHashLocatorResult{Found: true, DraftID: draft.ID}
+			locator, ok := mailboxEntDraftCreatePreHashLocatorResult(draft, nil)
+			if !ok {
+				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+			}
+			result = locator
 			return nil
 		case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
 			pendingKind, ok := mailboxEntDraftReadPendingKind(draft.PendingMutationKind)
 			if !ok || pendingKind == nil || *pendingKind != MailboxDraftMutationCreate || draft.LastMutationID == nil {
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
 			}
-			result = MailboxDraftCreatePreHashLocatorResult{Found: true, DraftID: draft.ID}
+			var busyUntil *time.Time
+			if MailboxDraftStatus(draft.Status) == MailboxDraftStatusSaving {
+				busyUntil, err = mailboxEntDraftCreatePreHashBusyUntil(ctx, transaction, request.AccountID)
+				if err != nil {
+					return err
+				}
+			}
+			locator, ok := mailboxEntDraftCreatePreHashLocatorResult(draft, busyUntil)
+			if !ok {
+				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+			}
+			result = locator
 			return nil
 		default:
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
@@ -71,6 +86,58 @@ func (repository *MailboxEntRepository) LookupMailboxDraftCreatePreHashLocator(c
 		return MailboxDraftCreatePreHashLocatorResult{}, mailboxEntDraftRepositoryError(err)
 	}
 	return result, nil
+}
+
+func mailboxEntDraftCreatePreHashLocatorResult(draft *ent.MailDraft, busyUntil *time.Time) (MailboxDraftCreatePreHashLocatorResult, bool) {
+	if draft == nil || draft.ID == uuid.Nil || draft.FromIdentityID == uuid.Nil {
+		return MailboxDraftCreatePreHashLocatorResult{}, false
+	}
+	status := MailboxDraftStatus(draft.Status)
+	if status != MailboxDraftStatusActive && status != MailboxDraftStatusSaving && status != MailboxDraftStatusUnknown {
+		return MailboxDraftCreatePreHashLocatorResult{}, false
+	}
+	if busyUntil != nil && (!mailboxEntValidTime(*busyUntil) || status != MailboxDraftStatusSaving) {
+		return MailboxDraftCreatePreHashLocatorResult{}, false
+	}
+	var copiedBusyUntil *time.Time
+	if busyUntil != nil {
+		value := *busyUntil
+		copiedBusyUntil = &value
+	}
+	return MailboxDraftCreatePreHashLocatorResult{
+		Found:            true,
+		DraftID:          draft.ID,
+		Status:           status,
+		FromIdentityID:   draft.FromIdentityID,
+		ReplyToMessageID: mailboxEntDraftReadUUIDPointerCopy(draft.ReplyToMessageID),
+		ForwardMessageID: mailboxEntDraftReadUUIDPointerCopy(draft.ForwardMessageID),
+		BusyUntil:        copiedBusyUntil,
+	}, true
+}
+
+func mailboxEntDraftCreatePreHashBusyUntil(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID) (*time.Time, error) {
+	if ctx == nil || transaction == nil || accountID == uuid.Nil {
+		return nil, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
+	}
+	account, err := transaction.MailAccount.Query().Where(mailaccount.IDEQ(accountID)).ForUpdate().Only(ctx)
+	if err != nil || account == nil || account.ID != accountID {
+		return nil, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+	}
+	if account.MutationLeaseUntil == nil {
+		return nil, nil
+	}
+	if !mailboxEntValidTime(*account.MutationLeaseUntil) {
+		return nil, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+	}
+	now, err := mailboxEntDatabaseWallClock(ctx, transaction)
+	if err != nil {
+		return nil, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+	}
+	if !account.MutationLeaseUntil.After(now) {
+		return nil, nil
+	}
+	value := *account.MutationLeaseUntil
+	return &value, nil
 }
 
 // LookupMailboxDraftCreateReplay returns one compatible durable create replay without reserving work or locking attachments.

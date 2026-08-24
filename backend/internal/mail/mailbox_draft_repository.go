@@ -211,8 +211,13 @@ type MailboxDraftCreatePreHashLocatorRequest struct {
 
 // MailboxDraftCreatePreHashLocatorResult contains one compatible durable create candidate when Found is true.
 type MailboxDraftCreatePreHashLocatorResult struct {
-	Found   bool
-	DraftID uuid.UUID
+	Found            bool
+	DraftID          uuid.UUID
+	Status           MailboxDraftStatus
+	FromIdentityID   uuid.UUID
+	ReplyToMessageID *uuid.UUID
+	ForwardMessageID *uuid.UUID
+	BusyUntil        *time.Time
 }
 
 // MailboxDraftReadRecheckRequest seals the local active draft revision and exact engine message/version pair.
