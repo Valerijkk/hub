@@ -234,6 +234,26 @@ func (repository *MailboxEntRepository) FinishEngineCommand(ctx context.Context,
 		if kind != "" {
 			return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, kind)
 		}
+		action, operation, status, audit := mailboxEntDraftReconciliationAuditValues(updated, request)
+		if audit {
+			if _, err := transaction.AuditLog.Create().
+				SetAction(action).
+				SetEntityType("mail_draft").
+				SetEntityID(updated.ID.String()).
+				SetUserID(account.UserID).
+				SetDetails(map[string]interface{}{
+					"organization_id": account.OrganizationID.String(),
+					"mail_account_id": account.ID.String(),
+					"operation":       operation,
+					"status":          status,
+				}).
+				SetIPAddress("").
+				SetUserAgent("").
+				SetCreatedAt(freshDatabaseWallClock).
+				Save(ctx); err != nil {
+				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+			}
+		}
 		if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, freshDatabaseWallClock); err != nil {
 			return err
 		}
@@ -429,6 +449,31 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 	default:
 		return MailboxDraftRecord{}, MailboxDraftRepositoryErrorInvalid
 	}
+}
+
+func mailboxEntDraftReconciliationAuditValues(updated MailboxDraftRecord, request MailboxDraftFinishRequest) (action, operation, status string, ok bool) {
+	switch request.Kind {
+	case MailboxDraftMutationCreate:
+		if _, applied := request.Outcome.(MailboxDraftApplied); applied && updated.Status == MailboxDraftStatusActive {
+			return "create", "create", "active", true
+		}
+	case MailboxDraftMutationSave:
+		if _, applied := request.Outcome.(MailboxDraftApplied); applied && updated.Status == MailboxDraftStatusActive {
+			return "update", "save", "active", true
+		}
+	case MailboxDraftMutationDelete:
+		switch request.Outcome.(type) {
+		case MailboxDraftDeleted:
+			if updated.Status == MailboxDraftStatusDeleted {
+				return "delete", "delete", "deleted", true
+			}
+		case MailboxDraftDeleteRetained:
+			if updated.Status == MailboxDraftStatusActive {
+				return "delete", "delete", "active", true
+			}
+		}
+	}
+	return "", "", "", false
 }
 
 func mailboxEntDraftConfirmedAttachmentDifference(confirmed, desired []uuid.UUID) []uuid.UUID {
