@@ -68,7 +68,7 @@ func (repository *MailboxEntRepository) LookupMailboxDraftCreateReplay(ctx conte
 		}
 	})
 	if err != nil {
-		return MailboxDraftCreateReplayLookupResult{}, err
+		return MailboxDraftCreateReplayLookupResult{}, mailboxEntDraftRepositoryError(err)
 	}
 	return result, nil
 }
