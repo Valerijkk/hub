@@ -46,6 +46,11 @@ export interface ApiError {
 	retry_after_seconds?: number;
 }
 
+export interface ApiSuccessResponse<T> {
+	status: number;
+	data: T;
+}
+
 /**
  * Single-flight mutex для refresh-токена (FE-H1).
  *
@@ -247,13 +252,13 @@ class ApiClient {
 	 * @param body - тело запроса (JSON-объект или FormData без stringify)
 	 * @param _retried - внутренний флаг: уже был один retry после refresh
 	 */
-	async request<T>(
+	private async requestWithResponse<T>(
 		method: string,
 		path: string,
 		body?: unknown,
 		options?: ApiRequestOptions,
 		_retried = false,
-	): Promise<T> {
+	): Promise<ApiSuccessResponse<T>> {
 		const isFormData = body instanceof FormData;
 		const response = await fetch(`${API_BASE}${path}`, {
 			method,
@@ -274,7 +279,7 @@ class ApiClient {
 			}
 			const refreshed = await this.tryRefresh();
 			if (refreshed) {
-				return this.request(method, path, body, options, true);
+				return this.requestWithResponse(method, path, body, options, true);
 			}
 			await this.expireSession();
 			throw new Error("Session expired");
@@ -300,12 +305,14 @@ class ApiClient {
 			throw error;
 		}
 
-		if (response.status === 204) return undefined as T;
+		if (response.status === 204) {
+			return { status: response.status, data: undefined as T };
+		}
 
 		const text = await response.text();
-		if (!text) return undefined as T;
+		if (!text) return { status: response.status, data: undefined as T };
 		try {
-			return JSON.parse(text) as T;
+			return { status: response.status, data: JSON.parse(text) as T };
 		} catch {
 			const parseError: ApiError = {
 				code: 502,
@@ -313,6 +320,23 @@ class ApiClient {
 			};
 			throw parseError;
 		}
+	}
+
+	async request<T>(
+		method: string,
+		path: string,
+		body?: unknown,
+		options?: ApiRequestOptions,
+		_retried = false,
+	): Promise<T> {
+		const response = await this.requestWithResponse<T>(
+			method,
+			path,
+			body,
+			options,
+			_retried,
+		);
+		return response.data;
 	}
 
 	/**
@@ -390,6 +414,14 @@ class ApiClient {
 	/** POST-запрос. */
 	post<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
 		return this.request<T>("POST", path, body, options);
+	}
+
+	postWithResponse<T>(
+		path: string,
+		body?: unknown,
+		options?: ApiRequestOptions,
+	): Promise<ApiSuccessResponse<T>> {
+		return this.requestWithResponse<T>("POST", path, body, options);
 	}
 	/** PUT-запрос. */
 	put<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
