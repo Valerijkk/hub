@@ -890,9 +890,12 @@ func (f *FakeMailEngine) ReconcileDraft(_ context.Context, request EngineDraftRe
 	}
 	draft, ok := f.drafts[request.AccountID][request.DraftKey]
 	if !ok {
-		return EngineDraftAbsent{}, nil
+		if request.MessageID == "" {
+			return EngineDraftAbsent{}, nil
+		}
+		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
-	if draft.identity.messageID == request.MessageID && draft.identity.previousVersion == request.PreviousVersion && draft.identity.mutationID == request.MutationID {
+	if draft.identity.mutationID == request.MutationID {
 		if int64(messageVariableBytes(draft.message)) > request.MaxContentBytes {
 			return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 		}
@@ -1464,7 +1467,8 @@ func validateDraftRequest(draft EngineDraft) error {
 }
 
 func validateDraftReconciliation(request EngineDraftReconciliation) error {
-	if !validAccountID(request.AccountID) || !validSafeText(request.DraftKey, MaxEngineOpaqueIDBytes, true) || !validSafeText(request.MutationID, MaxEngineOpaqueIDBytes, true) || request.MaxContentBytes <= 0 || request.MaxContentBytes > MaxEngineMessageBytes || (request.MessageID == "") != (request.PreviousVersion == "") || (request.MessageID != "" && (!validOpaqueID(request.MessageID) || !validOpaqueID(request.PreviousVersion))) {
+	pairPresent := request.MessageID != ""
+	if !validAccountID(request.AccountID) || !validSafeText(request.DraftKey, MaxEngineOpaqueIDBytes, true) || !validSafeText(request.MutationID, MaxEngineOpaqueIDBytes, true) || request.MaxContentBytes <= 0 || request.MaxContentBytes > MaxEngineMessageBytes || pairPresent != (request.PreviousVersion != "") || (pairPresent && (!validOpaqueID(request.MessageID) || !validOpaqueID(request.PreviousVersion))) || (!pairPresent && request.ConfirmedMutationID != "") || (pairPresent && request.ConfirmedMutationID != "" && (!validSafeText(request.ConfirmedMutationID, MaxEngineOpaqueIDBytes, true) || request.ConfirmedMutationID == request.MutationID)) {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	return nil
@@ -1495,7 +1499,9 @@ func fakeExactRetainedDraft(request EngineDraftReconciliation, draft fakeDraft, 
 	draftProjection := draft.message.Projection
 	return request.MessageID != "" &&
 		request.PreviousVersion != "" &&
-		draft.identity.mutationID != request.MutationID &&
+		request.ConfirmedMutationID != "" &&
+		request.ConfirmedMutationID != request.MutationID &&
+		draft.identity.mutationID == request.ConfirmedMutationID &&
 		validateEngineMessage(draft.message) == nil &&
 		validateEngineMessage(message) == nil &&
 		reflect.DeepEqual(cloneMessage(draft.message), cloneMessage(message)) &&

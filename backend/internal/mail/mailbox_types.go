@@ -511,12 +511,13 @@ type EngineDraft struct {
 
 // EngineDraftReconciliation — account-scoped запрос сверки неопределённого черновика.
 type EngineDraftReconciliation struct {
-	AccountID       string
-	DraftKey        string
-	MessageID       string
-	PreviousVersion string
-	MutationID      string
-	MaxContentBytes int64
+	AccountID           string
+	DraftKey            string
+	MessageID           string
+	PreviousVersion     string
+	MutationID          string
+	ConfirmedMutationID string
+	MaxContentBytes     int64
 }
 
 // EngineDraftDeletion — request-only точное удаление черновика.

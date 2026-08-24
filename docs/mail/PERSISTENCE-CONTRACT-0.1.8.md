@@ -1094,16 +1094,17 @@ cleanup garbage or permission to reclaim an upload.
 
 `Applied` is a separately locked completion: it promotes D to the new confirmed graph O,
 clears confirmed links for O\D, and clears all D scalars/attachment links in the same durable
-transition. The provider-neutral sealed `EngineDraftRetained{Message EngineMessage}` and the Fake
-engine's authoritative current-store proof exist, but the repository has no durable proof path:
-`SaveRetained` remains `SOURCE_NOT_IMPLEMENTED` and forbidden. Stalwart retained observation is
-also `SOURCE_NOT_IMPLEMENTED` and fail-closed because the current reconciliation request has no
-exact prior `draft-mutation` marker binding; a generic syntactically valid Hub keyword never
-substitutes for it. Every non-`Applied` outcome preserves O and D and remains `unknown` for
-reconciliation. A bare or unsealed old pair is not proof. A sealed live reconcile result combined
-with the exact persisted O pair and binding can be evidence only in a later separately authorized
-provider-specific retained-completion packet; it needs no reverse mapping of provider attachment
-ids to Hub UUIDs and no `confirmed_request_hash`.
+transition. `EngineDraftReconciliation` carries authoritative `ConfirmedMutationID`, and the
+engine-v2 exact proof is implemented: current `draft-mutation-v2(account,draftKey,current)` is
+`Applied`; the prior marker derived from `ConfirmedMutationID` plus the exact old
+account/message/version is `Retained`; legacy v1, nil, or generic markers are `Indeterminate`.
+Deployment requires all marker-v1 writers to be quiesced before marker-v2 writes are enabled. The repository has no durable retained completion:
+`SaveRetained` remains `SOURCE_NOT_IMPLEMENTED`, reject-only, and forbidden until a joint
+service+repository packet. Every non-`Applied` outcome preserves O and D and remains `unknown`
+for reconciliation. A bare or unsealed old pair is not proof. A sealed live reconcile result
+combined with the exact persisted O pair and binding can be evidence only in a later separately
+authorized provider-specific retained-completion packet; it needs no reverse mapping of provider
+attachment ids to Hub UUIDs and no `confirmed_request_hash`.
 
 The content-free O/D repository source, including the nullable confirmed-mutation binding, is
 implemented in this static packet only. Ent generation, physical migration, SQL validation,

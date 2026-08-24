@@ -221,7 +221,7 @@ func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) 
 	if err != nil {
 		return EngineMessage{}, err
 	}
-	mutationMarker, err := stalwartOpaqueMarker("draft-mutation", draft.AccountID, draft.DraftKey, draft.MessageID, draft.PreviousVersion, draft.MutationID)
+	mutationMarker, err := stalwartDraftMutationMarkerV2(draft.AccountID, draft.DraftKey, draft.MutationID)
 	if err != nil {
 		return EngineMessage{}, err
 	}
@@ -247,7 +247,7 @@ func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) 
 	if ambiguous {
 		return EngineMessage{}, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	if found && stalwartExactDraftOperation(existing, draftsID, draftMarker, mutationMarker) {
+	if found && stalwartExactDraftOperation(existing, draft.AccountID, draftsID, draftMarker, mutationMarker) {
 		return existing, nil
 	}
 	// A prepared or fenced submission adds reserved markers to the immutable
@@ -295,7 +295,7 @@ func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) 
 	if err != nil {
 		return EngineMessage{}, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	if !stalwartExactDraftOperation(message, draftsID, draftMarker, mutationMarker) || draft.MessageID != "" && createdID == draft.MessageID {
+	if !stalwartExactDraftOperation(message, draft.AccountID, draftsID, draftMarker, mutationMarker) || draft.MessageID != "" && createdID == draft.MessageID {
 		return EngineMessage{}, stalwartEngineError(EngineErrorIndeterminate)
 	}
 	return message, nil
@@ -312,7 +312,7 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 	if err != nil {
 		return nil, err
 	}
-	mutationMarker, err := stalwartOpaqueMarker("draft-mutation", request.AccountID, request.DraftKey, request.MessageID, request.PreviousVersion, request.MutationID)
+	mutationMarker, err := stalwartDraftMutationMarkerV2(request.AccountID, request.DraftKey, request.MutationID)
 	if err != nil {
 		return nil, err
 	}
@@ -337,8 +337,18 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 	if !found {
 		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
-	if stalwartExactDraftOperation(message, draftsID, draftMarker, mutationMarker) && (request.MessageID == "" || message.Projection.Version != request.PreviousVersion) {
+	if stalwartExactDraftOperation(message, request.AccountID, draftsID, draftMarker, mutationMarker) {
 		return EngineDraftApplied{Message: message}, nil
+	}
+	if request.MessageID == "" || request.ConfirmedMutationID == "" {
+		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	confirmedMarker, err := stalwartDraftMutationMarkerV2(request.AccountID, request.DraftKey, request.ConfirmedMutationID)
+	if err != nil {
+		return nil, err
+	}
+	if stalwartExactDraftOperation(message, request.AccountID, draftsID, draftMarker, confirmedMarker) && message.Projection.MessageID == request.MessageID && message.Projection.Version == request.PreviousVersion {
+		return EngineDraftRetained{Message: message}, nil
 	}
 	return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 }
@@ -1369,6 +1379,10 @@ func stalwartOpaqueMarker(kind string, values ...string) (string, error) {
 	return marker, nil
 }
 
+func stalwartDraftMutationMarkerV2(accountID, draftKey, mutationID string) (string, error) {
+	return stalwartOpaqueMarker("draft-mutation-v2", accountID, draftKey, mutationID)
+}
+
 func stalwartValidDraftThreading(content EngineMessageContent) bool {
 	if content.InReplyTo != "" && !validThreadMessageID(content.InReplyTo) {
 		return false
@@ -1398,8 +1412,8 @@ func stalwartExactFolderRole(folders []EngineFolder, role EngineFolderRole) (str
 	return folderID, nil
 }
 
-func stalwartExactDraftOperation(message EngineMessage, draftsID, draftMarker, mutationMarker string) bool {
-	if !message.Projection.Flags.Draft || !stalwartExactFolder(message.Projection, draftsID) || len(message.Projection.ReservedKeywords) != 3 {
+func stalwartExactDraftOperation(message EngineMessage, accountID, draftsID, draftMarker, mutationMarker string) bool {
+	if message.Projection.AccountID != accountID || !message.Projection.Flags.Draft || !stalwartExactFolder(message.Projection, draftsID) || len(message.Projection.ReservedKeywords) != 3 {
 		return false
 	}
 	expected := map[EngineKeywordMarker]struct{}{

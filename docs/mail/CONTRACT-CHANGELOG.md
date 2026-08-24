@@ -17,27 +17,27 @@ pending identity has partial index `mail_drafts_pending_from_identity_idx` where
 `pending_from_identity_id IS NOT NULL`.
 
 The lifecycle remains repository-owned: `Reserve` preserves O and writes D in the short locked
-transaction; provider I/O follows commit. `Applied` promotes D. The provider-neutral sealed
-`EngineDraftRetained{Message EngineMessage}` observation and Fake authoritative current-store
-proof are implemented. Stalwart retained observation is `SOURCE_NOT_IMPLEMENTED` and fail-closed:
-the current request does not carry the exact prior `draft-mutation` marker binding, and a generic
-syntactically valid Hub keyword is never a substitute. Durable `SaveRetained` repository/service
-behavior remains `SOURCE_NOT_IMPLEMENTED` and forbidden. Every non-`Applied` outcome retains O
-and D as `unknown`; the result cannot finalize, retry, clean up, or change O/D by itself. A bare
-or unsealed old pair remains insufficient. A sealed live reconcile result plus the exact persisted
-O pair and binding can be evidence only for a later separately authorized provider-specific proof
-packet; it requires neither reverse mapping provider attachment ids to Hub UUIDs nor a
-`confirmed_request_hash`.
+transaction; provider I/O follows commit. `EngineDraftReconciliation` carries authoritative
+`ConfirmedMutationID`. The marker-v2 proof source is implemented: exact current
+`draft-mutation-v2(account,draftKey,current)` is `Applied`; the prior marker derived from
+`ConfirmedMutationID` plus the exact old account/message/version is `Retained`; legacy v1, nil,
+or generic markers are `Indeterminate`. Deployment requires all marker-v1 writers to be quiesced before marker-v2 writes are enabled. The provider-neutral
+sealed `EngineDraftRetained{Message EngineMessage}` observation and Fake authoritative
+current-store proof remain implemented. Durable `SaveRetained` repository/service behavior
+remains `SOURCE_NOT_IMPLEMENTED`, reject-only, and forbidden until a joint service+repository
+packet. Every non-`Applied` outcome retains O and D as `unknown`; the result cannot finalize,
+retry, clean up, or change O/D by itself. A bare or unsealed old pair remains insufficient. A
+sealed live reconcile result plus the exact persisted O pair and binding can be evidence only for
+a later separately authorized provider-specific proof packet; it requires neither reverse mapping
+provider attachment ids to Hub UUIDs nor a `confirmed_request_hash`.
 
 The content-free repository O/D source is now implemented as a static packet: records carry
 confirmed O, nullable D, canonical request hashes, DB-clock `updated_at`, and nullable
 `confirmed_mutation_id`; work carries the effective graph, hash, and binding. The schema change
 is additive and nullable with no backfill. `MailboxDraftSaveRetained` is pair-only and Finish
 continues to reject it. Generated Ent, migration, SQL validation, build, tests, Docker, and
-runtime remain `NOT_RUN`. `EngineDraftReconciliation.PreviousMutationID` and Stalwart exact-prior
-marker proof remain `SOURCE_NOT_IMPLEMENTED`, so durable retained completion remains forbidden.
-Pending attachment links are live state, so O∩D, O\D, and D\O do not permit generic cleanup or
-provider work.
+runtime remain `NOT_RUN`; durable retained completion remains forbidden. Pending attachment links
+are live state, so O∩D, O\D, and D\O do not permit generic cleanup or provider work.
 
 Migration is staged and remains `NOT_MIGRATED`: add target columns nullable first, with no
 default; a zero-row `mail_drafts` first-release preflight is accepted. Existing rows require an
