@@ -342,12 +342,32 @@ func TestSendMessageNonceReuseWithDifferentPayloadConflicts(t *testing.T) {
 			wantDocuments: 1,
 		},
 		{
+			name:    "mentions set differs",
+			initial: richSendRequest,
+			retry: func(req messenger.SendMessageRequest) messenger.SendMessageRequest {
+				req.Mentions = []string{"user-1", "user-3", "user-1"}
+				return req
+			},
+			wantConflict:  true,
+			wantDocuments: 1,
+		},
+		{
 			name:    "mention groups order and duplicates are compatible",
 			initial: richSendRequest,
 			retry: func(req messenger.SendMessageRequest) messenger.SendMessageRequest {
 				req.MentionGroups = []string{"online", "all"}
 				return req
 			},
+			wantDocuments: 1,
+		},
+		{
+			name:    "mention groups set differs",
+			initial: richSendRequest,
+			retry: func(req messenger.SendMessageRequest) messenger.SendMessageRequest {
+				req.MentionGroups = []string{"all", "offline", "all"}
+				return req
+			},
+			wantConflict:  true,
 			wantDocuments: 1,
 		},
 		{
