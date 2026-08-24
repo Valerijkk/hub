@@ -79,7 +79,10 @@ absent, launcher `NOT_READY`, and generation, compile, tests, formatting/lint, A
 SQL/DB, Docker and runtime are `NOT_RUN`. Task 6C remains pending; no Task 6, Phase 144, module,
 product, migration, cutover or merge acceptance follows.
 
-## 144-05D Content plain-only source receipt sync
+## 144-05D Content plain-only source receipt sync (HISTORICAL / SUPERSEDED)
+
+> **Result-ABI supersession only:** This 144-05D plain-only receipt and its evidence below are preserved as historical provenance, but its result ABI is `HISTORICAL / SUPERSEDED` by accepted static source `43a4db5d18ac0049e1900668c7218863319f9339`. The current exact result fields are `SourceFormat`, `SanitizerVersion`, `PlainBody`, `SanitizedHTML`, and `RemoteImagesBlocked`; the former `{Format,PlainBody,RemoteImagesBlocked}` result is not current authority. V1 is rich-only for HTML: it uses the fixed structural allowlist, preserves no attributes, enforces the accepted caps, and exposes sanitized HTML only for rich input. This supersession does not alter the receipt's historical source/evidence or claim executable verification.
+
 
 > **Static-only source-receipt lifecycle:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. No executable evidence is claimed. This dirty exact9 sync records source `acc593fe4f20669a21a6f5ba70a8a20293111017` (sole parent `98ebedc9dd0b6ad90dbe06e1faf5810376dce392`, tree `7de89d1237bc0c8f640729f607a2dbfd9189f3c4`, test `37c29c421d21e7c173142647d894de0d890894de`, source `b064a2f6f944d5ffb10651ccb068a77634a9267b`); source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` reviews PASS C/I/M `0/0/0`, Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Its receipt commit must set-equal the ordered exact9 manifest in `IMPLEMENTATION-144-05D.md`. Before atomic receipt plus immutable receipt C/S/L PASS, acc has no static acceptance and former 05D authority/acceptance/source-unimplemented/current-next routes remain current. Only after activation is acc `STATIC_ACCEPTED / EXACT_SHA_PASS`; lower routes are `CONSUMED/HISTORICAL`. No next packet follows.
 
