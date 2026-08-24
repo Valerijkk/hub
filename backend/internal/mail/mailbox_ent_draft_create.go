@@ -212,6 +212,61 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftCreate(ctx context.Co
 	return result, nil
 }
 
+// AdvanceMailboxDraftCreateToImport marks an attachment-backed create ready for its exact import command.
+func (repository *MailboxEntRepository) AdvanceMailboxDraftCreateToImport(ctx context.Context, request MailboxDraftAdvanceCreateToImportRequest) (MailboxDraftReservation, error) {
+	if repository == nil || repository.client == nil || ctx == nil || !mailboxEntEngineCommandFenceValid(request.Fence) || request.DraftID == uuid.Nil || request.MutationID == uuid.Nil {
+		return MailboxDraftReservation{}, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
+	}
+
+	var result MailboxDraftReservation
+	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
+		account, databaseWallClock, err := mailboxEntDraftCreateLockAccount(ctx, transaction, request.Fence)
+		if err != nil {
+			return err
+		}
+		if kind := mailboxEntDraftCreateAccountKind(account); kind != "" {
+			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
+		}
+		draft, kind := mailboxEntDraftReservationLockDraft(ctx, transaction, request.Fence.AccountID, request.DraftID)
+		if kind != "" {
+			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
+		}
+		attachments, kind := mailboxEntDraftReadAttachmentState(ctx, transaction, draft, MailboxDraftRepositoryErrorStateConflict)
+		if kind != "" {
+			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
+		}
+		record, ok := mailboxEntDraftReadRecord(draft, attachments)
+		if !ok || record.Status != MailboxDraftStatusSaving || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseUpload || len(record.Confirmed.AttachmentIDs) == 0 {
+			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+		}
+		freshDatabaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
+		if err != nil {
+			return mailboxEntDraftRepositoryError(err)
+		}
+		if !mailboxEntDraftCreateFenceMatches(account, request.Fence, freshDatabaseWallClock) {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorFenceLost)
+		}
+		if err := draft.Update().SetPendingCreateAttachmentPhase(maildraft.PendingCreateAttachmentPhase(MailboxDraftCreateAttachmentPhaseImport)).SetUpdatedAt(freshDatabaseWallClock).Exec(ctx); err != nil {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+		}
+		updated := mailboxEntDraftRecordCopy(record)
+		phase := MailboxDraftCreateAttachmentPhaseImport
+		updated.PendingCreateAttachmentPhase = &phase
+		updated.UpdatedAt = freshDatabaseWallClock.UTC()
+		work := mailboxEntDraftCreateWork(updated, MailboxDraftWorkCreate)
+		if work == nil {
+			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, freshDatabaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+		}
+		fence := mailboxEntDraftCreateFenceCopy(request.Fence)
+		result = MailboxDraftReservation{Kind: MailboxDraftReservationDispatch, Draft: mailboxEntDraftRecordCopy(updated), Work: work, Fence: &fence}
+		return nil
+	})
+	if err != nil {
+		return MailboxDraftReservation{}, mailboxEntDraftRepositoryError(err)
+	}
+	return result, nil
+}
+
 func mailboxEntDraftCreateRequestKind(request MailboxDraftCreateRequest) MailboxDraftRepositoryErrorKind {
 	if !mailboxEntEngineCommandFenceValid(request.Fence) || request.DraftID == uuid.Nil || request.DraftClientID == uuid.Nil || request.MutationID == uuid.Nil || !mailboxEntDraftCreateHashPresent(request.CreateIdempotencyKeyHash) || !mailboxEntDraftCreateHashPresent(request.CreateRequestHash) {
 		return MailboxDraftRepositoryErrorInvalid
@@ -453,7 +508,7 @@ func mailboxEntDraftCreateClassifyExisting(ctx context.Context, transaction *ent
 		*result = MailboxDraftReservation{Kind: MailboxDraftReservationReplay, Draft: mailboxEntDraftRecordCopy(record)}
 		return nil
 	case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
-		if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil {
+		if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || !mailboxEntDraftCreateImportReady(record) {
 			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
 		work := mailboxEntDraftCreateWork(record, MailboxDraftWorkReconcileCreate)

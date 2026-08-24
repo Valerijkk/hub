@@ -260,6 +260,13 @@ type MailboxDraftAbortRequest struct {
 	MutationID uuid.UUID
 }
 
+// MailboxDraftAdvanceCreateToImportRequest marks an attachment-backed create ready for its import command.
+type MailboxDraftAdvanceCreateToImportRequest struct {
+	Fence      MailboxEngineCommandFence
+	DraftID    uuid.UUID
+	MutationID uuid.UUID
+}
+
 // MailboxDraftAbortResult reports whether abort removed a provisional create or restored a durable active draft.
 type MailboxDraftAbortResult struct {
 	DraftDeleted bool
@@ -409,6 +416,7 @@ type MailboxDraftRepository interface {
 	LookupMailboxDraftCreatePreHashLocator(context.Context, MailboxDraftCreatePreHashLocatorRequest) (MailboxDraftCreatePreHashLocatorResult, error)
 	LookupMailboxDraftCreateReplay(context.Context, MailboxDraftCreateReplayLookupRequest) (MailboxDraftCreateReplayLookupResult, error)
 	ReserveMailboxDraftCreate(context.Context, MailboxDraftCreateRequest) (MailboxDraftReservation, error)
+	AdvanceMailboxDraftCreateToImport(context.Context, MailboxDraftAdvanceCreateToImportRequest) (MailboxDraftReservation, error)
 	ReserveMailboxDraftSave(context.Context, MailboxDraftSaveRequest) (MailboxDraftReservation, error)
 	ReserveMailboxDraftDelete(context.Context, MailboxDraftDeleteRequest) (MailboxDraftReservation, error)
 	AbortMailboxDraftReservation(context.Context, MailboxDraftAbortRequest) (MailboxDraftAbortResult, error)

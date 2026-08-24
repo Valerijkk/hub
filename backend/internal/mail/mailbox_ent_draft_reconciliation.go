@@ -140,7 +140,7 @@ func (repository *MailboxEntRepository) ResumeMailboxDraftCreateAfterAbsence(ctx
 		}
 		switch record.Status {
 		case MailboxDraftStatusUnknown:
-			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil {
+			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || !mailboxEntDraftCreateImportReady(record) {
 				return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			work := mailboxEntDraftCreateWork(record, MailboxDraftWorkCreate)
@@ -156,7 +156,7 @@ func (repository *MailboxEntRepository) ResumeMailboxDraftCreateAfterAbsence(ctx
 			result = MailboxDraftReservation{Kind: MailboxDraftReservationDispatch, Draft: mailboxEntDraftRecordCopy(record), Work: work, Fence: &fence}
 			return nil
 		case MailboxDraftStatusSaving:
-			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil {
+			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || !mailboxEntDraftCreateImportReady(record) {
 				return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			work := mailboxEntDraftCreateWork(record, MailboxDraftWorkReconcileCreate)
@@ -272,6 +272,9 @@ func mailboxEntDraftReconciliationWorkKind(record MailboxDraftRecord) (MailboxDr
 	}
 	switch *record.PendingMutationKind {
 	case MailboxDraftMutationCreate:
+		if !mailboxEntDraftCreateImportReady(record) {
+			return "", false
+		}
 		return MailboxDraftWorkReconcileCreate, true
 	case MailboxDraftMutationSave:
 		return MailboxDraftWorkReconcileSave, true
@@ -280,6 +283,16 @@ func mailboxEntDraftReconciliationWorkKind(record MailboxDraftRecord) (MailboxDr
 	default:
 		return "", false
 	}
+}
+
+func mailboxEntDraftCreateImportReady(record MailboxDraftRecord) bool {
+	if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate {
+		return false
+	}
+	if record.PendingCreateAttachmentPhase == nil {
+		return len(record.Confirmed.AttachmentIDs) == 0
+	}
+	return *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseImport && len(record.Confirmed.AttachmentIDs) != 0
 }
 
 func mailboxEntDraftReconciliationResumeRequestKind(request MailboxDraftResumeCreateRequest) MailboxDraftRepositoryErrorKind {
@@ -329,7 +342,10 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 		}
 		switch outcome := request.Outcome.(type) {
 		case MailboxDraftApplied:
-			if err := update.SetStatus(maildraft.StatusActive).SetEngineMessageID(outcome.EngineMessageID).SetEngineVersion(outcome.EngineVersion).SetRevision(1).SetConfirmedMutationID(request.MutationID).ClearLastMutationID().ClearPendingMutationKind().Exec(ctx); err != nil {
+			if !mailboxEntDraftCreateImportReady(record) {
+				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorStateConflict
+			}
+			if err := update.SetStatus(maildraft.StatusActive).SetEngineMessageID(outcome.EngineMessageID).SetEngineVersion(outcome.EngineVersion).SetRevision(1).SetConfirmedMutationID(request.MutationID).ClearLastMutationID().ClearPendingMutationKind().ClearPendingCreateAttachmentPhase().Exec(ctx); err != nil {
 				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorUnavailable
 			}
 			updated.Status = MailboxDraftStatusActive
@@ -338,6 +354,7 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 			updated.ConfirmedMutationID = mailboxEntDraftReadUUIDPointerCopy(&request.MutationID)
 			updated.LastMutationID = nil
 			updated.PendingMutationKind = nil
+			updated.PendingCreateAttachmentPhase = nil
 			updated.UpdatedAt = databaseWallClock.UTC()
 			return updated, ""
 		case MailboxDraftUnknown:
