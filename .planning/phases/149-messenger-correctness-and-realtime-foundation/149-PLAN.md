@@ -331,7 +331,7 @@ git commit -m "feat(messenger): preserve send nonce across retries"
 - [ ] Commit only after both services PASS; Mongo/NATS integration remains outside Task 4 and is recorded separately as `NOT_RUN` unless a later scoped task adds it.
 
 ```powershell
-git add backend/internal/messenger/events.go backend/internal/messenger/service.go backend/internal/messenger/export_hooks.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_reactions.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/tests/messenger/message_sent_producers_test.go frontend/src/api/messenger.ts frontend/src/hooks/use-messages.ts frontend/tests/messenger/use-messages-cache-events.test.tsx frontend/tests/messenger/reaction-toggled-guard.test.tsx
+git add backend/internal/calls/service_events.go backend/internal/calls/export_hooks.go backend/tests/calls/service_events_test.go backend/internal/messenger/events.go backend/internal/messenger/service.go backend/internal/messenger/export_hooks.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_reactions.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/tests/messenger/message_sent_producers_test.go frontend/src/api/messenger.ts frontend/src/hooks/use-messages.ts frontend/tests/messenger/use-messages-cache-events.test.tsx frontend/tests/messenger/reaction-toggled-guard.test.tsx
 git commit -m "fix(messenger): reconcile realtime message caches"
 ```
 
@@ -348,12 +348,12 @@ git commit -m "fix(messenger): reconcile realtime message caches"
 - Modify: `backend/internal/messenger/service_bot.go`
 - Modify: `backend/internal/messenger/service_polls.go`
 - Modify: `backend/internal/messenger/service_promote.go`
-- Modify: `backend/internal/ws/authorizer.go`
+- Modify: `backend/internal/calls/service_events.go`
 - Modify: `backend/internal/ws/bridge.go`
 - Modify: `backend/internal/ws/hub.go`
 - Modify: `backend/internal/ws/export_hooks.go`
 - Modify: `backend/cmd/server/wiring_ws.go`
-- Modify: `backend/tests/ws/authorizer_test.go`
+- Create: `backend/tests/calls/service_events_test.go`
 - Create: `backend/tests/ws/bridge_user_events_test.go`
 - Create: `backend/tests/ws/bridge_channel_authz_test.go`
 - Create: `backend/tests/messenger/user_channel_events_test.go`
@@ -368,17 +368,17 @@ git commit -m "fix(messenger): reconcile realtime message caches"
 
 - User subjects are exactly `messenger.user.<user-id>.channel_created`, `.channel_updated`, `.channel_removed`, and `.new_message_notification`.
 - Lifecycle payloads are invalidation-only and exactly `{channel_id}`; `new_message_notification` is exactly `{channel_id,message_id}`. They never carry message content, invite tokens, or recipient-local `is_starred`/mute fields.
-- The websocket bridge accepts exactly four dot-separated user-subject segments, validates the UUID and event whitelist, then maps them to room `user:<user-id>` and the suffix event.
+- The websocket bridge accepts exactly four dot-separated user-subject segments, validates the non-nil UUID and event whitelist, and strictly decodes the exact event payload object with non-nil UUID fields and no unknown fields before mapping to room `user:<user-id>` and the suffix event. Empty, null, non-object, malformed, missing, extra, or invalid-ID payloads fail closed.
 - `CanSubscribe` accepts `user:<uuid>` only when the UUID equals the authenticated user; `user:<uuid>:channels`, foreign, nil, and malformed rooms fail closed. Channel authorization remains membership-backed.
 - Every Messenger and Calls channel-scoped delivery re-resolves current channel members through an injected `ChannelMembersResolver` before fanout. `Hub.BroadcastToRoomForUsers` serializes once and delivers only to connections whose authenticated `UserID` is in the resolved set. Malformed IDs, nil resolver, timeout, or repository error drop the event for everyone.
-- A lost best-effort `channel_removed` event cannot authorize later channel delivery; it is a UI invalidation signal, not the security boundary. The delivery check is fail-closed but not globally linearizable with concurrent removal: an event already authorized/in flight before removal may arrive. Transactional outbox/ACL versioning is outside Task 5 and remains explicit later hardening work.
+- Calls channel lifecycle publishers emit nothing for nil or zero channel IDs; the obsolete `calls.channel.instant.*` token is never published and is rejected before membership lookup by the bridge. The delivery check is fail-closed but not globally linearizable with concurrent removal: an event already authorized/in flight before removal may arrive. Transactional outbox/ACL versioning is outside Task 5 and remains explicit later hardening work.
 - Create targets all successfully persisted members; update targets current members; delete snapshots recipients before mutation; join and accepted invite target only the newly added user; leave targets only the removed user. Publication happens only after mutation succeeds.
 - Normal, forward, bot, poll-message, and promoted-message producers notify current members other than the canonical sender. An idempotent nonce retry publishes nothing.
 - Every lifecycle/notification event invalidates exactly `CHANNELS_QUERY_KEY`; the client never patches the channel list or performs duplicate-sensitive local unread arithmetic. On reconnect it subscribes to `user:<id>` first and then invalidates; initial connect only subscribes.
 
 - [ ] **Step 1: Batch genuine failing backend and frontend tests**
 
-Backend authorizer tests cover own user PASS, foreign user DENY, malformed UUID DENY, `user:<id>:channels` DENY, accessible channel PASS, and inaccessible private channel DENY. Messenger tests cover channel create/update/delete/join/leave, `AcceptInvite`, and all five canonical message-producing paths with exact subjects, recipient sets, invalidation-only payloads, post-success publication, sender exclusion, and retry suppression. Bridge tests exercise exact user-subject routing and malformed drops; active/former already-subscribed clients for both Messenger and Calls; resolver error/timeout drops for all; and a missed removal event cannot leak the next channel event. Frontend tests assert exact `user:<id>`, all four invalidations, duplicate notification harmlessness, no local unread arithmetic, and subscribe-before-invalidate reconnect ordering without initial redundant invalidation.
+Backend authorizer tests cover own user PASS, foreign user DENY, malformed UUID DENY, `user:<id>:channels` DENY, accessible channel PASS, and inaccessible private channel DENY. Messenger tests cover channel create/update/delete/join/leave, `AcceptInvite`, and all five canonical message-producing paths with exact subjects, recipient sets, invalidation-only payloads, post-success publication, sender exclusion, and retry suppression. Bridge tests exercise exact typed user-subject routing and malformed-schema drops; active/former already-subscribed clients for both Messenger and Calls; resolver error/timeout/nil drops for all; strict channel subject grammar including `calls.channel.instant.*`; and a missed removal event cannot leak the next channel event. Calls publisher units prove nil/zero channel IDs emit nothing while valid UUID subjects/payloads remain unchanged. Frontend tests assert exact `user:<id>`, all four invalidations, duplicate notification harmlessness, no local unread arithmetic, and subscribe-before-invalidate reconnect ordering without initial redundant invalidation.
 
 - [ ] **Step 2: Run one low-disk RED gate per stack**
 
@@ -386,7 +386,7 @@ Run `backend-unit` once and `frontend-unit` once after batching their RED oracle
 
 - [ ] **Step 3: Implement the frozen contract in atomic slices**
 
-Implement **5A** typed event/auth contract; **5B** channel lifecycle producers; **5C** accepted-invite producer; **5D** normal/forward notifications; **5E** bot notification; **5F** poll-message notification; **5G** promoted-message notification; **5H** exact user bridge plus shared fail-closed Messenger/Calls channel fanout with a short membership-resolution timeout and a pure/testable subscription-definition seam; **5I** frontend exact subscription and persistence invalidation. Production wiring injects the existing Messenger repository membership query. Do not weaken existing channel/call/project authorization or use source scans as executable coverage.
+Implement **5A** typed event/auth contract; **5B** channel lifecycle producers; **5C** accepted-invite producer; **5D** normal/forward notifications; **5E** bot notification; **5F** poll-message notification; **5G** promoted-message notification; **5H** exact typed user bridge, nil-channel Calls publisher hygiene, and shared fail-closed Messenger/Calls channel fanout with a short membership-resolution timeout and a pure/testable subscription-definition seam; **5I** frontend exact subscription and persistence invalidation. Production wiring injects the existing Messenger repository membership query. Do not weaken existing channel/call/project authorization or use source scans as executable coverage.
 
 - [ ] **Step 4: Run full Phase 149 unit gates and classify integration**
 
@@ -404,7 +404,7 @@ Expected: PASS. Record Mongo, NATS broker, live WebSocket, and deployed runtime 
 Update the websocket subject/security table, lifecycle recipient/payload rules, idempotency/index contract, fail-closed fanout and its in-flight race boundary, Phase-151 unread recovery boundary, reconnect behavior, Task 1-5 receipts, new/legacy test status, and protected scope in `docs/TECHNICAL.md` and `docs/TESTING.md`. Create `149-VERIFICATION.md` with separate static, backend-unit, frontend-unit, and Mongo/NATS/live-WebSocket rows; unavailable executable evidence stays `NOT_RUN`/`PARTIAL`.
 
 ```powershell
-git add backend/internal/messenger/events.go backend/internal/messenger/service_channels.go backend/internal/messenger/service_channel_invites.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/internal/ws/authorizer.go backend/internal/ws/bridge.go backend/internal/ws/hub.go backend/internal/ws/export_hooks.go backend/cmd/server/wiring_ws.go backend/tests/ws/authorizer_test.go backend/tests/ws/bridge_user_events_test.go backend/tests/ws/bridge_channel_authz_test.go backend/tests/messenger/user_channel_events_test.go backend/tests/messenger/message_sent_producers_test.go frontend/src/hooks/use-channels.ts frontend/tests/messenger/use-channels-ws.test.tsx docs/TECHNICAL.md docs/TESTING.md .planning/phases/149-messenger-correctness-and-realtime-foundation/149-VERIFICATION.md
+git add backend/internal/calls/service_events.go backend/internal/calls/export_hooks.go backend/tests/calls/service_events_test.go backend/internal/messenger/events.go backend/internal/messenger/service_channels.go backend/internal/messenger/service_channel_invites.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/internal/ws/authorizer.go backend/internal/ws/bridge.go backend/internal/ws/hub.go backend/internal/ws/export_hooks.go backend/cmd/server/wiring_ws.go backend/tests/ws/authorizer_test.go backend/tests/ws/bridge_user_events_test.go backend/tests/ws/bridge_channel_authz_test.go backend/tests/messenger/user_channel_events_test.go backend/tests/messenger/message_sent_producers_test.go frontend/src/hooks/use-channels.ts frontend/tests/messenger/use-channels-ws.test.tsx docs/TECHNICAL.md docs/TESTING.md .planning/phases/149-messenger-correctness-and-realtime-foundation/149-VERIFICATION.md
 git commit -m "feat(messenger): deliver authorized user channel events"
 ```
 
