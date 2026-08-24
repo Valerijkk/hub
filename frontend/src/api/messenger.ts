@@ -76,6 +76,8 @@ export interface Message {
 	mention_groups?: string[];
 	edited_at?: string;
 	deleted_at?: string;
+	/** Stable client-generated idempotency key for one logical send. */
+	client_nonce?: string;
 	created_at: string;
 }
 
@@ -175,6 +177,8 @@ export interface CreateChannelRequest {
 /** Запрос на отправку сообщения. */
 export interface SendMessageRequest {
 	content_json: Record<string, unknown>;
+	/** Stable client-generated idempotency key for one logical send. */
+	client_nonce?: string;
 	content_text?: string;
 	voice_url?: string;
 	voice_duration_ms?: number;

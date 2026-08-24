@@ -23,7 +23,7 @@
 | Уровень | Инструменты | Расположение | CI job |
 |---------|-------------|--------------|--------|
 | Unit (Backend) | Go testing + testify | genuine product units: `backend/tests/{domain}/` | `backend-unit`: PASS (build/vet/unit/race) |
-| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit`: TypeScript PASS; Vitest 161/161 files, 419/419 tests |
+| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit`: TypeScript PASS; Vitest 162/162 files, 425/425 tests |
 | Framework | pytest | `testframework/selftests/**` | `python-contract`: PASS (182/182 framework selftests; no SUT product tests) |
 | API / integration / E2E | pytest + httpx/Playwright | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
 | Load | Locust | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
@@ -85,12 +85,13 @@ The resolved npm dependency tree and non-overlaid frontend inputs remain image
 owned. An explicit, separately authorized rebuild is required for
 `frontend/package.json`, `frontend/package-lock.json`, or a source change
 outside the two mounted roots; ordinary `src` or `tests` edits do not add
-`--build`. On 2026-08-24, the canonical `frontend-unit` command executed this
-exact overlay with an existing local image (no build, pull, or package install)
-and exited 0. Its receipt records TypeScript `PASS` and Vitest `PASS`: 161
-files / 419 tests in 45.83s. This evidence is limited to this frontend unit
-target and topology; it does not imply a deployed runtime, API/integration, or
-Jitsi result.
+`--build`. On 2026-08-24, the latest canonical `frontend-unit` command
+executed this exact overlay with an existing local image (no build, pull, or
+package install) and exited 0. Its receipt records TypeScript `PASS` and
+Vitest `PASS`: 162 files / 425 tests in 45.30s; Vitest JSON records 340/340
+suites. This supersedes the earlier pre-Task3 receipt of 161 files / 419 tests
+in 45.83s. This evidence is limited to this frontend unit target and topology;
+it does not imply a deployed runtime, API/integration, or Jitsi result.
 
 ### `python-contract`: current-framework source profile
 
@@ -214,6 +215,12 @@ QA services disposable, а integration/e2e используют изолиров
 - The payload table covers deterministic JSON number serialization, attachment order and fields, voice URL/duration, semantic mention and mention-group set normalization, and nil-versus-empty collection compatibility. It also proves that authorization occurs before nonce-derived canonical content is returned.
 - Fresh canonical Docker `backend-unit` evidence is `PASS` for build, vet, unit, and race (`result.json`: `first_exit:0`; aggregate receipt `2026-08-24T18:11:52.4071814Z`). It covers both Task 1 thread-parent and all Task 2C service units.
 - Unit assertions observe only the accepted repository mock seams (canonical map, create counter, reply count). NATS/unread are not instrumented as fake runtime evidence; MongoDB index/upsert concurrency and startup-process behavior remain `NOT_RUN` pending phase-owned integration/process coverage.
+
+##### Phase 149 Task 3: composer nonce retry lifecycle
+
+- `frontend/tests/messenger/message-composer-retry-nonce.test.tsx` covers optional nonce API types, one immutable text/attachment, GIF, sticker, or voice snapshot per logical submit, same-nonce retry, new-draft preservation, cancel/new-nonce behavior, and owned-toast cleanup on unmount.
+- The test observes one persistent, non-dismissible retry toast per failed snapshot, optimistic text and attachment clearing, retry success invalidation and owned-toast dismissal. It does not claim persisted outbox, reload/offline/reconnect replay, or a runtime delivery guarantee.
+- Canonical Docker `frontend-unit` RED evidence was captured before this implementation. Final Task 3 Docker GREEN is `PASS`: `first_exit:0`, TypeScript `PASS`/exit 0, Vitest `PASS`/exit 0, stdout 162/162 files and 425/425 tests in 45.30s; Vitest JSON records 340/340 suites and 425/425 tests. This remains unit-target evidence only, not browser E2E, Mongo/integration, persisted outbox, reload/offline/reconnect replay, or a runtime-delivery guarantee.
 
 #### TMS
 

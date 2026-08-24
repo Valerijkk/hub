@@ -1,6 +1,17 @@
-import { type KeyboardEvent, useCallback, useRef, useState } from "react";
+import {
+	type KeyboardEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import { toast } from "sonner";
 import { uploadFile } from "@/api/files";
-import { sendMessage, sendTypingIndicator } from "@/api/messenger";
+import {
+	type SendMessageRequest,
+	sendMessage,
+	sendTypingIndicator,
+} from "@/api/messenger";
 import {
 	Popover,
 	PopoverContent,
@@ -12,7 +23,7 @@ import {
 	canSuggestComposer,
 	fetchComposerSuggestion,
 } from "@/lib/composer-ai-suggest";
-import { toastApiError } from "@/lib/format-api-error";
+import { formatApiError, toastApiError } from "@/lib/format-api-error";
 import { type PlateDoc, plateDocToContentJson } from "@/lib/plate-doc";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
@@ -133,6 +144,19 @@ interface PendingAttachment {
 	fileSize: number;
 }
 
+interface MessageSendSnapshot {
+	nonce: string;
+	channelId: string;
+	threadId?: string;
+	payload: Readonly<SendMessageRequest>;
+}
+
+interface PendingMessageSend {
+	snapshot: MessageSendSnapshot;
+	failureMessage: string;
+	toastId?: string | number;
+}
+
 /** Пропсы компонента MessageComposer. */
 interface MessageComposerProps {
 	/** ID канала для отправки сообщения. */
@@ -204,6 +228,8 @@ export function MessageComposer({
 	const invalidateMessages = useInvalidateMessages(channelId);
 	const [text, setText] = useState("");
 	const [isSending, setIsSending] = useState(false);
+	const pendingSendsRef = useRef(new Map<string, PendingMessageSend>());
+	const activeInitialNonceRef = useRef<string | null>(null);
 	const [showVoice, setShowVoice] = useState(false);
 	const [emojiOpen, setEmojiOpen] = useState(false);
 	const [pendingAttachments, setPendingAttachments] = useState<
@@ -230,6 +256,123 @@ export function MessageComposer({
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
 	/** threadId из панели треда или id сообщения при «Ответить». */
 	const effectiveThreadId = threadId ?? replyToMessage?.id;
+
+	const discardPendingSend = useCallback((pending: PendingMessageSend) => {
+		if (
+			pendingSendsRef.current.get(pending.snapshot.nonce) !== pending
+		) {
+			return;
+		}
+		pendingSendsRef.current.delete(pending.snapshot.nonce);
+		if (pending.toastId !== undefined) {
+			toast.dismiss(pending.toastId);
+		}
+	}, []);
+
+	useEffect(
+		() => () => {
+			for (const pending of pendingSendsRef.current.values()) {
+				if (pending.toastId !== undefined) {
+					toast.dismiss(pending.toastId);
+				}
+			}
+			pendingSendsRef.current.clear();
+			activeInitialNonceRef.current = null;
+			setIsSending(false);
+		},
+		[channelId],
+	);
+
+	const attemptPendingSend = useCallback(
+		async (pending: PendingMessageSend, isInitialAttempt: boolean) => {
+			if (
+				pendingSendsRef.current.get(pending.snapshot.nonce) !== pending
+			) {
+				return;
+			}
+			if (isInitialAttempt) {
+				activeInitialNonceRef.current = pending.snapshot.nonce;
+				setIsSending(true);
+			}
+
+			try {
+				await sendMessage(pending.snapshot.channelId, pending.snapshot.payload);
+				if (
+					pendingSendsRef.current.get(pending.snapshot.nonce) !== pending
+				) {
+					return;
+				}
+				invalidateMessages();
+				discardPendingSend(pending);
+			} catch (err) {
+				if (
+					pendingSendsRef.current.get(pending.snapshot.nonce) !== pending ||
+					pending.toastId !== undefined
+				) {
+					return;
+				}
+				pending.toastId = toast.error(pending.failureMessage, {
+					description: formatApiError(err),
+					duration: Number.POSITIVE_INFINITY,
+					dismissible: false,
+					action: {
+						label: "Повторить",
+						onClick: () => {
+							const current = pendingSendsRef.current.get(
+								pending.snapshot.nonce,
+							);
+							if (current === pending) {
+								void attemptPendingSend(current, false);
+							}
+						},
+					},
+					cancel: {
+						label: "Отменить отправку",
+						onClick: () => discardPendingSend(pending),
+					},
+				});
+			} finally {
+				if (
+					isInitialAttempt &&
+					activeInitialNonceRef.current === pending.snapshot.nonce
+				) {
+					activeInitialNonceRef.current = null;
+					setIsSending(false);
+				}
+			}
+		},
+		[discardPendingSend, invalidateMessages],
+	);
+
+	const startLogicalSend = useCallback(
+		(
+			payload: Omit<SendMessageRequest, "client_nonce" | "thread_id">,
+			failureMessage: string,
+		) => {
+			const nonce = crypto.randomUUID();
+			const snapshot: MessageSendSnapshot = Object.freeze({
+				nonce,
+				channelId,
+				threadId: effectiveThreadId,
+				payload: Object.freeze({
+					...payload,
+					thread_id: effectiveThreadId,
+					attachment_ids: payload.attachment_ids
+						? [...payload.attachment_ids]
+						: undefined,
+					mentions: payload.mentions ? [...payload.mentions] : undefined,
+					mention_groups: payload.mention_groups
+						? [...payload.mention_groups]
+						: undefined,
+					client_nonce: nonce,
+				}),
+			});
+			const pending: PendingMessageSend = { snapshot, failureMessage };
+			pendingSendsRef.current.set(nonce, pending);
+			void attemptPendingSend(pending, true);
+		},
+		[attemptPendingSend, channelId, effectiveThreadId],
+	);
 
 	/** Время последней отправки typing-индикатора (троттлинг 3 сек). */
 	const lastTypingSentRef = useRef(0);
@@ -308,51 +451,44 @@ export function MessageComposer({
 	}, []);
 
 	/** Отправка текстового сообщения. */
-	const handleSend = useCallback(async () => {
+	const handleSend = useCallback(() => {
+		if (isUploading) return;
 		const trimmed = text.trim();
 		if (!trimmed && pendingAttachments.length === 0) return;
 
-		setIsSending(true);
-		try {
-			const contentJson = plateDocToContentJson(
-				trimmed
-					? textToPlateJson(trimmed)
-					: {
-							type: "doc",
-							children: [{ type: "p", children: [{ text: "" }] }],
-						},
-			);
-
-			await sendMessage(channelId, {
+		const contentJson = plateDocToContentJson(
+			trimmed
+				? textToPlateJson(trimmed)
+				: {
+						type: "doc",
+						children: [{ type: "p", children: [{ text: "" }] }],
+					},
+		);
+		startLogicalSend(
+			{
 				content_json: contentJson,
 				content_text: trimmed || undefined,
-				thread_id: effectiveThreadId,
 				attachment_ids:
 					pendingAttachments.length > 0
 						? pendingAttachments.map((a) => a.fileId)
 						: undefined,
 				mentions: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
-			});
-			invalidateMessages();
-			setText("");
-			setPendingAttachments([]);
-			setMentionedUserIds([]);
-			setReplyTo(null);
-			if (textareaRef.current) {
-				textareaRef.current.style.height = "auto";
-			}
-		} catch (err) {
-			toastApiError(err, "Не удалось отправить сообщение");
-		} finally {
-			setIsSending(false);
+			},
+			"Не удалось отправить сообщение",
+		);
+		setText("");
+		setPendingAttachments([]);
+		setMentionedUserIds([]);
+		setReplyTo(null);
+		if (textareaRef.current) {
+			textareaRef.current.style.height = "auto";
 		}
 	}, [
-		channelId,
-		effectiveThreadId,
+		isUploading,
 		text,
 		pendingAttachments,
 		mentionedUserIds,
-		invalidateMessages,
+		startLogicalSend,
 		setReplyTo,
 	]);
 
@@ -411,12 +547,19 @@ export function MessageComposer({
 				return;
 			}
 
-			if (e.key === "Enter" && !e.shiftKey) {
+			if (e.key === "Enter" && !e.shiftKey && !isUploading) {
 				e.preventDefault();
 				void handleSend();
 			}
 		},
-		[text, channelId, aiSuggestion, aiSuggestionFor, handleSend],
+		[
+			text,
+			channelId,
+			aiSuggestion,
+			aiSuggestionFor,
+			handleSend,
+			isUploading,
+		],
 	);
 
 	/** Автоматическая подгонка высоты textarea (макс 200px). */
@@ -447,74 +590,61 @@ export function MessageComposer({
 
 	/** Отправка GIF. */
 	const handleGifSend = useCallback(
-		async (gifUrl: string) => {
-			try {
-				const contentJson = plateDocToContentJson({
-					type: "doc",
-					children: [
-						{
-							type: "p",
-							children: [
-								{
-									type: "a",
-									url: gifUrl,
-									children: [{ text: gifUrl }],
-								},
-							],
-						},
-					],
-				});
-				await sendMessage(channelId, {
-					content_json: contentJson,
-					content_text: gifUrl,
-					thread_id: effectiveThreadId,
-				});
-				invalidateMessages();
-			} catch (err) {
-				toastApiError(err, "Не удалось отправить GIF");
-			}
+		(gifUrl: string) => {
+			const contentJson = plateDocToContentJson({
+				type: "doc",
+				children: [
+					{
+						type: "p",
+						children: [
+							{
+								type: "a",
+								url: gifUrl,
+								children: [{ text: gifUrl }],
+							},
+						],
+					},
+				],
+			});
+			startLogicalSend(
+				{ content_json: contentJson, content_text: gifUrl },
+				"Не удалось отправить GIF",
+			);
 		},
-		[channelId, effectiveThreadId, invalidateMessages],
+		[startLogicalSend],
 	);
 
 	/** Отправка стикера. */
 	const handleStickerSend = useCallback(
-		async (sticker: StickerData) => {
-			try {
-				const contentJson = buildStickerContentJson(sticker);
-				await sendMessage(channelId, {
-					content_json: contentJson,
+		(sticker: StickerData) => {
+			startLogicalSend(
+				{
+					content_json: buildStickerContentJson(sticker),
 					content_text: `[sticker: ${sticker.label}]`,
-					thread_id: effectiveThreadId,
-				});
-				invalidateMessages();
-			} catch (err) {
-				toastApiError(err, "Не удалось отправить стикер");
-			}
+				},
+				"Не удалось отправить стикер",
+			);
 		},
-		[channelId, effectiveThreadId, invalidateMessages],
+		[startLogicalSend],
 	);
 
 	/** Отправка голосового сообщения. */
 	const handleVoiceSend = useCallback(
-		async (voiceUrl: string, durationMs: number) => {
-			try {
-				await sendMessage(channelId, {
+		(voiceUrl: string, durationMs: number) => {
+			startLogicalSend(
+				{
 					content_json: {
 						type: "doc",
 						children: [{ type: "p", children: [{ text: "" }] }],
 					},
 					voice_url: voiceUrl,
 					voice_duration_ms: durationMs,
-					thread_id: effectiveThreadId,
-				});
-				invalidateMessages();
-			} catch (err) {
-				toastApiError(err, "Не удалось отправить голосовое сообщение");
-			}
+				},
+				"Не удалось отправить голосовое сообщение",
+			);
 			setShowVoice(false);
 		},
-		[channelId, effectiveThreadId, invalidateMessages],
+		[startLogicalSend],
 	);
 
 	const hasContent = text.trim().length > 0 || pendingAttachments.length > 0;
@@ -789,7 +919,7 @@ export function MessageComposer({
 								: "bg-[var(--input)] text-[var(--t4)]",
 						)}
 						onClick={() => void handleSend()}
-						disabled={isSending || !hasContent}
+						disabled={isSending || isUploading || !hasContent}
 						title="Отправить"
 						aria-label="Отправить сообщение"
 					>

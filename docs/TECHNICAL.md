@@ -13,7 +13,7 @@
 | Target | Authority | Current status |
 |-----|-------------------|---|
 | `backend-unit` | root Compose exact service | PASS: build/vet/unit/race |
-| `frontend-unit` | root Compose exact service | PASS: 338/338 suites, 419/419 tests |
+| `frontend-unit` | root Compose exact service | PASS: 340/340 suites, 425/425 tests |
 | python-contract | root Compose exact service | PASS: 181/181 framework selftests |
 | Python API/integration/E2E/load | root Compose exact services | NOT_RUN; outside minimal merge gate |
 
@@ -1267,6 +1267,13 @@ backend/internal/
 - Every request, including the empty-nonce transition path, calls `CreateMessageIdempotent` after parent validation when no canonical nonce record exists. The service validates the returned canonical message for both `Created` outcomes and accepts reply/unread/mention/NATS/hook side effects only for `Created=true` with a live compatible canonical record.
 - The compatibility fingerprint compares channel, thread root, text, deterministic `encoding/json` bytes, ordered full attachment records, semantic mention and mention-group sets, and voice URL/duration. Events and responses use only persisted canonical fields.
 - Task 2C does not add a fake NATS or unread runtime claim: those external best-effort boundaries remain observable through code placement and repository-side service units. MongoDB index/upsert concurrency and startup-process behavior remain `NOT_RUN` until phase-owned integration coverage exists.
+
+#### Composer nonce retry lifecycle (Phase 149 Task 3)
+
+- `SendMessageRequest` and `Message` carry optional `client_nonce`. The composer generates one UUID only at a logical text/attachment, GIF, sticker, or voice submit boundary, captures the channel, effective thread root, and immutable request snapshot in component memory, then reuses that exact snapshot for retry.
+- Text-route state (text, attachments, mentions, reply target, and textarea height) clears optimistically only when its initial snapshot is created. A retry never writes editor state, so it cannot overwrite a newer draft; voice closes at its logical submit boundary.
+- One failed snapshot owns one persistent Sonner error toast (`duration: Infinity`, non-dismissible) with `Повторить` and `Отменить отправку`. Success invalidates messages and removes only its owned snapshot/toast; cancel removes it without another request. Unmount or channel-route change dismisses all composer-owned toasts and clears pending snapshots, so a late response cannot create a retry prompt.
+- This is in-memory retry assistance only: persisted outbox, reload replay, offline queue, and reconnect replay are `NOT_RUN`/not implemented by Task 3. Upload failures remain on the existing API-error toast path.
 
 ### TMS (47 эндпоинтов)
 
