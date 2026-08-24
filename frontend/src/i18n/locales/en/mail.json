@@ -212,6 +212,22 @@
 			"retry": "Retry reply",
 			"retryWait": "Retry in {{seconds}} s"
 		},
+		"draftActions": {
+			"label": "Reply or forward",
+			"identity": "From",
+			"identityLoading": "Loading sender…",
+			"identityUnavailable": "No sending address is available.",
+			"reply": "Reply",
+			"forward": "Forward",
+			"creatingReply": "Creating reply…",
+			"creatingForward": "Creating forward…",
+			"busy": "Mail is temporarily busy. Retry {{action}} in {{seconds}} s.",
+			"conflict": "{{action}} cannot be repeated safely. Start it again.",
+			"unavailable": "{{action}} is unavailable right now.",
+			"unknown": "The {{action}} result is unknown. Do not retry automatically.",
+			"retry": "Retry {{action}}",
+			"retryWait": "Retry {{action}} in {{seconds}} s"
+		},
 		"actions": {
 			"label": "Message actions",
 			"markRead": "Mark read",

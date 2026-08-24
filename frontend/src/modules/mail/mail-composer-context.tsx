@@ -3,7 +3,7 @@ import type { MailDraft } from "@/api/mail";
 
 interface MailComposerContextValue {
 	readonly isComposerOpen: boolean;
-	openReplyDraft: (draft: MailDraft) => void;
+	openLinkedDraft: (draft: MailDraft) => void;
 }
 
 export const MailComposerContext =

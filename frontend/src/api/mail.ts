@@ -587,14 +587,25 @@ export async function getAllMailIdentities(
 	throw new Error("Mail identity pagination exceeded bounds");
 }
 
+export type MailLinkedDraftKind = "reply" | "forward";
+
 export interface MailReplyDraftIntent {
+	readonly kind: "reply";
 	readonly sourceMessageID: string;
 	readonly draftClientID: string;
 	readonly fromIdentityID: string;
 	readonly idempotencyKey: string;
 }
 
-function createMailReplyDraftUUID(): string {
+export interface MailForwardDraftIntent {
+	readonly kind: "forward";
+	readonly sourceMessageID: string;
+	readonly draftClientID: string;
+	readonly fromIdentityID: string;
+	readonly idempotencyKey: string;
+}
+
+function createMailLinkedDraftUUID(): string {
 	const value = globalThis.crypto?.randomUUID?.();
 	if (typeof value !== "string" || !MAIL_UUID_V4_PATTERN.test(value)) {
 		throw new Error("Unable to create mail reply draft intent");
@@ -611,10 +622,11 @@ export function createMailReplyDraftIntent(
 		throw new Error("Invalid mail identity ID");
 	}
 	return Object.freeze({
+		kind: "reply" as const,
 		sourceMessageID: normalizeMailMessageID(sourceMessageID),
-		draftClientID: createMailReplyDraftUUID(),
+		draftClientID: createMailLinkedDraftUUID(),
 		fromIdentityID: normalizedFromIdentityID,
-		idempotencyKey: createMailReplyDraftUUID(),
+		idempotencyKey: createMailLinkedDraftUUID(),
 	});
 }
 
@@ -640,6 +652,10 @@ function mailReplyDraftAddresses(value: unknown): value is MailAddress[] {
 		value.length <= 100 &&
 		value.every(mailReplyDraftAddress)
 	);
+}
+
+function mailReplyDraftAddressesEmpty(value: unknown): boolean {
+	return mailReplyDraftAddresses(value) && value.length === 0;
 }
 
 function mailReplyDraftResponseMatches(
@@ -683,6 +699,9 @@ function mailReplyDraftResponseMatches(
 export async function createMailReplyDraft(
 	intent: MailReplyDraftIntent,
 ): Promise<MailDraft> {
+	if (intent.kind !== "reply") {
+		throw new Error("Invalid mail reply draft intent");
+	}
 	const response = await api.postWithResponse<unknown>(
 		`/mail/messages/${encodeURIComponent(intent.sourceMessageID)}/reply-draft`,
 		{
@@ -696,6 +715,84 @@ export async function createMailReplyDraft(
 		!mailReplyDraftResponseMatches(response.data, intent)
 	) {
 		throw new Error("Invalid mail reply draft response");
+	}
+	return response.data;
+}
+
+export function createMailForwardDraftIntent(
+	sourceMessageID: string,
+	fromIdentityID: string,
+): MailForwardDraftIntent {
+	const normalizedFromIdentityID = normalizeMailUUID(fromIdentityID);
+	if (normalizedFromIdentityID === null) {
+		throw new Error("Invalid mail identity ID");
+	}
+	return Object.freeze({
+		kind: "forward" as const,
+		sourceMessageID: normalizeMailMessageID(sourceMessageID),
+		draftClientID: createMailLinkedDraftUUID(),
+		fromIdentityID: normalizedFromIdentityID,
+		idempotencyKey: createMailLinkedDraftUUID(),
+	});
+}
+
+function mailForwardDraftResponseMatches(
+	value: unknown,
+	intent: MailForwardDraftIntent,
+): value is MailDraft {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) {
+		return false;
+	}
+	const candidate = value as Record<string, unknown>;
+	const sameUUID = (actual: unknown, expected: string) =>
+		typeof actual === "string" && normalizeMailUUID(actual) === expected;
+	return (
+		typeof candidate.id === "string" &&
+		normalizeMailUUID(candidate.id) !== null &&
+		sameUUID(candidate.draft_client_id, intent.draftClientID) &&
+		sameUUID(candidate.from_identity_id, intent.fromIdentityID) &&
+		candidate.reply_to_message_id === null &&
+		sameUUID(candidate.forward_message_id, intent.sourceMessageID) &&
+		candidate.status === "active" &&
+		typeof candidate.revision === "number" &&
+		Number.isSafeInteger(candidate.revision) &&
+		candidate.revision >= 1 &&
+		candidate.body_format === "plain" &&
+		candidate.rich_body === null &&
+		mailReplyDraftString(candidate.subject) &&
+		mailReplyDraftString(candidate.plain_body) &&
+		(candidate.priority === "low" ||
+			candidate.priority === "normal" ||
+			candidate.priority === "high") &&
+		mailReplyDraftAddressesEmpty(candidate.to) &&
+		mailReplyDraftAddressesEmpty(candidate.cc) &&
+		mailReplyDraftAddressesEmpty(candidate.bcc) &&
+		Array.isArray(candidate.attachment_ids) &&
+		candidate.attachment_ids.length === 0 &&
+		typeof candidate.updated_at === "string" &&
+		Number.isFinite(new Date(candidate.updated_at).getTime())
+	);
+}
+
+export async function createMailForwardDraft(
+	intent: MailForwardDraftIntent,
+): Promise<MailDraft> {
+	if (intent.kind !== "forward") {
+		throw new Error("Invalid mail forward draft intent");
+	}
+	const response = await api.postWithResponse<unknown>(
+		`/mail/messages/${encodeURIComponent(intent.sourceMessageID)}/forward-draft`,
+		{
+			draft_client_id: intent.draftClientID,
+			from_identity_id: intent.fromIdentityID,
+		},
+		{ idempotencyKey: intent.idempotencyKey },
+	);
+	if (
+		response.status !== 201 ||
+		!mailForwardDraftResponseMatches(response.data, intent)
+	) {
+		throw new Error("Invalid mail forward draft response");
 	}
 	return response.data;
 }

@@ -128,7 +128,7 @@ export function MailShell({ children }: MailShellProps) {
 		setComposerDraft(null);
 		setComposerOpen(true);
 	}, []);
-	const openReplyDraft = useCallback((draft: MailDraft) => {
+	const openLinkedDraft = useCallback((draft: MailDraft) => {
 		setComposerDraft(draft);
 		setComposerOpen(true);
 	}, []);
@@ -141,9 +141,9 @@ export function MailShell({ children }: MailShellProps) {
 	const composerContext = useMemo(
 		() => ({
 			isComposerOpen: composerOpen,
-			openReplyDraft,
+			openLinkedDraft,
 		}),
-		[composerOpen, openReplyDraft],
+		[composerOpen, openLinkedDraft],
 	);
 
 	useEffect(() => {

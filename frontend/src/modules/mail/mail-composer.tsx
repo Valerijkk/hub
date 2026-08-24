@@ -421,9 +421,7 @@ function isAuthoritativeSendFailure(error: unknown): boolean {
 function draftRequestFromServer(draft: MailDraft): SaveMailDraftRequest {
 	if (
 		draft.status !== "active" ||
-		draft.body_format !== "plain" ||
-		draft.forward_message_id !== undefined &&
-		draft.forward_message_id !== null
+		draft.body_format !== "plain"
 	) {
 		throw new ComposerValidationError("compose.errors.conflict");
 	}
@@ -484,7 +482,7 @@ export function MailComposer({
 	const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
 	const [submissionIntent, setSubmissionIntent] = useState<SubmissionIntent | null>(null);
 	const [recoveryRequired, setRecoveryRequired] = useState(false);
-	const [isLinkedReply, setIsLinkedReply] = useState(false);
+	const [isLinkedDraft, setIsLinkedDraft] = useState(false);
 	const sessionRef = useRef<ComposerSession>(initialSession);
 	const formRef = useRef(form);
 	const attachmentsRef = useRef(attachments);
@@ -501,7 +499,7 @@ export function MailComposer({
 	const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const bootstrapDraftKeyRef = useRef<string | null>(null);
-	const linkedReplyRef = useRef(false);
+	const linkedDraftRef = useRef(false);
 
 	const identitiesQuery = useQuery({
 		queryKey: ["mail", "identities"],
@@ -566,8 +564,8 @@ export function MailComposer({
 		serverSnapshotRef.current = null;
 		uploadQueueRef.current = Promise.resolve();
 		saveRecoveryBlockedRef.current = false;
-		linkedReplyRef.current = false;
-		setIsLinkedReply(false);
+		linkedDraftRef.current = false;
+		setIsLinkedDraft(false);
 		replaceForm(emptyForm());
 		replaceAttachments([]);
 		setShowCc(false);
@@ -595,9 +593,10 @@ export function MailComposer({
 		const bootstrapKey = `${bootstrapDraft.id}:${bootstrapDraft.revision}:${bootstrapDraft.updated_at}`;
 		if (bootstrapDraftKeyRef.current === bootstrapKey) return;
 		try {
+			const hasReplyLink = bootstrapDraft.reply_to_message_id != null;
+			const hasForwardLink = bootstrapDraft.forward_message_id != null;
 			if (
-				bootstrapDraft.reply_to_message_id == null ||
-				bootstrapDraft.forward_message_id != null ||
+				hasReplyLink === hasForwardLink ||
 				bootstrapDraft.attachment_ids.length !== 0
 			) {
 				throw new ComposerValidationError("compose.errors.conflict");
@@ -619,8 +618,8 @@ export function MailComposer({
 			replaceSubmissionIntent(null);
 			replaceForm(composerFormFromDraft(bootstrapDraft));
 			replaceAttachments([]);
-			linkedReplyRef.current = true;
-			setIsLinkedReply(true);
+			linkedDraftRef.current = true;
+			setIsLinkedDraft(true);
 			setShowCc(bootstrapDraft.cc.length > 0);
 			setShowBcc(bootstrapDraft.bcc.length > 0);
 			identityIdRef.current = bootstrapDraft.from_identity_id;
@@ -631,8 +630,8 @@ export function MailComposer({
 			setErrorKey(null);
 			bootstrapDraftKeyRef.current = bootstrapKey;
 		} catch (error) {
-			linkedReplyRef.current = false;
-			setIsLinkedReply(false);
+			linkedDraftRef.current = false;
+			setIsLinkedDraft(false);
 			setSaveState("error");
 			setErrorKey(
 				error instanceof ComposerValidationError
@@ -987,7 +986,7 @@ export function MailComposer({
 
 	const uploadAttachment = useCallback(
 		async (item: ComposerAttachment) => {
-			if (linkedReplyRef.current) return;
+			if (linkedDraftRef.current) return;
 			const session = sessionRef.current;
 			if (session.controller.signal.aborted) return;
 			updateAttachment(item.localId, { state: "uploading" });
@@ -1061,7 +1060,7 @@ export function MailComposer({
 
 	const enqueueUpload = useCallback(
 		(item: ComposerAttachment) => {
-			if (linkedReplyRef.current) return;
+			if (linkedDraftRef.current) return;
 			const task = () => uploadAttachment(item);
 			uploadQueueRef.current = uploadQueueRef.current.then(task, task);
 		},
@@ -1069,7 +1068,7 @@ export function MailComposer({
 	);
 
 	const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
-		if (linkedReplyRef.current || isInteractionLocked) {
+		if (linkedDraftRef.current || isInteractionLocked) {
 			event.target.value = "";
 			return;
 		}
@@ -1179,7 +1178,7 @@ export function MailComposer({
 	};
 
 	const retryAttachment = (item: ComposerAttachment) => {
-		if (linkedReplyRef.current || isInteractionLocked || item.state !== "failed") return;
+		if (linkedDraftRef.current || isInteractionLocked || item.state !== "failed") return;
 		enqueueUpload(item);
 	};
 
@@ -1688,7 +1687,7 @@ export function MailComposer({
 							className="min-h-[260px] resize-none border-0 bg-transparent px-0 shadow-none focus-visible:scale-100 focus-visible:shadow-none"
 						/>
 					</div>
-					{!isLinkedReply && attachments.length > 0 ? (
+					{!isLinkedDraft && attachments.length > 0 ? (
 						<ul
 							className="space-y-2 border-t border-b1 px-5 py-3"
 							aria-label={t("compose.attachments")}
@@ -1772,7 +1771,7 @@ export function MailComposer({
 						multiple
 						className="sr-only"
 						onChange={handleFiles}
-						disabled={isLinkedReply || isInteractionLocked}
+						disabled={isLinkedDraft || isInteractionLocked}
 						aria-label={t("compose.attach")}
 					/>
 					<Button
@@ -1780,7 +1779,7 @@ export function MailComposer({
 						variant="ghost"
 						onClick={() => fileInputRef.current?.click()}
 						disabled={
-							isLinkedReply ||
+							isLinkedDraft ||
 							attachments.length >= MAX_ATTACHMENTS ||
 							isInteractionLocked
 						}
