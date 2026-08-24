@@ -37,7 +37,7 @@ func NewMailboxEntDraftAttachmentMaterializer(repository *MailboxEntRepository, 
 }
 
 // MaterializeMailboxDraftAttachments returns a sealed capability for the exact
-// pending create/import or save graph. Attachmentless graphs deliberately
+// pending create/upload or save graph. Attachmentless graphs deliberately
 // retain no capability and therefore do not open storage.
 func (materializer *MailboxEntDraftAttachmentMaterializer) MaterializeMailboxDraftAttachments(ctx context.Context, request mailboxDraftAttachmentMaterializationRequest) (mailboxDraftAttachmentMaterializationResult, error) {
 	if materializer == nil || materializer.repository == nil || materializer.repository.client == nil || mailboxDraftAttachmentMaterializerDependencyNil(materializer.objectStore) || ctx == nil || !mailboxDraftAttachmentMaterializationRequestValid(request) {
@@ -218,7 +218,7 @@ func mailboxEntDraftAttachmentMaterializerRecordMatches(record MailboxDraftRecor
 	}
 	switch request.WorkKind {
 	case MailboxDraftWorkCreate:
-		return record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationCreate && record.PendingCreateAttachmentPhase != nil && *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseImport && record.PendingSave == nil && mailboxEntDraftEffectiveStatesEqual(record.Confirmed, request.EffectiveState)
+		return record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationCreate && record.PendingCreateAttachmentPhase != nil && *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload && record.PendingSave == nil && mailboxEntDraftEffectiveStatesEqual(record.Confirmed, request.EffectiveState)
 	case MailboxDraftWorkSave:
 		return record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationSave && record.PendingCreateAttachmentPhase == nil && record.PendingSave != nil && mailboxEntDraftEffectiveStatesEqual(record.PendingSave.EffectiveState, request.EffectiveState)
 	default:
