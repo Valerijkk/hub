@@ -221,7 +221,10 @@ function MessageCard({ message, expanded, onToggle }: MessageCardProps) {
 				) : null}
 				{calendarEventID ? (
 					<Button asChild variant="outline" className="min-h-11">
-						<Link to="/calendar">
+						<Link
+							to="/calendar/events/$eventId"
+							params={{ eventId: calendarEventID }}
+						>
 							<CalendarDays aria-hidden="true" className="h-4 w-4" />
 							{t("reader.body.openCalendar")}
 						</Link>

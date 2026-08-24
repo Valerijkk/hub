@@ -114,6 +114,9 @@ export async function downloadCalendarExport(
 }
 
 export type CalendarEventAttendeeRole = "required" | "optional";
+export type CalendarEventReadAttendeeRole =
+	| CalendarEventAttendeeRole
+	| "organizer";
 export type CalendarEventRSVPStatus =
 	| "needs_action"
 	| "accepted"
@@ -147,6 +150,16 @@ export interface CalendarEventAttendeeResponse {
 	responded_at: string | null;
 	version: number;
 	reply_delivery_status: CalendarEventReplyDeliveryStatus;
+}
+
+export interface CalendarEventReadAttendee {
+	id: string;
+	user_id: string | null;
+	email: string;
+	role: CalendarEventReadAttendeeRole;
+	rsvp_status: CalendarEventRSVPStatus;
+	version: number;
+	responded_at: string | null;
 }
 
 interface CalendarEventCreateRequestBase {
@@ -287,6 +300,42 @@ export type CalendarEventChangedField =
 	| "attendees";
 export type CalendarEventStatus = "confirmed" | "tentative" | "cancelled";
 
+interface CalendarEventDetailBase {
+	id: string;
+	title: string;
+	description: string;
+	location: string;
+	timezone: string;
+	rrule: string | null;
+	exdates: string[];
+	sequence: number;
+	status: CalendarEventStatus;
+	version: number;
+	organizer_id: string | null;
+	organizer_email: string;
+	attendees: CalendarEventReadAttendee[];
+	viewer_attendee: CalendarEventReadAttendee | null;
+	can_rsvp: boolean;
+}
+
+export type CalendarEventDetail = CalendarEventDetailBase &
+	(
+		| {
+				all_day: false;
+				starts_at: string;
+				ends_at: string;
+				start_date: null;
+				end_date_exclusive: null;
+		  }
+		| {
+				all_day: true;
+				starts_at: null;
+				ends_at: null;
+				start_date: string;
+				end_date_exclusive: string;
+		  }
+	);
+
 export interface CalendarEventMutationResult {
 	event_id: string;
 	version: number;
@@ -324,6 +373,24 @@ export type CalendarEventUpdateOptions = CalendarVersionRequestOptions & {
 
 function calendarEventPath(eventId: string): string {
 	return `/calendar/v2/events/${encodeURIComponent(eventId)}`;
+}
+
+const CALENDAR_EVENT_ID_PATTERN =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const CALENDAR_NIL_EVENT_ID = "00000000-0000-0000-0000-000000000000";
+
+export function isCanonicalCalendarEventID(eventId: string): boolean {
+	return (
+		CALENDAR_EVENT_ID_PATTERN.test(eventId) &&
+		eventId !== CALENDAR_NIL_EVENT_ID
+	);
+}
+
+export function getCalendarEvent(eventId: string): Promise<CalendarEventDetail> {
+	if (!isCanonicalCalendarEventID(eventId)) {
+		return Promise.reject(new Error("Invalid calendar event ID"));
+	}
+	return api.get<CalendarEventDetail>(calendarEventPath(eventId));
 }
 
 export function createCalendarEvent(

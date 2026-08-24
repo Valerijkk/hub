@@ -25,6 +25,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
+import { Route as AuthenticatedCalendarEventsEventIdRouteImport } from './routes/_authenticated/calendar_/events/$eventId'
 import { Route as AuthenticatedBasesRouteImport } from './routes/_authenticated/bases'
 import { Route as AuthenticatedAccountingRouteImport } from './routes/_authenticated/accounting'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
@@ -157,6 +158,12 @@ const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCalendarEventsEventIdRoute =
+  AuthenticatedCalendarEventsEventIdRouteImport.update({
+    id: '/calendar_/events/$eventId',
+    path: '/calendar/events/$eventId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedBasesRoute = AuthenticatedBasesRouteImport.update({
   id: '/bases',
   path: '/bases',
@@ -467,6 +474,7 @@ export interface FileRoutesByFullPath {
   '/accounting': typeof AuthenticatedAccountingRoute
   '/bases': typeof AuthenticatedBasesRoute
   '/calendar': typeof AuthenticatedCalendarRoute
+  '/calendar/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
   '/calls': typeof AuthenticatedCallsRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -529,6 +537,7 @@ export interface FileRoutesByTo {
   '/accounting': typeof AuthenticatedAccountingRoute
   '/bases': typeof AuthenticatedBasesRoute
   '/calendar': typeof AuthenticatedCalendarRoute
+  '/calendar/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
   '/calls': typeof AuthenticatedCallsRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -591,6 +600,7 @@ export interface FileRoutesById {
   '/_authenticated/accounting': typeof AuthenticatedAccountingRoute
   '/_authenticated/bases': typeof AuthenticatedBasesRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
+  '/_authenticated/calendar_/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
   '/_authenticated/calls': typeof AuthenticatedCallsRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -655,6 +665,7 @@ export interface FileRouteTypes {
     | '/accounting'
     | '/bases'
     | '/calendar'
+    | '/calendar/events/$eventId'
     | '/calls'
     | '/crm'
     | '/dashboard'
@@ -717,6 +728,7 @@ export interface FileRouteTypes {
     | '/accounting'
     | '/bases'
     | '/calendar'
+    | '/calendar/events/$eventId'
     | '/calls'
     | '/crm'
     | '/dashboard'
@@ -778,6 +790,7 @@ export interface FileRouteTypes {
     | '/_authenticated/accounting'
     | '/_authenticated/bases'
     | '/_authenticated/calendar'
+    | '/_authenticated/calendar_/events/$eventId'
     | '/_authenticated/calls'
     | '/_authenticated/crm'
     | '/_authenticated/dashboard'
@@ -954,6 +967,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AuthenticatedCalendarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/calendar_/events/$eventId': {
+      id: '/_authenticated/calendar_/events/$eventId'
+      path: '/calendar/events/$eventId'
+      fullPath: '/calendar/events/$eventId'
+      preLoaderRoute: typeof AuthenticatedCalendarEventsEventIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/bases': {
@@ -1414,6 +1434,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAccountingRoute: typeof AuthenticatedAccountingRoute
   AuthenticatedBasesRoute: typeof AuthenticatedBasesRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
+  AuthenticatedCalendarEventsEventIdRoute: typeof AuthenticatedCalendarEventsEventIdRoute
   AuthenticatedCallsRoute: typeof AuthenticatedCallsRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -1440,6 +1461,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountingRoute: AuthenticatedAccountingRoute,
   AuthenticatedBasesRoute: AuthenticatedBasesRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
+  AuthenticatedCalendarEventsEventIdRoute:
+    AuthenticatedCalendarEventsEventIdRoute,
   AuthenticatedCallsRoute: AuthenticatedCallsRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
