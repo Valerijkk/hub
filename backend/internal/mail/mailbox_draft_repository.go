@@ -385,12 +385,18 @@ type MailboxDraftAbandonCreateUploadRequest struct {
 	FingerprintVersion int32
 }
 
-// MailboxDraftRecoveryResult is a replayed durable draft or a fresh restart reservation.
-// Reservation is nonnil only for a fresh restart.
-type MailboxDraftRecoveryResult struct {
+// MailboxDraftRestartCreateUploadResult is a replayed durable draft or a fresh restart reservation.
+// Reservation is nonnil only for a fresh restart and nil for replay.
+type MailboxDraftRestartCreateUploadResult struct {
 	Replayed    bool
 	Draft       MailboxDraftRecord
 	Reservation *MailboxDraftReservation
+}
+
+// MailboxDraftAbandonCreateUploadResult is a replayed or newly abandoned durable draft.
+type MailboxDraftAbandonCreateUploadResult struct {
+	Replayed bool
+	Draft    MailboxDraftRecord
 }
 // MailboxDraftFinishOutcome is sealed to the closed outcomes that may finish a pending engine command.
 type MailboxDraftFinishOutcome interface {
@@ -464,8 +470,8 @@ type MailboxDraftRepository interface {
 	AbortMailboxDraftReservation(context.Context, MailboxDraftAbortRequest) (MailboxDraftAbortResult, error)
 	PrepareMailboxDraftReconciliation(context.Context, MailboxDraftReconcileRequest) (MailboxDraftReconcilePlan, error)
 	ResumeMailboxDraftCreateAfterAbsence(context.Context, MailboxDraftResumeCreateRequest) (MailboxDraftReservation, error)
-	RestartMailboxDraftCreateUpload(context.Context, MailboxDraftRestartCreateUploadRequest) (MailboxDraftRecoveryResult, error)
-	AbandonMailboxDraftCreateUpload(context.Context, MailboxDraftAbandonCreateUploadRequest) (MailboxDraftRecoveryResult, error)
+	RestartMailboxDraftCreateUpload(context.Context, MailboxDraftRestartCreateUploadRequest) (MailboxDraftRestartCreateUploadResult, error)
+	AbandonMailboxDraftCreateUpload(context.Context, MailboxDraftAbandonCreateUploadRequest) (MailboxDraftAbandonCreateUploadResult, error)
 	FinishEngineCommand(context.Context, MailboxDraftFinishRequest) (MailboxDraftFinishResult, error)
 	RecheckMailboxDraftRead(context.Context, MailboxDraftReadRecheckRequest) (MailboxDraftReadRecheckResult, error)
 }
