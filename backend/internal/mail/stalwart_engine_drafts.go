@@ -337,7 +337,10 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 	if !found {
 		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
-	if stalwartExactDraftOperation(message, request.AccountID, draftsID, draftMarker, mutationMarker) {
+	if stalwartExactDraftOperation(message, request.AccountID, draftsID, draftMarker, mutationMarker) &&
+		(request.MessageID == "" ||
+			message.Projection.MessageID != request.MessageID ||
+			message.Projection.Version != request.PreviousVersion) {
 		return EngineDraftApplied{Message: message}, nil
 	}
 	if request.MessageID == "" || request.ConfirmedMutationID == "" {

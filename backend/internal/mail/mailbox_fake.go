@@ -895,7 +895,10 @@ func (f *FakeMailEngine) ReconcileDraft(_ context.Context, request EngineDraftRe
 		}
 		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
-	if draft.identity.mutationID == request.MutationID {
+	if draft.identity.mutationID == request.MutationID &&
+		(request.MessageID == "" ||
+			draft.message.Projection.MessageID != request.MessageID ||
+			draft.message.Projection.Version != request.PreviousVersion) {
 		if int64(messageVariableBytes(draft.message)) > request.MaxContentBytes {
 			return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 		}

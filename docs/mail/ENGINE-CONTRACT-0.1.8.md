@@ -551,6 +551,7 @@ type EngineDraftReconciliation struct {
     MessageID       string
     PreviousVersion string
     MutationID      string
+    ConfirmedMutationID string
     MaxContentBytes int64
 }
 
@@ -664,17 +665,25 @@ permitted while that transaction or lock set is held. The engine receives the re
 value but never owns or mutates durable O/D links.
 
 The repository source statically persists `confirmed_mutation_id` as the binding for the
-confirmed pair and exposes it with O/D work. `EngineDraftReconciliation` carries the
-authoritative `ConfirmedMutationID` for reconciliation. The engine-v2 proof is exact: current
-`draft-mutation-v2(account,draftKey,current)` proves `Applied`; the prior marker derived from
-`ConfirmedMutationID`, plus the exact old account/message/version, proves `Retained`; legacy v1,
-nil, or generic markers return `Indeterminate`. Deployment requires all marker-v1 writers to be quiesced before marker-v2 writes are enabled.
+confirmed pair and exposes it with O/D work. `EngineDraftReconciliation` carries authoritative
+`ConfirmedMutationID`; the marker formula remains mutation-only
+`draft-mutation-v2(account,draftKey,mutationID)` and is not tuple-bound. The current exact v2
+marker returns `Applied` for initial create. For an update it returns `Applied` only when the
+result `Projection (MessageID,Version)` is not exactly the old pair; a same-pair current proof is
+`Indeterminate` unless the separate exact `ConfirmedMutationID` branch proves `Retained`.
+Legacy v1, nil, or generic marker observations are `Indeterminate` only for retained proof; an
+exact current v2 marker may be `Applied` with a nil legacy binding after a new operation.
+Deployment requires all marker-v1 writers to be quiesced before marker-v2 writes are enabled.
+Fresh server-side `MutationID` generation remains a future `DraftService` obligation.
 
 `Applied` permits the repository to promote D to confirmed O only after the exact mutation and
 fence are revalidated. The provider-neutral sealed `EngineDraftRetained{Message EngineMessage}`
 alternative, the Fake engine's authoritative current-store proof, and the Stalwart marker-v2
-proof source are implemented. Durable repository/service `SaveRetained` remains
-`SOURCE_NOT_IMPLEMENTED` and reject-only until a joint service+repository packet. Every
+proof source are implemented. The exact current marker is `Applied` for initial create and, for
+updates, only when its result projection differs from the old pair; a same-pair current proof is
+`Indeterminate` unless the separate exact `ConfirmedMutationID` branch proves `Retained`.
+Durable repository/service `SaveRetained` remains `SOURCE_NOT_IMPLEMENTED` and reject-only until
+a joint service+repository packet. Every
 non-`Applied` outcome retains O and D in `unknown`; no engine observation can clear D, finalize a
 request, retry, or clean up anything by itself. Pending attachment ownership is live persistence
 state; the adapter must not interpret O∩D, O\D, or D\O as duplicate upload/delete work.

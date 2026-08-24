@@ -18,18 +18,24 @@ pending identity has partial index `mail_drafts_pending_from_identity_idx` where
 
 The lifecycle remains repository-owned: `Reserve` preserves O and writes D in the short locked
 transaction; provider I/O follows commit. `EngineDraftReconciliation` carries authoritative
-`ConfirmedMutationID`. The marker-v2 proof source is implemented: exact current
-`draft-mutation-v2(account,draftKey,current)` is `Applied`; the prior marker derived from
-`ConfirmedMutationID` plus the exact old account/message/version is `Retained`; legacy v1, nil,
-or generic markers are `Indeterminate`. Deployment requires all marker-v1 writers to be quiesced before marker-v2 writes are enabled. The provider-neutral
-sealed `EngineDraftRetained{Message EngineMessage}` observation and Fake authoritative
-current-store proof remain implemented. Durable `SaveRetained` repository/service behavior
-remains `SOURCE_NOT_IMPLEMENTED`, reject-only, and forbidden until a joint service+repository
-packet. Every non-`Applied` outcome retains O and D as `unknown`; the result cannot finalize,
-retry, clean up, or change O/D by itself. A bare or unsealed old pair remains insufficient. A
-sealed live reconcile result plus the exact persisted O pair and binding can be evidence only for
-a later separately authorized provider-specific proof packet; it requires neither reverse mapping
-provider attachment ids to Hub UUIDs nor a `confirmed_request_hash`.
+`ConfirmedMutationID`; the marker formula remains mutation-only
+`draft-mutation-v2(account,draftKey,mutationID)`. Exact current proof is `Applied` for initial
+create and, for an update, only when result `Projection (MessageID,Version)` differs from the old
+pair. A same-pair current proof is `Indeterminate` unless the separate exact
+`ConfirmedMutationID` branch proves `Retained`. Legacy v1, nil, or generic observations are
+`Indeterminate` only for retained proof; an exact current v2 marker may be `Applied` with a nil
+legacy binding after a new operation. Deployment requires all marker-v1 writers to be quiesced
+before marker-v2 writes are enabled. Fresh server-side `MutationID` generation remains a future
+`DraftService` obligation. The provider-neutral sealed `EngineDraftRetained{Message
+EngineMessage}` observation and Fake authoritative current-store proof remain implemented. The
+backend exact-field oracle is known deferred under the founder no-test lock: it is `NOT_RUN`, not
+`PASS`. Durable `SaveRetained` repository/service behavior remains `SOURCE_NOT_IMPLEMENTED`,
+reject-only, and forbidden until a joint service+repository packet. Every non-`Applied` outcome
+retains O and D as `unknown`; the result cannot finalize, retry, clean up, or change O/D by
+itself. A bare or unsealed old pair remains insufficient. A sealed live reconcile result plus the
+exact persisted O pair and binding can be evidence only for a later separately authorized
+provider-specific proof packet; it requires neither reverse mapping provider attachment ids to
+Hub UUIDs nor a `confirmed_request_hash`.
 
 The content-free repository O/D source is now implemented as a static packet: records carry
 confirmed O, nullable D, canonical request hashes, DB-clock `updated_at`, and nullable

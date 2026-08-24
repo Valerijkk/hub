@@ -1094,13 +1094,17 @@ cleanup garbage or permission to reclaim an upload.
 
 `Applied` is a separately locked completion: it promotes D to the new confirmed graph O,
 clears confirmed links for O\D, and clears all D scalars/attachment links in the same durable
-transition. `EngineDraftReconciliation` carries authoritative `ConfirmedMutationID`, and the
-engine-v2 exact proof is implemented: current `draft-mutation-v2(account,draftKey,current)` is
-`Applied`; the prior marker derived from `ConfirmedMutationID` plus the exact old
-account/message/version is `Retained`; legacy v1, nil, or generic markers are `Indeterminate`.
-Deployment requires all marker-v1 writers to be quiesced before marker-v2 writes are enabled. The repository has no durable retained completion:
-`SaveRetained` remains `SOURCE_NOT_IMPLEMENTED`, reject-only, and forbidden until a joint
-service+repository packet. Every non-`Applied` outcome preserves O and D and remains `unknown`
+transition. `EngineDraftReconciliation` carries authoritative `ConfirmedMutationID`; the
+mutation-only marker remains `draft-mutation-v2(account,draftKey,mutationID)`. The current exact
+marker is `Applied` for initial create and, for an update, only when its result
+`Projection (MessageID,Version)` differs from the old pair. A same-pair current proof is
+`Indeterminate` unless the separate exact `ConfirmedMutationID` branch proves `Retained`. Legacy
+v1, nil, or generic observations are `Indeterminate` only for retained proof; an exact current v2
+marker may be `Applied` with a nil legacy binding after a new operation. Deployment requires all
+marker-v1 writers to be quiesced before marker-v2 writes are enabled. Fresh server-side
+`MutationID` generation remains a future `DraftService` obligation. The repository has no durable
+retained completion: `SaveRetained` remains `SOURCE_NOT_IMPLEMENTED`, reject-only, and forbidden
+until a joint service+repository packet. Every non-`Applied` outcome preserves O and D and remains `unknown`
 for reconciliation. A bare or unsealed old pair is not proof. A sealed live reconcile result
 combined with the exact persisted O pair and binding can be evidence only in a later separately
 authorized provider-specific retained-completion packet; it needs no reverse mapping of provider
