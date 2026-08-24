@@ -337,10 +337,13 @@ func (engine *StalwartEngine) ReconcileDraft(ctx context.Context, request Engine
 	if !found {
 		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
-	if !stalwartExactDraftOperation(message, draftsID, draftMarker, mutationMarker) || request.MessageID != "" && message.Projection.Version == request.PreviousVersion {
-		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	if stalwartExactDraftOperation(message, draftsID, draftMarker, mutationMarker) && (request.MessageID == "" || message.Projection.Version != request.PreviousVersion) {
+		return EngineDraftApplied{Message: message}, nil
 	}
-	return EngineDraftApplied{Message: message}, nil
+	if request.MessageID != "" && stalwartExactRetainedDraft(message, request, draftsID, draftMarker, mutationMarker) {
+		return EngineDraftRetained{Message: message}, nil
+	}
+	return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 }
 
 // DeleteDraft destroys exactly one versioned owner draft without adding a
@@ -1414,6 +1417,44 @@ func stalwartExactDraftOperation(message EngineMessage, draftsID, draftMarker, m
 		delete(expected, keyword)
 	}
 	return len(expected) == 0
+}
+
+func stalwartExactRetainedDraft(message EngineMessage, request EngineDraftReconciliation, draftsID, draftMarker, mutationMarker string) bool {
+	projection := message.Projection
+	if request.MessageID == "" || request.PreviousVersion == "" ||
+		validateEngineMessage(message) != nil ||
+		projection.AccountID != request.AccountID ||
+		projection.MessageID != request.MessageID ||
+		projection.Version != request.PreviousVersion ||
+		!projection.Flags.Draft ||
+		!stalwartExactFolder(projection, draftsID) ||
+		len(projection.ReservedKeywords) != 3 {
+		return false
+	}
+
+	hasDraft, hasStableMarker, hasPriorMutation := false, false, false
+	for _, keyword := range projection.ReservedKeywords {
+		switch string(keyword) {
+		case "$draft":
+			if hasDraft {
+				return false
+			}
+			hasDraft = true
+		case draftMarker:
+			if hasStableMarker {
+				return false
+			}
+			hasStableMarker = true
+		case mutationMarker:
+			return false
+		default:
+			if hasPriorMutation || !validStalwartHubKeyword(string(keyword)) {
+				return false
+			}
+			hasPriorMutation = true
+		}
+	}
+	return hasDraft && hasStableMarker && hasPriorMutation
 }
 
 func stalwartExactDraftDeletion(message EngineMessage, request EngineDraftDeletion, draftsID, draftMarker string) bool {

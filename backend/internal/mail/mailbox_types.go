@@ -540,6 +540,14 @@ type EngineDraftApplied struct {
 
 func (EngineDraftApplied) engineDraftResult() {}
 
+// EngineDraftRetained is a confirmed observation that the current draft still
+// has the exact previously confirmed message/version pair.
+type EngineDraftRetained struct {
+	Message EngineMessage
+}
+
+func (EngineDraftRetained) engineDraftResult() {}
+
 // EngineDraftAbsent — подтверждённое отсутствие или отсутствие изменений черновика.
 type EngineDraftAbsent struct{}
 

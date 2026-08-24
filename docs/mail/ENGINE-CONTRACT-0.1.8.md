@@ -664,31 +664,32 @@ permitted while that transaction or lock set is held. The engine receives the re
 value but never owns or mutates durable O/D links.
 
 `Applied` permits the repository to promote D to confirmed O only after the exact mutation and
-fence are revalidated. Current source has no representable `SaveRetained` result. The schema may
-support a future discard-D completion, but until separately authorized source implements both the
-sealed `EngineDraftRetained{Message EngineMessage}` result and its repository proof path, every
-non-`Applied` outcome retains O and D in `unknown`; `SaveRetained` is forbidden. That includes an
-adapter observation that merely appears to retain the old pair, any incomplete proof, error, or
-indeterminate reconciliation. There is no implicit retry or cleanup. Pending attachment ownership
-is live persistence state; the adapter must not interpret O∩D, O\D, or D\O as duplicate
-upload/delete work.
+fence are revalidated. The sealed `EngineDraftRetained{Message EngineMessage}` observation is
+implemented, but the durable repository/service `SaveRetained` completion remains
+`SOURCE_NOT_IMPLEMENTED` and forbidden. Every non-`Applied` outcome, including
+`EngineDraftRetained`, therefore retains O and D in `unknown`; the new engine result cannot clear
+D, finalize a request, retry, or clean up anything by itself. Pending attachment ownership is live
+persistence state; the adapter must not interpret O∩D, O\D, or D\O as duplicate upload/delete work.
 
-`EngineDraftRetained` is `SOURCE_NOT_IMPLEMENTED` and is frozen here only for a future separate
-source packet. It must be a sealed result alternative containing exactly `Message EngineMessage`.
-The result may prove retained only for the same authorized save/reconciliation request whose
-`AccountID`, `DraftKey`, `MutationID`, `MessageID`, and `PreviousVersion` exactly equal the
-durably reserved mutation and confirmed O pair. Its `Message.Projection.AccountID`,
+`EngineDraftRetained` is a sealed result alternative containing exactly `Message EngineMessage`.
+It may be returned only for the same authorized save/reconciliation request whose `AccountID`,
+`DraftKey`, `MutationID`, `MessageID`, and `PreviousVersion` exactly equal the durably reserved
+mutation and confirmed O pair. Its `Message.Projection.AccountID`,
 `Message.Projection.MessageID`, and `Message.Projection.Version` must respectively equal that
-account, old message id, and old version; the adapter must establish that this is the current
-authoritative draft representation at that exact reconciliation, not a cached, synthetic, or
-stale snapshot. The returned message must pass the existing byte and projection validation and
-prove the confirmed attachment set. The repository must then reacquire the established lock order
-and prove the exact current account/draft/mutation/fence, unchanged O pair, and still-reserved D
-before it clears D; otherwise it retains O and D as `unknown`. No direct `SaveDraft` success,
-address, folder membership, mutable provider metadata, or bare old-pair observation is proof.
-This documentation does not change Go engine types in this packet. This source/schema-only
-contract authorizes neither generated Ent output (`NOT_GENERATED`), a migration
-(`NOT_MIGRATED`), nor execution, build, tests, Docker, or runtime (`NOT_RUN`).
+account, old message id, and old version. The adapter establishes this from one live, bounded
+reconciliation read of the authoritative current draft representation, never a cache, synthetic,
+or stale snapshot; it validates the existing message/projection bounds and confirmed attachment
+set. A bare or unsealed old-pair observation remains insufficient. The sealed live reconciliation
+result plus the exact persisted O pair and binding is sufficient evidence for a later, separately
+authorized repository proof packet; it requires neither reverse mapping of provider attachment
+ids to Hub UUIDs nor a `confirmed_request_hash`.
+
+That later repository packet must reacquire the established lock order and prove the exact current
+account/draft/mutation/fence, unchanged O pair, binding, and still-reserved D before it clears D;
+otherwise it retains O and D as `unknown`. No direct `SaveDraft` success, address, folder
+membership, mutable provider metadata, or bare old-pair observation is proof. This narrow source
+adds no `MailEngine` method and authorizes neither generated Ent output (`NOT_GENERATED`), a
+migration (`NOT_MIGRATED`), nor execution, build, tests, Docker, or runtime (`NOT_RUN`).
 
 ## Submission result identity
 

@@ -892,13 +892,23 @@ func (f *FakeMailEngine) ReconcileDraft(_ context.Context, request EngineDraftRe
 	if !ok {
 		return EngineDraftAbsent{}, nil
 	}
-	if draft.identity.messageID != request.MessageID || draft.identity.previousVersion != request.PreviousVersion || draft.identity.mutationID != request.MutationID {
+	if draft.identity.messageID == request.MessageID && draft.identity.previousVersion == request.PreviousVersion && draft.identity.mutationID == request.MutationID {
+		if int64(messageVariableBytes(draft.message)) > request.MaxContentBytes {
+			return nil, fakeEngineError(EngineErrorPayloadTooLarge)
+		}
+		return EngineDraftApplied{Message: cloneMessage(draft.message)}, nil
+	}
+	if request.MessageID == "" {
 		return EngineDraftIndeterminate{Code: EngineIndeterminateTimeout}, nil
 	}
-	if int64(messageVariableBytes(draft.message)) > request.MaxContentBytes {
+	message, exists := f.messages[request.AccountID][request.MessageID]
+	if !exists || !fakeExactRetainedDraft(request, draft, message) {
+		return EngineDraftIndeterminate{Code: EngineIndeterminateTimeout}, nil
+	}
+	if int64(messageVariableBytes(message)) > request.MaxContentBytes {
 		return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
-	return EngineDraftApplied{Message: cloneMessage(draft.message)}, nil
+	return EngineDraftRetained{Message: cloneMessage(message)}, nil
 }
 
 func (f *FakeMailEngine) DeleteDraft(_ context.Context, request EngineDraftDeletion) error {
@@ -1476,6 +1486,22 @@ func fakeExactDraftDeletion(request EngineDraftDeletion, draft fakeDraft, messag
 		draftProjection.AccountID == request.AccountID &&
 		draftProjection.MessageID == request.MessageID &&
 		draftProjection.Version == request.ExpectedVersion &&
+		draftProjection.Origin == EngineProjectionOriginConfirmedOwnerDraft &&
+		draftProjection.Flags.Draft &&
+		reflect.DeepEqual(draftProjection.FolderIDs, []string{"drafts"})
+}
+
+func fakeExactRetainedDraft(request EngineDraftReconciliation, draft fakeDraft, message EngineMessage) bool {
+	draftProjection := draft.message.Projection
+	return request.MessageID != "" &&
+		request.PreviousVersion != "" &&
+		draft.identity.mutationID != request.MutationID &&
+		validateEngineMessage(draft.message) == nil &&
+		validateEngineMessage(message) == nil &&
+		reflect.DeepEqual(cloneMessage(draft.message), cloneMessage(message)) &&
+		draftProjection.AccountID == request.AccountID &&
+		draftProjection.MessageID == request.MessageID &&
+		draftProjection.Version == request.PreviousVersion &&
 		draftProjection.Origin == EngineProjectionOriginConfirmedOwnerDraft &&
 		draftProjection.Flags.Draft &&
 		reflect.DeepEqual(draftProjection.FolderIDs, []string{"drafts"})

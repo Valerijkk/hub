@@ -15,11 +15,14 @@ pending identity has partial index `mail_drafts_pending_from_identity_idx` where
 `pending_from_identity_id IS NOT NULL`.
 
 The lifecycle remains repository-owned: `Reserve` preserves O and writes D in the short locked
-transaction; provider I/O follows commit. `Applied` promotes D. Current source does not
-represent `SaveRetained`, so it is forbidden and every non-`Applied` outcome retains O and D as
-`unknown`. The schema supports only a future discard-D path: a separately implemented sealed
-`EngineDraftRetained{Message EngineMessage}` plus exact old-pair/currentness and repository
-fence proof would be required before it could clear D; that source is `SOURCE_NOT_IMPLEMENTED`.
+transaction; provider I/O follows commit. `Applied` promotes D. The sealed
+`EngineDraftRetained{Message EngineMessage}` observation is implemented, but durable
+`SaveRetained` repository/service behavior remains `SOURCE_NOT_IMPLEMENTED` and forbidden. Every
+non-`Applied` outcome, including `EngineDraftRetained`, retains O and D as `unknown`; the result
+cannot finalize, retry, clean up, or change O/D by itself. A bare or unsealed old pair remains
+insufficient. A sealed live reconcile result plus the exact persisted O pair and binding is
+sufficient evidence only for a later separately authorized repository proof packet; it requires
+neither reverse mapping provider attachment ids to Hub UUIDs nor a `confirmed_request_hash`.
 Pending attachment links are live state, so O∩D, O\D, and D\O do not permit generic cleanup or
 provider work.
 

@@ -1086,16 +1086,19 @@ cleanup garbage or permission to reclaim an upload.
 
 `Applied` is a separately locked completion: it promotes D to the new confirmed graph O,
 clears confirmed links for O\D, and clears all D scalars/attachment links in the same durable
-transition. The schema can represent a future discard-D completion, but current source has no
-representable `SaveRetained` result and the repository has no corresponding proof path. Until a
-separately implemented sealed `EngineDraftRetained{Message EngineMessage}` result and the exact
-repository proof in the engine contract exist, `SaveRetained` is forbidden: every non-`Applied`
-outcome preserves O and D and remains `unknown` for reconciliation. A future retained completion
-may clear D only after its exact-old-pair/currentness proof and the matching locked
-account/draft/mutation/fence revalidation; it leaves O unchanged. It is
-`SOURCE_NOT_IMPLEMENTED`, not current schema behavior. Every completion reacquires the same lock
-order and validates the exact mutation/fence before change. Lifecycle authority remains with the
-repository state machine; the engine only reports an outcome and cannot mutate O or D.
+transition. The sealed `EngineDraftRetained{Message EngineMessage}` engine observation is now
+implemented, but the repository has no corresponding durable proof path: `SaveRetained` remains
+`SOURCE_NOT_IMPLEMENTED` and forbidden. Every non-`Applied` outcome, including this observation,
+preserves O and D and remains `unknown` for reconciliation. A bare or unsealed old pair is not
+proof. Only a sealed live reconcile result combined with the exact persisted O pair and binding
+is sufficient evidence for a later separately authorized retained-completion packet; it needs no
+reverse mapping of provider attachment ids to Hub UUIDs and no `confirmed_request_hash`.
+
+That future completion may clear D only after its exact-old-pair/currentness proof and matching
+locked account/draft/mutation/fence/binding revalidation; it leaves O unchanged. The engine result
+by itself cannot finalize anything, mutate O or D, retry, or clean up. Every completion reacquires
+the same lock order and validates the exact mutation/fence before change. Lifecycle authority
+remains with the repository state machine; the engine only reports an outcome.
 
 Every selected storage attachment has the same draft-client id and receives its pending edge
 atomically; an existing different confirmed or pending draft edge conflicts before engine I/O.
