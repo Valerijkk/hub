@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Message } from "@/api/messenger";
 import {
 	buildMessageFromWsEvent,
@@ -9,174 +9,328 @@ import {
 import { useWsEventListener } from "@/hooks/use-websocket";
 import { useWsStore } from "@/stores/ws-store";
 
-/** Количество сообщений за один запрос. */
 const PAGE_SIZE = 30;
 
-/**
- * useMessages загружает сообщения канала с cursor-пагинацией (вверх)
- * и подписывается на WS room channel:{channelId} для real-time обновлений.
- */
+type MessageCache = {
+	pages: Message[][];
+	pageParams: unknown[];
+};
+
+type ReactionToggledDelta = {
+	message_id: string;
+	channel_id: string;
+	user_id: string;
+	emoji: string;
+	added: boolean;
+};
+
+const channelRoomOwners = new Map<string, number>();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+	return typeof value === "string" && value.length > 0;
+}
+
+function isCachedMessage(value: unknown): value is Message {
+	if (!isRecord(value)) return false;
+	return (
+		isNonEmptyString(value.id) &&
+		isNonEmptyString(value.channel_id) &&
+		isNonEmptyString(value.sender_id) &&
+		typeof value.reply_count === "number" &&
+		isNonEmptyString(value.created_at)
+	);
+}
+
+function isMessageCache(value: unknown): value is MessageCache {
+	if (!isRecord(value) || !Array.isArray(value.pages) || !Array.isArray(value.pageParams)) {
+		return false;
+	}
+	return value.pages.every(
+		(page) => Array.isArray(page) && page.every(isCachedMessage),
+	);
+}
+
+function messageEventID(data: Record<string, unknown>): string | null {
+	const value = data.message_id ?? data.id;
+	return isNonEmptyString(value) ? value : null;
+}
+
+function appendMessage(old: unknown, message: Message): unknown {
+	if (!isMessageCache(old)) return old;
+	if (old.pages.some((page) => page.some((candidate) => candidate.id === message.id))) {
+		return old;
+	}
+	const lastPage = old.pages[old.pages.length - 1] ?? [];
+	return {
+		...old,
+		pages: [...old.pages.slice(0, -1), [...lastPage, message]],
+	};
+}
+
+function updateMatchingMessage(
+	old: unknown,
+	messageID: string,
+	update: (message: Message) => Message,
+): unknown {
+	if (!isMessageCache(old)) return old;
+	let matched = false;
+	const pages = old.pages.map((page) =>
+		page.map((message) => {
+			if (message.id !== messageID) return message;
+			const updated = update(message);
+			if (updated === message) return message;
+			matched = true;
+			return updated;
+		}),
+	);
+	return matched ? { ...old, pages } : old;
+}
+
+function removeMatchingMessage(old: unknown, messageID: string): unknown {
+	if (!isMessageCache(old)) return old;
+	let matched = false;
+	const pages = old.pages.map((page) => {
+		const next = page.filter((message) => message.id !== messageID);
+		if (next.length !== page.length) matched = true;
+		return next;
+	});
+	return matched ? { ...old, pages } : old;
+}
+
+function editMatchingMessage(
+	old: unknown,
+	messageID: string,
+	data: Record<string, unknown>,
+): unknown {
+	return updateMatchingMessage(old, messageID, (message) => ({
+		...message,
+		content_json:
+			data.content_json && typeof data.content_json === "object"
+				? (data.content_json as Record<string, unknown>)
+				: message.content_json,
+		content_text:
+			typeof data.content_text === "string" ? data.content_text : message.content_text,
+		edited_at:
+			typeof data.edited_at === "string" ? data.edited_at : new Date().toISOString(),
+	}));
+}
+
+function reactionDelta(
+	data: Record<string, unknown>,
+	channelId: string,
+): ReactionToggledDelta | null {
+	if (
+		!isNonEmptyString(data.message_id) ||
+		!isNonEmptyString(data.channel_id) ||
+		data.channel_id !== channelId ||
+		!isNonEmptyString(data.user_id) ||
+		!isNonEmptyString(data.emoji) ||
+		typeof data.added !== "boolean"
+	) {
+		return null;
+	}
+	return {
+		message_id: data.message_id,
+		channel_id: data.channel_id,
+		user_id: data.user_id,
+		emoji: data.emoji,
+		added: data.added,
+	};
+}
+
+function applyReactionDelta(message: Message, delta: ReactionToggledDelta): Message {
+	const reactions = message.reactions ?? [];
+	const index = reactions.findIndex((reaction) => reaction.emoji === delta.emoji);
+
+	if (delta.added) {
+		if (index >= 0 && reactions[index]?.user_ids.includes(delta.user_id)) return message;
+		const next =
+			index >= 0
+				? reactions.map((reaction, reactionIndex) =>
+					reactionIndex === index
+						? { ...reaction, user_ids: [...reaction.user_ids, delta.user_id] }
+						: reaction,
+				)
+				: [...reactions, { emoji: delta.emoji, user_ids: [delta.user_id] }];
+		return { ...message, reactions: next };
+	}
+
+	if (index < 0 || !reactions[index]?.user_ids.includes(delta.user_id)) return message;
+	const userIDs = reactions[index].user_ids.filter((userID) => userID !== delta.user_id);
+	const next =
+		userIDs.length === 0
+			? reactions.filter((_, reactionIndex) => reactionIndex !== index)
+			: reactions.map((reaction, reactionIndex) =>
+				reactionIndex === index ? { ...reaction, user_ids: userIDs } : reaction,
+			);
+	return { ...message, reactions: next };
+}
+
+function updateReactionInCache(
+	old: unknown,
+	delta: ReactionToggledDelta,
+): unknown {
+	return updateMatchingMessage(old, delta.message_id, (message) =>
+		applyReactionDelta(message, delta),
+	);
+}
+
+function acquireChannelRoom(room: string, subscribe: (room: string) => void): void {
+	const owners = channelRoomOwners.get(room) ?? 0;
+	channelRoomOwners.set(room, owners + 1);
+	if (owners === 0) subscribe(room);
+}
+
+function releaseChannelRoom(room: string, unsubscribe: (room: string) => void): void {
+	const owners = channelRoomOwners.get(room) ?? 0;
+	if (owners <= 1) {
+		channelRoomOwners.delete(room);
+		if (useWsStore.getState().connected) unsubscribe(room);
+		return;
+	}
+	channelRoomOwners.set(room, owners - 1);
+}
+
+function useChannelRoom(
+	channelId: string | undefined,
+	onReconnect: () => void,
+): void {
+	const connected = useWsStore((state) => state.connected);
+	const subscribe = useWsStore((state) => state.subscribe);
+	const unsubscribe = useWsStore((state) => state.unsubscribe);
+	const hasConnected = useRef(false);
+	const previousConnected = useRef<boolean | null>(null);
+
+	useEffect(() => {
+		const wasConnected = previousConnected.current;
+		previousConnected.current = connected;
+		if (!channelId || !connected) return;
+
+		const room = `channel:${channelId}`;
+		acquireChannelRoom(room, subscribe);
+		if (hasConnected.current && wasConnected === false) onReconnect();
+		hasConnected.current = true;
+
+		return () => {
+			releaseChannelRoom(room, unsubscribe);
+		};
+	}, [channelId, connected, onReconnect, subscribe, unsubscribe]);
+}
+
+function canHandleChannelDelta(
+	data: Record<string, unknown>,
+	channelId: string,
+): boolean {
+	return isNonEmptyString(data.channel_id) && data.channel_id === channelId;
+}
+
+function canHandleThreadDelta(
+	data: Record<string, unknown>,
+	channelId: string,
+	threadId: string,
+): boolean {
+	return (
+		canHandleChannelDelta(data, channelId) &&
+		(!isNonEmptyString(data.thread_id) || data.thread_id === threadId)
+	);
+}
+
 export function useMessages(channelId: string | undefined) {
 	const queryClient = useQueryClient();
-	const { subscribe, unsubscribe, connected } = useWsStore();
+	const queryKey = useMemo(
+		() => ["messenger", "messages", channelId] as const,
+		[channelId],
+	);
+	const invalidateOnReconnect = useCallback(() => {
+		void queryClient.invalidateQueries({ queryKey, exact: true });
+	}, [queryClient, queryKey]);
+	useChannelRoom(channelId, invalidateOnReconnect);
 
 	const query = useInfiniteQuery({
-		queryKey: ["messenger", "messages", channelId],
+		queryKey,
 		queryFn: ({ pageParam }) =>
-			// biome-ignore lint/style/noNonNullAssertion: enabled гарантирует наличие channelId
 			getMessages(channelId!, { before: pageParam, limit: PAGE_SIZE }),
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => {
 			if (lastPage.length < PAGE_SIZE) return undefined;
-			// Бэкенд ожидает RFC3339 для cursor-пагинации (infinite scroll вверх).
 			return lastPage[0]?.created_at;
 		},
 		enabled: !!channelId,
 	});
 
-	// Подписка на WS room канала.
-	useEffect(() => {
-		if (!connected || !channelId) return;
-		const room = `channel:${channelId}`;
-		subscribe(room);
-		return () => {
-			unsubscribe(room);
-		};
-	}, [connected, channelId, subscribe, unsubscribe]);
-
-	// Обработка WS-событий сообщений.
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
-			if (!channelId) return;
-			// W11-A3-010 / P2-FE-10: null/array payload не должен валить listener.
-			if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-				return;
-			}
-			const data = payload as Record<string, unknown>;
-			const msgChannelId = data.channel_id as string | undefined;
-
-			// Игнорируем события для других каналов.
-			if (msgChannelId && msgChannelId !== channelId) return;
-
-			const queryKey = ["messenger", "messages", channelId];
+			if (!channelId || !isRecord(payload)) return;
+			const data = payload;
 
 			switch (event) {
 				case "message_sent": {
-					const message = buildMessageFromWsEvent(data, channelId);
-					if (!message) break;
-					queryClient.setQueryData(queryKey, (old: unknown) => {
-						if (!old) return old;
-						const typed = old as { pages: Message[][]; pageParams: unknown[] };
-						// WS может прислать дубликат — не добавляем повторно по id.
-						const exists = typed.pages.some((page) =>
-							page.some((m) => m.id === message.id),
-						);
-						if (exists) return old;
-						const lastPage = typed.pages[typed.pages.length - 1] ?? [];
-						return {
-							...typed,
-							pages: [...typed.pages.slice(0, -1), [...lastPage, message]],
-						};
-					});
-					break;
+					const message = buildMessageFromWsEvent(data);
+					if (!message || message.channel_id !== channelId || message.thread_id) return;
+					queryClient.setQueryData(queryKey, (old: unknown) => appendMessage(old, message));
+					return;
 				}
 				case "message_edited": {
-					const evt = data as Record<string, unknown>;
-					const editedId = (evt.message_id ?? evt.id) as string;
-					if (!editedId) break;
-					queryClient.setQueryData(queryKey, (old: unknown) => {
-						if (!old) return old;
-						const typed = old as { pages: Message[][]; pageParams: unknown[] };
-						return {
-							...typed,
-							pages: typed.pages.map((page) =>
-								page.map((msg) =>
-									msg.id === editedId
-										? {
-												...msg,
-												content_json:
-													(evt.content_json as Record<string, unknown>) ??
-													msg.content_json,
-												content_text:
-													(evt.content_text as string) ?? msg.content_text,
-												edited_at:
-													(evt.edited_at as string) ?? new Date().toISOString(),
-											}
-										: msg,
-								),
-							),
-						};
-					});
-					break;
+					if (!canHandleChannelDelta(data, channelId)) return;
+					const messageID = messageEventID(data);
+					if (!messageID) return;
+					queryClient.setQueryData(queryKey, (old: unknown) =>
+						editMatchingMessage(old, messageID, data),
+					);
+					return;
 				}
 				case "message_deleted": {
-					const deletedEvt = data as Record<string, unknown>;
-					const deletedId = (deletedEvt.message_id ?? deletedEvt.id) as string;
-					if (!deletedId) break;
-					queryClient.setQueryData(queryKey, (old: unknown) => {
-						if (!old) return old;
-						const typed = old as { pages: Message[][]; pageParams: unknown[] };
-						return {
-							...typed,
-							pages: typed.pages.map((page) =>
-								page.filter((msg) => msg.id !== deletedId),
-							),
-						};
-					});
-					break;
+					if (!canHandleChannelDelta(data, channelId)) return;
+					const messageID = messageEventID(data);
+					if (!messageID) return;
+					queryClient.setQueryData(queryKey, (old: unknown) =>
+						removeMatchingMessage(old, messageID),
+					);
+					return;
 				}
 				case "reaction_toggled": {
-					const reactEvt = data as Record<string, unknown>;
-					const msgId = (reactEvt.message_id ?? reactEvt.id) as string;
-					// A3W11-3-002: мусорный/undefined reactions не затирает кэш.
-					if (!msgId || !Array.isArray(reactEvt.reactions)) break;
-					const reactions = reactEvt.reactions as Message["reactions"];
-					queryClient.setQueryData(queryKey, (old: unknown) => {
-						if (!old) return old;
-						const typed = old as { pages: Message[][]; pageParams: unknown[] };
-						return {
-							...typed,
-							pages: typed.pages.map((page) =>
-								page.map((msg) =>
-									msg.id === msgId ? { ...msg, reactions } : msg,
-								),
-							),
-						};
-					});
-					break;
+					const delta = reactionDelta(data, channelId);
+					if (!delta) return;
+					queryClient.setQueryData(queryKey, (old: unknown) =>
+						updateReactionInCache(old, delta),
+					);
 				}
 			}
 		},
-		[channelId, queryClient],
+		[channelId, queryClient, queryKey],
 	);
 
 	useWsEventListener(handleEvent);
 
-	/** Все сообщения из всех страниц (отсортированные по времени). */
-	const messages = query.data?.pages.flat() ?? [];
-
 	return {
 		...query,
-		messages,
+		messages: query.data?.pages.flat() ?? [],
 		loadMore: query.fetchNextPage,
 		hasMore: query.hasNextPage,
 	};
 }
 
-/**
- * useThreadMessages загружает ответы в треде с cursor-пагинацией (вверх)
- * и подписывается на WS room для обновлений.
- */
 export function useThreadMessages(
 	channelId: string | undefined,
 	messageId: string | undefined,
 ) {
 	const queryClient = useQueryClient();
+	const queryKey = useMemo(
+		() => ["messenger", "thread", channelId, messageId] as const,
+		[channelId, messageId],
+	);
+	const invalidateOnReconnect = useCallback(() => {
+		void queryClient.invalidateQueries({ queryKey, exact: true });
+	}, [queryClient, queryKey]);
+	useChannelRoom(channelId, invalidateOnReconnect);
 
 	const query = useInfiniteQuery({
-		queryKey: ["messenger", "thread", channelId, messageId],
+		queryKey,
 		queryFn: ({ pageParam }) =>
-			// biome-ignore lint/style/noNonNullAssertion: enabled гарантирует channelId и messageId
 			getThreadReplies(channelId!, messageId!, {
 				before: pageParam,
 				limit: PAGE_SIZE,
@@ -184,7 +338,6 @@ export function useThreadMessages(
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => {
 			if (lastPage.length < PAGE_SIZE) return undefined;
-			// Бэкенд ожидает RFC3339 для cursor-пагинации (infinite scroll вверх).
 			return lastPage[0]?.created_at;
 		},
 		enabled: !!channelId && !!messageId,
@@ -192,45 +345,57 @@ export function useThreadMessages(
 
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
-			if (!channelId || !messageId) return;
-			// W11-A3-010 / P2-FE-10: null/array payload не должен валить listener.
-			if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-				return;
-			}
-			const data = payload as Record<string, unknown>;
-			const threadId = data.thread_id as string | undefined;
-			if (threadId !== messageId) return;
+			if (!channelId || !messageId || !isRecord(payload)) return;
+			const data = payload;
 
-			const queryKey = ["messenger", "thread", channelId, messageId];
-
-			if (event === "message_sent") {
-				const message = buildMessageFromWsEvent(data, channelId);
-				if (!message) return;
-				queryClient.setQueryData(queryKey, (old: unknown) => {
-					if (!old) return old;
-					const typed = old as { pages: Message[][]; pageParams: unknown[] };
-					const exists = typed.pages.some((page) =>
-						page.some((m) => m.id === message.id),
+			switch (event) {
+				case "message_sent": {
+					const message = buildMessageFromWsEvent(data);
+					if (
+						!message ||
+						message.channel_id !== channelId ||
+						message.thread_id !== messageId
+					) {
+						return;
+					}
+					queryClient.setQueryData(queryKey, (old: unknown) => appendMessage(old, message));
+					return;
+				}
+				case "message_edited": {
+					if (!canHandleThreadDelta(data, channelId, messageId)) return;
+					const messageID = messageEventID(data);
+					if (!messageID) return;
+					queryClient.setQueryData(queryKey, (old: unknown) =>
+						editMatchingMessage(old, messageID, data),
 					);
-					if (exists) return old;
-					const lastPage = typed.pages[typed.pages.length - 1] ?? [];
-					return {
-						...typed,
-						pages: [...typed.pages.slice(0, -1), [...lastPage, message]],
-					};
-				});
+					return;
+				}
+				case "message_deleted": {
+					if (!canHandleThreadDelta(data, channelId, messageId)) return;
+					const messageID = messageEventID(data);
+					if (!messageID) return;
+					queryClient.setQueryData(queryKey, (old: unknown) =>
+						removeMatchingMessage(old, messageID),
+					);
+					return;
+				}
+				case "reaction_toggled": {
+					const delta = reactionDelta(data, channelId);
+					if (!delta) return;
+					queryClient.setQueryData(queryKey, (old: unknown) =>
+						updateReactionInCache(old, delta),
+					);
+				}
 			}
 		},
-		[channelId, messageId, queryClient],
+		[channelId, messageId, queryClient, queryKey],
 	);
 
 	useWsEventListener(handleEvent);
 
-	const messages = query.data?.pages.flat() ?? [];
-
 	return {
 		...query,
-		messages,
+		messages: query.data?.pages.flat() ?? [],
 		loadMore: query.fetchNextPage,
 		hasMore: query.hasNextPage,
 	};

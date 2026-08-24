@@ -93,72 +93,34 @@ export interface Bookmark {
 	created_at: string;
 }
 
+/** Проверяет обязательные identity/routing поля канонического MessageResponse. */
+function isCanonicalMessage(value: unknown): value is Message {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+	const message = value as Record<string, unknown>;
+	return (
+		typeof message.id === "string" &&
+		message.id.length > 0 &&
+		typeof message.channel_id === "string" &&
+		message.channel_id.length > 0 &&
+		typeof message.sender_id === "string" &&
+		message.sender_id.length > 0 &&
+		typeof message.reply_count === "number" &&
+		typeof message.created_at === "string" &&
+		message.created_at.length > 0
+	);
+}
+
 /**
- * Конструирует объект Message из WS-события (MessageSentEvent).
- * WS присылает частичные данные — заполняем недостающие поля безопасными дефолтами.
- * Битый payload (нет id / не-object) → null (P2-FE-08 / W11-A2-010).
+ * Возвращает только канонический вложенный MessageResponse из message_sent.
+ * Legacy top-level payload и неполные объекты не попадают в cache.
  */
 export function buildMessageFromWsEvent(
 	evt: unknown,
-	fallbackChannelId: string,
+	_fallbackChannelId?: string,
 ): Message | null {
-	if (!evt || typeof evt !== "object") return null;
-	const data = evt as Record<string, unknown>;
-	const idRaw = data.message_id ?? data.id;
-	const id = typeof idRaw === "string" ? idRaw : "";
-	if (!id) return null;
-	const senderRaw = data.sender_id;
-	const sender_id = typeof senderRaw === "string" ? senderRaw : "";
-	if (!sender_id) return null;
-	const channelRaw = data.channel_id;
-	const channel_id =
-		typeof channelRaw === "string" && channelRaw
-			? channelRaw
-			: fallbackChannelId;
-	return {
-		id,
-		channel_id,
-		sender_id,
-		message_type:
-			typeof data.message_type === "string" ? data.message_type : undefined,
-		poll_id: typeof data.poll_id === "string" ? data.poll_id : undefined,
-		content_text:
-			typeof data.content_text === "string" ? data.content_text : undefined,
-		content_json:
-			data.content_json && typeof data.content_json === "object"
-				? (data.content_json as Record<string, unknown>)
-				: undefined,
-		reply_count: typeof data.reply_count === "number" ? data.reply_count : 0,
-		created_at:
-			typeof data.created_at === "string"
-				? data.created_at
-				: new Date().toISOString(),
-		thread_id: typeof data.thread_id === "string" ? data.thread_id : undefined,
-		reactions: Array.isArray(data.reactions)
-			? (data.reactions as Message["reactions"])
-			: undefined,
-		attachments: Array.isArray(data.attachments)
-			? (data.attachments as Message["attachments"])
-			: undefined,
-		forwarded_from_id:
-			typeof data.forwarded_from_id === "string"
-				? data.forwarded_from_id
-				: undefined,
-		edited_at: typeof data.edited_at === "string" ? data.edited_at : undefined,
-		deleted_at:
-			typeof data.deleted_at === "string" ? data.deleted_at : undefined,
-		voice_url: typeof data.voice_url === "string" ? data.voice_url : undefined,
-		voice_duration_ms:
-			typeof data.voice_duration_ms === "number"
-				? data.voice_duration_ms
-				: undefined,
-		mentions: Array.isArray(data.mentions)
-			? (data.mentions as string[])
-			: undefined,
-		mention_groups: Array.isArray(data.mention_groups)
-			? (data.mention_groups as string[])
-			: undefined,
-	};
+	if (!evt || typeof evt !== "object" || Array.isArray(evt)) return null;
+	const message = (evt as Record<string, unknown>).message;
+	return isCanonicalMessage(message) ? message : null;
 }
 
 // ---------------------------------------------------------------------------

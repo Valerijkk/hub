@@ -6,6 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// EventPublisher emits messenger real-time events. Production uses
+// *natsclient.Client, while isolated units can supply an in-memory capture.
+type EventPublisher interface {
+	PublishJSON(subject string, payload any)
+}
+
 // ---------------------------------------------------------------------------
 // NATS-субъекты событий мессенджера.
 // ---------------------------------------------------------------------------
@@ -54,15 +60,15 @@ const (
 // MentionedUserIDs содержит уже разрешённые ID пользователей
 // из @all, @online, @role и индивидуальных упоминаний.
 type MessageSentEvent struct {
-	MessageID        string    `json:"message_id"`
-	ChannelID        uuid.UUID `json:"channel_id"`
-	SenderID         uuid.UUID `json:"sender_id"`
-	MessageType      string    `json:"message_type,omitempty"`
-	PollID           string    `json:"poll_id,omitempty"`
-	ContentText      string    `json:"content_text"`
-	ThreadID         string    `json:"thread_id,omitempty"`
-	MentionedUserIDs []string  `json:"mentioned_user_ids,omitempty"`
-	CreatedAt        time.Time `json:"created_at"`
+	Message          MessageResponse `json:"message"`
+	MentionedUserIDs []string        `json:"mentioned_user_ids,omitempty"`
+}
+
+func newMessageSentEvent(doc *MessageDocument, mentionedUserIDs []string) MessageSentEvent {
+	return MessageSentEvent{
+		Message:          *toMessageResponse(doc),
+		MentionedUserIDs: mentionedUserIDs,
+	}
 }
 
 // MessageEditedEvent — данные события редактирования сообщения.

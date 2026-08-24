@@ -21,7 +21,7 @@ import (
 // позволяет подменять backend в тестах через mock-репозиторий.
 type MessengerService struct {
 	repo              Repository
-	nats              *natsclient.Client
+	nats              EventPublisher
 	presence          *PresenceService
 	unread            *UnreadService
 	issuePromoter     IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
@@ -35,7 +35,30 @@ type MessengerService struct {
 // Repository должен реализовывать в том числе MentionsRepository, ChannelInviteRepository
 // и PollRepository — иначе вызовы соответствующих методов вернут ошибку реализации.
 func NewMessengerService(repo Repository, nats *natsclient.Client, presence *PresenceService, unread *UnreadService) *MessengerService {
-	return &MessengerService{repo: repo, nats: nats, presence: presence, unread: unread}
+	return newMessengerServiceWithEventPublisher(repo, nats, presence, unread)
+}
+
+type noopEventPublisher struct{}
+
+func (noopEventPublisher) PublishJSON(string, any) {}
+
+func newMessengerServiceWithEventPublisher(repo Repository, publisher EventPublisher, presence *PresenceService, unread *UnreadService) *MessengerService {
+	return &MessengerService{
+		repo:     repo,
+		nats:     normalizeEventPublisher(publisher),
+		presence: presence,
+		unread:   unread,
+	}
+}
+
+func normalizeEventPublisher(publisher EventPublisher) EventPublisher {
+	if publisher == nil {
+		return noopEventPublisher{}
+	}
+	if natsPublisher, ok := publisher.(*natsclient.Client); ok && natsPublisher == nil {
+		return noopEventPublisher{}
+	}
+	return publisher
 }
 
 // ---------------------------------------------------------------------------

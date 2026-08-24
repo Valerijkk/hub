@@ -77,16 +77,10 @@ func (s *MessengerService) SendBotMessage(ctx context.Context, channelID uuid.UU
 		}
 	}
 
-	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
-		MessageID:   messageID,
-		ChannelID:   channelID,
-		SenderID:    s.systemBotID,
-		ContentText: req.ContentText,
-		ThreadID:    req.ThreadID,
-		CreatedAt:   doc.CreatedAt,
-	})
+	event := newMessageSentEvent(doc, nil)
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), event)
 
-	return toMessageResponse(doc), nil
+	return &event.Message, nil
 }
 
 // UpdateBotMessage обновляет сообщение бота (стриминг M3-010).

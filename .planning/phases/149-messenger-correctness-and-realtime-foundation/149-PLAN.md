@@ -272,6 +272,8 @@ git commit -m "feat(messenger): preserve send nonce across retries"
 **Files:**
 
 - Modify: `backend/internal/messenger/events.go`
+- Modify: `backend/internal/messenger/service.go`
+- Modify: `backend/internal/messenger/export_hooks.go`
 - Modify: `backend/internal/messenger/service_messages.go`
 - Modify: `backend/internal/messenger/service_reactions.go`
 - Modify: `backend/internal/messenger/service_bot.go`
@@ -285,31 +287,55 @@ git commit -m "feat(messenger): preserve send nonce across retries"
 
 **Interfaces:**
 
+- Export `EventPublisher` from `backend/internal/messenger` with the exact contract `PublishJSON(subject string, payload any)`. `MessengerService` depends on that interface; production continues to pass `*natsclient.Client`, which satisfies it without an adapter.
+- Export the hubtest-only constructor `ExportNewMessengerServiceWithEventPublisher(repo Repository, publisher EventPublisher)`. Backend units inject an in-memory capture publisher through this constructor and assert published typed payloads and JSON shape. The existing nil-NATS test constructor is not evidence for event publication, and static source scans are explicitly forbidden as false-green substitutes.
 - `MessageSentEvent` carries `Message MessageResponse` as `json:"message"` plus `MentionedUserIDs`; consumers stop reconstructing a partial message from unrelated top-level fields.
 - `ReactionToggledEvent` remains a delta `{message_id,channel_id,user_id,emoji,added}`; the frontend reducer applies that delta idempotently.
 
-- [ ] **Step 1: Write failing canonical-event and reconnect tests**
+#### 4A: Publisher test seam
 
-Assert normal send, forward, bot send, poll-message creation, and promote-to-channel each emit the same canonical nested `message` payload. Assert a `message_sent` event inserts the full attachments/voice/content/reactions/nonce response into the correct channel or thread query exactly once. Assert duplicate reaction delta is harmless. Simulate `connected: false -> true` and assert active channel and thread queries are invalidated after resubscription.
+- [ ] Change `MessengerService` and its production constructor to depend on the exported `EventPublisher`, retaining direct `*natsclient.Client` production compatibility.
+- [ ] Add `ExportNewMessengerServiceWithEventPublisher` behind the existing hubtest export boundary. The backend test fixture uses only an in-memory publisher that captures `(subject, payload)` calls; it must never open NATS or rely on a nil publisher.
+- [ ] Add RED coverage in `backend/tests/messenger/message_sent_producers_test.go` that proves the capture sees the exact message subject and a nested `MessageSentEvent.Message`; marshal the captured event to confirm the `message` JSON field. Do not inspect source text as a proxy for execution.
 
-- [ ] **Step 2: Run both Docker red gates**
+#### 4B: Canonical message event plus normal and forward producers
 
-Run `backend-unit`, then `frontend-unit`. Expected: backend/FE tests fail on the old partial event and missing reconnect invalidation.
+- [ ] Add one `newMessageSentEvent(doc, mentionedUserIDs)` constructor in `events.go`; it constructs `MessageSentEvent{Message: toMessageResponse(doc), MentionedUserIDs: ...}`.
+- [ ] Route normal send and forward in `service_messages.go` through that constructor. Normal send returns the same single computed `MessageResponse` used by its event.
+- [ ] Extend the producer unit fixture to assert both paths publish exactly one matching `message_sent` event with the complete nested response, including nonce, thread, rich content, attachments, voice, reactions, mentions, and forwarded fields where applicable.
 
-- [ ] **Step 3: Publish canonical response and make recovery persistence-backed**
+#### 4C: Bot, poll, and promote producers
 
-Add one constructor `newMessageSentEvent(doc, mentionedUserIDs)` and use it from normal send, forward, bot, poll, and promote producers. Build `response := toMessageResponse(doc)` once and publish it inside `MessageSentEvent.Message`; normal HTTP send returns the same response. Update `buildMessageFromWsEvent` and hooks to consume the nested response. Apply reaction deltas by adding/removing `user_id` under the matching emoji without requiring a complete reactions array. In both `useMessages` and `useThreadMessages`, detect a reconnection generation and invalidate the active query after subscription; initial connection must not cause a redundant recovery fetch.
+- [ ] Route bot send, poll-message creation, and the promote backlink message through the same canonical constructor in `service_bot.go`, `service_polls.go`, and `service_promote.go`.
+- [ ] Extend the owned producer fixture with the existing repository fixture plus `SetSystemBotID`, valid poll options, and fake injected promotion/permission collaborators. Filter poll assertions to its `message_sent` subject because poll creation emits an additional event.
+- [ ] Assert exact message subject, a single matching publication per path, and the complete nested response rather than only message ID or text. Assert an idempotent retry cannot duplicate a canonical publication.
 
-- [ ] **Step 4: Run backend and frontend regression to green**
+#### 4D: Frontend canonical cache reconciliation
 
-Run `backend-unit` then `frontend-unit`. Expected: both PASS.
+- [ ] Update `buildMessageFromWsEvent` in `frontend/src/api/messenger.ts` and cache reducers in `frontend/src/hooks/use-messages.ts` to consume only `event.message` for `message_sent`.
+- [ ] RED and then satisfy `use-messages-cache-events.test.tsx`: insert the full nested response exactly once by durable message ID, route replies only to their exact thread query, and preserve the root channel query for non-thread messages. Client nonce is metadata, never the cache dedupe key.
 
-- [ ] **Step 5: Commit exact paths**
+#### 4E: Reaction delta reconciliation
+
+- [ ] Apply `ReactionToggledEvent` as an idempotent add/remove of `user_id` below the matching emoji without requiring a complete reaction list.
+- [ ] RED and then satisfy `reaction-toggled-guard.test.tsx` for duplicate add/remove, removal of an empty emoji bucket, and unrelated-message non-mutation.
+
+#### 4F: Reconnect invalidation
+
+- [ ] In both `useMessages` and `useThreadMessages`, distinguish the initial connection from a `connected: false -> true` transition and invalidate only the active query after resubscription.
+- [ ] Extend frontend cache-event coverage for active channel and thread invalidation after reconnect; initial connection must not produce a redundant recovery fetch.
+
+#### Joint Docker gates and commit
+
+- [ ] Run the new RED gates through `backend-unit` and `frontend-unit`, then run both Docker services again after implementation. No host test, build, or lint command is valid evidence.
+- [ ] Commit only after both services PASS; Mongo/NATS integration remains outside Task 4 and is recorded separately as `NOT_RUN` unless a later scoped task adds it.
 
 ```powershell
-git add backend/internal/messenger/events.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_reactions.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/tests/messenger/message_sent_producers_test.go frontend/src/api/messenger.ts frontend/src/hooks/use-messages.ts frontend/tests/messenger/use-messages-cache-events.test.tsx frontend/tests/messenger/reaction-toggled-guard.test.tsx
+git add backend/internal/messenger/events.go backend/internal/messenger/service.go backend/internal/messenger/export_hooks.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_reactions.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/tests/messenger/message_sent_producers_test.go frontend/src/api/messenger.ts frontend/src/hooks/use-messages.ts frontend/tests/messenger/use-messages-cache-events.test.tsx frontend/tests/messenger/reaction-toggled-guard.test.tsx
 git commit -m "fix(messenger): reconcile realtime message caches"
 ```
+
+**Task boundary:** Task 4 changes only channel-scoped canonical message/reaction cache reconciliation and persistence-backed reconnect invalidation. It does not add user-room authorization or bridge subjects, `useChannels`/unread behavior, durable read-state or outbox/replay semantics, or Mongo/NATS integration; those remain Task 5, Phase 151, or explicitly `NOT_RUN` work.
 
 ### Task 5: Add authorized per-user channel lifecycle events
 

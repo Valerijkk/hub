@@ -77,15 +77,8 @@ func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID 
 	case msgID != "":
 		pollDoc.ID = msgID
 		// Публикуем message_sent для real-time доставки.
-		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
-			MessageID:   msgID,
-			ChannelID:   channelID,
-			SenderID:    creatorID,
-			MessageType: "poll",
-			PollID:      p.ID.String(),
-			ContentText: req.Question,
-			CreatedAt:   pollDoc.CreatedAt,
-		})
+		event := newMessageSentEvent(pollDoc, nil)
+		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), event)
 	}
 
 	// Публикуем NATS-событие опроса.

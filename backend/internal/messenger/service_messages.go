@@ -30,7 +30,6 @@ func (s *MessengerService) validateThreadParent(ctx context.Context, channelID u
 	return nil
 }
 
-
 // SendMessage отправляет сообщение в канал.
 // Проверяет membership, readonly и инкрементирует reply_count для тредов.
 func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID uuid.UUID, req SendMessageRequest) (*MessageResponse, error) {
@@ -126,15 +125,8 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 		resolvedMentions := s.resolveGroupMentions(ctx, canonical.ChannelID, ch.ProjectID, canonical.MentionGroups, canonical.Mentions, canonical.SenderID)
 
 		// Публикация NATS-события.
-		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, canonical.ChannelID.String()), MessageSentEvent{
-			MessageID:        canonical.ID,
-			ChannelID:        canonical.ChannelID,
-			SenderID:         canonical.SenderID,
-			ContentText:      canonical.ContentText,
-			ThreadID:         canonical.ThreadID,
-			MentionedUserIDs: resolvedMentions,
-			CreatedAt:        canonical.CreatedAt,
-		})
+		event := newMessageSentEvent(canonical, resolvedMentions)
+		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, canonical.ChannelID.String()), event)
 
 		s.emitMessageSent(ctx, MessageHookEvent{
 			MessageID:   canonical.ID,
@@ -145,7 +137,7 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 			Mentions:    resolvedMentions,
 		})
 
-		return toMessageResponse(canonical), nil
+		return &event.Message, nil
 	})
 }
 
@@ -353,13 +345,8 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 	}
 
 	// NATS-событие в целевой канал для WS-fanout.
-	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, targetID.String()), MessageSentEvent{
-		MessageID:   newID,
-		ChannelID:   targetID,
-		SenderID:    userID,
-		ContentText: source.ContentText,
-		CreatedAt:   doc.CreatedAt,
-	})
+	event := newMessageSentEvent(doc, nil)
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, targetID.String()), event)
 
-	return toMessageResponse(doc), nil
+	return &event.Message, nil
 }

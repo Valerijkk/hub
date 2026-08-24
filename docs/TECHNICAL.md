@@ -13,7 +13,7 @@
 | Target | Authority | Current status |
 |-----|-------------------|---|
 | `backend-unit` | root Compose exact service | PASS: build/vet/unit/race |
-| `frontend-unit` | root Compose exact service | PASS: 340/340 suites, 425/425 tests |
+| `frontend-unit` | root Compose exact service | PASS: 340/340 suites, 427/427 tests |
 | python-contract | root Compose exact service | PASS: 181/181 framework selftests |
 | Python API/integration/E2E/load | root Compose exact services | NOT_RUN; outside minimal merge gate |
 
@@ -1274,6 +1274,14 @@ backend/internal/
 - Text-route state (text, attachments, mentions, reply target, and textarea height) clears optimistically only when its initial snapshot is created. A retry never writes editor state, so it cannot overwrite a newer draft; voice closes at its logical submit boundary.
 - One failed snapshot owns one persistent Sonner error toast (`duration: Infinity`, non-dismissible) with `Повторить` and `Отменить отправку`. Success invalidates messages and removes only its owned snapshot/toast; cancel removes it without another request. Unmount or channel-route change dismisses all composer-owned toasts and clears pending snapshots, so a late response cannot create a retry prompt.
 - This is in-memory retry assistance only: persisted outbox, reload replay, offline queue, and reconnect replay are `NOT_RUN`/not implemented by Task 3. Upload failures remain on the existing API-error toast path.
+
+#### Messenger realtime foundation (Phase 149 Task 4)
+
+- Backend publication depends on the internal `EventPublisher` seam: production keeps `*natsclient.Client` compatibility, absent publication uses a no-op publisher, and the hubtest-only constructor accepts an in-memory capture publisher. This is an isolated unit seam, not a real NATS runtime claim.
+- All five message producers (normal, forward, bot, poll, and promote) publish the canonical nested `MessageSentEvent` whose `message` is the same `MessageResponse` shape as HTTP. An idempotent retry returns the canonical response without republishing.
+- The frontend accepts only a strict nested canonical message, then routes it by channel and thread and deduplicates by durable message ID. Reaction toggles are idempotent immutable deltas; edit/delete deltas fail closed unless their non-empty channel matches the cache target.
+- Root and thread hooks share module-local room ownership. The first owner subscribes, the last unsubscribes, and a false-to-true reconnect subscribes before invalidating that hook's exact cache key.
+- Real NATS, MongoDB, live WebSocket, and deployed-runtime behavior are `NOT_RUN`. Task 5 user events/unread plus persisted outbox, reload, and offline behavior remain out of scope.
 
 ### TMS (47 эндпоинтов)
 

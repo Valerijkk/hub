@@ -4,6 +4,7 @@ package messenger
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -15,12 +16,35 @@ import (
 
 // ExportNewMessengerServiceTest создаёт MessengerService без NATS для hubtest.
 func ExportNewMessengerServiceTest(repo Repository) *MessengerService {
-	return &MessengerService{repo: repo, nats: nil}
+	return newMessengerServiceWithEventPublisher(repo, nil, nil, nil)
 }
 
 // ExportNewMessengerServiceWithNATS создаёт MessengerService с NATS для hubtest (capture events).
 func ExportNewMessengerServiceWithNATS(repo Repository, nats *natsclient.Client) *MessengerService {
 	return NewMessengerService(repo, nats, nil, nil)
+}
+
+// ExportNewMessengerServiceWithEventPublisher creates a MessengerService with
+// an isolated EventPublisher for hubtest producer assertions.
+func ExportNewMessengerServiceWithEventPublisher(repo Repository, publisher EventPublisher) *MessengerService {
+	if isNilEventPublisher(publisher) {
+		panic("messenger hubtest event publisher must not be nil or typed-nil")
+	}
+	return newMessengerServiceWithEventPublisher(repo, publisher, nil, nil)
+}
+
+func isNilEventPublisher(publisher EventPublisher) bool {
+	if publisher == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(publisher)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 // ExportAutoChannelServiceHandleProjectCreated вызывает handleProjectCreated для hubtest.
@@ -50,7 +74,7 @@ func ExportToChannelResponse(ch *ent.Channel) *ChannelResponse {
 
 // ExportNewMessengerServiceEmpty создаёт пустой MessengerService для hubtest.
 func ExportNewMessengerServiceEmpty() *MessengerService {
-	return &MessengerService{}
+	return newMessengerServiceWithEventPublisher(nil, nil, nil, nil)
 }
 
 // ExportToChannelInviteResponse конвертирует ent.ChannelInvite в ChannelInviteResponse для hubtest.

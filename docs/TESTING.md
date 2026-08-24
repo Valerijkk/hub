@@ -23,7 +23,7 @@
 | Уровень | Инструменты | Расположение | CI job |
 |---------|-------------|--------------|--------|
 | Unit (Backend) | Go testing + testify | genuine product units: `backend/tests/{domain}/` | `backend-unit`: PASS (build/vet/unit/race) |
-| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit`: TypeScript PASS; Vitest 162/162 files, 425/425 tests |
+| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit`: TypeScript PASS; Vitest 162/162 files, 427/427 tests |
 | Framework | pytest | `testframework/selftests/**` | `python-contract`: PASS (182/182 framework selftests; no SUT product tests) |
 | API / integration / E2E | pytest + httpx/Playwright | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
 | Load | Locust | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
@@ -87,10 +87,12 @@ owned. An explicit, separately authorized rebuild is required for
 outside the two mounted roots; ordinary `src` or `tests` edits do not add
 `--build`. On 2026-08-24, the latest canonical `frontend-unit` command
 executed this exact overlay with an existing local image (no build, pull, or
-package install) and exited 0. Its receipt records TypeScript `PASS` and
-Vitest `PASS`: 162 files / 425 tests in 45.30s; Vitest JSON records 340/340
-suites. This supersedes the earlier pre-Task3 receipt of 161 files / 419 tests
-in 45.83s. This evidence is limited to this frontend unit target and topology;
+package install) and exited 0. Its latest receipt records TypeScript `PASS` and
+Vitest `PASS`: 162 files / 427 tests in 47.28s; Vitest JSON records 340/340
+suites and `result.json` preserves `first_exit:0`. This supersedes the prior
+Task 3 receipt of 162 files / 425 tests in 45.30s, which remains historical,
+and the earlier pre-Task3 receipt of 161 files / 419 tests in 45.83s. This
+evidence is limited to this frontend unit target and topology;
 it does not imply a deployed runtime, API/integration, or Jitsi result.
 
 ### `python-contract`: current-framework source profile
@@ -220,7 +222,15 @@ QA services disposable, а integration/e2e используют изолиров
 
 - `frontend/tests/messenger/message-composer-retry-nonce.test.tsx` covers optional nonce API types, one immutable text/attachment, GIF, sticker, or voice snapshot per logical submit, same-nonce retry, new-draft preservation, cancel/new-nonce behavior, and owned-toast cleanup on unmount.
 - The test observes one persistent, non-dismissible retry toast per failed snapshot, optimistic text and attachment clearing, retry success invalidation and owned-toast dismissal. It does not claim persisted outbox, reload/offline/reconnect replay, or a runtime delivery guarantee.
-- Canonical Docker `frontend-unit` RED evidence was captured before this implementation. Final Task 3 Docker GREEN is `PASS`: `first_exit:0`, TypeScript `PASS`/exit 0, Vitest `PASS`/exit 0, stdout 162/162 files and 425/425 tests in 45.30s; Vitest JSON records 340/340 suites and 425/425 tests. This remains unit-target evidence only, not browser E2E, Mongo/integration, persisted outbox, reload/offline/reconnect replay, or a runtime-delivery guarantee.
+- Canonical Docker `frontend-unit` RED evidence was captured before this implementation. Final Task 3 Docker GREEN is `PASS`: `first_exit:0`, TypeScript `PASS`/exit 0, Vitest `PASS`/exit 0, stdout 162/162 files and 425/425 tests in 45.30s; Vitest JSON records 340/340 suites and 425/425 tests. This historical Task 3 receipt remains unit-target evidence only, not browser E2E, Mongo/integration, persisted outbox, reload/offline/reconnect replay, or a runtime-delivery guarantee.
+
+##### Phase 149 Task 4: realtime event/cache foundation
+
+- `backend/tests/messenger/message_sent_producers_test.go` exercises normal send (including idempotent retry), forward, bot, poll, and promote via public service APIs. The hubtest capture publisher asserts exact NATS subjects and literal nested canonical `MessageSentEvent` JSON, including rich persisted response fields; it rejects legacy top-level event shapes and proves the retry does not publish.
+- The backend receipt is `PASS`: `result.json` `first_exit:0`; build, vet, unit, and race each `PASS` with exit 0. These are genuine isolated units. Real NATS, MongoDB, WebSocket, and deployed runtime execution are `NOT_RUN`.
+- `frontend/tests/messenger/use-messages-cache-events.test.tsx` covers strict nested-message acceptance, root/thread cache routing, durable-ID dedupe, fail-closed edit/delete, malformed-cache guards, room reference-count lifecycle, and subscribe-before-exact-key invalidation after reconnect. `frontend/tests/messenger/reaction-toggled-guard.test.tsx` covers immutable, idempotent reaction add/remove deltas in both caches and malformed/foreign-event guards.
+- The final frontend receipt is `PASS`: `result.json` `first_exit:0`, TypeScript `PASS` exit 0, Vitest 162/162 files and 427/427 tests in 47.28s, and JSON 340/340 suites. This is not browser E2E or a live WebSocket claim.
+- Task 5 user events/unread and persisted outbox, reload, and offline behavior remain out of scope/`NOT_RUN`.
 
 #### TMS
 
