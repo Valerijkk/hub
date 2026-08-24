@@ -121,6 +121,38 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
 	}
 
+	mailboxS3PresignOrigin, presignOriginPresent := os.LookupEnv("MAILBOX_S3_PRESIGN_ORIGIN")
+	mailboxClamAVAddress, clamAVAddressPresent := os.LookupEnv("MAILBOX_CLAMAV_INSTREAM_ADDRESS")
+	if !presignOriginPresent || mailboxS3PresignOrigin == "" || !clamAVAddressPresent || mailboxClamAVAddress == "" {
+		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
+	}
+	mailboxObjectStore, err := mailmod.NewMailboxS3ObjectStore(d.rootCtx, d.cfg.S3, mailboxS3PresignOrigin)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxAttachmentScanner, err := mailmod.NewClamAVINSTREAMScanner(mailboxClamAVAddress)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxAttachmentStagingService, err := mailmod.NewMailboxAttachmentStagingService(
+		mailboxRepo,
+		mailboxRepo,
+		mailboxRepo,
+		mailboxRepo,
+		mailboxObjectStore,
+		mailmod.MailboxAttachmentStagingConfig{
+			Bucket:        d.cfg.S3.Bucket,
+			PresignOrigin: mailboxS3PresignOrigin,
+		},
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxAttachmentStagingHandler, err := mailmod.NewMailboxAttachmentStagingHandler(mailboxAttachmentStagingService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+
 	mailboxHTTPClient := &http.Client{
 		Transport: &http.Transport{
 			Proxy:                 nil,
@@ -215,6 +247,9 @@ func wireCalendarMail(d *serverDeps) {
 	if err := mailboxMessageHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	if err := mailboxAttachmentStagingHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 
 	mailboxSyncService, err := mailmod.NewMailboxSyncService(mailboxEngine, mailboxRepo, mailmod.MailboxSyncServiceConfig{
 		Now:           serverUTCClock{}.Now,
@@ -241,9 +276,55 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	mailboxObjectDeletionWorker, err := mailmod.NewMailboxObjectDeletionWorker(
+		mailboxRepo,
+		mailboxObjectStore,
+		mailmod.NewMailboxObjectDeletionWorkerTimer(),
+		mailmod.MailboxObjectDeletionWorkerConfig{
+			Enabled:       true,
+			ScanInterval:  5 * time.Second,
+			StepTimeout:   30 * time.Second,
+			LeaseDuration: 60 * time.Second,
+			RetryMin:      5 * time.Second,
+			RetryMax:      5 * time.Minute,
+			BatchSize:     25,
+		},
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxAttachmentScanWorker, err := mailmod.NewMailboxAttachmentScanWorker(
+		mailboxRepo,
+		mailboxObjectStore,
+		mailboxAttachmentScanner,
+		mailmod.NewMailboxAttachmentScanWorkerTimer(),
+		mailmod.MailboxAttachmentScanWorkerConfig{
+			Enabled:       true,
+			ScanInterval:  5 * time.Second,
+			StepTimeout:   55 * time.Second,
+			LeaseDuration: 60 * time.Second,
+			RetryMin:      5 * time.Second,
+			RetryMax:      5 * time.Minute,
+			BatchSize:     8,
+			Concurrency:   1,
+		},
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 	go func() {
 		if err := mailboxSyncWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
-			slog.Error("mailbox sync worker stopped", "error", err)
+			slog.Error("background worker stopped", "error", err)
+		}
+	}()
+	go func() {
+		if err := mailboxObjectDeletionWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
+			slog.Error("background worker stopped", "error", err)
+		}
+	}()
+	go func() {
+		if err := mailboxAttachmentScanWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
+			slog.Error("background worker stopped", "error", err)
 		}
 	}()
 }
