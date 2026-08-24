@@ -61,6 +61,9 @@ func (scanner *ClamAVINSTREAMScanner) Begin(ctx context.Context) (MailboxAttachm
 	session.contextStop = context.AfterFunc(ctx, func() {
 		_ = connection.Close()
 	})
+	session.abortStop = time.AfterFunc(clamAVINSTREAMIOTimeout, func() {
+		session.abort()
+	})
 	return session, nil
 }
 
@@ -171,6 +174,7 @@ type clamAVINSTREAMSession struct {
 	connection  *clamAVINSTREAMConnection
 	deadline    time.Time
 	contextStop func() bool
+	abortStop   func() bool
 	totalBytes  int64
 	closed      bool
 	failed      bool
@@ -264,6 +268,7 @@ func (session *clamAVINSTREAMSession) Verdict(ctx context.Context) (MailboxAttac
 		session.failLocked()
 		return "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
 	}
+	session.stopAbortLocked()
 	session.stopContextLocked()
 	if err := session.connection.Close(); err != nil {
 		return "", mailboxAttachmentScanError(MailboxAttachmentScanErrorUnavailable)
@@ -276,10 +281,31 @@ func (session *clamAVINSTREAMSession) failLocked() {
 		return
 	}
 	session.failed = true
+	session.stopAbortLocked()
 	session.stopContextLocked()
 	if session.connection != nil {
 		_ = session.connection.Close()
 	}
+}
+
+func (session *clamAVINSTREAMSession) abort() {
+	if session == nil {
+		return
+	}
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.failed || session.verdictRead {
+		return
+	}
+	session.failLocked()
+}
+
+func (session *clamAVINSTREAMSession) stopAbortLocked() {
+	if session == nil || session.abortStop == nil {
+		return
+	}
+	_ = session.abortStop()
+	session.abortStop = nil
 }
 
 func (session *clamAVINSTREAMSession) stopContextLocked() {
@@ -303,8 +329,14 @@ func clamAVINSTREAMWriteFull(conn net.Conn, value []byte) bool {
 	if conn == nil || len(value) == 0 {
 		return false
 	}
-	written, err := conn.Write(value)
-	return err == nil && written == len(value)
+	for remaining := value; len(remaining) > 0; {
+		written, err := conn.Write(remaining)
+		if err != nil || written <= 0 || written > len(remaining) {
+			return false
+		}
+		remaining = remaining[written:]
+	}
+	return true
 }
 
 func clamAVINSTREAMReadVerdict(conn net.Conn) (string, bool) {
