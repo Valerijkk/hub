@@ -357,6 +357,7 @@ git commit -m "fix(messenger): reconcile realtime message caches"
 - Create: `backend/tests/ws/bridge_user_events_test.go`
 - Create: `backend/tests/ws/bridge_channel_authz_test.go`
 - Create: `backend/tests/messenger/user_channel_events_test.go`
+- Modify: `backend/tests/messenger/message_sent_producers_test.go`
 - Modify: `frontend/src/hooks/use-channels.ts`
 - Modify: `frontend/tests/messenger/use-channels-ws.test.tsx`
 - Modify: `docs/TECHNICAL.md`
@@ -403,7 +404,7 @@ Expected: PASS. Record Mongo, NATS broker, live WebSocket, and deployed runtime 
 Update the websocket subject/security table, lifecycle recipient/payload rules, idempotency/index contract, fail-closed fanout and its in-flight race boundary, Phase-151 unread recovery boundary, reconnect behavior, Task 1-5 receipts, new/legacy test status, and protected scope in `docs/TECHNICAL.md` and `docs/TESTING.md`. Create `149-VERIFICATION.md` with separate static, backend-unit, frontend-unit, and Mongo/NATS/live-WebSocket rows; unavailable executable evidence stays `NOT_RUN`/`PARTIAL`.
 
 ```powershell
-git add backend/internal/messenger/events.go backend/internal/messenger/service_channels.go backend/internal/messenger/service_channel_invites.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/internal/ws/authorizer.go backend/internal/ws/bridge.go backend/internal/ws/hub.go backend/internal/ws/export_hooks.go backend/cmd/server/wiring_ws.go backend/tests/ws/authorizer_test.go backend/tests/ws/bridge_user_events_test.go backend/tests/ws/bridge_channel_authz_test.go backend/tests/messenger/user_channel_events_test.go frontend/src/hooks/use-channels.ts frontend/tests/messenger/use-channels-ws.test.tsx docs/TECHNICAL.md docs/TESTING.md .planning/phases/149-messenger-correctness-and-realtime-foundation/149-VERIFICATION.md
+git add backend/internal/messenger/events.go backend/internal/messenger/service_channels.go backend/internal/messenger/service_channel_invites.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/internal/ws/authorizer.go backend/internal/ws/bridge.go backend/internal/ws/hub.go backend/internal/ws/export_hooks.go backend/cmd/server/wiring_ws.go backend/tests/ws/authorizer_test.go backend/tests/ws/bridge_user_events_test.go backend/tests/ws/bridge_channel_authz_test.go backend/tests/messenger/user_channel_events_test.go backend/tests/messenger/message_sent_producers_test.go frontend/src/hooks/use-channels.ts frontend/tests/messenger/use-channels-ws.test.tsx docs/TECHNICAL.md docs/TESTING.md .planning/phases/149-messenger-correctness-and-realtime-foundation/149-VERIFICATION.md
 git commit -m "feat(messenger): deliver authorized user channel events"
 ```
 
