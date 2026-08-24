@@ -1531,11 +1531,7 @@ func validateMessageContent(content EngineMessageContent) error {
 		if content.RichBody != "" {
 			return fakeEngineError(EngineErrorRejectedPolicy)
 		}
-	} else if content.Format == EngineBodyRich {
-		if content.RichBody == "" {
-			return fakeEngineError(EngineErrorRejectedPolicy)
-		}
-	} else {
+	} else if content.Format != EngineBodyRich {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	if !validSafeText(content.PlainBody, MaxEngineBodyPartBytes, false) || !validSafeText(content.RichBody, MaxEngineBodyPartBytes, false) {
@@ -1548,7 +1544,7 @@ func validateEngineMessage(message EngineMessage) error {
 	if err := validateProjection(message.Projection); err != nil {
 		return err
 	}
-	if (message.Body.Format == EngineBodyPlain && message.Body.RichBody != "") || (message.Body.Format == EngineBodyRich && message.Body.RichBody == "") || (message.Body.Format != EngineBodyPlain && message.Body.Format != EngineBodyRich) || !validSafeText(message.Body.PlainBody, MaxEngineBodyPartBytes, false) || !validSafeText(message.Body.RichBody, MaxEngineBodyPartBytes, false) {
+	if (message.Body.Format == EngineBodyPlain && message.Body.RichBody != "") || (message.Body.Format != EngineBodyPlain && message.Body.Format != EngineBodyRich) || !validSafeText(message.Body.PlainBody, MaxEngineBodyPartBytes, false) || !validSafeText(message.Body.RichBody, MaxEngineBodyPartBytes, false) {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	return nil

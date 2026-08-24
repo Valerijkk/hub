@@ -405,7 +405,7 @@ func stalwartMapEmailBody(record stalwartEmailRecord, maximum int64) (EngineMess
 	if int64(len(plain))+int64(len(rich)) > maximum || len(plain) > MaxEngineBodyPartBytes || len(rich) > MaxEngineBodyPartBytes {
 		return EngineMessageBody{}, stalwartEngineError(EngineErrorPayloadTooLarge)
 	}
-	if rich != "" {
+	if len(record.HTMLBody) != 0 {
 		return EngineMessageBody{Format: EngineBodyRich, PlainBody: plain, RichBody: rich}, nil
 	}
 	return EngineMessageBody{Format: EngineBodyPlain, PlainBody: plain}, nil

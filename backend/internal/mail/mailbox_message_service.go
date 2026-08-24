@@ -126,9 +126,6 @@ func mailboxMessageNormalizeEngineBody(body EngineMessageBody) (MailboxContentRe
 		}
 		input = MailboxContentInput{SourceFormat: MailboxContentFormatPlain, Body: body.PlainBody}
 	case EngineBodyRich:
-		if body.RichBody == "" {
-			return MailboxContentResult{}, mailboxMessageReadError(MailboxMessageReadErrorUnprocessable)
-		}
 		input = MailboxContentInput{SourceFormat: MailboxContentFormatRich, Body: body.RichBody}
 	default:
 		return MailboxContentResult{}, mailboxMessageReadError(MailboxMessageReadErrorUnprocessable)
