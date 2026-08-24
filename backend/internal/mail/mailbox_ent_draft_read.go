@@ -249,10 +249,11 @@ func mailboxEntDraftReadRowValid(draft *ent.MailDraft, accountID, draftID uuid.U
 		return false
 	}
 	pendingKind, pendingKindValid := mailboxEntDraftReadPendingKind(draft.PendingMutationKind)
-	if !pendingKindValid || draft.ConfirmedMutationID != nil && (!pairPresent || draft.LastMutationID != nil && *draft.ConfirmedMutationID == *draft.LastMutationID) {
+	pendingCreateAttachmentPhase, pendingCreateAttachmentPhaseValid := mailboxEntDraftReadCreateAttachmentPhase(draft.PendingCreateAttachmentPhase)
+	if !pendingKindValid || !pendingCreateAttachmentPhaseValid || draft.ConfirmedMutationID != nil && (!pairPresent || draft.LastMutationID != nil && *draft.ConfirmedMutationID == *draft.LastMutationID) {
 		return false
 	}
-	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, draft.PendingSaveRequestHash)
+	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, draft.PendingSaveRequestHash)
 }
 
 func mailboxEntDraftReadEnginePairValid(messageID, version *string) (bool, bool) {
@@ -275,7 +276,23 @@ func mailboxEntDraftReadPendingKind(value *maildraft.PendingMutationKind) (*Mail
 	}
 }
 
-func mailboxEntDraftReadStateScalarValid(status MailboxDraftStatus, enginePairPresent bool, mutationID *uuid.UUID, pendingKind *MailboxDraftMutationKind, pendingFrom, pendingReply, pendingForward *uuid.UUID, pendingHash []byte) bool {
+func mailboxEntDraftReadCreateAttachmentPhase(value *maildraft.PendingCreateAttachmentPhase) (*MailboxDraftCreateAttachmentPhase, bool) {
+	if value == nil {
+		return nil, true
+	}
+	phase := MailboxDraftCreateAttachmentPhase(*value)
+	switch phase {
+	case MailboxDraftCreateAttachmentPhaseUpload, MailboxDraftCreateAttachmentPhaseImport:
+		return &phase, true
+	default:
+		return nil, false
+	}
+}
+
+func mailboxEntDraftReadStateScalarValid(status MailboxDraftStatus, enginePairPresent bool, mutationID *uuid.UUID, pendingKind *MailboxDraftMutationKind, pendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase, pendingFrom, pendingReply, pendingForward *uuid.UUID, pendingHash []byte) bool {
+	if pendingCreateAttachmentPhase != nil && (pendingKind == nil || *pendingKind != MailboxDraftMutationCreate || status != MailboxDraftStatusSaving && status != MailboxDraftStatusUnknown) {
+		return false
+	}
 	pendingScalarsPresent := pendingFrom != nil || pendingReply != nil || pendingForward != nil || pendingHash != nil
 	pendingSaveValid := pendingFrom != nil && mailboxEntDraftReadHashValid(pendingHash)
 	noPendingSave := !pendingScalarsPresent
@@ -303,6 +320,10 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 	}
 	pendingKind, ok := mailboxEntDraftReadPendingKind(draft.PendingMutationKind)
 	if !ok {
+		return MailboxDraftRecord{}, false
+	}
+	pendingCreateAttachmentPhase, ok := mailboxEntDraftReadCreateAttachmentPhase(draft.PendingCreateAttachmentPhase)
+	if !ok || pendingCreateAttachmentPhase != nil && len(attachments.ConfirmedAttachmentIDs) == 0 {
 		return MailboxDraftRecord{}, false
 	}
 	if pendingKind != nil && *pendingKind == MailboxDraftMutationSave {
@@ -348,6 +369,7 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 		CreateRequestHash:   createRequestHash,
 		LastMutationID:      mailboxEntDraftReadUUIDPointerCopy(draft.LastMutationID),
 		PendingMutationKind: mailboxEntDraftReadMutationKindPointerCopy(pendingKind),
+		PendingCreateAttachmentPhase: mailboxEntDraftReadCreateAttachmentPhasePointerCopy(pendingCreateAttachmentPhase),
 		ConfirmedMutationID: mailboxEntDraftReadUUIDPointerCopy(draft.ConfirmedMutationID),
 		UpdatedAt:           draft.UpdatedAt.UTC(),
 	}, true
@@ -397,6 +419,14 @@ func mailboxEntDraftReadUUIDPointerCopy(value *uuid.UUID) *uuid.UUID {
 }
 
 func mailboxEntDraftReadMutationKindPointerCopy(value *MailboxDraftMutationKind) *MailboxDraftMutationKind {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
+}
+
+func mailboxEntDraftReadCreateAttachmentPhasePointerCopy(value *MailboxDraftCreateAttachmentPhase) *MailboxDraftCreateAttachmentPhase {
 	if value == nil {
 		return nil
 	}

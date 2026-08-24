@@ -136,6 +136,14 @@ type MailboxDraftPendingSave struct {
 	RequestHash    [sha256.Size]byte
 }
 
+// MailboxDraftCreateAttachmentPhase is the closed pre-engine attachment phase for a pending create.
+type MailboxDraftCreateAttachmentPhase string
+
+const (
+	MailboxDraftCreateAttachmentPhaseUpload MailboxDraftCreateAttachmentPhase = "upload"
+	MailboxDraftCreateAttachmentPhaseImport MailboxDraftCreateAttachmentPhase = "import"
+)
+
 // MailboxDraftRecord is the content-free, durable draft state. Nil values represent nullable
 // persisted columns. Repository reads and finish results deep-copy every nested state, pointer,
 // hash and attachment slice.
@@ -153,6 +161,7 @@ type MailboxDraftRecord struct {
 	CreateRequestHash   [sha256.Size]byte
 	LastMutationID      *uuid.UUID
 	PendingMutationKind *MailboxDraftMutationKind
+	PendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase
 	ConfirmedMutationID *uuid.UUID
 	UpdatedAt           time.Time
 }
@@ -282,6 +291,7 @@ type MailboxDraftWork struct {
 	Revision            int64
 	EffectiveState      MailboxDraftEffectiveState
 	RequestHash         [sha256.Size]byte
+	PendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase
 	ConfirmedMutationID *uuid.UUID
 }
 
