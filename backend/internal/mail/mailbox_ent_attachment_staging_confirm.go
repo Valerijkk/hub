@@ -137,7 +137,7 @@ func mailboxAttachmentConfirmScanScheduleValid(attachment *ent.MailAttachment, u
 	if len(attachment.SHA256) != sha256.Size || attachment.ScanTerminalAt != nil || attachment.NextScanAt == nil || !mailboxEntValidTime(*attachment.NextScanAt) || attachment.NextScanAt.Before(uploadDrainUntil) {
 		return false
 	}
-	if attachment.ScanLeaseToken != nil && (*attachment.ScanLeaseToken == uuid.Nil || attachment.ScanLeaseGeneration < 1 || !mailboxEntValidTime(*attachment.ScanLeaseUntil)) {
+	if attachment.ScanLeaseToken != nil && (*attachment.ScanLeaseToken == uuid.Nil || attachment.ScanLeaseGeneration < 1 || !mailboxEntValidTime(*attachment.ScanLeaseUntil) || !attachment.ScanLeaseUntil.After(*attachment.NextScanAt)) {
 		return false
 	}
 	if attachment.ScanAttempts <= 9 {
