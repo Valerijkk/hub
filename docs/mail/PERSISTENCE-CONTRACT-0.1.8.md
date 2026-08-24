@@ -1067,6 +1067,16 @@ edges are `RESTRICT`, as is the pending attachment edge. The pending attachment 
 indexed. The service proves each identity/message/attachment belongs to the locked account;
 the database intentionally does not attempt cross-row account or immutable-client-id equality.
 
+An active server-linked Reply or Forward save accepts no client threading or message-link
+values and no attachments. Exactly one confirmed link selects the source and link kind: Reply
+derives `in_reply_to` and `references`, while Forward preserves only `forward_message_id` and
+keeps both transport-threading fields empty. Before a new provider `SaveDraft`, the repository
+locks that exact same-account `MailMessage` `FOR UPDATE` and proves its unchanged engine
+message/version pair, inbound non-draft origin, and absence of calendar/iTIP linkage. A source
+race returns `state_conflict` before provider dispatch. A matching `saving|unknown` pending save
+supplies no new source proof, does not reread the linked source, and can only reconcile the
+already-persisted mutation; it never redispatches `SaveDraft`.
+
 #### Staged migration gate (`NOT_MIGRATED`)
 
 The physical migration is deliberately staged. First add every column that is new to the target

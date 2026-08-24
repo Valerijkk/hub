@@ -35,14 +35,23 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 		if kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
 		}
-		if err := mailboxEntDraftCreateLockConfirmedIdentity(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState.FromIdentityID); err != nil {
-			return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
-		}
-		if err := mailboxEntDraftCreateLockReferences(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState); err != nil {
-			return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
-		}
-		if err := mailboxEntDraftReservationLockReplySource(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState, request.ReplySourceProof); err != nil {
-			return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
+		switch MailboxDraftStatus(draft.Status) {
+		case MailboxDraftStatusActive:
+			if err := mailboxEntDraftCreateLockConfirmedIdentity(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState.FromIdentityID); err != nil {
+				return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
+			}
+			if err := mailboxEntDraftCreateLockReferences(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState); err != nil {
+				return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
+			}
+			if err := mailboxEntDraftReservationLockLinkedSource(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState, request.LinkedSourceProof); err != nil {
+				return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
+			}
+		case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
+			if request.LinkedSourceProof != nil {
+				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			}
+		default:
+			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
 		attachments, kind := mailboxEntDraftReservationLockSaveAttachments(ctx, transaction, draft, request)
 		if kind != "" {
@@ -55,7 +64,7 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 
 		switch record.Status {
 		case MailboxDraftStatusActive:
-			if record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID || record.PendingSave != nil || !mailboxEntDraftReservationReplySourceMatches(record.Confirmed, request.ReplySourceProof) {
+			if record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID || record.PendingSave != nil || !mailboxEntDraftReservationLinkedStatesMatch(record.Confirmed, request.PendingSave.EffectiveState, request.LinkedSourceProof) {
 				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			updated, err := mailboxEntDraftReservationSaveTransition(ctx, draft, request, databaseWallClock)
@@ -294,28 +303,39 @@ func mailboxEntDraftReservationSaveRequestKind(request MailboxDraftSaveRequest) 
 	if kind := mailboxEntDraftEffectiveStateKind(request.PendingSave.EffectiveState); kind != "" {
 		return kind
 	}
-	if request.ReplySourceProof != nil && !mailboxEntDraftReservationReplySourceProofValid(*request.ReplySourceProof) {
+	if request.LinkedSourceProof != nil && !mailboxEntDraftReservationLinkedSourceProofValid(*request.LinkedSourceProof) {
 		return MailboxDraftRepositoryErrorInvalid
 	}
 	return ""
 }
 
-func mailboxEntDraftReservationReplySourceProofValid(proof MailboxDraftReplySourceProof) bool {
+func mailboxEntDraftReservationLinkedSourceProofValid(proof MailboxDraftLinkedSourceProof) bool {
 	return proof.MessageID != uuid.Nil && syncValidOpaque(proof.EngineMessageID, MaxEngineOpaqueIDBytes) && syncValidOpaque(proof.EngineVersion, MaxEngineOpaqueIDBytes)
 }
 
-func mailboxEntDraftReservationReplySourceMatches(state MailboxDraftEffectiveState, proof *MailboxDraftReplySourceProof) bool {
+func mailboxEntDraftReservationLinkedSourceMatches(state MailboxDraftEffectiveState, proof *MailboxDraftLinkedSourceProof) bool {
 	if proof == nil {
-		return true
+		return state.ReplyToMessageID == nil && state.ForwardMessageID == nil
 	}
-	return mailboxEntDraftReservationReplySourceProofValid(*proof) && state.ReplyToMessageID != nil && *state.ReplyToMessageID == proof.MessageID && state.ForwardMessageID == nil && len(state.AttachmentIDs) == 0
+	linkedID, _, linked := mailboxDraftSaveLinkedSource(state)
+	return mailboxEntDraftReservationLinkedSourceProofValid(*proof) && linked && linkedID == proof.MessageID
 }
 
-func mailboxEntDraftReservationLockReplySource(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, state MailboxDraftEffectiveState, proof *MailboxDraftReplySourceProof) error {
+func mailboxEntDraftReservationLinkedStatesMatch(confirmed, pending MailboxDraftEffectiveState, proof *MailboxDraftLinkedSourceProof) bool {
+	if proof == nil {
+		return confirmed.ReplyToMessageID == nil && confirmed.ForwardMessageID == nil && pending.ReplyToMessageID == nil && pending.ForwardMessageID == nil
+	}
+	confirmedID, confirmedReply, confirmedOK := mailboxDraftSaveLinkedSource(confirmed)
+	pendingID, pendingReply, pendingOK := mailboxDraftSaveLinkedSource(pending)
+	return mailboxEntDraftReservationLinkedSourceProofValid(*proof) && confirmedOK && pendingOK &&
+		confirmedReply == pendingReply && confirmedID == pendingID && confirmedID == proof.MessageID
+}
+
+func mailboxEntDraftReservationLockLinkedSource(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, state MailboxDraftEffectiveState, proof *MailboxDraftLinkedSourceProof) error {
 	if proof == nil {
 		return nil
 	}
-	if ctx == nil || transaction == nil || accountID == uuid.Nil || !mailboxEntDraftReservationReplySourceMatches(state, proof) {
+	if ctx == nil || transaction == nil || accountID == uuid.Nil || !mailboxEntDraftReservationLinkedSourceMatches(state, proof) {
 		return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
 	}
 	source, err := transaction.MailMessage.Query().Where(mailmessage.IDEQ(proof.MessageID), mailmessage.MailAccountIDEQ(accountID), mailmessage.DeletedAtIsNil()).ForUpdate().Only(ctx)

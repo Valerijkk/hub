@@ -249,11 +249,11 @@ type MailboxDraftCreateRequest struct {
 	MutationID               uuid.UUID
 }
 
-// MailboxDraftReplySourceProof binds an active Reply save to the exact owned
-// source-message projection from which its server-authoritative threading was
-// derived. It contains only local and opaque engine identifiers; header values
-// and message content never cross the repository boundary.
-type MailboxDraftReplySourceProof struct {
+// MailboxDraftLinkedSourceProof binds an active Reply or Forward save to the
+// exact owned source-message projection from which its server-authoritative
+// link state was derived. Link kind comes exclusively from the effective
+// state; the proof contains only local and opaque engine identifiers.
+type MailboxDraftLinkedSourceProof struct {
 	MessageID       uuid.UUID
 	EngineMessageID string
 	EngineVersion   string
@@ -266,7 +266,7 @@ type MailboxDraftSaveRequest struct {
 	DraftClientID         uuid.UUID
 	ExpectedRevision      int64
 	PendingSave           MailboxDraftPendingSave
-	ReplySourceProof      *MailboxDraftReplySourceProof
+	LinkedSourceProof     *MailboxDraftLinkedSourceProof
 	MutationID            uuid.UUID
 }
 
