@@ -122,7 +122,7 @@ paths:
     operations: [listMailFolders, createMailFolder, updateMailFolder, deleteMailFolder,
       listMailLabels, createMailLabel, updateMailLabel, deleteMailLabel, listMailThreads,
       getMailThread, getMailMessage, proxyMailRemoteImage, bulkMutateMailMessages,
-      createMailDraft, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
+      createMailDraft, getMailDraft, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
       deleteMailAttachment, searchMail, suggestMailContacts, getMailUserSettings,
       updateMailUserSettings, listMailIdentities, listMailSignatures, createMailSignature,
       updateMailSignature, deleteMailSignature, listMailRules, createMailRule, updateMailRule,
@@ -494,6 +494,24 @@ paths:
         "413": {$ref: "#/components/responses/Error"}
         "423": {$ref: "#/components/responses/MailAccountBusy"}
         "422": {$ref: "#/components/responses/Error"}
+        "503": {$ref: "#/components/responses/Error"}
+  /mail/drafts/{draftId}:
+    parameters:
+      - {$ref: "#/components/parameters/DraftId"}
+    get:
+      tags: [MailDrafts]
+      operationId: getMailDraft
+      x-hub-authz: mailbox-owner
+      description: Returns one owner-scoped active draft snapshot. Query parameters, request body and Content-Type are rejected; this read never reconciles a pending save.
+      responses:
+        "200":
+          description: Current validated active draft
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailDraft"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/MailDraftMutationConflict"}
         "503": {$ref: "#/components/responses/Error"}
   /mail/attachments/presign:
     post:

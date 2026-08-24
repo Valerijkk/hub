@@ -21,6 +21,7 @@ const mailboxDraftCreateHTTPJSONBodyMaxBytes = 20 * 1024 * 1024
 
 type mailboxDraftCreateService interface {
 	CreateMailboxDraft(context.Context, uuid.UUID, MailboxDraftCreateInput) (MailboxDraftView, error)
+	GetMailboxDraft(context.Context, uuid.UUID, uuid.UUID) (MailboxDraftView, error)
 }
 
 // MailboxDraftCreateHandler exposes the authenticated durable draft-create transport.
@@ -28,7 +29,7 @@ type MailboxDraftCreateHandler struct {
 	service mailboxDraftCreateService
 }
 
-// NewMailboxDraftCreateHandler creates the POST-only draft-create handler.
+// NewMailboxDraftCreateHandler creates the authenticated draft create/read handler.
 func NewMailboxDraftCreateHandler(service mailboxDraftCreateService) (*MailboxDraftCreateHandler, error) {
 	if mailboxHTTPDependencyNil(service) {
 		return nil, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
@@ -36,12 +37,14 @@ func NewMailboxDraftCreateHandler(service mailboxDraftCreateService) (*MailboxDr
 	return &MailboxDraftCreateHandler{service: service}, nil
 }
 
-// RegisterRoutes registers only POST /api/mail/drafts on the supplied /api router.
+// RegisterRoutes registers the authenticated draft create/read routes.
 func (handler *MailboxDraftCreateHandler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler) error {
 	if handler == nil || mailboxHTTPDependencyNil(handler.service) || mailboxHTTPDependencyNil(api) || mailboxHTTPDependencyNil(authMiddleware) {
 		return mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
 	}
-	api.Group("/mail", authMiddleware).Post("/drafts", handler.create)
+	routes := api.Group("/mail", authMiddleware)
+	routes.Post("/drafts", handler.create)
+	routes.Get("/drafts/:draftId", handler.get)
 	return nil
 }
 
@@ -136,8 +139,44 @@ func (handler *MailboxDraftCreateHandler) create(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusCreated).JSON(response)
 }
 
+func (handler *MailboxDraftCreateHandler) get(ctx fiber.Ctx) error {
+	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+	if err := mailboxDraftCreateHTTPRejectQuery(ctx); err != nil {
+		return err
+	}
+	if err := mailboxDraftReadHTTPRejectBody(ctx); err != nil {
+		return err
+	}
+	actorID, err := mailboxActorID(ctx)
+	if err != nil {
+		return err
+	}
+	draftID, err := mailboxDraftCreateHTTPCanonicalUUID(ctx.Params("draftId"))
+	if err != nil {
+		return err
+	}
+	view, err := handler.service.GetMailboxDraft(ctx.Context(), actorID, draftID)
+	if err != nil {
+		return mailboxDraftReadHTTPServiceError(ctx, err)
+	}
+	response, ok := mailboxDraftCreateHTTPResponseFromView(view)
+	if !ok {
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+	return ctx.Status(http.StatusOK).JSON(response)
+}
+
 func mailboxDraftCreateHTTPRejectQuery(ctx fiber.Ctx) error {
 	if ctx == nil || len(ctx.Request().URI().QueryString()) != 0 {
+		return mailboxDraftCreateHTTPInvalidRequest()
+	}
+	return nil
+}
+
+func mailboxDraftReadHTTPRejectBody(ctx fiber.Ctx) error {
+	if ctx == nil || len(ctx.BodyRaw()) != 0 || strings.TrimSpace(ctx.Get(fiber.HeaderContentType)) != "" {
 		return mailboxDraftCreateHTTPInvalidRequest()
 	}
 	return nil
@@ -449,6 +488,25 @@ func mailboxDraftCreateHTTPServiceError(ctx fiber.Ctx, err error) error {
 		return fiber.NewError(http.StatusUnprocessableEntity, "mail draft request cannot be processed")
 	case MailboxDraftServiceErrorBusy:
 		return mailboxDraftCreateHTTPBusy(ctx, serviceErr)
+	default:
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+}
+
+func mailboxDraftReadHTTPServiceError(ctx fiber.Ctx, err error) error {
+	var serviceErr *MailboxDraftServiceError
+	if !errors.As(err, &serviceErr) || serviceErr == nil {
+		return mailboxDraftCreateHTTPUnavailable()
+	}
+	switch serviceErr.Kind() {
+	case MailboxDraftServiceErrorNotFound:
+		return fiber.NewError(http.StatusNotFound, "mail draft unavailable")
+	case MailboxDraftServiceErrorDeleting:
+		ctx.Set("X-Hub-Error-Code", "MAIL_ACCOUNT_DELETING")
+		return fiber.NewError(http.StatusConflict, "mail account is deleting")
+	case MailboxDraftServiceErrorConflict, MailboxDraftServiceErrorReconciliationRequired:
+		ctx.Set("X-Hub-Error-Code", "MAIL_DRAFT_RECONCILIATION_REQUIRED")
+		return fiber.NewError(http.StatusConflict, "mail draft reconciliation required")
 	default:
 		return mailboxDraftCreateHTTPUnavailable()
 	}
