@@ -184,6 +184,19 @@ type MailboxDraftCreateReplayLookupResult struct {
 	LastMutationID *uuid.UUID
 }
 
+// MailboxDraftCreatePreHashLocatorRequest identifies one account-scoped create before request-hash adjudication.
+type MailboxDraftCreatePreHashLocatorRequest struct {
+	AccountID                uuid.UUID
+	DraftClientID            uuid.UUID
+	CreateIdempotencyKeyHash [sha256.Size]byte
+}
+
+// MailboxDraftCreatePreHashLocatorResult contains one compatible durable create candidate when Found is true.
+type MailboxDraftCreatePreHashLocatorResult struct {
+	Found   bool
+	DraftID uuid.UUID
+}
+
 // MailboxDraftReadRecheckRequest seals the local active draft revision and exact engine message/version pair.
 type MailboxDraftReadRecheckRequest struct {
 	AccountID       uuid.UUID
@@ -383,6 +396,7 @@ type MailboxDraftFinishResult struct {
 type MailboxDraftRepository interface {
 	BeginEngineCommand(context.Context, MailboxEngineCommandBeginRequest) (MailboxEngineCommandBeginResult, error)
 	GetMailboxDraft(context.Context, MailboxDraftGetRequest) (MailboxDraftGetResult, error)
+	LookupMailboxDraftCreatePreHashLocator(context.Context, MailboxDraftCreatePreHashLocatorRequest) (MailboxDraftCreatePreHashLocatorResult, error)
 	LookupMailboxDraftCreateReplay(context.Context, MailboxDraftCreateReplayLookupRequest) (MailboxDraftCreateReplayLookupResult, error)
 	ReserveMailboxDraftCreate(context.Context, MailboxDraftCreateRequest) (MailboxDraftReservation, error)
 	ReserveMailboxDraftSave(context.Context, MailboxDraftSaveRequest) (MailboxDraftReservation, error)
