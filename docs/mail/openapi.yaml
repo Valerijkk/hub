@@ -455,12 +455,12 @@ paths:
             schema: {$ref: "#/components/schemas/BulkMailMutationRequest"}
       responses:
         "200":
-          description: Per-request-target mutation and classifier-feedback result
+          description: Per-request-target durable mutation result
           content:
             application/json:
               schema: {$ref: "#/components/schemas/BulkMailMutationResult"}
         "202":
-          description: Captured non-classifier engine state is indeterminate and will reconcile only from the persisted target/member snapshot; replay never re-expands scope
+          description: Persisted engine outcome is indeterminate and will reconcile only from the stored target/member snapshot; replay never re-expands scope
           content:
             application/json:
               schema: {$ref: "#/components/schemas/BulkMailMutationResult"}
@@ -1963,7 +1963,7 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailBulkExpansionExceeded:
-      description: Thread/message targets expand to more than 200 distinct owned messages; no mutation or classifier feedback ran
+      description: Thread/message targets expand to more than 200 distinct owned messages; no mutation or provider dispatch ran
       headers:
         X-Hub-Error-Code:
           required: true
@@ -2690,29 +2690,16 @@ components:
           maxItems: 200
           uniqueItems: true
           items: {type: string, format: uuid}
-        action: {type: string, enum: [move, add_label, remove_label, mark_read, mark_unread, flag, unflag, archive, junk, not_junk, trash, restore, pin, unpin]}
-        folder_id: {type: [string, "null"], format: uuid}
-        label_id: {type: [string, "null"], format: uuid}
+        action: {type: string, enum: [move, mark_read, mark_unread, flag, unflag, trash]}
+        folder_id: {type: string, format: uuid}
       oneOf:
         - properties:
             action: {const: move}
             folder_id: {type: string, format: uuid}
-            label_id: false
           required: [folder_id]
         - properties:
-            action: {enum: [add_label, remove_label]}
+            action: {enum: [mark_read, mark_unread, flag, unflag, trash]}
             folder_id: false
-            label_id: {type: string, format: uuid}
-          required: [label_id]
-        - properties:
-            target_type: {const: thread}
-            action: {enum: [pin, unpin]}
-            folder_id: false
-            label_id: false
-        - properties:
-            action: {enum: [mark_read, mark_unread, flag, unflag, archive, junk, not_junk, trash, restore]}
-            folder_id: false
-            label_id: false
     BulkMailMutationResult:
       type: object
       additionalProperties: false
@@ -2733,10 +2720,10 @@ components:
               affected_message_count: {type: integer, minimum: 0, maximum: 200}
               succeeded_message_count: {type: integer, minimum: 0, maximum: 200}
               failed_message_count: {type: integer, minimum: 0, maximum: 200}
-              training_status: {type: string, enum: [not_requested, accepted, rejected, unknown]}
+              training_status: {type: string, const: not_requested}
               code:
                 type: [string, "null"]
-                enum: [MAIL_TARGET_UNAVAILABLE, MAIL_ACTION_REJECTED, MAIL_ENGINE_OUTCOME_UNKNOWN, MAIL_CLASSIFIER_REJECTED, MAIL_CLASSIFIER_OUTCOME_UNKNOWN, MAIL_LABEL_UNAVAILABLE, MAIL_FOLDER_UNAVAILABLE, null]
+                enum: [MAIL_TARGET_UNAVAILABLE, MAIL_ACTION_REJECTED, MAIL_ENGINE_OUTCOME_UNKNOWN, MAIL_FOLDER_UNAVAILABLE, null]
     MailDraft:
       type: object
       additionalProperties: false

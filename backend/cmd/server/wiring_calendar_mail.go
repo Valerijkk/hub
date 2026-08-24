@@ -254,6 +254,17 @@ func wireCalendarMail(d *serverDeps) {
 	if err := mailboxMessageHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	mailboxMessageMutationService, err := mailmod.NewMailboxMessageMutationService(mailboxSvc, mailboxRepo, mailboxEngine)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxMessageMutationHandler, err := mailmod.NewMailboxMessageMutationHandler(mailboxMessageMutationService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxMessageMutationHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 	if err := mailboxAttachmentStagingHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
