@@ -23,28 +23,29 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCreateUpload(ctx cont
 	}
 
 	var result MailboxDraftRestartCreateUploadResult
+	var postCommitErr error
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		account, databaseWallClock, err := mailboxEntDraftCreateLockAccount(ctx, transaction, request.Fence)
 		if err != nil {
 			return err
 		}
 		if kind := mailboxEntDraftCreateAccountKind(account); kind != "" {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind, &postCommitErr)
 		}
 		if !mailboxEntDraftRecoveryReceiptAccountValid(account) {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorInvalid)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorInvalid, &postCommitErr)
 		}
 		draft, kind := mailboxEntDraftReservationLockDraft(ctx, transaction, request.Fence.AccountID, request.DraftID)
 		if kind != "" {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind, &postCommitErr)
 		}
 		attachments, kind := mailboxEntDraftReadAttachmentState(ctx, transaction, draft, MailboxDraftRepositoryErrorStateConflict)
 		if kind != "" {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind, &postCommitErr)
 		}
 		record, ok := mailboxEntDraftReadRecord(draft, attachments)
 		if !ok {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
 		}
 		receiptInput := mailboxDraftRecoveryReceiptInput{
 			Operation:          mailboxDraftRecoveryReceiptOperationRestart,
@@ -55,11 +56,11 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCreateUpload(ctx cont
 		}
 		receipt, kind := mailboxEntDraftRecoveryReceiptLock(ctx, transaction, account, receiptInput)
 		if kind != "" {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, kind, &postCommitErr)
 		}
 		if receipt != nil {
 			if !mailboxEntDraftRecoveryReceiptReplayValid(receipt, account, receiptInput, databaseWallClock) || !mailboxEntDraftRestartPostStateValid(record, attachments, request) {
-				return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorIdempotencyConflict)
+				return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorIdempotencyConflict, &postCommitErr)
 			}
 			if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, databaseWallClock); err != nil {
 				return err
@@ -68,7 +69,7 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCreateUpload(ctx cont
 			return nil
 		}
 		if !mailboxEntDraftRestartFreshStateValid(record, attachments, request, databaseWallClock) {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
 		}
 
 		freshDatabaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
@@ -79,7 +80,7 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCreateUpload(ctx cont
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorFenceLost)
 		}
 		if !mailboxEntDraftRestartFreshStateValid(record, attachments, request, freshDatabaseWallClock) {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
 		}
 
 		nextAttempt := request.ExpectedAttempt + 1
@@ -106,19 +107,16 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCreateUpload(ctx cont
 		updated.PendingCreateUploadExhaustedAt = nil
 		updated.UpdatedAt = freshDatabaseWallClock.UTC()
 		if !mailboxEntDraftRestartPostStateValid(updated, attachments, request) {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
 		}
 		work := mailboxEntDraftCreateWork(updated, MailboxDraftWorkCreate)
 		if work == nil {
-			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, MailboxDraftRepositoryErrorStateConflict)
+			return mailboxEntDraftRestartLogicalError(ctx, account, request.Fence, freshDatabaseWallClock, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
 		}
 		if _, kind := mailboxEntDraftRecoveryReceiptComplete(ctx, transaction, account, receiptInput, freshDatabaseWallClock); kind != "" {
 			return NewMailboxDraftRepositoryError(kind)
 		}
 		if err := mailboxEntDraftRestartAudit(ctx, transaction, account, updated, nextAttempt, freshDatabaseWallClock); err != nil {
-			return err
-		}
-		if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, freshDatabaseWallClock); err != nil {
 			return err
 		}
 		fence := mailboxEntDraftCreateFenceCopy(request.Fence)
@@ -128,6 +126,9 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCreateUpload(ctx cont
 	})
 	if err != nil {
 		return MailboxDraftRestartCreateUploadResult{}, mailboxEntDraftRepositoryError(err)
+	}
+	if postCommitErr != nil {
+		return MailboxDraftRestartCreateUploadResult{}, postCommitErr
 	}
 	return result, nil
 }
@@ -147,8 +148,15 @@ func mailboxEntDraftRestartPostStateValid(record MailboxDraftRecord, attachments
 	return record.ID == request.DraftID && record.AccountID == request.Fence.AccountID && record.Status == MailboxDraftStatusSaving && record.Revision == 1 && record.EngineMessageID == nil && record.EngineVersion == nil && record.PendingSave == nil && record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationCreate && record.PendingCreateAttachmentPhase != nil && *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload && record.LastMutationID != nil && *record.LastMutationID == request.NextMutationID && record.PendingCreateUploadAttempt == request.ExpectedAttempt+1 && record.PendingCreateUploadRetryAt == nil && record.PendingCreateUploadExhaustedAt == nil && len(record.Confirmed.AttachmentIDs) != 0 && len(attachments.ConfirmedAttachmentIDs) != 0 && len(attachments.PendingAttachmentIDs) == 0 && record.AbandonedAt == nil && record.AbandonedMutationID == nil
 }
 
-func mailboxEntDraftRestartLogicalError(ctx context.Context, account *ent.MailAccount, fence MailboxEngineCommandFence, databaseWallClock time.Time, kind MailboxDraftRepositoryErrorKind) error {
-	return mailboxEntDraftReservationReleaseError(ctx, account, fence, databaseWallClock, kind)
+func mailboxEntDraftRestartLogicalError(ctx context.Context, account *ent.MailAccount, fence MailboxEngineCommandFence, databaseWallClock time.Time, kind MailboxDraftRepositoryErrorKind, postCommitErr *error) error {
+	if postCommitErr == nil || kind == MailboxDraftRepositoryErrorUnavailable {
+		return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+	}
+	if err := mailboxEntDraftCreateRelease(ctx, account, fence, databaseWallClock); err != nil {
+		return err
+	}
+	*postCommitErr = NewMailboxDraftRepositoryError(kind)
+	return nil
 }
 
 func mailboxEntDraftRestartAudit(ctx context.Context, transaction *ent.Tx, account *ent.MailAccount, updated MailboxDraftRecord, attempt int, databaseWallClock time.Time) error {
