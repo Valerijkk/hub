@@ -244,6 +244,9 @@ func mailboxEntDraftReadRowValid(draft *ent.MailDraft, accountID, draftID uuid.U
 	if draft == nil || draft.ID != draftID || draftID == uuid.Nil || draft.MailAccountID != accountID || accountID == uuid.Nil || draft.FromIdentityID == uuid.Nil || draft.DraftClientID == uuid.Nil || !syncValidOpaque(draft.EngineDraftKey, MaxEngineOpaqueIDBytes) || draft.Revision < 1 || !mailboxEntDraftReadHashValid(draft.CreateIdempotencyKeyHash) || !mailboxEntDraftReadHashValid(draft.CreateRequestHash) || !mailboxEntValidTime(draft.UpdatedAt) || !mailboxEntDraftReadUUIDPointerValid(draft.ReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.ForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingFromIdentityID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.LastMutationID) || !mailboxEntDraftReadUUIDPointerValid(draft.ConfirmedMutationID) || (len(draft.PendingSaveRequestHash) != 0 && !mailboxEntDraftReadHashValid(draft.PendingSaveRequestHash)) {
 		return false
 	}
+	if !mailboxEntDraftReadTimePointerValid(draft.PendingCreateUploadRetryAt) || !mailboxEntDraftReadTimePointerValid(draft.PendingCreateUploadExhaustedAt) || !mailboxEntDraftReadTimePointerValid(draft.AbandonedAt) || !mailboxEntDraftReadUUIDPointerValid(draft.AbandonedMutationID) {
+		return false
+	}
 	pairPresent, pairValid := mailboxEntDraftReadEnginePairValid(draft.EngineMessageID, draft.EngineVersion)
 	if !pairValid {
 		return false
@@ -253,7 +256,7 @@ func mailboxEntDraftReadRowValid(draft *ent.MailDraft, accountID, draftID uuid.U
 	if !pendingKindValid || !pendingCreateAttachmentPhaseValid || draft.ConfirmedMutationID != nil && (!pairPresent || draft.LastMutationID != nil && *draft.ConfirmedMutationID == *draft.LastMutationID) {
 		return false
 	}
-	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, draft.PendingSaveRequestHash)
+	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingCreateUploadAttempt, draft.PendingCreateUploadRetryAt, draft.PendingCreateUploadExhaustedAt, draft.AbandonedAt, draft.AbandonedMutationID, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, draft.PendingSaveRequestHash)
 }
 
 func mailboxEntDraftReadEnginePairValid(messageID, version *string) (bool, bool) {
@@ -289,8 +292,11 @@ func mailboxEntDraftReadCreateAttachmentPhase(value *maildraft.PendingCreateAtta
 	}
 }
 
-func mailboxEntDraftReadStateScalarValid(status MailboxDraftStatus, enginePairPresent bool, mutationID *uuid.UUID, pendingKind *MailboxDraftMutationKind, pendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase, pendingFrom, pendingReply, pendingForward *uuid.UUID, pendingHash []byte) bool {
-	if pendingCreateAttachmentPhase != nil && (pendingKind == nil || *pendingKind != MailboxDraftMutationCreate || status != MailboxDraftStatusSaving && status != MailboxDraftStatusUnknown) {
+func mailboxEntDraftReadStateScalarValid(status MailboxDraftStatus, enginePairPresent bool, mutationID *uuid.UUID, pendingKind *MailboxDraftMutationKind, pendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase, pendingCreateUploadAttempt int, pendingCreateUploadRetryAt, pendingCreateUploadExhaustedAt, abandonedAt *time.Time, abandonedMutationID *uuid.UUID, pendingFrom, pendingReply, pendingForward *uuid.UUID, pendingHash []byte) bool {
+	if !mailboxEntDraftCreateUploadRecoveryStateValid(status, pendingKind, pendingCreateAttachmentPhase, pendingCreateUploadAttempt, pendingCreateUploadRetryAt, pendingCreateUploadExhaustedAt) {
+		return false
+	}
+	if status != MailboxDraftStatusAbandoned && (abandonedAt != nil || abandonedMutationID != nil) {
 		return false
 	}
 	pendingScalarsPresent := pendingFrom != nil || pendingReply != nil || pendingForward != nil || pendingHash != nil
@@ -309,6 +315,8 @@ func mailboxEntDraftReadStateScalarValid(status MailboxDraftStatus, enginePairPr
 		return mutationPresent && kindPresent && ((*pendingKind == MailboxDraftMutationCreate && !enginePairPresent && noPendingSave) || (*pendingKind == MailboxDraftMutationSave && enginePairPresent && pendingSaveValid) || (*pendingKind == MailboxDraftMutationDelete && enginePairPresent && noPendingSave))
 	case MailboxDraftStatusDeleted:
 		return !mutationPresent && !kindPresent && noPendingSave
+	case MailboxDraftStatusAbandoned:
+		return !enginePairPresent && !mutationPresent && !kindPresent && noPendingSave && abandonedAt != nil && abandonedMutationID != nil
 	default:
 		return false
 	}
@@ -333,7 +341,7 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 	} else if len(attachments.PendingAttachmentIDs) != 0 {
 		return MailboxDraftRecord{}, false
 	}
-	if MailboxDraftStatus(draft.Status) == MailboxDraftStatusDeleted && len(attachments.ConfirmedAttachmentIDs) != 0 {
+	if (MailboxDraftStatus(draft.Status) == MailboxDraftStatusDeleted || MailboxDraftStatus(draft.Status) == MailboxDraftStatusAbandoned) && len(attachments.ConfirmedAttachmentIDs) != 0 {
 		return MailboxDraftRecord{}, false
 	}
 	confirmed := MailboxDraftEffectiveState{
@@ -370,7 +378,12 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 		LastMutationID:      mailboxEntDraftReadUUIDPointerCopy(draft.LastMutationID),
 		PendingMutationKind: mailboxEntDraftReadMutationKindPointerCopy(pendingKind),
 		PendingCreateAttachmentPhase: mailboxEntDraftReadCreateAttachmentPhasePointerCopy(pendingCreateAttachmentPhase),
+		PendingCreateUploadAttempt: draft.PendingCreateUploadAttempt,
+		PendingCreateUploadRetryAt: mailboxEntDraftReadTimePointerCopy(draft.PendingCreateUploadRetryAt),
+		PendingCreateUploadExhaustedAt: mailboxEntDraftReadTimePointerCopy(draft.PendingCreateUploadExhaustedAt),
 		ConfirmedMutationID: mailboxEntDraftReadUUIDPointerCopy(draft.ConfirmedMutationID),
+		AbandonedAt:         mailboxEntDraftReadTimePointerCopy(draft.AbandonedAt),
+		AbandonedMutationID: mailboxEntDraftReadUUIDPointerCopy(draft.AbandonedMutationID),
 		UpdatedAt:           draft.UpdatedAt.UTC(),
 	}, true
 }
@@ -410,6 +423,8 @@ func mailboxEntDraftPendingSaveCopy(value *MailboxDraftPendingSave) *MailboxDraf
 
 func mailboxEntDraftReadUUIDPointerValid(value *uuid.UUID) bool { return value == nil || *value != uuid.Nil }
 
+func mailboxEntDraftReadTimePointerValid(value *time.Time) bool { return value == nil || mailboxEntValidTime(*value) }
+
 func mailboxEntDraftReadUUIDPointerCopy(value *uuid.UUID) *uuid.UUID {
 	if value == nil {
 		return nil
@@ -431,6 +446,14 @@ func mailboxEntDraftReadCreateAttachmentPhasePointerCopy(value *MailboxDraftCrea
 		return nil
 	}
 	copied := *value
+	return &copied
+}
+
+func mailboxEntDraftReadTimePointerCopy(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	copied := mailboxEntDraftReadTimeCopy(*value)
 	return &copied
 }
 

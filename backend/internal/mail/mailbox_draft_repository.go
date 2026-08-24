@@ -23,6 +23,7 @@ const (
 	MailboxDraftStatusSubmitting MailboxDraftStatus = "submitting"
 	MailboxDraftStatusSubmitted  MailboxDraftStatus = "submitted"
 	MailboxDraftStatusDeleted    MailboxDraftStatus = "deleted"
+	MailboxDraftStatusAbandoned  MailboxDraftStatus = "abandoned"
 )
 
 // MailboxDraftMutationKind identifies the durable engine mutation pending for a draft.
@@ -162,7 +163,12 @@ type MailboxDraftRecord struct {
 	LastMutationID      *uuid.UUID
 	PendingMutationKind *MailboxDraftMutationKind
 	PendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase
+	PendingCreateUploadAttempt int
+	PendingCreateUploadRetryAt *time.Time
+	PendingCreateUploadExhaustedAt *time.Time
 	ConfirmedMutationID *uuid.UUID
+	AbandonedAt         *time.Time
+	AbandonedMutationID *uuid.UUID
 	UpdatedAt           time.Time
 }
 
@@ -299,6 +305,9 @@ type MailboxDraftWork struct {
 	EffectiveState      MailboxDraftEffectiveState
 	RequestHash         [sha256.Size]byte
 	PendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase
+	PendingCreateUploadAttempt int
+	PendingCreateUploadRetryAt *time.Time
+	PendingCreateUploadExhaustedAt *time.Time
 	ConfirmedMutationID *uuid.UUID
 }
 

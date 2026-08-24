@@ -189,6 +189,7 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftCreate(ctx context.Co
 		if len(request.Confirmed.AttachmentIDs) != 0 {
 			draftCreate.AddAttachmentIDs(request.Confirmed.AttachmentIDs...)
 			draftCreate.SetPendingCreateAttachmentPhase(maildraft.PendingCreateAttachmentPhase(MailboxDraftCreateAttachmentPhaseUpload))
+			draftCreate.SetPendingCreateUploadAttempt(1)
 		}
 		draft, err := draftCreate.Save(ctx)
 		if err != nil {
@@ -236,7 +237,7 @@ func (repository *MailboxEntRepository) AdvanceMailboxDraftCreateToImport(ctx co
 			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
 		}
 		record, ok := mailboxEntDraftReadRecord(draft, attachments)
-		if !ok || record.Status != MailboxDraftStatusSaving || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseUpload || len(record.Confirmed.AttachmentIDs) == 0 {
+		if !ok || record.Status != MailboxDraftStatusSaving || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseUpload || record.PendingCreateUploadAttempt != 1 || record.PendingCreateUploadRetryAt != nil || record.PendingCreateUploadExhaustedAt != nil || len(record.Confirmed.AttachmentIDs) == 0 {
 			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
 		freshDatabaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
@@ -508,7 +509,7 @@ func mailboxEntDraftCreateClassifyExisting(ctx context.Context, transaction *ent
 		*result = MailboxDraftReservation{Kind: MailboxDraftReservationReplay, Draft: mailboxEntDraftRecordCopy(record)}
 		return nil
 	case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
-		if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || !mailboxEntDraftCreateImportReady(record) {
+		if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseImport || !mailboxEntDraftCreateImportReady(record) {
 			return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
 		work := mailboxEntDraftCreateWork(record, MailboxDraftWorkReconcileCreate)
@@ -586,7 +587,7 @@ func mailboxEntDraftCreateWork(record MailboxDraftRecord, kind MailboxDraftWorkK
 	if record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationDelete {
 		requestHash = [sha256.Size]byte{}
 	}
-	return &MailboxDraftWork{Kind: kind, EngineDraftKey: record.EngineDraftKey, EngineMessageID: mailboxEntStringPointer(record.EngineMessageID), EngineVersion: mailboxEntStringPointer(record.EngineVersion), MutationID: *record.LastMutationID, Revision: record.Revision, EffectiveState: effectiveState, RequestHash: requestHash, PendingCreateAttachmentPhase: mailboxEntDraftReadCreateAttachmentPhasePointerCopy(record.PendingCreateAttachmentPhase), ConfirmedMutationID: mailboxEntDraftReadUUIDPointerCopy(record.ConfirmedMutationID)}
+	return &MailboxDraftWork{Kind: kind, EngineDraftKey: record.EngineDraftKey, EngineMessageID: mailboxEntStringPointer(record.EngineMessageID), EngineVersion: mailboxEntStringPointer(record.EngineVersion), MutationID: *record.LastMutationID, Revision: record.Revision, EffectiveState: effectiveState, RequestHash: requestHash, PendingCreateAttachmentPhase: mailboxEntDraftReadCreateAttachmentPhasePointerCopy(record.PendingCreateAttachmentPhase), PendingCreateUploadAttempt: record.PendingCreateUploadAttempt, PendingCreateUploadRetryAt: mailboxEntDraftReadTimePointerCopy(record.PendingCreateUploadRetryAt), PendingCreateUploadExhaustedAt: mailboxEntDraftReadTimePointerCopy(record.PendingCreateUploadExhaustedAt), ConfirmedMutationID: mailboxEntDraftReadUUIDPointerCopy(record.ConfirmedMutationID)}
 }
 
 func mailboxEntDraftCreateFenceCopy(fence MailboxEngineCommandFence) MailboxEngineCommandFence {
@@ -594,5 +595,5 @@ func mailboxEntDraftCreateFenceCopy(fence MailboxEngineCommandFence) MailboxEngi
 }
 
 func mailboxEntDraftRecordCopy(record MailboxDraftRecord) MailboxDraftRecord {
-	return MailboxDraftRecord{ID: record.ID, AccountID: record.AccountID, DraftClientID: record.DraftClientID, EngineDraftKey: record.EngineDraftKey, EngineMessageID: mailboxEntStringPointer(record.EngineMessageID), EngineVersion: mailboxEntStringPointer(record.EngineVersion), Revision: record.Revision, Status: record.Status, Confirmed: mailboxEntDraftEffectiveStateCopy(record.Confirmed), PendingSave: mailboxEntDraftPendingSaveCopy(record.PendingSave), CreateRequestHash: record.CreateRequestHash, LastMutationID: mailboxEntDraftReadUUIDPointerCopy(record.LastMutationID), PendingMutationKind: mailboxEntDraftReadMutationKindPointerCopy(record.PendingMutationKind), PendingCreateAttachmentPhase: mailboxEntDraftReadCreateAttachmentPhasePointerCopy(record.PendingCreateAttachmentPhase), ConfirmedMutationID: mailboxEntDraftReadUUIDPointerCopy(record.ConfirmedMutationID), UpdatedAt: mailboxEntDraftReadTimeCopy(record.UpdatedAt)}
+	return MailboxDraftRecord{ID: record.ID, AccountID: record.AccountID, DraftClientID: record.DraftClientID, EngineDraftKey: record.EngineDraftKey, EngineMessageID: mailboxEntStringPointer(record.EngineMessageID), EngineVersion: mailboxEntStringPointer(record.EngineVersion), Revision: record.Revision, Status: record.Status, Confirmed: mailboxEntDraftEffectiveStateCopy(record.Confirmed), PendingSave: mailboxEntDraftPendingSaveCopy(record.PendingSave), CreateRequestHash: record.CreateRequestHash, LastMutationID: mailboxEntDraftReadUUIDPointerCopy(record.LastMutationID), PendingMutationKind: mailboxEntDraftReadMutationKindPointerCopy(record.PendingMutationKind), PendingCreateAttachmentPhase: mailboxEntDraftReadCreateAttachmentPhasePointerCopy(record.PendingCreateAttachmentPhase), PendingCreateUploadAttempt: record.PendingCreateUploadAttempt, PendingCreateUploadRetryAt: mailboxEntDraftReadTimePointerCopy(record.PendingCreateUploadRetryAt), PendingCreateUploadExhaustedAt: mailboxEntDraftReadTimePointerCopy(record.PendingCreateUploadExhaustedAt), ConfirmedMutationID: mailboxEntDraftReadUUIDPointerCopy(record.ConfirmedMutationID), AbandonedAt: mailboxEntDraftReadTimePointerCopy(record.AbandonedAt), AbandonedMutationID: mailboxEntDraftReadUUIDPointerCopy(record.AbandonedMutationID), UpdatedAt: mailboxEntDraftReadTimeCopy(record.UpdatedAt)}
 }
