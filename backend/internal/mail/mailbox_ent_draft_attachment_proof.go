@@ -148,7 +148,10 @@ func mailboxEntDraftAttachmentProofAttachmentValid(attachment *ent.MailAttachmen
 	if *attachment.MailDraftID != request.DraftID {
 		return false
 	}
-	return attachment.PendingMailDraftID == nil || *attachment.PendingMailDraftID == request.DraftID && draftFound
+	if !draftFound {
+		return false
+	}
+	return attachment.PendingMailDraftID == nil || *attachment.PendingMailDraftID == request.DraftID
 }
 
 func mailboxEntDraftAttachmentProofSHA256Valid(value []byte) bool {
