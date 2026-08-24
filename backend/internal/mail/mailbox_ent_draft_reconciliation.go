@@ -143,11 +143,19 @@ func (repository *MailboxEntRepository) ResumeMailboxDraftCreateAfterAbsence(ctx
 			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.LastMutationID == nil || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || !mailboxEntDraftCreateImportReady(record) {
 				return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
+			if record.PendingCreateAttachmentPhase != nil {
+				phase := MailboxDraftCreateAttachmentPhaseUpload
+				record.PendingCreateAttachmentPhase = &phase
+			}
 			work := mailboxEntDraftCreateWork(record, MailboxDraftWorkCreate)
 			if work == nil {
 				return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
-			if err := draft.Update().SetStatus(maildraft.StatusSaving).SetUpdatedAt(databaseWallClock).Exec(ctx); err != nil {
+			update := draft.Update().SetStatus(maildraft.StatusSaving).SetUpdatedAt(databaseWallClock)
+			if record.PendingCreateAttachmentPhase != nil {
+				update.SetPendingCreateAttachmentPhase(maildraft.PendingCreateAttachmentPhase(MailboxDraftCreateAttachmentPhaseUpload))
+			}
+			if err := update.Exec(ctx); err != nil {
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
 			record.Status = MailboxDraftStatusSaving
