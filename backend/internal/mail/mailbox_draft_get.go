@@ -226,9 +226,6 @@ func mailboxDraftGetNormalizeContent(body EngineMessageBody) (MailboxContentResu
 		}
 		input = MailboxContentInput{SourceFormat: MailboxContentFormatPlain, Body: body.PlainBody}
 	case EngineBodyRich:
-		if body.RichBody == "" {
-			return MailboxContentResult{}, mailboxDraftServiceError(MailboxDraftServiceErrorUnprocessable)
-		}
 		input = MailboxContentInput{SourceFormat: MailboxContentFormatRich, Body: body.RichBody}
 	default:
 		return MailboxContentResult{}, mailboxDraftServiceError(MailboxDraftServiceErrorUnprocessable)
