@@ -36,6 +36,7 @@ func (MailDraft) Fields() []ent.Field {
 		field.UUID("pending_forward_message_id", uuid.UUID{}).Optional().Nillable(),
 		field.Bytes("pending_save_request_hash").Optional().Nillable().MinLen(sha256.Size).MaxLen(sha256.Size),
 		field.UUID("last_mutation_id", uuid.UUID{}).Optional().Nillable(),
+		field.UUID("confirmed_mutation_id", uuid.UUID{}).Optional().Nillable(),
 		field.Enum("pending_mutation_kind").Values("create", "save", "delete").Optional().Nillable(),
 		field.Time("created_at").Default(nowUTC).Immutable(),
 		field.Time("updated_at").Default(nowUTC).UpdateDefault(nowUTC),
@@ -52,6 +53,7 @@ func (MailDraft) Annotations() []schema.Annotation {
 			"mail_drafts_status_enum":        "COALESCE(status IN ('active','saving','deleting','unknown','submitting','submitted','deleted'), FALSE)",
 			"mail_drafts_state":              "COALESCE((status IN ('active','submitting','submitted') AND engine_message_id IS NOT NULL AND last_mutation_id IS NULL AND pending_mutation_kind IS NULL) OR (status = 'saving' AND last_mutation_id IS NOT NULL AND pending_mutation_kind IN ('create','save') AND ((pending_mutation_kind = 'create' AND engine_message_id IS NULL) OR (pending_mutation_kind = 'save' AND engine_message_id IS NOT NULL))) OR (status = 'deleting' AND last_mutation_id IS NOT NULL AND pending_mutation_kind = 'delete' AND engine_message_id IS NOT NULL) OR (status = 'unknown' AND last_mutation_id IS NOT NULL AND ((pending_mutation_kind = 'create' AND engine_message_id IS NULL) OR (pending_mutation_kind IN ('save','delete') AND engine_message_id IS NOT NULL))) OR (status = 'deleted' AND last_mutation_id IS NULL AND pending_mutation_kind IS NULL), FALSE)",
 			"mail_drafts_pending_save_state": "COALESCE((pending_mutation_kind = 'save' AND pending_from_identity_id IS NOT NULL AND octet_length(pending_save_request_hash) = 32) OR ((pending_mutation_kind IS NULL OR pending_mutation_kind <> 'save') AND pending_from_identity_id IS NULL AND pending_reply_to_message_id IS NULL AND pending_forward_message_id IS NULL AND pending_save_request_hash IS NULL), FALSE)",
+			"mail_drafts_confirmed_mutation":  "COALESCE(confirmed_mutation_id IS NULL OR (engine_message_id IS NOT NULL AND engine_version IS NOT NULL AND (last_mutation_id IS NULL OR confirmed_mutation_id <> last_mutation_id)), FALSE)",
 		}),
 	}
 }

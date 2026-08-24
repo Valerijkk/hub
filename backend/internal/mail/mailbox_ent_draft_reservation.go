@@ -3,7 +3,6 @@ package mail
 import (
 	"context"
 	"sort"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/valerii/hub/backend/ent/mailobject"
 )
 
-// ReserveMailboxDraftSave persists or recovers one draft-save operation under the exact acquired fence.
+// ReserveMailboxDraftSave persists a complete desired D graph while retaining confirmed O.
 func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Context, request MailboxDraftSaveRequest) (MailboxDraftReservation, error) {
 	if repository == nil || repository.client == nil || ctx == nil {
 		return MailboxDraftReservation{}, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
@@ -31,26 +30,35 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 		if kind := mailboxEntDraftCreateAccountKind(account); kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
 		}
-
 		draft, kind := mailboxEntDraftReservationLockDraft(ctx, transaction, request.Fence.AccountID, request.DraftID)
 		if kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
 		}
-		record, kind := mailboxEntDraftReservationSaveRecord(ctx, transaction, draft, request)
+		if err := mailboxEntDraftCreateLockConfirmedIdentity(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState.FromIdentityID); err != nil {
+			return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
+		}
+		if err := mailboxEntDraftCreateLockReferences(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState); err != nil {
+			return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
+		}
+		attachments, kind := mailboxEntDraftReservationLockSaveAttachments(ctx, transaction, draft, request)
 		if kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
+		}
+		record, ok := mailboxEntDraftReadRecord(draft, attachments)
+		if !ok {
+			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
 
 		switch record.Status {
 		case MailboxDraftStatusActive:
-			if record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID {
+			if record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID || record.PendingSave != nil {
 				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			updated, err := mailboxEntDraftReservationSaveTransition(ctx, draft, request, databaseWallClock)
 			if err != nil {
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
-			updatedRecord, ok := mailboxEntDraftReadRecord(updated, request.SelectedAttachmentIDs)
+			updatedRecord, ok := mailboxEntDraftReadRecord(updated, mailboxEntDraftAttachmentState{ConfirmedAttachmentIDs: append([]uuid.UUID(nil), record.Confirmed.AttachmentIDs...), PendingAttachmentIDs: append([]uuid.UUID(nil), request.PendingSave.EffectiveState.AttachmentIDs...)})
 			if !ok {
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
@@ -59,15 +67,10 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
 			fence := mailboxEntDraftCreateFenceCopy(request.Fence)
-			result = MailboxDraftReservation{
-				Kind:  MailboxDraftReservationDispatch,
-				Draft: updatedRecord,
-				Work:  work,
-				Fence: &fence,
-			}
+			result = MailboxDraftReservation{Kind: MailboxDraftReservationDispatch, Draft: updatedRecord, Work: work, Fence: &fence}
 			return nil
 		case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
-			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationSave || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID || !mailboxEntDraftReservationUUIDSetsEqual(record.SelectedAttachmentIDs, request.SelectedAttachmentIDs) {
+			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationSave || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID || !mailboxEntDraftPendingSavesEqual(record.PendingSave, &request.PendingSave) {
 				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			work := mailboxEntDraftCreateWork(record, MailboxDraftWorkReconcileSave)
@@ -75,12 +78,7 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
 			fence := mailboxEntDraftCreateFenceCopy(request.Fence)
-			result = MailboxDraftReservation{
-				Kind:  MailboxDraftReservationReconcileRequired,
-				Draft: record,
-				Work:  work,
-				Fence: &fence,
-			}
+			result = MailboxDraftReservation{Kind: MailboxDraftReservationReconcileRequired, Draft: mailboxEntDraftRecordCopy(record), Work: work, Fence: &fence}
 			return nil
 		default:
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
@@ -92,7 +90,7 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 	return result, nil
 }
 
-// ReserveMailboxDraftDelete persists or recovers one draft-delete operation under the exact acquired fence.
+// ReserveMailboxDraftDelete rejects every pending D graph before reserving delete work.
 func (repository *MailboxEntRepository) ReserveMailboxDraftDelete(ctx context.Context, request MailboxDraftDeleteRequest) (MailboxDraftReservation, error) {
 	if repository == nil || repository.client == nil || ctx == nil {
 		return MailboxDraftReservation{}, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
@@ -110,30 +108,28 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftDelete(ctx context.Co
 		if kind := mailboxEntDraftCreateAccountKind(account); kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
 		}
-
 		draft, kind := mailboxEntDraftReservationLockDraft(ctx, transaction, request.Fence.AccountID, request.DraftID)
 		if kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
 		}
-		attachmentIDs, kind := mailboxEntDraftReservationLockCurrentAttachmentIDs(ctx, draft)
+		attachments, kind := mailboxEntDraftReadAttachmentState(ctx, transaction, draft, MailboxDraftRepositoryErrorStateConflict)
 		if kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
 		}
-		record, ok := mailboxEntDraftReadRecord(draft, attachmentIDs)
+		record, ok := mailboxEntDraftReadRecord(draft, attachments)
 		if !ok {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
-
 		switch record.Status {
 		case MailboxDraftStatusActive:
-			if record.Revision != request.ExpectedRevision {
+			if record.Revision != request.ExpectedRevision || record.PendingSave != nil {
 				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			updated, err := mailboxEntDraftReservationDeleteTransition(ctx, draft, request, databaseWallClock)
 			if err != nil {
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
-			updatedRecord, ok := mailboxEntDraftReadRecord(updated, attachmentIDs)
+			updatedRecord, ok := mailboxEntDraftReadRecord(updated, attachments)
 			if !ok {
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
@@ -142,15 +138,10 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftDelete(ctx context.Co
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
 			fence := mailboxEntDraftCreateFenceCopy(request.Fence)
-			result = MailboxDraftReservation{
-				Kind:  MailboxDraftReservationDispatch,
-				Draft: updatedRecord,
-				Work:  work,
-				Fence: &fence,
-			}
+			result = MailboxDraftReservation{Kind: MailboxDraftReservationDispatch, Draft: updatedRecord, Work: work, Fence: &fence}
 			return nil
 		case MailboxDraftStatusDeleting, MailboxDraftStatusUnknown:
-			if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationDelete || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Revision != request.ExpectedRevision {
+			if record.PendingSave != nil || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationDelete || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Revision != request.ExpectedRevision {
 				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			work := mailboxEntDraftCreateWork(record, MailboxDraftWorkReconcileDelete)
@@ -158,21 +149,16 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftDelete(ctx context.Co
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 			}
 			fence := mailboxEntDraftCreateFenceCopy(request.Fence)
-			result = MailboxDraftReservation{
-				Kind:  MailboxDraftReservationReconcileRequired,
-				Draft: record,
-				Work:  work,
-				Fence: &fence,
-			}
+			result = MailboxDraftReservation{Kind: MailboxDraftReservationReconcileRequired, Draft: mailboxEntDraftRecordCopy(record), Work: work, Fence: &fence}
 			return nil
 		case MailboxDraftStatusDeleted:
-			if record.Revision != request.ExpectedRevision || len(record.SelectedAttachmentIDs) != 0 || record.EngineMessageID == nil || record.EngineVersion == nil {
+			if record.Revision != request.ExpectedRevision || record.PendingSave != nil || len(record.Confirmed.AttachmentIDs) != 0 || record.EngineMessageID == nil || record.EngineVersion == nil {
 				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, databaseWallClock); err != nil {
 				return err
 			}
-			result = MailboxDraftReservation{Kind: MailboxDraftReservationReplay, Draft: record}
+			result = MailboxDraftReservation{Kind: MailboxDraftReservationReplay, Draft: mailboxEntDraftRecordCopy(record)}
 			return nil
 		default:
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
@@ -185,10 +171,10 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftDelete(ctx context.Co
 }
 
 func mailboxEntDraftReservationSaveRequestKind(request MailboxDraftSaveRequest) MailboxDraftRepositoryErrorKind {
-	if !mailboxEntEngineCommandFenceValid(request.Fence) || request.DraftID == uuid.Nil || request.DraftClientID == uuid.Nil || request.ExpectedRevision < 1 || request.MutationID == uuid.Nil {
+	if !mailboxEntEngineCommandFenceValid(request.Fence) || request.DraftID == uuid.Nil || request.DraftClientID == uuid.Nil || request.ExpectedRevision < 1 || request.MutationID == uuid.Nil || !mailboxEntDraftCreateHashPresent(request.PendingSave.RequestHash) {
 		return MailboxDraftRepositoryErrorInvalid
 	}
-	return mailboxEntDraftReservationAttachmentIDsKind(request.SelectedAttachmentIDs)
+	return mailboxEntDraftEffectiveStateKind(request.PendingSave.EffectiveState)
 }
 
 func mailboxEntDraftReservationDeleteRequestKind(request MailboxDraftDeleteRequest) MailboxDraftRepositoryErrorKind {
@@ -198,29 +184,11 @@ func mailboxEntDraftReservationDeleteRequestKind(request MailboxDraftDeleteReque
 	return ""
 }
 
-func mailboxEntDraftReservationAttachmentIDsKind(attachmentIDs []uuid.UUID) MailboxDraftRepositoryErrorKind {
-	if len(attachmentIDs) > MaxEngineAttachmentItems {
-		return MailboxDraftRepositoryErrorAttachmentLimit
-	}
-	for index, attachmentID := range attachmentIDs {
-		if attachmentID == uuid.Nil || (index > 0 && !syncLessUUID(attachmentIDs[index-1], attachmentID)) {
-			return MailboxDraftRepositoryErrorInvalid
-		}
-	}
-	return ""
-}
-
 func mailboxEntDraftReservationLockDraft(ctx context.Context, transaction *ent.Tx, accountID, draftID uuid.UUID) (*ent.MailDraft, MailboxDraftRepositoryErrorKind) {
 	if ctx == nil || transaction == nil || accountID == uuid.Nil || draftID == uuid.Nil {
 		return nil, MailboxDraftRepositoryErrorInvalid
 	}
-	draft, err := transaction.MailDraft.Query().
-		Where(
-			maildraft.IDEQ(draftID),
-			maildraft.MailAccountIDEQ(accountID),
-		).
-		ForUpdate().
-		Only(ctx)
+	draft, err := transaction.MailDraft.Query().Where(maildraft.IDEQ(draftID), maildraft.MailAccountIDEQ(accountID)).ForUpdate().Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, MailboxDraftRepositoryErrorStateConflict
@@ -233,261 +201,139 @@ func mailboxEntDraftReservationLockDraft(ctx context.Context, transaction *ent.T
 	return draft, ""
 }
 
-func mailboxEntDraftReservationSaveRecord(ctx context.Context, transaction *ent.Tx, draft *ent.MailDraft, request MailboxDraftSaveRequest) (MailboxDraftRecord, MailboxDraftRepositoryErrorKind) {
-	if ctx == nil || transaction == nil || draft == nil || !mailboxEntDraftReadRowValid(draft, request.Fence.AccountID, request.DraftID) {
-		return MailboxDraftRecord{}, MailboxDraftRepositoryErrorStateConflict
-	}
-	currentAttachmentIDs, kind := mailboxEntDraftReservationCurrentAttachmentIDs(ctx, transaction, draft)
-	if kind != "" {
-		return MailboxDraftRecord{}, kind
-	}
-	attachmentIDs := mailboxEntDraftReservationUnionAttachmentIDs(currentAttachmentIDs, request.SelectedAttachmentIDs)
-	attachments, kind := mailboxEntDraftReservationLockAttachments(ctx, transaction, attachmentIDs, currentAttachmentIDs)
-	if kind != "" {
-		return MailboxDraftRecord{}, kind
-	}
-	if kind := mailboxEntDraftReservationValidateSaveAttachments(ctx, transaction, draft, request, currentAttachmentIDs, attachmentIDs, attachments); kind != "" {
-		return MailboxDraftRecord{}, kind
-	}
-	record, ok := mailboxEntDraftReadRecord(draft, currentAttachmentIDs)
-	if !ok {
-		return MailboxDraftRecord{}, MailboxDraftRepositoryErrorStateConflict
-	}
-	return record, ""
-}
-
-func mailboxEntDraftReservationCurrentAttachmentIDs(ctx context.Context, transaction *ent.Tx, draft *ent.MailDraft) ([]uuid.UUID, MailboxDraftRepositoryErrorKind) {
+// mailboxEntDraftReservationLockSaveAttachments snapshots O/D without locks only to assemble
+// the complete target union, then locks every attachment and every object in canonical order.
+func mailboxEntDraftReservationLockSaveAttachments(ctx context.Context, transaction *ent.Tx, draft *ent.MailDraft, request MailboxDraftSaveRequest) (mailboxEntDraftAttachmentState, MailboxDraftRepositoryErrorKind) {
 	if ctx == nil || transaction == nil || draft == nil || draft.ID == uuid.Nil {
-		return nil, MailboxDraftRepositoryErrorInvalid
+		return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorInvalid
 	}
-	attachments, err := transaction.MailAttachment.Query().
-		Where(mailattachment.MailDraftIDEQ(draft.ID)).
-		Order(ent.Asc(mailattachment.FieldID)).
-		Limit(MaxEngineAttachmentItems + 1).
-		All(ctx)
+	rows, err := transaction.MailAttachment.Query().Where(mailattachment.Or(mailattachment.MailDraftIDEQ(draft.ID), mailattachment.PendingMailDraftIDEQ(draft.ID))).Order(ent.Asc(mailattachment.FieldID)).Limit(MaxEngineAttachmentItems*2 + 1).All(ctx)
 	if err != nil {
-		return nil, MailboxDraftRepositoryErrorUnavailable
+		return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorUnavailable
 	}
-	if len(attachments) > MaxEngineAttachmentItems {
-		return nil, MailboxDraftRepositoryErrorStateConflict
+	if len(rows) > MaxEngineAttachmentItems*2 {
+		return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorStateConflict
 	}
-	attachmentIDs := make([]uuid.UUID, 0, len(attachments))
-	seen := make(map[uuid.UUID]struct{}, len(attachments))
-	for _, attachment := range attachments {
-		if attachment == nil || attachment.ID == uuid.Nil {
-			return nil, MailboxDraftRepositoryErrorStateConflict
+	union := make([]uuid.UUID, 0, len(rows)+len(request.PendingSave.EffectiveState.AttachmentIDs))
+	for _, row := range rows {
+		if row == nil || row.ID == uuid.Nil {
+			return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorStateConflict
 		}
-		if _, duplicate := seen[attachment.ID]; duplicate {
-			return nil, MailboxDraftRepositoryErrorStateConflict
-		}
-		seen[attachment.ID] = struct{}{}
-		attachmentIDs = append(attachmentIDs, attachment.ID)
+		union = append(union, row.ID)
 	}
-	sort.Slice(attachmentIDs, func(left, right int) bool {
-		return syncLessUUID(attachmentIDs[left], attachmentIDs[right])
-	})
-	return attachmentIDs, ""
-}
-
-func mailboxEntDraftReservationUnionAttachmentIDs(current, desired []uuid.UUID) []uuid.UUID {
-	attachmentIDs := make([]uuid.UUID, 0, len(current)+len(desired))
-	attachmentIDs = append(attachmentIDs, current...)
-	attachmentIDs = append(attachmentIDs, desired...)
-	sort.Slice(attachmentIDs, func(left, right int) bool {
-		return syncLessUUID(attachmentIDs[left], attachmentIDs[right])
-	})
-	if len(attachmentIDs) < 2 {
-		return attachmentIDs
+	union = append(union, request.PendingSave.EffectiveState.AttachmentIDs...)
+	union = mailboxEntDraftReservationUniqueUUIDs(union)
+	desired := make(map[uuid.UUID]struct{}, len(request.PendingSave.EffectiveState.AttachmentIDs))
+	for _, id := range request.PendingSave.EffectiveState.AttachmentIDs {
+		desired[id] = struct{}{}
 	}
-	unique := attachmentIDs[:1]
-	for _, attachmentID := range attachmentIDs[1:] {
-		if attachmentID != unique[len(unique)-1] {
-			unique = append(unique, attachmentID)
-		}
-	}
-	return unique
-}
-
-func mailboxEntDraftReservationLockAttachments(ctx context.Context, transaction *ent.Tx, attachmentIDs, currentAttachmentIDs []uuid.UUID) (map[uuid.UUID]*ent.MailAttachment, MailboxDraftRepositoryErrorKind) {
-	if ctx == nil || transaction == nil {
-		return nil, MailboxDraftRepositoryErrorInvalid
-	}
-	current := make(map[uuid.UUID]struct{}, len(currentAttachmentIDs))
-	for _, attachmentID := range currentAttachmentIDs {
-		current[attachmentID] = struct{}{}
-	}
-	attachments := make(map[uuid.UUID]*ent.MailAttachment, len(attachmentIDs))
-	for _, attachmentID := range attachmentIDs {
-		attachment, err := transaction.MailAttachment.Query().
-			Where(mailattachment.IDEQ(attachmentID)).
-			ForUpdate().
-			Only(ctx)
+	locked := make(map[uuid.UUID]*ent.MailAttachment, len(union))
+	objectIDs := make([]uuid.UUID, 0, len(union))
+	objectsSeen := make(map[uuid.UUID]struct{}, len(union))
+	state := mailboxEntDraftAttachmentState{}
+	for _, attachmentID := range union {
+		attachment, err := transaction.MailAttachment.Query().Where(mailattachment.IDEQ(attachmentID)).ForUpdate().Only(ctx)
 		if err != nil {
 			if ent.IsNotFound(err) {
-				if _, found := current[attachmentID]; found {
-					return nil, MailboxDraftRepositoryErrorStateConflict
-				}
-				return nil, MailboxDraftRepositoryErrorAttachmentConflict
+				return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorAttachmentConflict
 			}
-			return nil, MailboxDraftRepositoryErrorUnavailable
+			return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorUnavailable
 		}
-		if attachment == nil || attachment.ID != attachmentID {
-			return nil, MailboxDraftRepositoryErrorStateConflict
-		}
-		attachments[attachmentID] = attachment
-	}
-	return attachments, ""
-}
-
-func mailboxEntDraftReservationValidateSaveAttachments(ctx context.Context, transaction *ent.Tx, draft *ent.MailDraft, request MailboxDraftSaveRequest, currentAttachmentIDs, attachmentIDs []uuid.UUID, attachments map[uuid.UUID]*ent.MailAttachment) MailboxDraftRepositoryErrorKind {
-	if ctx == nil || transaction == nil || draft == nil || len(attachments) != len(attachmentIDs) {
-		return MailboxDraftRepositoryErrorInvalid
-	}
-	current := make(map[uuid.UUID]struct{}, len(currentAttachmentIDs))
-	for _, attachmentID := range currentAttachmentIDs {
-		current[attachmentID] = struct{}{}
-	}
-	desired := make(map[uuid.UUID]struct{}, len(request.SelectedAttachmentIDs))
-	for _, attachmentID := range request.SelectedAttachmentIDs {
-		desired[attachmentID] = struct{}{}
-	}
-
-	objectIDs := make([]uuid.UUID, 0, len(attachmentIDs))
-	objectCurrent := make(map[uuid.UUID]bool, len(attachmentIDs))
-	seenObjects := make(map[uuid.UUID]struct{}, len(attachmentIDs))
-	for _, attachmentID := range attachmentIDs {
-		attachment := attachments[attachmentID]
-		_, isCurrent := current[attachmentID]
-		_, isDesired := desired[attachmentID]
-		if isCurrent && !mailboxEntDraftReadAttachmentValid(attachment, draft.ID, draft.DraftClientID) {
-			return MailboxDraftRepositoryErrorStateConflict
-		}
-		if isDesired {
-			if isCurrent {
-				if !mailboxEntDraftReservationDesiredCurrentAttachmentValid(attachment, draft.ID, draft.DraftClientID) {
-					return MailboxDraftRepositoryErrorAttachmentConflict
-				}
-			} else if !mailboxEntDraftCreateAttachmentValid(attachment, request.DraftClientID) {
-				return MailboxDraftRepositoryErrorAttachmentConflict
+		confirmed := attachment.MailDraftID != nil && *attachment.MailDraftID == draft.ID
+		pending := attachment.PendingMailDraftID != nil && *attachment.PendingMailDraftID == draft.ID
+		_, wantsPending := desired[attachmentID]
+		if confirmed || pending {
+			if !mailboxEntDraftReadAttachmentValid(attachment, draft.ID, draft.DraftClientID, confirmed, pending) {
+				return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorStateConflict
 			}
-		}
-		if attachment == nil || attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil {
-			if isCurrent {
-				return MailboxDraftRepositoryErrorStateConflict
+			if confirmed {
+				state.ConfirmedAttachmentIDs = append(state.ConfirmedAttachmentIDs, attachmentID)
 			}
-			return MailboxDraftRepositoryErrorAttachmentConflict
+			if pending {
+				state.PendingAttachmentIDs = append(state.PendingAttachmentIDs, attachmentID)
+			}
+			if wantsPending && attachment.ScanStatus != mailattachment.ScanStatus("clean") {
+				return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorAttachmentConflict
+			}
+		} else if !wantsPending || !mailboxEntDraftCreateAttachmentValid(attachment, request.DraftClientID) {
+			return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorAttachmentConflict
 		}
+		if attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil {
+			return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorAttachmentConflict
+		}
+		locked[attachmentID] = attachment
 		objectID := *attachment.StorageObjectID
-		if _, found := seenObjects[objectID]; !found {
-			seenObjects[objectID] = struct{}{}
+		if _, exists := objectsSeen[objectID]; !exists {
+			objectsSeen[objectID] = struct{}{}
 			objectIDs = append(objectIDs, objectID)
 		}
-		if isCurrent {
-			objectCurrent[objectID] = true
-		}
 	}
-	sort.Slice(objectIDs, func(left, right int) bool {
-		return syncLessUUID(objectIDs[left], objectIDs[right])
-	})
-
+	if len(state.ConfirmedAttachmentIDs) > MaxEngineAttachmentItems || len(state.PendingAttachmentIDs) > MaxEngineAttachmentItems {
+		return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorStateConflict
+	}
+	sort.Slice(state.ConfirmedAttachmentIDs, func(left, right int) bool { return syncLessUUID(state.ConfirmedAttachmentIDs[left], state.ConfirmedAttachmentIDs[right]) })
+	sort.Slice(state.PendingAttachmentIDs, func(left, right int) bool { return syncLessUUID(state.PendingAttachmentIDs[left], state.PendingAttachmentIDs[right]) })
+	sort.Slice(objectIDs, func(left, right int) bool { return syncLessUUID(objectIDs[left], objectIDs[right]) })
 	objects := make(map[uuid.UUID]*ent.MailObject, len(objectIDs))
 	for _, objectID := range objectIDs {
-		object, err := transaction.MailObject.Query().
-			Where(mailobject.IDEQ(objectID)).
-			ForUpdate().
-			Only(ctx)
+		object, err := transaction.MailObject.Query().Where(mailobject.IDEQ(objectID)).ForUpdate().Only(ctx)
 		if err != nil {
 			if ent.IsNotFound(err) {
-				if objectCurrent[objectID] {
-					return MailboxDraftRepositoryErrorStateConflict
-				}
-				return MailboxDraftRepositoryErrorAttachmentConflict
+				return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorAttachmentConflict
 			}
-			return MailboxDraftRepositoryErrorUnavailable
-		}
-		if object == nil || object.ID != objectID {
-			return MailboxDraftRepositoryErrorStateConflict
+			return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorUnavailable
 		}
 		objects[objectID] = object
 	}
-
-	for _, attachmentID := range attachmentIDs {
-		attachment := attachments[attachmentID]
-		object := objects[*attachment.StorageObjectID]
-		if attachment.DraftClientID == nil || !mailboxEntDraftCreateStorageObjectValid(object, draft.MailAccountID, *attachment.DraftClientID, attachment) {
-			if _, isCurrent := current[attachmentID]; isCurrent {
-				return MailboxDraftRepositoryErrorStateConflict
-			}
-			return MailboxDraftRepositoryErrorAttachmentConflict
+	for _, attachmentID := range union {
+		attachment := locked[attachmentID]
+		if !mailboxEntDraftReadStorageObjectValid(objects[*attachment.StorageObjectID], draft.MailAccountID, draft.DraftClientID, attachment) {
+			return mailboxEntDraftAttachmentState{}, MailboxDraftRepositoryErrorAttachmentConflict
 		}
 	}
-	return ""
+	return state, ""
 }
 
-func mailboxEntDraftReservationDesiredCurrentAttachmentValid(attachment *ent.MailAttachment, draftID, draftClientID uuid.UUID) bool {
-	return mailboxEntDraftReadAttachmentValid(attachment, draftID, draftClientID) &&
-		attachment.ScanStatus == mailattachment.ScanStatus("clean")
+func mailboxEntDraftReservationUniqueUUIDs(values []uuid.UUID) []uuid.UUID {
+	sort.Slice(values, func(left, right int) bool { return syncLessUUID(values[left], values[right]) })
+	if len(values) == 0 {
+		return []uuid.UUID{}
+	}
+	unique := values[:1]
+	for _, value := range values[1:] {
+		if value != unique[len(unique)-1] {
+			unique = append(unique, value)
+		}
+	}
+	return unique
 }
 
 func mailboxEntDraftReservationSaveTransition(ctx context.Context, draft *ent.MailDraft, request MailboxDraftSaveRequest, databaseWallClock time.Time) (*ent.MailDraft, error) {
 	if ctx == nil || draft == nil || !mailboxEntValidTime(databaseWallClock) {
 		return nil, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
 	}
-	update := draft.Update().
-		SetStatus(maildraft.StatusSaving).
-		SetLastMutationID(request.MutationID).
-		SetPendingMutationKind(maildraft.PendingMutationKind("save")).
-		SetUpdatedAt(databaseWallClock).
-		ClearAttachments()
-	if len(request.SelectedAttachmentIDs) != 0 {
-		update.AddAttachmentIDs(request.SelectedAttachmentIDs...)
+	update := draft.Update().SetStatus(maildraft.StatusSaving).SetLastMutationID(request.MutationID).SetPendingMutationKind(maildraft.PendingMutationKind("save")).SetPendingFromIdentityID(request.PendingSave.EffectiveState.FromIdentityID).SetPendingSaveRequestHash(append([]byte(nil), request.PendingSave.RequestHash[:]...)).SetUpdatedAt(databaseWallClock)
+	if request.PendingSave.EffectiveState.ReplyToMessageID != nil {
+		update.SetPendingReplyToMessageID(*request.PendingSave.EffectiveState.ReplyToMessageID)
+	}
+	if request.PendingSave.EffectiveState.ForwardMessageID != nil {
+		update.SetPendingForwardMessageID(*request.PendingSave.EffectiveState.ForwardMessageID)
+	}
+	if len(request.PendingSave.EffectiveState.AttachmentIDs) != 0 {
+		update.AddPendingAttachmentIDs(request.PendingSave.EffectiveState.AttachmentIDs...)
 	}
 	return update.Save(ctx)
-}
-
-func mailboxEntDraftReservationLockCurrentAttachmentIDs(ctx context.Context, draft *ent.MailDraft) ([]uuid.UUID, MailboxDraftRepositoryErrorKind) {
-	if ctx == nil || draft == nil || draft.ID == uuid.Nil || draft.DraftClientID == uuid.Nil {
-		return nil, MailboxDraftRepositoryErrorInvalid
-	}
-	attachments, err := draft.QueryAttachments().
-		Order(ent.Asc(mailattachment.FieldID)).
-		Limit(MaxEngineAttachmentItems + 1).
-		ForUpdate().
-		All(ctx)
-	if err != nil {
-		return nil, MailboxDraftRepositoryErrorUnavailable
-	}
-	if len(attachments) > MaxEngineAttachmentItems {
-		return nil, MailboxDraftRepositoryErrorStateConflict
-	}
-	attachmentIDs := make([]uuid.UUID, 0, len(attachments))
-	seen := make(map[uuid.UUID]struct{}, len(attachments))
-	for _, attachment := range attachments {
-		if !mailboxEntDraftReadAttachmentValid(attachment, draft.ID, draft.DraftClientID) {
-			return nil, MailboxDraftRepositoryErrorStateConflict
-		}
-		if _, duplicate := seen[attachment.ID]; duplicate {
-			return nil, MailboxDraftRepositoryErrorStateConflict
-		}
-		seen[attachment.ID] = struct{}{}
-		attachmentIDs = append(attachmentIDs, attachment.ID)
-	}
-	sort.Slice(attachmentIDs, func(left, right int) bool {
-		return syncLessUUID(attachmentIDs[left], attachmentIDs[right])
-	})
-	return attachmentIDs, ""
 }
 
 func mailboxEntDraftReservationDeleteTransition(ctx context.Context, draft *ent.MailDraft, request MailboxDraftDeleteRequest, databaseWallClock time.Time) (*ent.MailDraft, error) {
 	if ctx == nil || draft == nil || !mailboxEntValidTime(databaseWallClock) {
 		return nil, NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
 	}
-	return draft.Update().
-		SetStatus(maildraft.StatusDeleting).
-		SetLastMutationID(request.MutationID).
-		SetPendingMutationKind(maildraft.PendingMutationKind("delete")).
-		SetUpdatedAt(databaseWallClock).
-		Save(ctx)
+	return draft.Update().SetStatus(maildraft.StatusDeleting).SetLastMutationID(request.MutationID).SetPendingMutationKind(maildraft.PendingMutationKind("delete")).SetUpdatedAt(databaseWallClock).Save(ctx)
+}
+
+func mailboxEntDraftPendingSavesEqual(left, right *MailboxDraftPendingSave) bool {
+	return left != nil && right != nil && left.RequestHash == right.RequestHash && mailboxEntDraftEffectiveStatesEqual(left.EffectiveState, right.EffectiveState)
 }
 
 func mailboxEntDraftReservationUUIDSetsEqual(left, right []uuid.UUID) bool {
@@ -500,6 +346,13 @@ func mailboxEntDraftReservationUUIDSetsEqual(left, right []uuid.UUID) bool {
 		}
 	}
 	return true
+}
+
+func mailboxEntDraftReservationReleaseForError(ctx context.Context, account *ent.MailAccount, fence MailboxEngineCommandFence, databaseWallClock time.Time, err error) error {
+	if repositoryError, ok := err.(*MailboxDraftRepositoryError); ok && repositoryError != nil && repositoryError.Kind() == MailboxDraftRepositoryErrorUnavailable {
+		return err
+	}
+	return mailboxEntDraftReservationReleaseError(ctx, account, fence, databaseWallClock, mailboxEntDraftCreateErrorKind(err))
 }
 
 func mailboxEntDraftReservationReleaseError(ctx context.Context, account *ent.MailAccount, fence MailboxEngineCommandFence, databaseWallClock time.Time, kind MailboxDraftRepositoryErrorKind) error {

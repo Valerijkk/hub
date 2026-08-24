@@ -663,6 +663,12 @@ commits before calling `SaveDraft`; no provider I/O, adapter callback, or reconc
 permitted while that transaction or lock set is held. The engine receives the reserved requested
 value but never owns or mutates durable O/D links.
 
+The repository source statically persists `confirmed_mutation_id` as the binding for the
+confirmed pair and exposes it with O/D work. This is not yet an engine proof: the current
+`EngineDraftReconciliation` has no `PreviousMutationID`, and Stalwart does not carry or verify
+the exact prior `draft-mutation` marker. Those limitations keep retained completion
+`SOURCE_NOT_IMPLEMENTED` and fail-closed.
+
 `Applied` permits the repository to promote D to confirmed O only after the exact mutation and
 fence are revalidated. The provider-neutral sealed `EngineDraftRetained{Message EngineMessage}`
 alternative and the Fake engine's authoritative current-store proof are implemented. Stalwart

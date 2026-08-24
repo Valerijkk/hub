@@ -1023,7 +1023,8 @@ UUID `draft_client_id`; required immutable stable `engine_draft_key` 1..1,024 by
 nullable confirmed `reply_to_message_id`/`forward_message_id` UUID snapshots; nullable pending
 `pending_from_identity_id`, `pending_reply_to_message_id`, and
 `pending_forward_message_id` UUID snapshots; nullable `pending_save_request_hash` bytes(32);
-nullable UUID `last_mutation_id`; nullable enum `pending_mutation_kind`
+nullable UUID `last_mutation_id`; nullable `confirmed_mutation_id` UUID scalar with no edge or
+default; nullable enum `pending_mutation_kind`
 (`create|save|delete`); timestamps. No content/address/attachment bytes are stored.
 
 Unique account+draft key, account+draft-client id, account+create-key hash and nullable
@@ -1044,6 +1045,11 @@ current live account lease; a read without the matching request body cannot disp
 I/O and remains reconciliation-required. `unknown/save` and `unknown/delete` retain the pair;
 reconciliation never blindly repeats delete.
 
+`confirmed_mutation_id` is additive and nullable: legacy rows with a valid old engine pair may
+leave it null. When present it requires the complete pair and must differ from a live
+`last_mutation_id`. The NULL-safe database predicate is
+`COALESCE(confirmed_mutation_id IS NULL OR (engine_message_id IS NOT NULL AND engine_version IS NOT NULL AND (last_mutation_id IS NULL OR confirmed_mutation_id <> last_mutation_id)), FALSE)`.
+
 #### Confirmed O and pending D save graph
 
 The confirmed graph O is `from_identity_id`, the confirmed reply/forward snapshots, and
@@ -1061,7 +1067,9 @@ the database intentionally does not attempt cross-row account or immutable-clien
 
 The physical migration is deliberately staged. First add every column that is new to the target
 database as nullable, including the pending save columns and, where absent in the legacy table,
-the confirmed identity link; add the partial pending-identity index without a fabricated default.
+the confirmed identity link and `confirmed_mutation_id`; add the partial pending-identity index
+without a fabricated default. `confirmed_mutation_id` receives no backfill because a legacy pair
+does not prove its originating mutation.
 Before backfill, a first-release preflight that proves `mail_drafts` has zero rows is accepted:
 there is then no legacy row to resolve. If any row exists, each row requires an exact provider
 `GetDraft` read and an owner-scoped mapping from that draft's canonical `From` to exactly one
@@ -1096,6 +1104,12 @@ reconciliation. A bare or unsealed old pair is not proof. A sealed live reconcil
 with the exact persisted O pair and binding can be evidence only in a later separately authorized
 provider-specific retained-completion packet; it needs no reverse mapping of provider attachment
 ids to Hub UUIDs and no `confirmed_request_hash`.
+
+The content-free O/D repository source, including the nullable confirmed-mutation binding, is
+implemented in this static packet only. Ent generation, physical migration, SQL validation,
+build, tests, Docker and runtime remain `NOT_GENERATED` / `NOT_MIGRATED` / `NOT_RUN`.
+`MailboxDraftSaveRetained` is pair-only but remains reject-only at `Finish`; durable retained
+completion is still `SOURCE_NOT_IMPLEMENTED`.
 
 That future completion may clear D only after its exact-old-pair/currentness proof and matching
 locked account/draft/mutation/fence/binding revalidation; it leaves O unchanged. The engine result

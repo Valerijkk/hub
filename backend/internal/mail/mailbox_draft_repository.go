@@ -120,8 +120,25 @@ type MailboxEngineCommandBeginResult struct {
 	BusyUntil       *time.Time
 }
 
-// MailboxDraftRecord is the content-free, durable draft state. Nil values represent nullable persisted columns.
-// Repository reads and finish results deep-copy pointer values and sort/copy SelectedAttachmentIDs in raw UUID order.
+// MailboxDraftEffectiveState is one complete content-free draft graph. AttachmentIDs are
+// distinct, sorted in raw UUID order, and are always copied across repository boundaries.
+type MailboxDraftEffectiveState struct {
+	FromIdentityID   uuid.UUID
+	ReplyToMessageID *uuid.UUID
+	ForwardMessageID *uuid.UUID
+	AttachmentIDs    []uuid.UUID
+}
+
+// MailboxDraftPendingSave is the requested D graph durably reserved for a save. Its request
+// hash is the exact canonical input binding; it never contains draft content.
+type MailboxDraftPendingSave struct {
+	EffectiveState MailboxDraftEffectiveState
+	RequestHash    [sha256.Size]byte
+}
+
+// MailboxDraftRecord is the content-free, durable draft state. Nil values represent nullable
+// persisted columns. Repository reads and finish results deep-copy every nested state, pointer,
+// hash and attachment slice.
 type MailboxDraftRecord struct {
 	ID                  uuid.UUID
 	AccountID           uuid.UUID
@@ -131,11 +148,13 @@ type MailboxDraftRecord struct {
 	EngineVersion       *string
 	Revision            int64
 	Status              MailboxDraftStatus
-	ReplyToMessageID    *uuid.UUID
-	ForwardMessageID    *uuid.UUID
+	Confirmed           MailboxDraftEffectiveState
+	PendingSave         *MailboxDraftPendingSave
+	CreateRequestHash   [sha256.Size]byte
 	LastMutationID      *uuid.UUID
 	PendingMutationKind *MailboxDraftMutationKind
-	SelectedAttachmentIDs []uuid.UUID
+	ConfirmedMutationID *uuid.UUID
+	UpdatedAt           time.Time
 }
 
 // MailboxDraftGetRequest identifies one account-scoped draft.
@@ -175,9 +194,7 @@ type MailboxDraftCreateRequest struct {
 	DraftClientID            uuid.UUID
 	CreateIdempotencyKeyHash [sha256.Size]byte
 	CreateRequestHash        [sha256.Size]byte
-	ReplyToMessageID         *uuid.UUID
-	ForwardMessageID         *uuid.UUID
-	SelectedAttachmentIDs    []uuid.UUID
+	Confirmed                MailboxDraftEffectiveState
 	MutationID               uuid.UUID
 }
 
@@ -187,8 +204,8 @@ type MailboxDraftSaveRequest struct {
 	DraftID               uuid.UUID
 	DraftClientID         uuid.UUID
 	ExpectedRevision      int64
-	SelectedAttachmentIDs []uuid.UUID
-	MutationID            uuid.UUID
+	PendingSave MailboxDraftPendingSave
+	MutationID  uuid.UUID
 }
 
 // MailboxDraftDeleteRequest reserves an active draft delete mutation under the exact acquired fence.
@@ -213,15 +230,18 @@ const (
 
 // MailboxDraftWork is the persisted, provider-neutral plan for an engine operation.
 // Every dispatch or reconciliation plan contains the stable bounded EngineDraftKey, persisted mutation ID, revision,
-// exact nullable message/version pair, and a deep-copied sorted attachment set; it never contains draft content or bytes.
+// exact nullable message/version pair, an effective O or D graph, its request hash, and the last confirmed mutation
+// binding. It never contains draft content or bytes.
 type MailboxDraftWork struct {
-	Kind                  MailboxDraftWorkKind
-	EngineDraftKey        string
-	EngineMessageID       *string
-	EngineVersion         *string
-	MutationID            uuid.UUID
-	Revision              int64
-	SelectedAttachmentIDs []uuid.UUID
+	Kind                MailboxDraftWorkKind
+	EngineDraftKey      string
+	EngineMessageID     *string
+	EngineVersion       *string
+	MutationID          uuid.UUID
+	Revision            int64
+	EffectiveState      MailboxDraftEffectiveState
+	RequestHash         [sha256.Size]byte
+	ConfirmedMutationID *uuid.UUID
 }
 
 // MailboxDraftReservationKind distinguishes a new engine dispatch, an idempotent replay, and recovery that must reconcile.
@@ -269,7 +289,7 @@ type MailboxDraftResumeCreateRequest struct {
 	DraftClientID            uuid.UUID
 	CreateIdempotencyKeyHash [sha256.Size]byte
 	CreateRequestHash        [sha256.Size]byte
-	SelectedAttachmentIDs    []uuid.UUID
+	Confirmed                MailboxDraftEffectiveState
 }
 
 // MailboxDraftFinishOutcome is sealed to the closed outcomes that may finish a pending engine command.
@@ -283,9 +303,11 @@ type MailboxDraftApplied struct {
 	EngineVersion   string
 }
 
-// MailboxDraftSaveRetained records the exact provider-confirmed attachment set when a pending save retained its old pair.
+// MailboxDraftSaveRetained carries only a pair observation. Finish intentionally rejects it until
+// a separately authorized durable retained-completion proof path exists.
 type MailboxDraftSaveRetained struct {
-	ProviderConfirmedAttachmentIDs []uuid.UUID
+	EngineMessageID string
+	EngineVersion   string
 }
 
 // MailboxDraftDeleteRetained records that a pending delete retained the active draft and its revision/pair.
@@ -321,13 +343,14 @@ type MailboxDraftFinishResult struct {
 // It validates the complete account/token/begin-epoch/unexpired-persisted-deadline fence and exact pending draft state,
 // then clears the lease and advances epoch atomically with a transition. A stale, expired, or reclaimed fence mutates no
 // row and triggers no compensating I/O. Create transitions to saving/create and then active revision 1 on Applied or
-// unknown/create on Unknown. Save transitions active N to saving/save and then active N+1 on Applied or unknown/save N
-// on Unknown; only exact GetDraft plus read recheck can finish save-retained back to active N with its confirmed set.
+// unknown/create on Unknown. Save preserves confirmed O while it reserves desired D, then promotes D to active N+1 on
+// Applied or preserves both graphs as unknown/save N on Unknown. SaveRetained remains reject-only in this packet.
 // Delete transitions active N to deleting/delete and then deleted N on Deleted, active N on delete-retained, or
 // unknown/delete N on Unknown. The outcome matrix is closed: Applied is valid only for pending create or save;
 // save-retained only for save; delete-retained and deleted only for delete; Unknown only for the exact pending kind.
 // Other outcome/kind/status combinations are invalid, leave the draft unchanged, and release an owned lease. Deleted
-// atomically clears selected attachment associations and returns an empty set; it never deletes attachment bytes or rows.
+// atomically clears confirmed attachment associations and returns an empty confirmed attachment set; it never deletes
+// attachment bytes or rows.
 // Invalid dependencies, input, or state and all generic DB or driver failures map to MailboxDraftRepositoryError only.
 type MailboxDraftRepository interface {
 	BeginEngineCommand(context.Context, MailboxEngineCommandBeginRequest) (MailboxEngineCommandBeginResult, error)

@@ -26,6 +26,14 @@ or unsealed old pair remains insufficient. A sealed live reconcile result plus t
 O pair and binding can be evidence only for a later separately authorized provider-specific proof
 packet; it requires neither reverse mapping provider attachment ids to Hub UUIDs nor a
 `confirmed_request_hash`.
+
+The content-free repository O/D source is now implemented as a static packet: records carry
+confirmed O, nullable D, canonical request hashes, DB-clock `updated_at`, and nullable
+`confirmed_mutation_id`; work carries the effective graph, hash, and binding. The schema change
+is additive and nullable with no backfill. `MailboxDraftSaveRetained` is pair-only and Finish
+continues to reject it. Generated Ent, migration, SQL validation, build, tests, Docker, and
+runtime remain `NOT_RUN`. `EngineDraftReconciliation.PreviousMutationID` and Stalwart exact-prior
+marker proof remain `SOURCE_NOT_IMPLEMENTED`, so durable retained completion remains forbidden.
 Pending attachment links are live state, so O∩D, O\D, and D\O do not permit generic cleanup or
 provider work.
 
