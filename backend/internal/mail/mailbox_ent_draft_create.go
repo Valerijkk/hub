@@ -84,16 +84,6 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftCreate(ctx context.Co
 
 		draft, err := draftCreate.Save(ctx)
 		if err != nil {
-			if ent.IsConstraintError(err) {
-				racedRows, readErr := mailboxEntDraftCreateLockIdentityRows(ctx, transaction, request)
-				if readErr != nil {
-					return readErr
-				}
-				if len(racedRows) != 0 {
-					return mailboxEntDraftCreateClassifyExisting(ctx, account, databaseWallClock, request, engineDraftKey, racedRows, &result)
-				}
-				return mailboxEntDraftCreateReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorIdempotencyConflict)
-			}
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 		}
 
