@@ -128,6 +128,9 @@ func (r *MongoRepository) CreateMessageIdempotent(ctx context.Context, doc *Mess
 		if findErr != nil {
 			return nil, findErr
 		}
+		if canonical == nil {
+			return nil, errors.New("canonical message missing after idempotent create")
+		}
 		return &CreateMessageResult{Message: canonical, Created: false}, nil
 	}
 
@@ -135,9 +138,11 @@ func (r *MongoRepository) CreateMessageIdempotent(ctx context.Context, doc *Mess
 	if err != nil {
 		return nil, err
 	}
+	if canonical == nil {
+		return nil, errors.New("canonical message missing after idempotent create")
+	}
 	return &CreateMessageResult{Message: canonical, Created: result.UpsertedCount == 1}, nil
 }
-
 // FindMessageByClientNonce intentionally includes soft-deleted messages because the nonce remains reserved.
 func (r *MongoRepository) FindMessageByClientNonce(ctx context.Context, senderID uuid.UUID, clientNonce string) (*MessageDocument, error) {
 	var doc MessageDocument

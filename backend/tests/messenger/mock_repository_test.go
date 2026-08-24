@@ -298,6 +298,9 @@ func (m *mockRepository) FilterUsersSharingChannel(_ context.Context, callerID u
 // --- Сообщения ---
 
 func (m *mockRepository) InsertMessage(_ context.Context, doc *messenger.MessageDocument) (string, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	if doc.ID == "" {
 		doc.ID = uuid.New().String()
 	}
@@ -314,6 +317,9 @@ func (m *mockRepository) CreateMessageIdempotent(_ context.Context, doc *messeng
 	defer m.messageMu.Unlock()
 
 	m.createMessageCalls++
+	if m.createMessageResultOverride != nil {
+		return m.createMessageResultOverride, nil
+	}
 	if doc.ID == "" {
 		doc.ID = uuid.New().String()
 	}
@@ -336,9 +342,6 @@ func (m *mockRepository) CreateMessageIdempotent(_ context.Context, doc *messeng
 		m.messages[doc.ID] = doc
 	}
 
-	if m.createMessageResultOverride != nil {
-		return m.createMessageResultOverride, nil
-	}
 	return &messenger.CreateMessageResult{Message: canonical, Created: created}, nil
 }
 
@@ -354,6 +357,9 @@ func (m *mockRepository) FindMessageByClientNonce(_ context.Context, senderID uu
 }
 
 func (m *mockRepository) FindMessageByID(_ context.Context, messageID string) (*messenger.MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok || (doc.DeletedAt != nil && !m.findMessageIncludeDeleted) {
 		return nil, &ent.NotFoundError{}
@@ -362,6 +368,9 @@ func (m *mockRepository) FindMessageByID(_ context.Context, messageID string) (*
 }
 
 func (m *mockRepository) ListMessages(_ context.Context, channelID uuid.UUID, _ *time.Time, limit int) ([]*messenger.MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	var result []*messenger.MessageDocument
 	for _, doc := range m.messages {
 		if doc.ChannelID == channelID && doc.ThreadID == "" && doc.DeletedAt == nil {
@@ -375,6 +384,9 @@ func (m *mockRepository) ListMessages(_ context.Context, channelID uuid.UUID, _ 
 }
 
 func (m *mockRepository) UpdateMessage(_ context.Context, messageID string, contentJSON map[string]interface{}, contentText string) (*messenger.MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok || doc.DeletedAt != nil {
 		return nil, &ent.NotFoundError{}
@@ -387,6 +399,9 @@ func (m *mockRepository) UpdateMessage(_ context.Context, messageID string, cont
 }
 
 func (m *mockRepository) SoftDeleteMessage(_ context.Context, messageID string) error {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok {
 		return &ent.NotFoundError{}
@@ -397,6 +412,9 @@ func (m *mockRepository) SoftDeleteMessage(_ context.Context, messageID string) 
 }
 
 func (m *mockRepository) IncrementReplyCount(_ context.Context, messageID string) error {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok {
 		return nil
@@ -406,6 +424,9 @@ func (m *mockRepository) IncrementReplyCount(_ context.Context, messageID string
 }
 
 func (m *mockRepository) DecrementReplyCount(_ context.Context, messageID string) error {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok {
 		return nil
@@ -415,6 +436,9 @@ func (m *mockRepository) DecrementReplyCount(_ context.Context, messageID string
 }
 
 func (m *mockRepository) ListThreadReplies(_ context.Context, threadID string, _ *time.Time, limit int) ([]*messenger.MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	var result []*messenger.MessageDocument
 	for _, doc := range m.messages {
 		if doc.ThreadID == threadID && doc.DeletedAt == nil {
@@ -430,6 +454,9 @@ func (m *mockRepository) ListThreadReplies(_ context.Context, threadID string, _
 // --- Реакции ---
 
 func (m *mockRepository) AddReaction(_ context.Context, messageID, userID, emoji string) error {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok {
 		return &ent.NotFoundError{}
@@ -450,6 +477,9 @@ func (m *mockRepository) AddReaction(_ context.Context, messageID, userID, emoji
 }
 
 func (m *mockRepository) RemoveReaction(_ context.Context, messageID, userID, emoji string) error {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok {
 		return &ent.NotFoundError{}
@@ -470,6 +500,9 @@ func (m *mockRepository) RemoveReaction(_ context.Context, messageID, userID, em
 }
 
 func (m *mockRepository) FindReaction(_ context.Context, messageID, userID, emoji string) (bool, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	doc, ok := m.messages[messageID]
 	if !ok {
 		return false, nil
@@ -489,6 +522,9 @@ func (m *mockRepository) FindReaction(_ context.Context, messageID, userID, emoj
 // --- Поиск ---
 
 func (m *mockRepository) SearchMessages(_ context.Context, query string, channelIDs []uuid.UUID, limit int) ([]*messenger.MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
 	allowed := make(map[uuid.UUID]struct{}, len(channelIDs))
 	for _, id := range channelIDs {
 		allowed[id] = struct{}{}

@@ -89,6 +89,32 @@ func TestMockRepositoryCreateMessageIdempotentWithEmptyNonceUsesTransitionalInse
 	assert.Equal(t, 1, repo.createMessageCalls)
 }
 
+func TestMockRepositoryCreateMessageResultOverrideDoesNotPersist(t *testing.T) {
+	repo := newMockRepository()
+	doc := &messenger.MessageDocument{
+		ChannelID:   uuid.New(),
+		SenderID:    uuid.New(),
+		ClientNonce: "override-client-nonce-149",
+	}
+	override := &messenger.CreateMessageResult{
+		Message: &messenger.MessageDocument{ID: "canonical-override"},
+		Created: false,
+	}
+	repo.createMessageResultOverride = override
+
+	result, err := repo.CreateMessageIdempotent(context.Background(), doc)
+
+	require.NoError(t, err)
+	assert.Same(t, override, result)
+	assert.Equal(t, 1, repo.createMessageCalls)
+	assert.Empty(t, doc.ID)
+	assert.True(t, doc.CreatedAt.IsZero())
+	assert.Empty(t, repo.messages)
+	found, err := repo.FindMessageByClientNonce(context.Background(), doc.SenderID, doc.ClientNonce)
+	require.NoError(t, err)
+	assert.Nil(t, found)
+}
+
 func TestMockRepositoryCreateMessageIdempotentReturnsOneCanonicalMessageConcurrently(t *testing.T) {
 	const attempts = 12
 
@@ -143,5 +169,68 @@ func TestMockRepositoryCreateMessageIdempotentReturnsOneCanonicalMessageConcurre
 	assert.Len(t, canonicalIDs, 1)
 	assert.Equal(t, 1, createdCount)
 	assert.Len(t, repo.messages, 1)
+	assert.Equal(t, attempts, repo.createMessageCalls)
+}
+
+func TestMockRepositoryMessageMapAccessIsSynchronized(t *testing.T) {
+	const attempts = 24
+
+	repo := newMockRepository()
+	ctx := context.Background()
+	parent := &messenger.MessageDocument{
+		ID:        "seeded-parent",
+		ChannelID: uuid.New(),
+		SenderID:  uuid.New(),
+	}
+	_, err := repo.InsertMessage(ctx, parent)
+	require.NoError(t, err)
+
+	start := make(chan struct{})
+	failures := make(chan string, attempts*3)
+	var workers sync.WaitGroup
+	for range attempts {
+		workers.Add(3)
+		go func() {
+			defer workers.Done()
+			<-start
+			result, err := repo.CreateMessageIdempotent(ctx, &messenger.MessageDocument{
+				ChannelID:   parent.ChannelID,
+				SenderID:    parent.SenderID,
+				ClientNonce: "shared-client-nonce-149",
+			})
+			if err != nil || result == nil || result.Message == nil {
+				failures <- "idempotent create did not return a canonical message"
+			}
+		}()
+		go func() {
+			defer workers.Done()
+			<-start
+			doc, err := repo.FindMessageByID(ctx, parent.ID)
+			if err != nil || doc == nil || doc.ID != parent.ID {
+				failures <- "find by ID did not return the seeded parent"
+			}
+		}()
+		go func() {
+			defer workers.Done()
+			<-start
+			if err := repo.IncrementReplyCount(ctx, parent.ID); err != nil {
+				failures <- "increment reply count failed"
+			}
+		}()
+	}
+
+	close(start)
+	workers.Wait()
+	close(failures)
+	for failure := range failures {
+		assert.Fail(t, failure)
+	}
+
+	parentAfter, err := repo.FindMessageByID(ctx, parent.ID)
+	require.NoError(t, err)
+	assert.Equal(t, attempts, parentAfter.ReplyCount)
+	canonical, err := repo.FindMessageByClientNonce(ctx, parent.SenderID, "shared-client-nonce-149")
+	require.NoError(t, err)
+	require.NotNil(t, canonical)
 	assert.Equal(t, attempts, repo.createMessageCalls)
 }
