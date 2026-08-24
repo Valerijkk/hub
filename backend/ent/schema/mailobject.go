@@ -21,6 +21,7 @@ type MailObject struct {
 func (MailObject) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable(),
+		field.UUID("deletion_id", uuid.UUID{}).Default(uuid.New).Immutable(),
 		field.UUID("organization_id", uuid.UUID{}).Immutable(),
 		field.UUID("mail_account_id", uuid.UUID{}).Immutable(),
 		field.UUID("uploader_user_id", uuid.UUID{}).Immutable(),
@@ -36,8 +37,11 @@ func (MailObject) Fields() []ent.Field {
 		field.Time("expires_at").Immutable(),
 		field.Time("upload_drain_until").Immutable(),
 		field.UUID("delete_lease_token", uuid.UUID{}).Optional().Nillable(),
+		field.Int64("delete_lease_generation").Default(0).NonNegative(),
 		field.Time("delete_lease_until").Optional().Nillable(),
+		field.Int32("delete_attempts").Default(0).Min(0).Max(10),
 		field.Time("next_delete_at").Optional().Nillable(),
+		field.Time("delete_terminal_at").Optional().Nillable(),
 		field.Time("created_at").Default(nowUTC).Immutable(),
 		field.Time("updated_at").Default(nowUTC).UpdateDefault(nowUTC),
 	}
@@ -51,7 +55,8 @@ func (MailObject) Annotations() []schema.Annotation {
 			"mail_objects_actual_sha_pair":       "COALESCE((actual_size_bytes IS NULL) = (sha256 IS NULL) AND (sha256 IS NULL OR octet_length(sha256) = 32), FALSE)",
 			"mail_objects_upload_enum":           "COALESCE(upload_state IN ('pending','confirmed','orphaned','deleted'), FALSE)",
 			"mail_objects_delete_lease_pair":     "COALESCE((delete_lease_token IS NULL) = (delete_lease_until IS NULL), FALSE)",
-			"mail_objects_upload_state":          "COALESCE((upload_state = 'pending' AND actual_size_bytes IS NULL AND sha256 IS NULL AND next_delete_at IS NULL AND delete_lease_token IS NULL AND delete_lease_until IS NULL) OR (upload_state = 'confirmed' AND actual_size_bytes = expected_size_bytes AND sha256 IS NOT NULL AND next_delete_at IS NULL AND delete_lease_token IS NULL AND delete_lease_until IS NULL) OR (upload_state IN ('orphaned','deleted') AND next_delete_at IS NOT NULL), FALSE)",
+			"mail_objects_delete_retry_bounds":   "COALESCE(delete_lease_generation >= 0 AND delete_attempts BETWEEN 0 AND 10, FALSE)",
+			"mail_objects_upload_state":          "COALESCE((upload_state = 'pending' AND actual_size_bytes IS NULL AND sha256 IS NULL AND next_delete_at IS NULL AND delete_lease_token IS NULL AND delete_lease_until IS NULL AND delete_lease_generation = 0 AND delete_terminal_at IS NULL AND delete_attempts = 0) OR (upload_state = 'confirmed' AND actual_size_bytes = expected_size_bytes AND sha256 IS NOT NULL AND next_delete_at IS NULL AND delete_lease_token IS NULL AND delete_lease_until IS NULL AND delete_lease_generation = 0 AND delete_terminal_at IS NULL AND delete_attempts = 0) OR (upload_state IN ('orphaned','deleted') AND ((delete_terminal_at IS NOT NULL AND next_delete_at IS NULL AND delete_lease_token IS NULL AND delete_lease_until IS NULL AND delete_attempts = 10) OR (delete_terminal_at IS NULL AND next_delete_at IS NOT NULL AND (delete_lease_token IS NULL OR delete_lease_generation >= 1)))), FALSE)",
 			"mail_objects_upload_drain_boundary": "COALESCE(upload_drain_until = expires_at + INTERVAL '11 minutes' AND (next_delete_at IS NULL OR next_delete_at >= upload_drain_until), FALSE)",
 		}),
 	}
@@ -69,7 +74,7 @@ func (MailObject) Edges() []ent.Edge {
 func (MailObject) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("bucket", "object_key").Unique().StorageKey("mail_objects_bucket_object_key_uidx"),
-		index.Fields("next_delete_at", "id").StorageKey("mail_objects_delete_due_idx").Annotations(entsql.IndexWhere("upload_state IN ('orphaned','deleted')")),
+		index.Fields("next_delete_at", "id").StorageKey("mail_objects_delete_due_idx").Annotations(entsql.IndexWhere("upload_state IN ('orphaned','deleted') AND delete_terminal_at IS NULL AND next_delete_at IS NOT NULL")),
 	}
 }
 
