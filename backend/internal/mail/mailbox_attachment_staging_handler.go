@@ -21,20 +21,25 @@ const mailboxAttachmentStagingJSONBodyMaxBytes = 16 << 10
 // MailboxAttachmentStagingHandler exposes authenticated staging operations for
 // attachments that are still outside the durable mailbox projection.
 type MailboxAttachmentStagingHandler struct {
-	service MailboxAttachmentStagingServiceAPI
+	service        MailboxAttachmentStagingServiceAPI
+	abandonService MailboxAttachmentAbandonServiceAPI
 }
 
-func NewMailboxAttachmentStagingHandler(service MailboxAttachmentStagingServiceAPI) (*MailboxAttachmentStagingHandler, error) {
-	if mailboxHTTPDependencyNil(service) {
+func NewMailboxAttachmentStagingHandler(
+	service MailboxAttachmentStagingServiceAPI,
+	abandonService MailboxAttachmentAbandonServiceAPI,
+) (*MailboxAttachmentStagingHandler, error) {
+	if mailboxHTTPDependencyNil(service) || mailboxHTTPDependencyNil(abandonService) {
 		return nil, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorInvalid)
 	}
 
-	return &MailboxAttachmentStagingHandler{service: service}, nil
+	return &MailboxAttachmentStagingHandler{service: service, abandonService: abandonService}, nil
 }
 
 func (handler *MailboxAttachmentStagingHandler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler) error {
 	if handler == nil ||
 		mailboxHTTPDependencyNil(handler.service) ||
+		mailboxHTTPDependencyNil(handler.abandonService) ||
 		mailboxHTTPDependencyNil(api) ||
 		mailboxHTTPDependencyNil(authMiddleware) {
 		return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorInvalid)
@@ -44,6 +49,7 @@ func (handler *MailboxAttachmentStagingHandler) RegisterRoutes(api fiber.Router,
 	routes.Post("/attachments/presign", handler.presign)
 	routes.Post("/attachments/:attachmentId/confirm", handler.confirm)
 	routes.Get("/attachments/:attachmentId/download", handler.download)
+	routes.Delete("/attachments/:attachmentId", handler.abandon)
 	return nil
 }
 
@@ -200,8 +206,38 @@ func (handler *MailboxAttachmentStagingHandler) download(ctx fiber.Ctx) error {
 	})
 }
 
+func (handler *MailboxAttachmentStagingHandler) abandon(ctx fiber.Ctx) error {
+	if err := mailboxAttachmentStagingRejectQuery(ctx); err != nil {
+		return err
+	}
+	if err := mailboxAttachmentStagingRejectBody(ctx); err != nil {
+		return err
+	}
+
+	actor, err := mailboxActorID(ctx)
+	if err != nil {
+		return err
+	}
+	attachmentID, err := mailboxAttachmentStagingPathUUID(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := handler.abandonService.AbandonMailboxAttachment(ctx.Context(), actor, attachmentID); err != nil {
+		return mailboxAttachmentStagingAbandonServiceError(ctx, err)
+	}
+	return ctx.SendStatus(http.StatusNoContent)
+}
+
 func mailboxAttachmentStagingRejectQuery(ctx fiber.Ctx) error {
 	if len(ctx.Request().URI().QueryString()) != 0 {
+		return mailboxAttachmentStagingInvalidRequest()
+	}
+	return nil
+}
+
+func mailboxAttachmentStagingRejectBody(ctx fiber.Ctx) error {
+	if len(ctx.BodyRaw()) != 0 || strings.TrimSpace(ctx.Get(fiber.HeaderContentType)) != "" {
 		return mailboxAttachmentStagingInvalidRequest()
 	}
 	return nil
@@ -331,6 +367,27 @@ func mailboxAttachmentStagingServiceError(ctx fiber.Ctx, err error) error {
 		return fiber.NewError(http.StatusGone, "attachment has expired")
 	case MailboxAttachmentStagingErrorConfirmMismatch, MailboxAttachmentStagingErrorNotClean:
 		return fiber.NewError(http.StatusUnprocessableEntity, "attachment cannot be confirmed")
+	default:
+		return mailboxAttachmentStagingInternalError()
+	}
+}
+
+func mailboxAttachmentStagingAbandonServiceError(ctx fiber.Ctx, err error) error {
+	var stagingError *MailboxAttachmentStagingError
+	if !errors.As(err, &stagingError) || stagingError == nil {
+		return mailboxAttachmentStagingInternalError()
+	}
+
+	switch stagingError.Kind() {
+	case MailboxAttachmentStagingErrorInvalid:
+		return mailboxAttachmentStagingInvalidRequest()
+	case MailboxAttachmentStagingErrorDeleting:
+		ctx.Set("X-Hub-Error-Code", "MAIL_ACCOUNT_DELETING")
+		return fiber.NewError(http.StatusConflict, "mail account is deleting")
+	case MailboxAttachmentStagingErrorUnavailable:
+		return fiber.NewError(http.StatusServiceUnavailable, "attachment staging unavailable")
+	case MailboxAttachmentStagingErrorStateConflict:
+		return fiber.NewError(http.StatusConflict, "attachment state conflict")
 	default:
 		return mailboxAttachmentStagingInternalError()
 	}
