@@ -149,6 +149,13 @@ QA services disposable, а integration/e2e используют изолиров
 - The sole canonical `backend-unit` Docker regression run completed `PASS` for build/vet/unit/race (`result.json`: `first_exit:0`; aggregate receipt `2026-08-24T17:31:34.1795517Z`). It does not exercise a running server.
 - A real failing-startup process test is `NOT_RUN` because this direct `os.Exit` path has no genuine isolated unit seam; MongoDB integration execution of the required-index failure is also `NOT_RUN`.
 
+##### Phase 149 Task 2C: message send idempotency orchestration
+
+- `backend/tests/messenger/service_messages_test.go` covers canonical retry before parent revalidation, retry after parent deletion, concurrent create-or-return with one reply increment, channel and payload fingerprint conflicts, deleted canonical rejection, `Created=false`/deleted-canonical side-effect suppression, and the empty-nonce transitional create path.
+- The payload table covers deterministic JSON number serialization, attachment order and fields, voice URL/duration, semantic mention and mention-group set normalization, and nil-versus-empty collection compatibility. It also proves that authorization occurs before nonce-derived canonical content is returned.
+- Fresh canonical Docker `backend-unit` evidence is `PASS` for build, vet, unit, and race (`result.json`: `first_exit:0`; aggregate receipt `2026-08-24T18:11:52.4071814Z`). It covers both Task 1 thread-parent and all Task 2C service units.
+- Unit assertions observe only the accepted repository mock seams (canonical map, create counter, reply count). NATS/unread are not instrumented as fake runtime evidence; MongoDB index/upsert concurrency and startup-process behavior remain `NOT_RUN` pending phase-owned integration/process coverage.
+
 #### TMS
 
 | Endpoint | 200/201 | 400 | 401 | 403 | 404 |

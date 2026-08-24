@@ -1261,6 +1261,13 @@ backend/internal/
 - Task 2B makes the required Messenger index a startup prerequisite: after preserving the structured `failed to ensure messenger indexes` log, `wireMessenger` calls `os.Exit(1)` immediately. A failed index establishment therefore cannot construct the Messenger combined repository, services, or routes.
 - A real failing-startup process check and MongoDB integration execution for this policy are both `NOT_RUN`; Docker `backend-unit` regression evidence is recorded separately in `docs/TESTING.md` and does not exercise server startup.
 
+#### Message send idempotency orchestration (Phase 149 Task 2C)
+
+- `SendMessage` preserves membership, channel, readonly, and role checks before a non-empty `client_nonce` lookup. A live compatible canonical message returns before thread-parent validation; a deleted canonical returns `409 client_nonce уже принадлежит удалённому сообщению`, and a different fingerprint returns `409 client_nonce уже использован для другого сообщения`.
+- Every request, including the empty-nonce transition path, calls `CreateMessageIdempotent` after parent validation when no canonical nonce record exists. The service validates the returned canonical message for both `Created` outcomes and accepts reply/unread/mention/NATS/hook side effects only for `Created=true` with a live compatible canonical record.
+- The compatibility fingerprint compares channel, thread root, text, deterministic `encoding/json` bytes, ordered full attachment records, semantic mention and mention-group sets, and voice URL/duration. Events and responses use only persisted canonical fields.
+- Task 2C does not add a fake NATS or unread runtime claim: those external best-effort boundaries remain observable through code placement and repository-side service units. MongoDB index/upsert concurrency and startup-process behavior remain `NOT_RUN` until phase-owned integration coverage exists.
+
 ### TMS (47 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |

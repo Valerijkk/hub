@@ -57,16 +57,13 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 			}
 		}
 
-		if err := s.validateThreadParent(ctx, channelID, req.ThreadID); err != nil {
-			return nil, err
-		}
-
-		doc := &MessageDocument{
+		requested := &MessageDocument{
 			ChannelID:       channelID,
 			SenderID:        senderID,
 			ContentJSON:     req.ContentJSON,
 			ContentText:     req.ContentText,
 			ThreadID:        req.ThreadID,
+			ClientNonce:     req.ClientNonce,
 			Attachments:     req.Attachments,
 			Mentions:        req.Mentions,
 			MentionGroups:   req.MentionGroups,
@@ -75,57 +72,80 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 			CreatedAt:       time.Now().UTC(),
 		}
 
-		messageID, err := s.repo.InsertMessage(ctx, doc)
-		if err != nil {
+		if requested.ClientNonce != "" {
+			canonical, err := s.repo.FindMessageByClientNonce(ctx, senderID, requested.ClientNonce)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка сохранения сообщения")
+			}
+			if canonical != nil {
+				if err := validateCanonicalMessage(requested, canonical); err != nil {
+					return nil, err
+				}
+				return toMessageResponse(canonical), nil
+			}
+		}
+
+		if err := s.validateThreadParent(ctx, channelID, requested.ThreadID); err != nil {
+			return nil, err
+		}
+
+		result, err := s.repo.CreateMessageIdempotent(ctx, requested)
+		if err != nil || result == nil || result.Message == nil {
 			return nil, apperrors.NewInternal("ошибка сохранения сообщения")
 		}
-		doc.ID = messageID
+		canonical := result.Message
+		if err := validateCanonicalMessage(requested, canonical); err != nil {
+			return nil, err
+		}
+		if !result.Created {
+			return toMessageResponse(canonical), nil
+		}
 
-		// Инкремент reply_count, если это ответ в треде
-		if req.ThreadID != "" {
-			if err := s.repo.IncrementReplyCount(ctx, req.ThreadID); err != nil {
+		// Инкремент reply_count, если это ответ в треде.
+		if canonical.ThreadID != "" {
+			if err := s.repo.IncrementReplyCount(ctx, canonical.ThreadID); err != nil {
 				slog.Error("не удалось инкрементировать reply_count", "error", err)
 			}
 		}
 
-		// Инкремент непрочитанных для участников канала
+		// Инкремент непрочитанных для участников канала.
 		if s.unread != nil {
-			memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
+			memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, canonical.ChannelID)
 			if mErr == nil {
 				memberStrs := make([]string, len(memberIDs))
-				for i, m := range memberIDs {
-					memberStrs[i] = m.String()
+				for i, memberID := range memberIDs {
+					memberStrs[i] = memberID.String()
 				}
-				if uErr := s.unread.Increment(ctx, channelID.String(), memberStrs, senderID.String()); uErr != nil {
+				if uErr := s.unread.Increment(ctx, canonical.ChannelID.String(), memberStrs, canonical.SenderID.String()); uErr != nil {
 					slog.Error("не удалось инкрементировать непрочитанные", "error", uErr)
 				}
 			}
 		}
 
 		// Разрешение групповых упоминаний (@all, @online, @role) в конкретные ID пользователей.
-		resolvedMentions := s.resolveGroupMentions(ctx, channelID, ch.ProjectID, req.MentionGroups, req.Mentions, senderID)
+		resolvedMentions := s.resolveGroupMentions(ctx, canonical.ChannelID, ch.ProjectID, canonical.MentionGroups, canonical.Mentions, canonical.SenderID)
 
-		// Публикация NATS-события
-		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
-			MessageID:        messageID,
-			ChannelID:        channelID,
-			SenderID:         senderID,
-			ContentText:      req.ContentText,
-			ThreadID:         req.ThreadID,
+		// Публикация NATS-события.
+		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, canonical.ChannelID.String()), MessageSentEvent{
+			MessageID:        canonical.ID,
+			ChannelID:        canonical.ChannelID,
+			SenderID:         canonical.SenderID,
+			ContentText:      canonical.ContentText,
+			ThreadID:         canonical.ThreadID,
 			MentionedUserIDs: resolvedMentions,
-			CreatedAt:        doc.CreatedAt,
+			CreatedAt:        canonical.CreatedAt,
 		})
 
 		s.emitMessageSent(ctx, MessageHookEvent{
-			MessageID:   messageID,
-			ChannelID:   channelID,
-			SenderID:    senderID,
-			ContentText: req.ContentText,
-			ThreadID:    req.ThreadID,
+			MessageID:   canonical.ID,
+			ChannelID:   canonical.ChannelID,
+			SenderID:    canonical.SenderID,
+			ContentText: canonical.ContentText,
+			ThreadID:    canonical.ThreadID,
 			Mentions:    resolvedMentions,
 		})
 
-		return toMessageResponse(doc), nil
+		return toMessageResponse(canonical), nil
 	})
 }
 
