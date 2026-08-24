@@ -149,8 +149,10 @@ func (c *Client) CallMailbox(ctx context.Context, session *MailboxSession, reque
 // Any transport ambiguity after dispatch is indeterminate and is never retried
 // by this transport.
 func (c *Client) UploadMailboxBlob(ctx context.Context, request UploadRequest) (UploadResult, error) {
+	var contentOwner *uploadContentOwner
 	if request.Content != nil {
-		defer request.Content.Close()
+		contentOwner = &uploadContentOwner{content: request.Content}
+		defer contentOwner.Close()
 	}
 	if _, ok := boundedLimit(request.ContentBytes, maxUploadContentBytes); ctx == nil || !ok || request.Session == nil || !validOpaque(request.AccountID) || !validContentType(request.ContentType) || request.Content == nil || !c.validUploadURL(request.Session) {
 		return UploadResult{}, newError(ErrorInvalidRequest)
@@ -162,7 +164,7 @@ func (c *Client) UploadMailboxBlob(ctx context.Context, request UploadRequest) (
 	if !ok {
 		return UploadResult{}, newError(ErrorProtocol)
 	}
-	status, _, payload, err := c.doUploadRequest(ctx, target, request.Content, request.ContentBytes, request.ContentType)
+	status, _, payload, err := c.doUploadRequest(ctx, target, contentOwner, request.ContentBytes, request.ContentType)
 	if err != nil {
 		return UploadResult{}, err
 	}
@@ -238,8 +240,25 @@ func (c *Client) authorizeMailbox(ctx context.Context, request *http.Request) er
 
 type requestAuthorizer func(context.Context, *http.Request) error
 
+type uploadContentOwner struct {
+	content ContextReadCloser
+	once    sync.Once
+	err     error
+}
+
+func (owner *uploadContentOwner) Close() error {
+	if owner == nil || owner.content == nil {
+		return nil
+	}
+	owner.once.Do(func() {
+		owner.err = owner.content.Close()
+	})
+	return owner.err
+}
+
 type uploadBodyReader struct {
 	content      ContextReadCloser
+	contentOwner *uploadContentOwner
 	request      *http.Request
 	contentBytes int64
 
@@ -247,6 +266,13 @@ type uploadBodyReader struct {
 	readBytes   int64
 	lookedAhead bool
 	err         error
+}
+
+func (reader *uploadBodyReader) Close() error {
+	if reader == nil || reader.contentOwner == nil {
+		return nil
+	}
+	return reader.contentOwner.Close()
 }
 
 func (reader *uploadBodyReader) Read(buffer []byte) (int, error) {
@@ -309,14 +335,18 @@ func (reader *uploadBodyReader) result() (int64, error) {
 	return reader.readBytes, reader.err
 }
 
-func (c *Client) doUploadRequest(ctx context.Context, target *url.URL, content ContextReadCloser, contentBytes int64, contentType string) (int, http.Header, []byte, error) {
-	if c == nil || c.httpClient == nil || target == nil || !c.sameOrigin(target) || target.User != nil || target.Fragment != "" || target.ForceQuery || ctx == nil || content == nil || contentBytes < 1 || contentBytes > maxUploadContentBytes || !validContentType(contentType) {
+func (c *Client) doUploadRequest(ctx context.Context, target *url.URL, contentOwner *uploadContentOwner, contentBytes int64, contentType string) (int, http.Header, []byte, error) {
+	if c == nil || c.httpClient == nil || target == nil || !c.sameOrigin(target) || target.User != nil || target.Fragment != "" || target.ForceQuery || ctx == nil || contentOwner == nil || contentOwner.content == nil || contentBytes < 1 || contentBytes > maxUploadContentBytes || !validContentType(contentType) {
 		return 0, nil, nil, newError(ErrorInvalidRequest)
 	}
 	requestContext, cancel := context.WithTimeout(ctx, transferDeadline)
 	defer cancel()
 
-	body := &uploadBodyReader{content: content, contentBytes: contentBytes}
+	body := &uploadBodyReader{
+		content:      contentOwner.content,
+		contentOwner: contentOwner,
+		contentBytes: contentBytes,
+	}
 	request, err := http.NewRequestWithContext(requestContext, http.MethodPost, target.String(), body)
 	if err != nil {
 		return 0, nil, nil, newError(ErrorInvalidRequest)
