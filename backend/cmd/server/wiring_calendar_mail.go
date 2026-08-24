@@ -240,6 +240,7 @@ func wireCalendarMail(d *serverDeps) {
 		mailboxRepo,
 		mailboxRepo,
 		mailboxDraftMaterializer,
+		mailboxRepo,
 	)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)

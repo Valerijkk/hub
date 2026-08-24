@@ -9,6 +9,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailattachment"
 	"github.com/valerii/hub/backend/ent/maildraft"
+	"github.com/valerii/hub/backend/ent/mailmessage"
 	"github.com/valerii/hub/backend/ent/mailobject"
 )
 
@@ -40,6 +41,9 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 		if err := mailboxEntDraftCreateLockReferences(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState); err != nil {
 			return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
 		}
+		if err := mailboxEntDraftReservationLockReplySource(ctx, transaction, request.Fence.AccountID, request.PendingSave.EffectiveState, request.ReplySourceProof); err != nil {
+			return mailboxEntDraftReservationReleaseForError(ctx, account, request.Fence, databaseWallClock, err)
+		}
 		attachments, kind := mailboxEntDraftReservationLockSaveAttachments(ctx, transaction, draft, request)
 		if kind != "" {
 			return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, kind)
@@ -51,7 +55,7 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftSave(ctx context.Cont
 
 		switch record.Status {
 		case MailboxDraftStatusActive:
-			if record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID || record.PendingSave != nil {
+			if record.Revision != request.ExpectedRevision || record.DraftClientID != request.DraftClientID || record.PendingSave != nil || !mailboxEntDraftReservationReplySourceMatches(record.Confirmed, request.ReplySourceProof) {
 				return mailboxEntDraftReservationReleaseError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 			}
 			updated, err := mailboxEntDraftReservationSaveTransition(ctx, draft, request, databaseWallClock)
@@ -287,7 +291,44 @@ func mailboxEntDraftReservationSaveRequestKind(request MailboxDraftSaveRequest) 
 	if !mailboxEntEngineCommandFenceValid(request.Fence) || request.DraftID == uuid.Nil || request.DraftClientID == uuid.Nil || request.ExpectedRevision < 1 || request.MutationID == uuid.Nil || !mailboxEntDraftCreateHashPresent(request.PendingSave.RequestHash) {
 		return MailboxDraftRepositoryErrorInvalid
 	}
-	return mailboxEntDraftEffectiveStateKind(request.PendingSave.EffectiveState)
+	if kind := mailboxEntDraftEffectiveStateKind(request.PendingSave.EffectiveState); kind != "" {
+		return kind
+	}
+	if request.ReplySourceProof != nil && !mailboxEntDraftReservationReplySourceProofValid(*request.ReplySourceProof) {
+		return MailboxDraftRepositoryErrorInvalid
+	}
+	return ""
+}
+
+func mailboxEntDraftReservationReplySourceProofValid(proof MailboxDraftReplySourceProof) bool {
+	return proof.MessageID != uuid.Nil && syncValidOpaque(proof.EngineMessageID, MaxEngineOpaqueIDBytes) && syncValidOpaque(proof.EngineVersion, MaxEngineOpaqueIDBytes)
+}
+
+func mailboxEntDraftReservationReplySourceMatches(state MailboxDraftEffectiveState, proof *MailboxDraftReplySourceProof) bool {
+	if proof == nil {
+		return true
+	}
+	return mailboxEntDraftReservationReplySourceProofValid(*proof) && state.ReplyToMessageID != nil && *state.ReplyToMessageID == proof.MessageID && state.ForwardMessageID == nil && len(state.AttachmentIDs) == 0
+}
+
+func mailboxEntDraftReservationLockReplySource(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, state MailboxDraftEffectiveState, proof *MailboxDraftReplySourceProof) error {
+	if proof == nil {
+		return nil
+	}
+	if ctx == nil || transaction == nil || accountID == uuid.Nil || !mailboxEntDraftReservationReplySourceMatches(state, proof) {
+		return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
+	}
+	source, err := transaction.MailMessage.Query().Where(mailmessage.IDEQ(proof.MessageID), mailmessage.MailAccountIDEQ(accountID), mailmessage.DeletedAtIsNil()).ForUpdate().Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+		}
+		return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
+	}
+	if source == nil || !mailboxEntApplyMessageRowValid(source, accountID) || source.ID != proof.MessageID || source.MailAccountID != accountID || source.DeletedAt != nil || source.EngineMessageID != proof.EngineMessageID || source.EngineVersion != proof.EngineVersion || source.IsDraft || source.ProjectionOrigin != mailmessage.ProjectionOrigin(EngineProjectionOriginInboundOrUnknown) || source.CalendarMethod != nil || source.CalendarEventID != nil || len(source.CalendarPartLocatorHash) != 0 {
+		return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
+	}
+	return nil
 }
 
 func mailboxEntDraftAbortRequestKind(request MailboxDraftAbortRequest) MailboxDraftRepositoryErrorKind {

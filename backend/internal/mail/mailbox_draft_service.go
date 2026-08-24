@@ -16,6 +16,7 @@ type MailboxDraftService struct {
 	identities  MailboxDraftIdentityProofResolver
 	attachments MailboxDraftAttachmentProofResolver
 	materializer mailboxDraftAttachmentMaterializer
+	messages    MailboxMessageRepository
 }
 
 type MailboxDraftEngine interface {
@@ -223,13 +224,15 @@ func NewMailboxDraftService(
 	identities MailboxDraftIdentityProofResolver,
 	attachments MailboxDraftAttachmentProofResolver,
 	materializer mailboxDraftAttachmentMaterializer,
+	messages MailboxMessageRepository,
 ) (*MailboxDraftService, error) {
 	if mailboxDraftServiceDependencyNil(owners) ||
 		mailboxDraftServiceDependencyNil(repository) ||
 		mailboxDraftServiceDependencyNil(engine) ||
 		mailboxDraftServiceDependencyNil(identities) ||
 		mailboxDraftServiceDependencyNil(attachments) ||
-		mailboxDraftServiceDependencyNil(materializer) {
+		mailboxDraftServiceDependencyNil(materializer) ||
+		mailboxDraftServiceDependencyNil(messages) {
 		return nil, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
 	}
 
@@ -240,6 +243,7 @@ func NewMailboxDraftService(
 		identities:  identities,
 		attachments: attachments,
 		materializer: materializer,
+		messages:    messages,
 	}, nil
 }
 

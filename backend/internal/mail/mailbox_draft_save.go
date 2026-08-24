@@ -17,6 +17,7 @@ type mailboxDraftSavePrepared struct {
 	expectedRevision int64
 	canonical        MailboxDraftCanonicalRequest
 	pending          MailboxDraftPendingSave
+	replySourceProof *MailboxDraftReplySourceProof
 }
 
 // SaveMailboxDraft saves one active, attachment-free draft under an exact
@@ -41,17 +42,16 @@ func (service *MailboxDraftService) SaveMailboxDraft(ctx context.Context, actorI
 	if err != nil {
 		return MailboxDraftView{}, err
 	}
-	prepared, err := service.mailboxDraftSavePrepare(ctx, scope, draftID, input)
-	if err != nil {
-		return MailboxDraftView{}, err
-	}
-
 	current, err := service.repository.GetMailboxDraft(ctx, MailboxDraftGetRequest{
-		AccountID: prepared.scope.accountID,
-		DraftID:   prepared.draftID,
+		AccountID: scope.accountID,
+		DraftID:   draftID,
 	})
 	if err != nil {
 		return MailboxDraftView{}, mailboxDraftGetRepositoryError(err)
+	}
+	prepared, err := service.mailboxDraftSavePrepare(ctx, scope, draftID, input, current)
+	if err != nil {
+		return MailboxDraftView{}, err
 	}
 	mutationID, pending, err := mailboxDraftSaveCorrelation(current, prepared)
 	if err != nil {
@@ -75,6 +75,7 @@ func (service *MailboxDraftService) SaveMailboxDraft(ctx context.Context, actorI
 		DraftClientID:    prepared.canonical.DraftClientID,
 		ExpectedRevision: prepared.expectedRevision,
 		PendingSave:      mailboxDraftSavePendingCopy(prepared.pending),
+		ReplySourceProof:  mailboxDraftSaveReplySourceProofCopy(prepared.replySourceProof),
 		MutationID:       mutationID,
 	})
 	if err != nil {
@@ -125,9 +126,74 @@ func (service *MailboxDraftService) SaveMailboxDraft(ctx context.Context, actorI
 	}
 }
 
-func (service *MailboxDraftService) mailboxDraftSavePrepare(ctx context.Context, scope mailboxDraftCreateScope, draftID uuid.UUID, input MailboxDraftSaveInput) (mailboxDraftSavePrepared, error) {
+func (service *MailboxDraftService) mailboxDraftSavePrepare(ctx context.Context, scope mailboxDraftCreateScope, draftID uuid.UUID, input MailboxDraftSaveInput, current MailboxDraftGetResult) (mailboxDraftSavePrepared, error) {
 	if !mailboxDraftCreateServiceValid(service) || ctx == nil || !mailboxDraftCreateScopeValid(scope) || draftID == uuid.Nil || input.ExpectedRevision < 1 || input.DraftClientID == uuid.Nil || input.FromIdentityID == uuid.Nil || len(input.Attachments) != 0 {
 		return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+	if current.Found != (current.Draft != nil) {
+		return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+
+	inReplyTo := input.InReplyTo
+	references := input.References
+	replyToMessageID := mailboxDraftGetUUIDPointerCopy(input.ReplyToMessageID)
+	forwardMessageID := mailboxDraftGetUUIDPointerCopy(input.ForwardMessageID)
+	var replySourceProof *MailboxDraftReplySourceProof
+	if current.Found && current.Draft != nil && current.Draft.Confirmed.ReplyToMessageID != nil && current.Draft.Confirmed.ForwardMessageID == nil {
+		record := *current.Draft
+		if record.ID != draftID || record.AccountID != scope.accountID || record.DraftClientID != input.DraftClientID {
+			return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorConflict)
+		}
+		if record.Revision != input.ExpectedRevision {
+			return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorPreconditionFailed)
+		}
+		if !mailboxDraftSaveReplyThreadingInputEmpty(input) || !mailboxDraftSaveReplyEffectiveStateValid(record.Confirmed) {
+			return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorUnprocessable)
+		}
+		switch record.Status {
+		case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
+			if record.PendingSave == nil {
+				return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorConflict)
+			}
+			prepared := mailboxDraftSavePrepared{
+				scope:            scope,
+				draftID:          draftID,
+				expectedRevision: input.ExpectedRevision,
+				canonical:        MailboxDraftCanonicalRequest{DraftClientID: input.DraftClientID},
+				pending:          mailboxDraftSavePendingCopy(*record.PendingSave),
+			}
+			if !mailboxDraftSavePendingRecordMatches(record, prepared) || !mailboxDraftSaveReplyEffectiveStateValid(record.PendingSave.EffectiveState) || !mailboxDraftSaveReplySourceIDsMatch(record.Confirmed, record.PendingSave.EffectiveState) {
+				return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorConflict)
+			}
+			return prepared, nil
+		case MailboxDraftStatusActive:
+			if !mailboxDraftGetRecordValid(&record, scope.accountID, draftID) || mailboxDraftServiceDependencyNil(service.messages) {
+				return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+			}
+			sourceID := *record.Confirmed.ReplyToMessageID
+			messageScope := MailboxMessageReadScope{ActorID: scope.actorID, OrganizationID: scope.organizationID, AccountID: scope.accountID, EngineAccountID: scope.engineAccountID}
+			snapshot, err := service.messages.ResolveMailboxMessage(ctx, messageScope, sourceID)
+			if err != nil {
+				return mailboxDraftSavePrepared{}, mailboxReplyDraftMessageError(err)
+			}
+			if !mailboxReplyDraftSnapshotMatches(snapshot, messageScope, sourceID) {
+				return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+			}
+			if !mailboxReplyDraftSourceEligible(snapshot) {
+				return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorNotFound)
+			}
+			derivedReferences, err := mailboxReplyDraftReferences(snapshot)
+			if err != nil {
+				return mailboxDraftSavePrepared{}, err
+			}
+			inReplyTo = snapshot.internetMessageID
+			references = derivedReferences
+			replyToMessageID = &sourceID
+			forwardMessageID = nil
+			replySourceProof = &MailboxDraftReplySourceProof{MessageID: sourceID, EngineMessageID: snapshot.engineMessageID, EngineVersion: snapshot.engineVersion}
+		default:
+			return mailboxDraftSavePrepared{}, mailboxDraftServiceError(MailboxDraftServiceErrorConflict)
+		}
 	}
 
 	content, err := NormalizeMailboxContent(input.Content)
@@ -167,11 +233,11 @@ func (service *MailboxDraftService) mailboxDraftSavePrepare(ctx context.Context,
 		BCC:              input.BCC,
 		ReplyTo:          input.ReplyTo,
 		Subject:          input.Subject,
-		InReplyTo:        input.InReplyTo,
-		References:       input.References,
+		InReplyTo:        inReplyTo,
+		References:       references,
 		Priority:         input.Priority,
-		ReplyToMessageID: input.ReplyToMessageID,
-		ForwardMessageID: input.ForwardMessageID,
+		ReplyToMessageID: replyToMessageID,
+		ForwardMessageID: forwardMessageID,
 		Attachments:      attachmentProof.attachments,
 		Body:             content,
 	})
@@ -196,7 +262,27 @@ func (service *MailboxDraftService) mailboxDraftSavePrepare(ctx context.Context,
 			EffectiveState: mailboxDraftCreateEffectiveStateCopy(effective),
 			RequestHash:    canonical.RequestHash,
 		},
+		replySourceProof: mailboxDraftSaveReplySourceProofCopy(replySourceProof),
 	}, nil
+}
+
+func mailboxDraftSaveReplyThreadingInputEmpty(input MailboxDraftSaveInput) bool {
+	return input.InReplyTo == "" && len(input.References) == 0 && input.ReplyToMessageID == nil && input.ForwardMessageID == nil
+}
+
+func mailboxDraftSaveReplyEffectiveStateValid(state MailboxDraftEffectiveState) bool {
+	return mailboxDraftGetEffectiveStateValid(state) && state.ReplyToMessageID != nil && state.ForwardMessageID == nil && len(state.AttachmentIDs) == 0
+}
+
+func mailboxDraftSaveReplySourceIDsMatch(confirmed, pending MailboxDraftEffectiveState) bool {
+	return mailboxDraftSaveReplyEffectiveStateValid(confirmed) && mailboxDraftSaveReplyEffectiveStateValid(pending) && *confirmed.ReplyToMessageID == *pending.ReplyToMessageID
+}
+
+func mailboxDraftSaveReplySourceProofCopy(value *MailboxDraftReplySourceProof) *MailboxDraftReplySourceProof {
+	if value == nil {
+		return nil
+	}
+	return &MailboxDraftReplySourceProof{MessageID: value.MessageID, EngineMessageID: strings.Clone(value.EngineMessageID), EngineVersion: strings.Clone(value.EngineVersion)}
 }
 
 // mailboxDraftSaveCorrelation determines whether a fresh mutation may be

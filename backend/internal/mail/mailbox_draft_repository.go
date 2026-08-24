@@ -249,14 +249,25 @@ type MailboxDraftCreateRequest struct {
 	MutationID               uuid.UUID
 }
 
+// MailboxDraftReplySourceProof binds an active Reply save to the exact owned
+// source-message projection from which its server-authoritative threading was
+// derived. It contains only local and opaque engine identifiers; header values
+// and message content never cross the repository boundary.
+type MailboxDraftReplySourceProof struct {
+	MessageID       uuid.UUID
+	EngineMessageID string
+	EngineVersion   string
+}
+
 // MailboxDraftSaveRequest reserves an active draft save mutation under the exact acquired fence.
 type MailboxDraftSaveRequest struct {
 	Fence                 MailboxEngineCommandFence
 	DraftID               uuid.UUID
 	DraftClientID         uuid.UUID
 	ExpectedRevision      int64
-	PendingSave MailboxDraftPendingSave
-	MutationID  uuid.UUID
+	PendingSave           MailboxDraftPendingSave
+	ReplySourceProof      *MailboxDraftReplySourceProof
+	MutationID            uuid.UUID
 }
 
 // MailboxDraftDeleteRequest reserves an active draft delete mutation under the exact acquired fence.
