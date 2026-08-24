@@ -1,6 +1,6 @@
 # Hub — Тестовая документация
 
-> **Обновлено:** 2026-08-23 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`
+> **Обновлено:** 2026-08-24 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`
 > **Edge/Corner backlog:** [`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/archive/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
 >
 > **Current QA authority:** legacy commands and paths below are inventory, not executable canon.
@@ -23,8 +23,8 @@
 | Уровень | Инструменты | Расположение | CI job |
 |---------|-------------|--------------|--------|
 | Unit (Backend) | Go testing + testify | genuine product units: `backend/tests/{domain}/` | `backend-unit`: PASS (build/vet/unit/race) |
-| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit`: PASS (338/338 suites, 419/419 tests) |
-| Framework | pytest | `testframework/selftests/**` | `python-contract`: PASS (181/181 framework selftests; no SUT product tests) |
+| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit`: TypeScript PASS; Vitest 161/161 files, 419/419 tests |
+| Framework | pytest | `testframework/selftests/**` | `python-contract`: PASS (182/182 framework selftests; no SUT product tests) |
 | API / integration / E2E | pytest + httpx/Playwright | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
 | Load | Locust | outside the minimal slice | `NOT_RUN`; not a merge gate for this slice |
 
@@ -63,6 +63,65 @@ An explicit, separately authorized rebuild is required for `backend/go.mod` or
 `backend/go.sum` changes, generated Ent output (including a schema change that
 requires regeneration), or edits outside the six overlaid roots. Do not add
 `--build` for ordinary source or test edits within the partial overlay.
+
+### `frontend-unit`: current-source, low-disk profile
+
+Use the canonical command exactly as declared above:
+
+```text
+docker compose -f docker-compose.local.yml run --rm frontend-unit
+```
+
+`frontend-unit` mounts the current `frontend/src` and `frontend/tests` roots
+read-only at their matching `/opt/hub/source/frontend/**` image targets. The
+`/reports` host bind is explicit for receipts and logs; its
+`/reports/frontend-unit/home` and `/reports/frontend-unit/tmp` children are
+separate RAM tmpfs mounts. The common 64 MiB `/tmp` mount is retained first;
+the two report children are bounded to 512 MiB and 4 GiB respectively, with
+`noexec,nosuid,nodev`, UID/GID 10001, and mode 0700. The service has a
+6.0 CPU and 10 GiB memory ceiling, which also bounds those tmpfs mounts.
+
+The resolved npm dependency tree and non-overlaid frontend inputs remain image
+owned. An explicit, separately authorized rebuild is required for
+`frontend/package.json`, `frontend/package-lock.json`, or a source change
+outside the two mounted roots; ordinary `src` or `tests` edits do not add
+`--build`. On 2026-08-24, the canonical `frontend-unit` command executed this
+exact overlay with an existing local image (no build, pull, or package install)
+and exited 0. Its receipt records TypeScript `PASS` and Vitest `PASS`: 161
+files / 419 tests in 45.83s. This evidence is limited to this frontend unit
+target and topology; it does not imply a deployed runtime, API/integration, or
+Jitsi result.
+
+### `python-contract`: current-framework source profile
+
+Use the canonical command exactly as declared above:
+
+```text
+docker compose -f docker-compose.local.yml run --rm python-contract
+```
+
+`python-contract` mounts only the current `testframework/src` and
+`testframework/selftests` roots read-only at the matching image targets
+`/opt/hub/testframework/src` and `/opt/hub/testframework/selftests`, plus
+read-only copies of `docker-compose.local.yml` and the Phase 130 plan at
+`/opt/hub/docker-compose.local.yml` and
+`/opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md`. `/reports`
+remains an explicit writable host bind for receipts. The resolved virtual
+environment, package metadata/lock, policies, schemas, Docker assets, and
+other image-owned configuration remain authoritative in the image; no SUT
+product source is mounted by this profile.
+
+An explicit, separately authorized rebuild is required for
+`testframework/pyproject.toml`, `testframework/uv.lock`,
+`testframework/.python-version`, `testframework/policies/**`,
+`testframework/schemas/**`, `testframework/docker/**`, or another
+image-owned configuration change. Ordinary edits under the two mounted roots
+do not add `--build`. On 2026-08-24, the canonical `python-contract` command
+executed this exact partial overlay with an existing local image (no build,
+pull, or package install), exited 0, and passed 182 framework selftests in
+9.53s. This evidence is limited to the framework contract target and topology;
+it does not imply product-SUT, deployed-runtime, API/integration, or Jitsi
+results.
 
 ### Исторический inventory snapshot (2026-07-29)
 

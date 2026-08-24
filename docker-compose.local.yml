@@ -271,6 +271,24 @@ services:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa
       target: frontend-unit
+    volumes:
+      - type: bind
+        source: ./testframework/reports
+        target: /reports
+      - type: bind
+        source: ./frontend/src
+        target: /opt/hub/source/frontend/src
+        read_only: true
+      - type: bind
+        source: ./frontend/tests
+        target: /opt/hub/source/frontend/tests
+        read_only: true
+    cpus: 6.0
+    mem_limit: 10g
+    tmpfs:
+      - "/tmp:rw,noexec,nosuid,nodev,size=64m"
+      - "/reports/frontend-unit/home:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
+      - "/reports/frontend-unit/tmp:rw,noexec,nosuid,nodev,size=4g,uid=10001,gid=10001,mode=0700"
     command: []
 
   python-contract:
@@ -279,6 +297,26 @@ services:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
+    volumes:
+      - type: bind
+        source: ./testframework/reports
+        target: /reports
+      - type: bind
+        source: ./testframework/src
+        target: /opt/hub/testframework/src
+        read_only: true
+      - type: bind
+        source: ./testframework/selftests
+        target: /opt/hub/testframework/selftests
+        read_only: true
+      - type: bind
+        source: ./docker-compose.local.yml
+        target: /opt/hub/docker-compose.local.yml
+        read_only: true
+      - type: bind
+        source: ./.planning/phases/130-tf-traceability-gates/PLAN.md
+        target: /opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md
+        read_only: true
     command: [contract]
 
   python-api:

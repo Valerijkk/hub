@@ -255,6 +255,144 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
         assert _dependencies_are_closed(name, service)
 
 
+def test_current_source_overlays_reject_writable_stale_and_undersized_mutations() -> None:
+    services = _compose_services(load_root_compose_contract(_REPO_ROOT))
+
+    assert _qa_public_services_are_closed(services)
+
+    frontend = _mapping_value(services, "frontend-unit")
+    frontend_volumes = frontend["volumes"]
+    assert type(frontend_volumes) is tuple and len(frontend_volumes) == 3
+    frontend_src = frontend_volumes[1]
+    assert isinstance(frontend_src, Mapping)
+    writable_frontend_src = dict(frontend_src)
+    writable_frontend_src["read_only"] = False
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "frontend-unit",
+            {
+                "volumes": (
+                    frontend_volumes[0],
+                    MappingProxyType(writable_frontend_src),
+                    *frontend_volumes[2:],
+                )
+            },
+        )
+    )
+
+    frontend_tests = frontend_volumes[2]
+    assert isinstance(frontend_tests, Mapping)
+    stale_frontend_tests = dict(frontend_tests)
+    stale_frontend_tests["source"] = "./frontend/tests-stale"
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "frontend-unit",
+            {
+                "volumes": (
+                    frontend_volumes[0],
+                    frontend_volumes[1],
+                    MappingProxyType(stale_frontend_tests),
+                )
+            },
+        )
+    )
+
+    frontend_tmpfs = frontend["tmpfs"]
+    assert type(frontend_tmpfs) is tuple and len(frontend_tmpfs) == 3
+    frontend_tmp = frontend_tmpfs[2]
+    assert type(frontend_tmp) is str
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "frontend-unit",
+            {
+                "tmpfs": (
+                    frontend_tmpfs[0],
+                    frontend_tmpfs[1],
+                    frontend_tmp.replace("size=4g", "size=3g", 1),
+                )
+            },
+        )
+    )
+
+    python_contract = _mapping_value(services, "python-contract")
+    python_contract_volumes = python_contract["volumes"]
+    assert (
+        type(python_contract_volumes) is tuple
+        and len(python_contract_volumes) == 5
+    )
+    selftests_bind = python_contract_volumes[2]
+    assert isinstance(selftests_bind, Mapping)
+    writable_selftests_bind = dict(selftests_bind)
+    writable_selftests_bind["read_only"] = False
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-contract",
+            {
+                "volumes": (
+                    python_contract_volumes[0],
+                    python_contract_volumes[1],
+                    MappingProxyType(writable_selftests_bind),
+                    *python_contract_volumes[3:],
+                )
+            },
+        )
+    )
+
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-contract",
+            {
+                "volumes": (
+                    python_contract_volumes[0],
+                    python_contract_volumes[1],
+                    python_contract_volumes[2],
+                    python_contract_volumes[4],
+                )
+            },
+        )
+    )
+
+    phase_plan = python_contract_volumes[4]
+    assert isinstance(phase_plan, Mapping)
+    writable_phase_plan = dict(phase_plan)
+    writable_phase_plan["read_only"] = False
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-contract",
+            {
+                "volumes": (
+                    *python_contract_volumes[:4],
+                    MappingProxyType(writable_phase_plan),
+                )
+            },
+        )
+    )
+
+    backend = _mapping_value(services, "backend-unit")
+    backend_tmpfs = backend["tmpfs"]
+    assert type(backend_tmpfs) is tuple and len(backend_tmpfs) == 3
+    backend_cache = backend_tmpfs[1]
+    assert type(backend_cache) is str
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "backend-unit",
+            {
+                "tmpfs": (
+                    backend_tmpfs[0],
+                    backend_cache.replace("size=3g", "size=2g", 1),
+                    backend_tmpfs[2],
+                )
+            },
+        )
+    )
+
 def test_qa_infrastructure_is_unpublished_and_disposable() -> None:
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
 
@@ -636,7 +774,7 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
     compose_text = _required_asset_text(
         _REPO_ROOT / "docker-compose.local.yml"
     )
-    copied_common = (
+    copied_python_api = (
         "    profiles: [qa]\n"
         "    read_only: true\n"
         '    security_opt: ["no-new-privileges:true"]\n'
@@ -651,13 +789,21 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
         "    stop_grace_period: 30s\n"
         "    tmpfs:\n"
         '      - "/tmp:rw,noexec,nosuid,nodev,size=64m"\n'
+        "    environment:\n"
+        '      PYTHONDONTWRITEBYTECODE: "1"\n'
+        '      PYTEST_ADDOPTS: "-p no:cacheprovider"\n'
+        '      PYTHONSAFEPATH: "1"\n'
     )
-    copy_expanded = compose_text.replace(
-        "    <<: *qa-common\n",
-        copied_common,
+    assert "\r" not in compose_text.replace("\r\n", "")
+    normalized_compose_text = compose_text.replace("\r\n", "\n")
+    python_api_marker = "  python-api:\n    <<: [*qa-common, *qa-python]\n"
+    assert normalized_compose_text.count(python_api_marker) == 1
+    copy_expanded = normalized_compose_text.replace(
+        python_api_marker,
+        "  python-api:\n" + copied_python_api,
         1,
     )
-    assert copy_expanded != compose_text
+    assert copy_expanded != normalized_compose_text
     expanded_document = _parse_yaml_safe(copy_expanded)
     assert isinstance(expanded_document, Mapping)
     assert _qa_public_services_are_closed(
@@ -677,13 +823,23 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
     assert not _qa_public_services_are_closed(
         _mapping_value(materialized_merge, "services")
     )
+    merged_profile_override = _parse_yaml_safe(
+        "x-common: &common\n"
+        "  profiles: [qa]\n"
+        "services:\n"
+        "  backend-unit:\n"
+        "    <<: *common\n"
+        "    profiles: [qa, hostile]\n"
+    )
+    assert isinstance(merged_profile_override, Mapping)
+    assert not _qa_public_services_are_closed(
+        _mapping_value(merged_profile_override, "services")
+    )
     assert (
         _parse_yaml_safe(
-            "x-common: &common\n"
-            "  profiles: [qa]\n"
             "services:\n"
             "  backend-unit:\n"
-            "    <<: *common\n"
+            "    profiles: [qa]\n"
             "    profiles: [qa, hostile]\n"
         )
         is _INVALID
@@ -1033,11 +1189,19 @@ def _construct_unique_mapping(
 ) -> dict[str, object]:
     if not isinstance(node, MappingNode):
         raise ValueError("invalid compose")
+    explicit_keys: set[str] = set()
+    for key_node, _ in node.value:
+        if key_node.tag == "tag:yaml.org,2002:merge":
+            continue
+        key = loader.construct_object(key_node, deep=deep)
+        if type(key) is not str or key in explicit_keys:
+            raise ValueError("invalid compose")
+        explicit_keys.add(key)
     loader.flatten_mapping(node)
     result: dict[str, object] = {}
     for key_node, value_node in node.value:
         key = loader.construct_object(key_node, deep=deep)
-        if type(key) is not str or key in result:
+        if type(key) is not str:
             raise ValueError("invalid compose")
         result[key] = loader.construct_object(value_node, deep=deep)
     return result
@@ -1374,7 +1538,129 @@ def _expected_public_service(name: str) -> Mapping[str, object]:
         expected["environment"] = _qa_python_environment()
     if name in _INFRASTRUCTURE_DEPENDENTS:
         expected["depends_on"] = _healthy_infrastructure_dependencies()
+    expected.update(_public_service_overrides(name))
     return MappingProxyType(expected)
+
+
+def _public_service_overrides(name: str) -> Mapping[str, object]:
+    overrides: dict[str, Mapping[str, object]] = {
+        "backend-unit": MappingProxyType(
+            {
+                "volumes": (
+                    _qa_reports_bind(),
+                    _read_only_bind(
+                        "./backend/cmd",
+                        "/opt/hub/source/backend/cmd",
+                    ),
+                    _read_only_bind(
+                        "./backend/internal",
+                        "/opt/hub/source/backend/internal",
+                    ),
+                    _read_only_bind(
+                        "./backend/tests",
+                        "/opt/hub/source/backend/tests",
+                    ),
+                    _read_only_bind(
+                        "./backend/ent/schema",
+                        "/opt/hub/source/backend/ent/schema",
+                    ),
+                    _read_only_bind(
+                        "./backend/migrations",
+                        "/opt/hub/source/backend/migrations",
+                    ),
+                    _read_only_bind(
+                        "./backend/testframework",
+                        "/opt/hub/source/backend/testframework",
+                    ),
+                ),
+                "environment": MappingProxyType(
+                    {
+                        "GOCACHE": "/var/cache/hub-go",
+                        "GOTMPDIR": "/var/tmp/hub-go",
+                    }
+                ),
+                "cpus": 6.0,
+                "mem_limit": "10g",
+                "tmpfs": (
+                    "/tmp:rw,noexec,nosuid,nodev,size=64m",
+                    "/var/cache/hub-go:rw,noexec,nosuid,nodev,"
+                    "size=3g,uid=10001,gid=10001,mode=1770",
+                    "/var/tmp/hub-go:rw,nosuid,nodev,exec,"
+                    "size=4g,uid=10001,gid=10001,mode=1770",
+                ),
+            }
+        ),
+        "frontend-unit": MappingProxyType(
+            {
+                "volumes": (
+                    _qa_reports_bind(),
+                    _read_only_bind(
+                        "./frontend/src",
+                        "/opt/hub/source/frontend/src",
+                    ),
+                    _read_only_bind(
+                        "./frontend/tests",
+                        "/opt/hub/source/frontend/tests",
+                    ),
+                ),
+                "cpus": 6.0,
+                "mem_limit": "10g",
+                "tmpfs": (
+                    "/tmp:rw,noexec,nosuid,nodev,size=64m",
+                    "/reports/frontend-unit/home:rw,noexec,nosuid,nodev,"
+                    "size=512m,uid=10001,gid=10001,mode=0700",
+                    "/reports/frontend-unit/tmp:rw,noexec,nosuid,nodev,"
+                    "size=4g,uid=10001,gid=10001,mode=0700",
+                ),
+            }
+        ),
+        "python-contract": MappingProxyType(
+            {
+                "volumes": (
+                    _qa_reports_bind(),
+                    _read_only_bind(
+                        "./testframework/src",
+                        "/opt/hub/testframework/src",
+                    ),
+                    _read_only_bind(
+                        "./testframework/selftests",
+                        "/opt/hub/testframework/selftests",
+                    ),
+                    _read_only_bind(
+                        "./docker-compose.local.yml",
+                        "/opt/hub/docker-compose.local.yml",
+                    ),
+                    _read_only_bind(
+                        "./.planning/phases/130-tf-traceability-gates/PLAN.md",
+                        "/opt/hub/.planning/phases/"
+                        "130-tf-traceability-gates/PLAN.md",
+                    ),
+                ),
+            }
+        ),
+    }
+    return overrides.get(name, MappingProxyType({}))
+
+
+def _qa_reports_bind() -> Mapping[str, object]:
+    return MappingProxyType(
+        {
+            "type": "bind",
+            "source": "./testframework/reports",
+            "target": "/reports",
+        }
+    )
+
+
+def _read_only_bind(source: str, target: str) -> Mapping[str, object]:
+    return MappingProxyType(
+        {
+            "type": "bind",
+            "source": source,
+            "target": target,
+            "read_only": True,
+        }
+    )
 
 
 def _qa_common_service_fields() -> Mapping[str, object]:

@@ -47,6 +47,62 @@ six overlaid roots. `backend/go.mod`, `backend/go.sum`, generated Ent output
 roots require an explicitly, separately authorized image rebuild; the normal
 command never adds `--build`.
 
+## `frontend-unit` current-source, low-disk execution
+
+Run the frontend unit gate only through the canonical root-Compose command:
+
+```text
+docker compose -f docker-compose.local.yml run --rm frontend-unit
+```
+
+The service replaces the common report shorthand with an explicit `/reports`
+bind, then overlays current `frontend/src` and `frontend/tests` read-only at
+the matching `/opt/hub/source/frontend/**` targets. The image continues to
+supply the resolved npm dependencies and all non-overlaid frontend inputs.
+
+`HOME` and `TMPDIR` already point under the frontend report directory. The
+common 64 MiB `/tmp` tmpfs is retained first; the service mounts
+`/reports/frontend-unit/home` as a 512 MiB RAM tmpfs and
+`/reports/frontend-unit/tmp` as a 4 GiB RAM tmpfs. Both mounts are
+`noexec,nosuid,nodev`, owned by UID/GID 10001, and mode 0700. `frontend-unit`
+has a 6.0 CPU and 10 GiB memory ceiling; the tmpfs ceilings remain subject to
+that cgroup. On 2026-08-24, the canonical `frontend-unit` command executed
+this exact source overlay from an existing local image (no build, pull, or
+package install) and exited 0. Its receipt records TypeScript `PASS` and
+Vitest `PASS`: 161 files / 419 tests in 45.83s. This is limited to the frontend
+unit target and topology; it does not imply deployed-runtime, API/integration,
+or Jitsi evidence.
+
+## `python-contract` current-framework source execution
+
+Run the framework contract gate only through the canonical root-Compose
+command:
+
+```text
+docker compose -f docker-compose.local.yml run --rm python-contract
+```
+
+The service uses an explicit writable `/reports` bind and read-only binds for
+current `testframework/src` and `testframework/selftests` at
+`/opt/hub/testframework/src` and `/opt/hub/testframework/selftests`. It also
+binds the root Compose file at `/opt/hub/docker-compose.local.yml` and the
+Phase 130 plan at `/opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md`.
+These are the exact image targets used by the framework architecture selftests.
+The resolved virtual environment, package metadata/lock, policies, schemas,
+Docker assets, and other image-owned configuration remain in the image; no SUT
+product source is mounted.
+
+An explicit, separately authorized rebuild is required for
+`testframework/pyproject.toml`, `testframework/uv.lock`,
+`testframework/.python-version`, `testframework/policies/**`,
+`testframework/schemas/**`, `testframework/docker/**`, or another image-owned
+configuration change. Ordinary edits under `src` or `selftests` do not add
+`--build`. On 2026-08-24, the canonical `python-contract` command executed
+this exact partial overlay from an existing local image (no build, pull, or
+package install), exited 0, and passed 182 framework selftests in 9.53s. This
+is limited to the framework contract target and topology; it does not imply
+product-SUT, deployed-runtime, API/integration, or Jitsi evidence.
+
 ## Retained files
 
 The closed retained set is `Dockerfile.qa`, this README, three entrypoints, and
@@ -56,6 +112,7 @@ not alternative authority.
 
 ## Readiness
 
-The root Compose services, dependency lock, and maintenance-service binding are
-not part of this source slice. Package bootstrap and container execution remain
-`NOT_RUN_BOOTSTRAP`; no build, test, or readiness claim is made here.
+The dated `frontend-unit` and `python-contract` evidence above is limited to
+their exact Compose services and source-overlay topologies. Dependency-lock
+resolution, the maintenance-service boundary, and every other QA target remain
+`NOT_RUN`; no broader build, test, or readiness claim is made here.
