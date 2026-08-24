@@ -77,7 +77,7 @@ func (consumerStub) Submit(context.Context, mail.EngineSubmission) (mail.EngineS
 	return mail.EngineSubmissionAbsent{}, nil
 }
 
-func (consumerStub) ReconcileSubmission(context.Context, string, string) (mail.EngineSubmissionResult, error) {
+func (consumerStub) ReconcileSubmission(context.Context, mail.EngineSubmission) (mail.EngineSubmissionResult, error) {
 	return mail.EngineSubmissionAbsent{}, nil
 }
 
@@ -582,7 +582,7 @@ func TestMailEngine_ContentAndSubmissionShapesAreClosed(t *testing.T) {
 		SubmissionKey   string
 		MaxMessageBytes int64
 	}{}))
-	assertExactFields(t, reflect.TypeOf(mail.EngineSubmissionSent{}), reflect.TypeOf(struct {
+	assertExactFields(t, reflect.TypeOf(mail.EngineSubmissionAccepted{}), reflect.TypeOf(struct {
 		SubmissionID string
 		MessageID    string
 	}{}))

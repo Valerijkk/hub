@@ -598,8 +598,8 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 		if reconcileErr != nil {
 			return nil, reconcileErr
 		}
-		if sent, ok := reconciled.(EngineSubmissionSent); ok {
-			return sent, nil
+		if accepted, ok := reconciled.(EngineSubmissionAccepted); ok {
+			return accepted, nil
 		}
 		return nil, stalwartEngineError(EngineErrorIndeterminate)
 	}
@@ -701,29 +701,72 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 		!stalwartExactDispatchedSubmission(verified, submission, draftsID, sentID, draftMarker, submissionMarker, bindingMarker, dispatchMarker) {
 		return nil, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	return EngineSubmissionSent{SubmissionID: submissionID, MessageID: submission.MessageID}, nil
+	return EngineSubmissionAccepted{SubmissionID: submissionID, MessageID: submission.MessageID}, nil
 }
 
-// ReconcileSubmission can prove absence of its opaque locator, but its public
-// signature lacks the DraftKey, MessageID, ExpectedVersion, and canonical
-// content needed to derive the binding marker. It therefore never reports Sent
-// from locator and dispatch markers alone.
-func (engine *StalwartEngine) ReconcileSubmission(ctx context.Context, accountID, submissionKey string) (EngineSubmissionResult, error) {
-	if ctx == nil || !validAccountID(accountID) || !validSafeText(submissionKey, MaxEngineOpaqueIDBytes, true) {
+// ReconcileSubmission reads the exact locator, content binding, dispatch fence,
+// sent message and EmailSubmission identity for one fully bound request. It
+// never mutates provider state.
+func (engine *StalwartEngine) ReconcileSubmission(ctx context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
+	if ctx == nil || validateSubmission(submission) != nil {
 		return nil, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
-	marker, err := stalwartOpaqueMarker("submission", accountID, submissionKey)
+	draftMarker, err := stalwartOpaqueMarker("draft", submission.AccountID, submission.DraftKey)
 	if err != nil {
 		return nil, err
 	}
-	ids, ambiguous, err := engine.stalwartQueryEmailsByMarker(ctx, accountID, marker)
+	locatorMarker, err := stalwartOpaqueMarker("submission", submission.AccountID, submission.SubmissionKey)
+	if err != nil {
+		return nil, err
+	}
+	dispatchMarker, err := stalwartOpaqueMarker("submission-dispatch", submission.AccountID, submission.SubmissionKey)
+	if err != nil {
+		return nil, err
+	}
+	locatorIDs, locatorAmbiguous, err := engine.stalwartQueryEmailsByMarker(ctx, submission.AccountID, locatorMarker)
 	if err != nil {
 		return stalwartSubmissionReconciliationError(err)
 	}
-	if len(ids) == 0 && !ambiguous {
+	dispatchIDs, dispatchAmbiguous, err := engine.stalwartQueryEmailsByMarker(ctx, submission.AccountID, dispatchMarker)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	if !locatorAmbiguous && len(locatorIDs) == 0 && !dispatchAmbiguous && len(dispatchIDs) == 0 {
 		return EngineSubmissionAbsent{}, nil
 	}
-	return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	if locatorAmbiguous || dispatchAmbiguous || len(locatorIDs) != 1 || locatorIDs[0] != submission.MessageID || len(dispatchIDs) > 1 || len(dispatchIDs) == 1 && dispatchIDs[0] != submission.MessageID {
+		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	folders, _, err := engine.listFolderSnapshot(ctx, submission.AccountID)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	draftsID, err := stalwartExactFolderRole(folders, EngineFolderRoleDrafts)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	sentID, err := stalwartExactFolderRole(folders, EngineFolderRoleSent)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	message, err := engine.stalwartReadDraftMessage(ctx, submission.AccountID, submission.MessageID, submission.MaxMessageBytes)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	if err := stalwartValidateSubmissionMessage(message, submission); err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	bindingMarker, err := stalwartSubmissionBindingMarker(submission, message)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	if len(dispatchIDs) == 0 {
+		if stalwartExactPreparedSubmission(message, submission, draftsID, draftMarker, locatorMarker, bindingMarker, dispatchMarker) {
+			return EngineSubmissionAbsent{}, nil
+		}
+		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	return engine.stalwartReconcileBoundSubmission(ctx, submission, message, draftsID, sentID, draftMarker, locatorMarker, bindingMarker, dispatchMarker)
 }
 
 func stalwartValidateSubmissionMessage(message EngineMessage, submission EngineSubmission) error {
@@ -783,7 +826,7 @@ func (engine *StalwartEngine) stalwartReconcileBoundSubmission(ctx context.Conte
 	if submissionAmbiguous || len(submissionIDs) != 1 {
 		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
-	return EngineSubmissionSent{SubmissionID: submissionIDs[0], MessageID: submission.MessageID}, nil
+	return EngineSubmissionAccepted{SubmissionID: submissionIDs[0], MessageID: submission.MessageID}, nil
 }
 
 func stalwartSubmissionBindingMarker(submission EngineSubmission, message EngineMessage) (string, error) {
@@ -1348,10 +1391,14 @@ func stalwartDraftDeletionReconciliationError(err error) (EngineDraftDeletionRes
 }
 
 func stalwartSubmissionReconciliationError(err error) (EngineSubmissionResult, error) {
-	if stalwartReconciliationIndeterminate(err) {
-		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	var engineErr *EngineError
+	if errors.As(err, &engineErr) && engineErr != nil {
+		switch engineErr.Kind {
+		case EngineErrorRejectedPolicy, EngineErrorUnauthorizedAccount, EngineErrorPayloadTooLarge:
+			return nil, err
+		}
 	}
-	return nil, err
+	return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 }
 
 func stalwartReconciliationIndeterminate(err error) bool {

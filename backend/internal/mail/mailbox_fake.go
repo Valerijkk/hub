@@ -116,7 +116,7 @@ type fakeDraftIdentity struct {
 }
 
 type fakeSubmission struct {
-	sent            EngineSubmissionSent
+	accepted        EngineSubmissionAccepted
 	draftKey        string
 	messageID       string
 	expectedVersion string
@@ -1003,15 +1003,15 @@ func (f *FakeMailEngine) Submit(_ context.Context, submission EngineSubmission) 
 		return nil, fakeEngineError(fault.Kind)
 	}
 	if stored, ok := f.submissions[submission.AccountID][submission.SubmissionKey]; ok {
-		if stored.draftKey != submission.DraftKey || stored.messageID != submission.MessageID || stored.expectedVersion != submission.ExpectedVersion {
+		if !fakeSubmissionBindingMatches(stored, submission) {
 			f.mu.Unlock()
-			return nil, fakeEngineError(EngineErrorConflict)
+			return nil, fakeEngineError(EngineErrorIndeterminate)
 		}
 		f.mu.Unlock()
 		if faulted && fault.AfterDispatch {
 			return nil, fakeEngineError(fault.Kind)
 		}
-		return stored.sent, nil
+		return stored.accepted, nil
 	}
 	draft, ok := f.drafts[submission.AccountID][submission.DraftKey]
 	if !ok || draft.message.Projection.MessageID != submission.MessageID {
@@ -1050,13 +1050,13 @@ func (f *FakeMailEngine) Submit(_ context.Context, submission EngineSubmission) 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if stored, ok := f.submissions[submission.AccountID][submission.SubmissionKey]; ok {
-		if stored.draftKey != submission.DraftKey || stored.messageID != submission.MessageID || stored.expectedVersion != submission.ExpectedVersion {
-			return nil, fakeEngineError(EngineErrorConflict)
+		if !fakeSubmissionBindingMatches(stored, submission) {
+			return nil, fakeEngineError(EngineErrorIndeterminate)
 		}
 		if faulted && fault.AfterDispatch {
 			return nil, fakeEngineError(fault.Kind)
 		}
-		return stored.sent, nil
+		return stored.accepted, nil
 	}
 	draft, ok = f.drafts[submission.AccountID][submission.DraftKey]
 	if !ok || draft.message.Projection.MessageID != submission.MessageID {
@@ -1072,17 +1072,20 @@ func (f *FakeMailEngine) Submit(_ context.Context, submission EngineSubmission) 
 	if f.submissions[submission.AccountID] == nil {
 		f.submissions[submission.AccountID] = make(map[string]fakeSubmission)
 	}
-	sent := EngineSubmissionSent{SubmissionID: candidateSubmissionID, MessageID: candidateMessageID}
-	f.submissions[submission.AccountID][submission.SubmissionKey] = fakeSubmission{sent: sent, draftKey: submission.DraftKey, messageID: submission.MessageID, expectedVersion: submission.ExpectedVersion}
+	accepted := EngineSubmissionAccepted{SubmissionID: candidateSubmissionID, MessageID: candidateMessageID}
+	f.submissions[submission.AccountID][submission.SubmissionKey] = fakeSubmission{accepted: accepted, draftKey: submission.DraftKey, messageID: submission.MessageID, expectedVersion: submission.ExpectedVersion}
 	if faulted && fault.AfterDispatch {
 		return nil, fakeEngineError(fault.Kind)
 	}
-	return sent, nil
+	return accepted, nil
 }
 
-func (f *FakeMailEngine) ReconcileSubmission(_ context.Context, accountID, submissionKey string) (EngineSubmissionResult, error) {
-	if !validAccountID(accountID) || !validSafeText(submissionKey, MaxEngineOpaqueIDBytes, true) {
+func (f *FakeMailEngine) ReconcileSubmission(ctx context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
+	if ctx == nil {
 		return nil, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	if err := validateSubmission(submission); err != nil {
+		return nil, err
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -1092,10 +1095,29 @@ func (f *FakeMailEngine) ReconcileSubmission(_ context.Context, accountID, submi
 		}
 		return nil, fakeEngineError(fault.Kind)
 	}
-	if stored, ok := f.submissions[accountID][submissionKey]; ok {
-		return stored.sent, nil
+	stored, ok := f.submissions[submission.AccountID][submission.SubmissionKey]
+	if !ok {
+		return EngineSubmissionAbsent{}, nil
 	}
-	return EngineSubmissionAbsent{}, nil
+	if !fakeSubmissionBindingMatches(stored, submission) {
+		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	accepted := stored.accepted
+	message, exists := f.messages[submission.AccountID][accepted.MessageID]
+	if !exists || !validOpaqueID(accepted.SubmissionID) || !validOpaqueID(accepted.MessageID) ||
+		validateEngineMessage(message) != nil || message.Projection.AccountID != submission.AccountID ||
+		message.Projection.MessageID != accepted.MessageID || message.Projection.Flags.Draft ||
+		message.Projection.Origin != EngineProjectionOriginConfirmedOwnerSubmission {
+		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	if int64(messageVariableBytes(message)) > submission.MaxMessageBytes {
+		return nil, fakeEngineError(EngineErrorPayloadTooLarge)
+	}
+	return accepted, nil
+}
+
+func fakeSubmissionBindingMatches(stored fakeSubmission, submission EngineSubmission) bool {
+	return stored.draftKey == submission.DraftKey && stored.messageID == submission.MessageID && stored.expectedVersion == submission.ExpectedVersion
 }
 
 func (f *FakeMailEngine) MoveMessages(_ context.Context, accountID string, messageIDs []string, folderID string) error {

@@ -240,6 +240,7 @@ EnumerateProjection(context.Context, EngineEnumerationRequest) (EngineEnumeratio
 SaveDraft(context.Context, EngineDraft) (EngineMessage, error)
 ReconcileDraft(context.Context, EngineDraftReconciliation) (EngineDraftResult, error)
 Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
+ReconcileSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 ```
 
 ### P3 Calendar-part private read amendment
@@ -717,19 +718,27 @@ migration (`NOT_MIGRATED`), nor execution, build, tests, Docker, or runtime (`NO
 
 ## Submission result identity
 
-The unchanged closed success value is
-`EngineSubmissionSent{SubmissionID string, MessageID string}`. Both values are opaque engine
+The closed success value is
+`EngineSubmissionAccepted{SubmissionID string, MessageID string}`. Both values are opaque engine
 identifiers, are independently required and bounded by `MaxEngineOpaqueIDBytes`, and are
 never Hub UUIDs. The persistence names are therefore `engine_submission_id` and
 `engine_result_message_id`; an adapter or repository must not place either value in the
 public `MailSubmission.message_id` field.
 
-After `Submit` or `ReconcileSubmission` returns `EngineSubmissionSent`, the domain uses the
+After `Submit` or `ReconcileSubmission` returns `EngineSubmissionAccepted`, the domain uses the
 same account plus `MessageID` to obtain a bounded `EngineMessage`, atomically upserts its
 projection (including the required projection `Version`) and only then records the resulting
 Hub `MailMessage.id` snapshot and public `sent` receipt. A transient failure between engine
 confirmation and that projection transaction remains reconciliation-required and never
 permits a second submit.
+
+`ReconcileSubmission` accepts the same complete validated `EngineSubmission` as `Submit` and
+is read-only. Definitive `Absent` is permitted only when both opaque locator and dispatch
+marker are absent, or when the exact locator, full content binding and prepared draft exist
+without a dispatch marker. Once any dispatch marker is observed, reconciliation never reports
+`Absent`: it returns `Accepted` only for the exact bound dispatched Sent message plus exactly
+one `EmailSubmission`; every other observation is `Indeterminate`. An already dispatch-fenced
+`Submit` executes only this reconciliation path and never calls `EmailSubmission/set` again.
 
 The returned projection is accepted only when its `AccountID` exactly equals the requested
 account, its `MessageID` exactly equals the confirmed opaque result message id and its

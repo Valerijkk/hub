@@ -143,9 +143,9 @@ func TestFakeMailEngineStableDraftAndSubmitKeysCatchDuplicateWrites(t *testing.T
 	if err != nil {
 		t.Fatalf("Submit: %v", err)
 	}
-	first, ok := sent.(mail.EngineSubmissionSent)
+	first, ok := sent.(mail.EngineSubmissionAccepted)
 	if !ok {
-		t.Fatalf("Submit result = %T, want EngineSubmissionSent", sent)
+		t.Fatalf("Submit result = %T, want EngineSubmissionAccepted", sent)
 	}
 	if first.SubmissionID != "submission" || first.MessageID != "sent-message" || len(first.SubmissionID) == 0 || len(first.SubmissionID) > mail.MaxEngineOpaqueIDBytes || len(first.MessageID) == 0 || len(first.MessageID) > mail.MaxEngineOpaqueIDBytes {
 		t.Fatalf("Submit result = %#v, want two bounded deterministic opaque ids", first)
@@ -155,7 +155,7 @@ func TestFakeMailEngineStableDraftAndSubmitKeysCatchDuplicateWrites(t *testing.T
 	if err != nil {
 		t.Fatalf("Submit stable retry: %v", err)
 	}
-	second, ok := again.(mail.EngineSubmissionSent)
+	second, ok := again.(mail.EngineSubmissionAccepted)
 	if !ok || second != first {
 		t.Fatalf("Submit stable retry = %#v, want exactly first visible result %#v", again, first)
 	}
@@ -412,7 +412,7 @@ func TestFakeMailEngineReconcileDraftRequiresExactWriteTupleAndCanBeIndeterminat
 	}
 }
 
-func TestFakeMailEngineReconcileSubmissionUsesExactAccountKeyAndIndeterminateResult(t *testing.T) {
+func TestFakeMailEngineReconcileSubmissionUsesExactBindingAndIndeterminateResult(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	fake := newFake("draft-message", "draft-version", "submission-id", "sent-message")
@@ -420,18 +420,21 @@ func TestFakeMailEngineReconcileSubmissionUsesExactAccountKeyAndIndeterminateRes
 	if err != nil {
 		t.Fatalf("SaveDraft: %v", err)
 	}
-	_, err = fake.Submit(ctx, mail.EngineSubmission{AccountID: "account-a", DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submit-key", MaxMessageBytes: 4096})
+	submission := mail.EngineSubmission{AccountID: "account-a", DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submit-key", MaxMessageBytes: 4096}
+	_, err = fake.Submit(ctx, submission)
 	if err != nil {
 		t.Fatalf("Submit: %v", err)
 	}
-	sent, err := fake.ReconcileSubmission(ctx, "account-a", "submit-key")
+	accepted, err := fake.ReconcileSubmission(ctx, submission)
 	if err != nil {
 		t.Fatalf("ReconcileSubmission applied: %v", err)
 	}
-	if _, ok := sent.(mail.EngineSubmissionSent); !ok {
-		t.Fatalf("ReconcileSubmission applied = %T, want EngineSubmissionSent", sent)
+	if _, ok := accepted.(mail.EngineSubmissionAccepted); !ok {
+		t.Fatalf("ReconcileSubmission applied = %T, want EngineSubmissionAccepted", accepted)
 	}
-	absent, err := fake.ReconcileSubmission(ctx, "account-b", "submit-key")
+	foreignSubmission := submission
+	foreignSubmission.AccountID = "account-b"
+	absent, err := fake.ReconcileSubmission(ctx, foreignSubmission)
 	if err != nil {
 		t.Fatalf("ReconcileSubmission foreign account: %v", err)
 	}
@@ -439,7 +442,7 @@ func TestFakeMailEngineReconcileSubmissionUsesExactAccountKeyAndIndeterminateRes
 		t.Fatalf("ReconcileSubmission foreign account = %T, want EngineSubmissionAbsent", absent)
 	}
 	fake.EnqueueFault(mail.FakeMailFault{Operation: mail.FakeMailOperationReconcileSubmission, Kind: mail.EngineErrorIndeterminate})
-	indeterminate, err := fake.ReconcileSubmission(ctx, "account-a", "submit-key")
+	indeterminate, err := fake.ReconcileSubmission(ctx, submission)
 	if err != nil {
 		t.Fatalf("ReconcileSubmission scripted indeterminate: %v", err)
 	}

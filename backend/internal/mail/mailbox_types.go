@@ -608,13 +608,13 @@ type EngineSubmissionResult interface {
 	engineSubmissionResult()
 }
 
-// EngineSubmissionSent — подтверждённая отправка с известными идентификаторами результата.
-type EngineSubmissionSent struct {
+// EngineSubmissionAccepted — подтверждённая отправка с известными идентификаторами результата.
+type EngineSubmissionAccepted struct {
 	SubmissionID string
 	MessageID    string
 }
 
-func (EngineSubmissionSent) engineSubmissionResult() {}
+func (EngineSubmissionAccepted) engineSubmissionResult() {}
 
 // EngineSubmissionAbsent — подтверждённое отсутствие отправки.
 type EngineSubmissionAbsent struct{}

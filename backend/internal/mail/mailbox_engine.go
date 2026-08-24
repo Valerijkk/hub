@@ -24,7 +24,7 @@ type MailEngine interface {
 	DeleteDraft(context.Context, EngineDraftDeletion) error
 	ReconcileDraftDeletion(context.Context, EngineDraftDeletion) (EngineDraftDeletionResult, error)
 	Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
-	ReconcileSubmission(context.Context, string, string) (EngineSubmissionResult, error)
+	ReconcileSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 	MoveMessages(context.Context, string, []string, string) error
 	SetFlags(context.Context, string, []string, FlagPatch) error
 	SetKeywords(context.Context, string, []string, KeywordPatch) error
