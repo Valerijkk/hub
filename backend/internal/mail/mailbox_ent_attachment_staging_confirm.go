@@ -124,7 +124,26 @@ func mailboxAttachmentConfirmStagedRowsValid(attachment *ent.MailAttachment, obj
 	if object.OrganizationID == uuid.Nil || object.MailAccountID == uuid.Nil || object.UploaderUserID == uuid.Nil || object.DraftClientID != *attachment.DraftClientID || object.Bucket == "" || object.ObjectKey != mailboxAttachmentPresignObjectKey(object.OrganizationID, object.MailAccountID, object.ID) || !validMailboxObjectLocator(MailboxObjectLocator{Bucket: object.Bucket, Key: object.ObjectKey}) || object.ExpectedSizeBytes != attachment.SizeBytes || object.ExpectedSizeBytes < 1 || object.ExpectedSizeBytes > MaxEngineAttachmentBytes || object.Filename != attachment.Filename || object.MediaType != attachment.MediaType || object.NextDeleteAt != nil || object.DeleteLeaseToken != nil || object.DeleteLeaseUntil != nil || !mailboxEntValidTime(object.ExpiresAt) || !mailboxEntValidTime(object.UploadDrainUntil) || !object.UploadDrainUntil.Equal(object.ExpiresAt.Add(mailboxAttachmentPresignObjectDrainLifetime)) || !mailboxEntValidTime(object.CreatedAt) || !mailboxEntValidTime(object.UpdatedAt) {
 		return false
 	}
-	return mailboxAttachmentConfirmPendingMetadataValid(attachment)
+	return mailboxAttachmentConfirmScanScheduleValid(attachment, object.UploadDrainUntil) && mailboxAttachmentConfirmPendingMetadataValid(attachment)
+}
+
+func mailboxAttachmentConfirmScanScheduleValid(attachment *ent.MailAttachment, uploadDrainUntil time.Time) bool {
+	if attachment == nil || attachment.ScanStatus != mailattachment.ScanStatus("pending") || !mailboxEntValidTime(uploadDrainUntil) || attachment.ScanLeaseGeneration < 0 || attachment.ScanAttempts < 0 || attachment.ScanAttempts > 10 || (attachment.ScanLeaseToken == nil) != (attachment.ScanLeaseUntil == nil) {
+		return false
+	}
+	if len(attachment.SHA256) == 0 {
+		return attachment.ScanLeaseToken == nil && attachment.ScanLeaseGeneration == 0 && attachment.ScanLeaseUntil == nil && attachment.ScanAttempts == 0 && attachment.NextScanAt == nil && attachment.ScanTerminalAt == nil
+	}
+	if len(attachment.SHA256) != sha256.Size || attachment.ScanTerminalAt != nil || attachment.NextScanAt == nil || !mailboxEntValidTime(*attachment.NextScanAt) || attachment.NextScanAt.Before(uploadDrainUntil) {
+		return false
+	}
+	if attachment.ScanLeaseToken != nil && (*attachment.ScanLeaseToken == uuid.Nil || attachment.ScanLeaseGeneration < 1 || !mailboxEntValidTime(*attachment.ScanLeaseUntil)) {
+		return false
+	}
+	if attachment.ScanAttempts <= 9 {
+		return attachment.ScanLeaseToken == nil || attachment.ScanLeaseGeneration >= 1
+	}
+	return attachment.ScanLeaseToken != nil && attachment.ScanLeaseGeneration >= 1
 }
 
 // mailboxAttachmentConfirmPendingMetadataValid validates only pending staging metadata; it never requires a fingerprint.
@@ -282,8 +301,15 @@ func mailboxAttachmentConfirmComplete(ctx context.Context, transaction *ent.Tx, 
 			mailattachment.SizeBytesEQ(request.Fence.ExpectedSizeBytes),
 			mailattachment.ScanStatusEQ(mailattachment.ScanStatus("pending")),
 			mailattachment.SHA256IsNil(),
+			mailattachment.ScanLeaseTokenIsNil(),
+			mailattachment.ScanLeaseGenerationEQ(0),
+			mailattachment.ScanLeaseUntilIsNil(),
+			mailattachment.ScanAttemptsEQ(0),
+			mailattachment.NextScanAtIsNil(),
+			mailattachment.ScanTerminalAtIsNil(),
 		).
 		SetSHA256(append([]byte(nil), request.ActualSHA256[:]...)).
+		SetNextScanAt(object.UploadDrainUntil).
 		SetUpdatedAt(databaseNow).
 		Save(ctx)
 	if err != nil {
