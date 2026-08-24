@@ -50,9 +50,10 @@
 
 | Producer task | Consumer task | Shared file/interface | Ruling |
 |---|---|---|---|
-| Task 1 | Task 2 | `MessengerService.SendMessage`, `FindMessageByID` | Parent validation stays before idempotent creation; Task 2 must preserve the same errors. |
-| Task 2 | Task 3 | `client_nonce` in Go DTO/response and TS API types | JSON name is exactly `client_nonce`; optional only for transition, required for all new composer sends. |
-| Task 2 | Task 4 | `MessageSentEvent` / canonical response | Only `created=true` publishes; Task 4 may expand payload but never republish a retry. |
+| Task 1 | Task 2C | `MessengerService.SendMessage`, `FindMessageByID` | After channel authorization, nonce lookup precedes parent validation; only a new nonce validates the parent before creation, preserving Task 1 errors. |
+| Task 2A | Task 2B / Task 2C | persistence API, unique index, both repository mocks | The storage contract lands green before startup policy and service orchestration consume it. |
+| Task 2C | Task 3 | `client_nonce` in Go DTO/response and TS API types | JSON name is exactly `client_nonce`; optional only for transition, required for all new composer sends. |
+| Task 2C | Task 4 | `MessageSentEvent` / canonical response | Only `created=true` publishes; Task 4 may expand payload but never republish a retry. |
 | Task 4 | Task 5 | channel versus user subject routing | Message content remains channel-scoped; membership/sidebar changes are user-scoped. |
 | Every task | Final gate | Docker services and docs evidence | No task claims full Phase PASS before both unit services and remaining integration boundary are classified. |
 
@@ -132,6 +133,8 @@ git commit -m "fix(messenger): bind replies to channel thread roots"
 - Modify: `backend/internal/messenger/dto.go`
 - Modify: `backend/internal/messenger/repository.go`
 - Modify: `backend/internal/messenger/mongo_repository.go`
+- Modify: `backend/internal/messenger/mock_repository.go`
+- Create: `backend/internal/messenger/message_idempotency.go`
 - Modify: `backend/internal/messenger/service_messages.go`
 - Modify: `backend/cmd/server/wiring_messenger.go`
 - Modify: `backend/tests/messenger/mock_repository_test.go`
@@ -159,28 +162,30 @@ FindMessageByClientNonce(
 ) (*MessageDocument, error)
 ```
 
-- DTO/document field is exactly `ClientNonce string` with `json:"client_nonce,omitempty"`, `bson:"client_nonce,omitempty"`, and request validation `omitempty,min=8,max=128`.
+- Request, document, and response expose exactly `ClientNonce string`; request/response use `json:"client_nonce,omitempty"`, document uses `bson:"client_nonce,omitempty"`, request validation is `omitempty,min=8,max=128`, and `toMessageResponse` copies the persisted nonce.
 - Unique index name is exactly `messages_sender_client_nonce_unique` on `{sender_id: 1, client_nonce: 1}` with `unique=true` and partial filter `{$and: [{client_nonce: {$type: "string"}}, {client_nonce: {$gt: ""}}]}`.
 
-- [ ] **Step 1: Extend the mock and write failing nonce units**
+**Mandatory atomic execution split:**
 
-Add tests:
+- **Task 2A — persistence contract:** `dto.go`, `repository.go`, `mongo_repository.go`, both repository mocks, `backend/tests/messenger/message_idempotency_persistence_test.go`, `docs/TECHNICAL.md`, and `docs/TESTING.md`. It owns fields, mapper, repository API, Mongo upsert/read, named partial unique index, every mutex/counter/result-override seam later consumed by 2C, and incremental contract/evidence docs. Commit: `feat(messenger): add nonce persistence contract`.
+- **Task 2B — startup policy:** `backend/cmd/server/wiring_messenger.go`, `docs/TECHNICAL.md`, and `docs/TESTING.md`; required-index failure becomes fail-startup through the existing startup fatal path and docs record build-only versus process `NOT_RUN` evidence. Commit: `fix(messenger): require messenger indexes at startup`.
+- **Task 2C — service orchestration:** `backend/internal/messenger/message_idempotency.go`, `backend/internal/messenger/service_messages.go`, `backend/tests/messenger/service_messages_test.go`, `docs/TECHNICAL.md`, and `docs/TESTING.md`. It owns retry-before-parent behavior, fingerprint checks, conflict mapping, the live-canonical plus `Created` side-effect gate, and incremental behavior/evidence docs. It consumes test seams already installed by 2A and may not reopen either mock. Commit: `feat(messenger): suppress duplicate send side effects`.
+- Each slice starts from the accepted HEAD of the previous slice and receives its own implementer report, BASE..HEAD review package, independent Terra/high review, and at most three fix cycles. A writer may not combine slices.
 
-```go
-func TestSendMessageRetryReturnsCanonicalMessageWithoutSideEffects(t *testing.T)
-func TestSendMessageRetryAfterParentDeletionReturnsCanonical(t *testing.T)
-func TestSendMessageConcurrentRetryCreatesOneMessage(t *testing.T)
-func TestSendMessageNonceReuseWithDifferentChannelConflicts(t *testing.T)
-func TestSendMessageWithoutNonceUsesTransitionalCreate(t *testing.T)
-```
+**Frozen persistence and fingerprint semantics:**
 
-Extend `mockRepository` with a mutex, a `senderID + "\x00" + clientNonce` lookup, `createMessageCalls`, and the exact `CreateMessageIdempotent` method. Tests assert one stored ID and one reply increment for identical retries; a retry still returns the stored reply after its parent is later deleted; incompatible reuse returns conflict; legacy empty nonce still creates a message but is never considered idempotent.
+- `FindMessageByClientNonce` returns `(nil, nil)` only when no document exists; other storage errors propagate. Its query intentionally does not filter `deleted_at`, because the unique nonce remains reserved after soft deletion.
+- If the stored canonical document has `DeletedAt != nil`, service returns conflict `client_nonce уже принадлежит удалённому сообщению`; it never recreates the message and never returns deleted content.
+- Fingerprint includes exact `ChannelID`, `ThreadID`, `ContentText`, `VoiceURL`, and `VoiceDurationMs`.
+- `ContentJSON` is compared through deterministic `encoding/json.Marshal`; map-key order and Mongo numeric concrete types that serialize to the same JSON number do not create false conflicts.
+- `nil` and empty attachments, mentions, and mention-groups are equivalent. Attachment order remains significant because it is visible to users; attachment fields compare exactly. Mentions and mention-groups are semantic sets and compare after sort plus de-duplication.
+- Repository code only creates or returns the canonical document. Compatibility and deleted-canonical decisions live in the service helper so pre-existing and concurrent retries follow one rule.
 
-- [ ] **Step 2: Run the Docker red gate**
+- [ ] **Step 1: Write the Task 2A persistence-contract red units**
 
-Run `backend-unit`. Expected: compile/test FAIL because the repository contract and DTO do not yet expose the idempotent operation.
+Add compile/behavior coverage in `backend/tests/messenger/message_idempotency_persistence_test.go` for `ClientNonce` propagation, `(senderID, nonce)` mock lookup, empty-nonce transitional insert, and concurrent mock create-or-return. Both `backend/internal/messenger/mock_repository.go` and `backend/tests/messenger/mock_repository_test.go` must implement the widened repository interface. Add mutex protection around every nonce-index/message-map read and write involved in create/find, plus `createMessageCalls` and a deterministic returned-result override used later by 2C tests. Run `docker compose -f docker-compose.local.yml run --rm backend-unit`; expected RED is compile/test failure on the missing contract.
 
-- [ ] **Step 3: Implement atomic Mongo create-or-return**
+- [ ] **Step 2: Implement and accept Task 2A**
 
 Implement `CreateMessageIdempotent` as follows:
 
@@ -189,23 +194,38 @@ Implement `CreateMessageIdempotent` as follows:
 - non-empty nonce uses `UpdateOne(filter, {$setOnInsert: doc}, options.UpdateOne().SetUpsert(true))` with filter `{sender_id, client_nonce}`;
 - `Created` is exactly `result.UpsertedCount == 1`; after the update, read the canonical document by the same key and return it;
 - when a concurrent upsert reports `mongo.IsDuplicateKeyError`, read the canonical document and return `Created=false`; no other error is converted to a retry;
-- compare stored `ChannelID`, `ThreadID`, `ContentJSON`, `ContentText`, attachments, voice fields, and mentions to the retry request; mismatch returns a typed conflict sentinel mapped by the service to `apperrors.NewConflict("client_nonce уже использован для другого сообщения")`;
 - never use an unlocked find-then-insert as the creation decision;
-- update `EnsureIndexes` with the named unique partial index;
-- change `wiring_messenger.go` to fail startup instead of logging-and-continuing when this mandatory index cannot be established.
+- add the named unique partial index to `EnsureIndexes` using `{$and: [{client_nonce: {$type: "string"}}, {client_nonce: {$gt: ""}}]}`;
+- add `ClientNonce` to request, document, response, and `toMessageResponse`.
 
-For a non-empty nonce, first call `FindMessageByClientNonce(senderID, nonce)`. An existing compatible document returns before thread-parent validation, so a retry remains valid after later parent deletion; an incompatible fingerprint conflicts. If no document exists, validate the parent and call `CreateMessageIdempotent`; its unique upsert resolves the concurrent race. When `Created=false`, immediately return `toMessageResponse(result.Message)`. Only `Created=true` may increment reply/unread, resolve mentions, publish NATS, or emit hooks. Existing best-effort projection failure semantics are documented rather than mislabelled as recovered in this phase.
+Run `docker compose -f docker-compose.local.yml run --rm backend-unit` to green, record real Mongo unique-index/upsert execution as `NOT_RUN`, update the two owned docs, then exact-path stage `backend/internal/messenger/dto.go backend/internal/messenger/repository.go backend/internal/messenger/mongo_repository.go backend/internal/messenger/mock_repository.go backend/tests/messenger/mock_repository_test.go backend/tests/messenger/message_idempotency_persistence_test.go docs/TECHNICAL.md docs/TESTING.md` and commit Task 2A.
 
-- [ ] **Step 4: Run backend regression to green**
+- [ ] **Step 3: Implement and accept Task 2B fail-startup policy**
 
-Run `backend-unit`. Expected: PASS. Record Mongo driver integration as `NOT_RUN`; do not claim the real unique-index/upsert path passed until a Phase-owned `python-integration` case exists.
+Change `wiring_messenger.go` so failure to establish required Messenger indexes follows the existing startup fatal path instead of log-and-continue. Do not add a fake static-contract unit: no genuine isolated seam exists in this slice. Run `docker compose -f docker-compose.local.yml run --rm backend-unit` for build/vet/unit/race evidence, record a real failing-startup process test as `NOT_RUN`, update the two owned docs, then exact-path stage `backend/cmd/server/wiring_messenger.go docs/TECHNICAL.md docs/TESTING.md`, commit Task 2B, and obtain independent review.
 
-- [ ] **Step 5: Commit exact paths**
+- [ ] **Step 4: Write RED units, implement, and accept Task 2C**
 
-```powershell
-git add backend/internal/messenger/dto.go backend/internal/messenger/repository.go backend/internal/messenger/mongo_repository.go backend/internal/messenger/service_messages.go backend/cmd/server/wiring_messenger.go backend/tests/messenger/mock_repository_test.go backend/tests/messenger/service_messages_test.go
-git commit -m "feat(messenger): make sends idempotent by client nonce"
+Add tests:
+
+```go
+func TestSendMessageRetryReturnsCanonicalMessageWithoutSideEffects(t *testing.T)
+func TestSendMessageRetryAfterParentDeletionReturnsCanonical(t *testing.T)
+func TestSendMessageConcurrentRetryCreatesOneMessage(t *testing.T)
+func TestSendMessageNonceReuseWithDifferentChannelConflicts(t *testing.T)
+func TestSendMessageNonceReuseWithDifferentPayloadConflicts(t *testing.T)
+func TestSendMessageNonceOfDeletedMessageConflictsWithoutContent(t *testing.T)
+func TestSendMessageCreatedFalseSuppressesEverySideEffect(t *testing.T)
+func TestSendMessageCreatedTrueDeletedCanonicalSuppressesSideEffects(t *testing.T)
+func TestSendMessageWithoutNonceUsesTransitionalCreate(t *testing.T)
 ```
+
+For non-empty nonce, preserve membership/channel authorization, then call `FindMessageByClientNonce(senderID, nonce)` before thread-parent validation. A live compatible canonical document returns immediately; a deleted canonical or incompatible fingerprint conflicts. When no canonical exists, validate the thread parent and call `CreateMessageIdempotent`. Apply the same deleted/compatibility helper to every returned canonical document regardless of `Created`; side effects require both `Created=true` and a live compatible canonical. Run genuine RED and GREEN gates with `docker compose -f docker-compose.local.yml run --rm backend-unit`, update the two owned docs, then exact-path stage `backend/internal/messenger/message_idempotency.go backend/internal/messenger/service_messages.go backend/tests/messenger/service_messages_test.go docs/TECHNICAL.md docs/TESTING.md`, commit Task 2C, and obtain independent review.
+
+- [ ] **Step 5: Classify Task 2 evidence**
+
+Record each slice independently in the SDD ledger. Task 2 is accepted only when 2A, 2B, and 2C each have C0/I0 independent review and fresh Docker build/vet/unit/race PASS. Mongo driver concurrency/index execution and startup-process behavior remain explicitly `NOT_RUN` until Phase-owned `python-integration` coverage exists; do not convert compilation or mocks into integration PASS.
+
 
 ### Task 3: Give every logical composer submit a stable nonce
 
