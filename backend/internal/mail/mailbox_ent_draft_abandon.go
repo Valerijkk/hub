@@ -102,6 +102,8 @@ func (repository *MailboxEntRepository) AbandonMailboxDraftCreateUpload(ctx cont
 			ClearPendingForwardMessageID().
 			ClearPendingSaveRequestHash().
 			ClearPendingCreateAttachmentPhase().
+			ClearPendingCreateUploadBlobID().
+			ClearPendingCreateUploadSizeBytes().
 			SetPendingCreateUploadAttempt(0).
 			ClearPendingCreateUploadRetryAt().
 			ClearPendingCreateUploadExhaustedAt().
@@ -121,6 +123,8 @@ func (repository *MailboxEntRepository) AbandonMailboxDraftCreateUpload(ctx cont
 		updated.ConfirmedMutationID = nil
 		updated.PendingMutationKind = nil
 		updated.PendingCreateAttachmentPhase = nil
+		updated.PendingCreateUploadBlobID = nil
+		updated.PendingCreateUploadSizeBytes = nil
 		updated.PendingCreateUploadAttempt = 0
 		updated.PendingCreateUploadRetryAt = nil
 		updated.PendingCreateUploadExhaustedAt = nil
@@ -160,7 +164,7 @@ func mailboxEntDraftAbandonRequestKind(request MailboxDraftAbandonCreateUploadRe
 }
 
 func mailboxEntDraftAbandonFreshStateValid(record MailboxDraftRecord, attachments mailboxEntDraftAttachmentState, request MailboxDraftAbandonCreateUploadRequest) bool {
-	if record.ID != request.DraftID || record.AccountID != request.Fence.AccountID || record.Status != MailboxDraftStatusUnknown || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || record.LastMutationID == nil || *record.LastMutationID != request.ExpectedMutationID || record.ConfirmedMutationID != nil || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseUpload || record.PendingCreateUploadAttempt != request.ExpectedAttempt || len(record.Confirmed.AttachmentIDs) == 0 || len(record.Confirmed.AttachmentIDs) != len(attachments.ConfirmedAttachmentIDs) || len(attachments.PendingAttachmentIDs) != 0 || record.AbandonedAt != nil || record.AbandonedMutationID != nil {
+	if record.ID != request.DraftID || record.AccountID != request.Fence.AccountID || record.Status != MailboxDraftStatusUnknown || record.Revision != 1 || record.EngineMessageID != nil || record.EngineVersion != nil || record.PendingSave != nil || record.LastMutationID == nil || *record.LastMutationID != request.ExpectedMutationID || record.ConfirmedMutationID != nil || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseUpload || record.PendingCreateUploadBlobID != nil || record.PendingCreateUploadSizeBytes != nil || record.PendingCreateUploadAttempt != request.ExpectedAttempt || len(record.Confirmed.AttachmentIDs) == 0 || len(record.Confirmed.AttachmentIDs) != len(attachments.ConfirmedAttachmentIDs) || len(attachments.PendingAttachmentIDs) != 0 || record.AbandonedAt != nil || record.AbandonedMutationID != nil {
 		return false
 	}
 	switch request.ExpectedAttempt {
@@ -174,7 +178,7 @@ func mailboxEntDraftAbandonFreshStateValid(record MailboxDraftRecord, attachment
 }
 
 func mailboxEntDraftAbandonPostStateValid(record MailboxDraftRecord, attachments mailboxEntDraftAttachmentState, request MailboxDraftAbandonCreateUploadRequest) bool {
-	return record.ID == request.DraftID && record.AccountID == request.Fence.AccountID && record.Status == MailboxDraftStatusAbandoned && record.Revision == 1 && record.EngineMessageID == nil && record.EngineVersion == nil && record.PendingSave == nil && len(record.Confirmed.AttachmentIDs) == 0 && len(attachments.ConfirmedAttachmentIDs) == 0 && len(attachments.PendingAttachmentIDs) == 0 && record.LastMutationID == nil && record.ConfirmedMutationID == nil && record.PendingMutationKind == nil && record.PendingCreateAttachmentPhase == nil && record.PendingCreateUploadAttempt == 0 && record.PendingCreateUploadRetryAt == nil && record.PendingCreateUploadExhaustedAt == nil && record.AbandonedAt != nil && mailboxEntValidTime(*record.AbandonedAt) && record.AbandonedMutationID != nil && *record.AbandonedMutationID == request.ExpectedMutationID
+	return record.ID == request.DraftID && record.AccountID == request.Fence.AccountID && record.Status == MailboxDraftStatusAbandoned && record.Revision == 1 && record.EngineMessageID == nil && record.EngineVersion == nil && record.PendingSave == nil && len(record.Confirmed.AttachmentIDs) == 0 && len(attachments.ConfirmedAttachmentIDs) == 0 && len(attachments.PendingAttachmentIDs) == 0 && record.LastMutationID == nil && record.ConfirmedMutationID == nil && record.PendingMutationKind == nil && record.PendingCreateAttachmentPhase == nil && record.PendingCreateUploadBlobID == nil && record.PendingCreateUploadSizeBytes == nil && record.PendingCreateUploadAttempt == 0 && record.PendingCreateUploadRetryAt == nil && record.PendingCreateUploadExhaustedAt == nil && record.AbandonedAt != nil && mailboxEntValidTime(*record.AbandonedAt) && record.AbandonedMutationID != nil && *record.AbandonedMutationID == request.ExpectedMutationID
 }
 
 func mailboxEntDraftAbandonLogicalError(ctx context.Context, account *ent.MailAccount, fence MailboxEngineCommandFence, databaseWallClock time.Time, kind MailboxDraftRepositoryErrorKind, postCommitErr *error) error {

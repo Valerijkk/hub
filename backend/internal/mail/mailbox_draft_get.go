@@ -166,7 +166,10 @@ func mailboxDraftGetRecordValid(draft *MailboxDraftRecord, accountID, draftID uu
 		draft.ID != draftID || draft.AccountID != accountID || draft.DraftClientID == uuid.Nil ||
 		!syncValidOpaque(draft.EngineDraftKey, MaxEngineOpaqueIDBytes) || draft.Revision < 1 ||
 		draft.Status != MailboxDraftStatusActive || draft.PendingSave != nil || draft.LastMutationID != nil ||
-		draft.PendingMutationKind != nil || !mailboxEntValidTime(draft.UpdatedAt) ||
+		draft.PendingMutationKind != nil || draft.PendingCreateAttachmentPhase != nil ||
+		draft.PendingCreateUploadBlobID != nil || draft.PendingCreateUploadSizeBytes != nil ||
+		draft.PendingCreateUploadAttempt != 0 || draft.PendingCreateUploadRetryAt != nil || draft.PendingCreateUploadExhaustedAt != nil ||
+		!mailboxEntValidTime(draft.UpdatedAt) ||
 		!mailboxDraftGetEffectiveStateValid(draft.Confirmed) || !mailboxDraftGetUUIDPointerValid(draft.ConfirmedMutationID) {
 		return false
 	}
@@ -319,6 +322,8 @@ func mailboxDraftGetRecordCopy(draft MailboxDraftRecord) MailboxDraftRecord {
 	draft.Confirmed = mailboxDraftGetEffectiveStateCopy(draft.Confirmed)
 	draft.EngineMessageID = mailboxDraftGetStringPointerCopy(draft.EngineMessageID)
 	draft.EngineVersion = mailboxDraftGetStringPointerCopy(draft.EngineVersion)
+	draft.PendingCreateUploadBlobID = mailboxDraftGetStringPointerCopy(draft.PendingCreateUploadBlobID)
+	draft.PendingCreateUploadSizeBytes = mailboxDraftGetInt64PointerCopy(draft.PendingCreateUploadSizeBytes)
 	draft.ConfirmedMutationID = mailboxDraftGetUUIDPointerCopy(draft.ConfirmedMutationID)
 	draft.UpdatedAt = draft.UpdatedAt.UTC()
 	return draft
@@ -376,5 +381,13 @@ func mailboxDraftGetStringPointerCopy(value *string) *string {
 		return nil
 	}
 	copied := strings.Clone(*value)
+	return &copied
+}
+
+func mailboxDraftGetInt64PointerCopy(value *int64) *int64 {
+	if value == nil {
+		return nil
+	}
+	copied := *value
 	return &copied
 }

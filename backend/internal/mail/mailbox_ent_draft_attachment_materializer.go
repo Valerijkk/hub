@@ -213,12 +213,12 @@ func mailboxEntDraftAttachmentMaterializerLockAttachments(ctx context.Context, t
 }
 
 func mailboxEntDraftAttachmentMaterializerRecordMatches(record MailboxDraftRecord, request mailboxDraftAttachmentMaterializationRequest) bool {
-	if record.ID != request.DraftID || record.AccountID != request.AccountID || record.DraftClientID != request.DraftClientID || record.Revision != request.Revision || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Status != MailboxDraftStatusSaving {
+	if record.ID != request.DraftID || record.AccountID != request.AccountID || record.DraftClientID != request.DraftClientID || record.Revision != request.Revision || record.LastMutationID == nil || *record.LastMutationID != request.MutationID || record.Status != MailboxDraftStatusSaving || !validMailboxDraftPendingCreateUploadHandoff(record.PendingCreateAttachmentPhase, record.PendingCreateUploadBlobID, record.PendingCreateUploadSizeBytes) {
 		return false
 	}
 	switch request.WorkKind {
 	case MailboxDraftWorkCreate:
-		return record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationCreate && record.PendingCreateAttachmentPhase != nil && *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload && record.PendingSave == nil && mailboxEntDraftEffectiveStatesEqual(record.Confirmed, request.EffectiveState)
+		return record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationCreate && record.PendingCreateAttachmentPhase != nil && *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload && record.PendingCreateUploadBlobID == nil && record.PendingCreateUploadSizeBytes == nil && record.PendingSave == nil && mailboxEntDraftEffectiveStatesEqual(record.Confirmed, request.EffectiveState)
 	case MailboxDraftWorkSave:
 		return record.PendingMutationKind != nil && *record.PendingMutationKind == MailboxDraftMutationSave && record.PendingCreateAttachmentPhase == nil && record.PendingSave != nil && mailboxEntDraftEffectiveStatesEqual(record.PendingSave.EffectiveState, request.EffectiveState)
 	default:

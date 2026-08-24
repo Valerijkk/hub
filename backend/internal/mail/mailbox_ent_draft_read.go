@@ -253,10 +253,10 @@ func mailboxEntDraftReadRowValid(draft *ent.MailDraft, accountID, draftID uuid.U
 	}
 	pendingKind, pendingKindValid := mailboxEntDraftReadPendingKind(draft.PendingMutationKind)
 	pendingCreateAttachmentPhase, pendingCreateAttachmentPhaseValid := mailboxEntDraftReadCreateAttachmentPhase(draft.PendingCreateAttachmentPhase)
-	if !pendingKindValid || !pendingCreateAttachmentPhaseValid || draft.ConfirmedMutationID != nil && (!pairPresent || draft.LastMutationID != nil && *draft.ConfirmedMutationID == *draft.LastMutationID) {
+	if !pendingKindValid || !pendingCreateAttachmentPhaseValid || !validMailboxDraftPendingCreateUploadHandoff(pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes) || draft.ConfirmedMutationID != nil && (!pairPresent || draft.LastMutationID != nil && *draft.ConfirmedMutationID == *draft.LastMutationID) {
 		return false
 	}
-	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingCreateUploadAttempt, draft.PendingCreateUploadRetryAt, draft.PendingCreateUploadExhaustedAt, draft.AbandonedAt, draft.AbandonedMutationID, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, draft.PendingSaveRequestHash)
+	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes, draft.PendingCreateUploadAttempt, draft.PendingCreateUploadRetryAt, draft.PendingCreateUploadExhaustedAt, draft.AbandonedAt, draft.AbandonedMutationID, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, draft.PendingSaveRequestHash)
 }
 
 func mailboxEntDraftReadEnginePairValid(messageID, version *string) (bool, bool) {
@@ -292,8 +292,8 @@ func mailboxEntDraftReadCreateAttachmentPhase(value *maildraft.PendingCreateAtta
 	}
 }
 
-func mailboxEntDraftReadStateScalarValid(status MailboxDraftStatus, enginePairPresent bool, mutationID *uuid.UUID, pendingKind *MailboxDraftMutationKind, pendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase, pendingCreateUploadAttempt int, pendingCreateUploadRetryAt, pendingCreateUploadExhaustedAt, abandonedAt *time.Time, abandonedMutationID *uuid.UUID, pendingFrom, pendingReply, pendingForward *uuid.UUID, pendingHash []byte) bool {
-	if !mailboxEntDraftCreateUploadRecoveryStateValid(status, pendingKind, pendingCreateAttachmentPhase, pendingCreateUploadAttempt, pendingCreateUploadRetryAt, pendingCreateUploadExhaustedAt) {
+func mailboxEntDraftReadStateScalarValid(status MailboxDraftStatus, enginePairPresent bool, mutationID *uuid.UUID, pendingKind *MailboxDraftMutationKind, pendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase, pendingCreateUploadBlobID *string, pendingCreateUploadSizeBytes *int64, pendingCreateUploadAttempt int, pendingCreateUploadRetryAt, pendingCreateUploadExhaustedAt, abandonedAt *time.Time, abandonedMutationID *uuid.UUID, pendingFrom, pendingReply, pendingForward *uuid.UUID, pendingHash []byte) bool {
+	if !validMailboxDraftPendingCreateUploadHandoff(pendingCreateAttachmentPhase, pendingCreateUploadBlobID, pendingCreateUploadSizeBytes) || !mailboxEntDraftCreateUploadRecoveryStateValid(status, pendingKind, pendingCreateAttachmentPhase, pendingCreateUploadBlobID, pendingCreateUploadSizeBytes, pendingCreateUploadAttempt, pendingCreateUploadRetryAt, pendingCreateUploadExhaustedAt) {
 		return false
 	}
 	if status != MailboxDraftStatusAbandoned && (abandonedAt != nil || abandonedMutationID != nil) {
@@ -378,6 +378,8 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 		LastMutationID:      mailboxEntDraftReadUUIDPointerCopy(draft.LastMutationID),
 		PendingMutationKind: mailboxEntDraftReadMutationKindPointerCopy(pendingKind),
 		PendingCreateAttachmentPhase: mailboxEntDraftReadCreateAttachmentPhasePointerCopy(pendingCreateAttachmentPhase),
+		PendingCreateUploadBlobID: mailboxEntStringPointer(draft.PendingCreateUploadBlobID),
+		PendingCreateUploadSizeBytes: mailboxEntDraftReadInt64PointerCopy(draft.PendingCreateUploadSizeBytes),
 		PendingCreateUploadAttempt: draft.PendingCreateUploadAttempt,
 		PendingCreateUploadRetryAt: mailboxEntDraftReadTimePointerCopy(draft.PendingCreateUploadRetryAt),
 		PendingCreateUploadExhaustedAt: mailboxEntDraftReadTimePointerCopy(draft.PendingCreateUploadExhaustedAt),
@@ -442,6 +444,14 @@ func mailboxEntDraftReadMutationKindPointerCopy(value *MailboxDraftMutationKind)
 }
 
 func mailboxEntDraftReadCreateAttachmentPhasePointerCopy(value *MailboxDraftCreateAttachmentPhase) *MailboxDraftCreateAttachmentPhase {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
+}
+
+func mailboxEntDraftReadInt64PointerCopy(value *int64) *int64 {
 	if value == nil {
 		return nil
 	}

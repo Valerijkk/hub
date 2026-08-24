@@ -187,7 +187,7 @@ func (repository *MailboxEntRepository) ResumeMailboxDraftCreateAfterAbsence(ctx
 		if !ok || !mailboxEntDraftReconciliationResumeIdentityMatches(draft, record, request, engineDraftKey) {
 			return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorIdempotencyConflict)
 		}
-		if len(record.Confirmed.AttachmentIDs) != 0 || record.PendingCreateAttachmentPhase != nil || record.PendingCreateUploadAttempt != 0 || record.PendingCreateUploadRetryAt != nil || record.PendingCreateUploadExhaustedAt != nil {
+		if len(record.Confirmed.AttachmentIDs) != 0 || record.PendingCreateAttachmentPhase != nil || record.PendingCreateUploadBlobID != nil || record.PendingCreateUploadSizeBytes != nil || record.PendingCreateUploadAttempt != 0 || record.PendingCreateUploadRetryAt != nil || record.PendingCreateUploadExhaustedAt != nil {
 			return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 		}
 		switch record.Status {
@@ -329,13 +329,13 @@ func mailboxEntDraftReconciliationWorkKind(record MailboxDraftRecord) (MailboxDr
 }
 
 func mailboxEntDraftCreateImportReady(record MailboxDraftRecord) bool {
-	if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate {
+	if record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || !validMailboxDraftPendingCreateUploadHandoff(record.PendingCreateAttachmentPhase, record.PendingCreateUploadBlobID, record.PendingCreateUploadSizeBytes) {
 		return false
 	}
 	if record.PendingCreateAttachmentPhase == nil {
 		return len(record.Confirmed.AttachmentIDs) == 0
 	}
-	return *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseImport && len(record.Confirmed.AttachmentIDs) != 0
+	return *record.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseImport && record.PendingCreateUploadBlobID != nil && record.PendingCreateUploadSizeBytes != nil && len(record.Confirmed.AttachmentIDs) != 0
 }
 
 const (
@@ -343,8 +343,8 @@ const (
 	mailboxDraftCreateUploadRetryAfterSecondAttempt = 2 * time.Minute
 )
 
-func mailboxEntDraftCreateUploadRecoveryStateValid(status MailboxDraftStatus, pendingKind *MailboxDraftMutationKind, phase *MailboxDraftCreateAttachmentPhase, attempt int, retryAt, exhaustedAt *time.Time) bool {
-	if !mailboxEntDraftReadTimePointerValid(retryAt) || !mailboxEntDraftReadTimePointerValid(exhaustedAt) {
+func mailboxEntDraftCreateUploadRecoveryStateValid(status MailboxDraftStatus, pendingKind *MailboxDraftMutationKind, phase *MailboxDraftCreateAttachmentPhase, blobID *string, sizeBytes *int64, attempt int, retryAt, exhaustedAt *time.Time) bool {
+	if !validMailboxDraftPendingCreateUploadHandoff(phase, blobID, sizeBytes) || !mailboxEntDraftReadTimePointerValid(retryAt) || !mailboxEntDraftReadTimePointerValid(exhaustedAt) {
 		return false
 	}
 	if phase == nil {
@@ -371,7 +371,7 @@ func mailboxEntDraftCreateUploadRecoveryStateValid(status MailboxDraftStatus, pe
 }
 
 func mailboxEntDraftCreateUnknownUploadRecoverySchedule(record MailboxDraftRecord, databaseWallClock time.Time) (*time.Time, *time.Time, bool) {
-	if !mailboxEntValidTime(databaseWallClock) || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseUpload || record.PendingCreateUploadRetryAt != nil || record.PendingCreateUploadExhaustedAt != nil || !mailboxEntDraftCreateUploadRecoveryStateValid(MailboxDraftStatusSaving, record.PendingMutationKind, record.PendingCreateAttachmentPhase, record.PendingCreateUploadAttempt, record.PendingCreateUploadRetryAt, record.PendingCreateUploadExhaustedAt) {
+	if !mailboxEntValidTime(databaseWallClock) || record.PendingMutationKind == nil || *record.PendingMutationKind != MailboxDraftMutationCreate || record.PendingCreateAttachmentPhase == nil || *record.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseUpload || record.PendingCreateUploadBlobID != nil || record.PendingCreateUploadSizeBytes != nil || record.PendingCreateUploadRetryAt != nil || record.PendingCreateUploadExhaustedAt != nil || !mailboxEntDraftCreateUploadRecoveryStateValid(MailboxDraftStatusSaving, record.PendingMutationKind, record.PendingCreateAttachmentPhase, record.PendingCreateUploadBlobID, record.PendingCreateUploadSizeBytes, record.PendingCreateUploadAttempt, record.PendingCreateUploadRetryAt, record.PendingCreateUploadExhaustedAt) {
 		return nil, nil, false
 	}
 	switch record.PendingCreateUploadAttempt {
@@ -460,7 +460,7 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 			if !mailboxEntDraftCreateImportReady(record) {
 				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorStateConflict
 			}
-			if err := update.SetStatus(maildraft.StatusActive).SetEngineMessageID(outcome.EngineMessageID).SetEngineVersion(outcome.EngineVersion).SetRevision(1).SetConfirmedMutationID(request.MutationID).ClearLastMutationID().ClearPendingMutationKind().ClearPendingCreateAttachmentPhase().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt().Exec(ctx); err != nil {
+			if err := update.SetStatus(maildraft.StatusActive).SetEngineMessageID(outcome.EngineMessageID).SetEngineVersion(outcome.EngineVersion).SetRevision(1).SetConfirmedMutationID(request.MutationID).ClearLastMutationID().ClearPendingMutationKind().ClearPendingCreateAttachmentPhase().ClearPendingCreateUploadBlobID().ClearPendingCreateUploadSizeBytes().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt().Exec(ctx); err != nil {
 				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorUnavailable
 			}
 			updated.Status = MailboxDraftStatusActive
@@ -470,6 +470,8 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 			updated.LastMutationID = nil
 			updated.PendingMutationKind = nil
 			updated.PendingCreateAttachmentPhase = nil
+			updated.PendingCreateUploadBlobID = nil
+			updated.PendingCreateUploadSizeBytes = nil
 			updated.PendingCreateUploadAttempt = 0
 			updated.PendingCreateUploadRetryAt = nil
 			updated.PendingCreateUploadExhaustedAt = nil
@@ -507,7 +509,7 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorStateConflict
 			}
 			removed := mailboxEntDraftConfirmedAttachmentDifference(record.Confirmed.AttachmentIDs, record.PendingSave.EffectiveState.AttachmentIDs)
-			update.SetStatus(maildraft.StatusActive).SetEngineMessageID(outcome.EngineMessageID).SetEngineVersion(outcome.EngineVersion).SetRevision(nextRevision).SetFromIdentityID(record.PendingSave.EffectiveState.FromIdentityID).SetConfirmedMutationID(request.MutationID).ClearLastMutationID().ClearPendingMutationKind().ClearPendingFromIdentityID().ClearPendingReplyToMessageID().ClearPendingForwardMessageID().ClearPendingSaveRequestHash().ClearPendingCreateAttachmentPhase().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt()
+			update.SetStatus(maildraft.StatusActive).SetEngineMessageID(outcome.EngineMessageID).SetEngineVersion(outcome.EngineVersion).SetRevision(nextRevision).SetFromIdentityID(record.PendingSave.EffectiveState.FromIdentityID).SetConfirmedMutationID(request.MutationID).ClearLastMutationID().ClearPendingMutationKind().ClearPendingFromIdentityID().ClearPendingReplyToMessageID().ClearPendingForwardMessageID().ClearPendingSaveRequestHash().ClearPendingCreateAttachmentPhase().ClearPendingCreateUploadBlobID().ClearPendingCreateUploadSizeBytes().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt()
 			if record.PendingSave.EffectiveState.ReplyToMessageID == nil {
 				update.ClearReplyToMessageID()
 			} else {
@@ -538,6 +540,8 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 			updated.LastMutationID = nil
 			updated.PendingMutationKind = nil
 			updated.PendingCreateAttachmentPhase = nil
+			updated.PendingCreateUploadBlobID = nil
+			updated.PendingCreateUploadSizeBytes = nil
 			updated.PendingCreateUploadAttempt = 0
 			updated.PendingCreateUploadRetryAt = nil
 			updated.PendingCreateUploadExhaustedAt = nil
@@ -573,7 +577,7 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 			if len(record.Confirmed.AttachmentIDs) != 0 {
 				update.RemoveAttachmentIDs(record.Confirmed.AttachmentIDs...)
 			}
-			if err := update.SetStatus(maildraft.StatusDeleted).ClearLastMutationID().ClearPendingMutationKind().ClearPendingCreateAttachmentPhase().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt().Exec(ctx); err != nil {
+			if err := update.SetStatus(maildraft.StatusDeleted).ClearLastMutationID().ClearPendingMutationKind().ClearPendingCreateAttachmentPhase().ClearPendingCreateUploadBlobID().ClearPendingCreateUploadSizeBytes().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt().Exec(ctx); err != nil {
 				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorUnavailable
 			}
 			updated.Status = MailboxDraftStatusDeleted
@@ -581,19 +585,23 @@ func mailboxEntDraftReconciliationFinishTransition(ctx context.Context, draft *e
 			updated.LastMutationID = nil
 			updated.PendingMutationKind = nil
 			updated.PendingCreateAttachmentPhase = nil
+			updated.PendingCreateUploadBlobID = nil
+			updated.PendingCreateUploadSizeBytes = nil
 			updated.PendingCreateUploadAttempt = 0
 			updated.PendingCreateUploadRetryAt = nil
 			updated.PendingCreateUploadExhaustedAt = nil
 			updated.UpdatedAt = databaseWallClock.UTC()
 			return updated, ""
 		case MailboxDraftDeleteRetained:
-			if err := update.SetStatus(maildraft.StatusActive).ClearLastMutationID().ClearPendingMutationKind().ClearPendingCreateAttachmentPhase().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt().Exec(ctx); err != nil {
+			if err := update.SetStatus(maildraft.StatusActive).ClearLastMutationID().ClearPendingMutationKind().ClearPendingCreateAttachmentPhase().ClearPendingCreateUploadBlobID().ClearPendingCreateUploadSizeBytes().SetPendingCreateUploadAttempt(0).ClearPendingCreateUploadRetryAt().ClearPendingCreateUploadExhaustedAt().Exec(ctx); err != nil {
 				return MailboxDraftRecord{}, MailboxDraftRepositoryErrorUnavailable
 			}
 			updated.Status = MailboxDraftStatusActive
 			updated.LastMutationID = nil
 			updated.PendingMutationKind = nil
 			updated.PendingCreateAttachmentPhase = nil
+			updated.PendingCreateUploadBlobID = nil
+			updated.PendingCreateUploadSizeBytes = nil
 			updated.PendingCreateUploadAttempt = 0
 			updated.PendingCreateUploadRetryAt = nil
 			updated.PendingCreateUploadExhaustedAt = nil

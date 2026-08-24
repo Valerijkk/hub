@@ -146,30 +146,33 @@ const (
 )
 
 // MailboxDraftRecord is the content-free, durable draft state. Nil values represent nullable
-// persisted columns. Repository reads and finish results deep-copy every nested state, pointer,
-// hash and attachment slice.
+// persisted columns. PendingCreateUploadBlobID and PendingCreateUploadSizeBytes form one exact
+// upload handoff pair: they are present only while PendingCreateAttachmentPhase is import.
+// Repository reads and finish results deep-copy every nested state, pointer, hash and attachment slice.
 type MailboxDraftRecord struct {
-	ID                  uuid.UUID
-	AccountID           uuid.UUID
-	DraftClientID       uuid.UUID
-	EngineDraftKey      string
-	EngineMessageID     *string
-	EngineVersion       *string
-	Revision            int64
-	Status              MailboxDraftStatus
-	Confirmed           MailboxDraftEffectiveState
-	PendingSave         *MailboxDraftPendingSave
-	CreateRequestHash   [sha256.Size]byte
-	LastMutationID      *uuid.UUID
-	PendingMutationKind *MailboxDraftMutationKind
-	PendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase
-	PendingCreateUploadAttempt int
-	PendingCreateUploadRetryAt *time.Time
+	ID                             uuid.UUID
+	AccountID                      uuid.UUID
+	DraftClientID                  uuid.UUID
+	EngineDraftKey                 string
+	EngineMessageID                *string
+	EngineVersion                  *string
+	Revision                       int64
+	Status                         MailboxDraftStatus
+	Confirmed                      MailboxDraftEffectiveState
+	PendingSave                    *MailboxDraftPendingSave
+	CreateRequestHash              [sha256.Size]byte
+	LastMutationID                 *uuid.UUID
+	PendingMutationKind            *MailboxDraftMutationKind
+	PendingCreateAttachmentPhase   *MailboxDraftCreateAttachmentPhase
+	PendingCreateUploadBlobID      *string
+	PendingCreateUploadSizeBytes   *int64
+	PendingCreateUploadAttempt     int
+	PendingCreateUploadRetryAt     *time.Time
 	PendingCreateUploadExhaustedAt *time.Time
-	ConfirmedMutationID *uuid.UUID
-	AbandonedAt         *time.Time
-	AbandonedMutationID *uuid.UUID
-	UpdatedAt           time.Time
+	ConfirmedMutationID            *uuid.UUID
+	AbandonedAt                    *time.Time
+	AbandonedMutationID            *uuid.UUID
+	UpdatedAt                      time.Time
 }
 
 // MailboxDraftGetRequest identifies one account-scoped draft.
@@ -266,11 +269,14 @@ type MailboxDraftAbortRequest struct {
 	MutationID uuid.UUID
 }
 
-// MailboxDraftAdvanceCreateToImportRequest marks an attachment-backed create ready for its import command.
+// MailboxDraftAdvanceCreateToImportRequest atomically stores the exact opaque upload blob handoff and
+// its byte size while advancing an attachment-backed create to its import command.
 type MailboxDraftAdvanceCreateToImportRequest struct {
 	Fence      MailboxEngineCommandFence
 	DraftID    uuid.UUID
 	MutationID uuid.UUID
+	BlobID     string
+	SizeBytes  int64
 }
 
 // MailboxDraftAbortResult reports whether abort removed a provisional create or restored a durable active draft.
@@ -294,21 +300,48 @@ const (
 // MailboxDraftWork is the persisted, provider-neutral plan for an engine operation.
 // Every dispatch or reconciliation plan contains the stable bounded EngineDraftKey, persisted mutation ID, revision,
 // exact nullable message/version pair, an effective O or D graph, its request hash, and the last confirmed mutation
-// binding. It never contains draft content or bytes.
+// binding. PendingCreateUploadBlobID and PendingCreateUploadSizeBytes are present only for an import-phase create
+// and identify the exact already-uploaded MIME blob; work never contains draft content or MIME bytes.
 type MailboxDraftWork struct {
-	Kind                MailboxDraftWorkKind
-	EngineDraftKey      string
-	EngineMessageID     *string
-	EngineVersion       *string
-	MutationID          uuid.UUID
-	Revision            int64
-	EffectiveState      MailboxDraftEffectiveState
-	RequestHash         [sha256.Size]byte
+	Kind                         MailboxDraftWorkKind
+	EngineDraftKey               string
+	EngineMessageID              *string
+	EngineVersion                *string
+	MutationID                   uuid.UUID
+	Revision                     int64
+	EffectiveState               MailboxDraftEffectiveState
+	RequestHash                  [sha256.Size]byte
 	PendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase
-	PendingCreateUploadAttempt int
-	PendingCreateUploadRetryAt *time.Time
+	PendingCreateUploadBlobID    *string
+	PendingCreateUploadSizeBytes *int64
+	PendingCreateUploadAttempt   int
+	PendingCreateUploadRetryAt   *time.Time
 	PendingCreateUploadExhaustedAt *time.Time
-	ConfirmedMutationID *uuid.UUID
+	ConfirmedMutationID          *uuid.UUID
+}
+
+// validMailboxDraftPendingCreateUploadHandoff validates the nullable durable upload handoff pair.
+// Upload and no attachment-create phase carry no blob. Import carries one nonempty opaque blob ID and
+// an exact MIME byte count within the provider-neutral message limit.
+func validMailboxDraftPendingCreateUploadHandoff(phase *MailboxDraftCreateAttachmentPhase, blobID *string, sizeBytes *int64) bool {
+	if phase == nil {
+		return blobID == nil && sizeBytes == nil
+	}
+
+	switch *phase {
+	case MailboxDraftCreateAttachmentPhaseUpload:
+		return blobID == nil && sizeBytes == nil
+	case MailboxDraftCreateAttachmentPhaseImport:
+		return blobID != nil && sizeBytes != nil && validOpaqueID(*blobID) && *sizeBytes >= 1 && *sizeBytes <= MaxEngineMessageBytes
+	default:
+		return false
+	}
+}
+
+// validMailboxDraftAdvanceCreateToImportHandoff validates the required immutable upload handoff
+// passed to the transition that makes an attachment-backed create ready for Email/import.
+func validMailboxDraftAdvanceCreateToImportHandoff(blobID string, sizeBytes int64) bool {
+	return validOpaqueID(blobID) && sizeBytes >= 1 && sizeBytes <= MaxEngineMessageBytes
 }
 
 // MailboxDraftReservationKind distinguishes a new engine dispatch, an idempotent replay, and recovery that must reconcile.
@@ -373,6 +406,21 @@ type MailboxDraftRestartCreateUploadRequest struct {
 	FingerprintVersion int32
 }
 
+// MailboxDraftRestartCreateUploadAfterBlobNotFoundRequest authorizes only the deterministic
+// synchronous recovery from an Email/import blobNotFound result. The persisted draft must still be
+// saving/create/import under the exact fence and mutation, and its opaque blob handoff must match
+// ExpectedBlobID and ExpectedSizeBytes exactly. NextMutationID is caller-generated and distinct.
+type MailboxDraftRestartCreateUploadAfterBlobNotFoundRequest struct {
+	Fence             MailboxEngineCommandFence
+	ActorID           uuid.UUID
+	AccountID         uuid.UUID
+	DraftID           uuid.UUID
+	CurrentMutationID uuid.UUID
+	ExpectedBlobID    string
+	ExpectedSizeBytes int64
+	NextMutationID    uuid.UUID
+}
+
 // MailboxDraftAbandonCreateUploadRequest records a terminal local tombstone for an unknown attachment upload.
 // It requires the exact recovered mutation, attempt, idempotency binding, and acquired fence.
 type MailboxDraftAbandonCreateUploadRequest struct {
@@ -391,6 +439,14 @@ type MailboxDraftRestartCreateUploadResult struct {
 	Replayed    bool
 	Draft       MailboxDraftRecord
 	Reservation *MailboxDraftReservation
+}
+
+// MailboxDraftRestartCreateUploadAfterBlobNotFoundResult contains the exact durable upload
+// restart and retained command fence. This deterministic transition has no replay branch:
+// a repeated or stale request fails closed because the import handoff no longer exists.
+type MailboxDraftRestartCreateUploadAfterBlobNotFoundResult struct {
+	Draft       MailboxDraftRecord
+	Reservation MailboxDraftReservation
 }
 
 // MailboxDraftAbandonCreateUploadResult is a replayed or newly abandoned durable draft.
@@ -471,6 +527,7 @@ type MailboxDraftRepository interface {
 	PrepareMailboxDraftReconciliation(context.Context, MailboxDraftReconcileRequest) (MailboxDraftReconcilePlan, error)
 	ResumeMailboxDraftCreateAfterAbsence(context.Context, MailboxDraftResumeCreateRequest) (MailboxDraftReservation, error)
 	RestartMailboxDraftCreateUpload(context.Context, MailboxDraftRestartCreateUploadRequest) (MailboxDraftRestartCreateUploadResult, error)
+	RestartMailboxDraftCreateUploadAfterBlobNotFound(context.Context, MailboxDraftRestartCreateUploadAfterBlobNotFoundRequest) (MailboxDraftRestartCreateUploadAfterBlobNotFoundResult, error)
 	AbandonMailboxDraftCreateUpload(context.Context, MailboxDraftAbandonCreateUploadRequest) (MailboxDraftAbandonCreateUploadResult, error)
 	FinishEngineCommand(context.Context, MailboxDraftFinishRequest) (MailboxDraftFinishResult, error)
 	RecheckMailboxDraftRead(context.Context, MailboxDraftReadRecheckRequest) (MailboxDraftReadRecheckResult, error)
