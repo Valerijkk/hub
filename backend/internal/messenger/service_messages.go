@@ -11,6 +11,26 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
+func (s *MessengerService) validateThreadParent(ctx context.Context, channelID uuid.UUID, threadID string) error {
+	if threadID == "" {
+		return nil
+	}
+
+	parent, err := s.repo.FindMessageByID(ctx, threadID)
+	if err != nil || parent.ChannelID != channelID {
+		return apperrors.NewNotFound("\u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e")
+	}
+	if parent.DeletedAt != nil {
+		return apperrors.NewNotFound("\u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e")
+	}
+	if parent.ThreadID != "" {
+		return apperrors.NewBadRequest("\u043e\u0442\u0432\u0435\u0442 \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u0441\u044b\u043b\u0430\u0442\u044c\u0441\u044f \u043d\u0430 \u043a\u043e\u0440\u043d\u0435\u0432\u043e\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0442\u0440\u0435\u0434\u0430")
+	}
+
+	return nil
+}
+
+
 // SendMessage отправляет сообщение в канал.
 // Проверяет membership, readonly и инкрементирует reply_count для тредов.
 func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID uuid.UUID, req SendMessageRequest) (*MessageResponse, error) {
@@ -35,6 +55,10 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 			if role != "owner" && role != "admin" {
 				return nil, apperrors.NewForbidden("канал доступен только для чтения")
 			}
+		}
+
+		if err := s.validateThreadParent(ctx, channelID, req.ThreadID); err != nil {
+			return nil, err
 		}
 
 		doc := &MessageDocument{

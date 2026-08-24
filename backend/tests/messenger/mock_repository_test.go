@@ -53,6 +53,7 @@ type mockRepository struct {
 	addMembersErr            error
 	addMembersErrExceptOwner error // fail только role != "owner" (A3W3-2-002)
 	isMemberErr              error
+	findMessageIncludeDeleted bool
 	deleteChannelErr         error
 	addMembersCalls          int // счётчик вызовов AddMembers (для denial Join)
 }
@@ -300,7 +301,7 @@ func (m *mockRepository) InsertMessage(_ context.Context, doc *messenger.Message
 
 func (m *mockRepository) FindMessageByID(_ context.Context, messageID string) (*messenger.MessageDocument, error) {
 	doc, ok := m.messages[messageID]
-	if !ok || doc.DeletedAt != nil {
+	if !ok || (doc.DeletedAt != nil && !m.findMessageIncludeDeleted) {
 		return nil, &ent.NotFoundError{}
 	}
 	return doc, nil
