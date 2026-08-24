@@ -401,6 +401,44 @@ paths:
               schema: {$ref: "#/components/schemas/MailMessageDetail"}
         "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
+  /mail/messages/{messageId}/reply-draft:
+    post:
+      tags: [MailDrafts]
+      operationId: createMailReplyDraft
+      x-hub-authz: mailbox-owner
+      description: >-
+        Creates exactly one durable active reply draft from the owned source message. The source
+        message id is accepted only from the canonical path parameter; the request accepts no
+        query parameters, is one JSON object of at most 20 MiB raw bytes, and never returns 202.
+      parameters:
+        - {$ref: "#/components/parameters/MessageId"}
+        - {$ref: "#/components/parameters/MailDraftCreateIdempotencyKey"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CreateMailReplyDraftRequest"}
+      responses:
+        "201":
+          description: Durable active reply draft only, including a verified idempotent replay
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailDraft"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409":
+          description: Idempotency key reuse for a different reply intent, or a deleting mailbox account
+          headers:
+            X-Hub-Error-Code:
+              required: true
+              schema: {type: string, enum: [IDEMPOTENCY_KEY_REUSED, MAIL_ACCOUNT_DELETING]}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "413": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
+        "503": {$ref: "#/components/responses/Error"}
   /mail/messages/{messageId}/remote-images/{imageToken}:
     get:
       tags: [MailMessages]
@@ -2718,6 +2756,19 @@ components:
         reply_to_message_id: {type: [string, "null"], format: uuid}
         forward_message_id: {type: [string, "null"], format: uuid}
         updated_at: {type: string, format: date-time}
+    CreateMailReplyDraftRequest:
+      type: object
+      additionalProperties: false
+      required: [draft_client_id, from_identity_id]
+      properties:
+        draft_client_id:
+          type: string
+          format: uuid
+          description: Canonical lower-case non-nil UUID for one immutable reply-draft intent
+        from_identity_id:
+          type: string
+          format: uuid
+          description: Canonical lower-case non-nil UUID for the sending identity
     CreateMailDraftRequest:
       type: object
       additionalProperties: false
