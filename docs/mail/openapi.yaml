@@ -582,12 +582,28 @@ paths:
           application/json:
             schema: {$ref: "#/components/schemas/PresignAttachmentRequest"}
       responses:
-        "201":
-          description: Owner-bound upload contract; same-key replay mints a fresh URL only for the same pending unexpired attachment id and never extends the object lease
+        "200":
+          description: Owner-bound upload contract. The request accepts no query parameters and requires a fresh UUID v4 or v7 Idempotency-Key kept stable for a retry of the same upload intent.
           content:
             application/json:
               schema: {$ref: "#/components/schemas/PresignAttachmentResponse"}
-        "409": {$ref: "#/components/responses/MailMutationIdempotencyConflict"}
+        "409":
+          description: >-
+            The idempotency key was reused for different input, its replay metadata expired, the
+            attachment state conflicts, or the mailbox account is deleting. X-Hub-Error-Code is
+            present only for MAIL_ACCOUNT_DELETING.
+          headers:
+            X-Hub-Error-Code:
+              required: false
+              schema: {const: MAIL_ACCOUNT_DELETING}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "503":
+          description: Attachment staging or idempotency storage is temporarily unavailable
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         default: {$ref: "#/components/responses/Error"}
   /mail/attachments/{attachmentId}/confirm:
     post:
@@ -608,44 +624,72 @@ paths:
                 sha256: {type: string, pattern: "^[a-f0-9]{64}$"}
                 size_bytes: {type: integer, format: int64, minimum: 1, maximum: 26214400}
       responses:
-        "202":
-          description: Attachment accepted for scan
+        "200":
+          description: Current attachment state after confirmation. The request accepts no query parameters.
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailAttachment"}
         "409": {$ref: "#/components/responses/MailAttachmentConfirmConflict"}
         "410": {$ref: "#/components/responses/MailAttachmentExpired"}
+        "422":
+          description: The claimed object metadata does not match or the attachment is not clean
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "503":
+          description: Attachment staging is temporarily unavailable
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         default: {$ref: "#/components/responses/Error"}
-  /mail/attachments/{attachmentId}:
+  /mail/attachments/{attachmentId}/download:
     parameters:
       - {$ref: "#/components/parameters/AttachmentId"}
     get:
       tags: [MailAttachments]
       operationId: downloadMailAttachment
       x-hub-authz: mailbox-owner
+      description: Returns a short-lived authorized object-store URL. The request accepts no query parameters.
       responses:
-        "302":
-          description: Short-lived redirect for an authorized clean attachment to the fixed configured mail-storage origin only
-          headers:
-            Location:
-              required: true
-              description: HTTPS URL minted by the mail storage port; never a client or provider supplied arbitrary origin
-              schema: {type: string, format: uri, maxLength: 4096}
-            Cache-Control:
-              required: true
-              schema: {const: no-store}
-            Referrer-Policy:
-              required: true
-              schema: {const: no-referrer}
-        "409": {$ref: "#/components/responses/MailAttachmentUnavailable"}
+        "200":
+          description: Short-lived object-store URL for an authorized clean linked attachment
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailAttachmentDownloadResponse"}
         default: {$ref: "#/components/responses/Error"}
+  /mail/attachments/{attachmentId}:
+    parameters:
+      - {$ref: "#/components/parameters/AttachmentId"}
     delete:
       tags: [MailAttachments]
       operationId: deleteMailAttachment
       x-hub-authz: mailbox-owner
+      description: >-
+        Idempotently abandons one unlinked staged attachment. The request accepts neither query
+        parameters nor a request body (including Content-Type). Unknown, foreign, and already
+        abandoned attachments are deliberately indistinguishable and return 204.
       responses:
-        "204": {description: Unsent attachment deleted}
-        "409": {$ref: "#/components/responses/MailAccountDeleting"}
+        "204": {description: Attachment is abandoned, absent, or outside the caller scope; no object-store deletion is performed inline.}
+        "400":
+          description: Invalid canonical attachment ID, query string, request body, or Content-Type
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "409":
+          description: Attachment is linked to a message or draft, its storage state conflicts, or the mailbox account is deleting
+          headers:
+            X-Hub-Error-Code:
+              required: false
+              description: Present only when the resolved mailbox account is deleting
+              schema: {const: MAIL_ACCOUNT_DELETING}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "503":
+          description: Attachment abandonment is temporarily unavailable
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         default: {$ref: "#/components/responses/Error"}
   /mail/search:
     get:
@@ -1779,7 +1823,7 @@ components:
       schema:
         type: string
         format: uuid
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[47][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[47][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
     IfMatch:
       name: If-Match
       in: header
@@ -1819,7 +1863,11 @@ components:
       name: attachmentId
       in: path
       required: true
-      schema: {type: string, format: uuid}
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        not: {const: 00000000-0000-0000-0000-000000000000}
     EventId:
       name: eventId
       in: path
@@ -1932,36 +1980,17 @@ components:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailAttachmentConfirmConflict:
       description: >-
-        Confirmation metadata changed or the owned attachment is no longer in the same confirmable
-        state; or the resolved MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no
-        receipt/replay, expansion, snapshot, storage or engine I/O ran.
+        The owned attachment is no longer in the same confirmable state, or the resolved
+        MailAccount is deleting. X-Hub-Error-Code is present only for MAIL_ACCOUNT_DELETING.
       headers:
         X-Hub-Error-Code:
-          required: true
-          schema:
-            type: string
-            enum: [MAIL_ATTACHMENT_CONFIRM_MISMATCH, MAIL_ATTACHMENT_STATE_CONFLICT, MAIL_ACCOUNT_DELETING]
+          required: false
+          schema: {const: MAIL_ACCOUNT_DELETING}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailAttachmentExpired:
       description: The pending upload lease expired; no confirm or scan transition runs
-      headers:
-        X-Hub-Error-Code:
-          required: true
-          schema: {const: MAIL_ATTACHMENT_EXPIRED}
-      content:
-        application/json:
-          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
-    MailAttachmentUnavailable:
-      description: >-
-        The owned attachment is not confirmed clean and cannot be downloaded; or the resolved
-        MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay, expansion,
-        snapshot, storage or engine I/O ran.
-      headers:
-        X-Hub-Error-Code:
-          required: true
-          schema: {type: string, enum: [MAIL_ATTACHMENT_NOT_CLEAN, MAIL_ACCOUNT_DELETING]}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2845,6 +2874,13 @@ components:
           maxProperties: 16
           propertyNames: {type: string, minLength: 1, maxLength: 128}
           additionalProperties: {type: string, maxLength: 2048, x-hub-max-utf8-bytes: 8192}
+    MailAttachmentDownloadResponse:
+      type: object
+      additionalProperties: false
+      required: [url, expires_at]
+      properties:
+        url: {type: string, format: uri, maxLength: 4096}
+        expires_at: {type: string, format: date-time}
     MailAttachment:
       type: object
       additionalProperties: false
