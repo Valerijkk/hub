@@ -11,7 +11,8 @@ import (
 
 const mailboxAttachmentConfirmBufferBytes = 32 * 1024
 
-// ConfirmMailboxAttachment verifies one staged object outside durable locks and confirms its immutable digest.
+// ConfirmMailboxAttachment verifies one staged object outside durable locks and records a preliminary fingerprint.
+// The attachment remains scan-pending; confirmation grants no send, read, download, or materialization authority.
 func (service *MailboxAttachmentStagingService) ConfirmMailboxAttachment(ctx context.Context, actorID, attachmentID uuid.UUID, input MailboxAttachmentConfirmInput) (MailboxAttachmentView, error) {
 	if !mailboxAttachmentConfirmServiceValid(service) || ctx == nil || actorID == uuid.Nil || attachmentID == uuid.Nil || input.SizeBytes < 1 || input.SizeBytes > MaxEngineAttachmentBytes {
 		return MailboxAttachmentView{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorInvalid)

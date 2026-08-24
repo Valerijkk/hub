@@ -16,7 +16,8 @@ import (
 
 var _ MailboxAttachmentConfirmRepository = (*MailboxEntRepository)(nil)
 
-// ConfirmMailboxAttachment prepares a stream verification or durably confirms its exact immutable result.
+// ConfirmMailboxAttachment prepares a stream verification or records its preliminary fingerprint.
+// The attachment remains scan-pending; confirmation grants no send, read, download, or materialization authority.
 func (repository *MailboxEntRepository) ConfirmMailboxAttachment(ctx context.Context, request MailboxAttachmentConfirmRepositoryRequest) (MailboxAttachmentConfirmRepositoryResult, error) {
 	if repository == nil || repository.client == nil || ctx == nil || !mailboxAttachmentConfirmRepositoryRequestValid(request) {
 		return MailboxAttachmentConfirmRepositoryResult{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorInvalid)
@@ -24,13 +25,17 @@ func (repository *MailboxEntRepository) ConfirmMailboxAttachment(ctx context.Con
 
 	var result MailboxAttachmentConfirmRepositoryResult
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
-		owner, databaseNow, err := mailboxAttachmentConfirmLockOwner(ctx, transaction, request.ActorID)
+		owner, err := mailboxAttachmentConfirmLockOwner(ctx, transaction, request.ActorID)
 		if err != nil {
 			return err
 		}
 		attachment, object, err := mailboxAttachmentConfirmLockRows(ctx, transaction, owner, request.AttachmentID)
 		if err != nil {
 			return err
+		}
+		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
+		if err != nil {
+			return mailboxAttachmentConfirmEntError(err)
 		}
 
 		switch request.Phase {
@@ -62,25 +67,21 @@ func mailboxAttachmentConfirmRepositoryRequestValid(request MailboxAttachmentCon
 	}
 }
 
-func mailboxAttachmentConfirmLockOwner(ctx context.Context, transaction *ent.Tx, actorID uuid.UUID) (MailboxOwnerRecord, time.Time, error) {
+func mailboxAttachmentConfirmLockOwner(ctx context.Context, transaction *ent.Tx, actorID uuid.UUID) (MailboxOwnerRecord, error) {
 	owner, err := mailboxEntResolveOwnerForUpdate(ctx, transaction, actorID)
 	if err != nil {
-		return MailboxOwnerRecord{}, time.Time{}, mailboxAttachmentConfirmEntError(err)
+		return MailboxOwnerRecord{}, mailboxAttachmentConfirmEntError(err)
 	}
 	if owner.ActorID != actorID || owner.OrganizationID == uuid.Nil || owner.AccountID == uuid.Nil {
-		return MailboxOwnerRecord{}, time.Time{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorNotFound)
+		return MailboxOwnerRecord{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorNotFound)
 	}
 	if owner.State == MailboxOwnerDeleting {
-		return MailboxOwnerRecord{}, time.Time{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorDeleting)
+		return MailboxOwnerRecord{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorDeleting)
 	}
 	if owner.State != MailboxOwnerActive {
-		return MailboxOwnerRecord{}, time.Time{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorUnavailable)
+		return MailboxOwnerRecord{}, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorUnavailable)
 	}
-	databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
-	if err != nil {
-		return MailboxOwnerRecord{}, time.Time{}, mailboxAttachmentConfirmEntError(err)
-	}
-	return owner, databaseNow, nil
+	return owner, nil
 }
 
 func mailboxAttachmentConfirmLockRows(ctx context.Context, transaction *ent.Tx, owner MailboxOwnerRecord, attachmentID uuid.UUID) (*ent.MailAttachment, *ent.MailObject, error) {
@@ -110,13 +111,13 @@ func mailboxAttachmentConfirmLockRows(ctx context.Context, transaction *ent.Tx, 
 	if object.OrganizationID != owner.OrganizationID || object.MailAccountID != owner.AccountID || object.UploaderUserID != owner.ActorID {
 		return nil, nil, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorNotFound)
 	}
-	if !mailboxAttachmentConfirmImmutableRowsValid(attachment, object) {
+	if !mailboxAttachmentConfirmStagedRowsValid(attachment, object) {
 		return nil, nil, mailboxAttachmentStagingError(MailboxAttachmentStagingErrorStateConflict)
 	}
 	return attachment, object, nil
 }
 
-func mailboxAttachmentConfirmImmutableRowsValid(attachment *ent.MailAttachment, object *ent.MailObject) bool {
+func mailboxAttachmentConfirmStagedRowsValid(attachment *ent.MailAttachment, object *ent.MailObject) bool {
 	if attachment == nil || object == nil || attachment.ID == uuid.Nil || object.ID == uuid.Nil || attachment.MailMessageID != nil || attachment.MailDraftID != nil || attachment.PendingMailDraftID != nil || attachment.DraftClientID == nil || *attachment.DraftClientID == uuid.Nil || attachment.StorageObjectID == nil || *attachment.StorageObjectID != object.ID || attachment.EngineBlobID != nil || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || attachment.ScanStatus != mailattachment.ScanStatus("pending") || !mailboxEntValidTime(attachment.CreatedAt) || !mailboxEntValidTime(attachment.UpdatedAt) {
 		return false
 	}
@@ -126,7 +127,7 @@ func mailboxAttachmentConfirmImmutableRowsValid(attachment *ent.MailAttachment, 
 	return mailboxAttachmentConfirmPendingMetadataValid(attachment)
 }
 
-// mailboxAttachmentConfirmPendingMetadataValid validates only immutable pending metadata; it never requires a digest.
+// mailboxAttachmentConfirmPendingMetadataValid validates only pending staging metadata; it never requires a fingerprint.
 func mailboxAttachmentConfirmPendingMetadataValid(attachment *ent.MailAttachment) bool {
 	if attachment == nil || attachment.ScanStatus != mailattachment.ScanStatus("pending") {
 		return false
@@ -157,7 +158,7 @@ func mailboxAttachmentConfirmPendingMetadataValid(attachment *ent.MailAttachment
 }
 
 func mailboxAttachmentConfirmPrepare(ctx context.Context, attachment *ent.MailAttachment, object *ent.MailObject, owner MailboxOwnerRecord, databaseNow time.Time, request MailboxAttachmentConfirmRepositoryRequest, result *MailboxAttachmentConfirmRepositoryResult) error {
-	if ctx == nil || result == nil || !mailboxEntValidTime(databaseNow) || !mailboxAttachmentConfirmImmutableRowsValid(attachment, object) {
+	if ctx == nil || result == nil || !mailboxEntValidTime(databaseNow) || !mailboxAttachmentConfirmStagedRowsValid(attachment, object) {
 		return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorStateConflict)
 	}
 	switch object.UploadState {
@@ -210,7 +211,7 @@ func mailboxAttachmentConfirmPrepare(ctx context.Context, attachment *ent.MailAt
 }
 
 func mailboxAttachmentConfirmComplete(ctx context.Context, transaction *ent.Tx, attachment *ent.MailAttachment, object *ent.MailObject, owner MailboxOwnerRecord, databaseNow time.Time, request MailboxAttachmentConfirmRepositoryRequest, result *MailboxAttachmentConfirmRepositoryResult) error {
-	if ctx == nil || transaction == nil || result == nil || !mailboxEntValidTime(databaseNow) || !mailboxAttachmentConfirmImmutableRowsValid(attachment, object) || !mailboxAttachmentConfirmFenceMatchesRows(request.Fence, attachment, object, owner) {
+	if ctx == nil || transaction == nil || result == nil || !mailboxEntValidTime(databaseNow) || !mailboxAttachmentConfirmStagedRowsValid(attachment, object) || !mailboxAttachmentConfirmFenceMatchesRows(request.Fence, attachment, object, owner) {
 		return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorStateConflict)
 	}
 	switch object.UploadState {
@@ -305,7 +306,7 @@ func mailboxAttachmentConfirmFenceMatchesRows(fence *mailboxAttachmentConfirmFen
 }
 
 func mailboxAttachmentConfirmConfirmedView(attachment *ent.MailAttachment, object *ent.MailObject) (MailboxAttachmentView, bool) {
-	if !mailboxAttachmentConfirmImmutableRowsValid(attachment, object) || object.UploadState != mailobject.UploadState("confirmed") || object.ActualSizeBytes == nil || *object.ActualSizeBytes != object.ExpectedSizeBytes || len(object.SHA256) != sha256.Size || len(attachment.SHA256) != sha256.Size || !bytes.Equal(object.SHA256, attachment.SHA256) {
+	if !mailboxAttachmentConfirmStagedRowsValid(attachment, object) || object.UploadState != mailobject.UploadState("confirmed") || object.ActualSizeBytes == nil || *object.ActualSizeBytes != object.ExpectedSizeBytes || len(object.SHA256) != sha256.Size || len(attachment.SHA256) != sha256.Size || !bytes.Equal(object.SHA256, attachment.SHA256) {
 		return MailboxAttachmentView{}, false
 	}
 	var digest [sha256.Size]byte
