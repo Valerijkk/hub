@@ -491,6 +491,15 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   The worker owns only UUID scan adaptation plus one `Reconcile` call per retained item and has no
   provider, engine, HTTP, NATS, claim, resolve, or finalizer capability; production composition remains
   pending.
+  Accepted finalization is a separate sealed flow. Its bounded UUID scan and short claim freeze the
+  exact provider/binding/authorization tuple plus a nonnull clean storage-backed attachment set. One
+  same-account `GetMessage` and at most one `GetBlob` per distinct blob run outside a transaction;
+  actual bytes are rehashed and compared as an exact normalized multiset with multiplicity. The
+  returned projection must match the persisted account/message, be non-draft, have a valid version and
+  canonical `sent_at`, and receives domain-derived `confirmed_owner_submission`. A failed proof releases
+  only the accepted lease; a completion error is not compensated. This provider-neutral core is
+  `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`; its Ent adapter,
+  worker, and production composition remain pending.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals

@@ -2084,6 +2084,34 @@ The wrapper has no engine, provider, transport, HTTP, NATS, submit, preflight, m
 resolve, or finalizer capability. Server wiring, production composition, generated Ent, migration,
 SQL application, executable tests, build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
 
+### Accepted submission finalizer hydration source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. `MailboxSubmissionFinalizer` exposes only a bounded UUID accepted scan, a short
+sealed claim, one sealed completion, and exact lease release. The claim freezes the submission and
+draft UUIDs, shared account fence, bounded provider pair, engine binding hash, durable dispatch
+authorization tuple, message-size ceiling, and a nonnull set of at most fifty clean storage-backed
+attachment rows. Each row has distinct attachment/object UUID ownership, exact SHA-256 and positive
+bounded size plus normalized content ID, filename, media type, and disposition; duplicate metadata
+tuples remain multiplicity-significant.
+
+After the claim transaction closes, the core calls `GetMessage` once for the exact persisted account
+and provider message. It rejects a foreign message, malformed/bounded version or body/projection,
+draft flag, missing/invalid UTC `sent_at`, or an oversized result. Every distinct provider blob ID is
+read once with its declared positive size; aliases must agree on size. Returned account/blob/size and
+byte length must match exactly, actual bytes are rehashed, and an optional provider SHA must equal that
+digest. The exact normalized provider multiset must equal the durable multiset including duplicate
+counts. Blob IDs, attachment keys, ordering, filenames alone, and provider hashes alone are never
+ownership proof.
+
+Only after the proof does the core deep-copy the message and derive
+`confirmed_owner_submission`; the repository later re-locks and revalidates the sealed completion.
+Every pre-completion failure calls one cancellation-detached release and retains `accepted`; a
+completion error is never followed by release because commit outcome may be ambiguous. Errors expose
+only closed content-free kinds. The Ent adapter, attachment transfer/message/outbox transaction,
+finalizer worker, server wiring, generated Ent, migration, SQL application, executable tests, build,
+gofmt, lint, Docker, and runtime remain pending or `NOT_RUN`.
+
 ### Queued submission dispatch worker source-only delta
 
 `STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
