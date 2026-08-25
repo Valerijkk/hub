@@ -188,3 +188,29 @@ Mongo/NATS/WS/browser evidence remains `NOT_RUN` unless its exact Docker service
 ## Conclusion
 
 Durable unread and follow state belongs beside Mongo message history. PostgreSQL decides access; deterministic tuples, forward-only atomic upserts, exact join/revoke ordering, authorization before Mongo disclosure, and explicit reconciliation bound the unavoidable cross-store residual without Ent codegen or Redis-led truth.
+
+## Implementation addendum: audited authorization seams
+
+This addendum only hardens the frozen contract with findings from the completed backend seam audit; it introduces no new product behaviour.
+
+### PG-before-Mongo rule
+
+Create one centralized, fresh `AuthorizeChannelAccess` boundary in the messenger service/repository path. It resolves authorization from PostgreSQL/Ent for every request and must run before any Mongo read, aggregation, count, write, or response assembly. In addition to the Phase 151 unread/thread paths, harden these existing Mongo-touching operations:
+
+- `ListThreadReplies`;
+- `ToggleReaction`;
+- `DeleteMessage`;
+- `PromoteToIssue`;
+- `ListBookmarks`.
+
+The relevant implementation seams are `backend/internal/messenger/service_messages.go`, `service_channels.go`, `handler_messages.go`, optional `handler_threads.go`, `mongo_repository.go`, `combined_repository.go`, and `ent_repository.go`. `AuthorizeChannelAccess` is an access check, not a Mongo-derived shortcut: stale/revoked/private/project-ineligible requests fail before any Mongo operation and return no resource-derived data.
+
+### Tenant source and project-cap enforcement
+
+The sole server-side tenant source is `Organization.ID`, resolved through Ent after authentication and access checks. The request body, route, client cache, message document, WebSocket payload, or caller-supplied tenant identifier must never select tenant scope. Missing or ambiguous organization resolution fails closed. Phase 151 does not introduce a multi-organization claim or tenant-selection model.
+
+For a project-linked channel, `AuthorizeChannelAccess` and every membership grant/revoke path enforce an active `ProjectMember` cap. The same cap applies to WebSocket audience construction and project-member removal: remove/revoke access first, then emit only recipient-safe invalidation; never retain or publish a project-channel audience to a removed/ineligible user. Authority seams remain `backend/ent/schema/channel.go`, `channelmember.go`, `projectmember.go`, `backend/internal/messenger/ent_repository.go`, `service_channels.go`, `service_channel_invites.go`, `service_dm.go`, `service.go`, `events.go`, and `backend/internal/ws/bridge.go`.
+
+### Evidence boundary
+
+The phase-owned `python-integration` fixture for Mongo indexes, atomic upserts, membership grant/revoke, and project-removal no-leak checks is `NOT_BOUND` and therefore `NOT_RUN` until the implementation plan creates and binds its fixtures/infrastructure. No unit, mock, or static review result substitutes for that integration evidence.
