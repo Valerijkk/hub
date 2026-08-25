@@ -1,5 +1,20 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Sealed submission claim and policy-binding ABI
+
+STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN.
+
+`MailboxSubmissionPolicyBinding` deep-copies and canonicalizes the current verified domain
+snapshot, then hashes database identities/versions and policy semantics to prevent ABA. Its full
+database binding hash remains deliberately separate from the provider preflight's semantic
+`PolicyBindingHash`; a later authorization CAS must compare both against one exact claim.
+
+Claim and dispatch authorization are sealed capabilities with fail-closed accessors. They carry
+one shared `MailboxEngineCommandFence` tuple for the account and submission rows, while retaining
+the provider tuple privately. Only the future Ent repository may mint positive capabilities. No
+Ent/CAS implementation, authorization hash comparison, dispatch, migration, test execution,
+Docker, or runtime evidence is supplied by this atom.
+
 ## 2026-08-25 - Policy-bound engine submission preflight
 
 SOURCE_IMPLEMENTED_STATIC_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN.

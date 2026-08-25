@@ -1979,6 +1979,27 @@ fixture intentionally presents reverse input order but hashes low UUID then high
 
 > **Local 01B clause reconciliation:** older 144-01B Docker-blocked/do-not-start/dependency wording in this generation-gate record is `CONSUMED/HISTORICAL` only. 02E/Ent/generation/migration/service/API/UI/product/phase/release authority remains blocked.
 
+## Sealed submission claim and policy-binding ABI
+
+`MailboxSubmissionPolicyBinding` is a pure, immutable snapshot. It validates and canonicalizes
+1..100 enabled internal domains by lower-ASCII byte order then raw UUID, and deep-copies every
+input/output slice. Its full database binding hash is distinct from the provider preflight's
+semantic `PolicyBindingHash`: the full hash includes organization, policy, and domain UUIDs plus
+their versions and prevents delete/recreate ABA; the semantic hash binds the exact current caps,
+external-mail toggle, and canonical domain set seen while reading the provider draft. A future
+authorization CAS must verify both independently.
+
+`MailboxSubmissionClaim` and `MailboxSubmissionDispatchAuthorization` are sealed capabilities:
+their provider submission tuple, policy state, and result state are private, and malformed or
+zero values expose no usable data. One shared `MailboxEngineCommandFence` tuple carries the
+same lease ID, deadline, and mutation epoch for both `MailAccount` and `MailSubmission`; a future
+repository verifies that exact tuple against both rows. Positive capabilities can be minted only
+by that future Ent repository, not by callers or external tests.
+
+This source-only ABI introduces no Ent repository, transaction/CAS, rate debit, authorization
+hash comparison, provider dispatch, worker, migration, API, or runtime authority. Independent
+review is PASS C/I/M `0/0/0`; tests, generation, build, lint, Docker, and runtime are `NOT_RUN`.
+
 ## 143-04J pure projection candidate — no persistence authority
 
 The exact13 authority candidate is deliberately caller-owned and has no persistence port,
