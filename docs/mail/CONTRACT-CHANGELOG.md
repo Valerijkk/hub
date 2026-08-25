@@ -1,5 +1,21 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Accepted submission Ent finalization adapter
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxEntRepository` now owns the DB-time accepted scan and the ordered durable completion
+transaction. It seals and revalidates the provider/binding/authorization/clean-attachment claim,
+locks every involved thread before account-scoped messages, transfers the exact attachment/object
+set, resolves bounded recipient routes without recipient row locks, persists the deterministic
+confirmed-owner message/thread and `mail.sent.v1` outbox, then atomically records `sent`/`submitted`
+and advances the account epoch. Unknown private provider keywords are skipped unless they match a
+live Hub label. A repeated completion is a read-only no-op only after the immutable terminal claim,
+deterministic result message, submitted draft, and canonical correlated outbox prove the same atomic
+commit; later account epoch/lease or mutable projection drift is tolerated. Generated Ent,
+migration/SQL, executable tests, build, lint/gofmt, Docker and runtime remain `NOT_RUN`; production
+composition is separate.
+
 ## 2026-08-25 - Stale submission recovery worker
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

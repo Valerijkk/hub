@@ -509,13 +509,25 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   thin bounded worker are
   `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`. The worker adapts only the accepted UUID scan
   to one `Finalize` call per retained identity and has no engine, provider, HTTP, NATS, storage, claim,
-  complete, or release capability. The Ent adapter and production composition remain pending.
+  complete, or release capability. Production composition remains pending.
   The accepted completion also uses a pure deterministic `mail.sent.v1` derivation boundary. It
   requires exact normalized To/CC/BCC route coverage, reduces mixed delivery conservatively as
   `external > instance_domain > internal`, derives a UUIDv8 event ID only from the submission UUID,
   correlates by submission, uses the durable dispatch-authorization time as `occurred_at`, and keeps
   the provider-confirmed `sent_at`. Its visible `to` is the exact projection value, including an
   explicit empty array for CC/BCC-only mail; private recipients are never synthesized into it.
+  The source-accepted Ent finalization adapter scans only stable accepted rows at or before one
+  database UTC instant, seals exact clean storage attachment authority, and completes in one ordered
+  transaction. It locks all involved threads before account-scoped messages, revalidates ancestors,
+  transfers the sealed attachment/object set, resolves bounded recipient routes without recipient
+  locks, persists the confirmed-owner message/thread links and deterministic `mail.sent.v1` outbox,
+  then atomically marks the submission `sent`, the draft `submitted`, and advances the account epoch.
+  A repeated completion performs no repair: it succeeds only when the immutable sent claim,
+  deterministic confirmed-owner message, submitted draft, and canonical correlated outbox already
+  prove the same atomic commit. Later account epoch/lease or mutable message projection drift is not
+  part of that collision proof. This adapter is
+  `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`; generated Ent,
+  migration/SQL, compile, executable tests, Docker, and runtime remain `NOT_RUN`.
   `POST /api/mail/drafts/{draftId}/send` is the authenticated durable-send boundary. It accepts no
   query, body, or Content-Type and requires exactly one control-free `Idempotency-Key` plus one quoted
   draft revision in `If-Match`. It performs one owner-scoped submission reservation and always returns

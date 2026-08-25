@@ -2128,9 +2128,9 @@ Only after the proof does the core deep-copy the message and derive
 `confirmed_owner_submission`; the repository later re-locks and revalidates the sealed completion.
 Every pre-completion failure calls one cancellation-detached release and retains `accepted`; a
 completion error is never followed by release because commit outcome may be ambiguous. Errors expose
-only closed content-free kinds. The Ent adapter, attachment transfer/message/outbox transaction,
-server wiring, generated Ent, migration, SQL application, executable tests, build, gofmt, lint,
-Docker, and runtime remain pending or `NOT_RUN`.
+only closed content-free kinds. The Ent adapter and attachment transfer/message/outbox transaction
+are source-accepted below; server wiring, generated Ent, migration, SQL application, executable
+tests, build, gofmt, lint, Docker, and runtime remain pending or `NOT_RUN`.
 
 ### Accepted submission finalization worker source-only delta
 
@@ -2144,8 +2144,34 @@ The enabled defaults are a one-minute scan interval, thirty-second per-item dead
 twenty. Disabled zero configuration is a no-op. Cancellation, panic containment, partial-failure
 continuation, content-free errors and counts are inherited unchanged; `Dispatched` maps only to
 `Finalized`. The wrapper has no engine, provider, transport, HTTP, NATS, storage, message/blob read,
-claim, complete, or release capability. The Ent adapter, server wiring, generated Ent, migration, SQL
-application, executable tests, build, gofmt, lint, Docker, and runtime remain pending or `NOT_RUN`.
+claim, complete, or release capability. Server wiring, generated Ent, migration, SQL application,
+executable tests, build, gofmt, lint, Docker, and runtime remain pending or `NOT_RUN`.
+
+### Accepted submission Ent finalization adapter source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. `MailboxEntRepository` now implements the accepted scan/claim/complete/release
+port. The scan samples one database UTC clock, excludes future `updated_at` rows, and returns only
+stable unleased accepted UUIDs. Claim locks Account -> Submission -> Draft, seals the provider,
+engine binding, dispatch authorization, shared fence, message ceiling, and exact nonnull clean
+storage-backed attachment/object authority, then releases the transaction before provider reads.
+
+Completion re-locks Account -> Submission -> Draft, pre-reads ancestor identities, locks the sorted
+complete thread set before the sorted account-scoped target/ancestor message set, and revalidates the
+locked graph. It transfers exactly the sealed attachment/object rows, materializes the deterministic
+confirmed-owner message and thread, applies folder/Hub-label links, resolves only bounded recipient
+identities and verified domains without `ForUpdate`, and appends exactly one deterministic
+`mail.sent.v1` outbox event. The same transaction marks the submission `sent`, the linked draft
+`submitted`, clears the submission command lease, and advances the account epoch.
+
+A terminal completion replay never repairs rows or repeats provider I/O. It returns success only for
+the exact immutable sent submission claim, deterministic account-scoped confirmed-owner result
+message, exact submitted draft, and one structurally valid canonical outbox envelope correlated to
+the same account/submission/message/thread and authorization occurrence. The account epoch may have
+advanced and a later account lease may exist; mutable projection, attachment, route, and thread
+aggregate drift is intentionally not revalidated because the original terminal state was committed
+atomically. Every essential mismatch is `finalization_required`. Generated Ent, migration/SQL,
+compile, executable tests, build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
 
 ### Accepted submission sent-event derivation source-only delta
 
@@ -2161,8 +2187,8 @@ Event identity is deterministic UUIDv8 over a length-delimited
 UUID, `occurred_at` is the immutable dispatch-authorization time, and payload `sent_at` is the exact
 provider-confirmed projection time. The public `to` array is the exact visible projection To and may
 be empty; neither CC nor BCC is synthesized or exposed. The Ent completion adapter owns current-state
-recipient resolution and atomic outbox insertion; it remains pending with server wiring, generated Ent,
-migration, executable tests, build, gofmt, lint, Docker and runtime `NOT_RUN`.
+recipient resolution and atomic outbox insertion and is source-accepted above. Server wiring, generated
+Ent, migration, executable tests, build, gofmt, lint, Docker and runtime remain `NOT_RUN`.
 
 ### Queued submission dispatch worker source-only delta
 
