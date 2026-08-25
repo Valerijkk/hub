@@ -455,25 +455,38 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   It samples one database clock, accepts only the live dual fence and the exact sealed-to-stored
   dispatch authorization hash, and retains the draft in `submitting`. A valid opaque provider pair
   whose message identifier equals the persisted engine message identifier transitions to `accepted`;
-  every provider-pair mismatch transitions to `unknown` with `MAIL_SUBMISSION_OUTCOME_UNKNOWN`.
+  every provider-pair mismatch transitions to `unknown` with `MAIL_SUBMISSION_OUTCOME_UNKNOWN`,
+  `reconcile_attempts = 0`, and `next_reconcile_at` equal to that transaction's database time.
   Both outcomes release the account/submission leases and advance the account epoch; neither can
   requeue or re-submit a stale `submitting` record. This dispatch-resolution adapter is
   `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN` only, not runtime,
   Ent-generation, database, product, or release evidence.
-  A stale submission lease scan is bounded to 1..50 records and selects only `authorizing` or
-  `submitting` entries ordered by `(command_lease_expires_at,id)` with `<=` one database UTC
+  A stale submission lease scan is bounded to 1..50 records and selects `authorizing`,
+  `submitting`, `unknown`, or `accepted` entries ordered by `(command_lease_expires_at,id)` with `<=` one database UTC
   instant; its ID/status/lease rows are advisory, not recovery capabilities. Recovery accepts only
   a submission ID, re-locks Account -> Submission -> Draft, reads one database clock, and requires
   the exact expired shared token, expiry, epoch, state, and submitting draft. A stale authorizing
   attempt 1..7 returns to `queued` at that database instant without changing its attempt or draft;
   attempt 8 becomes `failed` with `MAIL_SUBMISSION_RETRY_EXHAUSTED` and returns the draft to
   `active`. Any stale `submitting` attempt becomes `unknown` with
-  `MAIL_SUBMISSION_RECONCILIATION_REQUIRED`, preserving the sealed authorization time/hash and
-  command fence. Each applying path releases both leases and advances the account epoch; a changed/deleted or not-due record is a no-op, a malformed row is invalid, and an exact-fence
+  `MAIL_SUBMISSION_RECONCILIATION_REQUIRED`, zero reconciliation attempts, and an immediate
+  database-time reconciliation due, preserving the sealed authorization time/hash and command
+  fence. Expired `unknown` ownership is released back to its waiting due shape, or to exact
+  `MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED` when attempt 10 was already owned; expired `accepted`
+  ownership is only released for the finalizer to retry. Each applying path releases both leases
+  and advances the account epoch; an already released, changed, deleted, or not-due record is a
+  no-op, a malformed row is invalid, and an exact-fence
   race is `version_conflict`. The source candidate is
   `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`: it performs no
   provider, NATS, HTTP, or worker dispatch, and is not Ent-generation, database, product, or
   release evidence.
+  Unknown reconciliation itself is a separate provider-read-only flow. A bounded UUID-only scan
+  feeds a short sealed claim, and a claimed item invokes `ReconcileSubmission` at most once. An
+  exact accepted provider pair must retain the sealed engine message ID; absent, indeterminate,
+  cancelled, or unsafe results resolve only to the closed retry codes `MAILBOX_UNAVAILABLE` or
+  `MAIL_SUBMISSION_RECONCILIATION_REQUIRED` through a cancellation-detached durable resolve. The
+  core ABI/flow is `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN`; its Ent scan/claim/resolve adapter and worker remain pending.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals
