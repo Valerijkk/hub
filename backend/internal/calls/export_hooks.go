@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v3"
@@ -67,6 +68,12 @@ func ExportMaxActiveRecordingsPerCall() int {
 func ExportNewCallServiceWithProviderForTest(repo *EntRepository, provider ConferenceProvider, pub *CallEventPublisher, chat *CallChatService) *CallService {
 	return &CallService{repo: repo, provider: provider, pub: pub, chat: chat}
 }
+
+// ExportNewJitsiCredentialIssuerForTest creates an isolated Jitsi issuer for hubtest.
+func ExportNewJitsiCredentialIssuerForTest(cfg config.JitsiConfig, now func() time.Time) (*jitsiCredentialIssuer, error) {
+	return newJitsiCredentialIssuer(cfg, now)
+}
+
 // ExportNewHandlerForTest создаёт Handler с полным набором зависимостей для hubtest.
 func ExportNewHandlerForTest(service *CallService, recSvc *RecordingService, scheduledSvc *ScheduledCallService, cfg config.LiveKitConfig, rbacSvc *rbac.RBACService) *Handler {
 	return &Handler{service: service, recSvc: recSvc, scheduledSvc: scheduledSvc, cfg: cfg, rbacSvc: rbacSvc}
