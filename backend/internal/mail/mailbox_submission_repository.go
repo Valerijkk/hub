@@ -31,14 +31,14 @@ const (
 	MailboxSubmissionErrorCodeOutcomeUnknown          MailboxSubmissionErrorCode = "MAIL_SUBMISSION_OUTCOME_UNKNOWN"
 	MailboxSubmissionErrorCodeReconciliationRequired  MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RECONCILIATION_REQUIRED"
 	MailboxSubmissionErrorCodeReconciliationExhausted MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED"
-	MailboxSubmissionErrorCodeMailboxUnavailable       MailboxSubmissionErrorCode = "MAILBOX_UNAVAILABLE"
-	MailboxSubmissionErrorCodeRejected                 MailboxSubmissionErrorCode = "MAIL_SUBMISSION_REJECTED"
-	MailboxSubmissionErrorCodePolicy                   MailboxSubmissionErrorCode = "MAIL_SUBMISSION_POLICY"
-	MailboxSubmissionErrorCodeAttachmentNotClean       MailboxSubmissionErrorCode = "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN"
-	MailboxSubmissionErrorCodeIdentityUnavailable      MailboxSubmissionErrorCode = "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE"
-	MailboxSubmissionErrorCodeRecipientLimit           MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RECIPIENT_LIMIT"
-	MailboxSubmissionErrorCodeSizeLimit                MailboxSubmissionErrorCode = "MAIL_SUBMISSION_SIZE_LIMIT"
-	MailboxSubmissionErrorCodeRetryExhausted           MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RETRY_EXHAUSTED"
+	MailboxSubmissionErrorCodeMailboxUnavailable      MailboxSubmissionErrorCode = "MAILBOX_UNAVAILABLE"
+	MailboxSubmissionErrorCodeRejected                MailboxSubmissionErrorCode = "MAIL_SUBMISSION_REJECTED"
+	MailboxSubmissionErrorCodePolicy                  MailboxSubmissionErrorCode = "MAIL_SUBMISSION_POLICY"
+	MailboxSubmissionErrorCodeAttachmentNotClean      MailboxSubmissionErrorCode = "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN"
+	MailboxSubmissionErrorCodeIdentityUnavailable     MailboxSubmissionErrorCode = "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE"
+	MailboxSubmissionErrorCodeRecipientLimit          MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RECIPIENT_LIMIT"
+	MailboxSubmissionErrorCodeSizeLimit               MailboxSubmissionErrorCode = "MAIL_SUBMISSION_SIZE_LIMIT"
+	MailboxSubmissionErrorCodeRetryExhausted          MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RETRY_EXHAUSTED"
 )
 
 // MailboxSubmissionRecord is the content-free durable receipt returned across
@@ -59,11 +59,11 @@ type MailboxSubmissionRecord struct {
 // intent. The provider key is deliberately absent: only the repository creates
 // it after it has ruled out an idempotency replay.
 type MailboxSubmissionCreateRequest struct {
-	AccountID           uuid.UUID
-	DraftID             uuid.UUID
-	ExpectedRevision    int64
-	IdempotencyKeyHash  [sha256.Size]byte
-	RequestHash         [sha256.Size]byte
+	AccountID          uuid.UUID
+	DraftID            uuid.UUID
+	ExpectedRevision   int64
+	IdempotencyKeyHash [sha256.Size]byte
+	RequestHash        [sha256.Size]byte
 }
 
 // MailboxSubmissionReservationKind distinguishes an exact idempotency replay
@@ -86,6 +86,23 @@ type MailboxSubmissionReservation struct {
 // any active submission before creating a new queued record.
 type MailboxSubmissionRepository interface {
 	ReserveMailboxSubmission(context.Context, MailboxSubmissionCreateRequest) (MailboxSubmissionReservation, error)
+}
+
+// MailboxSubmissionReadRequest scopes one durable submission receipt to the
+// authenticated mailbox owner. It carries identifiers only; provider and
+// draft content never cross the read boundary.
+type MailboxSubmissionReadRequest struct {
+	ActorID        uuid.UUID
+	OrganizationID uuid.UUID
+	AccountID      uuid.UUID
+	SubmissionID   uuid.UUID
+}
+
+// MailboxSubmissionReader reads one owner-scoped durable submission receipt.
+// It is deliberately separate from MailboxSubmissionRepository so existing
+// reservation fakes do not need to broaden their contract.
+type MailboxSubmissionReader interface {
+	ReadMailboxSubmission(context.Context, MailboxSubmissionReadRequest) (MailboxSubmissionRecord, error)
 }
 
 // MailboxSubmissionRepositoryErrorKind is a closed, content-free failure

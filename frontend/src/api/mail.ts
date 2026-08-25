@@ -214,7 +214,9 @@ export interface SaveMailDraftRequest {
 
 export type MailSubmissionStatus =
 	| "queued"
+	| "authorizing"
 	| "submitting"
+	| "accepted"
 	| "sent"
 	| "unknown"
 	| "failed";
@@ -223,11 +225,13 @@ export type MailSubmissionErrorCode =
 	| "MAIL_SUBMISSION_REJECTED"
 	| "MAIL_SUBMISSION_OUTCOME_UNKNOWN"
 	| "MAIL_SUBMISSION_RECONCILIATION_REQUIRED"
+	| "MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED"
 	| "MAIL_SUBMISSION_POLICY"
 	| "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN"
 	| "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE"
 	| "MAIL_SUBMISSION_RECIPIENT_LIMIT"
 	| "MAIL_SUBMISSION_SIZE_LIMIT"
+	| "MAIL_SUBMISSION_RETRY_EXHAUSTED"
 	| "MAILBOX_UNAVAILABLE";
 
 export interface MailSubmission {

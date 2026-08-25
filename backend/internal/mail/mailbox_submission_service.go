@@ -41,6 +41,7 @@ type MailboxSubmissionView struct {
 type MailboxSubmissionService struct {
 	owners     mailboxOwnerResolver
 	repository MailboxSubmissionRepository
+	reader     MailboxSubmissionReader
 }
 
 // NewMailboxSubmissionService creates the owner-gated durable submission
@@ -49,7 +50,11 @@ func NewMailboxSubmissionService(owners mailboxOwnerResolver, repository Mailbox
 	if mailboxSubmissionDependencyNil(owners) || mailboxSubmissionDependencyNil(repository) {
 		return nil, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
 	}
-	return &MailboxSubmissionService{owners: owners, repository: repository}, nil
+	var reader MailboxSubmissionReader
+	if candidate, ok := repository.(MailboxSubmissionReader); ok && !mailboxSubmissionDependencyNil(candidate) {
+		reader = candidate
+	}
+	return &MailboxSubmissionService{owners: owners, repository: repository, reader: reader}, nil
 }
 
 // CreateMailboxSubmission atomically records or replays one send intent. It
@@ -97,12 +102,52 @@ func (service *MailboxSubmissionService) CreateMailboxSubmission(ctx context.Con
 	return mailboxSubmissionViewFromRecord(reservation.Submission)
 }
 
+// GetMailboxSubmission returns one owner-scoped durable submission receipt.
+// It performs no provider, engine, reconciliation, or worker I/O.
+func (service *MailboxSubmissionService) GetMailboxSubmission(ctx context.Context, actorID, submissionID uuid.UUID) (MailboxSubmissionView, error) {
+	if !mailboxSubmissionServiceValid(service) || ctx == nil || actorID == uuid.Nil || submissionID == uuid.Nil {
+		return MailboxSubmissionView{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
+	}
+	if ctx.Err() != nil {
+		return MailboxSubmissionView{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorUnavailable)
+	}
+
+	owner, err := service.owners.ResolveOwner(ctx, actorID)
+	if err != nil {
+		return MailboxSubmissionView{}, mailboxSubmissionOwnerError(err)
+	}
+	scope, err := mailboxSubmissionScopeFromOwner(actorID, owner)
+	if err != nil {
+		return MailboxSubmissionView{}, err
+	}
+	if mailboxSubmissionDependencyNil(service.reader) {
+		return MailboxSubmissionView{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorUnavailable)
+	}
+
+	record, err := service.reader.ReadMailboxSubmission(ctx, MailboxSubmissionReadRequest{
+		ActorID:        scope.actorID,
+		OrganizationID: scope.organizationID,
+		AccountID:      scope.accountID,
+		SubmissionID:   submissionID,
+	})
+	if err != nil {
+		return MailboxSubmissionView{}, mailboxSubmissionRepositoryError(err)
+	}
+	if record.ID != submissionID || record.AccountID != scope.accountID {
+		return MailboxSubmissionView{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
+	}
+	return mailboxSubmissionViewFromRecord(record)
+}
+
 type mailboxSubmissionScope struct {
-	accountID uuid.UUID
+	actorID        uuid.UUID
+	organizationID uuid.UUID
+	accountID      uuid.UUID
 }
 
 func mailboxSubmissionScopeFromOwner(actorID uuid.UUID, owner MailboxOwner) (mailboxSubmissionScope, error) {
-	if actorID == uuid.Nil || owner.OrganizationID() == uuid.Nil {
+	organizationID := owner.OrganizationID()
+	if actorID == uuid.Nil || organizationID == uuid.Nil {
 		return mailboxSubmissionScope{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
 	}
 	accountID, hasAccount := owner.AccountID()
@@ -127,7 +172,7 @@ func mailboxSubmissionScopeFromOwner(actorID uuid.UUID, owner MailboxOwner) (mai
 		if !hasAccount || accountID == uuid.Nil || !owner.hasEngineAccountID || !syncValidOpaque(owner.engineAccountID, MaxEngineOpaqueIDBytes) || !hasProjectionState || projectionState != MailboxProjectionReady {
 			return mailboxSubmissionScope{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
 		}
-		return mailboxSubmissionScope{accountID: accountID}, nil
+		return mailboxSubmissionScope{actorID: actorID, organizationID: organizationID, accountID: accountID}, nil
 	default:
 		return mailboxSubmissionScope{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
 	}
@@ -225,6 +270,7 @@ func mailboxSubmissionReplayRecordValid(record MailboxSubmissionRecord, accountI
 		switch *record.LastErrorCode {
 		case MailboxSubmissionErrorCodeOutcomeUnknown,
 			MailboxSubmissionErrorCodeReconciliationRequired,
+			MailboxSubmissionErrorCodeReconciliationExhausted,
 			MailboxSubmissionErrorCodeMailboxUnavailable:
 			return true
 		default:

@@ -15,9 +15,14 @@ type mailboxSubmissionCreator interface {
 	CreateMailboxSubmission(context.Context, uuid.UUID, uuid.UUID, MailboxSubmissionCreateInput) (MailboxSubmissionView, error)
 }
 
+type mailboxSubmissionReader interface {
+	GetMailboxSubmission(context.Context, uuid.UUID, uuid.UUID) (MailboxSubmissionView, error)
+}
+
 // MailboxSubmissionHandler exposes the authenticated durable send-intent transport.
 type MailboxSubmissionHandler struct {
 	service mailboxSubmissionCreator
+	reader  mailboxSubmissionReader
 }
 
 // NewMailboxSubmissionHandler creates the authenticated submission handler.
@@ -25,15 +30,21 @@ func NewMailboxSubmissionHandler(service mailboxSubmissionCreator) (*MailboxSubm
 	if mailboxHTTPDependencyNil(service) {
 		return nil, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
 	}
-	return &MailboxSubmissionHandler{service: service}, nil
+	handler := &MailboxSubmissionHandler{service: service}
+	if reader, ok := service.(mailboxSubmissionReader); ok && !mailboxHTTPDependencyNil(reader) {
+		handler.reader = reader
+	}
+	return handler, nil
 }
 
-// RegisterRoutes registers only POST /api/mail/drafts/:draftId/send on the supplied /api router.
+// RegisterRoutes registers authenticated submission creation and receipt reads on the supplied /api router.
 func (handler *MailboxSubmissionHandler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler) error {
 	if handler == nil || mailboxHTTPDependencyNil(handler.service) || mailboxHTTPDependencyNil(api) || mailboxHTTPDependencyNil(authMiddleware) {
 		return mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
 	}
-	api.Group("/mail", authMiddleware).Post("/drafts/:draftId/send", handler.send)
+	mail := api.Group("/mail", authMiddleware)
+	mail.Post("/drafts/:draftId/send", handler.send)
+	mail.Get("/submissions/:submissionId", handler.get)
 	return nil
 }
 
@@ -79,6 +90,33 @@ func (handler *MailboxSubmissionHandler) send(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusAccepted).JSON(response)
 }
 
+func (handler *MailboxSubmissionHandler) get(ctx fiber.Ctx) error {
+	if handler == nil || mailboxHTTPDependencyNil(handler.reader) {
+		return mailboxSubmissionHTTPUnavailable()
+	}
+	if err := mailboxSubmissionHTTPRejectTransport(ctx); err != nil {
+		return err
+	}
+	actorID, err := mailboxActorID(ctx)
+	if err != nil {
+		return err
+	}
+	submissionID, err := mailboxSubmissionHTTPCanonicalUUID(ctx.Params("submissionId"))
+	if err != nil {
+		return err
+	}
+	view, err := handler.reader.GetMailboxSubmission(ctx.Context(), actorID, submissionID)
+	if err != nil {
+		return mailboxSubmissionHTTPReadServiceError(ctx, err)
+	}
+	response, ok := mailboxSubmissionHTTPResponseFromView(view)
+	if !ok {
+		return mailboxSubmissionHTTPUnavailable()
+	}
+	ctx.Set("Cache-Control", "no-store")
+	return ctx.Status(http.StatusOK).JSON(response)
+}
+
 func mailboxSubmissionHTTPRejectTransport(ctx fiber.Ctx) error {
 	if ctx == nil || len(ctx.Request().URI().QueryString()) != 0 || len(ctx.BodyRaw()) != 0 || ctx.Request().Header.Peek(fiber.HeaderContentType) != nil {
 		return mailboxSubmissionHTTPInvalidRequest()
@@ -106,13 +144,21 @@ func mailboxSubmissionHTTPExactlyOneHeaderValue(ctx fiber.Ctx, name string) ([]b
 	return value, count == 1
 }
 
+func mailboxSubmissionHTTPCanonicalUUID(raw string) (uuid.UUID, error) {
+	value, err := uuid.Parse(raw)
+	if err != nil || value == uuid.Nil || raw != value.String() {
+		return uuid.Nil, mailboxSubmissionHTTPInvalidRequest()
+	}
+	return value, nil
+}
+
 type mailboxSubmissionHTTPResponse struct {
-	ID        string     `json:"id"`
-	Status    string     `json:"status"`
-	MessageID *string    `json:"message_id"`
-	ErrorCode *string    `json:"error_code"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        string    `json:"id"`
+	Status    string    `json:"status"`
+	MessageID *string   `json:"message_id"`
+	ErrorCode *string   `json:"error_code"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func mailboxSubmissionHTTPResponseFromView(view MailboxSubmissionView) (mailboxSubmissionHTTPResponse, bool) {
@@ -172,6 +218,8 @@ func mailboxSubmissionHTTPPublicViewValid(status MailboxSubmissionStatus, messag
 		switch *errorCode {
 		case MailboxSubmissionErrorCodeOutcomeUnknown, MailboxSubmissionErrorCodeReconciliationRequired, MailboxSubmissionErrorCodeMailboxUnavailable:
 			return true
+		case MailboxSubmissionErrorCodeReconciliationExhausted:
+			return true
 		default:
 			return false
 		}
@@ -221,6 +269,24 @@ func mailboxSubmissionHTTPServiceError(ctx fiber.Ctx, err error) error {
 	case MailboxSubmissionServiceErrorIdempotencyConflict:
 		ctx.Set("X-Hub-Error-Code", "IDEMPOTENCY_KEY_REUSED")
 		return fiber.NewError(http.StatusConflict, "mail submission idempotency conflict")
+	default:
+		return mailboxSubmissionHTTPUnavailable()
+	}
+}
+
+func mailboxSubmissionHTTPReadServiceError(ctx fiber.Ctx, err error) error {
+	var serviceError *MailboxSubmissionServiceError
+	if !errors.As(err, &serviceError) || serviceError == nil {
+		return mailboxSubmissionHTTPUnavailable()
+	}
+	switch serviceError.Kind() {
+	case MailboxSubmissionServiceErrorInvalid:
+		return mailboxSubmissionHTTPInvalidRequest()
+	case MailboxSubmissionServiceErrorNotFound:
+		return fiber.NewError(http.StatusNotFound, "mail submission unavailable")
+	case MailboxSubmissionServiceErrorDeleting:
+		ctx.Set("X-Hub-Error-Code", "MAIL_ACCOUNT_DELETING")
+		return fiber.NewError(http.StatusConflict, "mail account is deleting")
 	default:
 		return mailboxSubmissionHTTPUnavailable()
 	}

@@ -116,13 +116,14 @@ tags:
 paths:
   x-hub-mail-account-deleting-409-oracle:
     description: >-
-      For a resolved deleting account these operations return the MailAccountDeleting 409 before
-      receipt create/replay, expansion/snapshot, storage or engine I/O. No mutation response has
-      Retry-After; GET /mail/account is the sole poll endpoint.
+      For a resolved deleting account these operations return the MailAccountDeleting 409 after
+      the required owner-scoped account lookup but before receipt create/replay/read,
+      expansion/snapshot, or provider, engine, and worker I/O. No mutation response has
+      Retry-After; GET /mail/account is the sole account-deletion polling endpoint.
     operations: [listMailFolders, createMailFolder, updateMailFolder, deleteMailFolder,
       listMailLabels, createMailLabel, updateMailLabel, deleteMailLabel, listMailThreads,
       getMailThread, getMailMessage, downloadMailMessageAttachment, proxyMailRemoteImage, bulkMutateMailMessages,
-      createMailDraft, getMailDraft, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
+      createMailDraft, getMailDraft, getMailSubmission, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
       deleteMailAttachment, searchMail, suggestMailContacts, getMailUserSettings,
       updateMailUserSettings, listMailIdentities, listMailSignatures, createMailSignature,
       updateMailSignature, deleteMailSignature, listMailRules, createMailRule, updateMailRule,
@@ -690,6 +691,30 @@ paths:
         "400": {$ref: "#/components/responses/Error"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/MailSubmissionConflict"}
+        "503": {$ref: "#/components/responses/Error"}
+  /mail/submissions/{submissionId}:
+    parameters:
+      - {$ref: "#/components/parameters/SubmissionId"}
+    get:
+      tags: [MailDrafts]
+      operationId: getMailSubmission
+      x-hub-authz: mailbox-owner
+      description: >-
+        Observes one owner-scoped durable submission receipt. The request accepts no query,
+        body, or Content-Type and performs no provider, engine, reconciliation, or worker I/O.
+      responses:
+        "200":
+          description: Current durable submission receipt
+          headers:
+            Cache-Control:
+              required: true
+              schema: {const: no-store}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailSubmission"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         "503": {$ref: "#/components/responses/Error"}
   /mail/attachments/presign:
     post:
@@ -2129,7 +2154,8 @@ components:
     MailAccountDeleting:
       description: >-
         The resolved MailAccount is in the non-interactive deleting state. The caller must poll
-        GET /mail/account; no receipt/replay, expansion, snapshot, storage or engine I/O ran.
+        GET /mail/account. The required owner-scoped account lookup runs, but no receipt
+        create/replay/read, expansion/snapshot, or provider, engine, and worker I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
@@ -3026,7 +3052,7 @@ components:
           description: Hub MailMessage projection UUID; never an opaque engine message identifier
         error_code:
           type: [string, "null"]
-          enum: [MAIL_SUBMISSION_REJECTED, MAIL_SUBMISSION_OUTCOME_UNKNOWN, MAIL_SUBMISSION_RECONCILIATION_REQUIRED, MAIL_SUBMISSION_POLICY, MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN, MAIL_SUBMISSION_IDENTITY_UNAVAILABLE, MAIL_SUBMISSION_RECIPIENT_LIMIT, MAIL_SUBMISSION_SIZE_LIMIT, MAIL_SUBMISSION_RETRY_EXHAUSTED, MAILBOX_UNAVAILABLE, null]
+          enum: [MAIL_SUBMISSION_REJECTED, MAIL_SUBMISSION_OUTCOME_UNKNOWN, MAIL_SUBMISSION_RECONCILIATION_REQUIRED, MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED, MAIL_SUBMISSION_POLICY, MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN, MAIL_SUBMISSION_IDENTITY_UNAVAILABLE, MAIL_SUBMISSION_RECIPIENT_LIMIT, MAIL_SUBMISSION_SIZE_LIMIT, MAIL_SUBMISSION_RETRY_EXHAUSTED, MAILBOX_UNAVAILABLE, null]
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
       allOf:
@@ -3050,7 +3076,7 @@ components:
           then:
             properties:
               message_id: {const: null}
-              error_code: {enum: [MAIL_SUBMISSION_OUTCOME_UNKNOWN, MAIL_SUBMISSION_RECONCILIATION_REQUIRED, MAILBOX_UNAVAILABLE]}
+              error_code: {enum: [MAIL_SUBMISSION_OUTCOME_UNKNOWN, MAIL_SUBMISSION_RECONCILIATION_REQUIRED, MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED, MAILBOX_UNAVAILABLE]}
         - if:
             properties: {status: {const: failed}}
             required: [status]

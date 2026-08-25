@@ -1,4 +1,22 @@
 ---
+mail_submission_receipt_polling_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Exact source blobs: repository
+  `9e7fab3f86721ff90fdc88dd264feb8e8c4101aa`, Ent adapter
+  `bf2c5e2c959224ed19fa8e42d454ca54d97dc6a4`, service
+  `dd12aaf30291096ff6b942e77612d69f2646549a`, handler
+  `a6bc91697d80e0aee4a2ef3d136ff672cb4b022e`, frontend API
+  `d9640bc1616e98ee4accc1c6355794bca1f346fd`. Authenticated
+  `GET /mail/submissions/{submissionId}` closes the existing composer polling
+  404 gap with an exact actor/organization/account/submission fence, a short
+  Ent transaction, nondisclosing absence, and `Cache-Control: no-store`.
+  Observation performs no provider, engine, reconciliation or worker I/O and
+  preserves durable intermediate and exhausted receipt states. No schema or
+  migration changes are required. Tests/build/lint/Docker/runtime are NOT_RUN;
+  this is not product, Docker or merge readiness. `provenance_source:
+  dispatcher-enforced`; implementation Terra/xhigh; reviews Contract/high,
+  Security/xhigh and Lifecycle/high; no fallback; telemetry UNKNOWN.
 mail_reader_authoritative_calendar_link_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_ACCESSIBILITY_AND_SECURITY_REVIEW_PASS_C_I_M_0_0_0 /
