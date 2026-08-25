@@ -37,6 +37,23 @@ mail_calendar_draft_sealed_bridge_2026_08_25: >-
   drafts retain their existing path. This transitional fail-closed branch must be replaced
   before Calendar delivery production composition is enabled. Compile, tests, generation,
   migration/SQL, formatting/lint, Docker and runtime remain NOT_RUN; this is not readiness.
+mail_calendar_draft_mime_carrier_2026_08_25: >-
+  SOURCE_CONTRACT_AUTHORED / INDEPENDENT_CONTRACT_AND_SECURITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for the generic content-free `PendingCreateMIME` repository Record/Work
+  carrier and exact source blobs `14d9bcac5f380a89f13c14ed1115b93fa24f406c`,
+  `c6395ac74826725721e14867319b27e4590f8a05`,
+  `c6e5b83741b69e5f578b9df6d99347e9b40a1fd9`,
+  `aabcc5b3616f46ee760a41bded5dda39a7077ebb`,
+  `a82bfbad4eaf7f25d59e6eb67693295ec7243f0b` and
+  `973b4b5293c9898d3cf54e7af1b1c4ff49562476`. Record and work deep-copy every
+  nested recovery pointer and compare the entire closed state; each side independently proves
+  the generic-to-legacy bridge before dispatch/import. Active and save states require the
+  carrier idle, attachment creates accept legacy-only nil rows or exact generic attachment
+  mirrors, and calendar generic-only state cannot enter the attachment path. No raw MIME/iTIP
+  is carried. Generated Ent read/write remains intentionally absent until the Q47 bounded
+  schema-maintenance flow; no enabled production path can persist non-nil generic state while
+  Calendar draft creation remains fail-closed. Compile, tests, generation, migration/SQL,
+  formatting/lint, Docker and runtime remain NOT_RUN; this is not readiness acceptance.
 mail_calendar_outbound_mime_part_2026_08_25: >-
   STATIC_IMPLEMENTED / STATIC_ACCEPTED only for the sealed outbound calendar
   part, private planner/stream and private calendar-only RFC822 UploadBlob seam

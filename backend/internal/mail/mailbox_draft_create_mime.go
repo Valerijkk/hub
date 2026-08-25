@@ -153,6 +153,20 @@ func mailboxDraftCreateMIMEStateCopy(
 	return &copyState
 }
 
+func mailboxDraftCreateMIMEStatesEqual(left, right *MailboxDraftCreateMIMEState) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	return left.Kind == right.Kind &&
+		left.Phase == right.Phase &&
+		left.BindingDigest == right.BindingDigest &&
+		left.Attempt == right.Attempt &&
+		mailboxDraftCreateMIMEStringEqual(left.BlobID, right.BlobID) &&
+		mailboxDraftCreateMIMEInt64Equal(left.SizeBytes, right.SizeBytes) &&
+		mailboxDraftCreateMIMETimeEqual(left.RetryAt, right.RetryAt) &&
+		mailboxDraftCreateMIMETimeEqual(left.ExhaustedAt, right.ExhaustedAt)
+}
+
 func validMailboxDraftCreateMIMEStateBridge(
 	state *MailboxDraftCreateMIMEState,
 	status MailboxDraftStatus,

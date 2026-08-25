@@ -528,14 +528,81 @@ func mailboxDraftCreateDispatchReservationValid(reservation MailboxDraftReservat
 	if (reservation.Kind != MailboxDraftReservationDispatch && reservation.Kind != MailboxDraftReservationReconcileRequired) || reservation.Work == nil || reservation.Fence == nil || reservation.Draft.ID != prepared.draftID || reservation.Draft.AccountID != prepared.scope.accountID || reservation.Draft.DraftClientID != prepared.canonical.DraftClientID || reservation.Draft.Status != MailboxDraftStatusSaving || reservation.Draft.Revision != 1 || reservation.Draft.EngineMessageID != nil || reservation.Draft.EngineVersion != nil || reservation.Draft.PendingSave != nil || reservation.Draft.LastMutationID == nil || reservation.Draft.PendingMutationKind == nil || *reservation.Draft.PendingMutationKind != MailboxDraftMutationCreate || *reservation.Draft.LastMutationID != reservation.Work.MutationID || reservation.Work.Kind != MailboxDraftWorkCreate || reservation.Work.EngineDraftKey != reservation.Draft.EngineDraftKey || reservation.Work.Revision != reservation.Draft.Revision || reservation.Work.RequestHash != prepared.canonical.RequestHash || !mailboxDraftCreateEffectiveStatesEqual(reservation.Work.EffectiveState, prepared.effectiveState) || !mailboxDraftCreateEffectiveStatesEqual(reservation.Draft.Confirmed, prepared.effectiveState) || reservation.Fence.AccountID != prepared.scope.accountID || !mailboxEntEngineCommandFenceValid(*reservation.Fence) {
 		return false
 	}
-	if hasAttachments {
-		return reservation.Draft.PendingCreateAttachmentPhase != nil && *reservation.Draft.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload && reservation.Draft.PendingCreateUploadBlobID == nil && reservation.Draft.PendingCreateUploadSizeBytes == nil && reservation.Draft.PendingCreateUploadAttempt >= 1 && reservation.Draft.PendingCreateUploadAttempt <= 3 && reservation.Work.PendingCreateAttachmentPhase != nil && *reservation.Work.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload && reservation.Work.PendingCreateUploadBlobID == nil && reservation.Work.PendingCreateUploadSizeBytes == nil && reservation.Work.PendingCreateUploadAttempt == reservation.Draft.PendingCreateUploadAttempt && len(prepared.effectiveState.AttachmentIDs) != 0
+	if !mailboxDraftCreateMIMEStatesEqual(
+		reservation.Draft.PendingCreateMIME,
+		reservation.Work.PendingCreateMIME,
+	) ||
+		!validMailboxDraftCreateMIMEStateBridge(
+			reservation.Draft.PendingCreateMIME,
+			reservation.Draft.Status,
+			reservation.Draft.PendingMutationKind,
+			reservation.Draft.PendingCreateAttachmentPhase,
+			reservation.Draft.PendingCreateUploadBlobID,
+			reservation.Draft.PendingCreateUploadSizeBytes,
+			reservation.Draft.PendingCreateUploadAttempt,
+			reservation.Draft.PendingCreateUploadRetryAt,
+			reservation.Draft.PendingCreateUploadExhaustedAt,
+		) ||
+		!validMailboxDraftCreateMIMEStateBridge(
+			reservation.Work.PendingCreateMIME,
+			reservation.Draft.Status,
+			reservation.Draft.PendingMutationKind,
+			reservation.Work.PendingCreateAttachmentPhase,
+			reservation.Work.PendingCreateUploadBlobID,
+			reservation.Work.PendingCreateUploadSizeBytes,
+			reservation.Work.PendingCreateUploadAttempt,
+			reservation.Work.PendingCreateUploadRetryAt,
+			reservation.Work.PendingCreateUploadExhaustedAt,
+		) {
+		return false
 	}
-	return reservation.Draft.PendingCreateAttachmentPhase == nil && reservation.Draft.PendingCreateUploadBlobID == nil && reservation.Draft.PendingCreateUploadSizeBytes == nil && reservation.Draft.PendingCreateUploadAttempt == 0 && reservation.Work.PendingCreateAttachmentPhase == nil && reservation.Work.PendingCreateUploadBlobID == nil && reservation.Work.PendingCreateUploadSizeBytes == nil && reservation.Work.PendingCreateUploadAttempt == 0 && len(prepared.effectiveState.AttachmentIDs) == 0
+	if hasAttachments {
+		return ((reservation.Draft.PendingCreateMIME == nil && reservation.Work.PendingCreateMIME == nil) ||
+			(reservation.Draft.PendingCreateMIME != nil &&
+				reservation.Draft.PendingCreateMIME.Kind == MailboxDraftCreateMIMEKindAttachments &&
+				reservation.Work.PendingCreateMIME != nil &&
+				reservation.Work.PendingCreateMIME.Kind == MailboxDraftCreateMIMEKindAttachments)) &&
+			reservation.Draft.PendingCreateAttachmentPhase != nil && *reservation.Draft.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload &&
+			reservation.Draft.PendingCreateUploadBlobID == nil && reservation.Draft.PendingCreateUploadSizeBytes == nil &&
+			reservation.Draft.PendingCreateUploadAttempt >= 1 && reservation.Draft.PendingCreateUploadAttempt <= 3 &&
+			reservation.Work.PendingCreateAttachmentPhase != nil && *reservation.Work.PendingCreateAttachmentPhase == MailboxDraftCreateAttachmentPhaseUpload &&
+			reservation.Work.PendingCreateUploadBlobID == nil && reservation.Work.PendingCreateUploadSizeBytes == nil &&
+			reservation.Work.PendingCreateUploadAttempt == reservation.Draft.PendingCreateUploadAttempt &&
+			len(prepared.effectiveState.AttachmentIDs) != 0
+	}
+	return reservation.Draft.PendingCreateMIME == nil && reservation.Work.PendingCreateMIME == nil && reservation.Draft.PendingCreateAttachmentPhase == nil && reservation.Draft.PendingCreateUploadBlobID == nil && reservation.Draft.PendingCreateUploadSizeBytes == nil && reservation.Draft.PendingCreateUploadAttempt == 0 && reservation.Work.PendingCreateAttachmentPhase == nil && reservation.Work.PendingCreateUploadBlobID == nil && reservation.Work.PendingCreateUploadSizeBytes == nil && reservation.Work.PendingCreateUploadAttempt == 0 && len(prepared.effectiveState.AttachmentIDs) == 0
 }
 
 func mailboxDraftCreateImportReservationValid(reservation MailboxDraftReservation, prepared mailboxDraftCreatePrepared, upload mailboxDraftAttachmentCreateUpload) bool {
 	if reservation.Kind != MailboxDraftReservationDispatch || reservation.Work == nil || reservation.Fence == nil || reservation.Draft.ID != prepared.draftID || reservation.Draft.AccountID != prepared.scope.accountID || reservation.Draft.DraftClientID != prepared.canonical.DraftClientID || reservation.Draft.Status != MailboxDraftStatusSaving || reservation.Draft.Revision != 1 || reservation.Draft.EngineMessageID != nil || reservation.Draft.EngineVersion != nil || reservation.Draft.PendingSave != nil || reservation.Draft.LastMutationID == nil || reservation.Draft.PendingMutationKind == nil || *reservation.Draft.PendingMutationKind != MailboxDraftMutationCreate || *reservation.Draft.LastMutationID != reservation.Work.MutationID || reservation.Work.Kind != MailboxDraftWorkCreate || reservation.Work.EngineDraftKey != reservation.Draft.EngineDraftKey || reservation.Work.Revision != reservation.Draft.Revision || reservation.Work.RequestHash != prepared.canonical.RequestHash || !mailboxDraftCreateEffectiveStatesEqual(reservation.Work.EffectiveState, prepared.effectiveState) || !mailboxDraftCreateEffectiveStatesEqual(reservation.Draft.Confirmed, prepared.effectiveState) || reservation.Fence.AccountID != prepared.scope.accountID || !mailboxEntEngineCommandFenceValid(*reservation.Fence) || reservation.Draft.PendingCreateAttachmentPhase == nil || *reservation.Draft.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseImport || reservation.Draft.PendingCreateUploadBlobID == nil || *reservation.Draft.PendingCreateUploadBlobID != upload.blobID || reservation.Draft.PendingCreateUploadSizeBytes == nil || *reservation.Draft.PendingCreateUploadSizeBytes != upload.sizeBytes || reservation.Work.PendingCreateAttachmentPhase == nil || *reservation.Work.PendingCreateAttachmentPhase != MailboxDraftCreateAttachmentPhaseImport || reservation.Work.PendingCreateUploadBlobID == nil || *reservation.Work.PendingCreateUploadBlobID != upload.blobID || reservation.Work.PendingCreateUploadSizeBytes == nil || *reservation.Work.PendingCreateUploadSizeBytes != upload.sizeBytes || !mailboxDraftAttachmentCreateUploadValid(upload) || !mailboxDraftAttachmentCreateReceivedAtValid(reservation.Draft.UpdatedAt) {
+		return false
+	}
+	if !mailboxDraftCreateMIMEStatesEqual(
+		reservation.Draft.PendingCreateMIME,
+		reservation.Work.PendingCreateMIME,
+	) ||
+		!validMailboxDraftCreateMIMEStateBridge(
+			reservation.Draft.PendingCreateMIME,
+			reservation.Draft.Status,
+			reservation.Draft.PendingMutationKind,
+			reservation.Draft.PendingCreateAttachmentPhase,
+			reservation.Draft.PendingCreateUploadBlobID,
+			reservation.Draft.PendingCreateUploadSizeBytes,
+			reservation.Draft.PendingCreateUploadAttempt,
+			reservation.Draft.PendingCreateUploadRetryAt,
+			reservation.Draft.PendingCreateUploadExhaustedAt,
+		) ||
+		!validMailboxDraftCreateMIMEStateBridge(
+			reservation.Work.PendingCreateMIME,
+			reservation.Draft.Status,
+			reservation.Draft.PendingMutationKind,
+			reservation.Work.PendingCreateAttachmentPhase,
+			reservation.Work.PendingCreateUploadBlobID,
+			reservation.Work.PendingCreateUploadSizeBytes,
+			reservation.Work.PendingCreateUploadAttempt,
+			reservation.Work.PendingCreateUploadRetryAt,
+			reservation.Work.PendingCreateUploadExhaustedAt,
+		) {
 		return false
 	}
 	return reservation.Draft.PendingCreateUploadAttempt >= 1 && reservation.Draft.PendingCreateUploadAttempt <= 3 && reservation.Work.PendingCreateUploadAttempt == reservation.Draft.PendingCreateUploadAttempt && len(prepared.effectiveState.AttachmentIDs) != 0

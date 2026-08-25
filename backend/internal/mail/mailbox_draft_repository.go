@@ -148,6 +148,7 @@ const (
 // MailboxDraftRecord is the content-free, durable draft state. Nil values represent nullable
 // persisted columns. PendingCreateUploadBlobID and PendingCreateUploadSizeBytes form one exact
 // upload handoff pair: they are present only while PendingCreateAttachmentPhase is import.
+// PendingCreateMIME is content-free state/binding only and never stores MIME bytes.
 // Repository reads and finish results deep-copy every nested state, pointer, hash and attachment slice.
 type MailboxDraftRecord struct {
 	ID                             uuid.UUID
@@ -163,6 +164,7 @@ type MailboxDraftRecord struct {
 	CreateRequestHash              [sha256.Size]byte
 	LastMutationID                 *uuid.UUID
 	PendingMutationKind            *MailboxDraftMutationKind
+	PendingCreateMIME              *MailboxDraftCreateMIMEState
 	PendingCreateAttachmentPhase   *MailboxDraftCreateAttachmentPhase
 	PendingCreateUploadBlobID      *string
 	PendingCreateUploadSizeBytes   *int64
@@ -317,7 +319,8 @@ const (
 // Every dispatch or reconciliation plan contains the stable bounded EngineDraftKey, persisted mutation ID, revision,
 // exact nullable message/version pair, an effective O or D graph, its request hash, and the last confirmed mutation
 // binding. PendingCreateUploadBlobID and PendingCreateUploadSizeBytes are present only for an import-phase create
-// and identify the exact already-uploaded MIME blob; work never contains draft content or MIME bytes.
+// and identify the exact already-uploaded MIME blob. PendingCreateMIME is content-free state/binding only;
+// work never contains draft content or MIME bytes.
 type MailboxDraftWork struct {
 	Kind                         MailboxDraftWorkKind
 	EngineDraftKey               string
@@ -327,6 +330,7 @@ type MailboxDraftWork struct {
 	Revision                     int64
 	EffectiveState               MailboxDraftEffectiveState
 	RequestHash                  [sha256.Size]byte
+	PendingCreateMIME            *MailboxDraftCreateMIMEState
 	PendingCreateAttachmentPhase *MailboxDraftCreateAttachmentPhase
 	PendingCreateUploadBlobID    *string
 	PendingCreateUploadSizeBytes *int64
