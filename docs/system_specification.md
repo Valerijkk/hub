@@ -458,8 +458,22 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   every provider-pair mismatch transitions to `unknown` with `MAIL_SUBMISSION_OUTCOME_UNKNOWN`.
   Both outcomes release the account/submission leases and advance the account epoch; neither can
   requeue or re-submit a stale `submitting` record. This dispatch-resolution adapter is
-  `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN` only, not runtime,
+  `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN` only, not runtime,
   Ent-generation, database, product, or release evidence.
+  A stale submission lease scan is bounded to 1..50 records and selects only `authorizing` or
+  `submitting` entries ordered by `(command_lease_expires_at,id)` with `<=` one database UTC
+  instant; its ID/status/lease rows are advisory, not recovery capabilities. Recovery accepts only
+  a submission ID, re-locks Account -> Submission -> Draft, reads one database clock, and requires
+  the exact expired shared token, expiry, epoch, state, and submitting draft. A stale authorizing
+  attempt 1..7 returns to `queued` at that database instant without changing its attempt or draft;
+  attempt 8 becomes `failed` with `MAIL_SUBMISSION_RETRY_EXHAUSTED` and returns the draft to
+  `active`. Any stale `submitting` attempt becomes `unknown` with
+  `MAIL_SUBMISSION_RECONCILIATION_REQUIRED`, preserving the sealed authorization time/hash and
+  command fence. Each applying path releases both leases and advances the account epoch; a changed/deleted or not-due record is a no-op, a malformed row is invalid, and an exact-fence
+  race is `version_conflict`. The source candidate is
+  `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`: it performs no
+  provider, NATS, HTTP, or worker dispatch, and is not Ent-generation, database, product, or
+  release evidence.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals
