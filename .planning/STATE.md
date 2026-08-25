@@ -1,4 +1,21 @@
 ---
+mail_calendar_message_correlation_2026_08_26: >-
+  SOURCE_CONTRACT_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for blob `287f24667e817f696bcf1fe8f1c02cf8f708e286` in
+  `backend/internal/mail/mailbox_calendar_correlation.go`. The provider-neutral ABI
+  defines an immutable actor/organization/account/message request and a matching
+  event/path result. Its mandatory checked helper rejects zero, mismatch and typed-nil
+  values, preserves context cancellation, and strips unknown or wrapped adapter details
+  into content-free closed errors with five kinds. A future concrete adapter MUST resolve
+  only an exact fenced inbound receipt or outbound invite -> sent submission -> result
+  message; enforce tenant, owner, live, ambiguity and stale fences; and never infer from
+  provider IDs, Internet Message-ID, folder or `MailMessage.calendar_event_id`. Concrete
+  Ent adapter, generation/migration/SQL, Mail RSVP/read service, HTTP/UI wiring,
+  tests/build/lint/Docker/runtime remain pending or NOT_RUN under Q47; this is not product,
+  Docker or merge readiness. `provenance_source: dispatcher-enforced`; implementation
+  Terra/xhigh; reviews Contract/high, Security/xhigh and Lifecycle/high; no fallback;
+  telemetry UNKNOWN.
 mail_calendar_ent_generation_security_2026_08_25: >-
   Phase-143/144 SB-C Ent generation security hardening is STATIC_IMPLEMENTED / RUNTIME_NOT_RUN.
   `schema-maintenance-generate` has `network_mode: none` and no database environment, dependency
