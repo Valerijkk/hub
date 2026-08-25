@@ -1,0 +1,110 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-25T11:42:40.2135043+03:00",
+  "phase": "151",
+  "phase_name": "messenger-channels-threads-and-unread-foundation",
+  "phase_dir": ".planning/phases/151-messenger-channels-threads-and-unread-foundation",
+  "plan": 151,
+  "task": 4,
+  "total_tasks": 160,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": "spec",
+      "name": "Freeze Messenger durable unread contract",
+      "status": "done",
+      "commit": "e7443839"
+    },
+    {
+      "id": "research",
+      "name": "Harden Messenger authorization research",
+      "status": "done",
+      "commit": "d0f53628"
+    },
+    {
+      "id": "plan",
+      "name": "Freeze Phase 151 implementation plan",
+      "status": "done",
+      "commit": "825f0e45"
+    },
+    {
+      "id": 1,
+      "name": "ChannelAccess RED contract",
+      "status": "in_progress",
+      "progress": "Test file authored and root-statically reviewed; no Docker gate run."
+    },
+    {
+      "id": 2,
+      "name": "Message access RED contract",
+      "status": "in_progress",
+      "progress": "Test file authored and root-statically reviewed; no Docker gate run."
+    },
+    {
+      "id": "3-4-16-19",
+      "name": "Threads, unread, mutation and search RED contracts",
+      "status": "in_progress",
+      "progress": "Three files were written by agents immediately before pause; agents were interrupted and these files remain unreviewed."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": "red-remaining",
+      "name": "Complete and review backend RED Tasks 1-22",
+      "status": "not_started"
+    },
+    {
+      "id": 23,
+      "name": "Run the single backend-unit RED Docker gate and record the expected failure receipt",
+      "status": "not_started"
+    },
+    {
+      "id": "24-130",
+      "name": "Implement and verify backend Phase 151 behavior",
+      "status": "not_started"
+    },
+    {
+      "id": "131-158",
+      "name": "Implement and verify frontend Phase 151 behavior",
+      "status": "not_started"
+    },
+    {
+      "id": "159-160",
+      "name": "Synchronize docs/evidence and conditionally run python-integration only if its harness is bound",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Ordinary filesystem helper calls can fail with apply deny-read ACLs in this workspace.",
+      "type": "technical",
+      "workaround": "After one failed normal attempt, use exact-path scoped escalated IO; never broaden the write target."
+    },
+    {
+      "description": "Phase 150 Jitsi deployment overlay is intentionally not created or runtime-bound.",
+      "type": "external",
+      "workaround": "Keep Jitsi status NOT_CREATED / UNBOUND until an explicitly planned self-hosted deployment slice is executed."
+    }
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {
+      "decision": "Messenger uses PostgreSQL/Ent for authorization authority and MongoDB for messages, read states and thread follows.",
+      "rationale": "Preserves a single fresh authorization source while keeping durable Messenger data in its existing store.",
+      "phase": "151"
+    },
+    {
+      "decision": "Jitsi is self-hosted from pinned deployment/config/branding artifacts with no external API or third-party hosting.",
+      "rationale": "Founder selected a locally operated integrated build for Hub.",
+      "phase": "150"
+    },
+    {
+      "decision": "Runtime readiness percentages remain Messenger about 19 percent, Jitsi about 7 percent, combined about 14 percent.",
+      "rationale": "Plans and RED contracts do not count as functioning product behavior.",
+      "phase": "151"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "Read the five paused RED files, inspect the three agent-interrupted files for truncation or contract drift, then resume the two-agent low-disk RED waves from Tasks 5 and 6. Do not run Docker until all Tasks 1-22 are assembled and independently reviewed.",
+  "context_notes": "Branch calls-feature-codex was at 825f0e45 before the pause checkpoint. The five unfinished RED files are preserved in the WIP checkpoint commit and remain explicitly unaccepted. Active agents were interrupted. No servers, watchers, Docker jobs or external async jobs remain running. Do not touch Mail/Calendar, pro-qa-ai/**, or frontend/src/modules/calls/create-call-dialog.tsx."
+}
