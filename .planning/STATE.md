@@ -10,6 +10,19 @@ mail_calendar_ent_generation_security_2026_08_25: >-
   `/tmp`, HOME, XDG and GOCACHE remain noexec, and generated source never leaves the container.
   Docker generation, migrations, dependent compile, tests and runtime remain NOT_RUN; this grants
   no product, cutover or merge readiness.
+mail_calendar_delivery_materializer_2026_08_25: >-
+  SOURCE_CONTRACT_AUTHORED / INDEPENDENT_CONTRACT_AND_SECURITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for exact source blob `227dbcef79df69ee0dcdaa14f59aeaf4d5922957` in
+  `backend/internal/mail/calendar_delivery_materializer.go`. The provider-neutral pure
+  materializer deterministically maps sealed canonical REQUEST, CANCEL and single-attendee
+  REPLY snapshots to bounded plain Mail subject/body content. Timed events render canonical
+  UTC instants plus a validated event-zone label; all-day ranges derive the inclusive last
+  date from the canonical exclusive end. Subject, address, location and timezone output
+  reject control and Unicode line/paragraph separators, description permits only LF, and
+  every body append is bounded by `MailboxContentMaxInputBytes`. No attendee roster, raw
+  iTIP/ICS, MIME part or provider state is exposed. The Mail-owned sealed MIME draft creator,
+  repository/worker integration and production composition remain pending. Compile, tests,
+  formatting/lint, Docker and runtime remain NOT_RUN; this is not readiness acceptance.
 mail_calendar_outbound_mime_part_2026_08_25: >-
   STATIC_IMPLEMENTED / STATIC_ACCEPTED only for the sealed outbound calendar
   part, private planner/stream and private calendar-only RFC822 UploadBlob seam
