@@ -2045,6 +2045,29 @@ This source-only ABI introduces no Ent repository, transaction/CAS, rate debit, 
 hash comparison, provider dispatch, worker, migration, API, or runtime authority. Independent
 review is PASS C/I/M `0/0/0`; tests, generation, build, lint, Docker, and runtime are `NOT_RUN`.
 
+### Queued submission dispatch worker source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. `MailboxSubmissionWorker` adds only a bounded, injected
+queued-due scanner and a sealed dispatcher execution port. The scanner contract selects
+only the durable `queued` authority represented by
+`mail_submissions_queued_due_idx (next_attempt_at,id)`; it receives a limit and returns
+submission UUIDs only. It cannot claim, authorize, resolve, requeue, or mutate durable
+state. The worker has no Ent adapter, server wiring, NATS trigger, provider, engine, or
+state-mutation capability.
+
+One `RunOnce` accepts at most fifty scanned rows (default batch twenty), drops zero UUIDs,
+and deduplicates before sequentially dispatching every retained identity once. Each item
+uses an injected deadline; failures continue through the remaining retained identities and
+return only bounded content-free counts plus a closed worker error. A dispatcher
+`reconciliation_required` classification is counted as a failed independent item and is
+never retried in the same `RunOnce`; the next action is determined only by the durable due
+state. `Run` waits through the injected timer and exits cleanly on caller cancellation.
+
+No scanner/repository implementation, Ent generation, migration, SQL, provider adapter,
+reconciliation/finalizer flow, API, NATS subscription, test execution, build, gofmt, lint,
+Docker, or runtime evidence is supplied. Independent review is PASS C/I/M `0/0/0`.
+
 ### Submission dispatcher source-only delta
 
 `STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN`. The previous clauses stating that a dispatcher and Ent

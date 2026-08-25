@@ -1,5 +1,21 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Queued submission dispatch worker source packet
+
+STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxSubmissionWorker` is a sequential, bounded source seam only. Its injected scanner may
+return no more than fifty due UUIDs from the durable queued index
+`mail_submissions_queued_due_idx (next_attempt_at,id)`; the worker drops zero IDs and
+deduplicates before dispatching each retained ID once. The injected dispatcher receives one
+UUID at a time. Item failures remain content-free aggregate counts and do not stop other IDs.
+`reconciliation_required` is never retried in the same `RunOnce`; durable due state remains
+authoritative for any later action. `Run` uses only its injected timer and caller cancellation.
+
+The packet has no Ent adapter, direct state mutation, provider/engine call, NATS trigger,
+server wiring, scanner implementation, reconciliation/finalizer, schema, migration, API,
+test execution, Docker, or runtime authority. Independent review is PASS C/I/M `0/0/0`.
+
 ## 2026-08-25 - Sealed submission dispatcher source packet
 
 STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
