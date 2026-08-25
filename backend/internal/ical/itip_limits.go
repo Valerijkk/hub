@@ -1,4 +1,4 @@
-package calendar
+package ical
 
 const (
 	itipHardMaxBytes             = 1048576

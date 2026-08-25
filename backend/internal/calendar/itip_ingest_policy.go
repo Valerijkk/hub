@@ -6,9 +6,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+
+	"github.com/valerii/hub/backend/internal/ical"
 )
 
-const calendarInboundMaximumSequence uint32 = uint32(itipMaxSequence)
+const calendarInboundMaximumSequence uint32 = uint32(ical.MaxITIPSequence)
 
 // CalendarInboundAuthenticationClass is the already-resolved authentication
 // admission class. It intentionally carries no sender evidence or MIME data.
@@ -58,7 +60,7 @@ func (key CalendarInboundObjectKey) RecurrenceID() *string {
 func (key CalendarInboundObjectKey) IsSeries() bool { return key.recurrenceID == nil }
 
 func (key CalendarInboundObjectKey) valid() bool {
-	if key.ownerID == uuid.Nil || validateITIPUID(key.uid) != nil {
+	if key.ownerID == uuid.Nil || ical.ValidateITIPUID(key.uid) != nil {
 		return false
 	}
 	return key.recurrenceID == nil || validCalendarInboundRecurrenceID(*key.recurrenceID)
@@ -149,7 +151,7 @@ func (incoming CalendarInboundITIP) valid() bool {
 		validCalendarInboundMethod(incoming.method) &&
 		incoming.sequence <= calendarInboundMaximumSequence &&
 		incoming.payload.valid() &&
-		incoming.payload.canonicalVersion == itipCanonicalVersion
+		incoming.payload.canonicalVersion == ical.CanonicalITIPVersion
 }
 
 // CalendarInboundObjectStatus is the durable state classification selected by
@@ -355,7 +357,7 @@ func DecideCalendarInboundITIP(input CalendarInboundIngestInput) (CalendarInboun
 
 func decideCalendarInboundEqualSequence(input CalendarInboundIngestInput, incoming CalendarInboundITIP) (CalendarInboundIngestResult, error) {
 	current := input.current
-	if current == nil || current.payload.canonicalVersion != itipCanonicalVersion || current.payload.canonicalVersion != incoming.payload.canonicalVersion {
+	if current == nil || current.payload.canonicalVersion != ical.CanonicalITIPVersion || current.payload.canonicalVersion != incoming.payload.canonicalVersion {
 		return calendarInboundIngestResult(CalendarInboundIngestQuarantined, ""), nil
 	}
 	if current.method != incoming.method || current.payload.hash != incoming.payload.hash {
@@ -414,15 +416,15 @@ func validCalendarInboundMethod(method ITIPMethod) bool {
 }
 
 func validCalendarInboundOrganizer(value string) bool {
-	if len(value) > itipMaxEmailBytes || !utf8.ValidString(value) {
+	if len(value) > ical.MaxITIPEmailBytes || !utf8.ValidString(value) {
 		return false
 	}
-	normalized, err := normalizeSafeITIPEmail(value)
+	normalized, err := ical.NormalizeITIPEmail(value)
 	return err == nil && normalized == value
 }
 
 func validCalendarInboundRecurrenceID(value string) bool {
-	if value == "" || len(value) > len(time.RFC3339) || !utf8.ValidString(value) || hasAnyITIPControl(value) || hasLeadingOrTrailingASCIIWhitespace(value) {
+	if value == "" || len(value) > len(time.RFC3339) || !utf8.ValidString(value) || ical.HasITIPControl(value) || ical.HasLeadingOrTrailingASCIIWhitespace(value) {
 		return false
 	}
 	if len(value) == len("2006-01-02") {

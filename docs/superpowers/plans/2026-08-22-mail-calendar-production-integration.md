@@ -6,6 +6,8 @@
 
 **Goal:** Persist and compose the accepted Mail and Calendar domain services, then connect them through durable iTIP event flows.
 
+> **Neutral iTIP codec boundary (2026-08-25):** bounded stdlib-only iTIP parsing, serialization, and canonical identity sit at `mail -> internal/ical <- calendar`; Calendar retains aliases and wrappers. Mail hydration/body loading and all executable evidence remain unimplemented or `NOT_RUN`.
+
 **Architecture:** The main Hub backend owns authenticated HTTP, Ent, NATS, outbox, and worker lifecycle. Ent adapters implement the existing domain ports without provider I/O; `hub-mail` remains an outbound-alert edge. Versioned SQL under `backend/migrations` is generated and verified by Atlas in the accepted Docker launcher.
 
 **Tech Stack:** Go 1.25, Ent, PostgreSQL, Atlas versioned migrations, Fiber v3, NATS, Hub durable outbox.

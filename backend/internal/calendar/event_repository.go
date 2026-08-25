@@ -12,6 +12,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/valerii/hub/backend/internal/ical"
+
 	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
@@ -2718,10 +2720,10 @@ func (transaction *EventTransaction) validateCalendarInboundReplyScope(scope Cal
 }
 
 func validCalendarInboundReplyAuthorizationRequest(request CalendarInboundReplyAuthorizationRequest) bool {
-	if validateITIPUID(request.UID) != nil || !request.Receipt.valid() || request.EventSequence > uint(^uint32(0)) {
+	if ical.ValidateITIPUID(request.UID) != nil || !request.Receipt.valid() || request.EventSequence > uint(^uint32(0)) {
 		return false
 	}
-	sender, err := normalizeSafeITIPEmail(request.Sender)
+	sender, err := ical.NormalizeITIPEmail(request.Sender)
 	if err != nil || sender != request.Sender {
 		return false
 	}

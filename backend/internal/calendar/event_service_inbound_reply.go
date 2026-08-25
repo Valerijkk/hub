@@ -10,6 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/valerii/hub/backend/internal/ical"
+
 	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
@@ -64,10 +66,10 @@ type CalendarInboundReplyReceiptKey struct {
 }
 
 func NewCalendarInboundReplyReceiptKey(version uint8, sender string, parserPayloadHash [sha256.Size]byte) (CalendarInboundReplyReceiptKey, error) {
-	if version != calendarInboundReplyCanonicalVersion || len(sender) > itipMaxEmailBytes || !utf8.ValidString(sender) {
+	if version != calendarInboundReplyCanonicalVersion || len(sender) > ical.MaxITIPEmailBytes || !utf8.ValidString(sender) {
 		return CalendarInboundReplyReceiptKey{}, ErrEventInvalid
 	}
-	normalizedSender, err := normalizeSafeITIPEmail(sender)
+	normalizedSender, err := ical.NormalizeITIPEmail(sender)
 	if err != nil || normalizedSender != sender {
 		return CalendarInboundReplyReceiptKey{}, ErrEventInvalid
 	}
@@ -256,10 +258,10 @@ func calendarInboundReplyPreflight(rawSender string, message ITIPMessage) (ident
 			identity, normalized, sender, accepted = ITIPIdentity{}, ITIPMessage{}, "", false
 		}
 	}()
-	if len(rawSender) > itipMaxEmailBytes {
+	if len(rawSender) > ical.MaxITIPEmailBytes {
 		return ITIPIdentity{}, ITIPMessage{}, "", false
 	}
-	normalizedSender, err := normalizeSafeITIPEmail(rawSender)
+	normalizedSender, err := ical.NormalizeITIPEmail(rawSender)
 	if err != nil {
 		return ITIPIdentity{}, ITIPMessage{}, "", false
 	}
@@ -267,7 +269,7 @@ func calendarInboundReplyPreflight(rawSender string, message ITIPMessage) (ident
 	if err != nil {
 		return ITIPIdentity{}, ITIPMessage{}, "", false
 	}
-	normalized, err = normalizeITIPIdentityMessage(message)
+	normalized, err = ical.NormalizeITIPMessage(message)
 	if err != nil || identity.CanonicalVersion != calendarInboundReplyCanonicalVersion || identity.Method != ITIPMethodReply || len(normalized.Attendees) != 1 || !validCalendarInboundReplyTargetStatus(normalized.Attendees[0].Status) || normalized.Attendees[0].Email != normalizedSender {
 		return ITIPIdentity{}, ITIPMessage{}, "", false
 	}
@@ -283,7 +285,7 @@ func calendarInboundReplyAuthorize(scope CalendarInboundReplyScope, authorizatio
 	if current.Source != CalendarEventSourceHub || current.Status != CalendarEventStatusConfirmed && current.Status != CalendarEventStatusTentative || current.OrganizerID == nil || *current.OrganizerID != scope.OwnerID() {
 		return 0, CalendarInboundReplyQuarantined, nil
 	}
-	organizer, organizerErr := normalizeSafeITIPEmail(parsed.Organizer.Email)
+	organizer, organizerErr := ical.NormalizeITIPEmail(parsed.Organizer.Email)
 	if organizerErr != nil || organizer != current.OrganizerEmail {
 		return 0, CalendarInboundReplyQuarantined, nil
 	}

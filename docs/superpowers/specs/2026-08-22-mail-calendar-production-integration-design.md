@@ -4,6 +4,8 @@
 
 **Status:** founder-approved for implementation on `codex/mail-module-20260813`
 
+> **Neutral iTIP codec boundary (2026-08-25):** the bounded stdlib-only codec is shared as `mail -> internal/ical <- calendar`; Calendar preserves its public API through compatibility aliases and wrappers. This records no Mail hydration, body load, parser invocation, adapter, worker, or runtime implementation; executable evidence remains `NOT_RUN`.
+
 **Scope:** Ent schemas and production migrations, concrete repository adapters,
 HTTP/NATS/worker composition, and the Mail-to-Calendar iTIP path. Frontend work,
 the protected `pro-qa-ai/**` zone, and the separately owned `testframework/**`
