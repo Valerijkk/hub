@@ -185,6 +185,10 @@ services:
       LIVEKIT_URL: "http://livekit:7880"
       LIVEKIT_API_KEY: "devkey-hub-local-development-2026"
       LIVEKIT_API_SECRET: "devsecret-hub-local-minimum-32-chars-ok"
+      # Phase 150: keep the existing LiveKit provider active; no Jitsi service
+      # or credential is introduced into the local stack.
+      CALLS_ACTIVE_PROVIDER: "livekit"
+      JITSI_ENABLED: "false"
       HUB_MAIL_URL: "http://hub-mail:3001"
       HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-local-dev-mail-token}"
       RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"

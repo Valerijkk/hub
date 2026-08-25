@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,16 @@ import (
 // minJWTSecretLen — минимальная длина JWT_SECRET в production. 32 байта
 // дают ~256 бит энтропии и соответствуют рекомендации RFC 7518 / NIST.
 const minJWTSecretLen = 32
+
+const (
+	callsProviderLiveKit = "livekit"
+	callsProviderJitsi   = "jitsi"
+	minJitsiAppSecretLen = 32
+
+	jitsiRequiredSecretMarker = "__REQUIRED_UNUSABLE_NO_DEFAULT__"
+)
+
+var jitsiHostPattern = regexp.MustCompile(`^meet\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$`)
 
 // Известные dev-дефолты, которые недопустимы в production. Проверяются
 // case-insensitive против присвоенных значений.
@@ -39,6 +50,7 @@ type Config struct {
 	Resend      ResendConfig
 	Telegram    TelegramConfig
 	LiveKit     LiveKitConfig
+	Calls       CallsConfig
 	WebPush     WebPushConfig
 	Integration IntegrationConfig
 	AI            AIConfig
@@ -122,6 +134,24 @@ type LiveKitConfig struct {
 	APISecret string // Секрет API для подписи токенов
 }
 
+// CallsConfig contains provider selection and provider-specific Call settings.
+// Phase 150 keeps LiveKit as the only selectable provider.
+type CallsConfig struct {
+	ActiveProvider string
+	Jitsi          JitsiConfig
+}
+
+// JitsiConfig contains the server-only Jitsi credential configuration.
+// Jitsi is not an active Calls provider until Phase 152.
+type JitsiConfig struct {
+	Enabled    bool
+	Host       string
+	PublicURL  string
+	AppID      string
+	AppSecret  string
+	XMPPDomain string
+}
+
 // WebPushConfig — параметры Web Push (VAPID) для браузерных push-уведомлений.
 type WebPushConfig struct {
 	VAPIDPublicKey  string // Публичный VAPID-ключ (base64url)
@@ -199,6 +229,17 @@ func Load() (*Config, error) {
 			APIKey:    getEnv("LIVEKIT_API_KEY", "devkey"),
 			APISecret: getEnv("LIVEKIT_API_SECRET", "devsecret"),
 		},
+		Calls: CallsConfig{
+			ActiveProvider: getEnv("CALLS_ACTIVE_PROVIDER", callsProviderLiveKit),
+			Jitsi: JitsiConfig{
+				Enabled:    getEnvBool("JITSI_ENABLED", false),
+				Host:       getEnv("JITSI_HOST", ""),
+				PublicURL:  getEnv("JITSI_PUBLIC_URL", ""),
+				AppID:      getEnv("JITSI_APP_ID", ""),
+				AppSecret:  getEnv("JITSI_APP_SECRET", ""),
+				XMPPDomain: getEnv("JITSI_XMPP_DOMAIN", ""),
+			},
+		},
 		WebPush: WebPushConfig{
 			VAPIDPublicKey:  getEnv("VAPID_PUBLIC_KEY", ""),
 			VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
@@ -232,6 +273,29 @@ func Load() (*Config, error) {
 // A14-002/A14-003: SeaweedFS hub/hubsecret и NATS без user/pass —
 // fail-closed при ENVIRONMENT=production (и S3-дефолты при любом DEV_MODE=false).
 func (c *Config) validate() error {
+	switch c.Calls.ActiveProvider {
+	case callsProviderLiveKit:
+	case callsProviderJitsi:
+		return errors.New("jitsi provider is not available before phase 152")
+	default:
+		return fmt.Errorf("unknown calls provider %q", c.Calls.ActiveProvider)
+	}
+
+	if os.Getenv("JITSI_ISSUER") != "" {
+		return errors.New("JITSI_ISSUER is deprecated and must not be set")
+	}
+	if os.Getenv("JITSI_AUDIENCE") != "" {
+		return errors.New("JITSI_AUDIENCE is deprecated and must not be set")
+	}
+
+	if c.Calls.Jitsi.Enabled {
+		if err := ValidateJitsiConfig(c.Calls.Jitsi); err != nil {
+			return err
+		}
+		if c.Calls.Jitsi.AppSecret == c.JWT.Secret || c.Calls.Jitsi.AppSecret == c.LiveKit.APISecret {
+			return errors.New("JITSI_APP_SECRET must differ from JWT_SECRET and LIVEKIT_API_SECRET")
+		}
+	}
 	if c.Server.DevMode && strings.EqualFold(c.Server.Environment, "production") {
 		return errors.New("DEV_MODE=true несовместим с ENVIRONMENT=production — отключите DEV_MODE")
 	}
@@ -312,6 +376,61 @@ func (c *Config) validate() error {
 		return fmt.Errorf("небезопасная конфигурация (DEV_MODE=false): %s", strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+// ValidateJitsiConfig validates the enabled, self-hosted Jitsi configuration
+// shared by configuration loading and the server-only credential issuer.
+func ValidateJitsiConfig(c JitsiConfig) error {
+	if !c.Enabled {
+		return errors.New("JITSI_ENABLED must be true for Jitsi configuration")
+	}
+	if !validJitsiHost(c.Host) {
+		return errors.New("JITSI_HOST must be a dedicated lowercase self-hosted meet.<domain> hostname")
+	}
+	if c.PublicURL != "https://"+c.Host {
+		return errors.New("JITSI_PUBLIC_URL must exactly equal https://JITSI_HOST")
+	}
+	if strings.TrimSpace(c.AppID) == "" {
+		return errors.New("JITSI_APP_ID must not be empty")
+	}
+	if !validJitsiAppSecret(c.AppSecret) {
+		return fmt.Errorf("JITSI_APP_SECRET must be at least %d bytes and not a placeholder", minJitsiAppSecretLen)
+	}
+	if strings.TrimSpace(c.XMPPDomain) == "" {
+		return errors.New("JITSI_XMPP_DOMAIN must not be empty")
+	}
+	return nil
+}
+
+func validJitsiHost(host string) bool {
+	if len(host) == 0 || len(host) > 253 || !jitsiHostPattern.MatchString(host) {
+		return false
+	}
+	return host != "meet.jit.si" && !strings.HasSuffix(host, ".meet.jit.si")
+}
+
+func validJitsiAppSecret(secret string) bool {
+	if strings.TrimSpace(secret) == "" || len(secret) < minJitsiAppSecretLen {
+		return false
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(secret))
+	if normalized == strings.ToLower(jitsiRequiredSecretMarker) {
+		return false
+	}
+	for _, rejected := range []string{
+		"devsecret",
+		"dev-secret",
+		"change-me",
+		"change me",
+		"change-in-production",
+		"change in production",
+	} {
+		if strings.Contains(normalized, rejected) {
+			return false
+		}
+	}
+	return true
 }
 
 // weakDataStoreURLProblem — непустая строка, если URL содержит известные
