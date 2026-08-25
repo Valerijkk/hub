@@ -1,0 +1,70 @@
+# Phase 151 — Messenger Channels, Threads, and Unread Foundation
+
+**Status:** `FROZEN_FOR_PLANNING`
+**Scope:** Planning contract only. This document makes no runtime, test, Docker, migration, or delivery claim.
+
+## Objective
+
+Define the tenant-safe behavioural and API foundation for Messenger channels, one-level message threads, durable follow state, and server-authoritative unread state. Phase 151 supplies contracts that later implementation plans may realize; it does not include retention/archive delivery (Phase 153), broad Phase 153 work, Jitsi, Mail, Calendar, or `pro-qa-ai/**`.
+
+## Frozen product rules
+
+| Area | Decision |
+|---|---|
+| Channel visibility | Authenticated users of the same tenant may read metadata and history of a public channel before joining. Posting requires membership. Private channels are member-only for metadata, history, thread resources, follow state, unread state, and mutation. |
+| Project channels | Project linkage is explicit opt-in through `project_id`; public/private visibility remains as declared by the channel. A project-linked channel is capped by active `ProjectMember` status. Inactive/non-member project users cannot obtain disclosure through that linkage. |
+| Existing groups | `group` remains the current group-DM semantic. Phase 151 creates no new DM UX or reclassification. |
+| Posting authority | Read-only is an orthogonal channel mode: ordinary members cannot post, while channel owners and admins may post. |
+| Threads | A live root belongs to the same channel as every reply. Only root-reply is permitted: no reply-to-reply, cross-channel reply, or reply to a deleted root. Default channel timeline excludes replies. A reply with explicit `also_send_to_channel=true` remains one document and is intentionally visible in both the thread and channel timeline. |
+| Follow | Automatically follow a root author, a permitted replier, and a resolved permitted mention. A manual unfollow suppresses later auto-follow until that user manually follows again. Lost access blocks both disclosure and state mutation. |
+| Unread | The server persists forward-only position `(created_at, message_id)`; Redis/cache is never the authority. Joining a channel and a cutover establish the then-current-head baseline rather than retroactively marking history unread. Categories are independent and may overlap. |
+| Reconnect | Client subscribes first, then refetches server state. It performs no local unread arithmetic. |
+| Durable storage | PostgreSQL/Ent remains the authority for tenant, channel, membership, project membership, and roles. MongoDB stores messages plus durable `read_states` and `thread_follows`; Redis is not authoritative. Phase 151 adds no Ent schema, generated code, or migration. Every Mongo message, state, or count read/write is preceded by fresh PostgreSQL authorization. |
+| Recovery | Persist/refetch is recovery-safe. No transactional outbox is introduced; its residual delivery risk remains explicitly documented. |
+
+## Resource and capability contract
+
+PostgreSQL authorization is resolved before any Mongo read-state, follow-state, message, or count lookup and before any response. Authorization loss therefore remains non-disclosive even if best-effort Mongo cleanup is delayed. Mongo cursor and follow updates are idempotent conditional upserts; they never persist counters or move a tuple backward.
+
+Every recipient-facing channel DTO must provide the capability fields required to render actions without client inference. At minimum this includes immutable identifiers, tenant-scoped visibility, `project_id` where opted in, effective membership/active-project-membership state, effective read-only state, and booleans for read, post, reply, follow/unfollow, and unread-category visibility. Absence of a capability is denial; a client must not derive permission from role labels, cached history, or a project id.
+
+Thread responses must name the exact parent root resource and the thread resource, each with a channel identity. A reply returned through a timeline, root, or thread endpoint must be demonstrably bound to that same channel and root. Deleted/inaccessible parent state must not be replaced with an observable surrogate that leaks identity, existence, membership, timestamp, follow, or unread data.
+
+## Unread position and categories
+
+Each unread category has an independently persisted position that advances only forward by the ordered tuple `(created_at, message_id)`; ties are resolved by `message_id`. Every position is tenant/user/category scoped plus its category target: workspace channel, DM/group-DM conversation, or followed root. It can be safely refetched after disconnect or process restart. A join/cutover baseline is the current accessible head of that target at that moment, not a read of earlier history.
+
+The four categories below are independently computed and may overlap for one message; clearing or advancing one category must not silently clear another category unless its own rule selects the same message.
+
+| Category | Meaning |
+|---|---|
+| `channel` | New accessible workspace-channel timeline messages after the channel baseline/position. |
+| `dm` | New accessible direct-message or group-DM timeline messages after the DM baseline/position. |
+| `mention` | New accessible resolved mentions of the recipient. |
+| `followed_thread` | New accessible replies on followed eligible roots after the thread baseline/position. |
+
+Exact API field names, Mongo document fields and indexes, event topic names, and category-clear endpoint design remain implementation-plan decisions; the storage authority and PostgreSQL-before-Mongo authorization boundary above are frozen.
+
+## Requirement IDs and acceptance criteria
+
+| ID | Requirement | Measurable acceptance evidence required before implementation acceptance |
+|---|---|---|
+| `MSG151-CHN-01` | Enforce tenant, public/private, membership, project opt-in, active `ProjectMember`, and read-only/post rules. | A permission matrix covers public pre-join read versus post denial, private non-member non-disclosure, active/inactive project membership, cross-tenant denial, and ordinary-member read-only post denial and owner/admin read-only post permission. No endpoint/event response exposes forbidden metadata or history. |
+| `MSG151-CHN-02` | Return recipient DTO and capabilities as the authority for UI actions. | Contract assertions show allowed and denied capabilities for the matrix above; frontend rendering has no permission derivation from roles or cached data. |
+| `MSG151-THR-01` | Permit only live same-channel root replies. | Negative cases reject reply-to-reply, cross-channel parent, and deleted-root parent; a valid root reply returns its exact parent and thread identity. |
+| `MSG151-THR-02` | Keep replies out of default channel timeline and represent `also_send_to_channel` deliberately. | Timeline assertions exclude ordinary replies; a reply with `also_send_to_channel=true` is returned in the thread and timeline exactly as one document identity, with no duplicate unread arithmetic. |
+| `MSG151-FOL-01` | Maintain automatic follow and manual-unfollow suppression. | Scenario sequence verifies root author/replier/resolved mention auto-follow, manual unfollow, continued suppressing auto triggers, and manual follow restoring eligibility. |
+| `MSG151-FOL-02` | Prevent follow-related disclosure after access loss. | Access revocation scenarios deny read, mutation, follow state, and unread/thread information, including reconnect/refetch paths. |
+| `MSG151-UNR-01` | Persist forward-only authoritative positions and baselines. | Equal-time ordering tests prove `(created_at,message_id)` ordering and independent persisted positions for every category target; restart/refetch returns persisted server state; join and cutover start at current target head without historical unread backfill; Redis loss cannot alter truth. |
+| `MSG151-UNR-02` | Preserve four independent, overlapping unread categories. | Matrix includes a message qualifying for multiple categories and proves category-specific advancement does not clear another qualifying category. |
+| `MSG151-STO-01` | Enforce the PostgreSQL authorization boundary and Mongo durable-state semantics. | Rejected, stale, or revoked requests perform zero Mongo message/state/count lookup or mutation. Allowed duplicate/concurrent conditional upserts are idempotent and cannot regress `(created_at,message_id)`. No unread counter is persisted, and static acceptance confirms no Phase 151 Ent schema, generated code, or migration. |
+| `MSG151-RT-01` | Reconnect safely with subscribe-then-refetch and no client arithmetic. | Client/integration evidence records subscribe before refetch and confirms rendered counts come from refetched server response after reconnect. |
+| `MSG151-RT-02` | Preserve recovery semantics without pretending an outbox exists. | Failure/retry evidence shows state can persist/refetch safely; documentation records that event delivery is not transactionally coupled and therefore may require refetch/reconciliation. |
+
+## Frontend acceptance contract
+
+The frontend must render a Browse path for public channels and project-channel opt-in, send mutations only when recipient capabilities permit them, render category badges without assuming exclusivity, and recover via subscribe-then-refetch. Opening a thread uses the native right side-panel thread surface and keeps the channel timeline context available. Keyboard focus order, visible focus treatment, accessible names/status announcements, focus return, and responsive desktop/mobile layouts must remain usable for Browse, channel, side-panel thread, badges, and follow controls. Accessibility and responsive assertions belong to later executable acceptance; no such evidence is claimed here.
+
+## Integration and residuals
+
+Phase 149 integration is a planning dependency/residual only: `NOT_RUN`. The Phase 151 plan must explicitly bind its resource/capability and reconnect assumptions to the Phase 149 boundary before implementation acceptance. Archive/retention delivery is deferred to Phase 153; Phase 151 must only preserve no-leak behaviour when archived/retained/deleted state is encountered. The lack of a transactional outbox is an accepted residual, not an implied guarantee of exactly-once or lossless delivery.
