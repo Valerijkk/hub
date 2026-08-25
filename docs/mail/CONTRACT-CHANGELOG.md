@@ -1,5 +1,24 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Queued submission Ent due-scan adapter candidate
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxEntRepository.ScanDueMailboxSubmissionIDs` is a bounded read-only implementation of the
+already accepted UUID-only `MailboxSubmissionWorkerDueScanner` seam; the result deliberately does
+not widen the worker ABI with `SelectedAt`. One short Ent transaction obtains exactly one
+exact-second UTC database wall-clock snapshot and uses it only as the internal due cutoff. The
+query selects at most the caller limit (1..50), ordered by `(next_attempt_at,id)`, from queued
+submissions with a nonnil due time at or before that snapshot, no command lease, no dispatch
+authorization, no provider/result/error fields, attempt count 0..7, and a nonnil draft ID.
+
+The scan is advisory: it acquires no row or account lock, uses no `SKIP LOCKED`, and performs no
+claim, durable mutation, provider/engine, NATS, HTTP, or server work. Every selected row is
+defensively rechecked before a fresh bounded nonzero UUID list is returned. Invalid input or row
+shape and all database/not-found failures map only to existing content-free submission repository
+errors. Generated Ent predicates are absent, so this is schema-plausible source only; tests,
+generation, build, gofmt, lint, SQL, migration, Docker, and runtime remain NOT_RUN.
+
 ## 2026-08-25 - Queued submission dispatch worker source packet
 
 STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

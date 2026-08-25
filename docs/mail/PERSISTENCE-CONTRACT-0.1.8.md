@@ -2068,6 +2068,25 @@ No scanner/repository implementation, Ent generation, migration, SQL, provider a
 reconciliation/finalizer flow, API, NATS subscription, test execution, build, gofmt, lint,
 Docker, or runtime evidence is supplied. Independent review is PASS C/I/M `0/0/0`.
 
+### Queued submission Ent due-scan adapter candidate
+
+`SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced`.
+`MailboxEntRepository.ScanDueMailboxSubmissionIDs` implements only the existing UUID-only
+`MailboxSubmissionWorkerDueScanner` ABI; `SelectedAt` is intentionally an internal database-clock
+cutoff and is not added to the worker result. One short read-only Ent transaction takes exactly one
+database wall-clock snapshot, then selects no more than the request limit (1..50) in stable
+`(next_attempt_at,id)` order. Rows must be `queued`, have nonnil `next_attempt_at <= selectedAt`,
+have no command lease, dispatch authorization, provider, result, or error values, retain attempts
+0..7, and retain a nonnil draft ID. Each row is revalidated before returning a copied, nonnil,
+nonzero, duplicate-free UUID list.
+
+This advisory selection does not use account or row locks or `SKIP LOCKED`, and does not claim,
+authorize, resolve, requeue, mutate, call a provider/engine, emit NATS, or wire a server. Input,
+not-found, and database failures remain closed content-free submission repository errors. Generated
+Ent artifacts are absent, so the source is schema-plausible only. The source-contract test,
+generation, build, tests, gofmt, lint, SQL, migration, Docker, and runtime are NOT_RUN; independent
+review is PASS C/I/M `0/0/0`.
+
 ### Submission dispatcher source-only delta
 
 `STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN`. The previous clauses stating that a dispatcher and Ent
