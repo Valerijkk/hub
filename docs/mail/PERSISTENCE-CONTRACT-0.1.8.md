@@ -2127,6 +2127,23 @@ continuation, content-free errors and counts are inherited unchanged; `Dispatche
 claim, complete, or release capability. The Ent adapter, server wiring, generated Ent, migration, SQL
 application, executable tests, build, gofmt, lint, Docker, and runtime remain pending or `NOT_RUN`.
 
+### Accepted submission sent-event derivation source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. `NewMailboxSubmissionSentEnvelopeV1` is a pure, caller-fed boundary with no
+database, engine, clock, UUID generator, HTTP or NATS capability. It accepts only a confirmed owner
+submission projection plus exact normalized route coverage across To, CC and BCC. Duplicate, missing,
+extra or unknown resolutions fail closed; mixed delivery reduces as
+`external > instance_domain > internal`.
+
+Event identity is deterministic UUIDv8 over a length-delimited
+`hub.mail.submission.sent.event.v1` domain and the submission UUID only. Correlation is the submission
+UUID, `occurred_at` is the immutable dispatch-authorization time, and payload `sent_at` is the exact
+provider-confirmed projection time. The public `to` array is the exact visible projection To and may
+be empty; neither CC nor BCC is synthesized or exposed. The Ent completion adapter owns current-state
+recipient resolution and atomic outbox insertion; it remains pending with server wiring, generated Ent,
+migration, executable tests, build, gofmt, lint, Docker and runtime `NOT_RUN`.
+
 ### Queued submission dispatch worker source-only delta
 
 `STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:

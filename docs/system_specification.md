@@ -502,6 +502,12 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`. The worker adapts only the accepted UUID scan
   to one `Finalize` call per retained identity and has no engine, provider, HTTP, NATS, storage, claim,
   complete, or release capability. The Ent adapter and production composition remain pending.
+  The accepted completion also uses a pure deterministic `mail.sent.v1` derivation boundary. It
+  requires exact normalized To/CC/BCC route coverage, reduces mixed delivery conservatively as
+  `external > instance_domain > internal`, derives a UUIDv8 event ID only from the submission UUID,
+  correlates by submission, uses the durable dispatch-authorization time as `occurred_at`, and keeps
+  the provider-confirmed `sent_at`. Its visible `to` is the exact projection value, including an
+  explicit empty array for CC/BCC-only mail; private recipients are never synthesized into it.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals

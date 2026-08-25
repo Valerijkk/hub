@@ -1,5 +1,18 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Deterministic accepted-submission sent event
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`NewMailboxSubmissionSentEnvelopeV1` now maps one confirmed owner submission to a deterministic
+`mail.sent.v1` envelope without I/O or ambient time/UUID generation. Exact To/CC/BCC route coverage
+reduces conservatively as `external > instance_domain > internal`; event identity is UUIDv8 from the
+submission UUID, correlation is the submission UUID, occurrence is the durable dispatch-authorization
+time, and payload sent time is provider-confirmed. The visible `to` value is preserved exactly and may
+be empty, so CC/BCC-only sends do not leak private recipients. Ent recipient resolution, atomic outbox
+insertion, production composition, executable tests, build, lint/gofmt, Docker and runtime remain
+pending or `NOT_RUN`.
+
 ## 2026-08-25 - Accepted submission finalization worker
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
