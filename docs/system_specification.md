@@ -532,7 +532,12 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   query, body, or Content-Type and requires exactly one control-free `Idempotency-Key` plus one quoted
   draft revision in `If-Match`. It performs one owner-scoped submission reservation and always returns
   the safe durable receipt with `202 Accepted`, including an exact replay; provider dispatch remains a
-  worker concern. The handler and OpenAPI are source-accepted, while server wiring remains pending.
+  worker concern. The handler, OpenAPI, and engine-enabled server composition are source-accepted.
+  Only after successful Stalwart construction the server registers this route and constructs one
+  queued-dispatch, stale-recovery, unknown-reconciliation, and accepted-finalization worker. Each uses
+  the shared Mail repository/engine, bounded default timer, `rootCtx`, fatal constructor/route handling,
+  and quiet cancellation. The engine-disabled branch exposes none of the route or workers. Executable
+  verification and Mail<->Calendar delivery consumers remain pending.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals

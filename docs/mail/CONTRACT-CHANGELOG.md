@@ -1,5 +1,17 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Submission production composition
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+The engine-enabled `wireCalendarMail` path now registers the durable draft-send route and constructs
+exactly one queued submission, stale-recovery, unknown-reconciliation, and accepted-finalization
+worker after successful Stalwart engine creation. All use the shared repository/engine, bounded
+defaults and `rootCtx`; constructor/route failures stay fatal and shutdown cancellation is quiet.
+The engine-disabled branch registers none of them, and no new NATS/config/provider/shutdown path was
+introduced. Generated Ent, executable tests, build, lint/gofmt, Docker and runtime remain `NOT_RUN`;
+Mail<->Calendar delivery composition remains separate.
+
 ## 2026-08-25 - Accepted submission Ent finalization adapter
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

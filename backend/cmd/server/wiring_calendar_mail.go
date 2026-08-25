@@ -229,6 +229,64 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	mailboxSubmissionService, err := mailmod.NewMailboxSubmissionService(mailboxSvc, mailboxRepo)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionHandler, err := mailmod.NewMailboxSubmissionHandler(mailboxSubmissionService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxSubmissionHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionDispatcher, err := mailmod.NewMailboxSubmissionDispatcher(mailboxRepo, mailboxEngine)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionWorker, err := mailmod.NewMailboxSubmissionWorker(
+		mailboxRepo,
+		mailboxSubmissionDispatcher,
+		mailmod.NewMailboxSubmissionWorkerTimer(),
+		mailmod.DefaultMailboxSubmissionWorkerOptions(),
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionStaleWorker, err := mailmod.NewMailboxSubmissionStaleWorker(
+		mailboxRepo,
+		mailmod.NewMailboxSubmissionWorkerTimer(),
+		mailmod.DefaultMailboxSubmissionStaleWorkerOptions(),
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionReconciler, err := mailmod.NewMailboxSubmissionReconciler(mailboxRepo, mailboxEngine)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionReconciliationWorker, err := mailmod.NewMailboxSubmissionReconciliationWorker(
+		mailboxRepo,
+		mailboxSubmissionReconciler,
+		mailmod.NewMailboxSubmissionWorkerTimer(),
+		mailmod.DefaultMailboxSubmissionReconciliationWorkerOptions(),
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionFinalizer, err := mailmod.NewMailboxSubmissionFinalizer(mailboxRepo, mailboxEngine)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSubmissionFinalizationWorker, err := mailmod.NewMailboxSubmissionFinalizationWorker(
+		mailboxRepo,
+		mailboxSubmissionFinalizer,
+		mailmod.NewMailboxSubmissionWorkerTimer(),
+		mailmod.DefaultMailboxSubmissionFinalizationWorkerOptions(),
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 	mailboxDraftMaterializer, err := mailmod.NewMailboxEntDraftAttachmentMaterializer(mailboxRepo, mailboxObjectStore)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
@@ -387,6 +445,26 @@ func wireCalendarMail(d *serverDeps) {
 	}()
 	go func() {
 		if err := mailboxAttachmentScanWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
+			slog.Error("background worker stopped", "error", err)
+		}
+	}()
+	go func() {
+		if err := mailboxSubmissionWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
+			slog.Error("background worker stopped", "error", err)
+		}
+	}()
+	go func() {
+		if err := mailboxSubmissionStaleWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
+			slog.Error("background worker stopped", "error", err)
+		}
+	}()
+	go func() {
+		if err := mailboxSubmissionReconciliationWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
+			slog.Error("background worker stopped", "error", err)
+		}
+	}()
+	go func() {
+		if err := mailboxSubmissionFinalizationWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
 			slog.Error("background worker stopped", "error", err)
 		}
 	}()

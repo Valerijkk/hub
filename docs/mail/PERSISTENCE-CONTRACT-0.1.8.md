@@ -2173,6 +2173,23 @@ aggregate drift is intentionally not revalidated because the original terminal s
 atomically. Every essential mismatch is `finalization_required`. Generated Ent, migration/SQL,
 compile, executable tests, build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
 
+### Submission production composition source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. In `wireCalendarMail`, the disabled engine return remains before all submission
+composition. After one successful `NewStalwartEngine`, server wiring registers exactly one
+`MailboxSubmissionHandler` over the owner-scoped durable submission service and constructs exactly
+one queued dispatcher worker, stale-recovery worker, unknown-reconciliation worker, and
+accepted-finalization worker. Every constructor and route-registration error uses the existing fatal
+calendar/mail wiring path.
+
+All four loops start once in the existing final background-worker block with `rootCtx`; cancellation
+does not log a spurious stop error. Each receives the shared `MailboxEntRepository`, the same engine
+where provider read/mutation is required, a fresh submission timer, and the established bounded
+defaults. No new NATS subject, config key, provider construction, shutdown owner, or direct delivery
+path is introduced. Generated Ent, compile, executable tests, build, gofmt, lint, Docker, and runtime
+remain `NOT_RUN`; Calendar delivery consumers are outside this delta.
+
 ### Accepted submission sent-event derivation source-only delta
 
 `STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
