@@ -14,10 +14,10 @@
 
 - Official release is exactly `stable-11146-2`; any eventual core image reference must equal the four immutable OCI index digests already recorded in `150-RESEARCH.md`.
 - No JaaS, `meet.jit.si`, external Calls API/host, floating image tag, shared Hub database, external STUN/TURN, external analytics, or upstream source fork.
-- Canonical origin is exactly `JITSI_PUBLIC_URL=https://${JITSI_HOST}`. It must be HTTPS with a nonempty host and no userinfo, non-root path, query, fragment, or explicit port.
+- `JITSI_HOST` is required when enabled and follows exact ASCII DNS grammar: total length 1–253; regex `^meet\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$`; every label is 1–63 characters. IP literals, underscore, wildcard, uppercase, leading/trailing hyphen, trailing dot, `meet.jit.si`, any value ending `.meet.jit.si`, explicit port, scheme, path, query, fragment, and userinfo are rejected. Canonical origin is exact string equality `JITSI_PUBLIC_URL="https://" + JITSI_HOST`; URL normalization must not hide a mismatch.
 - One XMPP subject source exists: backend `JITSI_XMPP_DOMAIN`; eventual overlay passes `XMPP_DOMAIN=${JITSI_XMPP_DOMAIN:?required}`; JWT `sub` equals the same value. An independent `XMPP_DOMAIN` input is forbidden.
-- There is no `JITSI_ISSUER` or `JITSI_AUDIENCE`. JWT `iss=JITSI_APP_ID`; `aud` is exactly the JSON array `["jitsi"]`.
-- `JITSI_APP_SECRET`, `JICOFO_AUTH_PASSWORD`, and `JVB_AUTH_PASSWORD` are separate required secrets with no usable default. Examples contain only an explicitly rejected marker such as `__REQUIRED_UNUSABLE_NO_DEFAULT__`; empty, example, marker, reused, short, or known dev values fail acceptance. `JITSI_APP_SECRET` is at least 32 bytes.
+- `JITSI_ISSUER` and `JITSI_AUDIENCE` are deprecated/forbidden inputs: when either environment variable is nonempty, configuration fails closed instead of ignoring it. JWT `iss=JITSI_APP_ID`; `aud` is exactly the JSON array `["jitsi"]`.
+- `JITSI_APP_SECRET`, `JICOFO_AUTH_PASSWORD`, and `JVB_AUTH_PASSWORD` are separate required secrets with no usable default. Examples contain only an explicitly rejected marker such as `__REQUIRED_UNUSABLE_NO_DEFAULT__`; empty, example, marker, reused, short, or known dev values fail acceptance. `JITSI_APP_SECRET` is at least 32 bytes and is rejected when equal to Hub `JWT_SECRET` or the LiveKit API secret.
 - Do not edit Mail/Calendar, `frontend/src/modules/calls/create-call-dialog.tsx`, or `pro-qa-ai/**`.
 - All tests/build/typecheck/lint are Docker-only through accepted exact services. No host tests or validators. No Jitsi image pull, Compose render, build, or container start before explicit infrastructure authorization.
 - No invented container `user`, numeric UID/GID, `read_only`, `tmpfs`, writable path, or branding mount. Each must be backed by the selected-image Linux discovery receipt before it enters accepted YAML.
@@ -26,6 +26,28 @@
 ## Frozen backend contracts
 
 ```go
+const ProviderLiveKit = "livekit"
+
+type JoinCredential struct {
+    Provider   string
+    RoomName   string
+    ServiceURL string
+    Token      string
+}
+
+type GuestJoinCredential struct {
+    Identity string
+    Join     JoinCredential
+}
+
+type ConferenceProvider interface {
+    Provision(ctx context.Context, roomName string, maxParticipants uint32) error
+    Delete(ctx context.Context, roomName string) error
+    IssueJoinCredential(roomName, userID, userName string) (JoinCredential, error)
+    IssueGuestCredential(roomName, guestName string) (GuestJoinCredential, error)
+    UpdateParticipantState(ctx context.Context, roomName, identity, stateJSON string) error
+}
+
 type CallsConfig struct {
     ActiveProvider string
     Jitsi          JitsiConfig
@@ -33,6 +55,7 @@ type CallsConfig struct {
 
 type JitsiConfig struct {
     Enabled    bool
+    Host       string
     PublicURL  string
     AppID      string
     AppSecret  string
@@ -40,7 +63,7 @@ type JitsiConfig struct {
 }
 ```
 
-When `JITSI_ENABLED=true`, canonical `PublicURL`, nonempty `AppID`, non-placeholder `AppSecret` of at least 32 bytes, and nonempty `XMPPDomain` are mandatory. These checks are not weakened by development mode. Unknown provider values fail closed; explicit `jitsi` returns stable text containing `jitsi provider is not available before phase 152`.
+When `JITSI_ENABLED=true`, dedicated lowercase `Host`, exact `PublicURL="https://"+Host`, nonempty `AppID`, non-placeholder `AppSecret` of at least 32 bytes, and nonempty `XMPPDomain` are mandatory. `Host` rejects `meet.jit.si` and all its subdomains, ports, paths, query, fragment, userinfo, uppercase, and trailing dots. `AppSecret` must differ from Hub `JWT_SECRET` and the LiveKit API secret. These checks are not weakened by development mode. Unknown provider values fail closed; explicit `jitsi` returns stable text containing `jitsi provider is not available before phase 152`.
 
 The issuer method boundary is exact:
 
@@ -72,9 +95,9 @@ This issuer is unreachable in Phase 150: no HTTP route, WebSocket subject, Handl
 - `backend/tests/calls/provider_factory_test.go`
 - `backend/tests/calls/jitsi_credential_issuer_test.go`
 
-Write all failing tests before production changes, then perform the single backend RED run. Coverage includes typed provider methods; LiveKit behaviour parity; create/rollback/guest/participant-state injection; provider defaults and fail-closed values; canonical origin and secret validation; factory rejection; and issuer claims/negative binding.
+Write all failing tests before production changes, then perform the single backend RED run. Coverage includes the exact typed provider methods; LiveKit behaviour parity including guest credential identity/join semantics; service injection for join-token delegation, create rollback, and participant-state delegation; provider defaults and fail-closed values; exact Host/PublicURL binding, deprecated-env rejection, and cross-secret rejection; factory rejection; and issuer output/binding. Rollback assertions freeze exact persistence arguments and order: provider `Provision` with the derived room/max occurs before repository create with the same room/channel/creator inputs; a repository failure triggers exactly one provider `Delete` for that room and no credential issue. `GuestJoin` service delegation is intentionally a static-review assertion because it requires a concrete repository and would otherwise force a broad production test hook.
 
-Issuer negatives include nil call, inactive call, zero call ID, zero authenticated user ID, blank server-known name, substituted Call entity/ID, substituted authenticated user, client-room impossibility, wrong signing algorithm, wrong secret, expired token, non-five-minute lifetime, and absence of secret/token output. Parsing tests never log credentials.
+Issuer product negatives include nil call, inactive call, zero call ID, zero authenticated user ID, blank server-known name, client-room impossibility, and absence of secret/token output. Valid different Call/user inputs are not rejected: tests prove the token binds exactly to the server values passed on that invocation. Preventing a caller from substituting another valid Call/user is the Phase 152 authenticated membership boundary, not issuer responsibility. Synthetic malformed/wrong-algorithm/wrong-secret/expired/non-five-minute tokens are strict inspection-oracle self-tests only; they validate the test parser and must not be described as incoming-JWT product verification. Product acceptance covers only tokens emitted by the issuer. Parsing tests never log credentials.
 
 ## Task 1: Provider interface contract
 
@@ -84,18 +107,19 @@ Create only provider-neutral types and the narrow `ConferenceProvider` interface
 
 ## Task 2: LiveKit adapter extraction
 
-**Exclusive files:**
+**Exclusive file:** `backend/internal/calls/livekit_provider.go`.
 
-- `backend/internal/calls/livekit_provider.go`
-- `backend/internal/calls/service_room.go` (source behaviour moves, then this file is deleted)
-
-Move existing room provision/delete, user/guest credential, service URL, and participant metadata behaviour into `LiveKitConferenceProvider` without changing grants, expiry, errors, webhook/recording semantics, or compatibility output. Do not edit service wiring. Review against the frozen adapter test; no full-suite run.
+Copy only the LiveKit SDK-facing behaviour currently owned by `CallRoomService`—room provision/delete, user/guest credential generation, service URL, and participant metadata—into `LiveKitConferenceProvider` without changing grants, expiry, errors, webhook/recording semantics, or compatibility output. Do not edit or delete `service_room.go` in Task 2: its provider-neutral orchestration helpers remain authoritative until Task 3 changes their argument types, so temporary SDK duplication is an intentional compile-safe transition. The adapter test owns executable guest semantics: generated guest identity plus nested typed `JoinCredential` provider/room/service URL/token. Do not edit service wiring. Review against the frozen adapter test; no full-suite run.
 
 ## Task 3: Call service provider injection
 
-**Exclusive file:** `backend/internal/calls/service.go`.
+**Exclusive files:**
 
-Make `CallService` depend on `ConferenceProvider`. Preserve persistence order and rollback, unwrap typed credentials only at the compatibility DTO boundary, and preserve chat/events/recording behaviour. No config selection or server wiring is owned here. Review against injection tests; no full-suite run.
+- `backend/internal/calls/service.go`
+- `backend/internal/calls/service_room.go`
+- `backend/internal/calls/export_hooks.go`
+
+Make `CallService` depend on `ConferenceProvider`. Preserve `service_room.go` and change its provider-neutral orchestration helper arguments from `*CallRoomService` to `ConferenceProvider`; remove only the SDK method bodies duplicated into the adapter, and do not delete the file until those helpers are relocated in a later atomic task. Preserve persistence order and rollback, unwrap typed credentials only at the compatibility DTO boundary, and preserve chat/events/recording behaviour. Add exact hubtest constructor `ExportNewCallServiceWithProviderForTest`. During the compile transition update `ExportFinalizeCreate` to the provider argument and keep `ExportNewCallServiceForTest`, `ExportCallServiceRoom`, `ExportCallServiceSetRoom`, `ExportCallRoomServiceCfg`, and `ExportGenerateGuestToken` as explicitly temporary compatibility helpers or migrate their callers in the same Task 3 diff; no dangling signature is allowed. The RED service test intentionally executes join-token delegation, create rollback with exact repository arguments/order, and participant-state delegation. `GuestJoin` delegation is reviewed statically against the adapter contract; do not add a broad repository bypass/test hook merely to execute it. No config selection or server wiring is owned here. Review against injection tests; no full-suite run.
 
 ## Task 4: Calls and Jitsi configuration validation
 
@@ -105,7 +129,7 @@ Make `CallService` depend on `ConferenceProvider`. Preserve persistence order an
 - `deployments/.env.example`
 - `docker-compose.local.yml`
 
-Add exact `CallsConfig`/`JitsiConfig` parsing and validation. Default active provider to LiveKit. Enabled Jitsi requires canonical HTTPS origin, AppID, XMPP domain, and separate non-placeholder AppSecret of at least 32 bytes in every mode. Document only required backend variables; do not add Jitsi services. `JITSI_XMPP_DOMAIN` is the sole source later mapped to deployment `XMPP_DOMAIN` and JWT `sub`. No suite run.
+Add exact `CallsConfig`/`JitsiConfig` parsing and validation. Default active provider to LiveKit. Enabled Jitsi requires `JITSI_HOST`, exact `JITSI_PUBLIC_URL="https://"+JITSI_HOST`, AppID, XMPP domain, and separate non-placeholder AppSecret of at least 32 bytes in every mode. Host must satisfy the exact global ASCII DNS regex/length/label grammar and rejects `meet.jit.si`, every `.meet.jit.si` suffix, IP, underscore, wildcard, port, path, query, fragment, userinfo, uppercase, and trailing dot. Reject AppSecret equality with Hub `JWT_SECRET` or the LiveKit API secret. Any nonempty deprecated `JITSI_ISSUER` or `JITSI_AUDIENCE` input fails closed; it is never silently ignored. Document only required backend variables; do not add Jitsi services. `JITSI_XMPP_DOMAIN` is the sole source later mapped to deployment `XMPP_DOMAIN` and JWT `sub`. No suite run.
 
 ## Task 5: Provider factory and server wiring
 
@@ -121,9 +145,9 @@ Create a factory which constructs LiveKit only. `jitsi` returns the frozen Phase
 **Exclusive files:**
 
 - `backend/internal/calls/jitsi_credential_issuer.go`
-- `backend/internal/calls/export_hooks.go` only if the external `hubtest` package cannot exercise the issuer without a tagged test hook
+- `backend/internal/calls/export_hooks.go` sequentially after Task 3, only if the external `hubtest` package requires the issuer hook
 
-Implement the exact `Issue(*ent.Call, uuid.UUID, string)` boundary and claims above using `github.com/golang-jwt/jwt/v5`. A required test hook must be build-tagged/test-only, constructor-shaped, and explicitly not a transport or public product API. It must not wire the issuer to server startup, handlers, routes, WebSocket, DTOs, or frontend.
+Implement the exact `Issue(*ent.Call, uuid.UUID, string)` boundary and claims above using `github.com/golang-jwt/jwt/v5`. `export_hooks.go` has sequential, nonconcurrent ownership: Task 3 first lands the service-provider exports, then Task 6 may reopen the same file only for the issuer hook. If the external `hubtest` package needs a hook, its exact name is `ExportNewJitsiCredentialIssuerForTest`. It exists only in the build-tagged test export surface, returns the concrete unexported issuer type, and that type exposes only the exported `Issue` method required by the test. The hook is not a transport or public product API and must not wire the issuer to server startup, handlers, routes, WebSocket, DTOs, or frontend.
 
 After independent review, run the single batched backend GREEN gate. Record PASS/FAIL from the Docker receipt only. Membership authorization and Jitsi activation remain unimplemented by design.
 
@@ -134,7 +158,7 @@ After independent review, run the single batched backend GREEN gate. Record PASS
 - `deployments/jitsi/.env.example`
 - `deployments/jitsi/DEPLOYMENT-PREFLIGHT.md`
 
-Create only the preflight/static contract. It lists canonical `JITSI_HOST`, `JITSI_PUBLIC_URL`, `JITSI_XMPP_DOMAIN`, `JITSI_APP_ID`, mandatory `JVB_ADVERTISE_IPS`, XMPP component domains, and the three separate required secret inputs. Secret examples use only the rejected `__REQUIRED_UNUSABLE_NO_DEFAULT__` marker and state `required/no default`.
+Create only the preflight/static contract. It lists required dedicated lowercase `JITSI_HOST`, exact `JITSI_PUBLIC_URL=https://${JITSI_HOST}`, `JITSI_XMPP_DOMAIN`, `JITSI_APP_ID`, mandatory `JVB_ADVERTISE_IPS`, XMPP component domains, and the three separate required secret inputs. Secret examples use only the rejected `__REQUIRED_UNUSABLE_NO_DEFAULT__` marker and state `required/no default`.
 
 Record exact equality: overlay `XMPP_DOMAIN` is populated from `JITSI_XMPP_DOMAIN`, and issuer JWT `sub` uses the same backend value. Freeze the four digest receipts by reference to immutable `150-RESEARCH.md` without editing it.
 
