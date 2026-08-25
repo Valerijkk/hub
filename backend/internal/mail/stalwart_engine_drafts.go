@@ -1286,8 +1286,10 @@ func stalwartSubmissionSetFailuresFor(failures map[string]stalwartMailboxSetFail
 	}
 	switch failure.Type {
 	case "tooManyRecipients":
-		return stalwartEngineError(EngineErrorPayloadTooLarge)
-	case "overQuota", "invalidEmail", "noRecipients", "invalidRecipients", "forbiddenMailFrom", "forbiddenFrom", "forbiddenToSend":
+		return stalwartEngineError(EngineErrorRecipientLimit)
+	case "forbiddenMailFrom", "forbiddenFrom", "forbiddenToSend":
+		return stalwartEngineError(EngineErrorIdentityUnavailable)
+	case "overQuota", "invalidEmail", "noRecipients", "invalidRecipients":
 		return stalwartEngineError(EngineErrorRejectedPolicy)
 	default:
 		return stalwartEmailSetFailuresFor(failures, []string{stalwartSubmissionCreationID})
@@ -1394,7 +1396,7 @@ func stalwartSubmissionReconciliationError(err error) (EngineSubmissionResult, e
 	var engineErr *EngineError
 	if errors.As(err, &engineErr) && engineErr != nil {
 		switch engineErr.Kind {
-		case EngineErrorRejectedPolicy, EngineErrorUnauthorizedAccount, EngineErrorPayloadTooLarge:
+		case EngineErrorRejectedPolicy, EngineErrorUnauthorizedAccount, EngineErrorPayloadTooLarge, EngineErrorRateLimited:
 			return nil, err
 		}
 	}

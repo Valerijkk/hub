@@ -78,7 +78,10 @@ func (c *Client) DiscoverMailboxSession(ctx context.Context) (*MailboxSession, e
 		return nil, err
 	}
 	if status != http.StatusTemporaryRedirect {
-		if status == http.StatusRequestTimeout || status == http.StatusTooManyRequests || status >= http.StatusInternalServerError {
+		if status == http.StatusTooManyRequests {
+			return nil, newError(ErrorRateLimited)
+		}
+		if status == http.StatusRequestTimeout || status >= http.StatusInternalServerError {
 			return nil, newError(ErrorUnavailable)
 		}
 		return nil, newError(ErrorProtocol)
@@ -568,8 +571,10 @@ func errorFromStatus(status int) error {
 		return newError(ErrorStateMismatch)
 	case http.StatusRequestEntityTooLarge, http.StatusRequestHeaderFieldsTooLarge:
 		return newError(ErrorPayloadTooLarge)
-	case http.StatusRequestTimeout, http.StatusTooManyRequests:
+	case http.StatusRequestTimeout:
 		return newError(ErrorUnavailable)
+	case http.StatusTooManyRequests:
+		return newError(ErrorRateLimited)
 	}
 	if status >= http.StatusInternalServerError {
 		return newError(ErrorUnavailable)
@@ -586,7 +591,7 @@ func mutationError(err error, mutation bool) error {
 		return newError(ErrorIndeterminate)
 	}
 	switch kind {
-	case ErrorUnavailable, ErrorProtocol, ErrorCancelled:
+	case ErrorUnavailable, ErrorRateLimited, ErrorProtocol, ErrorCancelled:
 		return newError(ErrorIndeterminate)
 	default:
 		return err

@@ -3,6 +3,7 @@ package mail_test
 import (
 	"context"
 	"errors"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -87,6 +88,32 @@ func TestMailboxSyncService_FrozenABIAndSafeErrors(t *testing.T) {
 	unknown := &mail.MailboxSyncServiceError{Kind: mail.MailboxSyncServiceErrorKind("unknown")}
 	if unknown.Error() != "mailbox sync service error" || unknown.Unwrap() != nil || errors.Is(unknown, mail.ErrMailboxSyncServiceInvalid) || errors.Is(unknown, mail.ErrMailboxSyncServiceTooLarge) || errors.Is(unknown, mail.ErrMailboxSyncServiceUnavailable) {
 		t.Fatalf("unknown service error leaked a sentinel or detail: %#v", unknown)
+	}
+}
+
+func TestMailboxSyncService_RateLimitTransientSourceContract(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_sync_service.go")
+	if err != nil {
+		t.Fatalf("read sync service source: %v", err)
+	}
+	source := strings.ReplaceAll(string(sourceBytes), "\r\n", "\n")
+	for _, testCase := range []struct {
+		start string
+		end   string
+	}{
+		{start: "func (service *MailboxSyncService) handleFolderError", end: "func (service *MailboxSyncService) handlePageError"},
+		{start: "func (service *MailboxSyncService) handlePageError", end: "func (service *MailboxSyncService) resolve"},
+	} {
+		start := strings.Index(source, testCase.start)
+		end := strings.Index(source, testCase.end)
+		if start == -1 || end == -1 || end <= start {
+			t.Fatalf("sync error source markers missing for %q", testCase.start)
+		}
+		branch := source[start:end]
+		if !strings.Contains(branch, `case errors.Is(err, ErrEngineUnavailable), errors.Is(err, ErrEngineRateLimited), errors.Is(err, ErrEngineIndeterminate):
+		return service.resolve(ctx, fence, now, MailboxSyncFailureTransient, MailboxSyncServiceErrorUnavailable)`) {
+			t.Fatalf("%q must resolve rate limits as transient", testCase.start)
+		}
 	}
 }
 
@@ -308,6 +335,16 @@ func TestMailboxSyncServiceStep_LeaseLossFailureMappingAndCaps(t *testing.T) {
 		{
 			name: "unavailable resolves retry",
 			prepare: func(engine *syncServiceEngineFake, _ *syncServiceRepositoryFake, _ *syncServiceCallbackTrace) { engine.changeErr = mail.ErrEngineUnavailable },
+			wantOutcome: mail.MailboxSyncStepRetryScheduled, wantResolve: mail.MailboxSyncFailureTransient,
+		},
+		{
+			name: "rate-limited page resolves retry",
+			prepare: func(engine *syncServiceEngineFake, _ *syncServiceRepositoryFake, _ *syncServiceCallbackTrace) { engine.changeErr = mail.ErrEngineRateLimited },
+			wantOutcome: mail.MailboxSyncStepRetryScheduled, wantResolve: mail.MailboxSyncFailureTransient,
+		},
+		{
+			name: "rate-limited folders resolve retry",
+			prepare: func(engine *syncServiceEngineFake, _ *syncServiceRepositoryFake, _ *syncServiceCallbackTrace) { engine.listErr = mail.ErrEngineRateLimited },
 			wantOutcome: mail.MailboxSyncStepRetryScheduled, wantResolve: mail.MailboxSyncFailureTransient,
 		},
 		{

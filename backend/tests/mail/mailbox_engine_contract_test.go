@@ -202,14 +202,26 @@ func TestMailEngine_HealthAndCapabilitiesDoNotExposeCredentials(t *testing.T) {
 }
 
 func TestMailEngine_SentinelErrorsAreTypedAndSafe(t *testing.T) {
-	err := &mail.EngineError{Kind: mail.EngineErrorInvalidCursor}
-
-	if !errors.Is(err, mail.ErrEngineInvalidCursor) {
-		t.Fatal("invalid cursor error must match its stable sentinel")
-	}
-	var typed *mail.EngineError
-	if !errors.As(err, &typed) || typed.Kind != mail.EngineErrorInvalidCursor {
-		t.Fatal("invalid cursor error must be available through errors.As")
+	for _, testCase := range []struct {
+		kind mail.EngineErrorKind
+		want error
+		text string
+	}{
+		{mail.EngineErrorInvalidCursor, mail.ErrEngineInvalidCursor, "mail engine invalid cursor"},
+		{mail.EngineErrorRateLimited, mail.ErrEngineRateLimited, "mail engine rate limited"},
+		{mail.EngineErrorIdentityUnavailable, mail.ErrEngineIdentityUnavailable, "mail engine identity unavailable"},
+		{mail.EngineErrorRecipientLimit, mail.ErrEngineRecipientLimit, "mail engine recipient limit"},
+	} {
+		t.Run(string(testCase.kind), func(t *testing.T) {
+			err := &mail.EngineError{Kind: testCase.kind}
+			if err.Error() != testCase.text || !errors.Is(err, testCase.want) || errors.Unwrap(err) != testCase.want {
+				t.Fatalf("EngineError{%q} did not preserve its fixed sentinel contract", testCase.kind)
+			}
+			var typed *mail.EngineError
+			if !errors.As(err, &typed) || typed.Kind != testCase.kind {
+				t.Fatalf("EngineError{%q} must be available through errors.As", testCase.kind)
+			}
+		})
 	}
 }
 

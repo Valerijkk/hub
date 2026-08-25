@@ -20,6 +20,7 @@ const (
 	ErrorUnsupported          ErrorKind = "unsupported"
 	ErrorProtocol             ErrorKind = "protocol_violation"
 	ErrorUnavailable          ErrorKind = "unavailable"
+	ErrorRateLimited          ErrorKind = "rate_limited"
 	ErrorIndeterminate        ErrorKind = "indeterminate"
 	ErrorCancelled            ErrorKind = "cancelled"
 )
@@ -35,6 +36,7 @@ var (
 	ErrUnsupported          = errors.New("stalwart transport unsupported")
 	ErrProtocol             = errors.New("stalwart transport protocol violation")
 	ErrUnavailable          = errors.New("stalwart transport unavailable")
+	ErrRateLimited          = errors.New("stalwart transport rate limited")
 	ErrIndeterminate        = errors.New("stalwart transport result indeterminate")
 	ErrCancelled            = errors.New("stalwart transport cancelled")
 )
@@ -94,6 +96,8 @@ func errorForKind(kind ErrorKind) error {
 		return ErrProtocol
 	case ErrorUnavailable:
 		return ErrUnavailable
+	case ErrorRateLimited:
+		return ErrRateLimited
 	case ErrorIndeterminate:
 		return ErrIndeterminate
 	case ErrorCancelled:
@@ -117,8 +121,10 @@ func jmapErrorKind(errorType string) ErrorKind {
 		return ErrorPayloadTooLarge
 	case "unknownMethod", "unknownCapability", "unsupportedFilter", "unsupportedSort":
 		return ErrorUnsupported
-	case "serverFail", "serverUnavailable", "rateLimit":
+	case "serverFail", "serverUnavailable":
 		return ErrorUnavailable
+	case "rateLimit":
+		return ErrorRateLimited
 	case "invalidArguments", "invalidProperties", "invalidPatch", "willDestroy", "invalidResultReference":
 		return ErrorInvalidRequest
 	default:

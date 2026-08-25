@@ -158,6 +158,11 @@ func mapStalwartEngineError(err error, mutation bool) error {
 		return stalwartEngineError(EngineErrorRestartRequired)
 	case stalwart.ErrorPayloadTooLarge:
 		return stalwartEngineError(EngineErrorPayloadTooLarge)
+	case stalwart.ErrorRateLimited:
+		if mutation {
+			return stalwartEngineError(EngineErrorIndeterminate)
+		}
+		return stalwartEngineError(EngineErrorRateLimited)
 	case stalwart.ErrorIndeterminate:
 		return stalwartEngineError(EngineErrorIndeterminate)
 	case stalwart.ErrorUnavailable, stalwart.ErrorCancelled, stalwart.ErrorProtocol:
@@ -200,6 +205,8 @@ func stalwartProviderErrorKind(err error) (stalwart.ErrorKind, bool) {
 		return stalwart.ErrorProtocol, true
 	case errors.Is(err, stalwart.ErrUnavailable):
 		return stalwart.ErrorUnavailable, true
+	case errors.Is(err, stalwart.ErrRateLimited):
+		return stalwart.ErrorRateLimited, true
 	case errors.Is(err, stalwart.ErrIndeterminate):
 		return stalwart.ErrorIndeterminate, true
 	case errors.Is(err, stalwart.ErrCancelled):

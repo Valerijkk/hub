@@ -21,6 +21,12 @@ var (
 	ErrEngineRestartRequired = errors.New("mail engine projection restart required")
 	// ErrEnginePayloadTooLarge обозначает превышение безопасного ограничения полезной нагрузки движка.
 	ErrEnginePayloadTooLarge = errors.New("mail engine payload too large")
+	// ErrEngineRateLimited РѕР±РѕР·РЅР°С‡Р°РµС‚ РІСЂРµРјРµРЅРЅРѕ РёСЃС‡РµСЂРїР°РЅРЅС‹Р№ Р»РёРјРёС‚ РґРІРёР¶РєР° РґР»СЏ РѕРїРµСЂР°С†РёРё С‡С‚РµРЅРёСЏ.
+	ErrEngineRateLimited = errors.New("mail engine rate limited")
+	// ErrEngineIdentityUnavailable РѕР±РѕР·РЅР°С‡Р°РµС‚ РЅРµРґРѕСЃС‚СѓРїРЅРѕСЃС‚СЊ РІС‹Р±СЂР°РЅРЅРѕР№ РёРґРµРЅС‚РёС‡РЅРѕСЃС‚Рё РѕС‚РїСЂР°РІРёС‚РµР»СЏ.
+	ErrEngineIdentityUnavailable = errors.New("mail engine identity unavailable")
+	// ErrEngineRecipientLimit РѕР±РѕР·РЅР°С‡Р°РµС‚ РїСЂРµРІС‹С€РµРЅРёРµ Р»РёРјРёС‚Р° РїРѕР»СѓС‡Р°С‚РµР»РµР№ РґРІРёР¶РєР°.
+	ErrEngineRecipientLimit = errors.New("mail engine recipient limit")
 )
 
 // EngineErrorKind — безопасный стабильный вид ошибки порта движка.
@@ -45,6 +51,12 @@ const (
 	EngineErrorRestartRequired EngineErrorKind = "restart_required"
 	// EngineErrorPayloadTooLarge обозначает превышение безопасного ограничения полезной нагрузки.
 	EngineErrorPayloadTooLarge EngineErrorKind = "payload_too_large"
+	// EngineErrorRateLimited РѕР±РѕР·РЅР°С‡Р°РµС‚ РІСЂРµРјРµРЅРЅРѕ РёСЃС‡РµСЂРїР°РЅРЅС‹Р№ Р»РёРјРёС‚ С‡С‚РµРЅРёСЏ РґРІРёР¶РєР°.
+	EngineErrorRateLimited EngineErrorKind = "rate_limited"
+	// EngineErrorIdentityUnavailable РѕР±РѕР·РЅР°С‡Р°РµС‚ РЅРµРґРѕСЃС‚СѓРїРЅРѕСЃС‚СЊ РІС‹Р±СЂР°РЅРЅРѕР№ РёРґРµРЅС‚РёС‡РЅРѕСЃС‚Рё РѕС‚РїСЂР°РІРёС‚РµР»СЏ.
+	EngineErrorIdentityUnavailable EngineErrorKind = "identity_unavailable"
+	// EngineErrorRecipientLimit РѕР±РѕР·РЅР°С‡Р°РµС‚ РїСЂРµРІС‹С€РµРЅРёРµ Р»РёРјРёС‚Р° РїРѕР»СѓС‡Р°С‚РµР»РµР№ РґРІРёР¶РєР°.
+	EngineErrorRecipientLimit EngineErrorKind = "recipient_limit"
 )
 
 // EngineError — безопасная типизированная ошибка без данных провайдера.
@@ -76,6 +88,12 @@ func (e *EngineError) Error() string {
 		return "mail engine projection restart required"
 	case EngineErrorPayloadTooLarge:
 		return "mail engine payload too large"
+	case EngineErrorRateLimited:
+		return "mail engine rate limited"
+	case EngineErrorIdentityUnavailable:
+		return "mail engine identity unavailable"
+	case EngineErrorRecipientLimit:
+		return "mail engine recipient limit"
 	default:
 		return "mail engine error"
 	}
@@ -105,6 +123,12 @@ func (e *EngineError) Unwrap() error {
 		return ErrEngineRestartRequired
 	case EngineErrorPayloadTooLarge:
 		return ErrEnginePayloadTooLarge
+	case EngineErrorRateLimited:
+		return ErrEngineRateLimited
+	case EngineErrorIdentityUnavailable:
+		return ErrEngineIdentityUnavailable
+	case EngineErrorRecipientLimit:
+		return ErrEngineRecipientLimit
 	default:
 		return nil
 	}

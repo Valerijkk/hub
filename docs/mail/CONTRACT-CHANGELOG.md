@@ -1,5 +1,22 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Provider rate-limit and submission error taxonomy
+
+STATIC_SOURCE_ONLY / NOT_RUN.
+
+Added provider-neutral engine errors "rate_limited", "identity_unavailable", and
+"recipient_limit" with stable content-free sentinels. Stalwart JMAP rateLimit and normal
+mailbox HTTP 429 remain rate-limited for reads, but rate-limited mutations are
+indeterminate and never retry-labelled. Submission tooManyRecipients is recipient_limit;
+forbiddenMailFrom, forbiddenFrom, and forbiddenToSend are identity_unavailable; overQuota,
+invalidEmail, noRecipients, and invalidRecipients remain rejected_policy. Read-only
+submission reconciliation preserves typed rate_limited for safe later retry.
+
+This atom adds no PreflightSubmission, dual claim, worker, or dispatch implementation. The
+frozen lifecycle is unchanged: preflight occurs after the dual claim in authorizing, and a
+later rate-limit decision rolls a provisional attempt back to queued without decreasing or
+reusing its command fence.
+
 ## 2026-08-25 - Submission authorizing and rate-bucket schema contract
 
 `STATIC_SCHEMA_AND_NARROW_RESERVATION_REPOSITORY_SERVICE_COMPATIBILITY_SOURCE_IMPLEMENTED /

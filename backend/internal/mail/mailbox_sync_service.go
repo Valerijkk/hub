@@ -359,7 +359,7 @@ func (service *MailboxSyncService) handleFolderError(ctx context.Context, fence 
 		return MailboxSyncStepResult{}, contextErr
 	}
 	switch {
-	case errors.Is(err, ErrEngineUnavailable), errors.Is(err, ErrEngineIndeterminate):
+	case errors.Is(err, ErrEngineUnavailable), errors.Is(err, ErrEngineRateLimited), errors.Is(err, ErrEngineIndeterminate):
 		return service.resolve(ctx, fence, now, MailboxSyncFailureTransient, MailboxSyncServiceErrorUnavailable)
 	case errors.Is(err, ErrEnginePayloadTooLarge):
 		return service.reject(ctx, fence, now, MailboxSyncServiceErrorTooLarge)
@@ -377,7 +377,7 @@ func (service *MailboxSyncService) handlePageError(ctx context.Context, fence Ma
 		return service.resolve(ctx, fence, now, MailboxSyncFailureInvalidCursor, MailboxSyncServiceErrorInvalid)
 	case errors.Is(err, ErrEngineRestartRequired) && fence.Phase == MailboxSyncPhaseEnumeration:
 		return service.resolve(ctx, fence, now, MailboxSyncFailureRestartRequired, MailboxSyncServiceErrorInvalid)
-	case errors.Is(err, ErrEngineUnavailable), errors.Is(err, ErrEngineIndeterminate):
+	case errors.Is(err, ErrEngineUnavailable), errors.Is(err, ErrEngineRateLimited), errors.Is(err, ErrEngineIndeterminate):
 		return service.resolve(ctx, fence, now, MailboxSyncFailureTransient, MailboxSyncServiceErrorUnavailable)
 	case errors.Is(err, ErrEnginePayloadTooLarge):
 		return service.reject(ctx, fence, now, MailboxSyncServiceErrorTooLarge)
