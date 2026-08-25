@@ -12,15 +12,19 @@ mail_calendar_ent_generation_security_2026_08_25: >-
   no product, cutover or merge readiness.
 mail_calendar_outbound_mime_part_2026_08_25: >-
   STATIC_IMPLEMENTED / STATIC_ACCEPTED only for the sealed outbound calendar
-  part and private planner/stream in `backend/internal/mail/calendar_mime_part.go`,
-  `backend/internal/mail/mailbox_draft_mime.go` and
-  `backend/internal/mail/mailbox_draft_mime_stream.go`: exact calendar headers
-  and MIME ordering, per-recipient normalized sole To with empty CC/BCC,
-  frozen binding digest and deep-copy streaming, byte-preserved nil-calendar
-  legacy path, unchanged attachments, and no S3 requirement for calendar-only
-  drafts. Independent Contract/high and Security/xhigh reviews reported C/I/M
-  0/0/0 with dispatcher-enforced provenance and no fallback. Provider
-  import/submission and service materializer wiring remain pending;
+  part, private planner/stream and private calendar-only RFC822 UploadBlob seam
+  in `backend/internal/mail/calendar_mime_part.go`,
+  `backend/internal/mail/mailbox_draft_mime.go`,
+  `backend/internal/mail/mailbox_draft_mime_stream.go` and
+  `backend/internal/mail/stalwart_engine_draft_upload.go`: exact calendar
+  headers and MIME ordering, per-recipient normalized sole To with empty
+  CC/BCC, frozen binding digest and deep-copy streaming, byte-preserved
+  nil-calendar path, unchanged legacy attachment upload, calendar-only
+  operation without S3, and a shared private path supporting future combined
+  attachment-plus-calendar drafts. Independent Contract/high and
+  Security/xhigh reviews reported C/I/M 0/0/0 with dispatcher-enforced
+  provenance and no fallback. The durable Email/import create state machine
+  and Calendar delivery service/materializer composition remain pending;
   Ent/migration, tests, build, Docker and runtime remain NOT_RUN. This is not
   product or merge readiness.
 > **Current narrow deletion-source authority (2026-08-23; highest precedence):** accepted plan `3f7aa2c58407ac3a10ad427cfa86256e0a9d340a` is `DOCS_PLAN_STATIC_ACCEPTED / SOURCE_AUTHORITY_ACCEPTED` only for one future atomic no-test exact2 production packet: `backend/internal/mail/mailbox_deletion.go` and `backend/internal/mail/mailbox_deletion_fake.go`. Plan Contract/high, Security/xhigh and Lifecycle/high reviews are C/I/M `0/0/0`; `provenance_source: dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. Source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its own commit and immutable C/S/L triple `0/0/0`. Adapter capability proof is not required only for this provider-neutral ABI plus two standalone fakes exception, but remains mandatory for every concrete provider adapter. Persistence/Ent/schema/generation/migration/SQL/worker/storage drain/account finalization/User-GDPR/HTTP/NATS/Docker/runtime stay `BLOCKED` / `NOT_RUN`. Old blanket deletion-source-blocked or plan-pending claims are `CONSUMED/HISTORICAL` only within this exact2 scope; unrelated gates are unchanged.

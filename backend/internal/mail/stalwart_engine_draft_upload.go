@@ -19,14 +19,35 @@ type StalwartDraftMIMEUploadResult struct {
 // any transport ambiguity remains indeterminate and must be reconciled before
 // another mutation.
 func (engine *StalwartEngine) UploadDraftMIME(ctx context.Context, draft EngineDraft, capability *mailboxDraftAttachmentCapability) (StalwartDraftMIMEUploadResult, error) {
-	if ctx == nil || capability == nil || !mailboxDraftAttachmentCapabilityMatches(capability, draft) {
+	return engine.uploadDraftMIME(ctx, draft, capability, nil)
+}
+
+func (engine *StalwartEngine) uploadCalendarDraftMIME(ctx context.Context, draft EngineDraft, calendar *calendarMIMEPart) (StalwartDraftMIMEUploadResult, error) {
+	return engine.uploadDraftMIME(ctx, draft, nil, calendar)
+}
+
+func stalwartDraftMIMEUploadInputsValid(ctx context.Context, draft EngineDraft, capability *mailboxDraftAttachmentCapability, calendar *calendarMIMEPart) bool {
+	if ctx == nil || capability == nil && calendar == nil {
+		return false
+	}
+	if capability != nil && !mailboxDraftAttachmentCapabilityMatches(capability, draft) {
+		return false
+	}
+	if capability == nil && len(draft.Message.Attachments) != 0 {
+		return false
+	}
+	return calendar == nil || calendar.valid()
+}
+
+func (engine *StalwartEngine) uploadDraftMIME(ctx context.Context, draft EngineDraft, capability *mailboxDraftAttachmentCapability, calendar *calendarMIMEPart) (StalwartDraftMIMEUploadResult, error) {
+	if !stalwartDraftMIMEUploadInputsValid(ctx, draft, capability, calendar) {
 		return StalwartDraftMIMEUploadResult{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
 	if err := stalwartMailboxContextError(ctx); err != nil {
 		return StalwartDraftMIMEUploadResult{}, mapStalwartEngineError(err, false)
 	}
 
-	plan, err := mailboxDraftMIMEPlanForDraft(ctx, draft, capability)
+	plan, err := mailboxDraftMIMEPlanForDraftWithCalendar(ctx, draft, capability, calendar)
 	if err != nil {
 		return StalwartDraftMIMEUploadResult{}, err
 	}
