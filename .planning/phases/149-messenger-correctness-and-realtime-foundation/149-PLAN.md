@@ -399,7 +399,7 @@ docker compose -f docker-compose.local.yml run --rm frontend-unit
 
 Expected: PASS. Record Mongo, NATS broker, live WebSocket, and deployed runtime as `NOT_RUN` unless greenfield integration coverage is added under `testframework/tests/integration/**` and executed through the existing `python-integration` service.
 
-- [ ] **Step 5: Sync docs and commit exact paths**
+- [x] **Step 5: Sync docs and commit exact paths**
 
 Update the websocket subject/security table, lifecycle recipient/payload rules, idempotency/index contract, fail-closed fanout and its in-flight race boundary, Phase-151 unread recovery boundary, reconnect behavior, Task 1-5 receipts, new/legacy test status, and protected scope in `docs/TECHNICAL.md` and `docs/TESTING.md`. Create `149-VERIFICATION.md` with separate static, backend-unit, frontend-unit, and Mongo/NATS/live-WebSocket rows; unavailable executable evidence stays `NOT_RUN`/`PARTIAL`.
 
@@ -415,3 +415,5 @@ git commit -m "feat(messenger): deliver authorized user channel events"
 3. Independent review receives `149-SPEC.md`, exact BASE..HEAD diff, raw Docker outputs, and no generator conclusion.
 4. Update `149-VERIFICATION.md` with separate static/runtime verdicts. If Mongo/NATS integration was not executed, the phase remains `PARTIAL` with `python-integration: NOT_RUN`; do not relabel it PASS.
 5. Phase 151 retains the explicit `NOT_READY` durable read-state/projection rebuild gap; Phase 149 PASS never implies that cross-storage recovery exists.
+
+Implemented as exact-path local commits `56a54240`, `ac9d2af5`, `2662cf62`, and `cf2178fd`; no push was performed. The phase verdict remains `PARTIAL` because Mongo/NATS/live-WebSocket/browser and direct Ent integration evidence are `NOT_RUN`.
