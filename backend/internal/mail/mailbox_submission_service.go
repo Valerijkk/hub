@@ -213,7 +213,7 @@ func mailboxSubmissionReplayRecordValid(record MailboxSubmissionRecord, accountI
 		return false
 	}
 	switch record.Status {
-	case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusAccepted:
+	case MailboxSubmissionStatusQueued, MailboxSubmissionStatusAuthorizing, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusAccepted:
 		return record.DraftID != nil && *record.DraftID == draftID && record.ResultMailMessageID == nil && record.LastErrorCode == nil
 	case MailboxSubmissionStatusSent:
 		return (record.DraftID == nil || *record.DraftID == draftID) &&
@@ -240,7 +240,8 @@ func mailboxSubmissionReplayRecordValid(record MailboxSubmissionRecord, accountI
 			MailboxSubmissionErrorCodeAttachmentNotClean,
 			MailboxSubmissionErrorCodeIdentityUnavailable,
 			MailboxSubmissionErrorCodeRecipientLimit,
-			MailboxSubmissionErrorCodeSizeLimit:
+			MailboxSubmissionErrorCodeSizeLimit,
+			MailboxSubmissionErrorCodeRetryExhausted:
 			return true
 		default:
 			return false
@@ -280,7 +281,7 @@ func mailboxSubmissionViewFromRecord(record MailboxSubmissionRecord) (MailboxSub
 // repository, including for the internal accepted state.
 func mailboxSubmissionPublicReceiptValid(record MailboxSubmissionRecord) bool {
 	switch record.Status {
-	case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusAccepted:
+	case MailboxSubmissionStatusQueued, MailboxSubmissionStatusAuthorizing, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusAccepted:
 		return record.ResultMailMessageID == nil && record.LastErrorCode == nil
 	case MailboxSubmissionStatusSent:
 		return record.ResultMailMessageID != nil && *record.ResultMailMessageID != uuid.Nil && record.LastErrorCode == nil
@@ -306,7 +307,8 @@ func mailboxSubmissionPublicReceiptValid(record MailboxSubmissionRecord) bool {
 			MailboxSubmissionErrorCodeAttachmentNotClean,
 			MailboxSubmissionErrorCodeIdentityUnavailable,
 			MailboxSubmissionErrorCodeRecipientLimit,
-			MailboxSubmissionErrorCodeSizeLimit:
+			MailboxSubmissionErrorCodeSizeLimit,
+			MailboxSubmissionErrorCodeRetryExhausted:
 			return true
 		default:
 			return false

@@ -14,12 +14,13 @@ import (
 type MailboxSubmissionStatus string
 
 const (
-	MailboxSubmissionStatusQueued     MailboxSubmissionStatus = "queued"
-	MailboxSubmissionStatusSubmitting MailboxSubmissionStatus = "submitting"
-	MailboxSubmissionStatusAccepted   MailboxSubmissionStatus = "accepted"
-	MailboxSubmissionStatusSent       MailboxSubmissionStatus = "sent"
-	MailboxSubmissionStatusUnknown    MailboxSubmissionStatus = "unknown"
-	MailboxSubmissionStatusFailed     MailboxSubmissionStatus = "failed"
+	MailboxSubmissionStatusQueued      MailboxSubmissionStatus = "queued"
+	MailboxSubmissionStatusAuthorizing MailboxSubmissionStatus = "authorizing"
+	MailboxSubmissionStatusSubmitting  MailboxSubmissionStatus = "submitting"
+	MailboxSubmissionStatusUnknown     MailboxSubmissionStatus = "unknown"
+	MailboxSubmissionStatusAccepted    MailboxSubmissionStatus = "accepted"
+	MailboxSubmissionStatusSent        MailboxSubmissionStatus = "sent"
+	MailboxSubmissionStatusFailed      MailboxSubmissionStatus = "failed"
 )
 
 // MailboxSubmissionErrorCode is the bounded public reason carried by terminal
@@ -36,6 +37,7 @@ const (
 	MailboxSubmissionErrorCodeIdentityUnavailable      MailboxSubmissionErrorCode = "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE"
 	MailboxSubmissionErrorCodeRecipientLimit           MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RECIPIENT_LIMIT"
 	MailboxSubmissionErrorCodeSizeLimit                MailboxSubmissionErrorCode = "MAIL_SUBMISSION_SIZE_LIMIT"
+	MailboxSubmissionErrorCodeRetryExhausted           MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RETRY_EXHAUSTED"
 )
 
 // MailboxSubmissionRecord is the content-free durable receipt returned across
@@ -152,10 +154,11 @@ func mailboxSubmissionHashPresent(value [sha256.Size]byte) bool {
 func validMailboxSubmissionStatus(status MailboxSubmissionStatus) bool {
 	switch status {
 	case MailboxSubmissionStatusQueued,
+		MailboxSubmissionStatusAuthorizing,
 		MailboxSubmissionStatusSubmitting,
+		MailboxSubmissionStatusUnknown,
 		MailboxSubmissionStatusAccepted,
 		MailboxSubmissionStatusSent,
-		MailboxSubmissionStatusUnknown,
 		MailboxSubmissionStatusFailed:
 		return true
 	default:
@@ -173,7 +176,8 @@ func validMailboxSubmissionErrorCode(code MailboxSubmissionErrorCode) bool {
 		MailboxSubmissionErrorCodeAttachmentNotClean,
 		MailboxSubmissionErrorCodeIdentityUnavailable,
 		MailboxSubmissionErrorCodeRecipientLimit,
-		MailboxSubmissionErrorCodeSizeLimit:
+		MailboxSubmissionErrorCodeSizeLimit,
+		MailboxSubmissionErrorCodeRetryExhausted:
 		return true
 	default:
 		return false

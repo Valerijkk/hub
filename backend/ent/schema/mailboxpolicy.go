@@ -34,6 +34,10 @@ func (MailboxPolicy) Fields() []ent.Field {
 		field.Int32("send_rate_per_minute").
 			Min(1).
 			Max(1_000),
+		field.Int32("instance_send_rate_per_minute").
+			Default(1_000).
+			Min(1).
+			Max(1_000),
 		field.Int32("trash_retention_days").
 			Min(1).
 			Max(3_650),
@@ -58,7 +62,7 @@ func (MailboxPolicy) Mixin() []ent.Mixin {
 func (MailboxPolicy) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
-			"mailbox_policies_bounds": "max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 300 AND send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650",
+			"mailbox_policies_bounds": "max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 300 AND send_rate_per_minute BETWEEN 1 AND 1000 AND instance_send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650",
 		}),
 	}
 }

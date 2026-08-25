@@ -160,6 +160,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("journal_entries", JournalEntry.Type),
 		edge.To("invoices_created", Invoice.Type),
 		edge.To("mail_account", MailAccount.Type).Unique(),
+		edge.To("mail_send_rate_buckets", MailSendRateBucket.Type),
 		edge.To("recent_contacts", RecentContact.Type),
 		edge.To("mail_objects", MailObject.Type),
 	}

@@ -620,9 +620,10 @@ versioned transaction. Generation is stored beside, not inside, the hash.
 
 One `id`/`organization_id` row with required `external_mail_enabled`, `max_message_bytes`
 1,048,576..52,428,800, `max_attachment_bytes` 1..26,214,400, `max_recipients` 1..300,
-`send_rate_per_minute` 1..1,000, trash/junk retention 1..3,650 days, timestamps and
-`VersionMixin`. All policy values are required with no schema default; the provisioning/admin
-service supplies the configured initial values explicitly. MailboxPolicy creation supplies
+`send_rate_per_minute` per user 1..1,000, mutable
+`instance_send_rate_per_minute` 1..1,000 default 1,000, trash/junk retention 1..3,650 days,
+timestamps and `VersionMixin`. The provisioning/admin service supplies every initial policy
+value except the schema-defaulted instance-wide rate explicitly. MailboxPolicy creation supplies
 `max_message_bytes=25,000,000` and `max_attachment_bytes=25,000,000` decimal bytes. These
 product defaults are distinct from the engine adapter hard caps of 52,428,800 message bytes
 and 26,214,400 attachment bytes. Administrators may configure each value only within its
@@ -630,6 +631,37 @@ stated inclusive bound, with attachment <= message. Unique organization; CHECK a
 message. `MailboxPolicy` may cascade only after the Organization mail-deletion gate below
 has proved zero remaining `MailAccount` and `MailObject` rows. Enabling external mail still
 requires the service-level verified-domain/engine gate.
+
+### `MailSendRateBucket`
+
+One rate ledger row has exactly one immutable owner shape: either the organization-instance
+bucket or one User. Its immutable `id` and immutable `scope=organization_instance|user` select
+the exact nullable immutable UUID owner shape: `organization_instance` has a non-null nonzero
+`organization_id` and null `user_id`; `user` has null `organization_id` and a non-null nonzero
+`user_id`. The disjoint shapes make a mismatched `(organization A,user B)` row
+unrepresentable. There is no MailAccount, deployment, or global-instance scope.
+
+Mutable `tokens` is int32 `0..1_000`; required `last_refill_at` has no default;
+`refill_remainder_nanos` is int64 default `0` in `0..59_999_999_999`; and `version` is
+int64 default `1`, minimum `1`. It has immutable creation and update-now timestamps, but no
+`VersionMixin`. The row CHECKs are NULL-safe and exact for the separate nonzero organization
+and user checks, scope-owner shape, token bound, remainder bound, and version bound. It has
+optional unique Organization and User edges, both `ON DELETE NO ACTION`, with inverse
+collections `mail_send_rate_buckets`.
+
+The only unique indexes are
+`mail_send_rate_buckets_organization_instance_uidx (organization_id) WHERE scope =
+'organization_instance' AND organization_id IS NOT NULL` and
+`mail_send_rate_buckets_user_uidx (user_id) WHERE scope = 'user' AND user_id IS NOT NULL`.
+A future rate service lazily initializes a missing bucket inside its locked database transaction
+at the database time; it does not manufacture a deployment/global bucket. For a user bucket,
+authorization locks and joins the authoritative User row, checks its Organization, and derives
+the bucket organization from that row; it never trusts a caller-supplied organization. A policy
+rate update locks its affected bucket rows and
+clamps tokens to the new cap in the same transaction. This is schema-only: rate
+debit/refill/locking is `NOT_IMPLEMENTED`; generated Ent, migration, SQL application, backfill,
+tests, Docker, and runtime are
+`NOT_GENERATED` / `NOT_MIGRATED` / `NOT_RUN`. No hand SQL or guessed backfill is authorized.
 
 ### 144-02A Ent representation freeze
 
@@ -664,8 +696,9 @@ dispatch and source-level review remain required.
   declared immutable remain Ent-immutable.
 - `MailboxPolicy` has the exact fields `id`, `organization_id`,
   `external_mail_enabled`, `max_message_bytes`, `max_attachment_bytes`, `max_recipients`,
-  `send_rate_per_minute`, `trash_retention_days`, `junk_retention_days`, `created_at`,
-  `updated_at`, plus `VersionMixin`. None of its policy fields has an Ent default.
+  `send_rate_per_minute`, `instance_send_rate_per_minute`, `trash_retention_days`,
+  `junk_retention_days`, `created_at`, `updated_at`, plus `VersionMixin`.
+  Only `instance_send_rate_per_minute` has the Ent default `1_000`.
 
 `required_dns_records` uses the non-provider persistence value
 `mail.RequiredDNSRecords` from `backend/internal/mail/domain_dns.go`:
@@ -707,6 +740,8 @@ The exact ordered index definitions are:
   `engine_domain_id IS NOT NULL`; unique `organization_id` with predicate
   `deleted_at IS NULL AND is_default = TRUE`; lookup `(state,next_retry_at)`.
 - `MailboxPolicy`: unique `organization_id`.
+- `MailSendRateBucket`: unique `organization_id` where `scope = 'organization_instance' AND
+  organization_id IS NOT NULL`; unique `user_id` where `scope = 'user' AND user_id IS NOT NULL`.
 
 The service transaction still owns exactly-one-primary creation, 200 identities/account,
 100 live domains/organization, same-account/default eligibility and cross-row domain-use
@@ -795,7 +830,7 @@ mail_domains_default_state:
 
 ```text
 mailbox_policies_bounds:
-  max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 300 AND send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650
+  max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 300 AND send_rate_per_minute BETWEEN 1 AND 1000 AND instance_send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650
 ```
 
 The PostgreSQL-only `jsonb_array_length` predicate is intentional because Hub persistence is
@@ -813,8 +848,11 @@ PostgreSQL. JSON shape/serialized-size validation still runs in the typed Go val
   to-many `accounts` inverse. The account foreign key is the database RESTRICT/NO ACTION
   proof; confirmed engine absence and soft-delete finalization remain service checks.
 - `MailboxPolicy` has one required unique `organization` edge with `ON DELETE CASCADE`.
-- Existing `Organization` inverse edge collections append only `mail_accounts`, `mail_domains`,
-  and unique `mailbox_policy`; existing `User` collections append only unique `mail_account`.
+- `MailSendRateBucket` has optional unique `organization` and `user` edges, both `ON DELETE NO
+  ACTION`; its inverse collections are `mail_send_rate_buckets`.
+- Existing `Organization` inverse edge collections append `mail_accounts`, `mail_domains`,
+  unique `mailbox_policy`, and `mail_send_rate_buckets`; existing `User` collections append
+  unique `mail_account` and `mail_send_rate_buckets`.
   The correction changes only the two MailAccount owner-FK delete actions to `NO ACTION`.
 
 #### Sequential implementation packets
@@ -1175,28 +1213,30 @@ expiry are all-or-none. Authorization proof is the all-or-none nullable pair
 the nullable opaque pair `provider_submission_id`/`provider_message_id` (each 1..1,024 bytes);
 the result Hub UUID `result_mail_message_id` remains a scalar snapshot, not an FK.
 
-Statuses are exactly `queued`, `submitting`, `unknown`, `accepted`, `sent`, and `failed`.
-Their exact matrix is `L` = command lease token+expiry pair, `A` = dispatch authorization
-timestamp+hash pair, `P` = provider submission+message pair, `R` = result Hub UUID, and `E` =
-last error; `0` is null and `1` is non-null. `command_fence` may persist at any non-negative
-value in every state and is never required to return to zero.
+Statuses are exactly `queued`, `authorizing`, `submitting`, `unknown`, `accepted`, `sent`,
+and `failed`. Their exact matrix is `L` = command lease token+expiry pair, `A` = dispatch
+authorization timestamp+hash pair, `P` = provider submission+message pair, `R` = result Hub
+UUID, and `E` = last error; `0` is null and `1` is non-null. `command_fence` is non-negative
+globally and is at least `1` from `authorizing` through `sent` and `unknown`; a rollback never
+decrements it.
 
-| Status | L | A | P | R | E | Draft |
-|---|---:|---:|---:|---:|---|---|
-| `queued` | 0 | 0 | 0 | 0 | 0 | non-null |
-| `submitting` | 1 | 1 | 0 | 0 | 0 | non-null |
-| `accepted` | 0 | 1 | 1 | 0 | 0 | non-null |
-| `sent` | 0 | 1 | 1 | 1 | 0 | may follow the current terminal sent snapshot semantics |
-| `unknown` | 0 | 1 | 0 | 0 | `MAIL_SUBMISSION_OUTCOME_UNKNOWN`, `MAIL_SUBMISSION_RECONCILIATION_REQUIRED`, or `MAILBOX_UNAVAILABLE` | non-null |
-| `failed` | 0 | 0 | 0 | 0 | `MAIL_SUBMISSION_REJECTED`, `MAIL_SUBMISSION_POLICY`, `MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN`, `MAIL_SUBMISSION_IDENTITY_UNAVAILABLE`, `MAIL_SUBMISSION_RECIPIENT_LIMIT`, or `MAIL_SUBMISSION_SIZE_LIMIT` | terminal semantics |
+| Status | L | A | P | R | E | next_attempt_at | attempt_count | Draft / fence |
+|---|---:|---:|---:|---:|---|---|---|---|
+| `queued` | 0 | 0 | 0 | 0 | 0 | non-null | 0..7 | draft non-null; fence >= 0 |
+| `authorizing` | 1 | 0 | 0 | 0 | 0 | null | 1..8 | draft non-null; fence >= 1 |
+| `submitting` | 1 | 1 | 0 | 0 | 0 | null | 1..8 | draft non-null; fence >= 1 |
+| `unknown` | 0 | 1 | 0 | 0 | `MAIL_SUBMISSION_OUTCOME_UNKNOWN`, `MAIL_SUBMISSION_RECONCILIATION_REQUIRED`, or `MAILBOX_UNAVAILABLE` | null | 1..8 | draft non-null; fence >= 1 |
+| `accepted` | 0 | 1 | 1 | 0 | 0 | null | 1..8 | draft non-null; fence >= 1 |
+| `sent` | 0 | 1 | 1 | 1 | 0 | null | 1..8 | terminal sent snapshot semantics; fence >= 1 |
+| `failed` | 0 | 0 | 0 | 0 | definitive pre-provider error or `MAIL_SUBMISSION_RETRY_EXHAUSTED` | null | 1..8 | terminal semantics; retry exhausted requires 8, but an eighth definitive failure retains its exact reason |
 The exact field names are `idempotency_key_hash`, `request_hash`, `engine_submission_key`,
 `engine_binding_version`, `engine_account_id`, `engine_draft_key`, `engine_message_id`,
 `engine_expected_version`, `engine_max_message_bytes`, `engine_binding_hash`,
 `command_lease_token`, `command_fence`, `command_lease_expires_at`,
 `dispatch_authorized_at`, `dispatch_authorization_hash`, `provider_submission_id`,
-`provider_message_id`, `result_mail_message_id`, `last_error_code`, `attempt_count`,
-`created_at`, and `updated_at`; all hash fields are exact bytes(32), the specified binding
-fields are immutable, and attempt count is int32 default 0.
+`provider_message_id`, `result_mail_message_id`, `last_error_code`, `next_attempt_at`,
+`attempt_count`, `created_at`, and `updated_at`; all hash fields are exact bytes(32), the
+specified binding fields are immutable, and attempt count is int32 default 0 bounded 0..8.
 Draft deletion is restricted while non-terminal, otherwise its edge may set null; account
 deletion cascades. The result Hub UUID is an immutable scalar snapshot, not a foreign key;
 message projection deletion therefore does not erase it.
@@ -1204,32 +1244,46 @@ message projection deletion therefore does not erase it.
 **Current reservation-source static state.** The schema contract and private reservation source
 are present: one short Ent transaction locks account, idempotency receipt, draft, active
 submission, then the unique organization policy; exact valid idempotency replay precedes mutable
-account/draft/policy adjudication. New queued rows bind the current validated engine values and
-policy message limit, then transition the draft from `active` to `submitting` with the database
-wall clock. Reservation performs no provider, network, or engine I/O; provider freshness remains
-a separate future preflight atom. Generated Ent, physical migration, SQL application, compile,
+account/draft/policy adjudication. New queued rows bind the current validated engine values,
+policy message limit, and a non-null `next_attempt_at` from the database wall clock, then
+transition the draft from `active` to `submitting`. Reservation performs no provider, network,
+or engine I/O; provider freshness remains a separate future preflight atom. Generated Ent,
+physical migration, SQL application, compile,
 tests, Docker, retry worker, finalizer, and runtime remain `NOT_GENERATED` / `NOT_MIGRATED` /
 `NOT_RUN`.
 
-**Required future service/worker behavior (`NOT_IMPLEMENTED`).** A future service may enter
-`accepted` only after persisting the provider pair and authorization proof. It may enter `sent`
-only in the same transaction that maps `provider_message_id` to an owned `MailMessage`
-projection whose returned account and engine message id exactly equal the requested account and
-persisted provider message id and whose version is non-empty/bounded. That transaction must
-derive `confirmed_owner_submission` from the confirmed result pair rather than trusting an
-address, folder or adapter-supplied origin. A mismatch must store no Hub UUID/event and remain
-reconciliation-required. Until finalization the receipt must remain `accepted`; the required
-future finalizer ordering is `updated_at,id` rather than an invented schedule timestamp, and a
-future queued/unknown retry worker must use the same `updated_at,id` ordering. A future
-reconciliation path must call `ReconcileSubmission` for a null provider pair; a complete pair
-must skip it and retry only bounded message read/projection/finalization. The complete-pair
-branch must not requeue or call Submit.
+**Required future service/worker behavior (`NOT_IMPLEMENTED`).** A future claimant selects
+`queued` by `(next_attempt_at,id)`, then records its fenced provisional `authorizing` attempt
+before authorization or provider I/O. It selects stale `authorizing|submitting` leases by
+`(command_lease_expires_at,id)` and `unknown` reconciliation by `(updated_at,id)`; accepted
+finalization retains `(updated_at,id)`. Every stale `submitting` always transitions to
+reconciliation/`unknown` and is never requeued or passed to `Submit` again, including when its
+provider IDs are still null. A rate-limit denial atomically rolls the provisional
+attempt back to the exact queued shape with a new `next_attempt_at` and no provider I/O; its
+provisional attempt count is restored, but `command_fence` never decreases or reuses a value.
 
-**Migration note (`NOT_IMPLEMENTED`).** Existing rows cannot be guessed or backfilled from this
-contract. An Atlas application to a nonempty deployment requires an audited data-preserving
-mapping, quarantine, or abort contract; this packet supplies neither SQL nor an invented
-backfill. Canonical lineage generation remains future Docker-only and is `NOT_GENERATED` /
-`NOT_MIGRATED` / `NOT_RUN`.
+Inside that same locked database transaction, a missing organization-instance or user bucket is
+lazily initialized at database time. A policy rate update locks its affected buckets and clamps
+their tokens to the new per-user or instance-wide cap in the same transaction. No deployment or
+global bucket is valid. These future rate debit/refill/claim transitions are not implemented by
+this schema packet.
+
+A future service may enter `accepted` only after persisting the provider pair and authorization
+proof. It may enter `sent` only in the same transaction that maps `provider_message_id` to an
+owned `MailMessage` projection whose returned account and engine message id exactly equal the
+requested account and persisted provider message id and whose version is non-empty/bounded.
+That transaction must derive `confirmed_owner_submission` from the confirmed result pair rather
+than trusting an address, folder or adapter-supplied origin. A mismatch must store no Hub
+UUID/event and remain reconciliation-required. A future reconciliation path must call
+`ReconcileSubmission` for a null provider pair; a complete pair must skip it and retry only
+bounded message read/projection/finalization. The complete-pair branch must not requeue or call
+Submit.
+
+**Migration note (`NOT_IMPLEMENTED`).** Existing submission and rate-bucket rows cannot be
+guessed or backfilled from this contract. An Atlas application to a nonempty deployment requires
+an audited data-preserving mapping, quarantine, or abort contract; this packet supplies neither
+hand SQL nor an invented backfill. Canonical lineage generation remains future Docker-only and
+is `NOT_GENERATED` / `NOT_MIGRATED` / `NOT_RUN`.
 
 ### 144-02A/B/C/D root correction acceptance — 2026-08-15
 
@@ -1316,7 +1370,7 @@ than correction scope; this grants no schema/source authority.
 | Submission | engine_max_message_bytes | int64 | required; `1..52_428_800` inclusive | yes |
 | Submission | mail_draft_id/provider_submission_id/provider_message_id/result_mail_message_id | uuid/text/text/uuid | nullable; draft may become null via terminal FK action | service set-once provider/result, not Ent immutable |
 | Submission | command_lease_token/command_fence/command_lease_expires_at | uuid/int64/timestamptz | token/expiry nullable paired; fence `0` | no |
-| Submission | dispatch_authorized_at/dispatch_authorization_hash/last_error_code/attempt_count/status | timestamptz/bytea/text/int32/text | proof nullable paired; error nullable; attempts `0`; status required/no default | no |
+| Submission | dispatch_authorized_at/dispatch_authorization_hash/last_error_code/next_attempt_at/attempt_count/status | timestamptz/bytea/text/timestamptz/int32/text | proof nullable paired; error nullable; next attempt nullable; attempts `0..8`; status required/no default | no |
 
 **02C exact edge/delete/index table.**
 
@@ -1327,7 +1381,7 @@ All 02C `id` fields are `uuid NOT NULL DEFAULT uuid.New` immutable; `created_at`
 | MailObject | Organization/account/uploader User all `NO ACTION`; draft-client is scalar; User lifecycle uses the canonical three-family union; account/User/Organization finalization requires zero objects | `UNIQUE mail_objects_bucket_object_key_uidx (bucket,object_key)`; non-unique `mail_objects_delete_due_idx (next_delete_at,id) WHERE upload_state IN ('orphaned','deleted')` |
 | MailAttachment | storage object/message/draft FKs `RESTRICT`; no cross-account row check | `UNIQUE mail_attachments_storage_object_uidx (storage_object_id) WHERE storage_object_id IS NOT NULL`; non-unique `mail_attachments_message_idx (mail_message_id)`; non-unique `mail_attachments_draft_idx (mail_draft_id)`; no unique index on `engine_blob_id` |
 | MailDraft | account `CASCADE`; reply/forward projected-message snapshots `SET NULL`; individual delete status-only | `UNIQUE mail_drafts_account_engine_key_uidx (mail_account_id,engine_draft_key)`; `UNIQUE mail_drafts_account_client_uidx (mail_account_id,draft_client_id)`; `UNIQUE mail_drafts_account_create_key_uidx (mail_account_id,create_idempotency_key_hash)`; `UNIQUE mail_drafts_account_engine_message_uidx (mail_account_id,engine_message_id) WHERE engine_message_id IS NOT NULL` |
-| MailSubmission | account `CASCADE`; draft FK `SET NULL` only after terminal sent/failed, while queued/submitting/unknown/accepted require non-null draft; normal draft delete status-only, exceptional locked purge only terminal sent/failed; result Hub UUID has no FK; CalendarReplyDelivery absent/deferred | `UNIQUE mail_submissions_account_key_hash_uidx (mail_account_id,idempotency_key_hash)`; `UNIQUE mail_submissions_account_engine_key_uidx (mail_account_id,engine_submission_key)`; `UNIQUE mail_submissions_account_provider_submission_uidx (mail_account_id,provider_submission_id) WHERE provider_submission_id IS NOT NULL`; `UNIQUE mail_submissions_account_provider_message_uidx (mail_account_id,provider_message_id) WHERE provider_message_id IS NOT NULL`; `UNIQUE mail_submissions_account_result_snapshot_uidx (mail_account_id,result_mail_message_id) WHERE result_mail_message_id IS NOT NULL`; `UNIQUE mail_submissions_active_draft_uidx (mail_draft_id) WHERE status IN ('queued','submitting','unknown','accepted')`; non-unique `mail_submissions_worker_due_idx (updated_at,id) WHERE status IN ('queued','unknown')`; non-unique `mail_submissions_authorized_rate_idx (mail_account_id,dispatch_authorized_at,id) WHERE dispatch_authorized_at IS NOT NULL`; non-unique `mail_submissions_accepted_finalizer_due_idx (updated_at,id) WHERE status = 'accepted'` |
+| MailSubmission | account `CASCADE`; draft FK `SET NULL` only after terminal sent/failed, while queued/authorizing/submitting/unknown/accepted require non-null draft; normal draft delete status-only, exceptional locked purge only terminal sent/failed; result Hub UUID has no FK; CalendarReplyDelivery absent/deferred | `UNIQUE mail_submissions_account_key_hash_uidx (mail_account_id,idempotency_key_hash)`; `UNIQUE mail_submissions_account_engine_key_uidx (mail_account_id,engine_submission_key)`; `UNIQUE mail_submissions_account_provider_submission_uidx (mail_account_id,provider_submission_id) WHERE provider_submission_id IS NOT NULL`; `UNIQUE mail_submissions_account_provider_message_uidx (mail_account_id,provider_message_id) WHERE provider_message_id IS NOT NULL`; `UNIQUE mail_submissions_account_result_snapshot_uidx (mail_account_id,result_mail_message_id) WHERE result_mail_message_id IS NOT NULL`; `UNIQUE mail_submissions_active_draft_uidx (mail_draft_id) WHERE status IN ('queued','authorizing','submitting','unknown','accepted')`; non-unique `mail_submissions_queued_due_idx (next_attempt_at,id) WHERE status = 'queued'`; non-unique `mail_submissions_stale_lease_idx (command_lease_expires_at,id) WHERE status IN ('authorizing','submitting')`; non-unique `mail_submissions_unknown_reconcile_idx (updated_at,id) WHERE status = 'unknown'`; non-unique `mail_submissions_accepted_finalizer_due_idx (updated_at,id) WHERE status = 'accepted'` |
 
 **Literal SQL predicate forms.** Every line below is an intended named PostgreSQL `CHECK (...)` predicate. State/pair predicates are NULL-safe with `COALESCE(..., FALSE)`. JSON checks deliberately enforce only DB-representable outer types, cardinality, primitive/object fields, and member primitive types; unknown keys, canonical values/grammar, duplicate detection, per-member semantic bounds, and serialized-byte caps are reject-not-transform application-validator obligations.
 
@@ -1400,9 +1454,9 @@ CONSTRAINT mail_submissions_provider_pair CHECK (COALESCE((provider_submission_i
 CONSTRAINT mail_submissions_command_lease_pair CHECK (COALESCE((command_lease_token IS NULL) = (command_lease_expires_at IS NULL), FALSE))
 CONSTRAINT mail_submissions_command_fence CHECK (COALESCE(command_fence >= 0, FALSE))
 CONSTRAINT mail_submissions_dispatch_authorization_pair CHECK (COALESCE((dispatch_authorized_at IS NULL) = (dispatch_authorization_hash IS NULL) AND (dispatch_authorization_hash IS NULL OR octet_length(dispatch_authorization_hash) = 32), FALSE))
-CONSTRAINT mail_submissions_attempts CHECK (COALESCE(attempt_count >= 0, FALSE))
-CONSTRAINT mail_submissions_status_enum CHECK (COALESCE(status IN ('queued','submitting','unknown','accepted','sent','failed'), FALSE))
-CONSTRAINT mail_submissions_state CHECK (COALESCE((status = 'queued' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL) OR (status = 'submitting' AND mail_draft_id IS NOT NULL AND command_lease_token IS NOT NULL AND command_lease_expires_at IS NOT NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL) OR (status = 'accepted' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NOT NULL AND provider_message_id IS NOT NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL) OR (status = 'sent' AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NOT NULL AND provider_message_id IS NOT NULL AND result_mail_message_id IS NOT NULL AND last_error_code IS NULL) OR (status = 'unknown' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_OUTCOME_UNKNOWN','MAIL_SUBMISSION_RECONCILIATION_REQUIRED','MAILBOX_UNAVAILABLE')) OR (status = 'failed' AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_REJECTED','MAIL_SUBMISSION_POLICY','MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN','MAIL_SUBMISSION_IDENTITY_UNAVAILABLE','MAIL_SUBMISSION_RECIPIENT_LIMIT','MAIL_SUBMISSION_SIZE_LIMIT')), FALSE))
+CONSTRAINT mail_submissions_attempts CHECK (COALESCE(attempt_count BETWEEN 0 AND 8, FALSE))
+CONSTRAINT mail_submissions_status_enum CHECK (COALESCE(status IN ('queued','authorizing','submitting','unknown','accepted','sent','failed'), FALSE))
+CONSTRAINT mail_submissions_state CHECK (COALESCE((status = 'queued' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NOT NULL AND attempt_count BETWEEN 0 AND 7) OR (status = 'authorizing' AND mail_draft_id IS NOT NULL AND command_lease_token IS NOT NULL AND command_lease_expires_at IS NOT NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'submitting' AND mail_draft_id IS NOT NULL AND command_lease_token IS NOT NULL AND command_lease_expires_at IS NOT NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'unknown' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_OUTCOME_UNKNOWN','MAIL_SUBMISSION_RECONCILIATION_REQUIRED','MAILBOX_UNAVAILABLE') AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'accepted' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NOT NULL AND provider_message_id IS NOT NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'sent' AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NOT NULL AND provider_message_id IS NOT NULL AND result_mail_message_id IS NOT NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'failed' AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_REJECTED','MAIL_SUBMISSION_POLICY','MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN','MAIL_SUBMISSION_IDENTITY_UNAVAILABLE','MAIL_SUBMISSION_RECIPIENT_LIMIT','MAIL_SUBMISSION_SIZE_LIMIT','MAIL_SUBMISSION_RETRY_EXHAUSTED') AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND (last_error_code <> 'MAIL_SUBMISSION_RETRY_EXHAUSTED' OR attempt_count = 8)), FALSE))
 ```
 
 Every `*_uidx` in the index inventory is a `CREATE UNIQUE INDEX`; every `*_idx` is non-unique. In particular, `mail_attachments_storage_object_uidx` is a unique partial index on `(storage_object_id) WHERE storage_object_id IS NOT NULL`; there is no uniqueness constraint or index on `engine_blob_id`. `Organization -> MailObject`, `User -> MailObject`, and `MailAccount -> MailObject` are `ON DELETE NO ACTION`; `MailAttachment -> MailObject` is `ON DELETE RESTRICT`. A direct delete is guaranteed to fail only while its named blocker survives; no universal arbitrary-direct-SQL safety is claimed.

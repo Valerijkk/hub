@@ -166,7 +166,7 @@ func TestMailDomainSchema_HasExactFieldsDefaultsAndEnums(t *testing.T) {
 func TestMailboxPolicySchema_HasExactFieldsRequiredValuesAndBounds(t *testing.T) {
 	fields := fieldDescriptors((entschema.MailboxPolicy{}).Fields())
 	assertExactNames(t, "MailboxPolicy fields", fieldNames(fields), []string{
-		"created_at", "external_mail_enabled", "id", "junk_retention_days", "max_attachment_bytes",
+		"created_at", "external_mail_enabled", "id", "instance_send_rate_per_minute", "junk_retention_days", "max_attachment_bytes",
 		"max_message_bytes", "max_recipients", "organization_id", "send_rate_per_minute",
 		"trash_retention_days", "updated_at",
 	})
@@ -187,10 +187,14 @@ func TestMailboxPolicySchema_HasExactFieldsRequiredValuesAndBounds(t *testing.T)
 			t.Fatalf("%s default = %#v, want no schema default", name, fields[name].Default)
 		}
 	}
+	assertRequired(t, "instance_send_rate_per_minute", fields["instance_send_rate_per_minute"])
+	if got, want := fields["instance_send_rate_per_minute"].Default, int32(1_000); !reflect.DeepEqual(got, want) {
+		t.Fatalf("instance_send_rate_per_minute default = %#v, want %#v", got, want)
+	}
 	for _, name := range []string{"max_message_bytes", "max_attachment_bytes"} {
 		assertFieldType(t, name, fields[name], field.TypeInt64)
 	}
-	for _, name := range []string{"max_recipients", "send_rate_per_minute", "trash_retention_days", "junk_retention_days"} {
+	for _, name := range []string{"max_recipients", "send_rate_per_minute", "instance_send_rate_per_minute", "trash_retention_days", "junk_retention_days"} {
 		assertFieldType(t, name, fields[name], field.TypeInt32)
 	}
 	assertInt64Validators(t, "max_message_bytes", fields["max_message_bytes"], []struct {
@@ -206,6 +210,10 @@ func TestMailboxPolicySchema_HasExactFieldsRequiredValuesAndBounds(t *testing.T)
 		want  bool
 	}{{0, false}, {1, true}, {300, true}, {301, false}})
 	assertInt32Validators(t, "send_rate_per_minute", fields["send_rate_per_minute"], []struct {
+		value int32
+		want  bool
+	}{{0, false}, {1, true}, {1_000, true}, {1_001, false}})
+	assertInt32Validators(t, "instance_send_rate_per_minute", fields["instance_send_rate_per_minute"], []struct {
 		value int32
 		want  bool
 	}{{0, false}, {1, true}, {1_000, true}, {1_001, false}})
@@ -236,7 +244,7 @@ func TestMailDomainAndMailboxPolicySchemas_HaveExactNamedChecks(t *testing.T) {
 		"mail_domains_default_state":      "is_default = FALSE OR (deleted_at IS NULL AND desired_present = TRUE AND enabled = TRUE AND state = 'verified' AND verification_status = 'verified')",
 	})
 	assertExactChecks(t, (entschema.MailboxPolicy{}).Annotations(), map[string]string{
-		"mailbox_policies_bounds": "max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 300 AND send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650",
+		"mailbox_policies_bounds": "max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 300 AND send_rate_per_minute BETWEEN 1 AND 1000 AND instance_send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650",
 	})
 }
 
@@ -263,7 +271,7 @@ func TestMailDomainAndMailboxPolicySchemas_HaveExactIndexesAndOrganizationEdges(
 	assertInverseRequiredOrganizationEdge(t, "MailboxPolicy.organization", policyEdges["organization"], "mailbox_policy")
 
 	organizationEdges := edgeDescriptors((entschema.Organization{}).Edges())
-	assertExactNames(t, "Organization edges", edgeNames(organizationEdges), []string{"mail_accounts", "mail_domains", "mail_mutation_receipts", "mail_objects", "mailbox_policy", "projects", "users"})
+	assertExactNames(t, "Organization edges", edgeNames(organizationEdges), []string{"mail_accounts", "mail_domains", "mail_mutation_receipts", "mail_objects", "mail_send_rate_buckets", "mailbox_policy", "projects", "users"})
 	for _, name := range []string{"projects", "users"} {
 		assertOnDelete(t, "Organization."+name, organizationEdges[name].Annotations, entsql.NoAction)
 	}

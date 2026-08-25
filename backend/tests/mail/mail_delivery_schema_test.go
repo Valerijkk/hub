@@ -98,28 +98,29 @@ func TestMailDeliverySchemas_RejectWrongFieldsDefaultsAndImmutability(t *testing
 
 	submission := entschema.MailSubmission{}
 	assertExactOrderedFieldNames(t, "MailSubmission fields", submission.Fields(), []string{
-		"id", "mail_account_id", "mail_draft_id", "idempotency_key_hash", "request_hash", "engine_submission_key", "status", "engine_submission_id", "engine_result_message_id", "result_mail_message_id", "last_error_code", "attempt_count", "created_at", "updated_at",
+		"id", "mail_account_id", "mail_draft_id", "idempotency_key_hash", "request_hash", "engine_submission_key", "engine_binding_version", "engine_account_id", "engine_draft_key", "engine_message_id", "engine_expected_version", "engine_max_message_bytes", "engine_binding_hash", "status", "command_lease_token", "command_fence", "command_lease_expires_at", "dispatch_authorized_at", "dispatch_authorization_hash", "provider_submission_id", "provider_message_id", "result_mail_message_id", "last_error_code", "next_attempt_at", "attempt_count", "created_at", "updated_at",
 	})
 	submissionFields := fieldDescriptors(submission.Fields())
 	for _, name := range []string{"id", "mail_account_id", "mail_draft_id", "result_mail_message_id"} {
 		assertFieldType(t, name, submissionFields[name], field.TypeUUID)
 	}
-	for _, name := range []string{"mail_account_id", "idempotency_key_hash", "request_hash", "engine_submission_key"} {
+	for _, name := range []string{"mail_account_id", "idempotency_key_hash", "request_hash", "engine_submission_key", "engine_binding_version", "engine_account_id", "engine_draft_key", "engine_message_id", "engine_expected_version", "engine_max_message_bytes", "engine_binding_hash"} {
 		if !submissionFields[name].Immutable {
 			t.Fatalf("MailSubmission.%s must be immutable", name)
 		}
 	}
-	for _, name := range []string{"mail_draft_id", "engine_submission_id", "engine_result_message_id", "result_mail_message_id", "last_error_code"} {
+	for _, name := range []string{"mail_draft_id", "command_lease_token", "command_lease_expires_at", "dispatch_authorized_at", "dispatch_authorization_hash", "provider_submission_id", "provider_message_id", "result_mail_message_id", "last_error_code", "next_attempt_at"} {
 		assertOptionalNillable(t, name, submissionFields[name])
 	}
-	for _, name := range []string{"idempotency_key_hash", "request_hash"} {
+	for _, name := range []string{"idempotency_key_hash", "request_hash", "engine_binding_hash"} {
 		assertBytesValidators(t, name, submissionFields[name], []struct{ value []byte; want bool }{{make([]byte, sha256.Size-1), false}, {make([]byte, sha256.Size), true}, {make([]byte, sha256.Size+1), false}})
 	}
-	assertExactDefaults(t, submissionFields, map[string]any{"attempt_count": int32(0)})
-	assertOnlyDefaults(t, submissionFields, map[string]bool{"id": true, "attempt_count": true, "created_at": true, "updated_at": true})
-	assertInt32Validators(t, "attempt_count", submissionFields["attempt_count"], []struct{ value int32; want bool }{{-1, false}, {0, true}})
-	assertExactEnumValues(t, "status", submissionFields["status"], []string{"queued", "submitting", "sent", "unknown", "failed"})
-	assertExactEnumValues(t, "last_error_code", submissionFields["last_error_code"], []string{"MAIL_SUBMISSION_OUTCOME_UNKNOWN", "MAIL_SUBMISSION_RECONCILIATION_REQUIRED", "MAILBOX_UNAVAILABLE", "MAIL_SUBMISSION_REJECTED", "MAIL_SUBMISSION_POLICY", "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN", "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE", "MAIL_SUBMISSION_RECIPIENT_LIMIT", "MAIL_SUBMISSION_SIZE_LIMIT"})
+	assertExactDefaults(t, submissionFields, map[string]any{"engine_binding_version": 1, "command_fence": int64(0), "attempt_count": int32(0)})
+	assertOnlyDefaults(t, submissionFields, map[string]bool{"id": true, "engine_binding_version": true, "command_fence": true, "attempt_count": true, "created_at": true, "updated_at": true})
+	assertInt64Validators(t, "engine_max_message_bytes", submissionFields["engine_max_message_bytes"], []struct{ value int64; want bool }{{0, false}, {1, true}, {52_428_800, true}, {52_428_801, false}})
+	assertInt32Validators(t, "attempt_count", submissionFields["attempt_count"], []struct{ value int32; want bool }{{-1, false}, {0, true}, {7, true}, {8, true}, {9, false}})
+	assertExactEnumValues(t, "status", submissionFields["status"], []string{"queued", "authorizing", "submitting", "unknown", "accepted", "sent", "failed"})
+	assertExactEnumValues(t, "last_error_code", submissionFields["last_error_code"], []string{"MAIL_SUBMISSION_OUTCOME_UNKNOWN", "MAIL_SUBMISSION_RECONCILIATION_REQUIRED", "MAILBOX_UNAVAILABLE", "MAIL_SUBMISSION_REJECTED", "MAIL_SUBMISSION_POLICY", "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN", "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE", "MAIL_SUBMISSION_RECIPIENT_LIMIT", "MAIL_SUBMISSION_SIZE_LIMIT", "MAIL_SUBMISSION_RETRY_EXHAUSTED"})
 	assertTimestampsWithoutMixin(t, submissionFields)
 	for _, forbidden := range []string{"idempotency_key", "raw_idempotency_key", "body", "mail_message_id"} {
 		if _, found := submissionFields[forbidden]; found {
@@ -212,11 +213,24 @@ func TestMailDeliverySchemas_RejectWrongPerFieldMetadata(t *testing.T) {
 				{"idempotency_key_hash", field.TypeBytes, false, false, true, deliveryNoDefault, false},
 				{"request_hash", field.TypeBytes, false, false, true, deliveryNoDefault, false},
 				{"engine_submission_key", field.TypeString, false, false, true, deliveryNoDefault, false},
+				{"engine_binding_version", field.TypeInt, false, false, true, 1, false},
+				{"engine_account_id", field.TypeString, false, false, true, deliveryNoDefault, false},
+				{"engine_draft_key", field.TypeString, false, false, true, deliveryNoDefault, false},
+				{"engine_message_id", field.TypeString, false, false, true, deliveryNoDefault, false},
+				{"engine_expected_version", field.TypeString, false, false, true, deliveryNoDefault, false},
+				{"engine_max_message_bytes", field.TypeInt64, false, false, true, deliveryNoDefault, false},
+				{"engine_binding_hash", field.TypeBytes, false, false, true, deliveryNoDefault, false},
 				{"status", field.TypeEnum, false, false, false, deliveryNoDefault, false},
-				{"engine_submission_id", field.TypeString, true, true, false, deliveryNoDefault, false},
-				{"engine_result_message_id", field.TypeString, true, true, false, deliveryNoDefault, false},
+				{"command_lease_token", field.TypeUUID, true, true, false, deliveryNoDefault, false},
+				{"command_fence", field.TypeInt64, false, false, false, int64(0), false},
+				{"command_lease_expires_at", field.TypeTime, true, true, false, deliveryNoDefault, false},
+				{"dispatch_authorized_at", field.TypeTime, true, true, false, deliveryNoDefault, false},
+				{"dispatch_authorization_hash", field.TypeBytes, true, true, false, deliveryNoDefault, false},
+				{"provider_submission_id", field.TypeString, true, true, false, deliveryNoDefault, false},
+				{"provider_message_id", field.TypeString, true, true, false, deliveryNoDefault, false},
 				{"result_mail_message_id", field.TypeUUID, true, true, false, deliveryNoDefault, false},
 				{"last_error_code", field.TypeEnum, true, true, false, deliveryNoDefault, false},
+				{"next_attempt_at", field.TypeTime, true, true, false, deliveryNoDefault, false},
 				{"attempt_count", field.TypeInt32, false, false, false, int32(0), false},
 				{"created_at", field.TypeTime, false, false, true, deliveryNowDefault, false},
 				{"updated_at", field.TypeTime, false, false, false, deliveryNowDefault, true},
@@ -324,12 +338,17 @@ func TestMailDeliverySchemas_RejectWrongChecksIndexesAndRelations(t *testing.T) 
 		"mail_drafts_state":       "COALESCE((status IN ('active','submitting','submitted') AND engine_message_id IS NOT NULL AND last_mutation_id IS NULL) OR (status IN ('saving','unknown') AND last_mutation_id IS NOT NULL) OR (status = 'deleted' AND last_mutation_id IS NULL), FALSE)",
 	})
 	assertExactChecks(t, (entschema.MailSubmission{}).Annotations(), map[string]string{
-		"mail_submissions_key":         "COALESCE(octet_length(engine_submission_key) BETWEEN 1 AND 1024, FALSE)",
-		"mail_submissions_hashes":      "COALESCE(octet_length(idempotency_key_hash) = 32 AND octet_length(request_hash) = 32, FALSE)",
-		"mail_submissions_opaque_pair": "COALESCE((engine_submission_id IS NULL AND engine_result_message_id IS NULL) OR (octet_length(engine_submission_id) BETWEEN 1 AND 1024 AND octet_length(engine_result_message_id) BETWEEN 1 AND 1024), FALSE)",
-		"mail_submissions_attempts":    "COALESCE(attempt_count >= 0, FALSE)",
-		"mail_submissions_status_enum": "COALESCE(status IN ('queued','submitting','sent','unknown','failed'), FALSE)",
-		"mail_submissions_state":       "COALESCE((status IN ('queued','submitting') AND mail_draft_id IS NOT NULL AND engine_submission_id IS NULL AND engine_result_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL) OR (status = 'sent' AND engine_submission_id IS NOT NULL AND engine_result_message_id IS NOT NULL AND result_mail_message_id IS NOT NULL AND last_error_code IS NULL) OR (status = 'unknown' AND mail_draft_id IS NOT NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_OUTCOME_UNKNOWN','MAIL_SUBMISSION_RECONCILIATION_REQUIRED','MAILBOX_UNAVAILABLE') AND NOT (engine_submission_id IS NOT NULL AND last_error_code = 'MAIL_SUBMISSION_OUTCOME_UNKNOWN')) OR (status = 'failed' AND engine_submission_id IS NULL AND engine_result_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_REJECTED','MAIL_SUBMISSION_POLICY','MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN','MAIL_SUBMISSION_IDENTITY_UNAVAILABLE','MAIL_SUBMISSION_RECIPIENT_LIMIT','MAIL_SUBMISSION_SIZE_LIMIT','MAILBOX_UNAVAILABLE')), FALSE)",
+		"mail_submissions_key":                         "COALESCE(octet_length(engine_submission_key) BETWEEN 1 AND 1024, FALSE)",
+		"mail_submissions_hashes":                      "COALESCE(octet_length(idempotency_key_hash) = 32 AND octet_length(request_hash) = 32, FALSE)",
+		"mail_submissions_binding":                     "COALESCE(engine_binding_version = 1 AND octet_length(engine_submission_key) BETWEEN 1 AND 1024 AND octet_length(engine_account_id) BETWEEN 1 AND 1024 AND octet_length(engine_draft_key) BETWEEN 1 AND 1024 AND octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_expected_version) BETWEEN 1 AND 1024 AND engine_max_message_bytes BETWEEN 1 AND 52428800 AND octet_length(engine_binding_hash) = 32, FALSE)",
+		"mail_submissions_provider_pair":               "COALESCE((provider_submission_id IS NULL AND provider_message_id IS NULL) OR (octet_length(provider_submission_id) BETWEEN 1 AND 1024 AND octet_length(provider_message_id) BETWEEN 1 AND 1024), FALSE)",
+		"mail_submissions_command_lease_pair":          "COALESCE((command_lease_token IS NULL) = (command_lease_expires_at IS NULL), FALSE)",
+		"mail_submissions_command_fence":               "COALESCE(command_fence >= 0, FALSE)",
+		"mail_submissions_dispatch_authorization_pair": "COALESCE((dispatch_authorized_at IS NULL) = (dispatch_authorization_hash IS NULL) AND (dispatch_authorization_hash IS NULL OR octet_length(dispatch_authorization_hash) = 32), FALSE)",
+		"mail_submissions_attempts":                    "COALESCE(attempt_count BETWEEN 0 AND 8, FALSE)",
+		"mail_submissions_status_enum":                 "COALESCE(status IN ('queued','authorizing','submitting','unknown','accepted','sent','failed'), FALSE)",
+		// RETRY_EXHAUSTED implies attempt 8; an eighth definitive failure may keep its exact code.
+		"mail_submissions_state":                       "COALESCE((status = 'queued' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NOT NULL AND attempt_count BETWEEN 0 AND 7) OR (status = 'authorizing' AND mail_draft_id IS NOT NULL AND command_lease_token IS NOT NULL AND command_lease_expires_at IS NOT NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'submitting' AND mail_draft_id IS NOT NULL AND command_lease_token IS NOT NULL AND command_lease_expires_at IS NOT NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'unknown' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_OUTCOME_UNKNOWN','MAIL_SUBMISSION_RECONCILIATION_REQUIRED','MAILBOX_UNAVAILABLE') AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'accepted' AND mail_draft_id IS NOT NULL AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NOT NULL AND provider_message_id IS NOT NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'sent' AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NOT NULL AND dispatch_authorization_hash IS NOT NULL AND provider_submission_id IS NOT NULL AND provider_message_id IS NOT NULL AND result_mail_message_id IS NOT NULL AND last_error_code IS NULL AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND command_fence >= 1) OR (status = 'failed' AND command_lease_token IS NULL AND command_lease_expires_at IS NULL AND dispatch_authorized_at IS NULL AND dispatch_authorization_hash IS NULL AND provider_submission_id IS NULL AND provider_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_REJECTED','MAIL_SUBMISSION_POLICY','MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN','MAIL_SUBMISSION_IDENTITY_UNAVAILABLE','MAIL_SUBMISSION_RECIPIENT_LIMIT','MAIL_SUBMISSION_SIZE_LIMIT','MAIL_SUBMISSION_RETRY_EXHAUSTED') AND next_attempt_at IS NULL AND attempt_count BETWEEN 1 AND 8 AND (last_error_code <> 'MAIL_SUBMISSION_RETRY_EXHAUSTED' OR attempt_count = 8)), FALSE)",
 	})
 
 	assertExactIndexes(t, (entschema.MailObject{}).Indexes(), []wantedIndex{{fields: []string{"bucket", "object_key"}, unique: true}, {fields: []string{"next_delete_at", "id"}, where: "upload_state IN ('orphaned','deleted')"}})
@@ -338,8 +357,19 @@ func TestMailDeliverySchemas_RejectWrongChecksIndexesAndRelations(t *testing.T) 
 	assertDeliveryIndexStorageKeys(t, "MailAttachment", (entschema.MailAttachment{}).Indexes(), []string{"mail_attachments_storage_object_uidx", "mail_attachments_message_idx", "mail_attachments_draft_idx"})
 	assertExactIndexes(t, (entschema.MailDraft{}).Indexes(), []wantedIndex{{fields: []string{"mail_account_id", "engine_draft_key"}, unique: true}, {fields: []string{"mail_account_id", "draft_client_id"}, unique: true}, {fields: []string{"mail_account_id", "create_idempotency_key_hash"}, unique: true}, {fields: []string{"mail_account_id", "engine_message_id"}, unique: true, where: "engine_message_id IS NOT NULL"}})
 	assertDeliveryIndexStorageKeys(t, "MailDraft", (entschema.MailDraft{}).Indexes(), []string{"mail_drafts_account_engine_key_uidx", "mail_drafts_account_client_uidx", "mail_drafts_account_create_key_uidx", "mail_drafts_account_engine_message_uidx"})
-	assertExactIndexes(t, (entschema.MailSubmission{}).Indexes(), []wantedIndex{{fields: []string{"mail_account_id", "idempotency_key_hash"}, unique: true}, {fields: []string{"mail_account_id", "engine_submission_key"}, unique: true}, {fields: []string{"mail_account_id", "engine_submission_id"}, unique: true, where: "engine_submission_id IS NOT NULL"}, {fields: []string{"mail_account_id", "engine_result_message_id"}, unique: true, where: "engine_result_message_id IS NOT NULL"}, {fields: []string{"mail_account_id", "result_mail_message_id"}, unique: true, where: "result_mail_message_id IS NOT NULL"}})
-	assertDeliveryIndexStorageKeys(t, "MailSubmission", (entschema.MailSubmission{}).Indexes(), []string{"mail_submissions_account_key_hash_uidx", "mail_submissions_account_engine_key_uidx", "mail_submissions_account_engine_submission_uidx", "mail_submissions_account_engine_result_uidx", "mail_submissions_account_result_snapshot_uidx"})
+	assertExactIndexes(t, (entschema.MailSubmission{}).Indexes(), []wantedIndex{
+		{fields: []string{"mail_account_id", "idempotency_key_hash"}, unique: true},
+		{fields: []string{"mail_account_id", "engine_submission_key"}, unique: true},
+		{fields: []string{"mail_account_id", "provider_submission_id"}, unique: true, where: "provider_submission_id IS NOT NULL"},
+		{fields: []string{"mail_account_id", "provider_message_id"}, unique: true, where: "provider_message_id IS NOT NULL"},
+		{fields: []string{"mail_account_id", "result_mail_message_id"}, unique: true, where: "result_mail_message_id IS NOT NULL"},
+		{fields: []string{"mail_draft_id"}, unique: true, where: "status IN ('queued','authorizing','submitting','unknown','accepted')"},
+		{fields: []string{"next_attempt_at", "id"}, where: "status = 'queued'"},
+		{fields: []string{"command_lease_expires_at", "id"}, where: "status IN ('authorizing','submitting')"},
+		{fields: []string{"updated_at", "id"}, where: "status = 'unknown'"},
+		{fields: []string{"updated_at", "id"}, where: "status = 'accepted'"},
+	})
+	assertDeliveryIndexStorageKeys(t, "MailSubmission", (entschema.MailSubmission{}).Indexes(), []string{"mail_submissions_account_key_hash_uidx", "mail_submissions_account_engine_key_uidx", "mail_submissions_account_provider_submission_uidx", "mail_submissions_account_provider_message_uidx", "mail_submissions_account_result_snapshot_uidx", "mail_submissions_active_draft_uidx", "mail_submissions_queued_due_idx", "mail_submissions_stale_lease_idx", "mail_submissions_unknown_reconcile_idx", "mail_submissions_accepted_finalizer_due_idx"})
 
 	objectEdges := edgeDescriptors((entschema.MailObject{}).Edges())
 	assertExactNames(t, "MailObject edges", edgeNames(objectEdges), []string{"account", "attachment", "organization", "uploader"})
@@ -405,8 +435,12 @@ func TestMailDeliverySchemas_RejectWrongOpaqueLengths(t *testing.T) {
 		{"MailDraft.engine_message_id", fieldDescriptors((entschema.MailDraft{}).Fields())["engine_message_id"]},
 		{"MailDraft.engine_version", fieldDescriptors((entschema.MailDraft{}).Fields())["engine_version"]},
 		{"MailSubmission.engine_submission_key", fieldDescriptors((entschema.MailSubmission{}).Fields())["engine_submission_key"]},
-		{"MailSubmission.engine_submission_id", fieldDescriptors((entschema.MailSubmission{}).Fields())["engine_submission_id"]},
-		{"MailSubmission.engine_result_message_id", fieldDescriptors((entschema.MailSubmission{}).Fields())["engine_result_message_id"]},
+		{"MailSubmission.engine_account_id", fieldDescriptors((entschema.MailSubmission{}).Fields())["engine_account_id"]},
+		{"MailSubmission.engine_draft_key", fieldDescriptors((entschema.MailSubmission{}).Fields())["engine_draft_key"]},
+		{"MailSubmission.engine_message_id", fieldDescriptors((entschema.MailSubmission{}).Fields())["engine_message_id"]},
+		{"MailSubmission.engine_expected_version", fieldDescriptors((entschema.MailSubmission{}).Fields())["engine_expected_version"]},
+		{"MailSubmission.provider_submission_id", fieldDescriptors((entschema.MailSubmission{}).Fields())["provider_submission_id"]},
+		{"MailSubmission.provider_message_id", fieldDescriptors((entschema.MailSubmission{}).Fields())["provider_message_id"]},
 	} {
 		t.Run(subject.name, func(t *testing.T) {
 			assertStringValidators(t, subject.name, subject.field, []struct{ value string; want bool }{{"opaque", true}, {"", false}, {strings.Repeat("x", 1024), true}, {strings.Repeat("x", 1025), false}})

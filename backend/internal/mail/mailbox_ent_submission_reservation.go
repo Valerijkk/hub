@@ -90,7 +90,10 @@ func (repository *MailboxEntRepository) ReserveMailboxSubmission(ctx context.Con
 			SetEngineMaxMessageBytes(binding.engineMaxMessageBytes).
 			SetEngineBindingHash(append([]byte(nil), binding.engineBindingHash[:]...)).
 			SetStatus(mailsubmission.Status("queued")).
+			SetNextAttemptAt(databaseWallClock).
 			SetAttemptCount(0).
+			SetCreatedAt(databaseWallClock).
+			SetUpdatedAt(databaseWallClock).
 			Save(ctx)
 		if err != nil {
 			if ent.IsConstraintError(err) {
@@ -109,7 +112,9 @@ func (repository *MailboxEntRepository) ReserveMailboxSubmission(ctx context.Con
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
 		record, ok := mailboxEntSubmissionRecord(created, request.AccountID)
-		if created.AttemptCount != 0 || !ok || record.Status != MailboxSubmissionStatusQueued || record.DraftID == nil || *record.DraftID != request.DraftID ||
+		if created.AttemptCount != 0 || created.NextAttemptAt == nil || !created.NextAttemptAt.Equal(databaseWallClock) ||
+			!created.CreatedAt.Equal(databaseWallClock) || !created.UpdatedAt.Equal(databaseWallClock) || !ok ||
+			record.Status != MailboxSubmissionStatusQueued || record.DraftID == nil || *record.DraftID != request.DraftID ||
 			record.ResultMailMessageID != nil || record.LastErrorCode != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
@@ -235,6 +240,7 @@ func mailboxEntSubmissionLockActiveByDraft(ctx context.Context, transaction *ent
 			mailsubmission.MailDraftIDEQ(draftID),
 			mailsubmission.StatusIn(
 				mailsubmission.Status("queued"),
+				mailsubmission.Status("authorizing"),
 				mailsubmission.Status("submitting"),
 				mailsubmission.Status("unknown"),
 				mailsubmission.Status("accepted"),
@@ -253,7 +259,7 @@ func mailboxEntSubmissionLockActiveByDraft(ctx context.Context, transaction *ent
 			return nil, MailboxSubmissionRepositoryErrorInvalid
 		}
 		switch record.Status {
-		case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusUnknown, MailboxSubmissionStatusAccepted:
+		case MailboxSubmissionStatusQueued, MailboxSubmissionStatusAuthorizing, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusUnknown, MailboxSubmissionStatusAccepted:
 		default:
 			return nil, MailboxSubmissionRepositoryErrorInvalid
 		}
@@ -362,10 +368,11 @@ func mailboxEntSubmissionRecord(row *ent.MailSubmission, accountID uuid.UUID) (M
 func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) bool {
 	if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || accountID == uuid.Nil ||
 		len(row.IdempotencyKeyHash) != sha256.Size || len(row.RequestHash) != sha256.Size ||
-		row.AttemptCount < 0 || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) || row.UpdatedAt.Before(row.CreatedAt) ||
+		row.AttemptCount < 0 || row.AttemptCount > 8 || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) || row.UpdatedAt.Before(row.CreatedAt) ||
 		!mailboxSubmissionUUIDPointerValid(row.MailDraftID) || !mailboxSubmissionUUIDPointerValid(row.ResultMailMessageID) ||
 		row.CommandFence < 0 || !mailboxEntSubmissionCommandLeaseValid(row) ||
-		!mailboxEntSubmissionDispatchAuthorizationValid(row) || !mailboxEntSubmissionProviderPairValid(row) {
+		!mailboxEntSubmissionDispatchAuthorizationValid(row) || !mailboxEntSubmissionProviderPairValid(row) ||
+		(row.NextAttemptAt != nil && !mailboxEntValidTime(*row.NextAttemptAt)) {
 		return false
 	}
 	if _, ok := mailboxEntSubmissionBindingFromRow(row); !ok {
@@ -381,20 +388,23 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 	}
 	switch MailboxSubmissionStatus(row.Status) {
 	case MailboxSubmissionStatusQueued:
-		return row.AttemptCount == 0 && row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt == nil &&
-			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil
+		return row.AttemptCount <= 7 && row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt == nil &&
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt != nil
+	case MailboxSubmissionStatusAuthorizing:
+		return row.AttemptCount >= 1 && row.MailDraftID != nil && row.CommandLeaseToken != nil && row.DispatchAuthorizedAt == nil &&
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
 	case MailboxSubmissionStatusSubmitting:
-		return row.MailDraftID != nil && row.CommandLeaseToken != nil && row.DispatchAuthorizedAt != nil &&
-			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil
+		return row.AttemptCount >= 1 && row.MailDraftID != nil && row.CommandLeaseToken != nil && row.DispatchAuthorizedAt != nil &&
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
 	case MailboxSubmissionStatusAccepted:
-		return row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil &&
-			row.ProviderSubmissionID != nil && row.ResultMailMessageID == nil && errorCode == nil
+		return row.AttemptCount >= 1 && row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil &&
+			row.ProviderSubmissionID != nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
 	case MailboxSubmissionStatusSent:
-		return row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil && row.ProviderSubmissionID != nil &&
-			row.ResultMailMessageID != nil && errorCode == nil
+		return row.AttemptCount >= 1 && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil && row.ProviderSubmissionID != nil &&
+			row.ResultMailMessageID != nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
 	case MailboxSubmissionStatusUnknown:
-		if row.MailDraftID == nil || row.CommandLeaseToken != nil || row.DispatchAuthorizedAt == nil || row.ProviderSubmissionID != nil ||
-			row.ResultMailMessageID != nil || errorCode == nil {
+		if row.AttemptCount < 1 || row.MailDraftID == nil || row.CommandLeaseToken != nil || row.DispatchAuthorizedAt == nil || row.ProviderSubmissionID != nil ||
+			row.ResultMailMessageID != nil || errorCode == nil || row.NextAttemptAt != nil || row.CommandFence < 1 {
 			return false
 		}
 		switch *errorCode {
@@ -404,8 +414,8 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 		}
 		return true
 	case MailboxSubmissionStatusFailed:
-		if row.CommandLeaseToken != nil || row.DispatchAuthorizedAt != nil || row.ProviderSubmissionID != nil ||
-			row.ResultMailMessageID != nil || errorCode == nil {
+		if row.AttemptCount < 1 || row.CommandLeaseToken != nil || row.DispatchAuthorizedAt != nil || row.ProviderSubmissionID != nil ||
+			row.ResultMailMessageID != nil || errorCode == nil || row.NextAttemptAt != nil {
 			return false
 		}
 		switch *errorCode {
@@ -416,6 +426,8 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 			MailboxSubmissionErrorCodeRecipientLimit,
 			MailboxSubmissionErrorCodeSizeLimit:
 			return true
+		case MailboxSubmissionErrorCodeRetryExhausted:
+			return row.AttemptCount == 8
 		default:
 			return false
 		}

@@ -1,5 +1,38 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Submission authorizing and rate-bucket schema contract
+
+`STATIC_SCHEMA_AND_NARROW_RESERVATION_REPOSITORY_SERVICE_COMPATIBILITY_SOURCE_IMPLEMENTED /
+NOT_GENERATED / NOT_MIGRATED / NOT_RUN`.
+
+`MailSubmission` now freezes the seven-state `queued|authorizing|submitting|unknown|accepted|
+`sent|failed` lifecycle: queued is due by non-null `next_attempt_at`; authorizing records a
+lease without authorization; post-claim states use a monotonic command fence; attempts are
+bounded 0..8; and `MAIL_SUBMISSION_RETRY_EXHAUSTED` may be failed only at attempt 8. The
+converse is deliberately false: a definitive policy, identity, attachment, recipient, or size
+failure on the eighth actual preflight retains that exact code. Active draft uniqueness includes
+authorizing. The old worker/authorized-rate indexes are replaced by
+queued due `(next_attempt_at,id)`, authorizing/submitting stale lease
+`(command_lease_expires_at,id)`, and unknown reconciliation `(updated_at,id)` indexes.
+
+`MailboxPolicy.send_rate_per_minute` remains the per-user rate. The mutable
+`instance_send_rate_per_minute` defaults to and is SQL-bounded by 1,000. The new
+`MailSendRateBucket` has DB-enforced disjoint organization-instance or user ownership: each row
+stores exactly one nonzero owner UUID, so a mismatched organization/user pair is
+unrepresentable. The user bucket's organization is derived by locking and joining the
+authoritative User and checking that User's Organization during authorization, never from caller
+input. Unary partial unique indexes,
+DB-time lazy initialization, and locked policy-cap token clamps apply. A rate-limited provisional
+attempt rolls back to queued without decreasing or reusing its fence.
+
+This packet supplies static schema plus narrow reservation/repository/service compatibility source:
+queued creation sets `next_attempt_at`, `created_at`, and `updated_at` from one database wall
+clock; closed validators, active lookup, replay, and public receipts recognize `authorizing` and
+`MAIL_SUBMISSION_RETRY_EXHAUSTED`. Claim/preflight/rate debit/worker/provider dispatcher/API/UI
+remain `NOT_IMPLEMENTED`; generated Ent, migration, SQL application, backfill, Docker, runtime,
+and tests remain `NOT_GENERATED` / `NOT_MIGRATED` / `NOT_RUN`. Hand SQL and guessed backfills are
+explicitly unauthorized.
+
 ## 2026-08-25 - Immutable engine submission binding at reservation
 
 `SOURCE_IMPLEMENTED_STATIC_ONLY / RUNTIME_NOT_RUN`. Submission reservation now creates a private
@@ -11,7 +44,7 @@ read. A malformed or mismatched stored binding fails closed and is never reconst
 mutable account, draft, or policy values.
 
 The account-first reservation locks the idempotency receipt before new mutable-state adjudication;
-same account/key plus request hash replays queued, submitting, unknown, accepted, sent, or failed
+same account/key plus request hash replays queued, authorizing, submitting, unknown, accepted, sent, or failed
 receipts, while a different request hash conflicts. A new receipt locks the draft, active
 submission, and sole organization policy, persists `queued` with attempt zero and its bound policy
 limit, then transitions the draft to `submitting` using the database wall clock. `accepted` is
