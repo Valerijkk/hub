@@ -441,6 +441,16 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   stably mapped Hub submission/draft copies emit none. `From`/alias or Sent membership alone
   cannot suppress an event; unknown provenance fails toward inbound admission. Disabled
   engine starts no scheduler or probe.
+ A queued `MailSubmission` is claimed only by one short transaction that locks the account,
+  submission, draft, mailbox policy and verified enabled domains in that order, then writes one
+  shared account/submission lease token and fence. Read-only provider preflight is followed by a
+  second ordered authorization CAS: it rechecks both leases, the immutable engine tuple, semantic
+  and full policy bindings, active sender identity, clean confirmed attachments and atomic
+  organization-instance plus user rate buckets before it can enter `submitting`. Lease loss never
+  dispatches; policy-semantic no-op version churn and rate limits requeue without consuming the
+  provisional attempt. Every requeue, including a rate limit, retains the linked draft in
+  `submitting`; terminal policy, identity, attachment or tuple failures, including exhausted
+  retry, atomically fail the submission and return that locked draft to `active`.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals
