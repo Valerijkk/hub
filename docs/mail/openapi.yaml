@@ -121,7 +121,7 @@ paths:
       Retry-After; GET /mail/account is the sole poll endpoint.
     operations: [listMailFolders, createMailFolder, updateMailFolder, deleteMailFolder,
       listMailLabels, createMailLabel, updateMailLabel, deleteMailLabel, listMailThreads,
-      getMailThread, getMailMessage, proxyMailRemoteImage, bulkMutateMailMessages,
+      getMailThread, getMailMessage, downloadMailMessageAttachment, proxyMailRemoteImage, bulkMutateMailMessages,
       createMailDraft, getMailDraft, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
       deleteMailAttachment, searchMail, suggestMailContacts, getMailUserSettings,
       updateMailUserSettings, listMailIdentities, listMailSignatures, createMailSignature,
@@ -400,6 +400,46 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/MailMessageDetail"}
         "409": {$ref: "#/components/responses/MailAccountDeleting"}
+        default: {$ref: "#/components/responses/Error"}
+  /mail/messages/{messageId}/attachments/{attachmentId}/download:
+    get:
+      tags: [MailAttachments]
+      operationId: downloadMailMessageAttachment
+      x-hub-authz: mailbox-owner
+      description: >-
+        Streams one clean attachment from the exact owned account-scoped message. The request
+        accepts no query parameters. The server validates the bounded engine account, blob,
+        declared size, byte length and SHA-256, then rechecks the sealed local message snapshot
+        after engine I/O. Provider identifiers and URLs are never exposed.
+      parameters:
+        - {$ref: "#/components/parameters/MessageId"}
+        - {$ref: "#/components/parameters/AttachmentId"}
+      responses:
+        "200":
+          description: Bounded attachment bytes forced to a non-rendering download response
+          headers:
+            Content-Disposition:
+              required: true
+              description: Server-generated attachment disposition with a safely encoded filename
+              schema: {type: string, pattern: '^attachment; filename.*$'}
+            Cache-Control:
+              required: true
+              schema: {const: no-store}
+            Referrer-Policy:
+              required: true
+              schema: {const: no-referrer}
+            X-Content-Type-Options:
+              required: true
+              schema: {const: nosniff}
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary, maxLength: 26214400}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
+        "413": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+        "503": {$ref: "#/components/responses/Error"}
         default: {$ref: "#/components/responses/Error"}
   /mail/messages/{messageId}/reply-draft:
     post:

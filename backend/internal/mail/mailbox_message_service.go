@@ -10,6 +10,7 @@ import (
 // MailboxMessageReadEngine reads one bounded message from an account-scoped engine projection.
 type MailboxMessageReadEngine interface {
 	GetMessage(context.Context, EngineMessageReadRequest) (EngineMessage, error)
+	GetBlob(context.Context, EngineBlobReadRequest) (EngineBlob, error)
 }
 
 var _ MailboxMessageReadEngine = (*StalwartEngine)(nil)
