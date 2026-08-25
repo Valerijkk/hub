@@ -1,5 +1,20 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Clean-attachment proof and dispatch authorization hash V1
+
+STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN.
+
+`MailboxSubmissionCleanAttachmentProofHash` binds zero through fifty distinct, nonzero
+attachment UUIDs and nonzero scanner-locked SHA-256 values in canonical raw-UUID order. The
+empty set has one deterministic nonzero proof. This proof is attachment-clean-state evidence,
+not a second provider-content digest.
+
+`MailboxSubmissionDispatchAuthorizationHash` binds the account, submission, shared lease,
+positive command fence, canonical whole-second UTC authorization/expiry times, engine and
+preflight content bindings, semantic and durable policy bindings, and clean-attachment proof.
+Authorization must be strictly before lease expiry. The atom supplies no Ent transaction/CAS,
+dispatcher, worker, migration, test execution, Docker, or runtime evidence.
+
 ## 2026-08-25 - Preflight failure resolution ABI
 
 STATIC_SOURCE_ONLY / NOT_RUN.

@@ -1996,6 +1996,28 @@ same lease ID, deadline, and mutation epoch for both `MailAccount` and `MailSubm
 repository verifies that exact tuple against both rows. Positive capabilities can be minted only
 by that future Ent repository, not by callers or external tests.
 
+### Clean-attachment proof and dispatch authorization hash V1
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN`.
+`MailboxSubmissionCleanAttachmentProofHash` accepts 0..50 distinct nonzero attachment UUIDs,
+each with a nonzero scanner-locked SHA-256. It hashes
+`"hub.mail.submission.attachment.clean.proof.v1" || U32BE(1) || U32BE(count) ||
+sorted(UUID16 || SHA256)` where sorting is unsigned raw UUID-byte order. Input is defensively
+copied, and zero attachments produce one canonical nonzero empty proof. This is a locked DB
+clean-state proof, explicitly not another digest of provider message content.
+
+`MailboxSubmissionDispatchAuthorizationHash` hashes
+`"hub.mail.submission.dispatch.authorization.v1" || U32BE(1) || AccountID(UUID16) ||
+SubmissionID(UUID16) || LeaseID(UUID16) || U64BE(CommandFence) || U64BE(LeaseUntilUnix) ||
+U64BE(AuthorizedAtUnix) || EngineBindingHash || PreflightBindingHash ||
+PreflightPolicyBindingHash || DurablePolicyBindingHash || AttachmentCleanProofHash`, in exactly
+that order. All IDs and five hashes are nonzero; the fence is positive; both times are canonical
+UTC without monotonic data, whole-second, Unix-nonnegative; `AuthorizedAt` is strictly before
+`LeaseUntil`. `EngineBindingHash` and `PreflightBindingHash` already bind the exact provider
+tuple/content, so no expected version, recipients, provider result IDs, or duplicate content
+digest is added here. The future Ent authorization CAS, comparison/persistence of these hashes,
+dispatcher, migration, worker, and runtime remain absent.
+
 ### Preflight-failure resolution delta
 
 `STATIC_SOURCE_ONLY / NOT_RUN`. `MailboxSubmissionAuthorizeResult` now closes four outcomes:
