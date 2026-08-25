@@ -1,371 +1,190 @@
-# Self-Hosted Jitsi Deployment and Provider Foundation Implementation Plan
+# Self-Hosted Jitsi Static Foundation and Provider Boundary Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` to implement this plan task-by-task. Each task uses a fresh Terra/XHigh atomic writer and an independent Terra/High reviewer.
+> **Execution rule:** Implement with `superpowers:subagent-driven-development`. Production tasks are sequential Terra/XHigh atomic writes with Terra/High independent review. No two writers own the same file concurrently.
 
-**Goal:** Add an immutable self-hosted Jitsi shadow deployment and a provider-neutral Calls seam while LiveKit remains the active, reversible provider.
+**Phase goal:** Establish a provider-neutral Calls boundary, preserve LiveKit as the only active provider, add a server-only Jitsi credential primitive, and freeze a self-hosted Jitsi deployment preflight. This phase does not by itself deliver an accepted or production-ready Jitsi deployment.
 
-**Architecture:** Decouple the Hub call domain from LiveKit with a narrow `ConferenceProvider` implemented first by the current LiveKit behavior. Add a separate Jitsi Compose overlay using the official `stable-11146-2` core images pinned by OCI index digest, private component networks, local JWT auth, and a dedicated `meet.<Hub domain>` edge origin. Phase 150 does not issue Jitsi join credentials or change the public Calls DTO/UI; those changes are Phase 152, while recording and LiveKit removal remain Phase 154.
+**Current phase verdict:** `PARTIAL — STATIC_FOUNDATION_ONLY`. The overlay is `NOT_CREATED / UNBOUND` until the separately authorized post-discovery gate proves image users, UID/GID requirements, writable config paths, and branding/asset paths on Linux. Compose render, image pull/start, TLS, JWT integration, UDP media, restart, rollback, effective `external_api.js`, and SBOM remain `NOT_RUN`. Planning, env contracts, or draft YAML must not increase Jitsi deployment readiness beyond the already reported static-foundation baseline.
 
-**Tech Stack:** Go 1.25, LiveKit server SDK (shadow adapter only), Jitsi Meet Docker distribution, Prosody, Jicofo, JVB, Docker Compose, Caddy, Hub configuration package, Docker-only Go units.
+**Active provider:** `CALLS_ACTIVE_PROVIDER=livekit`. Selecting `jitsi` fails closed until Phase 152. LiveKit public DTO fields, webhook, `/lk/*`, recording/Egress, dependencies, and rollback assets remain intact.
 
-**Spec:** `.planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/150-SPEC.md`
+**Authoritative inputs:** `150-SPEC.md`, immutable `150-RESEARCH.md`, `.planning/decisions/ADR-COMMS-OSS-REPLACEMENT-2026-08-24.md`, the [official Jitsi Docker guide](https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-docker/), [official docker-jitsi-meet repository](https://github.com/jitsi/docker-jitsi-meet), and official Jitsi iframe API documentation. `150-RESEARCH.md` is read-only evidence and is not owned by any implementation task.
 
-## Global Constraints
+## Global constraints
 
-- Binding decisions: `.planning/decisions/ADR-COMMS-OSS-REPLACEMENT-2026-08-24.md`, `150-CONTEXT.md`, and immutable receipt `150-RESEARCH.md`.
-- Official upstream release is exactly `stable-11146-2`; core image references must equal the four `name@sha256` values in `150-RESEARCH.md`.
-- No JaaS, `meet.jit.si`, cloud API, floating `stable`/`latest`, external hosting, shared Hub database, or deep upstream source fork.
-- Jitsi public origin is exactly `https://meet.<Hub deployment domain>`; configuration relation is `JITSI_HOST=meet.<Hub deployment domain>` and `JITSI_PUBLIC_URL=https://${JITSI_HOST}`.
-- Phase 150 keeps `CALLS_ACTIVE_PROVIDER=livekit`. `jitsi` as active provider fails closed until Phase 152.
-- Do not delete or change the compatibility meaning of public `token`, `livekit_url`, LiveKit webhook, `/lk/*`, recording/Egress code, historical recordings, or LiveKit dependencies.
-- Do not edit Mail/Calendar or `frontend/src/modules/calls/create-call-dialog.tsx`. Do not read or edit `pro-qa-ai/**`.
-- Tests/build/typecheck/lint run only through accepted Docker services. No Windows-host Go/Node/validator execution.
-- Do not bring up or pull Jitsi images during initial implementation unless a task-owned infrastructure run is explicitly authorized. Digest lookup metadata already caused no layer pull; runtime remains `NOT_RUN` until executed.
-- Docs sync and exact-path commits are mandatory; no AI attribution trailers.
+- Official release is exactly `stable-11146-2`; any eventual core image reference must equal the four immutable OCI index digests already recorded in `150-RESEARCH.md`.
+- No JaaS, `meet.jit.si`, external Calls API/host, floating image tag, shared Hub database, external STUN/TURN, external analytics, or upstream source fork.
+- Canonical origin is exactly `JITSI_PUBLIC_URL=https://${JITSI_HOST}`. It must be HTTPS with a nonempty host and no userinfo, non-root path, query, fragment, or explicit port.
+- One XMPP subject source exists: backend `JITSI_XMPP_DOMAIN`; eventual overlay passes `XMPP_DOMAIN=${JITSI_XMPP_DOMAIN:?required}`; JWT `sub` equals the same value. An independent `XMPP_DOMAIN` input is forbidden.
+- There is no `JITSI_ISSUER` or `JITSI_AUDIENCE`. JWT `iss=JITSI_APP_ID`; `aud` is exactly the JSON array `["jitsi"]`.
+- `JITSI_APP_SECRET`, `JICOFO_AUTH_PASSWORD`, and `JVB_AUTH_PASSWORD` are separate required secrets with no usable default. Examples contain only an explicitly rejected marker such as `__REQUIRED_UNUSABLE_NO_DEFAULT__`; empty, example, marker, reused, short, or known dev values fail acceptance. `JITSI_APP_SECRET` is at least 32 bytes.
+- Do not edit Mail/Calendar, `frontend/src/modules/calls/create-call-dialog.tsx`, or `pro-qa-ai/**`.
+- All tests/build/typecheck/lint are Docker-only through accepted exact services. No host tests or validators. No Jitsi image pull, Compose render, build, or container start before explicit infrastructure authorization.
+- No invented container `user`, numeric UID/GID, `read_only`, `tmpfs`, writable path, or branding mount. Each must be backed by the selected-image Linux discovery receipt before it enters accepted YAML.
+- Secrets/tokens must not appear in logs, health endpoints, browser configuration, public DTOs, snapshots, or test output.
 
-## File and Interface Map
-
-| File | Responsibility in this phase |
-|---|---|
-| `backend/internal/calls/provider.go` | Provider-neutral interface and typed capability/session primitives. |
-| `backend/internal/calls/livekit_provider.go` | Current room/token/metadata behavior as the shadow adapter. |
-| `backend/internal/calls/provider_factory.go` | Config-driven provider selection; Phase 150 can construct only LiveKit and rejects Jitsi. |
-| `backend/internal/calls/service.go` | Depend on `ConferenceProvider`, not LiveKit config. |
-| `backend/internal/calls/service_room.go` | Deleted after its implementation moves without behavioral change. |
-| `backend/internal/calls/export_hooks.go` | Test constructors for explicit provider injection. |
-| `backend/cmd/server/wiring_integrations.go` | Construct LiveKit adapter and inject it; recording/webhook wiring remains LiveKit-specific. |
-| `backend/internal/platform/config/config.go` | Add `CallsConfig`/`JitsiConfig` and fail-closed validation. |
-| `backend/tests/calls/provider_contract_test.go` | Provider injection and rollback units. |
-| `backend/tests/platform/config/calls_provider_config_test.go` | Provider/Jitsi configuration units. |
-| `deployments/docker-compose.jitsi.yml` | Opt-in Jitsi shadow topology and pinned images. |
-| `deployments/jitsi/.env.example` | Non-secret local/prod environment contract. |
-| `deployments/jitsi/THIRD-PARTY-NOTICES.md` | Upstream source, release, license, digest, and SBOM evidence boundary. |
-| `deployments/Caddyfile.prod` | Dedicated Jitsi origin; existing Hub and `/lk/*` blocks remain. |
-| `deployments/.env.example` | Hub/backend provider and Jitsi shadow variables. |
-| `docs/wiki/DEPLOY.md`, `docs/TECHNICAL.md` | Product/deployment contract. |
-| `docs/runbooks/jitsi-shadow-deployment.md` | Bring-up, health, rollback, upgrade, and evidence boundaries. |
-
-## Preflight Interaction Table
-
-| Producer task | Consumer task | Shared interface | Ruling |
-|---|---|---|---|
-| Task 1 | Task 2 | `ConferenceProvider` versus `CallsConfig.ActiveProvider` | Config selects only a provider factory; domain service never reads provider strings. |
-| Task 2 | Task 3 | `JitsiConfig` and deployment env | Names/validation are frozen before Compose uses them: `JITSI_ENABLED`, `JITSI_PUBLIC_URL`, `JITSI_APP_ID`, `JITSI_APP_SECRET`, `JITSI_ISSUER`, `JITSI_AUDIENCE`. |
-| Task 3 | Task 4 | topology, secrets, ports, image receipts | Runbook repeats exact contracts and distinguishes static receipt from runtime evidence. |
-| Every task | Phase 152 | active-provider gate | No task sets `CALLS_ACTIVE_PROVIDER=jitsi` or changes public Calls DTO/UI. |
-| Every task | Phase 154 | LiveKit/recording assets | No deletion, dependency cleanup, recording migration, or `/lk/*` removal. |
-
-### Task 1: Introduce `ConferenceProvider` with a behavior-preserving LiveKit adapter
-
-**Files:**
-
-- Create: `backend/internal/calls/provider.go`
-- Create: `backend/internal/calls/livekit_provider.go`
-- Delete: `backend/internal/calls/service_room.go`
-- Modify: `backend/internal/calls/service.go`
-- Modify: `backend/internal/calls/export_hooks.go`
-- Modify: `backend/cmd/server/wiring_integrations.go`
-- Create: `backend/tests/calls/provider_contract_test.go`
-- Modify: applicable existing genuine units under `backend/tests/calls/**`
-
-**Interfaces:**
-
-Create this exact domain interface:
+## Frozen backend contracts
 
 ```go
-const ProviderLiveKit = "livekit"
-
-type JoinCredential struct {
-    Provider   string
-    RoomName   string
-    ServiceURL string
-    Token      string
-}
-
-type GuestJoinCredential struct {
-    Identity string
-    Join     JoinCredential
-}
-
-type ConferenceProvider interface {
-    Provision(ctx context.Context, roomName string, maxParticipants uint32) error
-    Delete(ctx context.Context, roomName string) error
-    IssueJoinCredential(roomName, userID, userName string) (JoinCredential, error)
-    IssueGuestCredential(roomName, guestName string) (GuestJoinCredential, error)
-    UpdateParticipantState(ctx context.Context, roomName, identity, stateJSON string) error
-}
-```
-
-`LiveKitConferenceProvider` implements it with the existing SDK calls and errors. Change constructor to:
-
-```go
-func NewCallService(
-    provider ConferenceProvider,
-    repo *EntRepository,
-    nc *natsclient.Client,
-    chatRepo *ChatRepository,
-) *CallService
-```
-
-The `CallService` field is `provider ConferenceProvider`. Public `CallResponse.Token` continues to carry the returned compatibility credential in this phase.
-
-- [ ] **Step 1: Write failing provider injection and rollback units**
-
-In `provider_contract_test.go`, define a local fake implementing all five methods and recording calls. Add:
-
-```go
-func TestCallServiceUsesInjectedProviderForCreateAndCredential(t *testing.T)
-func TestCallServiceDeletesProvisionedConferenceWhenPersistenceFails(t *testing.T)
-func TestCallServiceUsesProviderForGuestCredential(t *testing.T)
-func TestCallServiceUsesProviderForParticipantState(t *testing.T)
-```
-
-Tests assert the exact room name flows through provision, typed credential, state, and rollback without a network client. The fake returns `JoinCredential{Provider: ProviderLiveKit, RoomName: roomName, ServiceURL: "http://livekit:7880", Token: "test-token"}`; public compatibility responses still expose only the existing token/LiveKit URL fields. Existing LiveKit-specific webhook/recording tests remain unchanged.
-
-- [ ] **Step 2: Run the Docker red gate**
-
-Run:
-
-```powershell
-docker compose -f docker-compose.local.yml run --rm backend-unit
-```
-
-Expected: compile/test FAIL because `ConferenceProvider` and provider-injected constructor do not exist.
-
-- [ ] **Step 3: Move behavior without changing product semantics**
-
-Move the LiveKit SDK implementation into `livekit_provider.go` and map:
-
-- `Provision` -> current `CreateRoom`;
-- `Delete` -> current `DeleteRoom`;
-- `IssueJoinCredential` -> current `GenerateToken` with unchanged 24-hour grant, wrapped in typed `JoinCredential` using `ProviderLiveKit` and configured LiveKit URL;
-- `IssueGuestCredential` -> current guest UUID/token behavior wrapped in `GuestJoinCredential`;
-- `UpdateParticipantState` -> current participant metadata update.
-
-Change helper signatures (`provisionRoom`, `finalizeCreate`, `rollbackCreate`) to accept `ConferenceProvider`. `CallService.GenerateToken` unwraps `JoinCredential.Token`, and `GuestJoin` unwraps identity/token/service URL into the existing compatibility DTO. In Task 1 wiring, construct `callsmod.NewLiveKitConferenceProvider(cfg.LiveKit)` directly and pass it to `NewCallService`; Task 2 replaces that temporary construction with the config-driven factory. Keep `NewRecordingService`, `NewHandler`, webhook config, and frontend response unchanged.
-
-- [ ] **Step 4: Run backend regression to green**
-
-Run `backend-unit`. Expected: build/vet/unit/race PASS and existing Calls behavior preserved.
-
-- [ ] **Step 5: Commit exact paths**
-
-```powershell
-git add backend/internal/calls/provider.go backend/internal/calls/livekit_provider.go backend/internal/calls/service.go backend/internal/calls/service_room.go backend/internal/calls/export_hooks.go backend/cmd/server/wiring_integrations.go backend/tests/calls/provider_contract_test.go backend/tests/calls
-git commit -m "refactor(calls): isolate conference provider boundary"
-```
-
-### Task 2: Add fail-closed Calls/Jitsi configuration without enabling cutover
-
-**Files:**
-
-- Modify: `backend/internal/platform/config/config.go`
-- Create: `backend/internal/calls/provider_factory.go`
-- Modify: `backend/cmd/server/wiring_integrations.go`
-- Create: `backend/tests/platform/config/calls_provider_config_test.go`
-- Modify: `backend/tests/calls/provider_contract_test.go`
-- Modify: `deployments/.env.example`
-- Modify: `docker-compose.local.yml`
-- Modify: `deployments/docker-compose.prod.yml`
-
-**Interfaces:**
-
-Add:
-
-```go
-const CallsProviderLiveKit = "livekit"
-
 type CallsConfig struct {
     ActiveProvider string
     Jitsi          JitsiConfig
 }
 
 type JitsiConfig struct {
-    Enabled   bool
-    PublicURL string
-    AppID     string
-    AppSecret string
-    Issuer    string
-    Audience  string
+    Enabled    bool
+    PublicURL  string
+    AppID      string
+    AppSecret  string
+    XMPPDomain string
 }
 ```
 
-`Config` gains `Calls CallsConfig` and retains `LiveKit LiveKitConfig`. Env mapping is exact:
+When `JITSI_ENABLED=true`, canonical `PublicURL`, nonempty `AppID`, non-placeholder `AppSecret` of at least 32 bytes, and nonempty `XMPPDomain` are mandatory. These checks are not weakened by development mode. Unknown provider values fail closed; explicit `jitsi` returns stable text containing `jitsi provider is not available before phase 152`.
 
-```text
-CALLS_ACTIVE_PROVIDER=livekit
-JITSI_ENABLED=false
-JITSI_PUBLIC_URL=https://meet.<Hub deployment domain>
-JITSI_APP_ID=hub
-JITSI_APP_SECRET=<secret, minimum 32 characters outside dev>
-JITSI_ISSUER=hub
-JITSI_AUDIENCE=jitsi
-```
-
-- [ ] **Step 1: Write failing table-driven config units**
-
-Cases:
+The issuer method boundary is exact:
 
 ```go
-func TestLoadCallsProviderDefaultsToLiveKit(t *testing.T)
-func TestLoadRejectsUnknownCallsProvider(t *testing.T)
-func TestLoadRejectsPrematureJitsiActiveProvider(t *testing.T)
-func TestLoadRejectsIncompleteEnabledJitsiInProduction(t *testing.T)
-func TestLoadRejectsNonHTTPSJitsiPublicURLInProduction(t *testing.T)
-func TestLoadAcceptsCompleteJitsiShadowWithLiveKitActive(t *testing.T)
-func TestConferenceProviderFactorySelectsLiveKit(t *testing.T)
-func TestConferenceProviderFactoryRejectsJitsiBeforePhase152(t *testing.T)
+Issue(call *ent.Call, authenticatedUserID uuid.UUID, serverKnownUserName string) (string, error)
 ```
 
-The premature case must fail with a stable message containing `jitsi provider is not available before phase 152`.
+`call` is a server-loaded Ent entity, not a client DTO. It must be nonnil, have a nonzero ID, and be active. `authenticatedUserID` must be nonzero; `serverKnownUserName` must be nonempty after trimming. The room claim is exactly `call.ID.String()` and is never accepted as an argument. Claims are HS256 only, `iss=JITSI_APP_ID`, `aud=["jitsi"]`, `sub=JITSI_XMPP_DOMAIN`, `iat`, `exp=iat+5m`, exact `room`, and `context.user.id/name`. No wildcard, moderator, features, guest policy, or arbitrary claims exist.
 
-- [ ] **Step 2: Run the Docker red gate**
+This issuer is unreachable in Phase 150: no HTTP route, WebSocket subject, Handler method, public DTO, frontend token request, or active-provider wiring. Its existence does not prove foreign-call membership. Caller-to-call membership, rate limiting, replay policy, and the public credential endpoint are Phase 152 gates.
 
-Run `backend-unit`. Expected: compile/test FAIL because config types and validation do not exist.
+## Low-disk test cadence
 
-- [ ] **Step 3: Implement exact defaults and validation**
+1. Write the complete backend RED contract packet once.
+2. Run exactly one sequential `docker compose -f docker-compose.local.yml run --rm backend-unit` RED receipt.
+3. Implement Tasks 1–6 sequentially; use static review between tasks, without repeated full-suite runs.
+4. Run exactly one sequential `backend-unit` GREEN receipt after Task 6. If it fails, triage from that receipt before any rerun.
+5. For the isolated frontend adapter, run one `frontend-unit` RED and one `frontend-unit` GREEN only.
+6. Do not pull/build/render/start Jitsi while the infrastructure gate is closed.
 
-- default `CALLS_ACTIVE_PROVIDER` to `livekit`;
-- reject any value other than `livekit` in Phase 150, including `jitsi` with the stable premature-cutover error;
-- when `JITSI_ENABLED=false`, allow empty Jitsi values;
-- when enabled, require all five string fields;
-- outside `DevMode`, require HTTPS public URL, minimum 32-character secret, and reject known example/dev secret values;
-- keep existing LiveKit production validation because it remains active/rollback;
-- add the variables to backend environment in local/prod Compose without adding Jitsi services to the default Hub stack.
+## Task 0: Batched backend RED contract packet
 
-Provider-name and enabled-field validation runs before the existing `DevMode` early return, so development cannot silently accept an unknown or premature active provider. Production-only URL/secret-strength checks remain after that boundary. Implement `NewConferenceProvider(callsCfg, liveKitCfg) (ConferenceProvider, error)`: `livekit` returns the LiveKit adapter, `jitsi` returns the locked premature-cutover error, and every other value is rejected. Wiring calls this factory and exits through the existing fail-closed startup pattern on error; it no longer constructs LiveKit directly.
+**Exclusive files:**
 
-- [ ] **Step 4: Run backend regression to green**
+- `backend/tests/calls/provider_interface_contract_test.go`
+- `backend/tests/calls/livekit_provider_adapter_test.go`
+- `backend/tests/calls/service_provider_injection_test.go`
+- `backend/tests/platform/config/calls_provider_config_test.go`
+- `backend/tests/calls/provider_factory_test.go`
+- `backend/tests/calls/jitsi_credential_issuer_test.go`
 
-Run `backend-unit`. Expected: PASS.
+Write all failing tests before production changes, then perform the single backend RED run. Coverage includes typed provider methods; LiveKit behaviour parity; create/rollback/guest/participant-state injection; provider defaults and fail-closed values; canonical origin and secret validation; factory rejection; and issuer claims/negative binding.
 
-- [ ] **Step 5: Commit exact paths**
+Issuer negatives include nil call, inactive call, zero call ID, zero authenticated user ID, blank server-known name, substituted Call entity/ID, substituted authenticated user, client-room impossibility, wrong signing algorithm, wrong secret, expired token, non-five-minute lifetime, and absence of secret/token output. Parsing tests never log credentials.
 
-```powershell
-git add backend/internal/platform/config/config.go backend/internal/calls/provider_factory.go backend/cmd/server/wiring_integrations.go backend/tests/platform/config/calls_provider_config_test.go backend/tests/calls/provider_contract_test.go deployments/.env.example docker-compose.local.yml deployments/docker-compose.prod.yml
-git commit -m "feat(calls): validate self-hosted jitsi shadow config"
-```
+## Task 1: Provider interface contract
 
-### Task 3: Add immutable opt-in Jitsi shadow deployment
+**Exclusive file:** `backend/internal/calls/provider.go`.
 
-**Files:**
+Create only provider-neutral types and the narrow `ConferenceProvider` interface. It contains no config reads, LiveKit construction, Jitsi construction, routing, or public DTO change. Review interface direction and typed credential semantics against `provider_interface_contract_test.go`. Do not run the full suite here.
 
-- Create: `deployments/docker-compose.jitsi.yml`
-- Create: `deployments/jitsi/.env.example`
-- Modify: `deployments/Caddyfile.prod`
-- Modify: `deployments/docker-compose.prod.yml`
+## Task 2: LiveKit adapter extraction
 
-**Interfaces:**
+**Exclusive files:**
 
-Compose is invoked only as an overlay with the existing production file:
+- `backend/internal/calls/livekit_provider.go`
+- `backend/internal/calls/service_room.go` (source behaviour moves, then this file is deleted)
 
-```powershell
-docker compose -f deployments/docker-compose.prod.yml -f deployments/docker-compose.jitsi.yml --env-file deployments/.env up -d
-```
+Move existing room provision/delete, user/guest credential, service URL, and participant metadata behaviour into `LiveKitConferenceProvider` without changing grants, expiry, errors, webhook/recording semantics, or compatibility output. Do not edit service wiring. Review against the frozen adapter test; no full-suite run.
 
-Core image references are exact:
+## Task 3: Call service provider injection
 
-```yaml
-jitsi-web: ghcr.io/jitsi/web@sha256:4231d5ff7318ff71d12ffd41afc36adae3c319b40cf79cde39b009b0c68295dc
-jitsi-prosody: ghcr.io/jitsi/prosody@sha256:9e341b10134d947e49ca338b9efe8d70ac9d6e8d89d621da2246dfa79fe50363
-jitsi-jicofo: ghcr.io/jitsi/jicofo@sha256:a8d64e46eaa340751a2b5530a4abd4175adf05bff07e9775fc48daae6364cfe9
-jitsi-jvb: ghcr.io/jitsi/jvb@sha256:d7dc646d21af07530ae6acf1ace23ea4782445d0362004621a32a5a632a964e9
-```
+**Exclusive file:** `backend/internal/calls/service.go`.
 
-- [ ] **Step 1: Write the static deployment acceptance checklist before YAML**
+Make `CallService` depend on `ConferenceProvider`. Preserve persistence order and rollback, unwrap typed credentials only at the compatibility DTO boundary, and preserve chat/events/recording behaviour. No config selection or server wiring is owned here. Review against injection tests; no full-suite run.
 
-At the top of `deployments/jitsi/.env.example`, document required variables with non-secret examples:
+## Task 4: Calls and Jitsi configuration validation
 
-```text
-JITSI_HOST=meet.yourdomain.com
-JITSI_PUBLIC_URL=https://meet.yourdomain.com
-JITSI_XMPP_DOMAIN=meet.jitsi
-JITSI_XMPP_AUTH_DOMAIN=auth.meet.jitsi
-JITSI_XMPP_MUC_DOMAIN=muc.meet.jitsi
-JITSI_XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
-JITSI_APP_ID=hub
-JITSI_APP_SECRET=CHANGE_ME_MINIMUM_32_CHARS_RANDOM_STRING
-JITSI_ISSUER=hub
-JITSI_AUDIENCE=jitsi
-JICOFO_AUTH_PASSWORD=CHANGE_ME_RANDOM_SECRET
-JVB_AUTH_PASSWORD=CHANGE_ME_RANDOM_SECRET
-JVB_ADVERTISE_IPS=203.0.113.10
-```
+**Exclusive files:**
 
-The checklist states: exactly four distinct component-to-OCI-index mappings, `ENABLE_AUTH=1`, `AUTH_TYPE=jwt`, `ENABLE_GUESTS=0`, `JWT_ALLOW_EMPTY=0`, `ENABLE_JAAS_COMPONENTS=0`, no Hub DB credentials, Prosody/Jicofo/JVB administrative endpoints private, only Caddy HTTPS plus JVB UDP media exposed, and LiveKit untouched.
+- `backend/internal/platform/config/config.go`
+- `deployments/.env.example`
+- `docker-compose.local.yml`
 
-- [ ] **Step 2: Implement the overlay topology**
+Add exact `CallsConfig`/`JitsiConfig` parsing and validation. Default active provider to LiveKit. Enabled Jitsi requires canonical HTTPS origin, AppID, XMPP domain, and separate non-placeholder AppSecret of at least 32 bytes in every mode. Document only required backend variables; do not add Jitsi services. `JITSI_XMPP_DOMAIN` is the sole source later mapped to deployment `XMPP_DOMAIN` and JWT `sub`. No suite run.
 
-Define `jitsi-web`, `jitsi-prosody`, `jitsi-jicofo`, and `jitsi-jvb`. Use named config volumes per component; `jitsi-internal` with `internal: true` for XMPP/control; `jitsi-edge` with `internal: true` shared only by Caddy and web; and a separate `jitsi-media` network attached only to JVB for explicitly firewalled media traffic. Attach existing `caddy` to `jitsi-edge` and inject `JITSI_HOST=${JITSI_HOST:?required}` into the Caddy service through the overlay. Expose only JVB UDP `10000:10000/udp`; do not add legacy TCP `4443`, removed upstream, and do not publish Prosody/Jicofo/JVB REST ports. Set `PUBLIC_URL=${JITSI_PUBLIC_URL}`, `DISABLE_HTTPS=1`, `ENABLE_AUTH=1`, `AUTH_TYPE=jwt`, `ENABLE_GUESTS=0`, `ENABLE_JAAS_COMPONENTS=0`, `JWT_APP_ID=${JITSI_APP_ID}`, `JWT_APP_SECRET=${JITSI_APP_SECRET}`, `JWT_ACCEPTED_ISSUERS=${JITSI_ISSUER}`, `JWT_ACCEPTED_AUDIENCES=${JITSI_AUDIENCE}`, `JWT_ALLOW_EMPTY=0`, `JWT_AUTH_TYPE=token`, and `JWT_TOKEN_AUTH_MODULE=token_verification`; pass the four frozen XMPP domains/users/passwords following the release-tagged upstream Compose mapping. Set `RTCSTATS_ENABLED=0`, `ENABLE_JAAS_COMPONENTS=0`, `JVB_DISABLE_STUN=true`, and no TURN/STUN URL; any TURN addition requires a separately approved self-hosted Hub component. Add bounded CPU/RAM/pids limits, read-only roots/tmpfs matching upstream, and restart policies. Healthchecks are exact: web uses `curl --fail http://127.0.0.1:8000/`; Prosody, Jicofo, and JVB use the release-provided `/usr/local/bin/healthcheck.sh`; dependents use `condition: service_healthy`.
+## Task 5: Provider factory and server wiring
 
-- [ ] **Step 3: Add the dedicated Caddy origin**
+**Exclusive files:**
 
-Keep the existing Hub host and `/lk/*` block byte-for-byte except surrounding context required by the patch. Add a second site:
+- `backend/internal/calls/provider_factory.go`
+- `backend/cmd/server/wiring_integrations.go`
 
-```caddyfile
-{$JITSI_HOST} {
-    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    reverse_proxy jitsi-web:8000
-}
-```
+Create a factory which constructs LiveKit only. `jitsi` returns the frozen Phase-152 error; all unknown values fail closed. Wire the factory into the server while leaving LiveKit recording, webhook, `/lk/*`, and rollback assets intact. No issuer construction or transport is allowed. Review wiring statically; no suite run.
 
-Do not add a path-based fallback and do not reference `meet.jit.si`.
+## Task 6: Server-only Jitsi credential issuer
 
-- [ ] **Step 4: Record verification honestly**
+**Exclusive files:**
 
-Perform static inspection for the four distinct digest mappings, networks, ports, auth flags, Caddy environment injection, upstream env mapping, healthchecks, and absence of SaaS endpoints. Do not run Compose parsing on the Windows host. Do not pull/start images without explicit infrastructure authorization. Record the operator continuation commands `docker compose -f deployments/docker-compose.prod.yml -f deployments/docker-compose.jitsi.yml --env-file deployments/.env config --quiet` and the overlay `up -d` command above; render/start/TLS/JWT/UDP/TURN/restart stay `NOT_RUN` until an explicitly authorized task-owned Linux deployment produces artifacts.
+- `backend/internal/calls/jitsi_credential_issuer.go`
+- `backend/internal/calls/export_hooks.go` only if the external `hubtest` package cannot exercise the issuer without a tagged test hook
 
-- [ ] **Step 5: Commit exact paths**
+Implement the exact `Issue(*ent.Call, uuid.UUID, string)` boundary and claims above using `github.com/golang-jwt/jwt/v5`. A required test hook must be build-tagged/test-only, constructor-shaped, and explicitly not a transport or public product API. It must not wire the issuer to server startup, handlers, routes, WebSocket, DTOs, or frontend.
 
-```powershell
-git add deployments/docker-compose.jitsi.yml deployments/jitsi/.env.example deployments/Caddyfile.prod deployments/docker-compose.prod.yml
-git commit -m "feat(deploy): add pinned self-hosted jitsi shadow"
-```
+After independent review, run the single batched backend GREEN gate. Record PASS/FAIL from the Docker receipt only. Membership authorization and Jitsi activation remain unimplemented by design.
 
-### Task 4: Document operation, rollback, and Phase boundaries
+## Task 7: Deployment preflight and static env contract
 
-**Files:**
+**Exclusive files:**
 
-- Create: `docs/runbooks/jitsi-shadow-deployment.md`
-- Create: `deployments/jitsi/THIRD-PARTY-NOTICES.md`
-- Create: `.planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/150-VERIFICATION.md`
-- Modify: `docs/wiki/DEPLOY.md`
-- Modify: `docs/TECHNICAL.md`
-- Modify: `.planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/150-RESEARCH.md`
+- `deployments/jitsi/.env.example`
+- `deployments/jitsi/DEPLOYMENT-PREFLIGHT.md`
 
-**Interfaces:**
+Create only the preflight/static contract. It lists canonical `JITSI_HOST`, `JITSI_PUBLIC_URL`, `JITSI_XMPP_DOMAIN`, `JITSI_APP_ID`, mandatory `JVB_ADVERTISE_IPS`, XMPP component domains, and the three separate required secret inputs. Secret examples use only the rejected `__REQUIRED_UNUSABLE_NO_DEFAULT__` marker and state `required/no default`.
 
-- Runbook uses the exact overlay, env names, image receipts, dedicated origin, and `CALLS_ACTIVE_PROVIDER=livekit` contract from Tasks 1-3.
-- Runtime evidence table has columns `check`, `command`, `revision`, `status`, `artifact`; initial unavailable checks stay `NOT_RUN`.
+Record exact equality: overlay `XMPP_DOMAIN` is populated from `JITSI_XMPP_DOMAIN`, and issuer JWT `sub` uses the same backend value. Freeze the four digest receipts by reference to immutable `150-RESEARCH.md` without editing it.
 
-- [ ] **Step 1: Write the runbook acceptance table**
+The preflight matrix must leave these rows `UNBOUND / NOT_RUN`: effective image user, UID/GID, config volume ownership, writable directories, rootless compatibility, branding mount path, final effective `external_api.js`, image SBOM, Caddy/TLS, JVB advertise reachability, UDP media, restart, and rollback. At the end of Task 7, `deployments/docker-compose.jitsi.yml` remains `NOT_CREATED`; no overlay is claimed accepted.
 
-Include: preflight secrets and DNS; registry/digest verification; host-firewall default-deny egress owned by the deployment operator with explicit Caddy ACME/DNS and JVB media exceptions; firewall/TLS/UDP requirements; start order; core health; local JWT rejection/acceptance; browser media smoke; restart recovery; logs/metrics; config-volume backup; upgrade with new digest receipt; rollback by stopping only the overlay; and explicit proof that LiveKit active calls remain unaffected.
+## Task 8: GATED post-discovery overlay — not executable now
 
-Create `THIRD-PARTY-NOTICES.md` with the upstream repositories, exact release, Apache-2.0 notice links, four immutable OCI index references, retrieval date, and a clear statement that per-image SBOM generation/review is `NOT_RUN` until an authorized infrastructure run. Give exact digest-addressed SBOM continuation commands; release acceptance remains blocked until those rows are complete.
+**Gate status:** `BLOCKED_BY_AUTHORIZED_LINUX_DISCOVERY`; do not dispatch during the current low-disk/static phase.
 
-- [ ] **Step 2: Synchronize product/deployment docs**
+**Future exclusive files after gate opens:**
 
-Update current architecture wording from “Calls are LiveKit” to “LiveKit active shadow; self-hosted Jitsi foundation present; cutover not yet accepted.” Keep recording documentation LiveKit-labelled. State explicitly that Phase 150 creates no Jitsi-to-Hub callback/mutation endpoint; callback authentication and replay/idempotency remain a blocking Phase 152 contract. Link Phase 152 for UI/credential activation and Phase 154 for Jibri/cutover/removal.
+- `deployments/docker-compose.jitsi.yml`
+- `deployments/Caddyfile.prod`
+- `deployments/docker-compose.prod.yml`
 
-- [ ] **Step 3: Run the applicable code regression gate**
+Required gate input is an authorized task-owned Linux receipt for the exact four digest-pinned images proving effective users, required UID/GID handling, writable config directories, ownership transition, branding/static-asset path, healthcheck commands, and effective self-hosted `external_api.js`. Discovery must obey an explicit low-disk budget. Until that receipt exists, overlay YAML is `NOT_CREATED / UNBOUND`; a speculative file may only be labelled `DRAFT_NON_ACCEPTED` and cannot satisfy Phase 150.
 
-Run `backend-unit` once more because docs describe the new config/provider code. Expected: PASS. Jitsi runtime remains `NOT_RUN` unless the task-owned environment was authorized and executed.
+After the gate opens, map `XMPP_DOMAIN=${JITSI_XMPP_DOMAIN:?required}` and all three secrets with `${VAR:?required}` and no fallback. Preserve Caddy ports 80 and 443 for ACME HTTP-01/HTTPS. The only extra published port is JVB `10000:10000/udp`, with `JVB_ADVERTISE_IPS=${JVB_ADVERTISE_IPS:?required}`. Use explicit control/edge/media networks and the four frozen digests. Do not add `user`, `read_only`, `tmpfs`, config/branding mounts, or healthchecks unless each exact setting is proven by the discovery receipt.
 
-- [ ] **Step 4: Independent static review**
+Static YAML review after discovery still does not establish runtime readiness. Compose render, start, TLS, local JWT accept/reject, browser media, UDP, restart, rollback, effective asset, and SBOM remain `NOT_RUN` until separately authorized runtime execution.
 
-Create `150-VERIFICATION.md`, then give the reviewer `150-SPEC.md`, `150-RESEARCH.md`, exact BASE..HEAD diff, backend Docker output, and the static deployment checklist. Critical failures include any floating image, external host/API, shared DB, enabled `jitsi` active provider, missing auth, exposed internal component, or removed LiveKit rollback asset.
+## Task 9: Local self-hosted iframe adapter
 
-- [ ] **Step 5: Commit exact paths**
+**Exclusive files:**
 
-```powershell
-git add docs/runbooks/jitsi-shadow-deployment.md deployments/jitsi/THIRD-PARTY-NOTICES.md docs/wiki/DEPLOY.md docs/TECHNICAL.md .planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/150-RESEARCH.md .planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/150-VERIFICATION.md
-git commit -m "docs(calls): add jitsi shadow operations contract"
-```
+- `frontend/src/modules/calls/jitsi-external-api.ts`
+- `frontend/tests/calls/jitsi-external-api.test.ts`
 
-## Final Phase Gate
+First write a RED unit packet and run exactly one Docker `frontend-unit` RED. The pure adapter accepts only the validated canonical self-hosted HTTPS origin and returns `${origin}/external_api.js`. It rejects empty, HTTP, userinfo, query, fragment, non-root path, explicit port, and every `meet.jit.si` form. URL calculation performs no script injection or network call.
 
-1. `backend-unit` must PASS with provider/config units and existing Calls regressions.
-2. Static scan must show exactly four distinct component-to-OCI-index mappings, no `meet.jit.si`/JaaS/external analytics or STUN endpoint, and no public/internal DB sharing.
-3. `CALLS_ACTIVE_PROVIDER` remains `livekit`; public Calls API/UI/recording/webhook and `/lk/*` remain compatible.
-4. Update `150-VERIFICATION.md` with registry metadata marked verified, backend Docker evidence marked PASS/FAIL, and Jitsi render/start/media/rollback/SBOM as `NOT_RUN` unless actually executed. Phase 150 cannot be called production-ready while those runtime rows are not run.
+Implement the pure adapter with no fallback, provider activation, public DTO change, or import from protected `create-call-dialog.tsx`; then run exactly one Docker `frontend-unit` GREEN. The unit does not prove the asset exists in an image; effective-asset verification stays in the gated Linux/runtime matrix.
+
+## Task 10: Documentation and evidence
+
+**Exclusive files:**
+
+- `docs/runbooks/jitsi-shadow-deployment.md`
+- `deployments/jitsi/THIRD-PARTY-NOTICES.md`
+- `.planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/150-VERIFICATION.md`
+- `docs/wiki/DEPLOY.md`
+- `docs/TECHNICAL.md`
+
+Do not edit immutable `150-RESEARCH.md`. Document the active LiveKit rollback contract, provider seam, unreachable issuer, preflight-only deployment state, and gated overlay. Do not publish overlay bring-up instructions as executable/accepted until Task 8 is unblocked.
+
+`150-VERIFICATION.md` separates registry metadata, backend/frontend Docker units, discovery, static overlay, and runtime evidence. It records overlay as `NOT_CREATED / UNBOUND` after Task 7, gated Task 8 as `BLOCKED_BY_AUTHORIZED_LINUX_DISCOVERY`, and every runtime row as `NOT_RUN`. No result is upgraded from a plan, source scan, or container-start assumption.
+
+## Phase acceptance and reporting gate
+
+- Backend provider/config/issuer work may be reported PASS only from the one final Docker `backend-unit` GREEN receipt; frontend adapter only from its Docker GREEN receipt.
+- LiveKit remains the only active/rollback provider. No public Jitsi credential flow, membership authorization, provider cutover, UI conference activation, callback, Jibri recording, or LiveKit removal is delivered.
+- After Task 7, the honest verdict is `PARTIAL — STATIC_FOUNDATION_ONLY`; overlay is `NOT_CREATED / UNBOUND`; runtime is `NOT_RUN`. Phase 150 cannot be called complete, production-ready, self-hosted Jitsi deployed, or media-ready.
+- Even if Task 8 later creates statically reviewed YAML, production readiness does not advance until authorized Linux render/start/security/media/rollback/SBOM evidence passes. Planning/static artifacts alone must not increase the deployment percentage beyond the static-foundation baseline.
+- Any floating image, external SaaS/API/STUN/TURN/analytics, divergent XMPP subject, usable secret default, guessed user/UID/GID/writable/read-only/tmpfs setting, exposed internal component, active `jitsi` provider, issuer transport exposure, secret leak, or false runtime PASS is a critical blocker.
