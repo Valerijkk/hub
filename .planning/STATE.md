@@ -54,6 +54,20 @@ mail_calendar_draft_mime_carrier_2026_08_25: >-
   schema-maintenance flow; no enabled production path can persist non-nil generic state while
   Calendar draft creation remains fail-closed. Compile, tests, generation, migration/SQL,
   formatting/lint, Docker and runtime remain NOT_RUN; this is not readiness acceptance.
+mail_calendar_draft_engine_bridge_2026_08_25: >-
+  SOURCE_CONTRACT_AUTHORED / INDEPENDENT_CONTRACT_AND_SECURITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for private Calendar MIME create-engine blobs
+  `b600a0ec8c8b32aff9b23927480efe007ea63e89` and
+  `5cd47d1217f6d2a43bae41111d2b15868f685a1f`. The Mail-only capability accepts
+  a valid sealed Calendar part and an attachment-free single-recipient draft, streams the
+  existing deterministic MIME plan through the account-scoped Stalwart upload seam, and
+  returns only a bounded opaque blob handoff. Import delegates to the accepted response-proof
+  `ApplyDraftMIMEImport` path; only the provider's exact pre-mutation blob-not-found proof maps
+  to a distinct private Calendar restart sentinel, while ambiguous failures remain ambiguous.
+  No retry, persistence, logging or raw iTIP/MIME exposure is added. The Q47-gated durable
+  repository transitions and production Calendar draft state machine remain pending. Compile,
+  tests, generation, migration/SQL, formatting/lint, Docker and runtime remain NOT_RUN; this is
+  not readiness acceptance.
 mail_calendar_outbound_mime_part_2026_08_25: >-
   STATIC_IMPLEMENTED / STATIC_ACCEPTED only for the sealed outbound calendar
   part, private planner/stream and private calendar-only RFC822 UploadBlob seam
