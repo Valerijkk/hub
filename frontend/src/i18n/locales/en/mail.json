@@ -180,7 +180,10 @@
 			"plainUnavailable": "No plain-text message body is available.",
 			"richUnavailable": "A rich-text version exists but is not displayed in this view.",
 			"attachments": "Attachments ({{count}})",
-			"downloadUnavailable": "Download unavailable",
+			"download": "Download",
+			"downloading": "Downloading…",
+			"downloadFailed": "This attachment could not be downloaded. Try again.",
+			"retryDownload": "Retry download",
 			"openCalendar": "Open calendar",
 			"disposition": {
 				"attachment": "Attachment",

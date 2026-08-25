@@ -180,7 +180,10 @@
 			"plainUnavailable": "Текстовая версия письма недоступна.",
 			"richUnavailable": "Форматированная версия существует, но не отображается в этом режиме.",
 			"attachments": "Вложения ({{count}})",
-			"downloadUnavailable": "Скачивание недоступно",
+			"download": "Скачать",
+			"downloading": "Скачивание…",
+			"downloadFailed": "Не удалось скачать вложение. Повторите попытку.",
+			"retryDownload": "Повторить скачивание",
 			"openCalendar": "Открыть календарь",
 			"disposition": {
 				"attachment": "Вложение",

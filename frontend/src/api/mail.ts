@@ -10,6 +10,8 @@ const MAIL_UUID_PATTERN =
 const MAIL_NIL_UUID = "00000000-0000-0000-0000-000000000000";
 const MAIL_THREAD_CURSOR_PATTERN = /^[A-Za-z0-9_-]+$/;
 const MAIL_QUERY_CONTROL_CHARACTERS = /[\u0000-\u001F\u007F]/;
+const MAIL_ATTACHMENT_FILENAME_UNSAFE_CHARACTERS =
+	/[\u0000-\u001F\u007F-\u009F/\\\u061C\u200E\u200F\u2028-\u202E\u2066-\u2069]/;
 
 export type MailAccountLifecycle =
 	| "not_configured"
@@ -537,6 +539,31 @@ function normalizeMailAttachmentID(attachmentId: string): string {
 	return normalized;
 }
 
+function normalizeMailAttachmentFilename(filename: string): string {
+	const normalized = filename.trim();
+	if (
+		normalized.length === 0 ||
+		normalized === "." ||
+		normalized === ".." ||
+		MAIL_ATTACHMENT_FILENAME_UNSAFE_CHARACTERS.test(normalized)
+	) {
+		throw new Error("Invalid mail attachment filename");
+	}
+	return normalized;
+}
+
+export function safeMailAttachmentFilename(
+	filename: string,
+	attachmentId: string,
+): string {
+	const canonicalAttachmentId = normalizeMailAttachmentID(attachmentId);
+	try {
+		return normalizeMailAttachmentFilename(filename);
+	} catch {
+		return `attachment-${canonicalAttachmentId}`;
+	}
+}
+
 export function getMailIdentities(
 	params: MailIdentityListParams = {},
 	options?: ApiRequestOptions,
@@ -867,7 +894,7 @@ export function presignMailAttachment(
 ): Promise<PresignMailAttachmentResponse> {
 	return api.post<PresignMailAttachmentResponse>(
 		"/mail/attachments/presign",
-		request,
+		{ ...request, filename: normalizeMailAttachmentFilename(request.filename) },
 		options,
 	);
 }
@@ -917,6 +944,30 @@ export function deleteMailAttachment(
 	);
 }
 
+export async function downloadMailMessageAttachment(
+	messageId: string,
+	attachmentId: string,
+	filename: string,
+): Promise<void> {
+	const normalizedMessageID = normalizeMailMessageID(messageId);
+	const normalizedAttachmentID = normalizeMailAttachmentID(attachmentId);
+	const normalizedFilename = normalizeMailAttachmentFilename(filename);
+	const blob = await api.getBlob(
+		`/mail/messages/${encodeURIComponent(normalizedMessageID)}/attachments/${encodeURIComponent(normalizedAttachmentID)}/download`,
+	);
+	const url = URL.createObjectURL(blob);
+	const anchor = document.createElement("a");
+	try {
+		anchor.href = url;
+		anchor.download = normalizedFilename;
+		anchor.hidden = true;
+		document.body.append(anchor);
+		anchor.click();
+	} finally {
+		anchor.remove();
+		window.setTimeout(() => URL.revokeObjectURL(url), 0);
+	}
+}
 
 export type MailMessageMutationAction =
 	| "move"

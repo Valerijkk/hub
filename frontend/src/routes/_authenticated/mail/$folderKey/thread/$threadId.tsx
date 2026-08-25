@@ -4,14 +4,17 @@ import {
 	CalendarDays,
 	ChevronDown,
 	ChevronLeft,
+	Download,
 	ImageOff,
 	Paperclip,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+	downloadMailMessageAttachment,
 	getMailMessage,
 	getMailThread,
+	safeMailAttachmentFilename,
 	type MailAddress,
 	type MailMessageDetail,
 	type MailThreadDetail,
@@ -117,6 +120,12 @@ function MessageCard({
 	const { i18n, t } = useTranslation("mail");
 	const timestamp = message.received_at ?? message.sent_at;
 	const messageID = message.id.toLowerCase();
+	const [pendingAttachmentIDs, setPendingAttachmentIDs] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const [attachmentDownloadErrors, setAttachmentDownloadErrors] = useState<
+		Set<string>
+	>(() => new Set());
 	const bodyQuery = useQuery({
 		queryKey: mailKeys.message(messageID),
 		queryFn: () => getMailMessage(messageID),
@@ -124,6 +133,36 @@ function MessageCard({
 		retry: false,
 		refetchOnWindowFocus: false,
 	});
+	const handleAttachmentDownload = useCallback(
+		async (attachmentID: string, filename: string) => {
+			const attachmentKey = attachmentID.toLowerCase();
+			setPendingAttachmentIDs((current) => new Set(current).add(attachmentKey));
+			setAttachmentDownloadErrors((current) => {
+				const next = new Set(current);
+				next.delete(attachmentKey);
+				return next;
+			});
+			try {
+				await downloadMailMessageAttachment(messageID, attachmentID, filename);
+				setAttachmentDownloadErrors((current) => {
+					const next = new Set(current);
+					next.delete(attachmentKey);
+					return next;
+				});
+			} catch {
+				setAttachmentDownloadErrors((current) =>
+					new Set(current).add(attachmentKey),
+				);
+			} finally {
+				setPendingAttachmentIDs((current) => {
+					const next = new Set(current);
+					next.delete(attachmentKey);
+					return next;
+				});
+			}
+		},
+		[messageID],
+	);
 	const detail =
 		bodyQuery.data && messageDetailMatchesSummary(bodyQuery.data, message)
 			? bodyQuery.data
@@ -213,20 +252,50 @@ function MessageCard({
 							{t("reader.body.attachments", { count: detail.attachments.length })}
 						</h4>
 						<ul className="mt-2 space-y-2">
-							{detail.attachments.map((attachment) => (
-								<li key={attachment.id} className="flex flex-wrap items-center gap-3 rounded-[var(--r2)] border border-b1 bg-card px-3 py-3">
-									<Paperclip aria-hidden="true" className="h-4 w-4 shrink-0 text-t3" />
-									<div className="min-w-0 flex-1">
-										<p className="break-words text-sm font-medium text-t1">{attachment.filename}</p>
-										<p className="mt-0.5 text-xs text-t3">
-											{attachment.media_type} · {formatBytes(attachment.size_bytes, i18n.language)} · {t(`reader.body.disposition.${attachment.disposition}`)}
-										</p>
-									</div>
-									<span className="rounded-full bg-raised px-2 py-1 text-[11px] text-t3">
-										{t("reader.body.downloadUnavailable")}
-									</span>
-								</li>
-							))}
+							{detail.attachments.map((attachment) => {
+								const attachmentKey = attachment.id.toLowerCase();
+								const safeFilename = safeMailAttachmentFilename(
+									attachment.filename,
+									attachment.id,
+								);
+								const isDownloading = pendingAttachmentIDs.has(attachmentKey);
+								const hasDownloadError = attachmentDownloadErrors.has(attachmentKey);
+								return (
+									<li key={attachment.id} className="flex flex-wrap items-center gap-3 rounded-[var(--r2)] border border-b1 bg-card px-3 py-3">
+										<Paperclip aria-hidden="true" className="h-4 w-4 shrink-0 text-t3" />
+										<div className="min-w-0 flex-1">
+											<p className="break-words text-sm font-medium text-t1">{safeFilename}</p>
+											<p className="mt-0.5 text-xs text-t3">
+												{attachment.media_type} · {formatBytes(attachment.size_bytes, i18n.language)} · {t(`reader.body.disposition.${attachment.disposition}`)}
+											</p>
+										</div>
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											className="min-h-11 shrink-0"
+											disabled={isDownloading}
+											onClick={() =>
+												void handleAttachmentDownload(attachment.id, safeFilename)
+											}
+										>
+											<Download aria-hidden="true" className="h-4 w-4" />
+											{t(
+												isDownloading
+													? "reader.body.downloading"
+													: hasDownloadError
+														? "reader.body.retryDownload"
+														: "reader.body.download",
+											)}
+										</Button>
+										{hasDownloadError ? (
+											<p className="w-full text-xs text-[var(--red)]" role="alert">
+												{t("reader.body.downloadFailed")}
+											</p>
+										) : null}
+									</li>
+								);
+							})}
 						</ul>
 					</section>
 				) : null}
