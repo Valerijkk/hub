@@ -1415,6 +1415,21 @@ All 02C `id` fields are `uuid NOT NULL DEFAULT uuid.New` immutable; `created_at`
 | MailDraft | account `CASCADE`; reply/forward projected-message snapshots `SET NULL`; individual delete status-only | `UNIQUE mail_drafts_account_engine_key_uidx (mail_account_id,engine_draft_key)`; `UNIQUE mail_drafts_account_client_uidx (mail_account_id,draft_client_id)`; `UNIQUE mail_drafts_account_create_key_uidx (mail_account_id,create_idempotency_key_hash)`; `UNIQUE mail_drafts_account_engine_message_uidx (mail_account_id,engine_message_id) WHERE engine_message_id IS NOT NULL` |
 | MailSubmission | account `CASCADE`; draft FK `SET NULL` only after terminal sent/failed, while queued/authorizing/submitting/unknown/accepted require non-null draft; normal draft delete status-only, exceptional locked purge only terminal sent/failed; result Hub UUID has no FK; CalendarReplyDelivery absent/deferred | `UNIQUE mail_submissions_account_key_hash_uidx (mail_account_id,idempotency_key_hash)`; `UNIQUE mail_submissions_account_engine_key_uidx (mail_account_id,engine_submission_key)`; `UNIQUE mail_submissions_account_provider_submission_uidx (mail_account_id,provider_submission_id) WHERE provider_submission_id IS NOT NULL`; `UNIQUE mail_submissions_account_provider_message_uidx (mail_account_id,provider_message_id) WHERE provider_message_id IS NOT NULL`; `UNIQUE mail_submissions_account_result_snapshot_uidx (mail_account_id,result_mail_message_id) WHERE result_mail_message_id IS NOT NULL`; `UNIQUE mail_submissions_active_draft_uidx (mail_draft_id) WHERE status IN ('queued','authorizing','submitting','unknown','accepted')`; non-unique `mail_submissions_queued_due_idx (next_attempt_at,id) WHERE status = 'queued'`; non-unique `mail_submissions_stale_lease_idx (command_lease_expires_at,id) WHERE status IN ('authorizing','submitting','unknown','accepted')`; non-unique `mail_submissions_unknown_reconcile_idx (next_reconcile_at,id) WHERE status = 'unknown' AND next_reconcile_at IS NOT NULL`; non-unique `mail_submissions_accepted_finalizer_due_idx (updated_at,id) WHERE status = 'accepted'` |
 
+**Calendar-to-Mail invite delivery durability amendment (source-only).**
+
+`CalendarInviteDelivery` stores one immutable intent per `source_envelope_id + calendar_attendee_id`.
+Two partial unique indexes additionally enforce the semantic key
+`calendar_event_id + calendar_attendee_id + event_sequence + kind`, split by null/non-null
+`recurrence_id`. Organization, event, attendee, source envelope, kind, sequence and recurrence are
+immutable. Organization/event/attendee and optional MailSubmission edges use `NO ACTION`;
+`source_envelope_id` has no outbox edge or FK, so retention cannot erase intent. The lifecycle is
+`pending|submitting|unknown|sent|superseded|failed_permanent`, with bounded attempts `0..8`,
+database-due retry rows, token/deadline plus positive claim generation while submitting, bounded
+safe error codes, and terminal timestamps. The optional MailSubmission is the sole linkage to a
+result MailMessage; no duplicate message column, raw iTIP/content, address, provider identifier or
+error detail is stored. The due index is `(next_attempt_at,id)` for due `pending|unknown` rows.
+Generated Ent, migration/SQL, executable tests, Docker and runtime are `NOT_RUN`.
+
 **Literal SQL predicate forms.** Every line below is an intended named PostgreSQL `CHECK (...)` predicate. State/pair predicates are NULL-safe with `COALESCE(..., FALSE)`. JSON checks deliberately enforce only DB-representable outer types, cardinality, primitive/object fields, and member primitive types; unknown keys, canonical values/grammar, duplicate detection, per-member semantic bounds, and serialized-byte caps are reject-not-transform application-validator obligations.
 
 ```sql

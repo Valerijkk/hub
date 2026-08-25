@@ -538,6 +538,16 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   the shared Mail repository/engine, bounded default timer, `rootCtx`, fatal constructor/route handling,
   and quiet cancellation. The engine-disabled branch exposes none of the route or workers. Executable
   verification and Mail<->Calendar delivery consumers remain pending.
+  Calendar-to-Mail invite admission now has a source-only durable `CalendarInviteDelivery` schema:
+  exactly one immutable intent is admitted per source envelope and attendee, while recurrence-aware
+  semantic uniqueness prevents duplicate created/updated/cancelled delivery for the same event,
+  attendee, sequence, kind and optional recurrence. The bounded lifecycle is
+  `pending|submitting|unknown|sent|superseded|failed_permanent`; claim token/deadline/generation,
+  retry budget/due time and safe error codes contain no message body, address or provider detail.
+  The optional `MailSubmission` link is the only event-to-message route through its result message;
+  the source-envelope UUID is deliberately scalar so outbox retention cannot delete delivery intent.
+  This is `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`;
+  generated Ent, migration/SQL, executable verification, consumers, Docker and runtime remain `NOT_RUN`.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals

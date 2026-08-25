@@ -1,5 +1,17 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Calendar invite delivery durability schema
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`CalendarInviteDelivery` now records one immutable Calendar-to-Mail intent per source envelope and
+attendee, with recurrence-aware semantic uniqueness, bounded retry/unknown/terminal states and a
+token/deadline/generation claim fence. It links optionally to `MailSubmission`, whose result is the
+only event-to-message path; source-envelope identity remains a scalar without retention-coupled FK.
+No raw iTIP/content, recipient address, provider identifier or error detail is persisted. Generated
+Ent, migration/SQL, executable tests, build, lint/gofmt, Docker and runtime remain `NOT_RUN`; consumer,
+worker and production composition are separate.
+
 ## 2026-08-25 - Submission production composition
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
