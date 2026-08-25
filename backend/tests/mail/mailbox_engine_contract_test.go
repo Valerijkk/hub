@@ -2,6 +2,7 @@ package mail_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"reflect"
 	"strings"
@@ -53,8 +54,16 @@ func (consumerStub) GetMessage(context.Context, mail.EngineMessageReadRequest) (
 	return mail.EngineMessage{}, nil
 }
 
+func (consumerStub) GetDraft(context.Context, mail.EngineDraftReadRequest) (mail.EngineMessage, error) {
+	return mail.EngineMessage{}, nil
+}
+
 func (consumerStub) GetBlob(context.Context, mail.EngineBlobReadRequest) (mail.EngineBlob, error) {
 	return mail.EngineBlob{}, nil
+}
+
+func (consumerStub) ReadCalendarPart(context.Context, mail.EngineCalendarPartReadRequest) (mail.EngineCalendarPartReadResult, error) {
+	return mail.EngineCalendarPartReadResult{}, nil
 }
 
 func (consumerStub) Changes(context.Context, mail.EngineChangeRequest) (mail.EngineChangePage, error) {
@@ -71,6 +80,10 @@ func (consumerStub) SaveDraft(context.Context, mail.EngineDraft) (mail.EngineMes
 
 func (consumerStub) ReconcileDraft(context.Context, mail.EngineDraftReconciliation) (mail.EngineDraftResult, error) {
 	return mail.EngineDraftAbsent{}, nil
+}
+
+func (consumerStub) PreflightSubmission(context.Context, mail.EngineSubmission) (mail.EngineSubmissionPreflight, error) {
+	return mail.EngineSubmissionPreflight{}, nil
 }
 
 func (consumerStub) Submit(context.Context, mail.EngineSubmission) (mail.EngineSubmissionResult, error) {
@@ -223,6 +236,25 @@ func TestMailEngine_SentinelErrorsAreTypedAndSafe(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMailEngine_SubmissionPreflightShapeIsConcrete(t *testing.T) {
+	binding := sha256.Sum256([]byte("mail-engine-preflight"))
+	preflight := mail.EngineSubmissionPreflight{
+		FromEmail:      "sender@example.test",
+		RecipientCount: 1,
+		MessageBytes:   42,
+		BindingHash:    binding,
+	}
+	if preflight.FromEmail == "" || preflight.RecipientCount != 1 || preflight.MessageBytes != 42 || preflight.BindingHash == [sha256.Size]byte{} {
+		t.Fatalf("EngineSubmissionPreflight = %#v, want concrete nonzero projection", preflight)
+	}
+	assertExactFields(t, reflect.TypeOf(mail.EngineSubmissionPreflight{}), reflect.TypeOf(struct {
+		FromEmail      string
+		RecipientCount int32
+		MessageBytes   int64
+		BindingHash    [sha256.Size]byte
+	}{}))
 }
 
 func TestMailEngine_UnknownErrorKindIsGenericAndDoesNotUnwrap(t *testing.T) {

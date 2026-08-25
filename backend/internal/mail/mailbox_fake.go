@@ -46,6 +46,7 @@ const (
 	FakeMailOperationReconcileDraft       FakeMailOperation = "reconcile_draft"
 	FakeMailOperationDeleteDraft          FakeMailOperation = "delete_draft"
 	FakeMailOperationReconcileDraftDeletion FakeMailOperation = "reconcile_draft_deletion"
+	FakeMailOperationPreflightSubmission FakeMailOperation = "preflight_submission"
 	FakeMailOperationSubmit               FakeMailOperation = "submit"
 	FakeMailOperationReconcileSubmission  FakeMailOperation = "reconcile_submission"
 	FakeMailOperationMoveMessages         FakeMailOperation = "move_messages"
@@ -162,6 +163,7 @@ type FakeMailEngine struct {
 	domainKeys   map[string]string
 	accounts     map[string]EngineAccount
 	accountKeys  map[string]string
+	identityEmails map[string]map[string]struct{}
 	folders      map[string]map[string]EngineFolder
 	messages     map[string]map[string]EngineMessage
 	blobs        map[string]map[string]EngineBlob
@@ -200,6 +202,7 @@ func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
 		domainKeys:   make(map[string]string),
 		accounts:     make(map[string]EngineAccount),
 		accountKeys:  make(map[string]string),
+		identityEmails: make(map[string]map[string]struct{}),
 		folders:      make(map[string]map[string]EngineFolder),
 		messages:     make(map[string]map[string]EngineMessage),
 		blobs:        make(map[string]map[string]EngineBlob),
@@ -407,6 +410,10 @@ func (f *FakeMailEngine) EnsureAccount(_ context.Context, spec AccountSpec) (Eng
 	if spec.ProvisioningKey == "" || spec.LocalPart == "" || spec.Domain == "" {
 		return EngineAccount{}, fakeEngineError(EngineErrorRejectedPolicy)
 	}
+	identityEmails, err := fakeAccountIdentityEmails(spec)
+	if err != nil {
+		return EngineAccount{}, err
+	}
 	f.mu.Lock()
 	fault, faulted := f.takeFaultLocked(FakeMailOperationEnsureAccount)
 	if faulted && !fault.AfterDispatch {
@@ -449,6 +456,7 @@ func (f *FakeMailEngine) EnsureAccount(_ context.Context, spec AccountSpec) (Eng
 	}
 	f.accounts[accountID] = state
 	f.accountKeys[spec.ProvisioningKey] = accountID
+	f.identityEmails[accountID] = identityEmails
 	if faulted && fault.AfterDispatch {
 		return EngineAccount{}, fakeEngineError(fault.Kind)
 	}
@@ -643,6 +651,42 @@ func (f *FakeMailEngine) GetDraft(_ context.Context, request EngineDraftReadRequ
 		return EngineMessage{}, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
 	return cloneMessage(message), nil
+}
+
+func (f *FakeMailEngine) PreflightSubmission(ctx context.Context, submission EngineSubmission) (EngineSubmissionPreflight, error) {
+	if ctx == nil {
+		return EngineSubmissionPreflight{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	if err := validateSubmission(submission); err != nil {
+		return EngineSubmissionPreflight{}, err
+	}
+	f.mu.Lock()
+	if fault, ok := f.takeFaultLocked(FakeMailOperationPreflightSubmission); ok {
+		f.mu.Unlock()
+		return EngineSubmissionPreflight{}, fakeEngineError(fault.Kind)
+	}
+	draft, ok := f.drafts[submission.AccountID][submission.DraftKey]
+	if !ok || draft.message.Projection.MessageID != submission.MessageID {
+		f.mu.Unlock()
+		return EngineSubmissionPreflight{}, fakeEngineError(EngineErrorNotFound)
+	}
+	if draft.message.Projection.Version != submission.ExpectedVersion {
+		f.mu.Unlock()
+		return EngineSubmissionPreflight{}, fakeEngineError(EngineErrorConflict)
+	}
+	message := cloneMessage(draft.message)
+	account, accountFound := f.accounts[submission.AccountID]
+	_, identityAllowed := f.identityEmails[submission.AccountID][message.Projection.From.Email]
+	f.mu.Unlock()
+
+	preflight, err := preflightSubmissionForMessage(submission, message)
+	if err != nil {
+		return EngineSubmissionPreflight{}, err
+	}
+	if !accountFound || account.State != EngineAccountActive || !identityAllowed {
+		return EngineSubmissionPreflight{}, fakeEngineError(EngineErrorIdentityUnavailable)
+	}
+	return preflight, nil
 }
 
 func (f *FakeMailEngine) GetBlob(_ context.Context, request EngineBlobReadRequest) (EngineBlob, error) {
@@ -1452,6 +1496,28 @@ func accountIdentityIDs(accountID string, aliasCount int) (string, []string, err
 		}
 	}
 	return primaryID, aliases, nil
+}
+
+func fakeAccountIdentityEmails(spec AccountSpec) (map[string]struct{}, error) {
+	identities := append([]AccountIdentitySpec{spec.Primary}, spec.Aliases...)
+	emails := make(map[string]struct{}, len(identities))
+	for _, identity := range identities {
+		if !identity.Enabled {
+			continue
+		}
+		if identity.LocalPart == "" || identity.Domain == "" {
+			return nil, fakeEngineError(EngineErrorRejectedPolicy)
+		}
+		canonical, err := NormalizeAddress(EngineAddress{Email: identity.LocalPart + "@" + identity.Domain})
+		if err != nil {
+			return nil, fakeEngineError(EngineErrorRejectedPolicy)
+		}
+		if _, duplicate := emails[canonical.Email]; duplicate {
+			return nil, fakeEngineError(EngineErrorRejectedPolicy)
+		}
+		emails[canonical.Email] = struct{}{}
+	}
+	return emails, nil
 }
 
 func draftMinimumBytes(draft EngineDraft) int64 {

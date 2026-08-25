@@ -603,6 +603,15 @@ type EngineSubmission struct {
 	MaxMessageBytes int64
 }
 
+// EngineSubmissionPreflight is the read-only local projection bound to one exact submission tuple.
+// MessageBytes counts Hub's local projection representation, never raw RFC/MIME bytes.
+type EngineSubmissionPreflight struct {
+	FromEmail      string
+	RecipientCount int32
+	MessageBytes   int64
+	BindingHash    [sha256.Size]byte
+}
+
 // EngineSubmissionResult — закрытый результат отправки или её сверки.
 type EngineSubmissionResult interface {
 	engineSubmissionResult()

@@ -850,6 +850,90 @@ func TestFakeMailEngineSerializesInjectedSourcesAndPermitsHealthReentry(t *testi
 	}
 }
 
+func TestFakeMailEnginePreflightSubmissionReadsExactActiveIdentityWithoutMutation(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	fake := newFake("account-a", "draft-message", "draft-version")
+	account, err := fake.EnsureAccount(ctx, mail.AccountSpec{
+		ProvisioningKey: "account-key",
+		LocalPart:       "sender",
+		Domain:          "example.test",
+		Enabled:         true,
+		Primary:         mail.AccountIdentitySpec{LocalPart: "sender", Domain: "example.test", Enabled: true},
+	})
+	if err != nil {
+		t.Fatalf("EnsureAccount: %v", err)
+	}
+	draft, err := fake.SaveDraft(ctx, testDraft(account.AccountID, "draft-key", "", "", "mutation-1"))
+	if err != nil {
+		t.Fatalf("SaveDraft: %v", err)
+	}
+	submission := mail.EngineSubmission{AccountID: account.AccountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submission-key", MaxMessageBytes: 4096}
+	before, err := fake.GetDraft(ctx, mail.EngineDraftReadRequest{AccountID: account.AccountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, MaxContentBytes: 4096})
+	if err != nil {
+		t.Fatalf("GetDraft before preflight: %v", err)
+	}
+	first, err := fake.PreflightSubmission(ctx, submission)
+	if err != nil {
+		t.Fatalf("PreflightSubmission: %v", err)
+	}
+	second, err := fake.PreflightSubmission(ctx, submission)
+	if err != nil {
+		t.Fatalf("repeated PreflightSubmission: %v", err)
+	}
+	if first.FromEmail != "sender@example.test" || first.RecipientCount != 1 || first.MessageBytes < 1 || first.BindingHash == [32]byte{} || !reflect.DeepEqual(first, second) {
+		t.Fatalf("PreflightSubmission = %#v / %#v, want stable local projection", first, second)
+	}
+	after, err := fake.GetDraft(ctx, mail.EngineDraftReadRequest{AccountID: account.AccountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, MaxContentBytes: 4096})
+	if err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatalf("PreflightSubmission mutated draft: before=%#v after=%#v err=%v", before, after, err)
+	}
+	fake.EnqueueFault(mail.FakeMailFault{Operation: mail.FakeMailOperationPreflightSubmission, Kind: mail.EngineErrorUnavailable})
+	if _, err := fake.PreflightSubmission(ctx, submission); !errors.Is(err, mail.ErrEngineUnavailable) {
+		t.Fatalf("scripted preflight fault = %v, want unavailable", err)
+	}
+	if _, err := fake.PreflightSubmission(ctx, submission); err != nil {
+		t.Fatalf("PreflightSubmission after consumed fault: %v", err)
+	}
+}
+
+func TestFakeMailEnginePreflightSubmissionRejectsUnknownSuspendedAndMismatchedIdentity(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	for _, testCase := range []struct {
+		name       string
+		account    mail.AccountSpec
+		fromEmail  string
+		wantEnsure bool
+	}{
+		{name: "unknown account", fromEmail: "sender@example.test"},
+		{name: "suspended account", account: mail.AccountSpec{ProvisioningKey: "suspended-key", LocalPart: "sender", Domain: "example.test", Primary: mail.AccountIdentitySpec{LocalPart: "sender", Domain: "example.test", Enabled: true}}, fromEmail: "sender@example.test", wantEnsure: true},
+		{name: "mismatched identity", account: mail.AccountSpec{ProvisioningKey: "mismatch-key", LocalPart: "allowed", Domain: "example.test", Enabled: true, Primary: mail.AccountIdentitySpec{LocalPart: "allowed", Domain: "example.test", Enabled: true}}, fromEmail: "sender@example.test", wantEnsure: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			fake := newFake("account-a", "draft-message", "draft-version")
+			accountID := "account-a"
+			if testCase.wantEnsure {
+				account, err := fake.EnsureAccount(ctx, testCase.account)
+				if err != nil {
+					t.Fatalf("EnsureAccount: %v", err)
+				}
+				accountID = account.AccountID
+			}
+			draftRequest := testDraft(accountID, "draft-key", "", "", "mutation-1")
+			draftRequest.Message.From.Email = testCase.fromEmail
+			draft, err := fake.SaveDraft(ctx, draftRequest)
+			if err != nil {
+				t.Fatalf("SaveDraft: %v", err)
+			}
+			_, err = fake.PreflightSubmission(ctx, mail.EngineSubmission{AccountID: accountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submission-key", MaxMessageBytes: 4096})
+			if !errors.Is(err, mail.ErrEngineIdentityUnavailable) {
+				t.Fatalf("PreflightSubmission error = %v, want identity unavailable", err)
+			}
+		})
+	}
+}
+
 func newFake(ids ...string) *mail.FakeMailEngine {
 	index := 0
 	return mail.NewFakeMailEngine(mail.FakeMailEngineConfig{

@@ -1,5 +1,26 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Concrete read-only engine submission preflight
+
+SOURCE_IMPLEMENTED_STATIC_ONLY / NOT_RUN.
+
+MailEngine now requires the concrete PreflightSubmission result with canonical sender,
+recipient count, deterministic local Hub projection bytes, and a nonzero SHA-256 binding.
+The field-tagged binary V1 frame is domain hub.mail.submission.preflight.binding.v1, U32BE
+numeric version 1, then account ID, draft key, message ID, expected version, submission key,
+max message bytes, canonical From email, recipient count, and local bytes. The local byte count
+is messageVariableBytes for Hub's exact projection/body representation, never raw RFC/MIME
+or provider-authoritative size; provider SizeBytes is only an early reject.
+
+Fake preflight is clone/read-only and authorizes the canonical From only through the active
+account's enabled primary/alias set. Stalwart reuses exact GetDraft and makes only
+Identity/get(id,email) after local validation. It never asks EmailSubmission/get, changes
+provider state, uploads/downloads/imports, persists provider identity/body/result, or calls
+Submit. Missing, duplicate, or mismatched canonical identities are identity_unavailable.
+Focused contract/fake/JMAP-fixture source tests are included, but test/build/lint/gofmt/Docker
+and runtime evidence remain NOT_RUN; no worker, persistence, API, migration, or release
+authority is asserted.
+
 ## 2026-08-25 - Provider rate-limit and submission error taxonomy
 
 STATIC_SOURCE_ONLY / NOT_RUN.
