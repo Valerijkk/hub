@@ -76,7 +76,7 @@ type CalendarAvailabilityReservationSet struct {
 // NewCalendarAvailabilityReservationSet validates a bounded, duplicate-free
 // organizer and internal-attendee set before any transaction or I/O begins.
 func NewCalendarAvailabilityReservationSet(organizationID, eventID, organizerID uuid.UUID, attendeeIDs []uuid.UUID, occurrences []CalendarAvailabilityReservationOccurrence) (CalendarAvailabilityReservationSet, error) {
-	if organizationID == uuid.Nil || eventID == uuid.Nil || organizerID == uuid.Nil || len(attendeeIDs) > calendarAvailabilityReservationMaxAttendees || len(occurrences) == 0 || len(occurrences) > calendarAvailabilityReservationMaxOccurrences {
+	if organizationID == uuid.Nil || eventID == uuid.Nil || organizerID == uuid.Nil || len(attendeeIDs) > calendarAvailabilityReservationMaxAttendees || occurrences == nil || len(occurrences) > calendarAvailabilityReservationMaxOccurrences {
 		return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
 	}
 
@@ -135,12 +135,22 @@ func (set CalendarAvailabilityReservationSet) OrganizerID() uuid.UUID    { retur
 
 // Participants returns a sorted, detached organizer-plus-internal-attendee set.
 func (set CalendarAvailabilityReservationSet) Participants() []uuid.UUID {
-	return append([]uuid.UUID(nil), set.participants...)
+	if set.participants == nil {
+		return nil
+	}
+	participants := make([]uuid.UUID, len(set.participants))
+	copy(participants, set.participants)
+	return participants
 }
 
 // Occurrences returns detached, canonical materialized occurrences.
 func (set CalendarAvailabilityReservationSet) Occurrences() []CalendarAvailabilityReservationOccurrence {
-	return append([]CalendarAvailabilityReservationOccurrence(nil), set.occurrences...)
+	if set.occurrences == nil {
+		return nil
+	}
+	occurrences := make([]CalendarAvailabilityReservationOccurrence, len(set.occurrences))
+	copy(occurrences, set.occurrences)
+	return occurrences
 }
 
 func (set CalendarAvailabilityReservationSet) valid() bool {

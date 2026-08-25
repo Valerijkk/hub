@@ -556,6 +556,13 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   an invalid source, not a fallback.
   Linked event/call pairs are never double-counted. Leave dates use
   the target employee timezone. No detail or source id is exposed.
+  Availability reservation reconciliation distinguishes an invalid nil occurrence set from an
+  explicit non-nil empty authoritative set. The empty set preserves organizer/event authority and
+  releases every active reservation for the event under the event -> deferred-constraint -> active
+  row lock order, without member or source-conflict reads. Nonempty reconciliation retains its
+  event -> constraint -> members -> active rows -> leaves/events/rows/calls order. This source-only
+  release-all amendment is independently reviewed `C/I/M 0/0/0`; executable tests, compile,
+  formatting/lint, Docker and runtime remain `NOT_RUN`.
 - Incoming REQUEST/CANCEL requires authenticated organizer alignment, persists tombstones/
   receipts, and cannot be rolled back by lower/equal conflicting mail. Outward external-
   organizer REPLY reconciles the same hidden draft and MailSubmission before retry.
