@@ -563,6 +563,11 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   event -> constraint -> members -> active rows -> leaves/events/rows/calls order. This source-only
   release-all amendment is independently reviewed `C/I/M 0/0/0`; executable tests, compile,
   formatting/lint, Docker and runtime remain `NOT_RUN`.
+  Update/cancel transactions now expose a separate optional post-persist availability capability.
+  It accepts only meeting update/cancel and canonical event update/occurrence-cancel scopes, delegates
+  the persisted event UUID inside the same transaction, fails closed when absent, normalizes adapter
+  errors, and never falls back to the create-time reservation-set port. The concrete Ent derivation
+  adapter and service ordering before outbox remain pending.
 - Incoming REQUEST/CANCEL requires authenticated organizer alignment, persists tombstones/
   receipts, and cannot be rolled back by lower/equal conflicting mail. Outward external-
   organizer REPLY reconciles the same hidden draft and MailSubmission before retry.

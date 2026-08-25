@@ -44,6 +44,13 @@ type AvailabilityReservationTransactionBackend interface {
 	ReconcileCalendarAvailabilityReservations(context.Context, EventMutationScope, CalendarAvailabilityReservationSet) error
 }
 
+// PersistedAvailabilityReservationTransactionBackend is an optional
+// post-persist reconciliation capability. Its adapter derives the canonical
+// reservation set from the already-persisted event in the same transaction.
+type PersistedAvailabilityReservationTransactionBackend interface {
+	ReconcilePersistedCalendarAvailabilityReservations(context.Context, EventMutationScope, uuid.UUID) error
+}
+
 // MeetingTransactionBackend is an opt-in atomic meeting port. Capability is
 // proven before resolving actor organization, so legacy backends never fall
 // back to a second transaction or a partially linked ScheduledCall.
@@ -665,6 +672,42 @@ func (transaction *EventTransaction) ReconcileCalendarAvailabilityReservations(c
 		return ErrAvailabilitySourceInvalid
 	}
 	return backend.ReconcileCalendarAvailabilityReservations(ctx, scope, cloneCalendarAvailabilityReservationSet(set))
+}
+
+// ReconcilePersistedCalendarAvailabilityReservations reconciles availability
+// only after an update or cancellation has persisted its authoritative event.
+// It never falls back to the create-time reservation-set port.
+func (transaction *EventTransaction) ReconcilePersistedCalendarAvailabilityReservations(ctx context.Context, scope EventMutationScope, eventID uuid.UUID) error {
+	if transaction == nil {
+		return ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return ErrEventTransactionClosed
+	}
+	if ctx == nil || eventID == uuid.Nil {
+		return ErrEventInvalid
+	}
+	if err := transaction.validateScope(scope); err != nil {
+		return err
+	}
+	switch scope.EventOperation() {
+	case EventMutationMeetingUpdate,
+		EventMutationMeetingCancel,
+		EventMutationCalendarUpdate,
+		EventMutationCalendarOccurrenceCancel:
+	default:
+		return ErrEventInvalid
+	}
+	backend, supported := transaction.backend.(PersistedAvailabilityReservationTransactionBackend)
+	if !supported || nilPersistedAvailabilityReservationTransactionBackend(backend) {
+		return ErrEventInternal
+	}
+	if err := backend.ReconcilePersistedCalendarAvailabilityReservations(ctx, scope, eventID); err != nil {
+		return ErrEventInternal
+	}
+	return nil
 }
 
 // ResolveMeetingCreateScope proves every optional meeting capability before
@@ -2330,6 +2373,19 @@ func validEventMutationScope(scope EventMutationScope) bool {
 }
 
 func nilMeetingTransactionBackend(backend MeetingTransactionBackend) bool {
+	if backend == nil {
+		return true
+	}
+	value := reflect.ValueOf(backend)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
+}
+
+func nilPersistedAvailabilityReservationTransactionBackend(backend PersistedAvailabilityReservationTransactionBackend) bool {
 	if backend == nil {
 		return true
 	}
