@@ -365,6 +365,48 @@ func (h *Hub) BroadcastToRoom(room string, msg ServerMessage) {
 	})
 }
 
+// BroadcastToRoomForUsers sends a message only to subscribed connections whose
+// authenticated user ID is present in allowedUserIDs. It is intended for room
+// events with recipient-specific authorization, such as channel updates.
+func (h *Hub) BroadcastToRoomForUsers(room string, msg ServerMessage, allowedUserIDs map[uuid.UUID]struct{}) {
+	if len(allowedUserIDs) == 0 {
+		return
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		slog.Error("failed to marshal server message", "error", err)
+		return
+	}
+
+	val, ok := h.rooms.Load(room)
+	if !ok {
+		return
+	}
+
+	members := val.(*sync.Map)
+	members.Range(func(_, value any) bool {
+		client := value.(*Client)
+		userID, err := uuid.Parse(client.UserID)
+		if err != nil || userID == uuid.Nil {
+			return true
+		}
+		if _, allowed := allowedUserIDs[userID]; !allowed {
+			return true
+		}
+
+		select {
+		case <-client.done:
+			// Client is shutting down; do not send.
+		case client.send <- data:
+		default:
+			slog.Warn("ws client send buffer full, dropping message",
+				"userID", client.UserID, "connID", client.ConnectionID, "room", room)
+		}
+		return true
+	})
+}
+
 // SendToUser отправляет сообщение всем активным соединениям пользователя
 // (HI-07 multi-tab fan-out). Если ни одно соединение не открыто, ничего
 // не делает.

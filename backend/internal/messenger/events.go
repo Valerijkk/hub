@@ -1,6 +1,9 @@
 package messenger
 
 import (
+	"context"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +20,38 @@ type EventPublisher interface {
 // ---------------------------------------------------------------------------
 
 const (
+	// UserChannelCreatedEvent is the user-scoped lifecycle event sent after a
+	// channel becomes visible to a member.
+	UserChannelCreatedEvent = "channel_created"
+
+	// UserChannelUpdatedEvent is the user-scoped lifecycle event sent when a
+	// current member must refresh a channel after an update.
+	UserChannelUpdatedEvent = "channel_updated"
+
+	// UserChannelRemovedEvent is the user-scoped lifecycle event sent when a
+	// channel is no longer visible to a member.
+	UserChannelRemovedEvent = "channel_removed"
+
+	// UserNewMessageNotificationEvent is the user-scoped notification sent to
+	// channel members other than the canonical message sender.
+	UserNewMessageNotificationEvent = "new_message_notification"
+
+	// SubjectUserChannelCreated is the per-user NATS subject for a channel that
+	// has just become visible. Format: messenger.user.{userID}.channel_created.
+	SubjectUserChannelCreated = "messenger.user.%s." + UserChannelCreatedEvent
+
+	// SubjectUserChannelUpdated is the per-user NATS subject for a channel
+	// update. Format: messenger.user.{userID}.channel_updated.
+	SubjectUserChannelUpdated = "messenger.user.%s." + UserChannelUpdatedEvent
+
+	// SubjectUserChannelRemoved is the per-user NATS subject for a channel that
+	// is no longer visible. Format: messenger.user.{userID}.channel_removed.
+	SubjectUserChannelRemoved = "messenger.user.%s." + UserChannelRemovedEvent
+
+	// SubjectUserNewMessageNotification is the per-user NATS subject for a
+	// channel message notification. Format:
+	// messenger.user.{userID}.new_message_notification.
+	SubjectUserNewMessageNotification = "messenger.user.%s." + UserNewMessageNotificationEvent
 	// SubjectMessageSent — тема NATS для события отправки сообщения.
 	// Формат: messenger.channel.{channelID}.message_sent
 	SubjectMessageSent = "messenger.channel.%s.message_sent"
@@ -56,6 +91,71 @@ const (
 // Полезная нагрузка событий
 // ---------------------------------------------------------------------------
 
+// ChannelLifecycleEvent intentionally contains only the stable channel ID.
+// The recipient reloads the authoritative, recipient-specific channel view.
+type ChannelLifecycleEvent struct {
+	ChannelID string `json:"channel_id"`
+}
+
+// NewMessageNotificationEvent intentionally contains no message content or
+// recipient-local state. It only prompts the recipient to reload its channel
+// view from the authoritative source.
+type NewMessageNotificationEvent struct {
+	ChannelID string `json:"channel_id"`
+	MessageID string `json:"message_id"`
+}
+
+// publishUserChannelLifecycleEvent best-effort publishes a single
+// invalidation payload to each explicit, valid user ID exactly once.
+func (s *MessengerService) publishUserChannelLifecycleEvent(subjectFormat string, channelID uuid.UUID, userIDs []uuid.UUID) {
+	if channelID == uuid.Nil {
+		return
+	}
+
+	payload := ChannelLifecycleEvent{ChannelID: channelID.String()}
+	seen := make(map[uuid.UUID]struct{}, len(userIDs))
+	for _, userID := range userIDs {
+		if userID == uuid.Nil {
+			continue
+		}
+		if _, duplicate := seen[userID]; duplicate {
+			continue
+		}
+		seen[userID] = struct{}{}
+		s.nats.PublishJSON(fmt.Sprintf(subjectFormat, userID.String()), payload)
+	}
+}
+
+// publishUserNewMessageNotifications best-effort notifies the channel's
+// current members, excluding the canonical durable message sender. A member
+// lookup failure is logged and deliberately does not affect the primary write.
+func (s *MessengerService) publishUserNewMessageNotifications(ctx context.Context, doc *MessageDocument) {
+	if doc == nil || doc.ChannelID == uuid.Nil || doc.ID == "" || s.repo == nil {
+		return
+	}
+
+	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, doc.ChannelID)
+	if err != nil {
+		slog.Error("не удалось получить участников канала для уведомления о новом сообщении", "error", err, "channel_id", doc.ChannelID)
+		return
+	}
+
+	payload := NewMessageNotificationEvent{
+		ChannelID: doc.ChannelID.String(),
+		MessageID: doc.ID,
+	}
+	seen := make(map[uuid.UUID]struct{}, len(memberIDs))
+	for _, userID := range memberIDs {
+		if userID == uuid.Nil || userID == doc.SenderID {
+			continue
+		}
+		if _, duplicate := seen[userID]; duplicate {
+			continue
+		}
+		seen[userID] = struct{}{}
+		s.nats.PublishJSON(fmt.Sprintf(SubjectUserNewMessageNotification, userID.String()), payload)
+	}
+}
 // MessageSentEvent — данные события отправки сообщения.
 // MentionedUserIDs содержит уже разрешённые ID пользователей
 // из @all, @online, @role и индивидуальных упоминаний.

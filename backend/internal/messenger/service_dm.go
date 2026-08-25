@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -24,7 +25,11 @@ func (s *MessengerService) CreateOrGetDM(ctx context.Context, userID, targetUser
 	// Ищем существующий DM по dm_key
 	existing, err := s.repo.FindDMChannel(ctx, dmKey)
 	if err == nil {
-		return toChannelResponse(existing), nil
+		if existing != nil {
+			return toChannelResponse(existing), nil
+		}
+	} else if !ent.IsNotFound(err) {
+		return nil, apperrors.NewInternal("ошибка поиска DM канала")
 	}
 
 	// Создаём новый DM
@@ -47,5 +52,6 @@ func (s *MessengerService) CreateOrGetDM(ctx context.Context, userID, targetUser
 		return nil, apperrors.NewInternal("ошибка создания DM канала")
 	}
 
+	s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, ch.ID, []uuid.UUID{userID, targetUserID})
 	return toChannelResponse(ch), nil
 }

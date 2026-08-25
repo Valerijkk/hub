@@ -22,7 +22,9 @@ func wireWebSocket(d *serverDeps) {
 	go wsHub.Run(d.rootCtx)
 	d.wsHub = wsHub
 
-	wsBridge := wsmod.NewBridge(wsHub, d.nc)
+	wsBridge := wsmod.NewBridge(wsHub, d.nc, wsmod.ChannelMembersResolver(func(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+		return d.messengerEntRepo.GetChannelMemberIDs(ctx, channelID)
+	}), wsmod.CallChatAudienceResolver(d.callsRepo.ListCallChatAudienceUserIDs))
 	if err := wsBridge.Start(); err != nil {
 		slog.Error("failed to start ws bridge", "error", err)
 		os.Exit(1)

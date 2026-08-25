@@ -5,6 +5,7 @@ package calls
 import (
 	"context"
 	"errors"
+	"reflect"
 	"sort"
 	"sync"
 
@@ -203,9 +204,45 @@ func ExportCallRoomServiceCfg(room *CallRoomService) config.LiveKitConfig {
 	return room.cfg
 }
 
+// ExportNewCallEventPublisherWithEventPublisher creates a CallEventPublisher
+// with an isolated EventPublisher for hubtest producer assertions.
+func ExportNewCallEventPublisherWithEventPublisher(publisher EventPublisher) *CallEventPublisher {
+	if isNilCallEventPublisher(publisher) {
+		panic("calls hubtest event publisher must not be nil or typed-nil")
+	}
+	return &CallEventPublisher{publisher: publisher}
+}
+
+// ExportBuildCallChatAudience exposes the pure recipient-selection contract for hubtest.
+func ExportBuildCallChatAudience(
+	activeParticipantIDs []uuid.UUID,
+	channelMemberIDs []uuid.UUID,
+	creatorID uuid.UUID,
+	channelID *uuid.UUID,
+) []uuid.UUID {
+	return buildCallChatAudience(activeParticipantIDs, channelMemberIDs, creatorID, channelID)
+}
+
+func isNilCallEventPublisher(publisher EventPublisher) bool {
+	if publisher == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(publisher)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
+}
 // ExportCallEventPublisherNats возвращает NATS client из CallEventPublisher для hubtest.
 func ExportCallEventPublisherNats(p *CallEventPublisher) *natsclient.Client {
-	return p.nats
+	if p == nil {
+		return nil
+	}
+	nats, _ := p.publisher.(*natsclient.Client)
+	return nats
 }
 
 // --- in-memory chat store for hubtest (migrated from chat_mem_test) ---
@@ -288,10 +325,6 @@ func ExportChatRepositoryInsertForTest(r *ChatRepository, ctx context.Context, m
 	return r.store.insert(ctx, msg)
 }
 
-// ExportChannelIDStr возвращает строку channel ID для NATS subject hubtest.
-func ExportChannelIDStr(id *uuid.UUID) string {
-	return channelIDStr(id)
-}
 
 // ExportUserNameFromCtx извлекает userName из Fiber Locals для hubtest.
 func ExportUserNameFromCtx(c fiber.Ctx) string {

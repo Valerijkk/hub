@@ -1,11 +1,15 @@
 package ws
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"github.com/valerii/hub/backend/internal/platform/observability"
@@ -14,16 +18,52 @@ import (
 // Bridge — связывает NATS-субъекты с WebSocket-комнатами, рассылая события
 // из NATS всем подключённым WebSocket-клиентам в соответствующей комнате.
 type Bridge struct {
-	hub  *Hub
-	nats *natsclient.Client
-	subs []*nats.Subscription
+	hub                     *Hub
+	nats                    *natsclient.Client
+	channelMembersResolver  ChannelMembersResolver
+	callChatAudienceResolver CallChatAudienceResolver
+	subs                    []*nats.Subscription
 }
 
-// NewBridge создаёт новый Bridge, связывающий Hub и NATS-клиент.
-func NewBridge(hub *Hub, nc *natsclient.Client) *Bridge {
+// ChannelMembersResolver returns the current members of a channel. The bridge
+// resolves them at delivery time to prevent stale room subscriptions leaking
+// channel events after membership changes.
+type ChannelMembersResolver func(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error)
+
+// CallChatAudienceResolver returns the current users who may receive a call
+// chat event. The bridge resolves them at delivery time so stale call room
+// subscriptions cannot receive messages after the caller loses access.
+type CallChatAudienceResolver func(ctx context.Context, callID uuid.UUID) ([]uuid.UUID, error)
+
+type bridgeSubscriptionDefinition struct {
+	subject string
+	handler func(*Bridge, *nats.Msg)
+}
+
+// bridgeSubscriptionDefinitions is the sole source of Bridge subscriptions.
+// It is shared by Start and the hubtest export hook to prevent drift.
+var bridgeSubscriptionDefinitions = []bridgeSubscriptionDefinition{
+	{subject: "project.>", handler: (*Bridge).handleProjectEvent},
+	{subject: "auth.session.>", handler: (*Bridge).handleAuthSessionEvent},
+	{subject: "messenger.channel.>", handler: (*Bridge).handleMessengerEvent},
+	{subject: "messenger.user.>", handler: (*Bridge).handleMessengerUserEvent},
+	{subject: "calls.channel.>", handler: (*Bridge).handleCallEvent},
+	{subject: "calls.chat.>", handler: (*Bridge).handleCallChatEvent},
+	{subject: "notification.user.>", handler: (*Bridge).handleNotificationEvent},
+}
+
+// NewBridge creates a bridge between Hub and the NATS client.
+func NewBridge(
+	hub *Hub,
+	nc *natsclient.Client,
+	channelMembersResolver ChannelMembersResolver,
+	callChatAudienceResolver CallChatAudienceResolver,
+) *Bridge {
 	return &Bridge{
-		hub:  hub,
-		nats: nc,
+		hub:                     hub,
+		nats:                    nc,
+		channelMembersResolver:  channelMembersResolver,
+		callChatAudienceResolver: callChatAudienceResolver,
 	}
 }
 
@@ -33,23 +73,11 @@ func NewBridge(hub *Hub, nc *natsclient.Client) *Bridge {
 // W3-A4-008: при ошибке N-й подписки откатываем уже созданные через Stop(),
 // иначе утечка NATS subscriptions при переиспользовании Bridge.
 func (b *Bridge) Start() error {
-	type subDef struct {
-		subject string
-		handler nats.MsgHandler
-	}
-	defs := []subDef{
-		{"project.>", b.traced(b.handleProjectEvent)},
-		{"auth.session.>", b.traced(b.handleAuthSessionEvent)},
-		{"messenger.channel.>", b.traced(b.handleMessengerEvent)},
-		// calls.channel — события звонков в WS-комнаты каналов мессенджера.
-		{"calls.channel.>", b.traced(b.handleCallEvent)},
-		// calls.chat — эфемерный чат звонка.
-		{"calls.chat.>", b.traced(b.handleCallChatEvent)},
-		{"notification.user.>", b.traced(b.handleNotificationEvent)},
-	}
-
-	for _, d := range defs {
-		sub, err := b.nats.Subscribe(d.subject, d.handler)
+	for _, definition := range bridgeSubscriptionDefinitions {
+		handler := definition.handler
+		sub, err := b.nats.Subscribe(definition.subject, b.traced(func(msg *nats.Msg) {
+			handler(b, msg)
+		}))
 		if err != nil {
 			b.Stop()
 			return err
@@ -119,27 +147,30 @@ func (b *Bridge) handleProjectEvent(msg *nats.Msg) {
 // Формат subject: messenger.channel.{channelID}.{event}
 // Формат room: channel:{channelID}
 func (b *Bridge) handleMessengerEvent(msg *nats.Msg) {
-	parts := strings.SplitN(msg.Subject, ".", 4)
-	if len(parts) < 3 {
+	channelID, event, ok := parseChannelEventSubject(msg, "messenger", isMessengerChannelEvent)
+	if !ok {
 		return
 	}
-
-	channelID := parts[2]
-	room := "channel:" + channelID
-
-	event := msg.Subject
-	if len(parts) >= 4 {
-		event = parts[3]
+	payload, ok := parseOptionalJSONPayload(msg)
+	if !ok {
+		return
 	}
+	b.broadcastAuthorizedChannelEvent(channelID, event, payload)
+}
 
-	var payload any
-	if len(msg.Data) > 0 {
-		if err := json.Unmarshal(msg.Data, &payload); err != nil {
-			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
-			return
-		}
+// handleMessengerUserEvent routes recipient-scoped lifecycle and notification
+// events only to the exact user-owned room.
+func (b *Bridge) handleMessengerUserEvent(msg *nats.Msg) {
+	userID, event, ok := parseMessengerUserEventSubject(msg)
+	if !ok {
+		return
 	}
-
+	payload, ok := parseMessengerUserPayload(msg.Data, event)
+	if !ok {
+		slog.Warn("ws bridge: malformed messenger user payload", "subject", msg.Subject)
+		return
+	}
+	room := "user:" + userID.String()
 	b.hub.BroadcastToRoom(room, ServerMessage{
 		Type:    TypeEvent,
 		Event:   event,
@@ -152,63 +183,229 @@ func (b *Bridge) handleMessengerEvent(msg *nats.Msg) {
 // Формат subject: calls.channel.{channelID}.{event} (started/ended/joined/left)
 // Формат room: channel:{channelID} (те же WS-комнаты что у мессенджера)
 func (b *Bridge) handleCallEvent(msg *nats.Msg) {
-	parts := strings.SplitN(msg.Subject, ".", 4)
-	if len(parts) < 3 {
+	channelID, event, ok := parseChannelEventSubject(msg, "calls", isCallChannelEvent)
+	if !ok {
+		return
+	}
+	payload, ok := parseOptionalJSONPayload(msg)
+	if !ok {
+		return
+	}
+	b.broadcastAuthorizedChannelEvent(channelID, "call."+event, payload)
+}
+
+func (b *Bridge) broadcastAuthorizedChannelEvent(channelID uuid.UUID, event string, payload any) {
+	if b.channelMembersResolver == nil {
+		slog.Warn("ws bridge: channel members resolver is unavailable", "channel_id", channelID)
 		return
 	}
 
-	channelID := parts[2]
-	room := "channel:" + channelID
-
-	event := msg.Subject
-	if len(parts) >= 4 {
-		event = "call." + parts[3]
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	members, err := b.channelMembersResolver(ctx, channelID)
+	if err != nil {
+		slog.Warn("ws bridge: channel membership lookup failed", "channel_id", channelID, "error", err)
+		return
 	}
 
-	var payload any
-	if len(msg.Data) > 0 {
-		if err := json.Unmarshal(msg.Data, &payload); err != nil {
-			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
-			return
+	allowedUserIDs := make(map[uuid.UUID]struct{}, len(members))
+	for _, memberID := range members {
+		if memberID != uuid.Nil {
+			allowedUserIDs[memberID] = struct{}{}
 		}
 	}
+	if len(allowedUserIDs) == 0 {
+		return
+	}
 
-	b.hub.BroadcastToRoom(room, ServerMessage{
+	room := "channel:" + channelID.String()
+	b.hub.BroadcastToRoomForUsers(room, ServerMessage{
 		Type:    TypeEvent,
 		Event:   event,
 		Room:    room,
 		Payload: payload,
-	})
+	}, allowedUserIDs)
 }
 
+func parseChannelEventSubject(msg *nats.Msg, namespace string, allowedEvent func(string) bool) (uuid.UUID, string, bool) {
+	if msg == nil {
+		return uuid.Nil, "", false
+	}
+	parts := strings.Split(msg.Subject, ".")
+	if len(parts) != 4 || parts[0] != namespace || parts[1] != "channel" || parts[3] == "" || !allowedEvent(parts[3]) {
+		return uuid.Nil, "", false
+	}
+	channelID, err := uuid.Parse(parts[2])
+	if err != nil || channelID == uuid.Nil {
+		return uuid.Nil, "", false
+	}
+	return channelID, parts[3], true
+}
+
+func isMessengerChannelEvent(event string) bool {
+	switch event {
+	case "message_sent", "message_edited", "message_deleted", "reaction_toggled", "typing", "member_joined", "member_left", "poll_created", "poll_voted", "poll_closed":
+		return true
+	default:
+		return false
+	}
+}
+
+func isCallChannelEvent(event string) bool {
+	switch event {
+	case "started", "ended", "joined", "left":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseOptionalJSONPayload(msg *nats.Msg) (any, bool) {
+	if msg == nil {
+		return nil, false
+	}
+	if len(msg.Data) == 0 {
+		return nil, true
+	}
+	var payload any
+	if err := json.Unmarshal(msg.Data, &payload); err != nil {
+		slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+		return nil, false
+	}
+	return payload, true
+}
+
+func parseMessengerUserEventSubject(msg *nats.Msg) (uuid.UUID, string, bool) {
+	if msg == nil {
+		return uuid.Nil, "", false
+	}
+	parts := strings.Split(msg.Subject, ".")
+	if len(parts) != 4 || parts[0] != "messenger" || parts[1] != "user" || !isMessengerUserEvent(parts[3]) {
+		return uuid.Nil, "", false
+	}
+	userID, err := uuid.Parse(parts[2])
+	if err != nil || userID == uuid.Nil {
+		return uuid.Nil, "", false
+	}
+	return userID, parts[3], true
+}
+
+func isMessengerUserEvent(event string) bool {
+	switch event {
+	case "channel_created", "channel_updated", "channel_removed", "new_message_notification":
+		return true
+	default:
+		return false
+	}
+}
+
+type messengerUserLifecyclePayload struct {
+	ChannelID uuid.UUID `json:"channel_id"`
+}
+
+type messengerUserNotificationPayload struct {
+	ChannelID uuid.UUID `json:"channel_id"`
+	MessageID uuid.UUID `json:"message_id"`
+}
+
+func parseMessengerUserPayload(data []byte, event string) (map[string]any, bool) {
+	if event == "new_message_notification" {
+		var payload messengerUserNotificationPayload
+		if !decodeStrictJSONObject(data, &payload) || payload.ChannelID == uuid.Nil || payload.MessageID == uuid.Nil {
+			return nil, false
+		}
+		return map[string]any{
+			"channel_id": payload.ChannelID.String(),
+			"message_id": payload.MessageID.String(),
+		}, true
+	}
+
+	var payload messengerUserLifecyclePayload
+	if !decodeStrictJSONObject(data, &payload) || payload.ChannelID == uuid.Nil {
+		return nil, false
+	}
+	return map[string]any{"channel_id": payload.ChannelID.String()}, true
+}
+
+func decodeStrictJSONObject(data []byte, target any) bool {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return false
+	}
+	var trailing any
+	return decoder.Decode(&trailing) == io.EOF
+}
 // handleCallChatEvent маршрутизирует сообщения эфемерного чата звонка в WS-комнату звонка.
 // Формат subject: calls.chat.{callID}
 // Формат room: call:{callID}
 func (b *Bridge) handleCallChatEvent(msg *nats.Msg) {
-	parts := strings.SplitN(msg.Subject, ".", 3)
-	if len(parts) < 3 {
+	callID, ok := parseCallChatSubject(msg)
+	if !ok {
+		return
+	}
+	payload, ok := parseRequiredJSONPayload(msg)
+	if !ok {
+		return
+	}
+	if b.callChatAudienceResolver == nil {
+		slog.Warn("ws bridge: call chat audience resolver is unavailable", "call_id", callID)
 		return
 	}
 
-	callID := parts[2]
-	room := "call:" + callID
-
-	var payload any
-	if len(msg.Data) > 0 {
-		if err := json.Unmarshal(msg.Data, &payload); err != nil {
-			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
-			return
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	audience, err := b.callChatAudienceResolver(ctx, callID)
+	if err != nil {
+		slog.Warn("ws bridge: call chat audience lookup failed", "call_id", callID, "error", err)
+		return
 	}
 
-	b.hub.BroadcastToRoom(room, ServerMessage{
+	allowedUserIDs := make(map[uuid.UUID]struct{}, len(audience))
+	for _, userID := range audience {
+		if userID != uuid.Nil {
+			allowedUserIDs[userID] = struct{}{}
+		}
+	}
+	if len(allowedUserIDs) == 0 {
+		return
+	}
+
+	room := "call:" + callID.String()
+	b.hub.BroadcastToRoomForUsers(room, ServerMessage{
 		Type:    TypeEvent,
 		Event:   "chat.message",
 		Room:    room,
 		Payload: payload,
-	})
+	}, allowedUserIDs)
 }
 
+func parseCallChatSubject(msg *nats.Msg) (uuid.UUID, bool) {
+	if msg == nil {
+		return uuid.Nil, false
+	}
+	parts := strings.Split(msg.Subject, ".")
+	if len(parts) != 3 || parts[0] != "calls" || parts[1] != "chat" {
+		return uuid.Nil, false
+	}
+	callID, err := uuid.Parse(parts[2])
+	if err != nil || callID == uuid.Nil {
+		return uuid.Nil, false
+	}
+	return callID, true
+}
+
+func parseRequiredJSONPayload(msg *nats.Msg) (any, bool) {
+	if msg == nil || len(msg.Data) == 0 {
+		return nil, false
+	}
+	var payload any
+	if err := json.Unmarshal(msg.Data, &payload); err != nil {
+		slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+		return nil, false
+	}
+	return payload, true
+}
 // handleAuthSessionEvent маршрутизирует NATS-событие авторизационной сессии конкретному пользователю.
 // Формат subject: auth.session.{userID}.{event}
 // W3-A4-004 / P2-BE-14: revoked/logout → Unregister (рвёт комнаты), затем уведомление клиенту.

@@ -76,6 +76,13 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 		}
 	}
 
+	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, ch.ID)
+	if err != nil {
+		slog.Error("channel lifecycle member lookup failed after create", "error", err, "channel_id", ch.ID)
+	} else {
+		s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, ch.ID, memberIDs)
+	}
+
 	return toChannelResponse(ch), nil
 }
 
@@ -161,6 +168,12 @@ func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID 
 		}
 		return nil, apperrors.NewInternal("ошибка обновления канала")
 	}
+	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
+	if err != nil {
+		slog.Error("channel lifecycle member lookup failed after update", "error", err, "channel_id", channelID)
+	} else {
+		s.publishUserChannelLifecycleEvent(SubjectUserChannelUpdated, channelID, memberIDs)
+	}
 	return toChannelResponse(ch), nil
 }
 
@@ -174,9 +187,13 @@ func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID 
 	if role != "owner" {
 		return apperrors.NewForbidden("только owner может удалить канал")
 	}
+	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
+	if err != nil {
+		slog.Error("channel lifecycle member snapshot failed before delete", "error", err, "channel_id", channelID)
+		return apperrors.NewInternal("ошибка получения участников канала")
+	}
 	if s.unread != nil {
-		memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
-		if mErr == nil && len(memberIDs) > 0 {
+		if len(memberIDs) > 0 {
 			strs := make([]string, len(memberIDs))
 			for i, id := range memberIDs {
 				strs[i] = id.String()
@@ -197,6 +214,7 @@ func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID 
 		}
 		return apperrors.NewInternal("ошибка удаления канала")
 	}
+	s.publishUserChannelLifecycleEvent(SubjectUserChannelRemoved, channelID, memberIDs)
 	return nil
 }
 
@@ -238,6 +256,7 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 		"channel_id": channelID,
 		"user_id":    userID,
 	})
+	s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, channelID, []uuid.UUID{userID})
 
 	return nil
 }
@@ -280,6 +299,7 @@ func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID u
 		"channel_id": channelID,
 		"user_id":    userID,
 	})
+	s.publishUserChannelLifecycleEvent(SubjectUserChannelRemoved, channelID, []uuid.UUID{userID})
 
 	return nil
 }
@@ -294,30 +314,106 @@ func (s *MessengerService) AddMembers(ctx context.Context, channelID, userID uui
 		return apperrors.NewForbidden("только owner или admin может добавлять участников")
 	}
 
-	uuids := make([]uuid.UUID, 0, len(memberIDs))
+	candidates := make([]uuid.UUID, 0, len(memberIDs))
+	seenCandidates := make(map[uuid.UUID]struct{}, len(memberIDs))
 	for _, mid := range memberIDs {
 		uid, err := uuid.Parse(mid)
 		if err != nil {
 			return apperrors.NewBadRequest("некорректный member ID: " + mid)
 		}
-		uuids = append(uuids, uid)
+		if uid == uuid.Nil {
+			return apperrors.NewBadRequest("некорректный member ID: " + mid)
+		}
+		if _, duplicate := seenCandidates[uid]; duplicate {
+			continue
+		}
+		seenCandidates[uid] = struct{}{}
+		candidates = append(candidates, uid)
+	}
+
+	existingMemberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
+	if err != nil {
+		return apperrors.NewInternal("ошибка получения участников")
+	}
+	existingMembers := make(map[uuid.UUID]struct{}, len(existingMemberIDs))
+	for _, existingID := range existingMemberIDs {
+		existingMembers[existingID] = struct{}{}
+	}
+	newMemberIDs := make([]uuid.UUID, 0, len(candidates))
+	for _, candidateID := range candidates {
+		if _, exists := existingMembers[candidateID]; exists {
+			continue
+		}
+		newMemberIDs = append(newMemberIDs, candidateID)
+	}
+	if len(newMemberIDs) == 0 {
+		return nil
 	}
 
 	// A3W3-2-006: wrap repo err → AppError.
-	if err := s.repo.AddMembers(ctx, channelID, uuids, "member"); err != nil {
+	if err := s.repo.AddMembers(ctx, channelID, newMemberIDs, "member"); err != nil {
 		var ae *apperrors.AppError
 		if errors.As(err, &ae) {
 			return ae
 		}
 		return apperrors.NewInternal("ошибка добавления участников")
 	}
+	s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, channelID, newMemberIDs)
 	return nil
 }
 
 // AddMembersInternal добавляет участников без проверки прав.
 // Используется внутренними сервисами (например AutoChannelService).
 func (s *MessengerService) AddMembersInternal(ctx context.Context, channelID uuid.UUID, memberIDs []uuid.UUID) error {
-	return s.repo.AddMembers(ctx, channelID, memberIDs, "member")
+	if channelID == uuid.Nil {
+		return apperrors.NewBadRequest("некорректный channel ID")
+	}
+	if len(memberIDs) == 0 {
+		return nil
+	}
+
+	candidates := make([]uuid.UUID, 0, len(memberIDs))
+	seenCandidates := make(map[uuid.UUID]struct{}, len(memberIDs))
+	for _, memberID := range memberIDs {
+		if memberID == uuid.Nil {
+			return apperrors.NewBadRequest("некорректный member ID")
+		}
+		if _, duplicate := seenCandidates[memberID]; duplicate {
+			continue
+		}
+		seenCandidates[memberID] = struct{}{}
+		candidates = append(candidates, memberID)
+	}
+
+	existingMemberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
+	if err != nil {
+		return apperrors.NewInternal("ошибка получения участников")
+	}
+	existingMembers := make(map[uuid.UUID]struct{}, len(existingMemberIDs))
+	for _, existingMemberID := range existingMemberIDs {
+		existingMembers[existingMemberID] = struct{}{}
+	}
+
+	newMemberIDs := make([]uuid.UUID, 0, len(candidates))
+	for _, candidate := range candidates {
+		if _, exists := existingMembers[candidate]; !exists {
+			newMemberIDs = append(newMemberIDs, candidate)
+		}
+	}
+	if len(newMemberIDs) == 0 {
+		return nil
+	}
+
+	if err := s.repo.AddMembers(ctx, channelID, newMemberIDs, "member"); err != nil {
+		var ae *apperrors.AppError
+		if errors.As(err, &ae) {
+			return ae
+		}
+		return apperrors.NewInternal("ошибка добавления участников")
+	}
+
+	s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, channelID, newMemberIDs)
+	return nil
 }
 
 // ToggleStar переключает флаг is_starred для пользователя в канале.

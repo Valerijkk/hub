@@ -200,6 +200,93 @@ func (r *EntRepository) ListParticipants(ctx context.Context, callID uuid.UUID) 
 		All(ctx)
 }
 
+// ListCallChatAudienceUserIDs returns the current users who may receive a
+// call-chat websocket event. Ended or missing calls intentionally have no
+// audience. A channel call includes its current members and active
+// participants; an instant call includes active participants and its creator.
+func (r *EntRepository) ListCallChatAudienceUserIDs(ctx context.Context, callID uuid.UUID) ([]uuid.UUID, error) {
+	callEnt, err := r.db.Call.Query().
+		Where(
+			call.IDEQ(callID),
+			call.StatusEQ(call.StatusActive),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	participants, err := r.db.CallParticipant.Query().
+		Where(
+			callparticipant.CallID(callID),
+			callparticipant.LeftAtIsNil(),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	activeParticipantIDs := make([]uuid.UUID, 0, len(participants))
+	for _, participant := range participants {
+		activeParticipantIDs = append(activeParticipantIDs, participant.UserID)
+	}
+
+	if callEnt.ChannelID == nil {
+		return buildCallChatAudience(activeParticipantIDs, nil, callEnt.CreatedBy, nil), nil
+	}
+	if *callEnt.ChannelID == uuid.Nil {
+		return buildCallChatAudience(activeParticipantIDs, nil, callEnt.CreatedBy, callEnt.ChannelID), nil
+	}
+
+	channelMemberIDs, err := r.ListChannelMemberIDs(ctx, *callEnt.ChannelID)
+	if err != nil {
+		return nil, err
+	}
+	return buildCallChatAudience(activeParticipantIDs, channelMemberIDs, callEnt.CreatedBy, callEnt.ChannelID), nil
+}
+
+// buildCallChatAudience composes a stable, de-duplicated recipient list for a
+// single active call. uuid.Nil is never a recipient.
+func buildCallChatAudience(activeParticipantIDs, channelMemberIDs []uuid.UUID, creatorID uuid.UUID, channelID *uuid.UUID) []uuid.UUID {
+	audience := make([]uuid.UUID, 0, len(activeParticipantIDs)+len(channelMemberIDs)+1)
+	seen := make(map[uuid.UUID]struct{}, cap(audience))
+	add := func(userID uuid.UUID) {
+		if userID == uuid.Nil {
+			return
+		}
+		if _, exists := seen[userID]; exists {
+			return
+		}
+		seen[userID] = struct{}{}
+		audience = append(audience, userID)
+	}
+
+	if channelID == nil {
+		for _, userID := range activeParticipantIDs {
+			add(userID)
+		}
+		add(creatorID)
+		return audience
+	}
+
+	if *channelID == uuid.Nil {
+		for _, userID := range activeParticipantIDs {
+			add(userID)
+		}
+		return audience
+	}
+
+	for _, userID := range activeParticipantIDs {
+		add(userID)
+	}
+	for _, userID := range channelMemberIDs {
+		add(userID)
+	}
+	return audience
+}
+
 // IsActiveParticipant — true, если user сейчас в звонке (left_at IS NULL).
 // A2-003 / A2-006 / A2-007: chat, RaiseHand, WS call:{id}.
 func (r *EntRepository) IsActiveParticipant(ctx context.Context, callID, userID uuid.UUID) (bool, error) {

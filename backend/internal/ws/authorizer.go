@@ -59,6 +59,8 @@ func (a *configAuthorizer) CanSubscribe(ctx context.Context, userIDStr, room str
 	}
 
 	switch prefix {
+	case "user":
+		return userID != uuid.Nil && entityID != uuid.Nil && entityID == userID, nil
 	case "channel":
 		if a.cfg.IsChannelMember == nil {
 			return false, nil

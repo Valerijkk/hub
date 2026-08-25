@@ -155,17 +155,6 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 		return nil, apperrors.NewInternal("ошибка поиска приглашения")
 	}
 
-	// Валидация приглашения.
-	if found.IsRevoked {
-		return nil, apperrors.NewBadRequest("приглашение отозвано")
-	}
-	if found.ExpiresAt != nil && found.ExpiresAt.Before(time.Now().UTC()) {
-		return nil, apperrors.NewBadRequest("срок действия приглашения истёк")
-	}
-	if found.MaxUses > 0 && found.UseCount >= found.MaxUses {
-		return nil, apperrors.NewBadRequest("исчерпан лимит использований")
-	}
-
 	// Проверяем, не является ли пользователь уже участником (A2W3-2-004: err не глотать).
 	isMember, err := s.repo.IsMember(ctx, found.ChannelID, userID)
 	if err != nil {
@@ -178,6 +167,17 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 			return nil, apperrors.NewInternal("ошибка получения канала")
 		}
 		return toChannelResponse(ch), nil
+	}
+
+	// Валидация приглашения.
+	if found.IsRevoked {
+		return nil, apperrors.NewBadRequest("приглашение отозвано")
+	}
+	if found.ExpiresAt != nil && found.ExpiresAt.Before(time.Now().UTC()) {
+		return nil, apperrors.NewBadRequest("срок действия приглашения истёк")
+	}
+	if found.MaxUses > 0 && found.UseCount >= found.MaxUses {
+		return nil, apperrors.NewBadRequest("исчерпан лимит использований")
 	}
 
 	// A2W3-2-001 / A2W3-3-001: атомарный инкремент с UseCountLT.
@@ -203,6 +203,7 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 		"via_invite": true,
 		"invite_id":  found.ID,
 	})
+	s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, found.ChannelID, []uuid.UUID{userID})
 
 	// Возвращаем канал.
 	ch, err := s.repo.GetChannel(ctx, found.ChannelID)

@@ -45,6 +45,10 @@ func ExportBridgeHandleMessengerEvent(b *Bridge, msg *nats.Msg) {
 	b.handleMessengerEvent(msg)
 }
 
+func ExportBridgeHandleMessengerUserEvent(b *Bridge, msg *nats.Msg) {
+	b.handleMessengerUserEvent(msg)
+}
+
 func ExportBridgeHandleCallEvent(b *Bridge, msg *nats.Msg) {
 	b.handleCallEvent(msg)
 }
@@ -80,6 +84,15 @@ func ExportClientCloseDone(c *Client) {
 func ExportBridgeSubsLen(b *Bridge) int { return len(b.subs) }
 
 func ExportBridgeSubs(b *Bridge) []*nats.Subscription { return b.subs }
+
+// ExportBridgeSubjects returns a copy of the Bridge subscription source.
+func ExportBridgeSubjects(_ *Bridge) []string {
+	subjects := make([]string, len(bridgeSubscriptionDefinitions))
+	for i, definition := range bridgeSubscriptionDefinitions {
+		subjects[i] = definition.subject
+	}
+	return subjects
+}
 
 func ExportReadPump(conn *websocket.Conn, client *Client, hub *Hub, authz Authorizer) {
 	readPump(conn, client, hub, authz)
