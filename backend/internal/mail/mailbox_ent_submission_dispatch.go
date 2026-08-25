@@ -85,6 +85,8 @@ func (repository *MailboxEntRepository) ResolveMailboxSubmissionDispatch(ctx con
 				ClearResultMailMessageID().
 				SetLastErrorCode(mailsubmission.LastErrorCode(MailboxSubmissionErrorCodeOutcomeUnknown)).
 				ClearNextAttemptAt().
+				SetReconcileAttempts(0).
+				SetNextReconcileAt(databaseNow).
 				SetUpdatedAt(databaseNow).
 				Exec(ctx)
 		}
@@ -136,7 +138,7 @@ func mailboxEntSubmissionDispatchFenceMatches(account *ent.MailAccount, submissi
 		len(submission.DispatchAuthorizationHash) != sha256.Size ||
 		subtle.ConstantTimeCompare(submission.DispatchAuthorizationHash, authorization.authorizationHash[:]) != 1 ||
 		submission.ProviderSubmissionID != nil || submission.ProviderMessageID != nil || submission.ResultMailMessageID != nil ||
-		submission.LastErrorCode != nil || submission.NextAttemptAt != nil {
+		submission.LastErrorCode != nil || submission.NextAttemptAt != nil || submission.ReconcileAttempts != 0 || submission.NextReconcileAt != nil {
 		return false
 	}
 	binding, ok := mailboxEntSubmissionBindingFromRow(submission)

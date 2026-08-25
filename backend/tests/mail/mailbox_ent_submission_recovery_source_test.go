@@ -97,7 +97,31 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 	)
 	unknown := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
 		"func mailboxEntSubmissionRecoveryUnknown",
+		"func mailboxEntSubmissionRecoveryReleaseUnknown",
+	)
+	unknownLease := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
+		"func mailboxEntSubmissionRecoveryReleaseUnknown",
+		"func mailboxEntSubmissionRecoveryPendingCode",
+	)
+	accepted := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
+		"func mailboxEntSubmissionRecoveryReleaseAccepted",
+		"func mailboxEntSubmissionRecoveryReleaseExactAccountLease",
+	)
+	exactAccountLease := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
+		"func mailboxEntSubmissionRecoveryReleaseExactAccountLease",
 		"func mailboxEntSubmissionRecoveryDraftError",
+	)
+	leaseState := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
+		"func mailboxEntSubmissionRecoveryLeaseState",
+		"func mailboxEntSubmissionRecoveryReleasedStateValid",
+	)
+	releasedState := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
+		"func mailboxEntSubmissionRecoveryReleasedStateValid",
+		"func mailboxEntSubmissionRecoveryCurrentStateValid",
+	)
+	releasedNoop := mailboxEntSubmissionRecoverySourceSlice(t, recover,
+		"case mailboxEntSubmissionRecoveryLeaseStateReleased:",
+		"case mailboxEntSubmissionRecoveryLeaseStateHeld:",
 	)
 	copyResult := mailboxEntSubmissionRecoverySourceSlice(t, contractSource,
 		"func mailboxSubmissionRecoveryScanResultCopy",
@@ -112,7 +136,7 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 		"Order(ent.Asc(mailsubmission.FieldCommandLeaseExpiresAt), ent.Asc(mailsubmission.FieldID))",
 	)
 	requireMailboxEntSubmissionRecoveryContains(t, scan,
-		"mailsubmission.StatusIn(mailsubmission.Status(\"authorizing\"), mailsubmission.Status(\"submitting\"))",
+		"mailsubmission.StatusIn(mailsubmission.Status(\"authorizing\"), mailsubmission.Status(\"submitting\"), mailsubmission.Status(\"unknown\"), mailsubmission.Status(\"accepted\"))",
 		"mailboxEntSubmissionRecoveryScanResultValid(request, scanned)",
 		"mailboxEntSubmissionRecoveryScanResultCopy(scanned)",
 	)
@@ -131,19 +155,41 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 	requireMailboxEntSubmissionRecoveryForbids(t, copyResult,
 		"append([]MailboxSubmissionRecoveryDue(nil)", "result.Submissions = nil", "submissions = nil",
 	)
+	requireMailboxEntSubmissionRecoveryContains(t, contractSource,
+		"MailboxSubmissionStatusUnknown",
+		"MailboxSubmissionStatusAccepted",
+		"MailboxSubmissionStaleRecoveryOutcomeLeaseReleased",
+		"return result.RetryAt == nil && result.FailureCode == nil",
+		"func mailboxSubmissionStaleRecoveryLeaseReleased",
+	)
 
 	requireMailboxEntSubmissionRecoveryOrdered(t, recover,
 		"transaction.MailAccount.Query()",
 		"transaction.MailSubmission.Query()",
 		"transaction.MailDraft.Query()",
 		"mailboxEntDatabaseWallClock",
+		"mailboxEntSubmissionRecoveryLeaseState",
+		"mailboxEntSubmissionRecoveryReleasedStateValid",
+		"mailboxEntSubmissionRecoveryCurrentStateValid",
 		"mailboxEntSubmissionRecoveryDualFenceShapeMatches",
 		"mailboxEntSubmissionRecoveryDualFenceMatches",
 		"mailboxEntSubmissionRecoveryRequeue",
 		"mailboxEntSubmissionRecoveryTerminal",
 		"mailboxEntSubmissionRecoveryUnknown",
+		"mailboxEntSubmissionRecoveryReleaseUnknown",
+		"mailboxEntSubmissionRecoveryReleaseAccepted",
 	)
-	requireMailboxEntSubmissionRecoveryContains(t, recover, "mailboxSubmissionStaleRecoveryNoop()")
+	requireMailboxEntSubmissionRecoveryContains(t, recover,
+		"mailboxSubmissionStaleRecoveryNoop()",
+		"case MailboxSubmissionStatusUnknown:",
+		"case MailboxSubmissionStatusAccepted:",
+		"mailboxEntSubmissionRowValid(submission, account.ID)",
+		"case mailboxEntSubmissionRecoveryLeaseStateReleased:",
+		"case mailboxEntSubmissionRecoveryLeaseStateHeld:",
+		"case mailboxEntSubmissionRecoveryLeaseStateInvalid:",
+		"case mailboxEntSubmissionRecoveryLeaseStateConflict:",
+		"mailboxEntSubmissionRecoveryCurrentStateValid",
+	)
 	requireMailboxEntSubmissionRecoveryForbids(t, recover,
 		"BeginEngineCommand(", ".PreflightSubmission(", ".Submit(", "MailEngine", "provider.", "nats.", "http.", "net/http",
 	)
@@ -194,6 +240,8 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 		"ClearProviderMessageID()",
 		"ClearResultMailMessageID()",
 		"SetLastErrorCode(mailsubmission.LastErrorCode(MailboxSubmissionErrorCodeReconciliationRequired))",
+		"SetReconcileAttempts(0)",
+		"SetNextReconcileAt(databaseNow)",
 		"account.Update()",
 		"ClearMutationLeaseToken()",
 		"ClearMutationLeaseUntil()",
@@ -203,6 +251,67 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 		"ClearDispatchAuthorizedAt()", "ClearDispatchAuthorizationHash()", "SetCommandFence(", "ClearCommandFence(",
 		"mailboxEntSubmissionRecoveryRequeue(", "mailboxEntSubmissionRecoveryTerminal(", "draft.Update()", "SetStatus(maildraft.Status(",
 		"SetStatus(mailsubmission.Status(\"queued\"))", "SetStatus(mailsubmission.Status(\"failed\"))", "SetStatus(mailsubmission.Status(\"submitting\"))",
+		"BeginEngineCommand(", ".PreflightSubmission(", ".Submit(", "MailEngine", "provider.", "nats.", "http.", "net/http",
+	)
+
+	requireMailboxEntSubmissionRecoveryOrdered(t, unknownLease,
+		"submission.Update()",
+		"SetStatus(mailsubmission.Status(\"unknown\"))",
+		"ClearCommandLeaseToken()",
+		"ClearCommandLeaseExpiresAt()",
+		"SetReconcileAttempts(submission.ReconcileAttempts)",
+		"MailboxSubmissionErrorCodeReconciliationExhausted",
+		"SetNextReconcileAt(databaseNow)",
+		"mailboxEntSubmissionRecoveryReleaseExactAccountLease",
+	)
+	requireMailboxEntSubmissionRecoveryForbids(t, unknownLease,
+		"ClearDispatchAuthorizedAt()", "ClearDispatchAuthorizationHash()", "draft.Update()", "SetProviderSubmissionID(", "SetProviderMessageID(",
+		"BeginEngineCommand(", ".PreflightSubmission(", ".Submit(", "MailEngine", "provider.", "nats.", "http.", "net/http",
+	)
+
+	requireMailboxEntSubmissionRecoveryOrdered(t, accepted,
+		"submission.Update()",
+		"ClearCommandLeaseToken()",
+		"ClearCommandLeaseExpiresAt()",
+		"mailboxEntSubmissionRecoveryReleaseExactAccountLease",
+	)
+	requireMailboxEntSubmissionRecoveryForbids(t, accepted,
+		"SetStatus(", "ClearDispatchAuthorizedAt()", "ClearDispatchAuthorizationHash()", "draft.Update()", "SetProviderSubmissionID(", "SetProviderMessageID(",
+		"ClearProviderSubmissionID()", "ClearProviderMessageID()", "SetReconcileAttempts(", "SetNextReconcileAt(",
+		"BeginEngineCommand(", ".PreflightSubmission(", ".Submit(", "MailEngine", "provider.", "nats.", "http.", "net/http",
+	)
+	requireMailboxEntSubmissionRecoveryContains(t, exactAccountLease,
+		"*account.MutationLeaseToken != *submission.CommandLeaseToken",
+		"!account.MutationLeaseUntil.Equal(*submission.CommandLeaseExpiresAt)",
+		"account.MutationEpoch != submission.CommandFence",
+		"ClearMutationLeaseToken()",
+		"ClearMutationLeaseUntil()",
+		"SetMutationEpoch(nextEpoch)",
+	)
+	requireMailboxEntSubmissionRecoveryContains(t, leaseState,
+		"(account.MutationLeaseToken == nil) != (account.MutationLeaseUntil == nil)",
+		"(submission.CommandLeaseToken == nil) != (submission.CommandLeaseExpiresAt == nil)",
+		"case !accountHeld && !submissionHeld:",
+		"case accountHeld && submissionHeld:",
+		"mailboxEntSubmissionRecoveryLeaseStateReleased",
+		"mailboxEntSubmissionRecoveryLeaseStateConflict",
+	)
+	requireMailboxEntSubmissionRecoveryContains(t, releasedState,
+		"case MailboxSubmissionStatusUnknown:",
+		"case MailboxSubmissionStatusAccepted:",
+		"submission.CommandLeaseToken != nil",
+		"submission.ReconcileAttempts == 10 && submission.NextReconcileAt == nil",
+	)
+	requireMailboxEntSubmissionRecoveryForbids(t, releasedState,
+		"draft.Update()", "ClearCommandLeaseToken()", "ClearCommandLeaseExpiresAt()", "SetStatus(",
+		"BeginEngineCommand(", ".PreflightSubmission(", ".Submit(", "MailEngine", "provider.", "nats.", "http.", "net/http",
+	)
+	requireMailboxEntSubmissionRecoveryContains(t, releasedNoop,
+		"mailboxEntSubmissionRecoveryReleasedStateValid",
+		"return nil",
+	)
+	requireMailboxEntSubmissionRecoveryForbids(t, releasedNoop,
+		"submission.Update()", "account.Update()", "draft.Update()", "ClearCommandLeaseToken()", "ClearMutationLeaseToken()",
 		"BeginEngineCommand(", ".PreflightSubmission(", ".Submit(", "MailEngine", "provider.", "nats.", "http.", "net/http",
 	)
 }

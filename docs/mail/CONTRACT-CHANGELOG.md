@@ -1,5 +1,29 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - MailSubmission combined reconciliation lifecycle prerequisite
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailSubmission` keeps its closed status union and separates its immutable dispatch budget from a
+new reconciliation budget: `reconcile_attempts` is int32 default 0 with bounds 0..10, and
+`next_reconcile_at` is nullable. `MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED` is the sole exact
+unleased exhausted `unknown` code. Waiting unknown rows have no command lease, reconciliation
+attempts 0..9, a nonnull reconciliation due time, and one existing pending safe code; owned rows
+have the paired command lease, attempts 1..10, no due time, and the same pending safe-code union.
+The exhausted row has no lease, attempts exactly 10, and no due time. Queued, authorizing,
+submitting, and failed rows require reconciliation attempts 0 and no reconciliation due time.
+Accepted and sent may retain 0..10 reconciliation attempts with no due time; accepted may retain
+or release a paired command lease only for finalizer ownership, while sent has no lease.
+
+The stale-lease index now covers authorizing, submitting, unknown, and accepted rows. The existing
+`mail_submissions_unknown_reconcile_idx` storage key now indexes `(next_reconcile_at,id)` with
+`status = 'unknown' AND next_reconcile_at IS NOT NULL`; the active-draft and accepted-finalizer
+indexes are unchanged. The combined source packet also updates the domain error and durable-row
+validators, all current `submitting -> unknown` writers, and stale recovery for the four leased
+statuses with closed source/API tests. The Ent unknown scan/claim/resolve adapter, reconciliation
+worker, accepted finalizer, production composition, generated Ent, migration, SQL application,
+compile, tests, gofmt, lint, Docker, and runtime remain pending, blocked, or NOT_RUN.
+
 ## 2026-08-25 - Queued submission Ent due-scan adapter candidate
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

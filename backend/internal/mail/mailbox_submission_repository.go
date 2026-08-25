@@ -30,6 +30,7 @@ type MailboxSubmissionErrorCode string
 const (
 	MailboxSubmissionErrorCodeOutcomeUnknown          MailboxSubmissionErrorCode = "MAIL_SUBMISSION_OUTCOME_UNKNOWN"
 	MailboxSubmissionErrorCodeReconciliationRequired  MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RECONCILIATION_REQUIRED"
+	MailboxSubmissionErrorCodeReconciliationExhausted MailboxSubmissionErrorCode = "MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED"
 	MailboxSubmissionErrorCodeMailboxUnavailable       MailboxSubmissionErrorCode = "MAILBOX_UNAVAILABLE"
 	MailboxSubmissionErrorCodeRejected                 MailboxSubmissionErrorCode = "MAIL_SUBMISSION_REJECTED"
 	MailboxSubmissionErrorCodePolicy                   MailboxSubmissionErrorCode = "MAIL_SUBMISSION_POLICY"
@@ -170,6 +171,7 @@ func validMailboxSubmissionErrorCode(code MailboxSubmissionErrorCode) bool {
 	switch code {
 	case MailboxSubmissionErrorCodeOutcomeUnknown,
 		MailboxSubmissionErrorCodeReconciliationRequired,
+		MailboxSubmissionErrorCodeReconciliationExhausted,
 		MailboxSubmissionErrorCodeMailboxUnavailable,
 		MailboxSubmissionErrorCodeRejected,
 		MailboxSubmissionErrorCodePolicy,

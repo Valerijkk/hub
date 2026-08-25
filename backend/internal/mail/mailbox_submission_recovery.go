@@ -37,7 +37,7 @@ type MailboxSubmissionStaleRecoveryRequest struct {
 }
 
 // MailboxSubmissionStaleRecoveryOutcome is the closed durable outcome of one
-// stale authorizing or submitting lease recovery.
+// stale submission lease recovery.
 type MailboxSubmissionStaleRecoveryOutcome string
 
 const (
@@ -45,11 +45,12 @@ const (
 	MailboxSubmissionStaleRecoveryOutcomeRequeued               MailboxSubmissionStaleRecoveryOutcome = "requeued"
 	MailboxSubmissionStaleRecoveryOutcomeFailed                 MailboxSubmissionStaleRecoveryOutcome = "failed"
 	MailboxSubmissionStaleRecoveryOutcomeReconciliationRequired MailboxSubmissionStaleRecoveryOutcome = "reconciliation_required"
+	MailboxSubmissionStaleRecoveryOutcomeLeaseReleased          MailboxSubmissionStaleRecoveryOutcome = "lease_released"
 )
 
 // MailboxSubmissionStaleRecoveryResult contains no provider data. RetryAt is
-// set only for a requeue; FailureCode is set only for terminal or unknown
-// outcomes.
+// set only for a requeue; FailureCode is set only for terminal or
+// reconciliation-required outcomes.
 type MailboxSubmissionStaleRecoveryResult struct {
 	Outcome     MailboxSubmissionStaleRecoveryOutcome
 	RetryAt     *time.Time
@@ -69,7 +70,8 @@ func mailboxSubmissionRecoveryScanRequestValid(request MailboxSubmissionRecovery
 
 func mailboxSubmissionRecoveryDueValid(due MailboxSubmissionRecoveryDue) bool {
 	return due.SubmissionID != uuid.Nil &&
-		(due.Status == MailboxSubmissionStatusAuthorizing || due.Status == MailboxSubmissionStatusSubmitting) &&
+		(due.Status == MailboxSubmissionStatusAuthorizing || due.Status == MailboxSubmissionStatusSubmitting ||
+			due.Status == MailboxSubmissionStatusUnknown || due.Status == MailboxSubmissionStatusAccepted) &&
 		mailboxSubmissionClaimExactTimeValid(due.LeaseUntil)
 }
 
@@ -122,6 +124,8 @@ func mailboxSubmissionStaleRecoveryResultValid(result MailboxSubmissionStaleReco
 		return result.RetryAt == nil && result.FailureCode != nil && *result.FailureCode == MailboxSubmissionErrorCodeRetryExhausted
 	case MailboxSubmissionStaleRecoveryOutcomeReconciliationRequired:
 		return result.RetryAt == nil && result.FailureCode != nil && *result.FailureCode == MailboxSubmissionErrorCodeReconciliationRequired
+	case MailboxSubmissionStaleRecoveryOutcomeLeaseReleased:
+		return result.RetryAt == nil && result.FailureCode == nil
 	default:
 		return false
 	}
@@ -156,4 +160,8 @@ func mailboxSubmissionStaleRecoveryFailed() MailboxSubmissionStaleRecoveryResult
 func mailboxSubmissionStaleRecoveryReconciliationRequired() MailboxSubmissionStaleRecoveryResult {
 	code := MailboxSubmissionErrorCodeReconciliationRequired
 	return MailboxSubmissionStaleRecoveryResult{Outcome: MailboxSubmissionStaleRecoveryOutcomeReconciliationRequired, FailureCode: &code}
+}
+
+func mailboxSubmissionStaleRecoveryLeaseReleased() MailboxSubmissionStaleRecoveryResult {
+	return MailboxSubmissionStaleRecoveryResult{Outcome: MailboxSubmissionStaleRecoveryOutcomeLeaseReleased}
 }

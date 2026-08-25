@@ -92,6 +92,7 @@ func (repository *MailboxEntRepository) ReserveMailboxSubmission(ctx context.Con
 			SetStatus(mailsubmission.Status("queued")).
 			SetNextAttemptAt(databaseWallClock).
 			SetAttemptCount(0).
+			SetReconcileAttempts(0).
 			SetCreatedAt(databaseWallClock).
 			SetUpdatedAt(databaseWallClock).
 			Save(ctx)
@@ -112,7 +113,7 @@ func (repository *MailboxEntRepository) ReserveMailboxSubmission(ctx context.Con
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
 		record, ok := mailboxEntSubmissionRecord(created, request.AccountID)
-		if created.AttemptCount != 0 || created.NextAttemptAt == nil || !created.NextAttemptAt.Equal(databaseWallClock) ||
+		if created.AttemptCount != 0 || created.ReconcileAttempts != 0 || created.NextReconcileAt != nil || created.NextAttemptAt == nil || !created.NextAttemptAt.Equal(databaseWallClock) ||
 			!created.CreatedAt.Equal(databaseWallClock) || !created.UpdatedAt.Equal(databaseWallClock) || !ok ||
 			record.Status != MailboxSubmissionStatusQueued || record.DraftID == nil || *record.DraftID != request.DraftID ||
 			record.ResultMailMessageID != nil || record.LastErrorCode != nil {
@@ -368,11 +369,12 @@ func mailboxEntSubmissionRecord(row *ent.MailSubmission, accountID uuid.UUID) (M
 func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) bool {
 	if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || accountID == uuid.Nil ||
 		len(row.IdempotencyKeyHash) != sha256.Size || len(row.RequestHash) != sha256.Size ||
-		row.AttemptCount < 0 || row.AttemptCount > 8 || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) || row.UpdatedAt.Before(row.CreatedAt) ||
+		row.AttemptCount < 0 || row.AttemptCount > 8 || row.ReconcileAttempts < 0 || row.ReconcileAttempts > 10 || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) || row.UpdatedAt.Before(row.CreatedAt) ||
 		!mailboxSubmissionUUIDPointerValid(row.MailDraftID) || !mailboxSubmissionUUIDPointerValid(row.ResultMailMessageID) ||
 		row.CommandFence < 0 || !mailboxEntSubmissionCommandLeaseValid(row) ||
 		!mailboxEntSubmissionDispatchAuthorizationValid(row) || !mailboxEntSubmissionProviderPairValid(row) ||
-		(row.NextAttemptAt != nil && !mailboxEntValidTime(*row.NextAttemptAt)) {
+		(row.NextAttemptAt != nil && !mailboxEntValidTime(*row.NextAttemptAt)) ||
+		(row.NextReconcileAt != nil && !mailboxEntValidTime(*row.NextReconcileAt)) {
 		return false
 	}
 	if _, ok := mailboxEntSubmissionBindingFromRow(row); !ok {
@@ -389,33 +391,40 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 	switch MailboxSubmissionStatus(row.Status) {
 	case MailboxSubmissionStatusQueued:
 		return row.AttemptCount <= 7 && row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt == nil &&
-			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt != nil
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt != nil &&
+			row.ReconcileAttempts == 0 && row.NextReconcileAt == nil
 	case MailboxSubmissionStatusAuthorizing:
 		return row.AttemptCount >= 1 && row.MailDraftID != nil && row.CommandLeaseToken != nil && row.DispatchAuthorizedAt == nil &&
-			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1 &&
+			row.ReconcileAttempts == 0 && row.NextReconcileAt == nil
 	case MailboxSubmissionStatusSubmitting:
 		return row.AttemptCount >= 1 && row.MailDraftID != nil && row.CommandLeaseToken != nil && row.DispatchAuthorizedAt != nil &&
-			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1 &&
+			row.ReconcileAttempts == 0 && row.NextReconcileAt == nil
 	case MailboxSubmissionStatusAccepted:
-		return row.AttemptCount >= 1 && row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil &&
-			row.ProviderSubmissionID != nil && row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
+		return row.AttemptCount >= 1 && row.MailDraftID != nil && row.DispatchAuthorizedAt != nil && row.ProviderSubmissionID != nil &&
+			row.ResultMailMessageID == nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1 &&
+			row.ReconcileAttempts >= 0 && row.ReconcileAttempts <= 10 && row.NextReconcileAt == nil
 	case MailboxSubmissionStatusSent:
 		return row.AttemptCount >= 1 && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil && row.ProviderSubmissionID != nil &&
-			row.ResultMailMessageID != nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1
+			row.ResultMailMessageID != nil && errorCode == nil && row.NextAttemptAt == nil && row.CommandFence >= 1 &&
+			row.ReconcileAttempts >= 0 && row.ReconcileAttempts <= 10 && row.NextReconcileAt == nil
 	case MailboxSubmissionStatusUnknown:
-		if row.AttemptCount < 1 || row.MailDraftID == nil || row.CommandLeaseToken != nil || row.DispatchAuthorizedAt == nil || row.ProviderSubmissionID != nil ||
+		if row.AttemptCount < 1 || row.MailDraftID == nil || row.DispatchAuthorizedAt == nil || row.ProviderSubmissionID != nil ||
 			row.ResultMailMessageID != nil || errorCode == nil || row.NextAttemptAt != nil || row.CommandFence < 1 {
 			return false
 		}
-		switch *errorCode {
-		case MailboxSubmissionErrorCodeOutcomeUnknown, MailboxSubmissionErrorCodeReconciliationRequired, MailboxSubmissionErrorCodeMailboxUnavailable:
-		default:
-			return false
+		if row.CommandLeaseToken == nil {
+			if row.ReconcileAttempts >= 0 && row.ReconcileAttempts <= 9 && row.NextReconcileAt != nil {
+				return mailboxEntSubmissionReconciliationPendingCode(*errorCode)
+			}
+			return row.ReconcileAttempts == 10 && row.NextReconcileAt == nil && *errorCode == MailboxSubmissionErrorCodeReconciliationExhausted
 		}
-		return true
+		return row.ReconcileAttempts >= 1 && row.ReconcileAttempts <= 10 && row.NextReconcileAt == nil &&
+			mailboxEntSubmissionReconciliationPendingCode(*errorCode)
 	case MailboxSubmissionStatusFailed:
 		if row.AttemptCount < 1 || row.CommandLeaseToken != nil || row.DispatchAuthorizedAt != nil || row.ProviderSubmissionID != nil ||
-			row.ResultMailMessageID != nil || errorCode == nil || row.NextAttemptAt != nil {
+			row.ResultMailMessageID != nil || errorCode == nil || row.NextAttemptAt != nil || row.ReconcileAttempts != 0 || row.NextReconcileAt != nil {
 			return false
 		}
 		switch *errorCode {
@@ -431,6 +440,17 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 		default:
 			return false
 		}
+	default:
+		return false
+	}
+}
+
+func mailboxEntSubmissionReconciliationPendingCode(code MailboxSubmissionErrorCode) bool {
+	switch code {
+	case MailboxSubmissionErrorCodeOutcomeUnknown,
+		MailboxSubmissionErrorCodeReconciliationRequired,
+		MailboxSubmissionErrorCodeMailboxUnavailable:
+		return true
 	default:
 		return false
 	}

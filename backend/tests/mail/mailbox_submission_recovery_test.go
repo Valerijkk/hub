@@ -26,6 +26,7 @@ func TestMailboxSubmissionRecoveryPublicContract(t *testing.T) {
 		{name: "requeued", got: string(mail.MailboxSubmissionStaleRecoveryOutcomeRequeued), want: "requeued"},
 		{name: "failed", got: string(mail.MailboxSubmissionStaleRecoveryOutcomeFailed), want: "failed"},
 		{name: "reconciliation required", got: string(mail.MailboxSubmissionStaleRecoveryOutcomeReconciliationRequired), want: "reconciliation_required"},
+		{name: "lease released", got: string(mail.MailboxSubmissionStaleRecoveryOutcomeLeaseReleased), want: "lease_released"},
 	} {
 		if testCase.got != testCase.want {
 			t.Fatalf("%s outcome = %q, want %q", testCase.name, testCase.got, testCase.want)

@@ -60,6 +60,8 @@ func TestMailboxEntSubmissionDispatchSourceContract(t *testing.T) {
 		"mailboxEntSubmissionDispatchFenceMatches",
 		"SetStatus(mailsubmission.Status(\"accepted\"))",
 		"SetStatus(mailsubmission.Status(\"unknown\"))",
+		"SetReconcileAttempts(0)",
+		"SetNextReconcileAt(databaseNow)",
 		"SetMutationEpoch(nextEpoch)",
 	)
 	for _, required := range []string{
@@ -70,6 +72,7 @@ func TestMailboxEntSubmissionDispatchSourceContract(t *testing.T) {
 		"SetProviderSubmissionID(request.ProviderSubmissionID)",
 		"SetProviderMessageID(request.ProviderMessageID)",
 		"SetLastErrorCode(mailsubmission.LastErrorCode(MailboxSubmissionErrorCodeOutcomeUnknown))",
+		"submission.ReconcileAttempts != 0 || submission.NextReconcileAt != nil",
 	} {
 		if !strings.Contains(resolve, required) {
 			t.Fatalf("dispatch resolution source is missing %q", required)
