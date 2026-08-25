@@ -202,6 +202,7 @@ func TestLoadEnabledJitsiRejectsWeakPlaceholderOrReusedAppSecret(t *testing.T) {
 		hubJWTSecret  string
 	}{
 		{name: "short", secret: strings.Repeat("s", 31)},
+		{name: "whitespace only", secret: strings.Repeat(" ", 32)},
 		{name: "required marker", secret: "__REQUIRED_UNUSABLE_NO_DEFAULT__"},
 		{name: "known dev secret", secret: "devsecret"},
 		{name: "change me placeholder", secret: "change-me-in-production-0123456789"},
