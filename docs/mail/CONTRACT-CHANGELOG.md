@@ -1,5 +1,18 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Unknown submission Ent reconciliation adapter
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxEntRepository` now implements the provider-free reconciliation persistence port. Its
+bounded database-time scan returns only due `unknown` UUIDs. Claim locks Account -> Submission ->
+Draft, never steals an existing lease, increments only the separate reconciliation budget, and
+seals the immutable engine tuple under one shared 60-second fence. Resolve requires that exact live
+fence and either records the exact accepted provider pair or releases back to the locked backoff
+schedule; attempt 10 remains `unknown` with `MAIL_SUBMISSION_RECONCILIATION_EXHAUSTED`. No path
+requeues, submits, mutates the draft, or invokes provider/HTTP/NATS I/O. Generated Ent, migration,
+SQL application, compile, executable tests, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
+
 ## 2026-08-25 - MailSubmission combined reconciliation lifecycle prerequisite
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
@@ -20,8 +33,9 @@ The stale-lease index now covers authorizing, submitting, unknown, and accepted 
 `status = 'unknown' AND next_reconcile_at IS NOT NULL`; the active-draft and accepted-finalizer
 indexes are unchanged. The combined source packet also updates the domain error and durable-row
 validators, all current `submitting -> unknown` writers, and stale recovery for the four leased
-statuses with closed source/API tests. The Ent unknown scan/claim/resolve adapter, reconciliation
-worker, accepted finalizer, production composition, generated Ent, migration, SQL application,
+statuses with closed source/API tests. The Ent unknown scan/claim/resolve adapter is now a separately
+reviewed source-only candidate; the reconciliation worker, accepted finalizer, production composition,
+generated Ent, migration, SQL application,
 compile, tests, gofmt, lint, Docker, and runtime remain pending, blocked, or NOT_RUN.
 
 ## 2026-08-25 - Queued submission Ent due-scan adapter candidate

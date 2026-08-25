@@ -485,8 +485,9 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   exact accepted provider pair must retain the sealed engine message ID; absent, indeterminate,
   cancelled, or unsafe results resolve only to the closed retry codes `MAILBOX_UNAVAILABLE` or
   `MAIL_SUBMISSION_RECONCILIATION_REQUIRED` through a cancellation-detached durable resolve. The
-  core ABI/flow is `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 /
-  RUNTIME_NOT_RUN`; its Ent scan/claim/resolve adapter and worker remain pending.
+  core ABI/flow and its DB-time Ent scan/claim/resolve adapter are each
+  `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`;
+  the reconciliation worker remains pending.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals

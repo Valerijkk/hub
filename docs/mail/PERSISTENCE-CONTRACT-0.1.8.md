@@ -1277,7 +1277,8 @@ This combined source packet updates the Ent contract and exact schema test, the 
 durable-row validators, every current `submitting -> unknown` writer, and stale recovery for
 `authorizing|submitting|unknown|accepted`, together with their closed source/API tests. Current
 dispatch and recovery adapters therefore own the exact reconciliation defaults and due-time
-transitions described above. The Ent unknown scan/claim/resolve adapter, reconciliation worker,
+transitions described above. The Ent unknown scan/claim/resolve adapter is
+`SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN`; the reconciliation worker,
 accepted finalizer, production composition, generated Ent, migration, SQL application, compile,
 tests, gofmt, lint, Docker, and runtime remain pending, blocked, or `NOT_RUN`.
 
