@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/livekit/protocol/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -33,12 +33,7 @@ func TestLiveKitConferenceProviderIssuesBackwardCompatibleUserJoinCredential(t *
 	assert.Equal(t, cfg.URL, credential.ServiceURL)
 	require.NotEmpty(t, credential.Token)
 
-	claims := parseLiveKitCredential(t, cfg, credential.Token)
-	assert.Equal(t, cfg.APIKey, claims["iss"])
-	assert.Equal(t, userID, claims["sub"])
-	assert.Equal(t, "Ada Lovelace", claims["name"])
-	assertLiveKitRoomGrant(t, claims, credential.RoomName)
-	assertLiveKitTwentyFourHourLifetime(t, claims)
+	assertLiveKitCredential(t, cfg, credential.Token, userID, "Ada Lovelace", credential.RoomName)
 }
 
 func TestLiveKitConferenceProviderIssuesGuestCredentialWithFreshGuestIdentity(t *testing.T) {
@@ -60,12 +55,11 @@ func TestLiveKitConferenceProviderIssuesGuestCredentialWithFreshGuestIdentity(t 
 		assert.Equal(t, roomName, credential.Join.RoomName)
 		assert.Equal(t, cfg.URL, credential.Join.ServiceURL)
 		require.NotEmpty(t, credential.Join.Token)
-		assert.Equal(t, credential.Identity, parseLiveKitCredential(t, cfg, credential.Join.Token)["sub"])
 	}
 
 	assert.NotEqual(t, first.Identity, second.Identity, "each guest credential must have fresh identity entropy")
-	assert.Equal(t, "Guest One", parseLiveKitCredential(t, cfg, first.Join.Token)["name"])
-	assert.Equal(t, "Guest Two", parseLiveKitCredential(t, cfg, second.Join.Token)["name"])
+	assertLiveKitCredential(t, cfg, first.Join.Token, first.Identity, "Guest One", roomName)
+	assertLiveKitCredential(t, cfg, second.Join.Token, second.Identity, "Guest Two", roomName)
 }
 
 func TestLiveKitConferenceProviderConstructionAndCredentialIssueAreNetworkFree(t *testing.T) {
@@ -89,38 +83,30 @@ func liveKitProviderConfig() config.LiveKitConfig {
 	}
 }
 
-func parseLiveKitCredential(t *testing.T, cfg config.LiveKitConfig, token string) jwt.MapClaims {
+func assertLiveKitCredential(
+	t *testing.T,
+	cfg config.LiveKitConfig,
+	token string,
+	wantIdentity string,
+	wantName string,
+	wantRoom string,
+) {
 	t.Helper()
 
-	parsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		require.IsType(t, jwt.SigningMethodHS256, token.Method)
-		return []byte(cfg.APISecret), nil
-	})
+	verifier, err := auth.ParseAPIToken(token)
 	require.NoError(t, err)
-	require.True(t, parsed.Valid)
+	claims, grants, err := verifier.Verify(cfg.APISecret)
+	require.NoError(t, err)
+	require.NotNil(t, claims)
+	require.NotNil(t, grants)
 
-	claims, ok := parsed.Claims.(jwt.MapClaims)
-	require.True(t, ok)
-	return claims
-}
-
-func assertLiveKitRoomGrant(t *testing.T, claims jwt.MapClaims, roomName string) {
-	t.Helper()
-
-	grant, ok := claims["video"].(map[string]interface{})
-	require.True(t, ok, "credential must contain a LiveKit video grant")
-	roomJoin, ok := grant["room_join"].(bool)
-	require.True(t, ok)
-	assert.True(t, roomJoin)
-	assert.Equal(t, roomName, grant["room"])
-}
-
-func assertLiveKitTwentyFourHourLifetime(t *testing.T, claims jwt.MapClaims) {
-	t.Helper()
-
-	issuedAt, ok := claims["iat"].(float64)
-	require.True(t, ok)
-	expiresAt, ok := claims["exp"].(float64)
-	require.True(t, ok)
-	assert.Equal(t, float64((24*time.Hour).Seconds()), expiresAt-issuedAt)
+	assert.Equal(t, cfg.APIKey, claims.Issuer)
+	assert.Equal(t, wantIdentity, claims.Subject)
+	assert.Equal(t, wantName, grants.Name)
+	require.NotNil(t, grants.Video, "credential must contain a LiveKit video grant")
+	assert.True(t, grants.Video.RoomJoin)
+	assert.Equal(t, wantRoom, grants.Video.Room)
+	require.NotNil(t, claims.NotBefore)
+	require.NotNil(t, claims.Expiry)
+	assert.WithinDuration(t, claims.NotBefore.Time().Add(24*time.Hour), claims.Expiry.Time(), time.Second)
 }
