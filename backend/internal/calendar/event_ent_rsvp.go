@@ -125,7 +125,7 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventSeriesRSVP(ctx co
 		return CalendarEventSeriesRSVPPersistenceResult{}, calendarEntCASFailure(err)
 	}
 	if hasReply {
-		if err := backend.persistCalendarReplyDelivery(ctx, event.ID, attendee.ID, command.EventSequence(), requested.Version, nil, requested.Status); err != nil {
+		if err := backend.persistCalendarReplyDelivery(ctx, event.OrganizationID, event.ID, attendee.ID, command.EventSequence(), requested.Version, nil, requested.Status); err != nil {
 			return CalendarEventSeriesRSVPPersistenceResult{}, err
 		}
 	}
@@ -291,7 +291,7 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventOccurrenceRSVP(ct
 	reply, hasReply := command.Reply()
 	if hasReply {
 		recurrenceID := requested.RecurrenceID
-		if err := backend.persistCalendarReplyDelivery(ctx, event.ID, appliedAttendeeID, command.EventSequence(), requested.Version, &recurrenceID, requested.Status); err != nil {
+		if err := backend.persistCalendarReplyDelivery(ctx, event.OrganizationID, event.ID, appliedAttendeeID, command.EventSequence(), requested.Version, &recurrenceID, requested.Status); err != nil {
 			return CalendarEventOccurrenceRSVPPersistenceResult{}, err
 		}
 	}
@@ -447,13 +447,14 @@ func (backend *eventEntTransactionBackend) persistCalendarOccurrenceRSVPAttendee
 	return nil
 }
 
-func (backend *eventEntTransactionBackend) persistCalendarReplyDelivery(ctx context.Context, eventID, attendeeID uuid.UUID, eventSequence, attendeeVersion uint, recurrenceID *string, status RSVPStatus) error {
+func (backend *eventEntTransactionBackend) persistCalendarReplyDelivery(ctx context.Context, organizationID, eventID, attendeeID uuid.UUID, eventSequence, attendeeVersion uint, recurrenceID *string, status RSVPStatus) error {
 	sequence, sequenceOK := eventEntInt(eventSequence)
 	version, versionOK := eventEntInt(attendeeVersion)
-	if !sequenceOK || !versionOK {
+	if organizationID == uuid.Nil || !sequenceOK || !versionOK {
 		return ErrEventInvalid
 	}
 	create := backend.tx.CalendarReplyDelivery.Create().
+		SetOrganizationID(organizationID).
 		SetCalendarEventID(eventID).
 		SetCalendarAttendeeID(attendeeID).
 		SetEventSequence(sequence).
