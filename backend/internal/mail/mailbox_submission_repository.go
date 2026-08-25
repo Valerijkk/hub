@@ -3,6 +3,8 @@ package mail
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/binary"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +16,7 @@ type MailboxSubmissionStatus string
 const (
 	MailboxSubmissionStatusQueued     MailboxSubmissionStatus = "queued"
 	MailboxSubmissionStatusSubmitting MailboxSubmissionStatus = "submitting"
+	MailboxSubmissionStatusAccepted   MailboxSubmissionStatus = "accepted"
 	MailboxSubmissionStatusSent       MailboxSubmissionStatus = "sent"
 	MailboxSubmissionStatusUnknown    MailboxSubmissionStatus = "unknown"
 	MailboxSubmissionStatusFailed     MailboxSubmissionStatus = "failed"
@@ -150,6 +153,7 @@ func validMailboxSubmissionStatus(status MailboxSubmissionStatus) bool {
 	switch status {
 	case MailboxSubmissionStatusQueued,
 		MailboxSubmissionStatusSubmitting,
+		MailboxSubmissionStatusAccepted,
 		MailboxSubmissionStatusSent,
 		MailboxSubmissionStatusUnknown,
 		MailboxSubmissionStatusFailed:
@@ -174,6 +178,112 @@ func validMailboxSubmissionErrorCode(code MailboxSubmissionErrorCode) bool {
 	default:
 		return false
 	}
+}
+
+const (
+	mailboxEngineSubmissionBindingVersion = 1
+	mailboxEngineSubmissionBindingDomain  = "hub.mail.engine_submission.binding.v1"
+)
+
+// mailboxEngineSubmissionBinding is the private immutable engine command
+// snapshot. It is persisted with a hash so later dispatch never derives a
+// command from mutable account, draft, or policy rows.
+type mailboxEngineSubmissionBinding struct {
+	engineBindingVersion  int
+	engineAccountID       string
+	engineDraftKey        string
+	engineMessageID       string
+	engineExpectedVersion string
+	engineMaxMessageBytes int64
+	engineSubmissionKey   string
+	engineBindingHash     [sha256.Size]byte
+}
+
+func newMailboxEngineSubmissionBinding(accountID, draftKey, messageID, expectedVersion string, maxMessageBytes int64, submissionKey string) (mailboxEngineSubmissionBinding, bool) {
+	binding := mailboxEngineSubmissionBinding{
+		engineBindingVersion:  mailboxEngineSubmissionBindingVersion,
+		engineAccountID:       accountID,
+		engineDraftKey:        draftKey,
+		engineMessageID:       messageID,
+		engineExpectedVersion: expectedVersion,
+		engineMaxMessageBytes: maxMessageBytes,
+		engineSubmissionKey:   submissionKey,
+	}
+	if !mailboxEngineSubmissionBindingFieldsValid(binding) {
+		return mailboxEngineSubmissionBinding{}, false
+	}
+	hash, ok := mailboxEngineSubmissionBindingHash(binding)
+	if !ok {
+		return mailboxEngineSubmissionBinding{}, false
+	}
+	binding.engineBindingHash = hash
+	return binding, true
+}
+
+func mailboxEngineSubmissionBindingValid(binding mailboxEngineSubmissionBinding) bool {
+	if !mailboxEngineSubmissionBindingFieldsValid(binding) {
+		return false
+	}
+	expected, ok := mailboxEngineSubmissionBindingHash(binding)
+	if !ok {
+		return false
+	}
+	return subtle.ConstantTimeCompare(binding.engineBindingHash[:], expected[:]) == 1
+}
+
+func mailboxEngineSubmissionBindingFieldsValid(binding mailboxEngineSubmissionBinding) bool {
+	return binding.engineBindingVersion == mailboxEngineSubmissionBindingVersion &&
+		syncValidOpaque(binding.engineAccountID, MaxEngineOpaqueIDBytes) &&
+		syncValidOpaque(binding.engineDraftKey, MaxEngineOpaqueIDBytes) &&
+		syncValidOpaque(binding.engineMessageID, MaxEngineOpaqueIDBytes) &&
+		syncValidOpaque(binding.engineExpectedVersion, MaxEngineOpaqueIDBytes) &&
+		binding.engineMaxMessageBytes >= 1 && binding.engineMaxMessageBytes <= MaxEngineMessageBytes &&
+		syncValidOpaque(binding.engineSubmissionKey, MaxEngineOpaqueIDBytes)
+}
+
+// mailboxEngineSubmissionBindingHash is SHA-256 over the exact V1 binary
+// encoding: frame(domain), U32BE(version), frame(account), frame(draft),
+// frame(message), frame(expected version), frame(submission key), and
+// U64BE(max message bytes). A frame is U32BE byte length followed by bytes.
+func mailboxEngineSubmissionBindingHash(binding mailboxEngineSubmissionBinding) ([sha256.Size]byte, bool) {
+	if !mailboxEngineSubmissionBindingFieldsValid(binding) {
+		return [sha256.Size]byte{}, false
+	}
+	encoded := make([]byte, 0, 4+len(mailboxEngineSubmissionBindingDomain)+4+
+		4+len(binding.engineAccountID)+4+len(binding.engineDraftKey)+4+len(binding.engineMessageID)+
+		4+len(binding.engineExpectedVersion)+4+len(binding.engineSubmissionKey)+8)
+	var ok bool
+	encoded, ok = mailboxEngineSubmissionAppendFrame(encoded, mailboxEngineSubmissionBindingDomain)
+	if !ok {
+		return [sha256.Size]byte{}, false
+	}
+	var version [4]byte
+	binary.BigEndian.PutUint32(version[:], uint32(binding.engineBindingVersion))
+	encoded = append(encoded, version[:]...)
+	for _, value := range []string{binding.engineAccountID, binding.engineDraftKey, binding.engineMessageID, binding.engineExpectedVersion, binding.engineSubmissionKey} {
+		encoded, ok = mailboxEngineSubmissionAppendFrame(encoded, value)
+		if !ok {
+			return [sha256.Size]byte{}, false
+		}
+	}
+	var maxMessageBytes [8]byte
+	binary.BigEndian.PutUint64(maxMessageBytes[:], uint64(binding.engineMaxMessageBytes))
+	encoded = append(encoded, maxMessageBytes[:]...)
+	return sha256.Sum256(encoded), true
+}
+
+func mailboxEngineSubmissionAppendFrame(encoded []byte, value string) ([]byte, bool) {
+	return mailboxEngineSubmissionAppendFrameBytes(encoded, []byte(value))
+}
+
+func mailboxEngineSubmissionAppendFrameBytes(encoded, value []byte) ([]byte, bool) {
+	if uint64(len(value)) > uint64(^uint32(0)) {
+		return nil, false
+	}
+	var length [4]byte
+	binary.BigEndian.PutUint32(length[:], uint32(len(value)))
+	encoded = append(encoded, length[:]...)
+	return append(encoded, value...), true
 }
 
 func mailboxSubmissionUUIDPointerCopy(value *uuid.UUID) *uuid.UUID {

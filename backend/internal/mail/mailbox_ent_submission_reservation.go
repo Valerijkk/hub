@@ -3,6 +3,7 @@ package mail
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailaccount"
 	"github.com/valerii/hub/backend/ent/maildraft"
+	"github.com/valerii/hub/backend/ent/mailboxpolicy"
 	"github.com/valerii/hub/backend/ent/mailsubmission"
 )
 
@@ -51,6 +53,10 @@ func (repository *MailboxEntRepository) ReserveMailboxSubmission(ctx context.Con
 		if len(active) != 0 {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorSubmissionInProgress)
 		}
+		policy, kind := mailboxEntSubmissionLockPolicy(ctx, transaction, account.OrganizationID)
+		if kind != "" {
+			return NewMailboxSubmissionRepositoryError(kind)
+		}
 		if kind := mailboxEntSubmissionNewAccountKind(account); kind != "" {
 			return NewMailboxSubmissionRepositoryError(kind)
 		}
@@ -66,12 +72,23 @@ func (repository *MailboxEntRepository) ReserveMailboxSubmission(ctx context.Con
 		if !syncValidOpaque(submissionKey, MaxEngineOpaqueIDBytes) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
+		binding, ok := newMailboxEngineSubmissionBinding(*account.EngineAccountID, draft.EngineDraftKey, *draft.EngineMessageID, *draft.EngineVersion, policy.MaxMessageBytes, submissionKey)
+		if !ok {
+			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
+		}
 		created, err := transaction.MailSubmission.Create().
 			SetMailAccountID(request.AccountID).
 			SetMailDraftID(request.DraftID).
 			SetIdempotencyKeyHash(append([]byte(nil), request.IdempotencyKeyHash[:]...)).
 			SetRequestHash(append([]byte(nil), request.RequestHash[:]...)).
 			SetEngineSubmissionKey(submissionKey).
+			SetEngineBindingVersion(binding.engineBindingVersion).
+			SetEngineAccountID(binding.engineAccountID).
+			SetEngineDraftKey(binding.engineDraftKey).
+			SetEngineMessageID(binding.engineMessageID).
+			SetEngineExpectedVersion(binding.engineExpectedVersion).
+			SetEngineMaxMessageBytes(binding.engineMaxMessageBytes).
+			SetEngineBindingHash(append([]byte(nil), binding.engineBindingHash[:]...)).
 			SetStatus(mailsubmission.Status("queued")).
 			SetAttemptCount(0).
 			Save(ctx)
@@ -220,6 +237,7 @@ func mailboxEntSubmissionLockActiveByDraft(ctx context.Context, transaction *ent
 				mailsubmission.Status("queued"),
 				mailsubmission.Status("submitting"),
 				mailsubmission.Status("unknown"),
+				mailsubmission.Status("accepted"),
 			),
 		).
 		Order(ent.Asc(mailsubmission.FieldID)).
@@ -235,13 +253,37 @@ func mailboxEntSubmissionLockActiveByDraft(ctx context.Context, transaction *ent
 			return nil, MailboxSubmissionRepositoryErrorInvalid
 		}
 		switch record.Status {
-		case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusUnknown:
+		case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusUnknown, MailboxSubmissionStatusAccepted:
 		default:
 			return nil, MailboxSubmissionRepositoryErrorInvalid
 		}
 		records = append(records, record)
 	}
 	return records, ""
+}
+
+// mailboxEntSubmissionLockPolicy locks the unique organization policy after
+// the account, draft, and active submission locks. Its current limit becomes
+// part of the immutable submission binding.
+func mailboxEntSubmissionLockPolicy(ctx context.Context, transaction *ent.Tx, organizationID uuid.UUID) (*ent.MailboxPolicy, MailboxSubmissionRepositoryErrorKind) {
+	if ctx == nil || transaction == nil || organizationID == uuid.Nil {
+		return nil, MailboxSubmissionRepositoryErrorInvalid
+	}
+	policy, err := transaction.MailboxPolicy.Query().
+		Where(mailboxpolicy.OrganizationIDEQ(organizationID)).
+		ForUpdate().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, MailboxSubmissionRepositoryErrorNotFound
+		}
+		return nil, MailboxSubmissionRepositoryErrorUnavailable
+	}
+	if policy == nil || policy.ID == uuid.Nil || policy.OrganizationID != organizationID ||
+		policy.MaxMessageBytes < 1 || policy.MaxMessageBytes > MaxEngineMessageBytes {
+		return nil, MailboxSubmissionRepositoryErrorInvalid
+	}
+	return policy, ""
 }
 
 func mailboxEntSubmissionDraftNewKind(draft *ent.MailDraft, request MailboxSubmissionCreateRequest) MailboxSubmissionRepositoryErrorKind {
@@ -319,16 +361,14 @@ func mailboxEntSubmissionRecord(row *ent.MailSubmission, accountID uuid.UUID) (M
 
 func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) bool {
 	if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || accountID == uuid.Nil ||
-		len(row.IdempotencyKeyHash) != 32 || len(row.RequestHash) != 32 || !syncValidOpaque(row.EngineSubmissionKey, MaxEngineOpaqueIDBytes) ||
+		len(row.IdempotencyKeyHash) != sha256.Size || len(row.RequestHash) != sha256.Size ||
 		row.AttemptCount < 0 || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) || row.UpdatedAt.Before(row.CreatedAt) ||
-		!mailboxSubmissionUUIDPointerValid(row.MailDraftID) || !mailboxSubmissionUUIDPointerValid(row.ResultMailMessageID) {
+		!mailboxSubmissionUUIDPointerValid(row.MailDraftID) || !mailboxSubmissionUUIDPointerValid(row.ResultMailMessageID) ||
+		row.CommandFence < 0 || !mailboxEntSubmissionCommandLeaseValid(row) ||
+		!mailboxEntSubmissionDispatchAuthorizationValid(row) || !mailboxEntSubmissionProviderPairValid(row) {
 		return false
 	}
-	enginePairPresent := row.EngineSubmissionID != nil || row.EngineResultMessageID != nil
-	if enginePairPresent != (row.EngineSubmissionID != nil && row.EngineResultMessageID != nil) {
-		return false
-	}
-	if enginePairPresent && (!syncValidOpaque(*row.EngineSubmissionID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(*row.EngineResultMessageID, MaxEngineOpaqueIDBytes)) {
+	if _, ok := mailboxEntSubmissionBindingFromRow(row); !ok {
 		return false
 	}
 	var errorCode *MailboxSubmissionErrorCode
@@ -341,13 +381,20 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 	}
 	switch MailboxSubmissionStatus(row.Status) {
 	case MailboxSubmissionStatusQueued:
-		return row.AttemptCount == 0 && row.MailDraftID != nil && !enginePairPresent && row.ResultMailMessageID == nil && errorCode == nil
+		return row.AttemptCount == 0 && row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt == nil &&
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil
 	case MailboxSubmissionStatusSubmitting:
-		return row.AttemptCount >= 0 && row.MailDraftID != nil && !enginePairPresent && row.ResultMailMessageID == nil && errorCode == nil
+		return row.MailDraftID != nil && row.CommandLeaseToken != nil && row.DispatchAuthorizedAt != nil &&
+			row.ProviderSubmissionID == nil && row.ResultMailMessageID == nil && errorCode == nil
+	case MailboxSubmissionStatusAccepted:
+		return row.MailDraftID != nil && row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil &&
+			row.ProviderSubmissionID != nil && row.ResultMailMessageID == nil && errorCode == nil
 	case MailboxSubmissionStatusSent:
-		return enginePairPresent && row.ResultMailMessageID != nil && errorCode == nil
+		return row.CommandLeaseToken == nil && row.DispatchAuthorizedAt != nil && row.ProviderSubmissionID != nil &&
+			row.ResultMailMessageID != nil && errorCode == nil
 	case MailboxSubmissionStatusUnknown:
-		if row.MailDraftID == nil || row.ResultMailMessageID != nil || errorCode == nil {
+		if row.MailDraftID == nil || row.CommandLeaseToken != nil || row.DispatchAuthorizedAt == nil || row.ProviderSubmissionID != nil ||
+			row.ResultMailMessageID != nil || errorCode == nil {
 			return false
 		}
 		switch *errorCode {
@@ -355,9 +402,10 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 		default:
 			return false
 		}
-		return !enginePairPresent || *errorCode != MailboxSubmissionErrorCodeOutcomeUnknown
+		return true
 	case MailboxSubmissionStatusFailed:
-		if enginePairPresent || row.ResultMailMessageID != nil || errorCode == nil {
+		if row.CommandLeaseToken != nil || row.DispatchAuthorizedAt != nil || row.ProviderSubmissionID != nil ||
+			row.ResultMailMessageID != nil || errorCode == nil {
 			return false
 		}
 		switch *errorCode {
@@ -366,8 +414,7 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 			MailboxSubmissionErrorCodeAttachmentNotClean,
 			MailboxSubmissionErrorCodeIdentityUnavailable,
 			MailboxSubmissionErrorCodeRecipientLimit,
-			MailboxSubmissionErrorCodeSizeLimit,
-			MailboxSubmissionErrorCodeMailboxUnavailable:
+			MailboxSubmissionErrorCodeSizeLimit:
 			return true
 		default:
 			return false
@@ -375,6 +422,45 @@ func mailboxEntSubmissionRowValid(row *ent.MailSubmission, accountID uuid.UUID) 
 	default:
 		return false
 	}
+}
+
+func mailboxEntSubmissionBindingFromRow(row *ent.MailSubmission) (mailboxEngineSubmissionBinding, bool) {
+	if row == nil || len(row.EngineBindingHash) != sha256.Size {
+		return mailboxEngineSubmissionBinding{}, false
+	}
+	binding := mailboxEngineSubmissionBinding{
+		engineBindingVersion:  row.EngineBindingVersion,
+		engineAccountID:       row.EngineAccountID,
+		engineDraftKey:        row.EngineDraftKey,
+		engineMessageID:       row.EngineMessageID,
+		engineExpectedVersion: row.EngineExpectedVersion,
+		engineMaxMessageBytes: row.EngineMaxMessageBytes,
+		engineSubmissionKey:   row.EngineSubmissionKey,
+	}
+	copy(binding.engineBindingHash[:], row.EngineBindingHash)
+	return binding, mailboxEngineSubmissionBindingValid(binding)
+}
+
+func mailboxEntSubmissionCommandLeaseValid(row *ent.MailSubmission) bool {
+	if row == nil || (row.CommandLeaseToken == nil) != (row.CommandLeaseExpiresAt == nil) {
+		return false
+	}
+	return row.CommandLeaseToken == nil || (*row.CommandLeaseToken != uuid.Nil && mailboxEntValidTime(*row.CommandLeaseExpiresAt))
+}
+
+func mailboxEntSubmissionDispatchAuthorizationValid(row *ent.MailSubmission) bool {
+	if row == nil || (row.DispatchAuthorizedAt == nil) != (row.DispatchAuthorizationHash == nil) {
+		return false
+	}
+	return row.DispatchAuthorizedAt == nil || (mailboxEntValidTime(*row.DispatchAuthorizedAt) && len(row.DispatchAuthorizationHash) == sha256.Size)
+}
+
+func mailboxEntSubmissionProviderPairValid(row *ent.MailSubmission) bool {
+	if row == nil || (row.ProviderSubmissionID == nil) != (row.ProviderMessageID == nil) {
+		return false
+	}
+	return row.ProviderSubmissionID == nil ||
+		(syncValidOpaque(*row.ProviderSubmissionID, MaxEngineOpaqueIDBytes) && syncValidOpaque(*row.ProviderMessageID, MaxEngineOpaqueIDBytes))
 }
 
 func mailboxEntSubmissionRepositoryError(err error) error {

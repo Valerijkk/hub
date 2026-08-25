@@ -28,7 +28,7 @@ func (MailSubmission) Fields() []ent.Field {
 		field.String("engine_account_id").Validate(validateMailMessageOpaqueID).Immutable(),
 		field.String("engine_draft_key").Validate(validateMailMessageOpaqueID).Immutable(),
 		field.String("engine_message_id").Validate(validateMailMessageOpaqueID).Immutable(),
-		field.Int64("engine_expected_version").Validate(validateMailProjectionEpoch).Immutable(),
+		field.String("engine_expected_version").Validate(validateMailMessageOpaqueID).Immutable(),
 		field.Int64("engine_max_message_bytes").Min(1).Max(52_428_800).Immutable(),
 		field.Bytes("engine_binding_hash").MinLen(sha256.Size).MaxLen(sha256.Size).Immutable(),
 		field.Enum("status").Values("queued", "submitting", "unknown", "accepted", "sent", "failed"),
@@ -52,7 +52,7 @@ func (MailSubmission) Annotations() []schema.Annotation {
 		entsql.Checks(map[string]string{
 			"mail_submissions_key":                         "COALESCE(octet_length(engine_submission_key) BETWEEN 1 AND 1024, FALSE)",
 			"mail_submissions_hashes":                      "COALESCE(octet_length(idempotency_key_hash) = 32 AND octet_length(request_hash) = 32, FALSE)",
-			"mail_submissions_binding":                     "COALESCE(engine_binding_version = 1 AND octet_length(engine_submission_key) BETWEEN 1 AND 1024 AND octet_length(engine_account_id) BETWEEN 1 AND 1024 AND octet_length(engine_draft_key) BETWEEN 1 AND 1024 AND octet_length(engine_message_id) BETWEEN 1 AND 1024 AND engine_expected_version BETWEEN 0 AND 2147483647 AND engine_max_message_bytes BETWEEN 1 AND 52428800 AND octet_length(engine_binding_hash) = 32, FALSE)",
+			"mail_submissions_binding":                     "COALESCE(engine_binding_version = 1 AND octet_length(engine_submission_key) BETWEEN 1 AND 1024 AND octet_length(engine_account_id) BETWEEN 1 AND 1024 AND octet_length(engine_draft_key) BETWEEN 1 AND 1024 AND octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_expected_version) BETWEEN 1 AND 1024 AND engine_max_message_bytes BETWEEN 1 AND 52428800 AND octet_length(engine_binding_hash) = 32, FALSE)",
 			"mail_submissions_provider_pair":               "COALESCE((provider_submission_id IS NULL AND provider_message_id IS NULL) OR (octet_length(provider_submission_id) BETWEEN 1 AND 1024 AND octet_length(provider_message_id) BETWEEN 1 AND 1024), FALSE)",
 			"mail_submissions_command_lease_pair":          "COALESCE((command_lease_token IS NULL) = (command_lease_expires_at IS NULL), FALSE)",
 			"mail_submissions_command_fence":               "COALESCE(command_fence >= 0, FALSE)",

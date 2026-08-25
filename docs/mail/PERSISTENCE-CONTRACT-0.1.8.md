@@ -1151,11 +1151,22 @@ the terminal status transition, not row deletion.
 Fields: UUID id/account, optional draft id, exact key/request SHA-256 hashes and immutable
 stable engine submission key 1..1,024 bytes. The immutable engine binding has
 `engine_binding_version` defaulting to and checked as exactly `1`, nonempty opaque
-`engine_account_id`, `engine_draft_key`, and `engine_message_id`, a non-negative
-`engine_expected_version`, `engine_max_message_bytes` in the inclusive range
+`engine_account_id`, `engine_draft_key`, and `engine_message_id`, and opaque
+`engine_expected_version` in the inclusive byte range `1..1,024`. It is copied from the locked
+draft `engine_version`; the request `ExpectedRevision` remains only the Hub draft optimistic-lock
+comparison and is never an engine version. `engine_max_message_bytes` is in the inclusive range
 `1..52_428_800`, and a 32-byte
 `engine_binding_hash`. Its digest input is the version and every other binding value together
 with `engine_submission_key`.
+
+The binding digest is exactly SHA-256 over this binary V1 sequence, never JSON or string
+concatenation: `frame("hub.mail.engine_submission.binding.v1") || U32BE(1) ||
+frame(engine_account_id) || frame(engine_draft_key) || frame(engine_message_id) ||
+frame(engine_expected_version) || frame(engine_submission_key) || U64BE(engine_max_message_bytes)`.
+A `frame` is `U32BE(byte_length) || bytes`; `engine_expected_version` is its opaque provider
+engine-version string, not a numeric Hub revision. All field bounds are validated before hashing and every
+persisted receipt recomputes and constant-time compares the stored 32-byte digest; a mismatch is
+corrupt and fails closed rather than being rebuilt from current account, draft, or policy state.
 
 Command fencing is mutable lifecycle control: nullable UUID `command_lease_token`, non-negative
 `command_fence` default `0`, and nullable timestamptz `command_lease_expires_at`; token and
@@ -1190,9 +1201,15 @@ Draft deletion is restricted while non-terminal, otherwise its edge may set null
 deletion cascades. The result Hub UUID is an immutable scalar snapshot, not a foreign key;
 message projection deletion therefore does not erase it.
 
-**Current schema-only static state.** This packet provides only the Ent schema contract;
-generated Ent, physical migration and SQL application, the submission service, retry worker,
-and finalizer are `NOT_IMPLEMENTED` / `NOT_GENERATED` / `NOT_MIGRATED` / `NOT_RUN`.
+**Current reservation-source static state.** The schema contract and private reservation source
+are present: one short Ent transaction locks account, idempotency receipt, draft, active
+submission, then the unique organization policy; exact valid idempotency replay precedes mutable
+account/draft/policy adjudication. New queued rows bind the current validated engine values and
+policy message limit, then transition the draft from `active` to `submitting` with the database
+wall clock. Reservation performs no provider, network, or engine I/O; provider freshness remains
+a separate future preflight atom. Generated Ent, physical migration, SQL application, compile,
+tests, Docker, retry worker, finalizer, and runtime remain `NOT_GENERATED` / `NOT_MIGRATED` /
+`NOT_RUN`.
 
 **Required future service/worker behavior (`NOT_IMPLEMENTED`).** A future service may enter
 `accepted` only after persisting the provider pair and authorization proof. It may enter `sent`
@@ -1295,7 +1312,8 @@ than correction scope; this grants no schema/source authority.
 | Draft | engine_draft_key/create_idempotency_key_hash/create_request_hash | text/bytea/bytea | required/no defaults | yes |
 | Draft | engine_message_id/engine_version/revision/status/last_mutation_id/pending_mutation_kind | text/text/int64/text/uuid/text | pair/mutation/kind nullable; revision `1`; status required/no default | no |
 | Submission | id/mail_account_id/idempotency_key_hash/request_hash/engine_submission_key | uuid/uuid/bytea/bytea/text | required (`uuid.New` id); no defaults except attempts below | id/account/hashes/key yes |
-| Submission | engine_binding_version/engine_account_id/engine_draft_key/engine_message_id/engine_expected_version/engine_max_message_bytes/engine_binding_hash | int/text/text/text/int64/int64/bytea | required; binding version `1`; max message bytes `1..52_428_800` inclusive | yes |
+| Submission | engine_binding_version/engine_account_id/engine_draft_key/engine_message_id/engine_expected_version/engine_binding_hash | int/text/text/text/text/bytea | required; binding version `1`; expected version opaque `1..1,024` bytes | yes |
+| Submission | engine_max_message_bytes | int64 | required; `1..52_428_800` inclusive | yes |
 | Submission | mail_draft_id/provider_submission_id/provider_message_id/result_mail_message_id | uuid/text/text/uuid | nullable; draft may become null via terminal FK action | service set-once provider/result, not Ent immutable |
 | Submission | command_lease_token/command_fence/command_lease_expires_at | uuid/int64/timestamptz | token/expiry nullable paired; fence `0` | no |
 | Submission | dispatch_authorized_at/dispatch_authorization_hash/last_error_code/attempt_count/status | timestamptz/bytea/text/int32/text | proof nullable paired; error nullable; attempts `0`; status required/no default | no |
@@ -1377,7 +1395,7 @@ CONSTRAINT mail_drafts_state CHECK (COALESCE((status IN ('active','submitting','
 
 CONSTRAINT mail_submissions_key CHECK (COALESCE(octet_length(engine_submission_key) BETWEEN 1 AND 1024, FALSE))
 CONSTRAINT mail_submissions_hashes CHECK (COALESCE(octet_length(idempotency_key_hash) = 32 AND octet_length(request_hash) = 32, FALSE))
-CONSTRAINT mail_submissions_binding CHECK (COALESCE(engine_binding_version = 1 AND octet_length(engine_submission_key) BETWEEN 1 AND 1024 AND octet_length(engine_account_id) BETWEEN 1 AND 1024 AND octet_length(engine_draft_key) BETWEEN 1 AND 1024 AND octet_length(engine_message_id) BETWEEN 1 AND 1024 AND engine_expected_version BETWEEN 0 AND 2147483647 AND engine_max_message_bytes BETWEEN 1 AND 52428800 AND octet_length(engine_binding_hash) = 32, FALSE))
+CONSTRAINT mail_submissions_binding CHECK (COALESCE(engine_binding_version = 1 AND octet_length(engine_submission_key) BETWEEN 1 AND 1024 AND octet_length(engine_account_id) BETWEEN 1 AND 1024 AND octet_length(engine_draft_key) BETWEEN 1 AND 1024 AND octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_expected_version) BETWEEN 1 AND 1024 AND engine_max_message_bytes BETWEEN 1 AND 52428800 AND octet_length(engine_binding_hash) = 32, FALSE))
 CONSTRAINT mail_submissions_provider_pair CHECK (COALESCE((provider_submission_id IS NULL AND provider_message_id IS NULL) OR (octet_length(provider_submission_id) BETWEEN 1 AND 1024 AND octet_length(provider_message_id) BETWEEN 1 AND 1024), FALSE))
 CONSTRAINT mail_submissions_command_lease_pair CHECK (COALESCE((command_lease_token IS NULL) = (command_lease_expires_at IS NULL), FALSE))
 CONSTRAINT mail_submissions_command_fence CHECK (COALESCE(command_fence >= 0, FALSE))

@@ -207,14 +207,80 @@ func mailboxSubmissionReservationValid(reservation MailboxSubmissionReservation,
 }
 
 func mailboxSubmissionReplayRecordValid(record MailboxSubmissionRecord, accountID, draftID uuid.UUID) bool {
-	if accountID == uuid.Nil || draftID == uuid.Nil || record.AccountID != accountID ||
-		record.DraftID == nil || *record.DraftID != draftID || record.ID == uuid.Nil ||
+	if accountID == uuid.Nil || draftID == uuid.Nil || record.AccountID != accountID || record.ID == uuid.Nil ||
 		!mailboxEntValidTime(record.CreatedAt) || !mailboxEntValidTime(record.UpdatedAt) ||
 		record.UpdatedAt.Before(record.CreatedAt) {
 		return false
 	}
 	switch record.Status {
-	case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting:
+	case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusAccepted:
+		return record.DraftID != nil && *record.DraftID == draftID && record.ResultMailMessageID == nil && record.LastErrorCode == nil
+	case MailboxSubmissionStatusSent:
+		return (record.DraftID == nil || *record.DraftID == draftID) &&
+			record.ResultMailMessageID != nil && *record.ResultMailMessageID != uuid.Nil && record.LastErrorCode == nil
+	case MailboxSubmissionStatusUnknown:
+		if record.DraftID == nil || *record.DraftID != draftID || record.ResultMailMessageID != nil || record.LastErrorCode == nil {
+			return false
+		}
+		switch *record.LastErrorCode {
+		case MailboxSubmissionErrorCodeOutcomeUnknown,
+			MailboxSubmissionErrorCodeReconciliationRequired,
+			MailboxSubmissionErrorCodeMailboxUnavailable:
+			return true
+		default:
+			return false
+		}
+	case MailboxSubmissionStatusFailed:
+		if (record.DraftID != nil && *record.DraftID != draftID) || record.ResultMailMessageID != nil || record.LastErrorCode == nil {
+			return false
+		}
+		switch *record.LastErrorCode {
+		case MailboxSubmissionErrorCodeRejected,
+			MailboxSubmissionErrorCodePolicy,
+			MailboxSubmissionErrorCodeAttachmentNotClean,
+			MailboxSubmissionErrorCodeIdentityUnavailable,
+			MailboxSubmissionErrorCodeRecipientLimit,
+			MailboxSubmissionErrorCodeSizeLimit:
+			return true
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+}
+
+func mailboxSubmissionUUIDPointerValid(value *uuid.UUID) bool {
+	return value == nil || *value != uuid.Nil
+}
+
+func mailboxSubmissionErrorCodePointerValid(value *MailboxSubmissionErrorCode) bool {
+	return value == nil || validMailboxSubmissionErrorCode(*value)
+}
+
+func mailboxSubmissionViewFromRecord(record MailboxSubmissionRecord) (MailboxSubmissionView, error) {
+	if record.ID == uuid.Nil || !validMailboxSubmissionStatus(record.Status) || !mailboxEntValidTime(record.CreatedAt) ||
+		!mailboxEntValidTime(record.UpdatedAt) || record.UpdatedAt.Before(record.CreatedAt) ||
+		!mailboxSubmissionUUIDPointerValid(record.ResultMailMessageID) ||
+		!mailboxSubmissionErrorCodePointerValid(record.LastErrorCode) || !mailboxSubmissionPublicReceiptValid(record) {
+		return MailboxSubmissionView{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
+	}
+	return MailboxSubmissionView{
+		ID:        record.ID,
+		Status:    record.Status,
+		MessageID: mailboxSubmissionUUIDPointerCopy(record.ResultMailMessageID),
+		ErrorCode: mailboxSubmissionErrorCodePointerCopy(record.LastErrorCode),
+		CreatedAt: record.CreatedAt.UTC(),
+		UpdatedAt: record.UpdatedAt.UTC(),
+	}, nil
+}
+
+// mailboxSubmissionPublicReceiptValid keeps the owner-visible receipt limited
+// to durable Hub state. Provider binding values stay private in the
+// repository, including for the internal accepted state.
+func mailboxSubmissionPublicReceiptValid(record MailboxSubmissionRecord) bool {
+	switch record.Status {
+	case MailboxSubmissionStatusQueued, MailboxSubmissionStatusSubmitting, MailboxSubmissionStatusAccepted:
 		return record.ResultMailMessageID == nil && record.LastErrorCode == nil
 	case MailboxSubmissionStatusSent:
 		return record.ResultMailMessageID != nil && *record.ResultMailMessageID != uuid.Nil && record.LastErrorCode == nil
@@ -240,8 +306,7 @@ func mailboxSubmissionReplayRecordValid(record MailboxSubmissionRecord, accountI
 			MailboxSubmissionErrorCodeAttachmentNotClean,
 			MailboxSubmissionErrorCodeIdentityUnavailable,
 			MailboxSubmissionErrorCodeRecipientLimit,
-			MailboxSubmissionErrorCodeSizeLimit,
-			MailboxSubmissionErrorCodeMailboxUnavailable:
+			MailboxSubmissionErrorCodeSizeLimit:
 			return true
 		default:
 			return false
@@ -249,31 +314,6 @@ func mailboxSubmissionReplayRecordValid(record MailboxSubmissionRecord, accountI
 	default:
 		return false
 	}
-}
-
-func mailboxSubmissionUUIDPointerValid(value *uuid.UUID) bool {
-	return value == nil || *value != uuid.Nil
-}
-
-func mailboxSubmissionErrorCodePointerValid(value *MailboxSubmissionErrorCode) bool {
-	return value == nil || validMailboxSubmissionErrorCode(*value)
-}
-
-func mailboxSubmissionViewFromRecord(record MailboxSubmissionRecord) (MailboxSubmissionView, error) {
-	if record.ID == uuid.Nil || !validMailboxSubmissionStatus(record.Status) || !mailboxEntValidTime(record.CreatedAt) ||
-		!mailboxEntValidTime(record.UpdatedAt) || record.UpdatedAt.Before(record.CreatedAt) ||
-		!mailboxSubmissionUUIDPointerValid(record.ResultMailMessageID) ||
-		!mailboxSubmissionErrorCodePointerValid(record.LastErrorCode) {
-		return MailboxSubmissionView{}, mailboxSubmissionServiceError(MailboxSubmissionServiceErrorInvalid)
-	}
-	return MailboxSubmissionView{
-		ID:        record.ID,
-		Status:    record.Status,
-		MessageID: mailboxSubmissionUUIDPointerCopy(record.ResultMailMessageID),
-		ErrorCode: mailboxSubmissionErrorCodePointerCopy(record.LastErrorCode),
-		CreatedAt: record.CreatedAt.UTC(),
-		UpdatedAt: record.UpdatedAt.UTC(),
-	}, nil
 }
 
 // MailboxSubmissionServiceErrorKind is the safe caller-visible failure family

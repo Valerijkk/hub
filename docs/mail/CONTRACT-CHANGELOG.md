@@ -1,5 +1,24 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Immutable engine submission binding at reservation
+
+`SOURCE_IMPLEMENTED_STATIC_ONLY / RUNTIME_NOT_RUN`. Submission reservation now creates a private
+immutable V1 engine binding in its short Ent transaction. It validates and hashes the reservation
+snapshot using the exact binary sequence `frame(domain) || U32BE(1) || frame(account) ||
+frame(draft) || frame(message) || frame(engine_expected_version) || frame(submission_key) ||
+U64BE(max_message_bytes)`, with SHA-256 and constant-time verification on every persisted-row
+read. A malformed or mismatched stored binding fails closed and is never reconstructed from
+mutable account, draft, or policy values.
+
+The account-first reservation locks the idempotency receipt before new mutable-state adjudication;
+same account/key plus request hash replays queued, submitting, unknown, accepted, sent, or failed
+receipts, while a different request hash conflicts. A new receipt locks the draft, active
+submission, and sole organization policy, persists `queued` with attempt zero and its bound policy
+limit, then transitions the draft to `submitting` using the database wall clock. `accepted` is
+active but remains owner-safe: public receipts expose neither provider binding nor a message/error
+result until terminal semantics provide one. No engine/provider/network I/O, generated Ent,
+migration, compile, test, lint, Docker, worker, API, UI, or runtime claim is included.
+
 ## 2026-08-24 - Draft request canonicalization and hash V1 source seam
 
 `SOURCE_IMPLEMENTED_STATIC_ONLY / RUNTIME_NOT_RUN`. `CanonicalizeMailboxDraftRequest` produces one deep-copied canonical request and its SHA-256 over the versioned ordered TLV frame `hub-mail-draft-request-hash-v1`. The fixed scope is identity UUIDs, normalized address sets, headers/threading, priority, optional reply/forward message presence values, ordered attachment UUID+digest records, content source format/sanitizer version, and digests of canonical plain and sanitized rich content; raw body bytes never enter the frame. It validates bounded safe headers, exact thread identifiers, recipient and attachment uniqueness/caps, nonzero IDs/digests, and an exact V1 remote-blocked body by repeat normalization. Empty canonical rich content is allowed.
