@@ -2066,6 +2066,26 @@ This source-only ABI introduces no Ent repository, transaction/CAS, rate debit, 
 hash comparison, provider dispatch, worker, migration, API, or runtime authority. Independent
 review is PASS C/I/M `0/0/0`; tests, generation, build, lint, Docker, and runtime are `NOT_RUN`.
 
+### Stale submission recovery worker source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. `MailboxSubmissionStaleWorker` reuses the guarded sequential
+`MailboxSubmissionWorker` loop. Its scanner adapter passes only the bounded limit to
+`ScanDueMailboxSubmissionRecovery`; the generic loop removes zero and duplicate UUIDs and caps the
+result before the private dispatcher adapter invokes `RecoverStaleMailboxSubmission` exactly once
+for each retained identity.
+
+The enabled defaults are a one-minute scan interval, thirty-second per-item deadline, and batch size
+twenty, with the inherited maximum of fifty. Disabled zero configuration is a no-op. A repository
+error remains an item failure. Every nil-error response must satisfy the closed durable recovery-result
+validator; a zero, unknown, or contradictory outcome fails closed and is counted as `Failed`, never
+`Recovered`. Cancellation, panic containment, partial-failure continuation, content-free errors,
+deduplication, caps, timer boundaries, and result counts are inherited unchanged.
+
+The wrapper has no engine, provider, transport, HTTP, NATS, submit, preflight, reconciliation, or
+finalizer capability. Server wiring, production composition, generated Ent, migration, SQL
+application, executable tests, build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
+
 ### Unknown submission reconciliation worker source-only delta
 
 `STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:

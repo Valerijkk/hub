@@ -480,6 +480,14 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`: it performs no
   provider, NATS, HTTP, or worker dispatch, and is not Ent-generation, database, product, or
   release evidence.
+  The thin stale-recovery worker is independently
+  `SOURCE_CONTRACT_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN`. It reuses the
+  guarded sequential submission loop, passes only a bounded limit to the advisory stale scan, and
+  invokes exactly one `RecoverStaleMailboxSubmission` for each retained UUID. Every nil-error
+  repository outcome is validated as a complete durable recovery result; zero, unknown, or
+  contradictory shapes fail closed and are counted as failed rather than recovered. The wrapper has
+  no provider, engine, HTTP, NATS, dispatch, reconciliation, or finalization capability; production
+  composition remains pending.
   Unknown reconciliation itself is a separate provider-read-only flow. A bounded UUID-only scan
   feeds a short sealed claim, and a claimed item invokes `ReconcileSubmission` at most once. An
   exact accepted provider pair must retain the sealed engine message ID; absent, indeterminate,

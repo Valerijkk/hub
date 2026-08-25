@@ -1,5 +1,17 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Stale submission recovery worker
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxSubmissionStaleWorker` now adapts the bounded stale-lease advisory scan to exactly one
+durable `RecoverStaleMailboxSubmission` call per retained UUID through the existing guarded
+sequential submission loop. It preserves inherited filtering, caps, per-item timeout, cancellation,
+panic containment and content-free partial-failure behavior. Every nil-error durable result is
+validated; zero, unknown, and contradictory results fail closed and count as failed, never recovered.
+The wrapper has no engine, provider, HTTP, NATS, dispatch, reconciliation, or finalization capability.
+Server wiring, executable tests, build, lint/gofmt, Docker and runtime remain pending or `NOT_RUN`.
+
 ## 2026-08-25 - Durable draft send HTTP boundary
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
