@@ -1996,6 +1996,29 @@ same lease ID, deadline, and mutation epoch for both `MailAccount` and `MailSubm
 repository verifies that exact tuple against both rows. Positive capabilities can be minted only
 by that future Ent repository, not by callers or external tests.
 
+### Preflight-failure resolution delta
+
+`STATIC_SOURCE_ONLY / NOT_RUN`. `MailboxSubmissionAuthorizeResult` now closes four outcomes:
+`authorized`, `rate_limited`, `requeued`, and `failed`. Only `authorized` carries a dispatch
+capability; `rate_limited` and `requeued` each carry one exact whole-second UTC retry instant;
+and `failed` carries exactly one terminal code. Terminal result codes are `Rejected`, `Policy`,
+`AttachmentNotClean`, `IdentityUnavailable`, `RecipientLimit`, `SizeLimit`, or
+`RetryExhausted`; malformed combinations fail closed.
+
+`ResolveMailboxSubmissionPreflightFailure` is a future repository's normal live-claim resolution,
+not stale-lease recovery. Its closed request disposition is `failed`, `retry`, or `rate_limited`.
+`failed` accepts only the six deterministic preflight codes (not `RetryExhausted`) and no delay;
+the two non-terminal dispositions require an empty code and a 1..3600-second delay. Retry keeps
+the provisional attempt and turns attempt eight into `failed/RetryExhausted`; rate limiting
+restores that provisional attempt before its queued transition. The provider mapping is frozen in
+the repository-port comment: not-found/conflict, policy, payload, recipient, and identity
+failures are terminal; provider rate limits are rate-limited; unavailable/indeterminate/account
+authorization/cursor/restart reads are retryable.
+
+No Ent repository, claim/authorization CAS, dispatcher, worker, migration, or runtime authority
+exists in this delta. Source tests document only ABI shape and zero-value fail-closed behavior;
+they have not been executed.
+
 This source-only ABI introduces no Ent repository, transaction/CAS, rate debit, authorization
 hash comparison, provider dispatch, worker, migration, API, or runtime authority. Independent
 review is PASS C/I/M `0/0/0`; tests, generation, build, lint, Docker, and runtime are `NOT_RUN`.

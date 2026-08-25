@@ -221,6 +221,26 @@ type MailboxSubmissionAuthorizeRequest struct {
 	Preflight EngineSubmissionPreflight
 }
 
+// MailboxSubmissionPreflightFailureDisposition is the closed disposition for a
+// read-only provider preflight failure observed under one live claim.
+type MailboxSubmissionPreflightFailureDisposition string
+
+const (
+	MailboxSubmissionPreflightFailureDispositionFailed      MailboxSubmissionPreflightFailureDisposition = "failed"
+	MailboxSubmissionPreflightFailureDispositionRetry       MailboxSubmissionPreflightFailureDisposition = "retry"
+	MailboxSubmissionPreflightFailureDispositionRateLimited MailboxSubmissionPreflightFailureDisposition = "rate_limited"
+)
+
+// MailboxSubmissionPreflightFailureRequest resolves one provider preflight
+// failure under the exact sealed claim. It is normal resolution, never
+// stale-lease recovery.
+type MailboxSubmissionPreflightFailureRequest struct {
+	Claim             MailboxSubmissionClaim
+	Disposition       MailboxSubmissionPreflightFailureDisposition
+	FailureCode       MailboxSubmissionErrorCode
+	RetryAfterSeconds int32
+}
+
 // MailboxSubmissionAuthorizeOutcome is the closed durable authorization result.
 type MailboxSubmissionAuthorizeOutcome string
 
@@ -228,6 +248,7 @@ const (
 	MailboxSubmissionAuthorizeOutcomeAuthorized  MailboxSubmissionAuthorizeOutcome = "authorized"
 	MailboxSubmissionAuthorizeOutcomeRateLimited MailboxSubmissionAuthorizeOutcome = "rate_limited"
 	MailboxSubmissionAuthorizeOutcomeRequeued    MailboxSubmissionAuthorizeOutcome = "requeued"
+	MailboxSubmissionAuthorizeOutcomeFailed      MailboxSubmissionAuthorizeOutcome = "failed"
 )
 
 // MailboxSubmissionDispatchAuthorization is a sealed capability issued only
@@ -263,11 +284,12 @@ func (authorization MailboxSubmissionDispatchAuthorization) AuthorizedAt() time.
 }
 
 // MailboxSubmissionAuthorizeResult contains either a dispatch capability, a
-// rate-limit retry instant, or a durable requeue result.
+// rate-limit or retry instant, or a terminal failure code.
 type MailboxSubmissionAuthorizeResult struct {
 	outcome       MailboxSubmissionAuthorizeOutcome
 	authorization MailboxSubmissionDispatchAuthorization
 	retryAt       *time.Time
+	failureCode   *MailboxSubmissionErrorCode
 }
 
 // Outcome returns the closed durable outcome, or the zero value for a
@@ -288,12 +310,22 @@ func (result MailboxSubmissionAuthorizeResult) Authorization() (MailboxSubmissio
 	return mailboxSubmissionDispatchAuthorizationCopy(result.authorization), true
 }
 
-// RetryAt returns a defensive UTC retry instant only for a valid rate-limit result.
+// RetryAt returns a defensive UTC retry instant only for a valid rate-limit or
+// retry result.
 func (result MailboxSubmissionAuthorizeResult) RetryAt() (time.Time, bool) {
-	if !mailboxSubmissionAuthorizeResultValid(result) || result.outcome != MailboxSubmissionAuthorizeOutcomeRateLimited {
+	if !mailboxSubmissionAuthorizeResultValid(result) ||
+		(result.outcome != MailboxSubmissionAuthorizeOutcomeRateLimited && result.outcome != MailboxSubmissionAuthorizeOutcomeRequeued) {
 		return time.Time{}, false
 	}
 	return result.retryAt.Round(0).UTC(), true
+}
+
+// FailureCode returns one safe terminal code only for a valid failed result.
+func (result MailboxSubmissionAuthorizeResult) FailureCode() (MailboxSubmissionErrorCode, bool) {
+	if !mailboxSubmissionAuthorizeResultValid(result) || result.outcome != MailboxSubmissionAuthorizeOutcomeFailed {
+		return "", false
+	}
+	return *result.failureCode, true
 }
 
 // MailboxSubmissionClaimRepository owns the short transactional claim and
@@ -301,6 +333,15 @@ func (result MailboxSubmissionAuthorizeResult) RetryAt() (time.Time, bool) {
 type MailboxSubmissionClaimRepository interface {
 	ClaimMailboxSubmission(context.Context, MailboxSubmissionClaimRequest) (MailboxSubmissionClaimResult, error)
 	AuthorizeMailboxSubmission(context.Context, MailboxSubmissionAuthorizeRequest) (MailboxSubmissionAuthorizeResult, error)
+	// ResolveMailboxSubmissionPreflightFailure maps provider preflight failures
+	// as follows: not_found/conflict -> failed Rejected; rejected_policy ->
+	// failed Policy; payload_too_large -> failed SizeLimit; recipient_limit ->
+	// failed RecipientLimit; identity_unavailable -> failed IdentityUnavailable;
+	// rate_limited -> rate_limited; and unavailable, indeterminate,
+	// unauthorized_account, restart_required, or invalid_cursor -> retry.
+	// Retry consumes the provisional attempt; rate-limited restores it. This is
+	// normal resolution under a live lease, not stale-lease recovery.
+	ResolveMailboxSubmissionPreflightFailure(context.Context, MailboxSubmissionPreflightFailureRequest) (MailboxSubmissionAuthorizeResult, error)
 }
 
 func canonicalMailboxSubmissionPolicyDomains(source []MailboxSubmissionPolicyDomain) ([]MailboxSubmissionPolicyDomain, bool) {
@@ -480,6 +521,34 @@ func mailboxSubmissionAuthorizeRequestValid(request MailboxSubmissionAuthorizeRe
 	return mailboxSubmissionClaimValid(request.Claim) && mailboxSubmissionPreflightValid(request.Preflight)
 }
 
+func mailboxSubmissionPreflightFailureRequestValid(request MailboxSubmissionPreflightFailureRequest) bool {
+	if !mailboxSubmissionClaimValid(request.Claim) {
+		return false
+	}
+	switch request.Disposition {
+	case MailboxSubmissionPreflightFailureDispositionFailed:
+		return mailboxSubmissionPreflightFailureCodeValid(request.FailureCode) && request.RetryAfterSeconds == 0
+	case MailboxSubmissionPreflightFailureDispositionRetry, MailboxSubmissionPreflightFailureDispositionRateLimited:
+		return request.FailureCode == "" && request.RetryAfterSeconds >= 1 && request.RetryAfterSeconds <= 3600
+	default:
+		return false
+	}
+}
+
+func mailboxSubmissionPreflightFailureCodeValid(code MailboxSubmissionErrorCode) bool {
+	switch code {
+	case MailboxSubmissionErrorCodeRejected,
+		MailboxSubmissionErrorCodePolicy,
+		MailboxSubmissionErrorCodeAttachmentNotClean,
+		MailboxSubmissionErrorCodeIdentityUnavailable,
+		MailboxSubmissionErrorCodeRecipientLimit,
+		MailboxSubmissionErrorCodeSizeLimit:
+		return true
+	default:
+		return false
+	}
+}
+
 func mailboxSubmissionPreflightValid(preflight EngineSubmissionPreflight) bool {
 	if preflight.RecipientCount < 1 || preflight.RecipientCount > MaxEngineDraftTotalRecipientItems ||
 		preflight.MessageBytes < 1 || preflight.MessageBytes > MaxEngineMessageBytes ||
@@ -498,11 +567,32 @@ func mailboxSubmissionDispatchAuthorizationValid(authorization MailboxSubmission
 func mailboxSubmissionAuthorizeResultValid(result MailboxSubmissionAuthorizeResult) bool {
 	switch result.outcome {
 	case MailboxSubmissionAuthorizeOutcomeAuthorized:
-		return mailboxSubmissionDispatchAuthorizationValid(result.authorization) && result.retryAt == nil
+		return mailboxSubmissionDispatchAuthorizationValid(result.authorization) && result.retryAt == nil && result.failureCode == nil
 	case MailboxSubmissionAuthorizeOutcomeRateLimited:
-		return result.authorization == (MailboxSubmissionDispatchAuthorization{}) && mailboxSubmissionClaimBusyUntilValid(result.retryAt)
+		return result.authorization == (MailboxSubmissionDispatchAuthorization{}) && mailboxSubmissionClaimBusyUntilValid(result.retryAt) && result.failureCode == nil
 	case MailboxSubmissionAuthorizeOutcomeRequeued:
-		return result.authorization == (MailboxSubmissionDispatchAuthorization{}) && result.retryAt == nil
+		return result.authorization == (MailboxSubmissionDispatchAuthorization{}) && mailboxSubmissionClaimBusyUntilValid(result.retryAt) && result.failureCode == nil
+	case MailboxSubmissionAuthorizeOutcomeFailed:
+		return result.authorization == (MailboxSubmissionDispatchAuthorization{}) && result.retryAt == nil &&
+			mailboxSubmissionAuthorizeFailureCodeValid(result.failureCode)
+	default:
+		return false
+	}
+}
+
+func mailboxSubmissionAuthorizeFailureCodeValid(code *MailboxSubmissionErrorCode) bool {
+	if code == nil {
+		return false
+	}
+	switch *code {
+	case MailboxSubmissionErrorCodeRejected,
+		MailboxSubmissionErrorCodePolicy,
+		MailboxSubmissionErrorCodeAttachmentNotClean,
+		MailboxSubmissionErrorCodeIdentityUnavailable,
+		MailboxSubmissionErrorCodeRecipientLimit,
+		MailboxSubmissionErrorCodeSizeLimit,
+		MailboxSubmissionErrorCodeRetryExhausted:
+		return true
 	default:
 		return false
 	}

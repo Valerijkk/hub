@@ -1,6 +1,7 @@
 package mail_test
 
 import (
+	"context"
 	"crypto/sha256"
 	"errors"
 	"reflect"
@@ -208,6 +209,86 @@ func TestMailboxSubmissionClaimABI_ZeroValuesFailClosedAndKeepCapabilitiesPrivat
 				}
 			}
 		}
+	}
+}
+
+func TestMailboxSubmissionPreflightFailureABI_PublicShapeAndZeroContract(t *testing.T) {
+	for _, testCase := range []struct {
+		name string
+		got  string
+		want string
+	}{
+		{name: "authorized", got: string(mail.MailboxSubmissionAuthorizeOutcomeAuthorized), want: "authorized"},
+		{name: "rate limited", got: string(mail.MailboxSubmissionAuthorizeOutcomeRateLimited), want: "rate_limited"},
+		{name: "requeued", got: string(mail.MailboxSubmissionAuthorizeOutcomeRequeued), want: "requeued"},
+		{name: "failed", got: string(mail.MailboxSubmissionAuthorizeOutcomeFailed), want: "failed"},
+		{name: "preflight failed", got: string(mail.MailboxSubmissionPreflightFailureDispositionFailed), want: "failed"},
+		{name: "preflight retry", got: string(mail.MailboxSubmissionPreflightFailureDispositionRetry), want: "retry"},
+		{name: "preflight rate limited", got: string(mail.MailboxSubmissionPreflightFailureDispositionRateLimited), want: "rate_limited"},
+	} {
+		if testCase.got != testCase.want {
+			t.Fatalf("%s value = %q, want %q", testCase.name, testCase.got, testCase.want)
+		}
+	}
+
+	requestType := reflect.TypeOf(mail.MailboxSubmissionPreflightFailureRequest{})
+	if got, want := requestType.NumField(), 4; got != want {
+		t.Fatalf("MailboxSubmissionPreflightFailureRequest field count = %d, want %d", got, want)
+	}
+	for index, want := range []struct {
+		name string
+		type_ reflect.Type
+	}{
+		{name: "Claim", type_: reflect.TypeOf(mail.MailboxSubmissionClaim{})},
+		{name: "Disposition", type_: reflect.TypeOf(mail.MailboxSubmissionPreflightFailureDisposition(""))},
+		{name: "FailureCode", type_: reflect.TypeOf(mail.MailboxSubmissionErrorCode(""))},
+		{name: "RetryAfterSeconds", type_: reflect.TypeOf(int32(0))},
+	} {
+		field := requestType.Field(index)
+		if field.Name != want.name || field.Type != want.type_ || field.PkgPath != "" {
+			t.Fatalf("MailboxSubmissionPreflightFailureRequest field %d = %s %s exported=%t, want %s %s exported", index, field.Name, field.Type, field.PkgPath == "", want.name, want.type_)
+		}
+	}
+
+	repositoryType := reflect.TypeOf((*mail.MailboxSubmissionClaimRepository)(nil)).Elem()
+	if got, want := repositoryType.NumMethod(), 3; got != want {
+		t.Fatalf("MailboxSubmissionClaimRepository method count = %d, want %d", got, want)
+	}
+	method, ok := repositoryType.MethodByName("ResolveMailboxSubmissionPreflightFailure")
+	if !ok {
+		t.Fatal("MailboxSubmissionClaimRepository lacks ResolveMailboxSubmissionPreflightFailure")
+	}
+	if got, want := method.Type.NumIn(), 2; got != want {
+		t.Fatalf("ResolveMailboxSubmissionPreflightFailure input count = %d, want %d", got, want)
+	}
+	if got, want := method.Type.In(0), reflect.TypeOf((*context.Context)(nil)).Elem(); got != want {
+		t.Fatalf("ResolveMailboxSubmissionPreflightFailure context type = %s, want %s", got, want)
+	}
+	if got, want := method.Type.In(1), reflect.TypeOf(mail.MailboxSubmissionPreflightFailureRequest{}); got != want {
+		t.Fatalf("ResolveMailboxSubmissionPreflightFailure request type = %s, want %s", got, want)
+	}
+	if got, want := method.Type.NumOut(), 2; got != want {
+		t.Fatalf("ResolveMailboxSubmissionPreflightFailure output count = %d, want %d", got, want)
+	}
+	if got, want := method.Type.Out(0), reflect.TypeOf(mail.MailboxSubmissionAuthorizeResult{}); got != want {
+		t.Fatalf("ResolveMailboxSubmissionPreflightFailure result type = %s, want %s", got, want)
+	}
+	if got, want := method.Type.Out(1), reflect.TypeOf((*error)(nil)).Elem(); got != want {
+		t.Fatalf("ResolveMailboxSubmissionPreflightFailure error type = %s, want %s", got, want)
+	}
+
+	var zeroRequest mail.MailboxSubmissionPreflightFailureRequest
+	if zeroRequest.Claim.SubmissionID() != uuid.Nil || zeroRequest.Disposition != "" || zeroRequest.FailureCode != "" || zeroRequest.RetryAfterSeconds != 0 {
+		t.Fatalf("zero preflight failure request minted capability or state: %#v", zeroRequest)
+	}
+	// Positive claims/results are intentionally unconstructable in mail_test;
+	// future Ent repository tests cover each package-private validator branch.
+	var zeroResult mail.MailboxSubmissionAuthorizeResult
+	if retryAt, ok := zeroResult.RetryAt(); ok || !retryAt.IsZero() {
+		t.Fatalf("zero preflight failure result RetryAt() = %v, %t", retryAt, ok)
+	}
+	if code, ok := zeroResult.FailureCode(); ok || code != "" {
+		t.Fatalf("zero preflight failure result FailureCode() = %q, %t", code, ok)
 	}
 }
 

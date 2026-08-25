@@ -1,5 +1,22 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Preflight failure resolution ABI
+
+STATIC_SOURCE_ONLY / NOT_RUN.
+
+`MailboxSubmissionAuthorizeResult` adds closed `failed` with one safe terminal error code, while
+both `rate_limited` and `requeued` require a whole-second UTC retry instant. A new sealed-claim
+resolution request distinguishes deterministic terminal failures, retryable provider-read failures,
+and provider/local preflight rate limits. Retry keeps the provisional attempt and resolves attempt
+eight as `MAIL_SUBMISSION_RETRY_EXHAUSTED`; rate limiting restores it before requeue.
+
+The future repository maps not-found/conflict to rejected, rejected policy to policy, oversized
+payload to size limit, recipient overflow to recipient limit, and unavailable identities to
+identity unavailable. Rate-limited reads stay rate-limited; unavailable, indeterminate,
+unauthorized-account, restart-required, and invalid-cursor reads retry. This is ordinary
+live-claim resolution, not stale-lease recovery. No Ent implementation, CAS, dispatcher, worker,
+migration, test execution, Docker, or runtime evidence is supplied.
+
 ## 2026-08-25 - Sealed submission claim and policy-binding ABI
 
 STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN.
