@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	ical "github.com/valerii/hub/backend/internal/ical"
 )
 
 // CalendarMailDeliveryFakeClaim configures one deterministic repository claim
-// for an isolated unit. It has no content field: the fake materializer owns
-// its fixed request-lifetime output.
+// for an isolated unit. Message is normalized and copied into the sealed
+// request-lifetime materialization snapshot.
 type CalendarMailDeliveryFakeClaim struct {
 	DeliveryID                 CalendarMailDeliveryID
 	InviteID                   CalendarInviteDeliveryID
@@ -30,6 +31,7 @@ type CalendarMailDeliveryFakeClaim struct {
 	EventSequence              int
 	AttendeeVersion            int
 	RecurrenceID               string
+	Message                    ical.ITIPMessage
 	ClaimGeneration            CalendarMailDeliveryClaimGeneration
 	LeaseUntil                 time.Time
 }
@@ -280,7 +282,7 @@ func NewCalendarMailMaterializerFake() CalendarMailMaterializer {
 }
 
 // MaterializeCalendarMail creates a fixed bounded Mail representation only
-// after the content-free sealed input validates.
+// after the sealed canonical iTIP input validates.
 func (CalendarMailMaterializerFake) MaterializeCalendarMail(input CalendarMailDeliveryMaterializationInput) (CalendarMailMaterialization, error) {
 	if !validCalendarMailDeliveryMaterializationInput(input) {
 		return CalendarMailMaterialization{}, newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
@@ -325,6 +327,10 @@ func calendarMailDeliveryFakeReclaim(claim CalendarMailDeliveryClaim, now time.T
 }
 
 func calendarMailDeliveryFakeClaim(input CalendarMailDeliveryFakeClaim) (CalendarMailDeliveryClaim, error) {
+	message, _, ok := calendarMailDeliveryCanonicalITIPMessage(input.Message)
+	if !ok {
+		return CalendarMailDeliveryClaim{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
+	}
 	claimGeneration := input.ClaimGeneration
 	if claimGeneration == 0 {
 		claimGeneration = 1
@@ -348,7 +354,7 @@ func calendarMailDeliveryFakeClaim(input CalendarMailDeliveryFakeClaim) (Calenda
 		senderActorID:   input.SenderActorID,
 		fromIdentityID:  input.FromIdentityID,
 		recipient:       input.Recipient,
-		materialization: CalendarMailDeliveryMaterializationInput{deliveryID: input.DeliveryID, kind: input.Kind, method: input.Method, eventID: input.EventID, attendeeID: input.AttendeeID, organizerID: input.OrganizerID, eventSequence: input.EventSequence, attendeeVersion: input.AttendeeVersion, recurrenceID: input.RecurrenceID},
+		materialization: CalendarMailDeliveryMaterializationInput{deliveryID: input.DeliveryID, kind: input.Kind, method: input.Method, eventID: input.EventID, attendeeID: input.AttendeeID, organizerID: input.OrganizerID, eventSequence: input.EventSequence, attendeeVersion: input.AttendeeVersion, recurrenceID: input.RecurrenceID, message: message},
 	}
 	if !validCalendarMailDeliveryClaim(claim) {
 		return CalendarMailDeliveryClaim{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)

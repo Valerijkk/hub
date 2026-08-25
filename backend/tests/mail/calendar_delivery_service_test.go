@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	ical "github.com/valerii/hub/backend/internal/ical"
 	"github.com/valerii/hub/backend/internal/mail"
 )
 
@@ -58,6 +59,14 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 		"calendarMailDeliveryMaximumAttempts = 8",
 		"calendarMailDeliveryRetryMinimum = 30 * time.Second",
 		"calendarMailDeliveryRetryMaximum = 5 * time.Minute",
+		"CalendarInviteDeliveryKindCreated",
+		"CalendarInviteDeliveryKindUpdated",
+		"CalendarInviteDeliveryKindCancelled",
+		"SourceEnvelopeID",
+		"ical.ITIPMessage",
+		"ical.NormalizeITIPMessage",
+		"ical.CanonicalITIPIdentity",
+		"calendarMailDeliveryITIPMessageCopy",
 	} {
 		if !strings.Contains(repository, required) {
 			t.Fatalf("calendar delivery repository source missing %q", required)
@@ -93,6 +102,7 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 		"claim.claimGeneration++",
 		"claim.claimToken = calendarMailDeliveryFakeClaimToken",
 		"claim.leaseUntil = leaseUntil",
+		"Message                    ical.ITIPMessage",
 	} {
 		if !strings.Contains(fake, required) {
 			t.Fatalf("calendar delivery fake source missing %q", required)
@@ -139,7 +149,7 @@ func TestCalendarMailDeliveryFakeReturnsNonNilEmptyDue(t *testing.T) {
 	}
 }
 
-func TestCalendarMailDeliveryFakeRejectsMissingOrganizationOrCanonicalLease(t *testing.T) {
+func TestCalendarMailDeliveryFakeRejectsInvalidSealedClaim(t *testing.T) {
 	now := time.Now().UTC()
 	tests := []struct {
 		name   string
@@ -163,6 +173,30 @@ func TestCalendarMailDeliveryFakeRejectsMissingOrganizationOrCanonicalLease(t *t
 				claim.LeaseUntil = claim.LeaseUntil.In(time.FixedZone("non-utc", 0))
 			},
 		},
+		{
+			name: "missing message",
+			mutate: func(claim *mail.CalendarMailDeliveryFakeClaim) {
+				claim.Message = ical.ITIPMessage{}
+			},
+		},
+		{
+			name: "invite organizer absent",
+			mutate: func(claim *mail.CalendarMailDeliveryFakeClaim) {
+				claim.OrganizerID = uuid.Nil
+			},
+		},
+		{
+			name: "message sequence differs from delivery",
+			mutate: func(claim *mail.CalendarMailDeliveryFakeClaim) {
+				claim.EventSequence++
+			},
+		},
+		{
+			name: "invite recipient is not an attendee",
+			mutate: func(claim *mail.CalendarMailDeliveryFakeClaim) {
+				claim.Recipient = mail.EngineAddress{Email: "other-attendee@example.com"}
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -179,6 +213,143 @@ func TestCalendarMailDeliveryFakeRejectsMissingOrganizationOrCanonicalLease(t *t
 				t.Fatalf("SetClaim() error kind = %q, want %q", got, mail.CalendarMailDeliveryRepositoryErrorInvalid)
 			}
 		})
+	}
+}
+
+func TestCalendarInviteDeliveryAdmissionRequiresKindSourceEnvelopeAndCopies(t *testing.T) {
+	repository := mail.NewCalendarMailDeliveryRepositoryFake()
+	inviteID, err := mail.NewCalendarInviteDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarInviteDeliveryID() error = %v", err)
+	}
+	request := mail.CalendarInviteDeliveryAdmissionRequest{Invites: []mail.CalendarInviteDeliveryAdmission{{
+		InviteID: inviteID, SourceEnvelopeID: uuid.New(), Kind: mail.CalendarInviteDeliveryKindCreated,
+		EventID: uuid.New(), AttendeeID: uuid.New(), OrganizerID: uuid.New(), Method: mail.CalendarMailDeliveryMethodRequest,
+		EventSequence: 1,
+	}}}
+
+	for _, test := range []struct {
+		name   string
+		mutate func(*mail.CalendarInviteDeliveryAdmission)
+	}{
+		{
+			name: "missing source envelope",
+			mutate: func(admission *mail.CalendarInviteDeliveryAdmission) {
+				admission.SourceEnvelopeID = uuid.Nil
+			},
+		},
+		{
+			name: "missing kind",
+			mutate: func(admission *mail.CalendarInviteDeliveryAdmission) {
+				admission.Kind = ""
+			},
+		},
+		{
+			name: "cancel kind with request method",
+			mutate: func(admission *mail.CalendarInviteDeliveryAdmission) {
+				admission.Kind = mail.CalendarInviteDeliveryKindCancelled
+			},
+		},
+		{
+			name: "created kind with cancel method",
+			mutate: func(admission *mail.CalendarInviteDeliveryAdmission) {
+				admission.Method = mail.CalendarMailDeliveryMethodCancel
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			invalid := request
+			invalid.Invites = append([]mail.CalendarInviteDeliveryAdmission(nil), request.Invites...)
+			test.mutate(&invalid.Invites[0])
+			if got := calendarDeliveryRepositoryErrorKind(t, repository.AdmitCalendarInviteDeliveries(context.Background(), invalid)); got != mail.CalendarMailDeliveryRepositoryErrorInvalid {
+				t.Fatalf("AdmitCalendarInviteDeliveries() error kind = %q, want %q", got, mail.CalendarMailDeliveryRepositoryErrorInvalid)
+			}
+		})
+	}
+
+	for _, valid := range []struct {
+		kind   mail.CalendarInviteDeliveryKind
+		method mail.CalendarMailDeliveryMethod
+	}{
+		{kind: mail.CalendarInviteDeliveryKindCreated, method: mail.CalendarMailDeliveryMethodRequest},
+		{kind: mail.CalendarInviteDeliveryKindUpdated, method: mail.CalendarMailDeliveryMethodRequest},
+		{kind: mail.CalendarInviteDeliveryKindCancelled, method: mail.CalendarMailDeliveryMethodCancel},
+	} {
+		admission := request
+		admission.Invites = append([]mail.CalendarInviteDeliveryAdmission(nil), request.Invites...)
+		admission.Invites[0].Kind = valid.kind
+		admission.Invites[0].Method = valid.method
+		if valid.kind != mail.CalendarInviteDeliveryKindCreated {
+			admission.Invites[0].SourceEnvelopeID = uuid.New()
+		}
+		if err := repository.AdmitCalendarInviteDeliveries(context.Background(), admission); err != nil {
+			t.Fatalf("AdmitCalendarInviteDeliveries(%s, %s) error = %v", valid.kind, valid.method, err)
+		}
+	}
+	recorded := repository.Admissions()
+	if len(recorded) != 3 {
+		t.Fatalf("recorded admissions = %d, want 3", len(recorded))
+	}
+	wantSourceEnvelopeID := request.Invites[0].SourceEnvelopeID
+	request.Invites[0].SourceEnvelopeID = uuid.New()
+	if recorded[0].SourceEnvelopeID != wantSourceEnvelopeID {
+		t.Fatalf("recorded admissions = %#v, want copied source envelope %s", recorded, wantSourceEnvelopeID)
+	}
+	recorded[0].SourceEnvelopeID = uuid.New()
+	if again := repository.Admissions(); len(again) != 3 || again[0].SourceEnvelopeID != wantSourceEnvelopeID {
+		t.Fatalf("Admissions() returned aliased source envelope: %#v", again)
+	}
+}
+
+func TestCalendarMailDeliveryReplyAllowsExternalOrganizerOnly(t *testing.T) {
+	deliveryID, err := mail.NewCalendarMailDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarMailDeliveryID() error = %v", err)
+	}
+	replyID, err := mail.NewCalendarReplyDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarReplyDeliveryID() error = %v", err)
+	}
+	claim := mail.CalendarMailDeliveryFakeClaim{
+		DeliveryID: deliveryID, ReplyID: replyID, Kind: mail.CalendarMailDeliveryKindReply, Method: mail.CalendarMailDeliveryMethodReply,
+		EventID: uuid.New(), AttendeeID: uuid.New(), OrganizerID: uuid.Nil, OrganizationID: uuid.New(), AccountID: uuid.New(),
+		SenderActorID: uuid.New(), FromIdentityID: uuid.New(), Recipient: mail.EngineAddress{Email: "external-organizer@example.com"},
+		EventSequence: 1, AttendeeVersion: 1, Message: calendarDeliveryTimedReplyMessage(), ClaimGeneration: 1, LeaseUntil: time.Now().UTC().Add(time.Minute),
+	}
+	repository := mail.NewCalendarMailDeliveryRepositoryFake()
+	if err := repository.SetClaim(claim); err != nil {
+		t.Fatalf("SetClaim() external-organizer reply error = %v", err)
+	}
+	claim.OrganizerID = uuid.New()
+	if got := calendarDeliveryRepositoryErrorKind(t, repository.SetClaim(claim)); got != mail.CalendarMailDeliveryRepositoryErrorInvalid {
+		t.Fatalf("SetClaim() internal-organizer reply error kind = %q, want %q", got, mail.CalendarMailDeliveryRepositoryErrorInvalid)
+	}
+	claim.OrganizerID = uuid.Nil
+	claim.Recipient = mail.EngineAddress{Email: "not-the-organizer@example.com"}
+	if got := calendarDeliveryRepositoryErrorKind(t, repository.SetClaim(claim)); got != mail.CalendarMailDeliveryRepositoryErrorInvalid {
+		t.Fatalf("SetClaim() reply recipient error kind = %q, want %q", got, mail.CalendarMailDeliveryRepositoryErrorInvalid)
+	}
+}
+
+func TestCalendarMailDeliveryFakeCopiesCanonicalMessageSnapshot(t *testing.T) {
+	deliveryID, repository := calendarDeliveryFixture(t)
+	inviteID, err := mail.NewCalendarInviteDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarInviteDeliveryID() error = %v", err)
+	}
+	claim := calendarDeliveryFakeClaimFixture(t, deliveryID, inviteID, time.Now().UTC().Add(time.Minute))
+	if err := repository.SetClaim(claim); err != nil {
+		t.Fatalf("SetClaim() error = %v", err)
+	}
+	claim.Message.Attendees[0].Email = "mutated@example.com"
+
+	mailIO := &calendarDeliveryMailProbe{}
+	service := calendarDeliveryService(t, repository, mailIO, mailIO, &calendarDeliveryMaterializerProbe{})
+	if err := service.Deliver(context.Background(), deliveryID); err != nil {
+		t.Fatalf("Deliver() after source message mutation error = %v", err)
+	}
+	if mailIO.draftCalls != 1 || mailIO.submissionCalls != 1 {
+		t.Fatalf("Mail I/O after source message mutation = drafts:%d submissions:%d, want one each", mailIO.draftCalls, mailIO.submissionCalls)
 	}
 }
 
@@ -524,8 +695,55 @@ func calendarDeliveryFakeClaimFixture(t *testing.T, deliveryID mail.CalendarMail
 		FromIdentityID:   uuid.New(),
 		Recipient:        mail.EngineAddress{Email: "attendee@example.com"},
 		EventSequence:    1,
+		Message:          calendarDeliveryTimedRequestMessage(),
 		ClaimGeneration: 1,
 		LeaseUntil:       leaseUntil,
+	}
+}
+
+func calendarDeliveryTimedRequestMessage() ical.ITIPMessage {
+	return ical.ITIPMessage{
+		Method:   ical.ITIPMethodRequest,
+		UID:      "calendar-delivery-request@example.test",
+		Stamp:    time.Date(2026, time.August, 25, 9, 0, 0, 0, time.UTC),
+		Sequence: 1,
+		Status:   ical.ITIPStatusConfirmed,
+		Summary:  "Calendar delivery",
+		Temporal: ical.ITIPTemporal{Timed: &ical.ITIPTimed{
+			StartsAt: time.Date(2026, time.August, 26, 9, 0, 0, 0, time.UTC),
+			EndsAt:   time.Date(2026, time.August, 26, 10, 0, 0, 0, time.UTC),
+			Timezone: "UTC",
+		}},
+		Organizer: ical.ITIPOrganizer{Email: "organizer@example.com"},
+		Attendees: []ical.ITIPParticipant{{
+			Email:  "attendee@example.com",
+			Role:   ical.ITIPParticipantRequired,
+			Status: ical.RSVPNeedsAction,
+			RSVP:   true,
+		}},
+	}
+}
+
+func calendarDeliveryTimedReplyMessage() ical.ITIPMessage {
+	return ical.ITIPMessage{
+		Method:   ical.ITIPMethodReply,
+		UID:      "calendar-delivery-reply@example.test",
+		Stamp:    time.Date(2026, time.August, 25, 9, 0, 0, 0, time.UTC),
+		Sequence: 1,
+		Status:   ical.ITIPStatusConfirmed,
+		Summary:  "Calendar reply",
+		Temporal: ical.ITIPTemporal{Timed: &ical.ITIPTimed{
+			StartsAt: time.Date(2026, time.August, 26, 9, 0, 0, 0, time.UTC),
+			EndsAt:   time.Date(2026, time.August, 26, 10, 0, 0, 0, time.UTC),
+			Timezone: "UTC",
+		}},
+		Organizer: ical.ITIPOrganizer{Email: "external-organizer@example.com"},
+		Attendees: []ical.ITIPParticipant{{
+			Email:  "attendee@example.com",
+			Role:   ical.ITIPParticipantRequired,
+			Status: ical.RSVPAccepted,
+			RSVP:   true,
+		}},
 	}
 }
 

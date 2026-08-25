@@ -3,11 +3,13 @@ package mail
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+	ical "github.com/valerii/hub/backend/internal/ical"
 )
 
 const (
@@ -60,6 +62,16 @@ func (id CalendarInviteDeliveryID) UUID() uuid.UUID {
 	}
 	return uuid.UUID(id)
 }
+
+// CalendarInviteDeliveryKind identifies the immutable business transition
+// represented by one invite delivery admission.
+type CalendarInviteDeliveryKind string
+
+const (
+	CalendarInviteDeliveryKindCreated   CalendarInviteDeliveryKind = "created"
+	CalendarInviteDeliveryKindUpdated   CalendarInviteDeliveryKind = "updated"
+	CalendarInviteDeliveryKindCancelled CalendarInviteDeliveryKind = "cancelled"
+)
 
 // CalendarReplyDeliveryID is the immutable identity of one authoritative RSVP
 // transport intent.
@@ -119,9 +131,10 @@ type CalendarMailDeliveryClaimToken uuid.UUID
 // CalendarMailDeliveryClaimGeneration is the monotonic durable claim fence.
 type CalendarMailDeliveryClaimGeneration int64
 
-// CalendarMailDeliveryMaterializationInput contains only authoritative
-// calendar identity and revision facts. It deliberately carries no body,
-// address, account, identity, or draft data.
+// CalendarMailDeliveryMaterializationInput contains the canonical,
+// request-lifetime iTIP snapshot and authoritative calendar identity facts
+// needed by a pure Mail materializer. Account, identity, and draft data stay
+// sealed in the repository claim.
 type CalendarMailDeliveryMaterializationInput struct {
 	deliveryID       CalendarMailDeliveryID
 	kind             CalendarMailDeliveryKind
@@ -132,18 +145,21 @@ type CalendarMailDeliveryMaterializationInput struct {
 	eventSequence    int
 	attendeeVersion  int
 	recurrenceID     string
+	message          ical.ITIPMessage
 }
 
 // CalendarInviteDeliveryAdmission is the content-free Calendar request for
 // durable invite intents. Mail authority is resolved only by the repository.
 type CalendarInviteDeliveryAdmission struct {
-	InviteID      CalendarInviteDeliveryID
-	EventID       uuid.UUID
-	AttendeeID    uuid.UUID
-	OrganizerID   uuid.UUID
-	Method        CalendarMailDeliveryMethod
-	EventSequence int
-	RecurrenceID  string
+	InviteID         CalendarInviteDeliveryID
+	SourceEnvelopeID uuid.UUID
+	Kind             CalendarInviteDeliveryKind
+	EventID          uuid.UUID
+	AttendeeID       uuid.UUID
+	OrganizerID      uuid.UUID
+	Method           CalendarMailDeliveryMethod
+	EventSequence    int
+	RecurrenceID     string
 }
 
 // CalendarInviteDeliveryAdmissionRequest bounds one atomic admission batch.
@@ -370,6 +386,17 @@ func validCalendarMailDeliveryKind(value CalendarMailDeliveryKind) bool {
 	return value == CalendarMailDeliveryKindInvite || value == CalendarMailDeliveryKindReply
 }
 
+func validCalendarInviteDeliveryKind(value CalendarInviteDeliveryKind) bool {
+	switch value {
+	case CalendarInviteDeliveryKindCreated,
+		CalendarInviteDeliveryKindUpdated,
+		CalendarInviteDeliveryKindCancelled:
+		return true
+	default:
+		return false
+	}
+}
+
 func validCalendarMailDeliveryMethod(value CalendarMailDeliveryMethod) bool {
 	switch value {
 	case CalendarMailDeliveryMethodRequest, CalendarMailDeliveryMethodCancel, CalendarMailDeliveryMethodReply:
@@ -439,8 +466,19 @@ func validCalendarInviteDeliveryAdmissionRequest(request CalendarInviteDeliveryA
 }
 
 func validCalendarInviteDeliveryAdmission(value CalendarInviteDeliveryAdmission) bool {
-	return validCalendarInviteDeliveryID(value.InviteID) && value.EventID != uuid.Nil && value.AttendeeID != uuid.Nil && value.OrganizerID != uuid.Nil &&
-		(value.Method == CalendarMailDeliveryMethodRequest || value.Method == CalendarMailDeliveryMethodCancel) && value.EventSequence >= 1 && validCalendarMailDeliveryRecurrenceID(value.RecurrenceID)
+	if !validCalendarInviteDeliveryID(value.InviteID) || value.SourceEnvelopeID == uuid.Nil || !validCalendarInviteDeliveryKind(value.Kind) ||
+		value.EventID == uuid.Nil || value.AttendeeID == uuid.Nil || value.OrganizerID == uuid.Nil || value.EventSequence < 1 ||
+		!validCalendarMailDeliveryRecurrenceID(value.RecurrenceID) {
+		return false
+	}
+	switch value.Kind {
+	case CalendarInviteDeliveryKindCreated, CalendarInviteDeliveryKindUpdated:
+		return value.Method == CalendarMailDeliveryMethodRequest
+	case CalendarInviteDeliveryKindCancelled:
+		return value.Method == CalendarMailDeliveryMethodCancel
+	default:
+		return false
+	}
 }
 
 func validCalendarReplyDeliveryWakeRequest(request CalendarReplyDeliveryWakeRequest) bool {
@@ -491,7 +529,7 @@ func validCalendarMailDeliveryClaim(claim CalendarMailDeliveryClaim) bool {
 	if !validCalendarMailDeliveryID(claim.deliveryID) || !validCalendarMailDeliveryKind(claim.kind) || !validCalendarMailDeliveryMethod(claim.method) ||
 		claim.state != CalendarMailDeliveryStateSubmitting || uuid.UUID(claim.claimToken) == uuid.Nil || claim.claimGeneration < 1 ||
 		claim.organizationID == uuid.Nil || !validCalendarMailDeliveryLeaseUntil(claim.leaseUntil) ||
-		claim.eventID == uuid.Nil || claim.attendeeID == uuid.Nil || claim.organizerID == uuid.Nil || claim.accountID == uuid.Nil ||
+		claim.eventID == uuid.Nil || claim.attendeeID == uuid.Nil || claim.accountID == uuid.Nil ||
 		claim.senderActorID == uuid.Nil || claim.fromIdentityID == uuid.Nil || !validCalendarMailDeliveryMaterializationInput(claim.materialization) {
 		return false
 	}
@@ -503,13 +541,19 @@ func validCalendarMailDeliveryClaim(claim CalendarMailDeliveryClaim) bool {
 	if !ok || recipient != claim.recipient {
 		return false
 	}
+	message, _, messageOK := calendarMailDeliveryCanonicalITIPMessage(claim.materialization.message)
+	if !messageOK || !reflect.DeepEqual(claim.materialization.message, message) {
+		return false
+	}
 	switch claim.kind {
 	case CalendarMailDeliveryKindInvite:
-		if !validCalendarInviteDeliveryID(claim.inviteID) || validCalendarReplyDeliveryID(claim.replyID) || claim.method == CalendarMailDeliveryMethodReply || claim.materialization.attendeeVersion != 0 {
+		if !validCalendarInviteDeliveryID(claim.inviteID) || validCalendarReplyDeliveryID(claim.replyID) || claim.method == CalendarMailDeliveryMethodReply ||
+			claim.organizerID == uuid.Nil || claim.materialization.attendeeVersion != 0 || !calendarMailDeliveryMessageHasAttendee(message, recipient.Email) {
 			return false
 		}
 	case CalendarMailDeliveryKindReply:
-		if validCalendarInviteDeliveryID(claim.inviteID) || !validCalendarReplyDeliveryID(claim.replyID) || claim.method != CalendarMailDeliveryMethodReply || claim.materialization.attendeeVersion < 1 {
+		if validCalendarInviteDeliveryID(claim.inviteID) || !validCalendarReplyDeliveryID(claim.replyID) || claim.method != CalendarMailDeliveryMethodReply ||
+			claim.organizerID != uuid.Nil || claim.materialization.attendeeVersion < 1 || len(message.Attendees) != 1 || recipient.Email != message.Organizer.Email {
 			return false
 		}
 	default:
@@ -520,13 +564,77 @@ func validCalendarMailDeliveryClaim(claim CalendarMailDeliveryClaim) bool {
 
 func validCalendarMailDeliveryMaterializationInput(input CalendarMailDeliveryMaterializationInput) bool {
 	if !validCalendarMailDeliveryID(input.deliveryID) || !validCalendarMailDeliveryKind(input.kind) || !validCalendarMailDeliveryMethod(input.method) ||
-		input.eventID == uuid.Nil || input.attendeeID == uuid.Nil || input.organizerID == uuid.Nil || !validCalendarMailDeliveryRecurrenceID(input.recurrenceID) {
+		input.eventID == uuid.Nil || input.attendeeID == uuid.Nil || !validCalendarMailDeliveryRecurrenceID(input.recurrenceID) {
+		return false
+	}
+	message, identity, ok := calendarMailDeliveryCanonicalITIPMessage(input.message)
+	if !ok || !reflect.DeepEqual(input.message, message) || input.method != calendarMailDeliveryMethodFromITIP(identity.Method) ||
+		identity.Sequence != input.eventSequence || identity.RecurrenceID != input.recurrenceID {
 		return false
 	}
 	if input.kind == CalendarMailDeliveryKindInvite {
-		return (input.method == CalendarMailDeliveryMethodRequest || input.method == CalendarMailDeliveryMethodCancel) && input.eventSequence >= 1 && input.attendeeVersion == 0
+		return input.organizerID != uuid.Nil && (input.method == CalendarMailDeliveryMethodRequest || input.method == CalendarMailDeliveryMethodCancel) &&
+			input.eventSequence >= 1 && input.attendeeVersion == 0
 	}
-	return input.kind == CalendarMailDeliveryKindReply && input.method == CalendarMailDeliveryMethodReply && input.eventSequence >= 0 && input.attendeeVersion >= 1
+	return input.kind == CalendarMailDeliveryKindReply && input.organizerID == uuid.Nil && input.method == CalendarMailDeliveryMethodReply &&
+		input.eventSequence >= 0 && input.attendeeVersion >= 1 && len(message.Attendees) == 1
+}
+
+func calendarMailDeliveryMethodFromITIP(value ical.ITIPMethod) CalendarMailDeliveryMethod {
+	switch value {
+	case ical.ITIPMethodRequest:
+		return CalendarMailDeliveryMethodRequest
+	case ical.ITIPMethodCancel:
+		return CalendarMailDeliveryMethodCancel
+	case ical.ITIPMethodReply:
+		return CalendarMailDeliveryMethodReply
+	default:
+		return ""
+	}
+}
+
+func calendarMailDeliveryCanonicalITIPMessage(value ical.ITIPMessage) (ical.ITIPMessage, ical.ITIPIdentity, bool) {
+	normalized, err := ical.NormalizeITIPMessage(value)
+	if err != nil {
+		return ical.ITIPMessage{}, ical.ITIPIdentity{}, false
+	}
+	identity, err := ical.CanonicalITIPIdentity(normalized)
+	if err != nil {
+		return ical.ITIPMessage{}, ical.ITIPIdentity{}, false
+	}
+	return calendarMailDeliveryITIPMessageCopy(normalized), identity, true
+}
+
+func calendarMailDeliveryMessageHasAttendee(message ical.ITIPMessage, email string) bool {
+	for _, attendee := range message.Attendees {
+		if attendee.Email == email {
+			return true
+		}
+	}
+	return false
+}
+
+func calendarMailDeliveryITIPMessageCopy(value ical.ITIPMessage) ical.ITIPMessage {
+	result := value
+	if value.Temporal.Timed != nil {
+		timed := *value.Temporal.Timed
+		result.Temporal.Timed = &timed
+	}
+	if value.Temporal.AllDay != nil {
+		allDay := *value.Temporal.AllDay
+		result.Temporal.AllDay = &allDay
+	}
+	if value.Attendees != nil {
+		result.Attendees = append([]ical.ITIPParticipant(nil), value.Attendees...)
+	}
+	if value.EXDates != nil {
+		result.EXDates = append([]ical.ITIPRecurrenceID(nil), value.EXDates...)
+	}
+	if value.RecurrenceID != nil {
+		recurrenceID := *value.RecurrenceID
+		result.RecurrenceID = &recurrenceID
+	}
+	return result
 }
 
 func validCalendarMailDeliveryRecurrenceID(value string) bool {
@@ -550,6 +658,7 @@ func calendarMailDeliveryRecipientCopy(value EngineAddress) (EngineAddress, bool
 }
 
 func calendarMailDeliveryClaimCopy(claim CalendarMailDeliveryClaim) CalendarMailDeliveryClaim {
+	claim.materialization.message = calendarMailDeliveryITIPMessageCopy(claim.materialization.message)
 	return claim
 }
 
