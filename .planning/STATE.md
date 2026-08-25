@@ -68,6 +68,20 @@ mail_calendar_draft_engine_bridge_2026_08_25: >-
   repository transitions and production Calendar draft state machine remain pending. Compile,
   tests, generation, migration/SQL, formatting/lint, Docker and runtime remain NOT_RUN; this is
   not readiness acceptance.
+mail_calendar_draft_repository_abi_2026_08_25: >-
+  SOURCE_CONTRACT_AUTHORED / INDEPENDENT_CONTRACT_AND_SECURITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for private provider-neutral Calendar draft-create repository ABI blob
+  `8ce74342a35c7495afa28d51474f3dff116e1910` in
+  `backend/internal/mail/mailbox_draft_calendar_create_repository.go`. The content-free
+  capability freezes exact reserve, upload-to-import, bounded due-restart, exact
+  blob-not-found restart and abandonment transitions. Every request carries the complete
+  account fence plus exact draft, mutation, attempt, binding and stable hash identity needed
+  for adapter CAS; upload handoffs are bounded and mutation/binding rotation is mandatory for
+  attempts two and three. Database time owns retry due checks, no raw MIME/iTIP crosses this
+  ABI, the global `MailboxDraftRepository` remains unchanged, and no production adapter asserts
+  the capability. Generated Ent read/write, migration/SQL, concrete CAS implementation,
+  Calendar-owned recovery/reconciliation and production wiring remain Q47-blocked. Compile,
+  tests, formatting/lint, Docker and runtime remain NOT_RUN; this is not readiness acceptance.
 mail_calendar_outbound_mime_part_2026_08_25: >-
   STATIC_IMPLEMENTED / STATIC_ACCEPTED only for the sealed outbound calendar
   part, private planner/stream and private calendar-only RFC822 UploadBlob seam
