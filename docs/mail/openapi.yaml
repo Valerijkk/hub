@@ -627,6 +627,30 @@ paths:
         "422": {$ref: "#/components/responses/Error"}
         "423": {$ref: "#/components/responses/MailAccountBusy"}
         "503": {$ref: "#/components/responses/Error"}
+  /mail/drafts/{draftId}/send:
+    parameters:
+      - {$ref: "#/components/parameters/DraftId"}
+    post:
+      tags: [MailDrafts]
+      operationId: sendMailDraft
+      x-hub-authz: mailbox-owner
+      description: >-
+        Creates or exactly replays one durable send intent for the quoted draft revision. The request
+        accepts no query, body, or Content-Type and performs no provider operation. A 202 response is a
+        durable receipt, not confirmation that delivery or sent-message projection has completed.
+      parameters:
+        - {$ref: "#/components/parameters/MailSubmissionIdempotencyKey"}
+        - {$ref: "#/components/parameters/IfMatch"}
+      responses:
+        "202":
+          description: New or exactly replayed durable submission receipt
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailSubmission"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/MailSubmissionConflict"}
+        "503": {$ref: "#/components/responses/Error"}
   /mail/attachments/presign:
     post:
       tags: [MailAttachments]
@@ -1905,6 +1929,12 @@ components:
       required: true
       description: UTF-8 control-free key of 1 through 128 bytes, kept identical for every retry of one immutable draft-create intent
       schema: {type: string, minLength: 1, maxLength: 128, x-hub-max-utf8-bytes: 128}
+    MailSubmissionIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Exactly one UTF-8 control-free key of 1 through 128 bytes, kept identical for every retry of one immutable draft-send intent
+      schema: {type: string, minLength: 1, maxLength: 128, x-hub-max-utf8-bytes: 128}
     MailMutationIdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -2949,19 +2979,19 @@ components:
       required: [id, status, message_id, error_code, created_at, updated_at]
       properties:
         id: {type: string, format: uuid}
-        status: {type: string, enum: [queued, submitting, sent, unknown, failed]}
+        status: {type: string, enum: [queued, authorizing, submitting, unknown, accepted, sent, failed]}
         message_id:
           type: [string, "null"]
           format: uuid
           description: Hub MailMessage projection UUID; never an opaque engine message identifier
         error_code:
           type: [string, "null"]
-          enum: [MAIL_SUBMISSION_REJECTED, MAIL_SUBMISSION_OUTCOME_UNKNOWN, MAIL_SUBMISSION_RECONCILIATION_REQUIRED, MAIL_SUBMISSION_POLICY, MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN, MAIL_SUBMISSION_IDENTITY_UNAVAILABLE, MAIL_SUBMISSION_RECIPIENT_LIMIT, MAIL_SUBMISSION_SIZE_LIMIT, MAILBOX_UNAVAILABLE, null]
+          enum: [MAIL_SUBMISSION_REJECTED, MAIL_SUBMISSION_OUTCOME_UNKNOWN, MAIL_SUBMISSION_RECONCILIATION_REQUIRED, MAIL_SUBMISSION_POLICY, MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN, MAIL_SUBMISSION_IDENTITY_UNAVAILABLE, MAIL_SUBMISSION_RECIPIENT_LIMIT, MAIL_SUBMISSION_SIZE_LIMIT, MAIL_SUBMISSION_RETRY_EXHAUSTED, MAILBOX_UNAVAILABLE, null]
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
       allOf:
         - if:
-            properties: {status: {enum: [queued, submitting]}}
+            properties: {status: {enum: [queued, authorizing, submitting, accepted]}}
             required: [status]
           then:
             properties:
@@ -2987,7 +3017,7 @@ components:
           then:
             properties:
               message_id: {const: null}
-              error_code: {enum: [MAIL_SUBMISSION_REJECTED, MAIL_SUBMISSION_POLICY, MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN, MAIL_SUBMISSION_IDENTITY_UNAVAILABLE, MAIL_SUBMISSION_RECIPIENT_LIMIT, MAIL_SUBMISSION_SIZE_LIMIT, MAILBOX_UNAVAILABLE]}
+              error_code: {enum: [MAIL_SUBMISSION_REJECTED, MAIL_SUBMISSION_POLICY, MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN, MAIL_SUBMISSION_IDENTITY_UNAVAILABLE, MAIL_SUBMISSION_RECIPIENT_LIMIT, MAIL_SUBMISSION_SIZE_LIMIT, MAIL_SUBMISSION_RETRY_EXHAUSTED]}
     PresignAttachmentRequest:
       type: object
       additionalProperties: false

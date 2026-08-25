@@ -1,5 +1,18 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Durable draft send HTTP boundary
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`POST /api/mail/drafts/:draftId/send` now exposes only the durable submission reservation. The
+authenticated request has no query, body or Content-Type and requires exactly one normalized
+control-free `Idempotency-Key` plus one quoted `If-Match` revision; repeated required headers fail
+before service access. One `CreateMailboxSubmission` call returns `202 Accepted` for both a new intent
+and an exact replay. The response contains only the safe Hub receipt, and closed 400/404/409/503
+mapping never surfaces provider or storage state. OpenAPI now includes the route and current public
+status/error unions. Server wiring, executable tests, build, lint/gofmt, Docker and runtime remain
+pending or `NOT_RUN`.
+
 ## 2026-08-25 - Deterministic accepted-submission sent event
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

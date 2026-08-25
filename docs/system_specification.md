@@ -508,6 +508,11 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   correlates by submission, uses the durable dispatch-authorization time as `occurred_at`, and keeps
   the provider-confirmed `sent_at`. Its visible `to` is the exact projection value, including an
   explicit empty array for CC/BCC-only mail; private recipients are never synthesized into it.
+  `POST /api/mail/drafts/{draftId}/send` is the authenticated durable-send boundary. It accepts no
+  query, body, or Content-Type and requires exactly one control-free `Idempotency-Key` plus one quoted
+  draft revision in `If-Match`. It performs one owner-scoped submission reservation and always returns
+  the safe durable receipt with `202 Accepted`, including an exact replay; provider dispatch remains a
+  worker concern. The handler and OpenAPI are source-accepted, while server wiring remains pending.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals
