@@ -1265,8 +1265,20 @@ provisional attempt count is restored, but `command_fence` never decreases or re
 Inside that same locked database transaction, a missing organization-instance or user bucket is
 lazily initialized at database time. A policy rate update locks its affected buckets and clamps
 their tokens to the new per-user or instance-wide cap in the same transaction. No deployment or
-global bucket is valid. These future rate debit/refill/claim transitions are not implemented by
-this schema packet.
+global bucket is valid.
+
+`EvaluateMailboxSubmissionRateLimit` is an authored pure, provider-neutral adapter for this
+future locked authorization transaction. It accepts only caller-resolved time, capacities and
+organization/user durable states; reuses the existing refill and conservative retry semantics;
+and performs no clock read, I/O, locking or persistence. A fully zero state is the sole missing
+row representation and is returned directly in its final decision state at version 1. An
+existing row advances at most once, and only if its final persisted tokens, refill timestamp or
+fractional remainder changed. The two scopes debit together or not at all; denial returns a
+canonical UTC retry time and no sync backoff.
+
+The actual Ent lock/CAS, claim transition and durable rate debit remain `NOT_IMPLEMENTED`;
+generated Ent, migrations, focused tests, Docker and runtime remain `NOT_GENERATED` /
+`NOT_MIGRATED` / `NOT_RUN`.
 
 A future service may enter `accepted` only after persisting the provider pair and authorization
 proof. It may enter `sent` only in the same transaction that maps `provider_message_id` to an

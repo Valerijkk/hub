@@ -1,5 +1,20 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Pure dual-scope submission rate-state adapter
+
+SOURCE_AUTHORED_STATIC_ONLY / NOT_RUN.
+
+`EvaluateMailboxSubmissionRateLimit` adapts the existing provider-neutral refill and conservative
+retry semantics to organization-instance and user submission buckets. It validates caller-resolved
+state, initializes only a fully zero missing row, clamps capacity reductions, and permits one token
+debit from each scope only when both are available. A denied decision debits neither scope and
+returns the later empty bucket's whole-second UTC retry time.
+
+The adapter models one final persisted CAS state per bucket: a missing row starts at version 1 with
+its final tokens, while an existing row increments at most once and only when its final persisted
+state changes. Ent locking/CAS, persistence, workers, focused test execution, Docker and runtime
+evidence remain NOT_IMPLEMENTED / NOT_RUN.
+
 ## 2026-08-25 - Concrete read-only engine submission preflight
 
 SOURCE_IMPLEMENTED_STATIC_ONLY / NOT_RUN.
