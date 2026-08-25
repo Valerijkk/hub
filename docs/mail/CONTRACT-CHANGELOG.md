@@ -1,5 +1,16 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Calendar reply delivery lifecycle
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`CalendarReplyDelivery` now owns a mutable token/deadline/generation claim fence, bounded attempts,
+`superseded`, a partial due index and an optional `MailSubmission` edge with `NO ACTION`. Fresh reply
+intents may sleep until outbox wake; submitting is unbound claim-before-bind, unknown/sent are bound,
+and retry exhaustion is valid only at attempt 8. No raw iTIP/content/address/provider/error detail is
+stored. Generated Ent, migration/SQL, executable tests, build, lint/gofmt, Docker and runtime remain
+`NOT_RUN`; consumer, service, worker and production composition are separate.
+
 ## 2026-08-25 - Calendar invite delivery durability schema
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

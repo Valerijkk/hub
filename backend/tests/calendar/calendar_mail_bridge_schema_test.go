@@ -2,8 +2,10 @@ package calendar_test
 
 import (
 	"crypto/sha256"
+	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"entgo.io/ent"
@@ -94,8 +96,8 @@ func TestCalendarInboundMessageReceipt_SchemaContract(t *testing.T) {
 func TestCalendarReplyDelivery_SchemaContract(t *testing.T) {
 	fields := mailBridgeFieldDescriptors((entschema.CalendarReplyDelivery{}).Fields())
 	mailBridgeAssertExactNames(t, "CalendarReplyDelivery fields", mailBridgeMapKeys(fields), []string{
-		"attempts", "attendee_version", "calendar_attendee_id", "calendar_event_id", "created_at", "event_sequence", "id",
-		"last_error_code", "mail_submission_id", "next_attempt_at", "recurrence_id", "rsvp_status", "state", "updated_at",
+		"attempts", "attendee_version", "calendar_attendee_id", "calendar_event_id", "claim_generation", "created_at", "event_sequence", "id",
+		"last_error_code", "lease_token", "lease_until", "mail_submission_id", "next_attempt_at", "recurrence_id", "rsvp_status", "state", "updated_at",
 	})
 
 	for _, name := range []string{"id", "calendar_event_id", "calendar_attendee_id"} {
@@ -107,26 +109,52 @@ func TestCalendarReplyDelivery_SchemaContract(t *testing.T) {
 	}
 	mailBridgeAssertIntMinimum(t, "event_sequence", fields["event_sequence"], 0)
 	mailBridgeAssertIntMinimum(t, "attendee_version", fields["attendee_version"], 1)
+	mailBridgeAssertIntBounds(t, "attempts", fields["attempts"], 0, 8)
+	mailBridgeAssertInt64Bounds(t, "claim_generation", fields["claim_generation"], 0, 2147483647)
+	mailBridgeAssertDefault(t, "claim_generation", fields["claim_generation"], int64(0))
+	mailBridgeAssertFieldType(t, "lease_token", fields["lease_token"], field.TypeUUID)
+	mailBridgeAssertFieldType(t, "lease_until", fields["lease_until"], field.TypeTime)
 	mailBridgeAssertStringMax(t, "recurrence_id", fields["recurrence_id"], 255, true)
 	mailBridgeAssertImmutable(t, "recurrence_id", fields["recurrence_id"])
 	mailBridgeAssertEnumValues(t, "rsvp_status", fields["rsvp_status"], []string{"accepted", "declined", "tentative"})
 	mailBridgeAssertImmutable(t, "rsvp_status", fields["rsvp_status"])
-	mailBridgeAssertEnumValues(t, "state", fields["state"], []string{"pending", "submitting", "unknown", "sent", "failed_permanent"})
+	mailBridgeAssertEnumValues(t, "state", fields["state"], []string{"pending", "submitting", "unknown", "sent", "superseded", "failed_permanent"})
 	mailBridgeAssertEnumValues(t, "last_error_code", fields["last_error_code"], []string{
 		"mailbox_unavailable", "engine_unavailable", "submission_rejected", "submission_outcome_unknown", "invalid_recipient",
 		"policy_denied", "retry_exhausted", "internal_error",
 	})
-	mailBridgeAssertIntMinimum(t, "attempts", fields["attempts"], 0)
-	for _, name := range []string{"mail_submission_id", "next_attempt_at", "last_error_code"} {
+	for _, name := range []string{"mail_submission_id", "lease_token", "lease_until", "next_attempt_at", "last_error_code"} {
 		mailBridgeAssertOptionalNillable(t, name, fields[name])
 	}
 	mailBridgeAssertImmutable(t, "created_at", fields["created_at"])
+	mailBridgeAssertChecks(t, (entschema.CalendarReplyDelivery{}).Annotations(), map[string]string{
+		"calendar_reply_deliveries_attempts_bounds":        "attempts >= 0 AND attempts <= 8",
+		"calendar_reply_deliveries_lease_pair":              "COALESCE((lease_token IS NULL) = (lease_until IS NULL), FALSE)",
+		"calendar_reply_deliveries_claim_generation_bounds": "claim_generation >= 0 AND claim_generation <= 2147483647",
+		"calendar_reply_deliveries_state_shape": "COALESCE((state = 'pending' AND lease_token IS NULL AND lease_until IS NULL AND mail_submission_id IS NULL AND ((attempts = 0 AND last_error_code IS NULL) OR (attempts BETWEEN 1 AND 8 AND next_attempt_at IS NOT NULL AND last_error_code IN ('mailbox_unavailable','engine_unavailable','internal_error')))) OR (state = 'submitting' AND lease_token IS NOT NULL AND lease_until IS NOT NULL AND mail_submission_id IS NULL AND claim_generation >= 1 AND attempts BETWEEN 1 AND 8 AND next_attempt_at IS NULL AND last_error_code IS NULL) OR (state = 'unknown' AND lease_token IS NULL AND lease_until IS NULL AND mail_submission_id IS NOT NULL AND attempts BETWEEN 1 AND 8 AND next_attempt_at IS NOT NULL AND last_error_code IN ('mailbox_unavailable','engine_unavailable','submission_outcome_unknown')) OR (state = 'sent' AND lease_token IS NULL AND lease_until IS NULL AND mail_submission_id IS NOT NULL AND attempts BETWEEN 1 AND 8 AND next_attempt_at IS NULL AND last_error_code IS NULL) OR (state = 'superseded' AND lease_token IS NULL AND lease_until IS NULL AND mail_submission_id IS NULL AND next_attempt_at IS NULL AND last_error_code IS NULL) OR (state = 'failed_permanent' AND lease_token IS NULL AND lease_until IS NULL AND attempts BETWEEN 1 AND 8 AND next_attempt_at IS NULL AND last_error_code IN ('submission_rejected','invalid_recipient','policy_denied','retry_exhausted') AND (last_error_code <> 'retry_exhausted' OR attempts = 8)), FALSE)",
+	})
 	mailBridgeAssertUniqueIndex(t, (entschema.CalendarReplyDelivery{}).Indexes(), []string{"calendar_attendee_id", "event_sequence", "attendee_version"})
+	mailBridgeAssertPartialIndex(t, (entschema.CalendarReplyDelivery{}).Indexes(), []string{"next_attempt_at", "id"}, "state IN ('pending','unknown') AND next_attempt_at IS NOT NULL")
 
 	edges := mailBridgeEdgeDescriptors((entschema.CalendarReplyDelivery{}).Edges())
-	mailBridgeAssertExactNames(t, "CalendarReplyDelivery edges", mailBridgeMapKeys(edges), []string{"attendee", "event"})
+	mailBridgeAssertExactNames(t, "CalendarReplyDelivery edges", mailBridgeMapKeys(edges), []string{"attendee", "event", "mail_submission"})
 	mailBridgeAssertEdge(t, "event", edges["event"], false, true, true, "calendar_event_id", "", entsql.NoAction)
 	mailBridgeAssertEdge(t, "attendee", edges["attendee"], false, true, true, "calendar_attendee_id", "", entsql.NoAction)
+	mailBridgeAssertEdge(t, "mail_submission", edges["mail_submission"], false, true, false, "mail_submission_id", "", entsql.NoAction)
+
+	source, err := os.ReadFile("../../ent/schema/calendarreplydelivery.go")
+	if err != nil {
+		t.Fatalf("read CalendarReplyDelivery schema: %v", err)
+	}
+	for _, forbidden := range []string{
+		"itip", "field.string(\"body\")", "field.bytes(\"body\")", "field.string(\"payload\")", "field.bytes(\"payload\")",
+		"field.string(\"title\")", "field.string(\"description\")", "field.string(\"normalized_email\")", "field.string(\"address\")",
+		"field.string(\"last_error\")", "provider_", "engine_version", "field.string(\"organizer\")", "field.string(\"from\")",
+	} {
+		if strings.Contains(strings.ToLower(string(source)), forbidden) {
+			t.Fatalf("CalendarReplyDelivery must not persist %q", forbidden)
+		}
+	}
 }
 
 func TestCalendarMailBridge_InverseEdgesPreserveDurableRecords(t *testing.T) {
@@ -201,6 +229,50 @@ func mailBridgeAssertIntMinimum(t *testing.T, name string, descriptor *field.Des
 		if got, want := mailBridgeIntValidatorsAccept(descriptor.Validators, value), value >= minimum; got != want {
 			t.Fatalf("%s accepts %d = %t, want %t", name, value, got, want)
 		}
+	}
+}
+
+func mailBridgeAssertIntBounds(t *testing.T, name string, descriptor *field.Descriptor, minimum, maximum int) {
+	t.Helper()
+	if descriptor == nil || descriptor.Info == nil || descriptor.Info.Type != field.TypeInt {
+		t.Fatalf("%s must be an int field", name)
+	}
+	for _, value := range []int{minimum - 1, minimum, maximum, maximum + 1} {
+		if got, want := mailBridgeIntValidatorsAccept(descriptor.Validators, value), value >= minimum && value <= maximum; got != want {
+			t.Fatalf("%s accepts %d = %t, want %t", name, value, got, want)
+		}
+	}
+}
+
+func mailBridgeAssertInt64Bounds(t *testing.T, name string, descriptor *field.Descriptor, minimum, maximum int64) {
+	t.Helper()
+	if descriptor == nil || descriptor.Info == nil || descriptor.Info.Type != field.TypeInt64 {
+		t.Fatalf("%s must be an int64 field", name)
+	}
+	for _, value := range []int64{minimum - 1, minimum, maximum, maximum + 1} {
+		valid := true
+		for _, rawValidator := range descriptor.Validators {
+			if validator, ok := rawValidator.(func(int64) error); ok && validator(value) != nil {
+				valid = false
+			}
+		}
+		if want := value >= minimum && value <= maximum; valid != want {
+			t.Fatalf("%s accepts %d = %t, want %t", name, value, valid, want)
+		}
+	}
+}
+
+func mailBridgeAssertDefault(t *testing.T, name string, descriptor *field.Descriptor, want any) {
+	t.Helper()
+	if descriptor == nil || !reflect.DeepEqual(descriptor.Default, want) {
+		t.Fatalf("%s default = %#v, want %#v", name, descriptor.Default, want)
+	}
+}
+
+func mailBridgeAssertFieldType(t *testing.T, name string, descriptor *field.Descriptor, want field.Type) {
+	t.Helper()
+	if descriptor == nil || descriptor.Info == nil || descriptor.Info.Type != want {
+		t.Fatalf("%s type = %#v, want %v", name, descriptor, want)
 	}
 }
 
@@ -291,6 +363,23 @@ func mailBridgeAssertUniquePartialIndex(t *testing.T, indexes []ent.Index, wantF
 		t.Fatalf("partial index over %v missing WHERE %q", wantFields, wantWhere)
 	}
 	t.Fatalf("missing partial unique index over %v", wantFields)
+}
+
+func mailBridgeAssertPartialIndex(t *testing.T, indexes []ent.Index, wantFields []string, wantWhere string) {
+	t.Helper()
+	for _, schemaIndex := range indexes {
+		descriptor := schemaIndex.Descriptor()
+		if !reflect.DeepEqual(descriptor.Fields, wantFields) {
+			continue
+		}
+		for _, annotation := range descriptor.Annotations {
+			if sqlAnnotation, ok := annotation.(*entsql.Annotation); ok && sqlAnnotation.IndexWhere == wantWhere {
+				return
+			}
+		}
+		t.Fatalf("partial index over %v missing WHERE %q", wantFields, wantWhere)
+	}
+	t.Fatalf("missing partial index over %v", wantFields)
 }
 
 func mailBridgeAssertEdge(t *testing.T, name string, descriptor *edge.Descriptor, inverse, unique, required bool, fieldName, refName string, onDelete any) {
