@@ -44,11 +44,10 @@ func ExportVerifyWebhookSignature(h *Handler, authHeader string, body []byte) bo
 	return h.verifyWebhookSignature(authHeader, body)
 }
 
-// ExportFinalizeCreate выдаёт токен создателю и регистрирует участника для hubtest.
-func ExportFinalizeCreate(ctx context.Context, room *CallRoomService, repo *EntRepository, callEnt *ent.Call, userID uuid.UUID, userName string) (*CallResponse, error) {
-	return finalizeCreate(ctx, room, repo, callEnt, userID, userName)
+// ExportFinalizeCreate issues the creator credential and registers its participant for hubtest.
+func ExportFinalizeCreate(ctx context.Context, provider ConferenceProvider, repo *EntRepository, callEnt *ent.Call, userID uuid.UUID, userName string) (*CallResponse, error) {
+	return finalizeCreate(ctx, provider, repo, callEnt, userID, userName)
 }
-
 // ExportResolveParticipant находит звонок и парсит identity webhook для hubtest.
 func ExportResolveParticipant(ctx context.Context, repo *EntRepository, roomName, identity string) (*ent.Call, uuid.UUID, error) {
 	return resolveParticipant(ctx, repo, roomName, identity)
@@ -64,11 +63,10 @@ func ExportMaxActiveRecordingsPerCall() int {
 	return maxActiveRecordingsPerCall
 }
 
-// ExportNewCallServiceForTest создаёт CallService с заданными зависимостями для hubtest.
-func ExportNewCallServiceForTest(repo *EntRepository, room *CallRoomService, pub *CallEventPublisher, chat *CallChatService) *CallService {
-	return &CallService{repo: repo, room: room, pub: pub, chat: chat}
+// ExportNewCallServiceWithProviderForTest creates CallService with an injected provider for hubtest.
+func ExportNewCallServiceWithProviderForTest(repo *EntRepository, provider ConferenceProvider, pub *CallEventPublisher, chat *CallChatService) *CallService {
+	return &CallService{repo: repo, provider: provider, pub: pub, chat: chat}
 }
-
 // ExportNewHandlerForTest создаёт Handler с полным набором зависимостей для hubtest.
 func ExportNewHandlerForTest(service *CallService, recSvc *RecordingService, scheduledSvc *ScheduledCallService, cfg config.LiveKitConfig, rbacSvc *rbac.RBACService) *Handler {
 	return &Handler{service: service, recSvc: recSvc, scheduledSvc: scheduledSvc, cfg: cfg, rbacSvc: rbacSvc}
@@ -119,10 +117,6 @@ func ExportCallServiceRepo(s *CallService) *EntRepository {
 	return s.repo
 }
 
-// ExportCallServiceRoom возвращает CallRoomService из CallService для hubtest.
-func ExportCallServiceRoom(s *CallService) *CallRoomService {
-	return s.room
-}
 
 // ExportCallServicePub возвращает CallEventPublisher из CallService для hubtest.
 func ExportCallServicePub(s *CallService) *CallEventPublisher {
@@ -134,10 +128,6 @@ func ExportCallServiceChat(s *CallService) *CallChatService {
 	return s.chat
 }
 
-// ExportCallServiceSetRoom подменяет CallRoomService в CallService для hubtest.
-func ExportCallServiceSetRoom(s *CallService, room *CallRoomService) {
-	s.room = room
-}
 
 // ExportCallServiceSetChat подменяет CallChatService в CallService для hubtest.
 func ExportCallServiceSetChat(s *CallService, chat *CallChatService) {
@@ -199,10 +189,6 @@ func ExportRecordingServicePresignClient(s *RecordingService) *s3.PresignClient 
 	return s.presignClient
 }
 
-// ExportCallRoomServiceCfg возвращает LiveKit-конфиг из CallRoomService для hubtest.
-func ExportCallRoomServiceCfg(room *CallRoomService) config.LiveKitConfig {
-	return room.cfg
-}
 
 // ExportNewCallEventPublisherWithEventPublisher creates a CallEventPublisher
 // with an isolated EventPublisher for hubtest producer assertions.
@@ -331,13 +317,14 @@ func ExportUserNameFromCtx(c fiber.Ctx) string {
 	return userNameFromCtx(c)
 }
 
-// ExportGenerateGuestToken генерирует JWT для гостевого входа для hubtest.
-// Использует cfg хендлера (ExportNewHandlerWithCfg не поднимает CallService).
+// ExportGenerateGuestToken generates a LiveKit join credential for hubtest compatibility.
 func ExportGenerateGuestToken(h *Handler, roomName, identity, name string) (string, error) {
-	room := &CallRoomService{cfg: h.cfg}
-	return room.GenerateToken(roomName, identity, name)
+	credential, err := NewLiveKitConferenceProvider(h.cfg).IssueJoinCredential(roomName, identity, name)
+	if err != nil {
+		return "", err
+	}
+	return credential.Token, nil
 }
-
 type ExportMongoChatStore struct {
 	inner *mongoChatStore
 }

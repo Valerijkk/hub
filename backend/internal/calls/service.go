@@ -56,13 +56,13 @@ const maxCallTitleRunes = 255
 const maxGuestNameRunes = 100
 
 // CallService — тонкий orchestrator модуля звонков (SC-14-2).
-// Делегирует LiveKit → CallRoomService, NATS → CallEventPublisher,
+// Делегирует конференции → ConferenceProvider, NATS → CallEventPublisher,
 // чат → CallChatService, БД → EntRepository.
 type CallService struct {
-	repo *EntRepository
-	room *CallRoomService
-	pub  *CallEventPublisher
-	chat *CallChatService
+	repo     *EntRepository
+	provider ConferenceProvider
+	pub      *CallEventPublisher
+	chat     *CallChatService
 
 	// createCall — hubtest override CreateCall DB (A3W3-A5-001 mutation).
 	createCall func(ctx context.Context, roomName string, channelID, createdBy uuid.UUID) (*ent.Call, error)
@@ -70,20 +70,29 @@ type CallService struct {
 	createInstantCall func(ctx context.Context, roomName string, createdBy uuid.UUID, inviteCode, title string) (*ent.Call, error)
 }
 
-// NewCallService собирает orchestrator. Сигнатура зафиксирована (cmd/server/main.go).
+// NewCallService preserves the LiveKit constructor boundary while server wiring migrates to the provider factory.
 func NewCallService(cfg config.LiveKitConfig, repo *EntRepository, nc *natsclient.Client, chatRepo *ChatRepository) *CallService {
+	return NewCallServiceWithProvider(NewLiveKitConferenceProvider(cfg), repo, nc, chatRepo)
+}
+
+// NewCallServiceWithProvider constructs the calls orchestrator with the supplied conference provider.
+func NewCallServiceWithProvider(provider ConferenceProvider, repo *EntRepository, nc *natsclient.Client, chatRepo *ChatRepository) *CallService {
 	pub := NewCallEventPublisher(nc)
 	return &CallService{
-		repo: repo,
-		room: NewCallRoomService(cfg),
-		pub:  pub,
-		chat: NewCallChatService(repo, chatRepo, pub),
+		repo:     repo,
+		provider: provider,
+		pub:      pub,
+		chat:     NewCallChatService(repo, chatRepo, pub),
 	}
 }
 
-// GenerateToken — JWT для подключения к комнате LiveKit.
+// GenerateToken возвращает credential token для подключения к комнате конференции.
 func (s *CallService) GenerateToken(roomName, userID, userName string) (string, error) {
-	return s.room.GenerateToken(roomName, userID, userName)
+	credential, err := s.provider.IssueJoinCredential(roomName, userID, userName)
+	if err != nil {
+		return "", err
+	}
+	return credential.Token, nil
 }
 
 // CreateCall создаёт звонок в канале (room + БД + участник + событие старта).
@@ -96,7 +105,7 @@ func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUI
 	if !isMember {
 		return nil, ErrCallForbidden
 	}
-	roomName, err := provisionRoom(ctx, s.room)
+	roomName, err := provisionRoom(ctx, s.provider)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +115,7 @@ func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUI
 		s.deleteRoomBestEffort(ctx, roomName, "CreateCall: не удалось удалить orphan-комнату после ошибки БД")
 		return nil, fmt.Errorf("не удалось сохранить звонок: %w", err)
 	}
-	resp, err := finalizeCreate(ctx, s.room, s.repo, callEnt, userID, userName)
+	resp, err := finalizeCreate(ctx, s.provider, s.repo, callEnt, userID, userName)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +134,7 @@ func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, u
 	if utf8.RuneCountInString(title) > maxCallTitleRunes {
 		return nil, ErrInvalidInput
 	}
-	roomName, err := provisionRoom(ctx, s.room)
+	roomName, err := provisionRoom(ctx, s.provider)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +150,7 @@ func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, u
 		s.deleteRoomBestEffort(ctx, roomName, "CreateInstantCall: не удалось удалить orphan-комнату после ошибки БД")
 		return nil, fmt.Errorf("не удалось сохранить звонок: %w", err)
 	}
-	resp, err := finalizeCreate(ctx, s.room, s.repo, callEnt, userID, userName)
+	resp, err := finalizeCreate(ctx, s.provider, s.repo, callEnt, userID, userName)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +176,7 @@ func (s *CallService) persistInstantCall(ctx context.Context, roomName string, c
 
 // deleteRoomBestEffort — best-effort DeleteRoom после провала post-provision (A3W3-A5-001).
 func (s *CallService) deleteRoomBestEffort(ctx context.Context, roomName, logMsg string) {
-	if delErr := s.room.DeleteRoom(ctx, roomName); delErr != nil {
+	if delErr := s.provider.Delete(ctx, roomName); delErr != nil {
 		slog.Error(logMsg, "room", roomName, "error", delErr)
 	}
 }
@@ -184,7 +193,7 @@ func (s *CallService) JoinByInviteCode(ctx context.Context, code string, userID 
 	if err := s.repo.AddParticipant(ctx, callEnt.ID, userID); err != nil {
 		return nil, fmt.Errorf("не удалось добавить участника: %w", err)
 	}
-	token, err := s.room.GenerateToken(callEnt.RoomName, userID.String(), userName)
+	token, err := s.GenerateToken(callEnt.RoomName, userID.String(), userName)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось сгенерировать токен: %w", err)
 	}
@@ -206,15 +215,15 @@ func (s *CallService) GuestJoin(ctx context.Context, inviteCode, guestName strin
 	if callEnt.Status != "active" {
 		return nil, ErrCallNotFound
 	}
-	_, token, err := s.room.GenerateGuestToken(callEnt.RoomName, guestName)
+	credential, err := s.provider.IssueGuestCredential(callEnt.RoomName, guestName)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось сгенерировать гостевой токен: %w", err)
 	}
 	return &GuestJoinResponse{
 		ID:         callEnt.ID,
 		RoomName:   callEnt.RoomName,
-		Token:      token,
-		LivekitURL: s.room.cfg.URL,
+		Token:      credential.Join.Token,
+		LivekitURL: credential.Join.ServiceURL,
 	}, nil
 }
 
@@ -242,7 +251,7 @@ func (s *CallService) JoinCall(ctx context.Context, callID, userID uuid.UUID, us
 	if err := s.repo.AddParticipant(ctx, callID, userID); err != nil {
 		return nil, fmt.Errorf("не удалось добавить участника: %w", err)
 	}
-	token, err := s.room.GenerateToken(callEnt.RoomName, userID.String(), userName)
+	token, err := s.GenerateToken(callEnt.RoomName, userID.String(), userName)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось сгенерировать токен: %w", err)
 	}
@@ -281,7 +290,7 @@ func (s *CallService) EndCall(ctx context.Context, callID, userID uuid.UUID) err
 			return ErrCallForbidden
 		}
 	}
-	if delErr := s.room.DeleteRoom(ctx, callEnt.RoomName); delErr != nil {
+	if delErr := s.provider.Delete(ctx, callEnt.RoomName); delErr != nil {
 		slog.Error("не удалось удалить комнату LiveKit", "room", callEnt.RoomName, "error", delErr)
 	}
 	if err := s.repo.UpdateCallEnded(ctx, callID, time.Now(), callEnt.ParticipantCount); err != nil {
@@ -333,10 +342,10 @@ func (s *CallService) RaiseHand(ctx context.Context, callID, userID uuid.UUID, r
 	return s.SetRaiseHand(ctx, callEnt.RoomName, userID.String(), raised)
 }
 
-// SetRaiseHand обновляет LiveKit-метаданные участника ("поднять руку").
+// SetRaiseHand обновляет provider-specific состояние участника ("поднять руку").
 func (s *CallService) SetRaiseHand(ctx context.Context, roomName, identity string, raised bool) error {
 	meta := fmt.Sprintf(`{"hand_raised":%v,"raised_at":"%s"}`, raised, time.Now().Format(time.RFC3339))
-	return s.room.UpdateParticipantMetadata(ctx, roomName, identity, meta)
+	return s.provider.UpdateParticipantState(ctx, roomName, identity, meta)
 }
 
 // OnRoomStarted — webhook room_started от LiveKit.
