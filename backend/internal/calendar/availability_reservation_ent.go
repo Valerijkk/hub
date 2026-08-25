@@ -297,13 +297,14 @@ func calendarAvailabilityReservationOccurrencesMatch(actual []availabilityOccurr
 	}
 	byKey := make(map[string]availabilityOccurrence, len(actual))
 	for _, occurrence := range actual {
-		if occurrence.key == "" || occurrence.from.IsZero() || occurrence.to.IsZero() || !occurrence.to.After(occurrence.from) {
+		if occurrence.key == "" || occurrence.from.IsZero() || occurrence.from.Location() != time.UTC || occurrence.to.IsZero() || !occurrence.to.After(occurrence.from) {
 			return false
 		}
-		if _, duplicate := byKey[occurrence.key]; duplicate {
+		effectiveKey := occurrence.from.UTC().Format(time.RFC3339Nano)
+		if _, duplicate := byKey[effectiveKey]; duplicate {
 			return false
 		}
-		byKey[occurrence.key] = occurrence
+		byKey[effectiveKey] = occurrence
 	}
 	for _, occurrence := range expected {
 		actualOccurrence, found := byKey[occurrence.OccurrenceKey]
