@@ -873,15 +873,15 @@ func TestFakeMailEnginePreflightSubmissionReadsExactActiveIdentityWithoutMutatio
 	if err != nil {
 		t.Fatalf("GetDraft before preflight: %v", err)
 	}
-	first, err := fake.PreflightSubmission(ctx, submission)
+	first, err := fake.PreflightSubmission(ctx, testSubmissionPreflightRequest(submission))
 	if err != nil {
 		t.Fatalf("PreflightSubmission: %v", err)
 	}
-	second, err := fake.PreflightSubmission(ctx, submission)
+	second, err := fake.PreflightSubmission(ctx, testSubmissionPreflightRequest(submission))
 	if err != nil {
 		t.Fatalf("repeated PreflightSubmission: %v", err)
 	}
-	if first.FromEmail != "sender@example.test" || first.RecipientCount != 1 || first.MessageBytes < 1 || first.BindingHash == [32]byte{} || !reflect.DeepEqual(first, second) {
+	if first.FromEmail != "sender@example.test" || first.RecipientCount != 1 || first.MessageBytes < 1 || first.BindingHash == [32]byte{} || first.PolicyBindingHash == [32]byte{} || !reflect.DeepEqual(first, second) {
 		t.Fatalf("PreflightSubmission = %#v / %#v, want stable local projection", first, second)
 	}
 	after, err := fake.GetDraft(ctx, mail.EngineDraftReadRequest{AccountID: account.AccountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, MaxContentBytes: 4096})
@@ -889,10 +889,10 @@ func TestFakeMailEnginePreflightSubmissionReadsExactActiveIdentityWithoutMutatio
 		t.Fatalf("PreflightSubmission mutated draft: before=%#v after=%#v err=%v", before, after, err)
 	}
 	fake.EnqueueFault(mail.FakeMailFault{Operation: mail.FakeMailOperationPreflightSubmission, Kind: mail.EngineErrorUnavailable})
-	if _, err := fake.PreflightSubmission(ctx, submission); !errors.Is(err, mail.ErrEngineUnavailable) {
+	if _, err := fake.PreflightSubmission(ctx, testSubmissionPreflightRequest(submission)); !errors.Is(err, mail.ErrEngineUnavailable) {
 		t.Fatalf("scripted preflight fault = %v, want unavailable", err)
 	}
-	if _, err := fake.PreflightSubmission(ctx, submission); err != nil {
+	if _, err := fake.PreflightSubmission(ctx, testSubmissionPreflightRequest(submission)); err != nil {
 		t.Fatalf("PreflightSubmission after consumed fault: %v", err)
 	}
 }
@@ -926,11 +926,137 @@ func TestFakeMailEnginePreflightSubmissionRejectsUnknownSuspendedAndMismatchedId
 			if err != nil {
 				t.Fatalf("SaveDraft: %v", err)
 			}
-			_, err = fake.PreflightSubmission(ctx, mail.EngineSubmission{AccountID: accountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submission-key", MaxMessageBytes: 4096})
+			submission := mail.EngineSubmission{AccountID: accountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submission-key", MaxMessageBytes: 4096}
+			_, err = fake.PreflightSubmission(ctx, testSubmissionPreflightRequest(submission))
 			if !errors.Is(err, mail.ErrEngineIdentityUnavailable) {
 				t.Fatalf("PreflightSubmission error = %v, want identity unavailable", err)
 			}
 		})
+	}
+}
+
+func TestFakeMailEnginePreflightSubmissionEnforcesPolicySnapshot(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	fake := newFake("account-a", "draft-message", "draft-version")
+	account, err := fake.EnsureAccount(ctx, mail.AccountSpec{
+		ProvisioningKey: "account-key",
+		LocalPart:       "sender",
+		Domain:          "example.test",
+		Enabled:         true,
+		Primary:         mail.AccountIdentitySpec{LocalPart: "sender", Domain: "example.test", Enabled: true},
+	})
+	if err != nil {
+		t.Fatalf("EnsureAccount: %v", err)
+	}
+	draft, err := fake.SaveDraft(ctx, testDraft(account.AccountID, "draft-key", "", "", "mutation-1"))
+	if err != nil {
+		t.Fatalf("SaveDraft: %v", err)
+	}
+	submission := mail.EngineSubmission{AccountID: account.AccountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submission-key", MaxMessageBytes: 4096}
+	internalOnly := testSubmissionPreflightRequest(submission)
+	internalOnly.ExternalMailEnabled = false
+	first, err := fake.PreflightSubmission(ctx, internalOnly)
+	if err != nil {
+		t.Fatalf("internal-only PreflightSubmission: %v", err)
+	}
+	second, err := fake.PreflightSubmission(ctx, internalOnly)
+	if err != nil || second != first {
+		t.Fatalf("deterministic internal-only PreflightSubmission = %#v, %v; want %#v, nil", second, err, first)
+	}
+	changedRecipients := internalOnly
+	changedRecipients.MaxRecipients = 2
+	changedRecipientResult, err := fake.PreflightSubmission(ctx, changedRecipients)
+	if err != nil || changedRecipientResult.PolicyBindingHash == first.PolicyBindingHash {
+		t.Fatalf("recipient policy hash = %#v, %v; want success with distinct binding", changedRecipientResult, err)
+	}
+	changedMaxBytes := internalOnly
+	changedMaxBytes.PolicyMaxMessageBytes = 2_097_152
+	changedMaxBytesResult, err := fake.PreflightSubmission(ctx, changedMaxBytes)
+	if err != nil || changedMaxBytesResult.PolicyBindingHash == first.PolicyBindingHash {
+		t.Fatalf("message policy hash = %#v, %v; want success with distinct binding", changedMaxBytesResult, err)
+	}
+	changedExternalMail := internalOnly
+	changedExternalMail.ExternalMailEnabled = true
+	changedExternalResult, err := fake.PreflightSubmission(ctx, changedExternalMail)
+	if err != nil || changedExternalResult.PolicyBindingHash == first.PolicyBindingHash {
+		t.Fatalf("external-mail policy hash = %#v, %v; want success with distinct binding", changedExternalResult, err)
+	}
+	changedDomains := internalOnly
+	changedDomains.InternalDomains = []string{"example.test", "tenant.example.test"}
+	changedDomainsResult, err := fake.PreflightSubmission(ctx, changedDomains)
+	if err != nil || changedDomainsResult.PolicyBindingHash == first.PolicyBindingHash {
+		t.Fatalf("internal-domain policy hash = %#v, %v; want success with distinct binding", changedDomainsResult, err)
+	}
+
+	invalidOrder := internalOnly
+	invalidOrder.InternalDomains = []string{"tenant.example.test", "example.test"}
+	fake.EnqueueFault(mail.FakeMailFault{Operation: mail.FakeMailOperationPreflightSubmission, Kind: mail.EngineErrorUnavailable})
+	if _, err := fake.PreflightSubmission(ctx, invalidOrder); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf("unsorted domain snapshot error = %v, want rejected policy", err)
+	}
+	if _, err := fake.PreflightSubmission(ctx, internalOnly); !errors.Is(err, mail.ErrEngineUnavailable) {
+		t.Fatalf("valid preflight after malformed snapshot = %v, want unconsumed scripted fault", err)
+	}
+	duplicateDomain := internalOnly
+	duplicateDomain.InternalDomains = []string{"example.test", "example.test"}
+	if _, err := fake.PreflightSubmission(ctx, duplicateDomain); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf("duplicate domain snapshot error = %v, want rejected policy", err)
+	}
+	invalidMaxRecipients := internalOnly
+	invalidMaxRecipients.MaxRecipients = 0
+	if _, err := fake.PreflightSubmission(ctx, invalidMaxRecipients); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf("invalid max recipients error = %v, want rejected policy", err)
+	}
+
+	externalDraftRequest := testDraft(account.AccountID, "draft-key", draft.Projection.MessageID, draft.Projection.Version, "mutation-2")
+	externalDraftRequest.Message.To[0].Email = "recipient@outside.test"
+	externalDraft, err := fake.SaveDraft(ctx, externalDraftRequest)
+	if err != nil {
+		t.Fatalf("SaveDraft external recipient: %v", err)
+	}
+	externalRequest := testSubmissionPreflightRequest(mail.EngineSubmission{AccountID: account.AccountID, DraftKey: "draft-key", MessageID: externalDraft.Projection.MessageID, ExpectedVersion: externalDraft.Projection.Version, SubmissionKey: "submission-key", MaxMessageBytes: 4096})
+	externalRequest.ExternalMailEnabled = false
+	if _, err := fake.PreflightSubmission(ctx, externalRequest); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf("external-disabled preflight error = %v, want rejected policy", err)
+	}
+}
+
+func TestFakeMailEnginePreflightSubmissionUsesLoweredCurrentMessagePolicy(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	fake := newFake("account-a", "draft-message", "draft-version")
+	account, err := fake.EnsureAccount(ctx, mail.AccountSpec{
+		ProvisioningKey: "account-key",
+		LocalPart:       "sender",
+		Domain:          "example.test",
+		Enabled:         true,
+		Primary:         mail.AccountIdentitySpec{LocalPart: "sender", Domain: "example.test", Enabled: true},
+	})
+	if err != nil {
+		t.Fatalf("EnsureAccount: %v", err)
+	}
+	draftRequest := testDraft(account.AccountID, "draft-key", "", "", "mutation-1")
+	draftRequest.MaxContentBytes = 2_097_152
+	draftRequest.Message.PlainBody = strings.Repeat("x", 1_048_577)
+	draft, err := fake.SaveDraft(ctx, draftRequest)
+	if err != nil {
+		t.Fatalf("SaveDraft: %v", err)
+	}
+	request := testSubmissionPreflightRequest(mail.EngineSubmission{AccountID: account.AccountID, DraftKey: "draft-key", MessageID: draft.Projection.MessageID, ExpectedVersion: draft.Projection.Version, SubmissionKey: "submission-key", MaxMessageBytes: 2_097_152})
+	request.PolicyMaxMessageBytes = 1_048_576
+	if _, err := fake.PreflightSubmission(ctx, request); !errors.Is(err, mail.ErrEnginePayloadTooLarge) {
+		t.Fatalf("lowered current message policy error = %v, want payload too large", err)
+	}
+}
+
+func testSubmissionPreflightRequest(submission mail.EngineSubmission) mail.EngineSubmissionPreflightRequest {
+	return mail.EngineSubmissionPreflightRequest{
+		Submission:            submission,
+		PolicyMaxMessageBytes: 1_048_576,
+		MaxRecipients:         mail.MaxEngineDraftTotalRecipientItems,
+		ExternalMailEnabled:   true,
+		InternalDomains:       []string{"example.test"},
 	}
 }
 

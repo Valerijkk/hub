@@ -653,11 +653,15 @@ func (f *FakeMailEngine) GetDraft(_ context.Context, request EngineDraftReadRequ
 	return cloneMessage(message), nil
 }
 
-func (f *FakeMailEngine) PreflightSubmission(ctx context.Context, submission EngineSubmission) (EngineSubmissionPreflight, error) {
+func (f *FakeMailEngine) PreflightSubmission(ctx context.Context, request EngineSubmissionPreflightRequest) (EngineSubmissionPreflight, error) {
+	submission := request.Submission
 	if ctx == nil {
 		return EngineSubmissionPreflight{}, fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	if err := validateSubmission(submission); err != nil {
+		return EngineSubmissionPreflight{}, err
+	}
+	if _, _, err := preflightSubmissionPolicy(request); err != nil {
 		return EngineSubmissionPreflight{}, err
 	}
 	f.mu.Lock()
@@ -679,7 +683,7 @@ func (f *FakeMailEngine) PreflightSubmission(ctx context.Context, submission Eng
 	_, identityAllowed := f.identityEmails[submission.AccountID][message.Projection.From.Email]
 	f.mu.Unlock()
 
-	preflight, err := preflightSubmissionForMessage(submission, message)
+	preflight, err := preflightSubmissionForMessage(request, message)
 	if err != nil {
 		return EngineSubmissionPreflight{}, err
 	}

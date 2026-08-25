@@ -82,7 +82,7 @@ func (consumerStub) ReconcileDraft(context.Context, mail.EngineDraftReconciliati
 	return mail.EngineDraftAbsent{}, nil
 }
 
-func (consumerStub) PreflightSubmission(context.Context, mail.EngineSubmission) (mail.EngineSubmissionPreflight, error) {
+func (consumerStub) PreflightSubmission(context.Context, mail.EngineSubmissionPreflightRequest) (mail.EngineSubmissionPreflight, error) {
 	return mail.EngineSubmissionPreflight{}, nil
 }
 
@@ -240,21 +240,49 @@ func TestMailEngine_SentinelErrorsAreTypedAndSafe(t *testing.T) {
 
 func TestMailEngine_SubmissionPreflightShapeIsConcrete(t *testing.T) {
 	binding := sha256.Sum256([]byte("mail-engine-preflight"))
-	preflight := mail.EngineSubmissionPreflight{
-		FromEmail:      "sender@example.test",
-		RecipientCount: 1,
-		MessageBytes:   42,
-		BindingHash:    binding,
+	policyBinding := sha256.Sum256([]byte("mail-engine-preflight-policy"))
+	request := mail.EngineSubmissionPreflightRequest{
+		Submission: mail.EngineSubmission{
+			AccountID:       "account-a",
+			DraftKey:        "draft-a",
+			MessageID:       "message-a",
+			ExpectedVersion: "version-a",
+			SubmissionKey:   "submission-a",
+			MaxMessageBytes: 1_048_576,
+		},
+		PolicyMaxMessageBytes: 1_048_576,
+		MaxRecipients:         5,
+		ExternalMailEnabled:   false,
+		InternalDomains:       []string{"example.test"},
 	}
-	if preflight.FromEmail == "" || preflight.RecipientCount != 1 || preflight.MessageBytes != 42 || preflight.BindingHash == [sha256.Size]byte{} {
+	if request.Submission.AccountID == "" || request.PolicyMaxMessageBytes != 1_048_576 || request.MaxRecipients != 5 || request.ExternalMailEnabled || len(request.InternalDomains) != 1 {
+		t.Fatalf("EngineSubmissionPreflightRequest = %#v, want explicit content-free policy snapshot", request)
+	}
+	assertExactFields(t, reflect.TypeOf(mail.EngineSubmissionPreflightRequest{}), reflect.TypeOf(struct {
+		Submission             mail.EngineSubmission
+		PolicyMaxMessageBytes  int64
+		MaxRecipients          int32
+		ExternalMailEnabled    bool
+		InternalDomains        []string
+	}{}))
+	preflight := mail.EngineSubmissionPreflight{
+		FromEmail:         "sender@example.test",
+		RecipientCount:    1,
+		MessageBytes:      42,
+		BindingHash:       binding,
+		PolicyBindingHash: policyBinding,
+	}
+	if preflight.FromEmail == "" || preflight.RecipientCount != 1 || preflight.MessageBytes != 42 || preflight.BindingHash == [sha256.Size]byte{} || preflight.PolicyBindingHash == [sha256.Size]byte{} {
 		t.Fatalf("EngineSubmissionPreflight = %#v, want concrete nonzero projection", preflight)
 	}
 	assertExactFields(t, reflect.TypeOf(mail.EngineSubmissionPreflight{}), reflect.TypeOf(struct {
-		FromEmail      string
-		RecipientCount int32
-		MessageBytes   int64
-		BindingHash    [sha256.Size]byte
+		FromEmail         string
+		RecipientCount    int32
+		MessageBytes      int64
+		BindingHash       [sha256.Size]byte
+		PolicyBindingHash [sha256.Size]byte
 	}{}))
+	assertNoFields(t, reflect.TypeOf(mail.EngineSubmissionPreflight{}), "To", "CC", "BCC", "Recipients", "InternalDomains", "Policy")
 }
 
 func TestMailEngine_UnknownErrorKindIsGenericAndDoesNotUnwrap(t *testing.T) {

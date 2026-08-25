@@ -28,8 +28,10 @@ func TestStalwartEnginePreflightSubmission_ReadOnlySourceContract(t *testing.T) 
 	method := source[methodStart:identityStart]
 	identity := source[identityStart:]
 	for _, expected := range []string{
+		"preflightSubmissionPolicy(request)",
 		"engine.GetDraft(ctx, EngineDraftReadRequest{",
-		"preflightSubmissionForMessage(submission, message)",
+		"MaxContentBytes: effectiveMaxMessageBytes",
+		"preflightSubmissionForMessage(request, message)",
 		"stalwartPreflightSubmissionIdentity(ctx, submission.AccountID, preflight.FromEmail)",
 	} {
 		if !strings.Contains(method, expected) {
@@ -53,20 +55,20 @@ func TestStalwartEnginePreflightSubmission_ReadOnlySourceContract(t *testing.T) 
 }
 
 func TestStalwartEnginePreflightSubmission_JMAPFixtureReadsExactIdentityAndBindsResult(t *testing.T) {
-	submission := stalwartPreflightFixtureSubmission()
+	request := stalwartPreflightFixtureRequest()
 	client := &stalwartPreflightFixtureClient{identities: []stalwartPreflightFixtureIdentity{{ID: "identity-a", Email: "sender@example.test"}}}
 	engine, err := mail.NewStalwartEngine(stalwartPreflightFixtureFactory{client: client})
 	if err != nil {
 		t.Fatalf("NewStalwartEngine: %v", err)
 	}
-	first, err := engine.PreflightSubmission(context.Background(), submission)
+	first, err := engine.PreflightSubmission(context.Background(), request)
 	if err != nil {
 		t.Fatalf("PreflightSubmission: %v", err)
 	}
-	if first.FromEmail != "sender@example.test" || first.RecipientCount != 1 || first.MessageBytes < 1 || first.BindingHash == [sha256.Size]byte{} {
+	if first.FromEmail != "sender@example.test" || first.RecipientCount != 1 || first.MessageBytes < 1 || first.BindingHash == [sha256.Size]byte{} || first.PolicyBindingHash == [sha256.Size]byte{} {
 		t.Fatalf("PreflightSubmission = %#v, want bound exact local projection", first)
 	}
-	second, err := engine.PreflightSubmission(context.Background(), submission)
+	second, err := engine.PreflightSubmission(context.Background(), request)
 	if err != nil {
 		t.Fatalf("PreflightSubmission repeat: %v", err)
 	}
@@ -93,11 +95,46 @@ func TestStalwartEnginePreflightSubmission_JMAPFixtureRejectsUnavailableIdentity
 			if err != nil {
 				t.Fatalf("NewStalwartEngine: %v", err)
 			}
-			_, err = engine.PreflightSubmission(context.Background(), stalwartPreflightFixtureSubmission())
+			_, err = engine.PreflightSubmission(context.Background(), stalwartPreflightFixtureRequest())
 			if !errors.Is(err, mail.ErrEngineIdentityUnavailable) {
 				t.Fatalf("PreflightSubmission error = %v, want identity unavailable", err)
 			}
 		})
+	}
+}
+
+func TestStalwartEnginePreflightSubmission_JMAPFixtureRejectsExternalRecipientWhenDisabled(t *testing.T) {
+	request := stalwartPreflightFixtureRequest()
+	request.ExternalMailEnabled = false
+	client := &stalwartPreflightFixtureClient{
+		identities: []stalwartPreflightFixtureIdentity{{ID: "identity-a", Email: "sender@example.test"}},
+		emailJSON:  strings.ReplaceAll(stalwartPreflightFixtureEmailJSON(), "recipient@example.test", "recipient@outside.test"),
+	}
+	engine, err := mail.NewStalwartEngine(stalwartPreflightFixtureFactory{client: client})
+	if err != nil {
+		t.Fatalf("NewStalwartEngine: %v", err)
+	}
+	if _, err := engine.PreflightSubmission(context.Background(), request); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf("external-disabled preflight error = %v, want rejected policy", err)
+	}
+	if got := strings.Join(client.calls, ","); got != "Mailbox/get,Email/query,Email/get" {
+		t.Fatalf("external-disabled JMAP calls = %q, want draft reads only", got)
+	}
+}
+
+func TestStalwartEnginePreflightSubmission_JMAPFixtureRejectsInvalidPolicyBeforeRead(t *testing.T) {
+	request := stalwartPreflightFixtureRequest()
+	request.InternalDomains = []string{"tenant.example.test", "example.test"}
+	client := &stalwartPreflightFixtureClient{identities: []stalwartPreflightFixtureIdentity{{ID: "identity-a", Email: "sender@example.test"}}}
+	engine, err := mail.NewStalwartEngine(stalwartPreflightFixtureFactory{client: client})
+	if err != nil {
+		t.Fatalf("NewStalwartEngine: %v", err)
+	}
+	if _, err := engine.PreflightSubmission(context.Background(), request); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf("invalid policy preflight error = %v, want rejected policy", err)
+	}
+	if len(client.calls) != 0 {
+		t.Fatalf("invalid policy performed JMAP calls %#v", client.calls)
 	}
 }
 
@@ -108,6 +145,7 @@ type stalwartPreflightFixtureIdentity struct {
 
 type stalwartPreflightFixtureClient struct {
 	identities []stalwartPreflightFixtureIdentity
+	emailJSON  string
 	calls      []string
 }
 
@@ -128,7 +166,11 @@ func (client *stalwartPreflightFixtureClient) CallMailbox(_ context.Context, req
 	case "Email/query":
 		payload = []byte(`{"accountId":"account-a","queryState":"query-a","ids":["message-a"],"position":0,"total":1}`)
 	case "Email/get":
-		payload = []byte(stalwartPreflightFixtureEmailJSON())
+		emailJSON := client.emailJSON
+		if emailJSON == "" {
+			emailJSON = stalwartPreflightFixtureEmailJSON()
+		}
+		payload = []byte(emailJSON)
 	case "Identity/get":
 		var err error
 		payload, err = json.Marshal(struct {
@@ -164,6 +206,16 @@ func (factory stalwartPreflightFixtureFactory) OpenMailboxClient(context.Context
 
 func stalwartPreflightFixtureSubmission() mail.EngineSubmission {
 	return mail.EngineSubmission{AccountID: "account-a", DraftKey: "draft-a", MessageID: "message-a", ExpectedVersion: "message-state-a", SubmissionKey: "submission-a", MaxMessageBytes: 4096}
+}
+
+func stalwartPreflightFixtureRequest() mail.EngineSubmissionPreflightRequest {
+	return mail.EngineSubmissionPreflightRequest{
+		Submission:            stalwartPreflightFixtureSubmission(),
+		PolicyMaxMessageBytes: 1_048_576,
+		MaxRecipients:         300,
+		ExternalMailEnabled:   true,
+		InternalDomains:       []string{"example.test"},
+	}
 }
 
 func stalwartPreflightFixtureEmailJSON() string {

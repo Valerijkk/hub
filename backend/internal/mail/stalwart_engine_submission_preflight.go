@@ -10,19 +10,24 @@ import (
 // PreflightSubmission reads an exact draft and confirms that its canonical
 // sender remains available as one exact provider identity. It never creates a
 // provider submission or changes provider state.
-func (engine *StalwartEngine) PreflightSubmission(ctx context.Context, submission EngineSubmission) (EngineSubmissionPreflight, error) {
+func (engine *StalwartEngine) PreflightSubmission(ctx context.Context, request EngineSubmissionPreflightRequest) (EngineSubmissionPreflight, error) {
+	submission := request.Submission
 	if ctx == nil || validateSubmission(submission) != nil {
 		return EngineSubmissionPreflight{}, stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	_, effectiveMaxMessageBytes, err := preflightSubmissionPolicy(request)
+	if err != nil {
+		return EngineSubmissionPreflight{}, err
 	}
 	message, err := engine.GetDraft(ctx, EngineDraftReadRequest{
 		AccountID: submission.AccountID, DraftKey: submission.DraftKey,
 		MessageID: submission.MessageID, ExpectedVersion: submission.ExpectedVersion,
-		MaxContentBytes: submission.MaxMessageBytes,
+		MaxContentBytes: effectiveMaxMessageBytes,
 	})
 	if err != nil {
 		return EngineSubmissionPreflight{}, err
 	}
-	preflight, err := preflightSubmissionForMessage(submission, message)
+	preflight, err := preflightSubmissionForMessage(request, message)
 	if err != nil {
 		return EngineSubmissionPreflight{}, err
 	}

@@ -6,12 +6,19 @@ import (
 )
 
 const (
-	submissionPreflightBindingDomain  = "hub.mail.submission.preflight.binding.v1"
-	submissionPreflightBindingVersion = uint32(1)
+	submissionPreflightBindingDomain        = "hub.mail.submission.preflight.binding.v1"
+	submissionPreflightBindingVersion       = uint32(1)
+	submissionPreflightPolicyBindingDomain  = "hub.mail.submission.preflight.policy.v1"
+	submissionPreflightPolicyBindingVersion = uint32(1)
 )
 
-func preflightSubmissionForMessage(submission EngineSubmission, message EngineMessage) (EngineSubmissionPreflight, error) {
+func preflightSubmissionForMessage(request EngineSubmissionPreflightRequest, message EngineMessage) (EngineSubmissionPreflight, error) {
+	submission := request.Submission
 	if err := validateSubmission(submission); err != nil {
+		return EngineSubmissionPreflight{}, err
+	}
+	internalDomains, effectiveMaxMessageBytes, err := preflightSubmissionPolicy(request)
+	if err != nil {
 		return EngineSubmissionPreflight{}, err
 	}
 	projection := message.Projection
@@ -22,51 +29,74 @@ func preflightSubmissionForMessage(submission EngineSubmission, message EngineMe
 	if err != nil || from != projection.From {
 		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorRejectedPolicy}
 	}
-	recipientCount, err := preflightSubmissionRecipientCount(projection)
-	if err != nil {
-		return EngineSubmissionPreflight{}, err
+	if len(projection.To) > MaxEngineDraftRecipientItems || len(projection.CC) > MaxEngineDraftRecipientItems || len(projection.BCC) > MaxEngineDraftRecipientItems {
+		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorRecipientLimit}
 	}
-	if projection.SizeBytes > submission.MaxMessageBytes {
+	to, cc, bcc, err := normalizeSendRecipients(projection.To, projection.CC, projection.BCC)
+	if err != nil {
+		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorRejectedPolicy}
+	}
+	if !preflightSubmissionRecipientsCanonical(projection.To, to) || !preflightSubmissionRecipientsCanonical(projection.CC, cc) || !preflightSubmissionRecipientsCanonical(projection.BCC, bcc) {
+		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorRejectedPolicy}
+	}
+	recipientCount := len(to) + len(cc) + len(bcc)
+	if recipientCount == 0 {
+		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorRejectedPolicy}
+	}
+	if recipientCount > MaxEngineDraftTotalRecipientItems || recipientCount > int(request.MaxRecipients) {
+		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorRecipientLimit}
+	}
+	if !request.ExternalMailEnabled && hasExternalRecipient(internalDomains, to, cc, bcc) {
+		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorRejectedPolicy}
+	}
+	if projection.SizeBytes > effectiveMaxMessageBytes {
 		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorPayloadTooLarge}
 	}
 	messageBytes := int64(messageVariableBytes(message))
-	if messageBytes > submission.MaxMessageBytes {
+	if messageBytes > effectiveMaxMessageBytes {
 		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorPayloadTooLarge}
 	}
-	binding := submissionPreflightBindingHash(submission, from.Email, recipientCount, messageBytes)
+	binding := submissionPreflightBindingHash(submission, from.Email, int32(recipientCount), messageBytes)
 	if binding == [sha256.Size]byte{} {
 		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorIndeterminate}
 	}
-	return EngineSubmissionPreflight{FromEmail: from.Email, RecipientCount: recipientCount, MessageBytes: messageBytes, BindingHash: binding}, nil
+	policyBinding := submissionPreflightPolicyBindingHash(request)
+	if policyBinding == [sha256.Size]byte{} {
+		return EngineSubmissionPreflight{}, &EngineError{Kind: EngineErrorIndeterminate}
+	}
+	return EngineSubmissionPreflight{FromEmail: from.Email, RecipientCount: int32(recipientCount), MessageBytes: messageBytes, BindingHash: binding, PolicyBindingHash: policyBinding}, nil
 }
 
-func preflightSubmissionRecipientCount(projection EngineMessageProjection) (int32, error) {
-	collections := [][]EngineAddress{projection.To, projection.CC, projection.BCC}
-	count := 0
-	seen := make(map[string]struct{}, MaxEngineDraftTotalRecipientItems)
-	for _, collection := range collections {
-		if len(collection) > MaxEngineDraftRecipientItems {
-			return 0, &EngineError{Kind: EngineErrorRecipientLimit}
-		}
-		for _, recipient := range collection {
-			canonical, err := NormalizeAddress(recipient)
-			if err != nil || canonical != recipient {
-				return 0, &EngineError{Kind: EngineErrorRejectedPolicy}
-			}
-			if _, duplicate := seen[canonical.Email]; duplicate {
-				return 0, &EngineError{Kind: EngineErrorRejectedPolicy}
-			}
-			seen[canonical.Email] = struct{}{}
-			count++
-			if count > MaxEngineDraftTotalRecipientItems {
-				return 0, &EngineError{Kind: EngineErrorRecipientLimit}
-			}
+func preflightSubmissionPolicy(request EngineSubmissionPreflightRequest) (map[string]struct{}, int64, error) {
+	if request.PolicyMaxMessageBytes < 1_048_576 || request.PolicyMaxMessageBytes > MaxEngineMessageBytes || request.MaxRecipients < 1 || request.MaxRecipients > MaxEngineDraftTotalRecipientItems {
+		return nil, 0, &EngineError{Kind: EngineErrorRejectedPolicy}
+	}
+	internalDomains, err := normalizeInternalDomains(request.InternalDomains)
+	if err != nil {
+		return nil, 0, &EngineError{Kind: EngineErrorRejectedPolicy}
+	}
+	for index := 1; index < len(request.InternalDomains); index++ {
+		if request.InternalDomains[index-1] >= request.InternalDomains[index] {
+			return nil, 0, &EngineError{Kind: EngineErrorRejectedPolicy}
 		}
 	}
-	if count == 0 {
-		return 0, &EngineError{Kind: EngineErrorRejectedPolicy}
+	effectiveMaxMessageBytes := request.PolicyMaxMessageBytes
+	if request.Submission.MaxMessageBytes < effectiveMaxMessageBytes {
+		effectiveMaxMessageBytes = request.Submission.MaxMessageBytes
 	}
-	return int32(count), nil
+	return internalDomains, effectiveMaxMessageBytes, nil
+}
+
+func preflightSubmissionRecipientsCanonical(original, canonical []EngineAddress) bool {
+	if len(original) != len(canonical) {
+		return false
+	}
+	for index := range original {
+		if original[index] != canonical[index] {
+			return false
+		}
+	}
+	return true
 }
 
 func submissionPreflightBindingHash(submission EngineSubmission, fromEmail string, recipientCount int32, messageBytes int64) [sha256.Size]byte {
@@ -82,6 +112,20 @@ func submissionPreflightBindingHash(submission EngineSubmission, fromEmail strin
 	frame = preflightBindingString(frame, 9, fromEmail)
 	frame = preflightBindingInt32(frame, 10, recipientCount)
 	frame = preflightBindingInt64(frame, 11, messageBytes)
+	return sha256.Sum256(frame)
+}
+
+func submissionPreflightPolicyBindingHash(request EngineSubmissionPreflightRequest) [sha256.Size]byte {
+	frame := make([]byte, 0, len(submissionPreflightPolicyBindingDomain)+len(request.InternalDomains)*32+64)
+	frame = preflightBindingString(frame, 1, submissionPreflightPolicyBindingDomain)
+	frame = preflightBindingUint32(frame, 2, submissionPreflightPolicyBindingVersion)
+	frame = preflightBindingInt64(frame, 3, request.PolicyMaxMessageBytes)
+	frame = preflightBindingInt32(frame, 4, request.MaxRecipients)
+	frame = preflightBindingBool(frame, 5, request.ExternalMailEnabled)
+	frame = preflightBindingUint32(frame, 6, uint32(len(request.InternalDomains)))
+	for _, domain := range request.InternalDomains {
+		frame = preflightBindingString(frame, 7, domain)
+	}
 	return sha256.Sum256(frame)
 }
 
@@ -103,6 +147,14 @@ func preflightBindingUint32(frame []byte, field byte, value uint32) []byte {
 	var encoded [4]byte
 	binary.BigEndian.PutUint32(encoded[:], value)
 	return append(append(frame, field), encoded[:]...)
+}
+
+func preflightBindingBool(frame []byte, field byte, value bool) []byte {
+	encoded := byte(0)
+	if value {
+		encoded = 1
+	}
+	return append(frame, field, encoded)
 }
 
 func preflightBindingInt64(frame []byte, field byte, value int64) []byte {

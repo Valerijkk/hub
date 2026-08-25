@@ -23,7 +23,7 @@ type MailEngine interface {
 	ReconcileDraft(context.Context, EngineDraftReconciliation) (EngineDraftResult, error)
 	DeleteDraft(context.Context, EngineDraftDeletion) error
 	ReconcileDraftDeletion(context.Context, EngineDraftDeletion) (EngineDraftDeletionResult, error)
-	PreflightSubmission(context.Context, EngineSubmission) (EngineSubmissionPreflight, error)
+	PreflightSubmission(context.Context, EngineSubmissionPreflightRequest) (EngineSubmissionPreflight, error)
 	Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 	ReconcileSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 	MoveMessages(context.Context, string, []string, string) error

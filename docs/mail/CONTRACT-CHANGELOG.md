@@ -1,5 +1,20 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Policy-bound engine submission preflight
+
+SOURCE_IMPLEMENTED_STATIC_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN.
+
+`PreflightSubmission` now accepts `EngineSubmissionPreflightRequest`: the frozen reference-only
+submission plus current `PolicyMaxMessageBytes`, recipient ceiling, external-mail switch, and
+canonical strictly sorted unique internal domains. The effective byte ceiling is the minimum of
+the current and frozen maxima, while current recipient and external-delivery policy is enforced
+against the exact provider draft before dispatch.
+
+The result adds a deterministic `PolicyBindingHash` over that current policy snapshot without
+exposing recipient addresses or domains. Fake and Stalwart remain read-only, validate malformed
+policy before consuming a scripted fault or performing provider I/O, and preserve the exact
+draft/version and identity checks. Tests, build, lint, gofmt, Docker and runtime remain NOT_RUN.
+
 ## 2026-08-25 - Pure dual-scope submission rate-state adapter
 
 SOURCE_AUTHORED_STATIC_ONLY / NOT_RUN.

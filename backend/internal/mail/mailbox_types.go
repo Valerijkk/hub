@@ -603,13 +603,25 @@ type EngineSubmission struct {
 	MaxMessageBytes int64
 }
 
+// EngineSubmissionPreflightRequest binds one reference-only submission to the
+// current content-free recipient policy snapshot.
+type EngineSubmissionPreflightRequest struct {
+	Submission             EngineSubmission
+	PolicyMaxMessageBytes  int64
+	MaxRecipients          int32
+	ExternalMailEnabled    bool
+	InternalDomains        []string
+}
+
 // EngineSubmissionPreflight is the read-only local projection bound to one exact submission tuple.
 // MessageBytes counts Hub's local projection representation, never raw RFC/MIME bytes.
+// PolicyBindingHash binds the current policy snapshot without exposing recipient data.
 type EngineSubmissionPreflight struct {
-	FromEmail      string
-	RecipientCount int32
-	MessageBytes   int64
-	BindingHash    [sha256.Size]byte
+	FromEmail         string
+	RecipientCount    int32
+	MessageBytes      int64
+	BindingHash       [sha256.Size]byte
+	PolicyBindingHash [sha256.Size]byte
 }
 
 // EngineSubmissionResult — закрытый результат отправки или её сверки.
