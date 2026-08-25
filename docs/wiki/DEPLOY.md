@@ -248,6 +248,13 @@ hub.example.com {
 
 ---
 
+## Jitsi shadow deployment (Phase 150)
+
+Jitsi is not an accepted deployment in Hub. Phase 150 is `PARTIAL - STATIC_FOUNDATION_ONLY`: LiveKit remains the only active and rollback provider, `deployments/docker-compose.jitsi.yml` is `NOT_CREATED / UNBOUND`, and runtime/media evidence is `NOT_RUN`.
+
+The controlling static artifacts are [the preflight](../../deployments/jitsi/DEPLOYMENT-PREFLIGHT.md) and [the gated runbook](../runbooks/jitsi-shadow-deployment.md). Do not add or execute overlay bring-up commands until Task 8 is unblocked by explicit infrastructure authority, authorized Linux discovery, and a numeric disk budget.
+
+---
 ## Troubleshooting
 
 | Симптом | Проверка |

@@ -1631,6 +1631,11 @@ backend/internal/
 
 ---
 
+### Calls provider boundary (Phase 150)
+
+Calls orchestration depends on the provider-neutral `ConferenceProvider` contract. The LiveKit adapter preserves the existing room, guest-identity, join-credential, rollback, and participant-state behaviour. Provider construction is fail-closed: `livekit` is the only selectable provider; `jitsi` and unknown values remain unavailable.
+
+The Jitsi credential issuer is internal and server-only. Phase 150 adds no public route, DTO, membership authorization flow, frontend cutover, or recording integration. Deployment remains `NOT_CREATED / UNBOUND`, with runtime and media evidence `NOT_RUN`.
 ## WebSocket
 
 ### Подключение

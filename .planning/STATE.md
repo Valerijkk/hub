@@ -1,4 +1,4 @@
-﻿---
+---
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
@@ -1169,3 +1169,13 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - A3W2-2-001..006 FIXED: AssignTesters membership (400), FileIDs project-scope (404), ImportAllure ExistingRun tx/compensating, mock UpdateTestResult scope, snapshot steps fail-closed, Delete/Link/Unlink AppError.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
+
+## Session note — 2026-08-25 (Phase 150 · self-hosted Jitsi foundation)
+
+- Verdict: `PARTIAL — STATIC_FOUNDATION_ONLY`; LiveKit remains the only active and rollback provider.
+- Backend provider/config/factory/internal-issuer foundation: Docker `backend-unit` final `PASS` / exit `0` after a test-only LiveKit typed-claims triage.
+- Frontend pure self-hosted `external_api.js` URL adapter: genuine Docker RED on the missing module, then final `frontend-unit` overall/TypeScript/Vitest `PASS` / exit `0`.
+- Static deployment preflight and Task 10 documentation/evidence passed independent review (`C0/I0/M0`).
+- Jitsi overlay remains `NOT_CREATED / UNBOUND`; Task 8 is `BLOCKED_BY_AUTHORIZED_LINUX_DISCOVERY`; image content, SBOM/license, render/start/health, TLS/JWT integration, UDP/media, security, and rollback evidence remain `NOT_RUN`/`UNBOUND`.
+- During this Phase 150 implementation, no Jitsi image was pulled, built, rendered, or started and no meeting-provider API/SaaS/STUN/TURN/analytics endpoint was invoked. Registry digest metadata was recorded only. Mail/Calendar and protected `frontend/src/modules/calls/create-call-dialog.tsx` were not changed.
+- Evidence: `.planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/150-VERIFICATION.md`.

@@ -1,0 +1,64 @@
+# Phase 150 Verification Ledger
+
+**Date:** 2026-08-25
+
+**Verdict:** `PARTIAL — STATIC_FOUNDATION_ONLY`
+
+Phase 150 is not complete, production-ready, a deployed self-hosted Jitsi stack, or media-ready. LiveKit remains the only active and rollback provider.
+
+## Executable evidence
+
+| Boundary | Command / receipt | Result | Proven scope |
+|---|---|---|---|
+| Backend final gate | `docker compose -f docker-compose.local.yml run --rm backend-unit` | `PASS` / exit `0` | Provider-neutral contract, LiveKit adapter parity, service injection, fail-closed provider/config factory, and internal server-only Jitsi issuer. |
+| Frontend RED | `docker compose -f docker-compose.local.yml run --rm frontend-unit` | Expected `FAIL` / exit `1`; TypeScript `PASS`, Vitest `FAIL` on unresolved `@/modules/calls/jitsi-external-api` at test line 3 | Genuine missing-module TDD RED. |
+| Frontend final gate | `docker compose -f docker-compose.local.yml run --rm frontend-unit` | Overall `PASS`; TypeScript `PASS`; Vitest `PASS`; exit `0` | Pure canonical self-hosted origin to `/external_api.js` URL adapter only. |
+
+The initial backend RED was genuine because the frozen provider/config/issuer APIs did not exist. The first intended GREEN run then failed only in the LiveKit test oracle: it decoded generic map claims using `room_join` and expected `iat`, while the pinned LiveKit contract uses typed `VideoGrant.RoomJoin` and `nbf` plus `exp`. Independent triage classified this as test-only. The oracle was changed to `auth.ParseAPIToken(...).Verify(...)`, independently reviewed, and the final backend gate passed.
+
+The frontend unit does not prove that `external_api.js` exists inside a Jitsi image, that a script can be loaded, or that any Jitsi UI/provider path is active.
+
+## Static evidence
+
+| Artifact / review | Result | Boundary |
+|---|---|---|
+| Provider/config/factory/issuer reviews | `PASS` | Source and contract review only; no public Jitsi route or cutover. |
+| `deployments/jitsi/DEPLOYMENT-PREFLIGHT.md` | `PASS C0/I0/M0` | Static preflight only. |
+| Frontend adapter final review | `PASS C0/I0/M0` | Pure URL calculation only. |
+| Phase 150 Task 10 docs review | `PASS C0/I0/M0` | Documentation truth and links only. |
+
+## Registry metadata
+
+The recorded release is `stable-11146-2` with these immutable registry references:
+
+- `ghcr.io/jitsi/web@sha256:4231d5ff7318ff71d12ffd41afc36adae3c319b40cf79cde39b009b0c68295dc`
+- `ghcr.io/jitsi/prosody@sha256:9e341b10134d947e49ca338b9efe8d70ac9d6e8d89d621da2246dfa79fe50363`
+- `ghcr.io/jitsi/jicofo@sha256:a8d64e46eaa340751a2b5530a4abd4175adf05bff07e9775fc48daae6364cfe9`
+- `ghcr.io/jitsi/jvb@sha256:d7dc646d21af07530ae6acf1ace23ea4782445d0362004621a32a5a632a964e9`
+
+These are registry metadata records only. No Jitsi image was pulled, built, inspected, rendered, or started. Image content, licenses, SBOMs, and runtime properties were not verified.
+
+## Unbound and blocked evidence
+
+| Evidence row | Status |
+|---|---|
+| Compose overlay | `NOT_CREATED / UNBOUND` |
+| Task 8 authorized Linux discovery | `BLOCKED_BY_AUTHORIZED_LINUX_DISCOVERY` |
+| Container users / UID / GID | `UNBOUND` |
+| Writable paths and configuration ownership | `UNBOUND` |
+| Rootless/read-only/tmpfs posture | `UNBOUND` |
+| Branding result | `NOT_RUN` |
+| Effective `external_api.js` asset | `NOT_RUN` |
+| SBOM and license verification | `NOT_RUN` |
+| Compose render / start / health | `NOT_RUN` |
+| Caddy / TLS routing | `NOT_RUN` |
+| Jitsi JWT integration | `NOT_RUN` |
+| JVB advertise IP / UDP / media | `NOT_RUN` |
+| Security runtime checks | `NOT_RUN` |
+| Restart and rollback rehearsal | `NOT_RUN` |
+
+No external meeting API, SaaS host, external STUN/TURN, analytics endpoint, Jitsi image pull, image build, Compose render, or Jitsi service start was used.
+
+## Continuation gate
+
+Any deployment continuation requires explicit infrastructure authority, an authorized Linux discovery packet, and a numeric disk budget. Images may then be handled one immutable digest at a time with disk measurements before and after; parallel pulls and builds remain forbidden.
