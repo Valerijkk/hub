@@ -35,7 +35,7 @@ x-qa-infrastructure: &qa-infrastructure
   mem_limit: 1g
   stop_grace_period: 30s
 
-x-schema-maintenance-tool: &schema-maintenance-tool
+x-schema-maintenance-common: &schema-maintenance-common
   profiles: [schema-maintenance]
   platform: linux/amd64
   build:
@@ -55,6 +55,9 @@ x-schema-maintenance-tool: &schema-maintenance-tool
   tmpfs:
     - "/work:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
     - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"
+
+x-schema-maintenance-tool: &schema-maintenance-tool
+  <<: *schema-maintenance-common
   environment:
     DATABASE_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public"
     ATLAS_DEV_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=atlas_dev"
@@ -254,6 +257,15 @@ services:
   schema-maintenance-diff:
     <<: *schema-maintenance-tool
     command: ["diff"]
+
+  schema-maintenance-generate:
+    <<: *schema-maintenance-common
+    command: ["generate"]
+    network_mode: none
+    tmpfs:
+      - "/work:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
+      - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"
+      - "/run/go-run-exec:rw,exec,nosuid,nodev,size=256m,uid=10001,gid=10001,mode=0700"
 
   schema-maintenance-verify:
     <<: *schema-maintenance-tool

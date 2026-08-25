@@ -2,7 +2,39 @@ FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995
 
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN go mod download
+COPY docker/schema-tool.lock.json ./schema-tool.lock.json
+ENV GOTOOLCHAIN=local \
+    GOWORK=off
+RUN set -eu; \
+    verify_source_module_lock() { \
+      grep -Fqx '    "module": "ariga.io/atlas",' schema-tool.lock.json; \
+      grep -Fqx '    "version": "v0.19.1-0.20240203083654-5948b60a8e43",' schema-tool.lock.json; \
+      grep -Fqx '    "module_sum": "h1:GwdJbXydHCYPedeeLt4x/lrlIISQ4JTH1mRWuE5ZZ14=",' schema-tool.lock.json; \
+      grep -Fqx '    "module_go_mod_sum": "h1:uj3pm+hUTVN/X5yfdBexHlZv+1Xu5u5ZbZx7+CDavNU=",' schema-tool.lock.json; \
+      grep -Fqx '    "module": "entgo.io/ent",' schema-tool.lock.json; \
+      grep -Fqx '    "version": "v0.14.1",' schema-tool.lock.json; \
+      grep -Fqx '    "module_sum": "h1:fUERL506Pqr92EPHJqr8EYxbPioflJo6PudkrEA8a/s=",' schema-tool.lock.json; \
+      grep -Fqx '    "module_go_mod_sum": "h1:MH6XLG0KXpkcDQhKiHfANZSzR55TJyPL5IGNpI8wpco=",' schema-tool.lock.json; \
+      grep -Fqx '  "source_module_lock": {' schema-tool.lock.json; \
+      grep -Fqx '    "go_mod_normalized_sha256": "3f7ff699a420ecf0501693c47ee18108a02a8827a547578bb6b800f83bcc2be6",' schema-tool.lock.json; \
+      grep -Fqx '    "go_mod_normalized_bytes": 9763,' schema-tool.lock.json; \
+      grep -Fqx '    "go_sum_normalized_sha256": "9a03c4db3f998434e3e9058a67b7d2143fda8c5a7ccee6895e9093d6e77d2510",' schema-tool.lock.json; \
+      grep -Fqx '    "go_sum_normalized_bytes": 55553' schema-tool.lock.json; \
+      test "$(tr -d '\r' < go.mod | sha256sum | cut -d ' ' -f1)" = '3f7ff699a420ecf0501693c47ee18108a02a8827a547578bb6b800f83bcc2be6'; \
+      test "$(tr -d '\r' < go.mod | wc -c | tr -d '[:space:]')" = '9763'; \
+      test "$(tr -d '\r' < go.sum | sha256sum | cut -d ' ' -f1)" = '9a03c4db3f998434e3e9058a67b7d2143fda8c5a7ccee6895e9093d6e77d2510'; \
+      test "$(tr -d '\r' < go.sum | wc -c | tr -d '[:space:]')" = '55553'; \
+    }; \
+    if grep -Eq '^[[:space:]]*(replace|exclude)([[:space:]]|$)' go.mod; then \
+      echo 'schema-maintenance: go.mod replace/exclude directives are forbidden' >&2; exit 1; \
+    fi; \
+    grep -Fqx 'ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43 h1:GwdJbXydHCYPedeeLt4x/lrlIISQ4JTH1mRWuE5ZZ14=' go.sum; \
+    grep -Fqx 'ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43/go.mod h1:uj3pm+hUTVN/X5yfdBexHlZv+1Xu5u5ZbZx7+CDavNU=' go.sum; \
+    grep -Fqx 'entgo.io/ent v0.14.1 h1:fUERL506Pqr92EPHJqr8EYxbPioflJo6PudkrEA8a/s=' go.sum; \
+    grep -Fqx 'entgo.io/ent v0.14.1/go.mod h1:MH6XLG0KXpkcDQhKiHfANZSzR55TJyPL5IGNpI8wpco=' go.sum; \
+    verify_source_module_lock; \
+    go mod download; \
+    verify_source_module_lock
 RUN test "$(go list -m -f '{{.Version}}' ariga.io/atlas)" = 'v0.19.1-0.20240203083654-5948b60a8e43' && \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -o /out/atlas ariga.io/atlas/cmd/atlas
 
@@ -35,22 +67,25 @@ RUN groupadd --gid 10001 hubschema && useradd --uid 10001 --gid 10001 --create-h
 WORKDIR /opt/hub/backend
 COPY --from=atlas-builder /out/atlas /usr/local/bin/atlas
 COPY --chown=10001:10001 go.mod go.sum atlas.hcl ./
+COPY --chown=10001:10001 ent/generate.go ./ent/generate.go
 COPY --chown=10001:10001 ent/schema/ ./ent/schema/
 COPY --chown=10001:10001 migrations/ ./migrations/
 COPY --chown=10001:10001 docker/schema-tool.lock.json ./docker/schema-tool.lock.json
 COPY --chown=10001:10001 docker/entrypoints/mail-calendar-schema.sh /usr/local/bin/mail-calendar-schema
 COPY --from=prefeature-source --chown=10001:10001 /opt/hub/prefeature/backend/ /opt/hub/prefeature/backend/
+COPY --from=atlas-builder --chown=10001:10001 /go/pkg/mod/ /opt/hub/go/pkg/mod/
 RUN chmod 0555 /usr/local/bin/atlas /usr/local/bin/mail-calendar-schema && \
+    chmod -R a-w /opt/hub/go/pkg/mod && \
     mkdir -p /opt/hub/backend/migrations/atlas/mail-calendar-v1 && \
     chown -R 10001:10001 /opt/hub/backend
 
 ENV GOTOOLCHAIN=local \
+    GOWORK=off \
     GOPROXY=off \
     GOSUMDB=off \
     GOFLAGS=-mod=readonly \
-    GOCACHE=/work/go-build \
-    GOTMPDIR=/tmp \
-    HOME=/tmp
+    GOPATH=/opt/hub/go \
+    GOMODCACHE=/opt/hub/go/pkg/mod
 
 USER 10001:10001
 ENTRYPOINT ["timeout", "--signal=TERM", "--kill-after=30s", "900", "/usr/local/bin/mail-calendar-schema"]

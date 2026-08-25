@@ -25,7 +25,7 @@
   reviewed migration packet.
 - No generation, SQL diff, lint, apply command or database evidence has run yet. Those executable
   steps still require the accepted isolated `schema-maintenance` Compose profile and remain
-  `NOT_RUN`.
+  `NOT_RUN`. Ent generation and its dependent normal Docker build also remain `NOT_RUN`.
 - `DEV_MODE=true` may continue to call `client.Schema.Create(ctx)` for development only;
   production uses the versioned migration directory.
 
@@ -43,7 +43,7 @@ Docker socket, bind mount, `.git` capability, or shared database URL is admitted
 Atlas remains the deterministic diff, lint, checksum and apply tool, never a
 second model authority. Production may apply only the independently reviewed
 checked-in bounded SQL plus its exact `atlas.sum`. Direct host Atlas, Ent,
-database, build, validator, or test commands remain forbidden. SB-A/SB-B are
+database, build, validator, or test commands remain forbidden. SB-A/SB-B/SB-C are
 static source-control implementation only: no Docker image build, Atlas inspect,
 diff, lint, checksum or apply, generated SQL, database replay, build, tests,
 validators or runtime validation has run; all remain `NOT_RUN`.
@@ -89,10 +89,15 @@ I/O, NATS/outbox emission, or runtime cutover.
 
 ## Generated Ent and dependent adapters
 
-Generated files below `backend/ent/` remain image-local and uncommitted. The accepted operation
-generates them twice from one immutable source tree and requires an identical second-generation
-manifest before compiling any dependent source. Application code never hand-writes or stages
-generated Ent output.
+Generated files below `backend/ent/` remain image-local and uncommitted. Static SB-C verifies the
+LF-normalized full `go.mod`/`go.sum` lock and exact Atlas/Ent pins, requires `GOWORK=off`, rejects
+`replace`, `exclude`, symlinks and nonregular inputs, then copies only `go.mod`, `go.sum`,
+`ent/generate.go` and `ent/schema` into two fresh isolated writable module roots. Each pass runs
+the fixed offline `go run -mod=readonly entgo.io/ent/cmd/ent generate ./ent/schema`; repository
+`go:generate` directives are audited but never executed. Canonical all-source manifests must be
+unchanged before/after each pass, and both generated-output manifests must match exactly before
+one bounded SHA-labelled manifest is emitted. No generated source may egress or be staged; this
+prerequisite is not a dependent compile, whose normal Docker build remains `NOT_RUN`.
 
 P3-C (`backend/internal/mail/mailbox_ent_calendar_part.go` and the required narrow change in
 `backend/internal/mail/mailbox_ent_repository.go`) and D2
@@ -105,14 +110,18 @@ its existing contract, ordering and independent review gates.
 
 Generation and Atlas work belong to a non-QA Compose profile named `schema-maintenance`; it does
 not expand or modify the closed `qa` and `qa-maintenance` testframework catalogs. Its public
-operations are fixed baseline, diff and verify entrypoints rather than an arbitrary command shell.
+operations are fixed baseline, diff, generate and verify entrypoints rather than an arbitrary
+command shell. `generate` is a prerequisite determinism proof only and emits no source files.
 The exact Atlas module/version must match the reviewed Go module pin, and the Go and PostgreSQL
 images must use reviewed immutable digests recorded in a checked-in tool lock.
 
 Every service is non-root and `read_only`, drops all capabilities, enables
-`no-new-privileges`, uses `init`, publishes no port, mounts no Docker socket or host/named volume,
-and joins only a dedicated internal network. The schema tool is bounded to `pids_limit: 128`,
-`cpus: 1.0`, `mem_limit: 1g`, a 512 MiB `/work` tmpfs and a 64 MiB `/tmp` tmpfs. Its disposable
+`no-new-privileges`, uses `init`, publishes no port, and mounts no Docker socket or host/named
+volume. Baseline/diff/verify join only the dedicated internal database network; generate instead
+has `network_mode: none` and no database environment or dependency. The schema tool is bounded to
+`pids_limit: 128`, `cpus: 1.0`, `mem_limit: 1g`, a 512 MiB noexec `/work` tmpfs and a 64 MiB
+noexec `/tmp` tmpfs. Generate alone adds a 256 MiB RAM-only executable tmpfs split into separate
+per-pass TMPDIR/GOTMPDIR paths; source, HOME, XDG and GOCACHE remain noexec. Its disposable
 PostgreSQL peer is bounded to `pids_limit: 128`, `cpus: 1.0`, `mem_limit: 1g` and a 512 MiB data
 tmpfs. Each operation has a 15-minute wall-clock limit, no automatic retry, no persistent runtime
 cache and unconditional `run --rm` cleanup. Generated SQL/checksum candidates leave the container
@@ -125,16 +134,16 @@ authoring packet.
   `192f23686a69c036ddc03d35ea04192b30780936`; it supplies only the reviewed
   pre-feature `go.mod`, `go.sum`, and Ent-schema archive for parent
   `f21e3f7748eac55a4b16746b078e88801f11829c`.
-- **SB-B, source-carrier consumer, exact six files:** the static consumer is
-  implemented in `backend/docker/Dockerfile.schema-maintenance`,
+- **SB-B/SB-C, source-carrier and Ent-generation control plane, exact seven files:** the static
+  control plane is implemented in `backend/docker/Dockerfile.schema-maintenance`,
   `backend/docker/entrypoints/mail-calendar-schema.sh`,
-  `backend/docker/schema-tool.lock.json`, `backend/atlas.hcl`, this plan, and
-  `backend/migrations/README.md`. It neither authors nor accepts SQL and changes
-  no Compose, Docker-ignore, mount, socket, credential, or arbitrary-command
-  boundary.
+  `backend/docker/schema-tool.lock.json`, `docker-compose.local.yml`, `backend/atlas.hcl`, this
+  plan, and `backend/migrations/README.md`. It neither authors nor accepts SQL or generated
+  source; `generate` uses the separate networkless non-database Compose boundary and accepts no
+  arbitrary command.
 
-SB-A/SB-B are `STATIC_IMPLEMENTED` only. Docker, Atlas, SQL, database and runtime
-evidence are `NOT_RUN`; the following exact SQL packets remain separately authored,
+SB-A/SB-B/SB-C are `STATIC_IMPLEMENTED` only. Docker, Ent generation, dependent compile, Atlas,
+SQL, database and runtime evidence are `NOT_RUN`; the following exact SQL packets remain separately authored,
 committed and independently reviewed. They contain no test changes.
 
 1. **Immutable baseline, exact two files:** create

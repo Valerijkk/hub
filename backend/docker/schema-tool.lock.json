@@ -24,6 +24,29 @@
       "containing_image_id": "NOT_RUN"
     }
   },
+  "ent_generation": {
+    "module": "entgo.io/ent",
+    "version": "v0.14.1",
+    "module_sum": "h1:fUERL506Pqr92EPHJqr8EYxbPioflJo6PudkrEA8a/s=",
+    "module_go_mod_sum": "h1:MH6XLG0KXpkcDQhKiHfANZSzR55TJyPL5IGNpI8wpco=",
+    "builder_module_cache": "GOTOOLCHAIN=local and GOWORK=off builder rejects go.mod replace/exclude directives, verifies the full normalized source module lock and exact Atlas/Ent go.sum records before and after go mod download, then copies the cache image-locally to /opt/hub/go/pkg/mod read-only at runtime",
+    "generate_source_inputs": ["go.mod", "go.sum", "ent/generate.go", "ent/schema"],
+    "generate_go_normalized_sha256": "8138e39380b362cbad50f0646805f2e950973b5460fb9c4e404f03f8834979a5",
+    "generate_command": "go run -mod=readonly entgo.io/ent/cmd/ent generate ./ent/schema",
+    "generate_directive_alignment": "the LF-normalized ent/generate.go SHA-256 must equal generate_go_normalized_sha256; the directive is audited but never executed",
+    "runtime_evidence": {
+      "first_manifest": "NOT_RUN",
+      "second_manifest": "NOT_RUN",
+      "exact_manifest_comparison": "NOT_RUN",
+      "dependent_compile": "NOT_RUN"
+    }
+  },
+  "source_module_lock": {
+    "go_mod_normalized_sha256": "3f7ff699a420ecf0501693c47ee18108a02a8827a547578bb6b800f83bcc2be6",
+    "go_mod_normalized_bytes": 9763,
+    "go_sum_normalized_sha256": "9a03c4db3f998434e3e9058a67b7d2143fda8c5a7ccee6895e9093d6e77d2510",
+    "go_sum_normalized_bytes": 55553
+  },
   "source_boundary": {
     "schema_source": "ent://ent/schema",
     "lineage": "file://migrations/atlas/mail-calendar-v1",
@@ -61,9 +84,17 @@
     "runtime_output": "bounded SHA-256-labelled review output on stdout only"
   },
   "operation_contract": {
-    "public_entrypoints": ["baseline", "diff", "verify"],
+    "public_entrypoints": ["baseline", "diff", "generate", "verify"],
     "wall_clock_seconds": 900,
     "automatic_retries": false,
-    "generated_sql_or_checksum_authoring": "separate exact-path reviewed packet required"
+    "generated_sql_or_checksum_authoring": "separate exact-path reviewed packet required",
+    "generate": {
+      "module_roots": 2,
+      "network": "Compose network_mode=none; GOPROXY=off; GOSUMDB=off; GOTOOLCHAIN=local; GOWORK=off",
+      "database": "no database environment, dependency or network is available to the generate service",
+      "execution_tmpfs": "only per-pass TMPDIR/GOTMPDIR below /run/go-run-exec are executable; source roots, HOME, XDG cache, GOCACHE, /work and /tmp remain noexec and disposable",
+      "output": "one bounded SHA-256-labelled generated-file manifest on stdout only; no generated source may leave the container",
+      "runtime_evidence": "NOT_RUN"
+    }
   }
 }
