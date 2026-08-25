@@ -39,6 +39,9 @@ func (service *MailboxDraftService) CreateMailboxDraft(ctx context.Context, acto
 	if !mailboxDraftCreateServiceValid(service) || ctx == nil || actorID == uuid.Nil {
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
 	}
+	if input.calendar != nil {
+		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorUnavailable)
+	}
 	if ctx.Err() != nil {
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorUnavailable)
 	}

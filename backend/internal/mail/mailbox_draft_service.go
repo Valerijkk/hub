@@ -92,6 +92,7 @@ type MailboxDraftWriteInput struct {
 type MailboxDraftCreateInput struct {
 	MailboxDraftWriteInput
 	IdempotencyKey string
+	calendar       *calendarMIMEPart
 }
 
 type MailboxDraftSaveInput struct {

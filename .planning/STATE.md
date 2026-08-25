@@ -23,6 +23,20 @@ mail_calendar_delivery_materializer_2026_08_25: >-
   iTIP/ICS, MIME part or provider state is exposed. The Mail-owned sealed MIME draft creator,
   repository/worker integration and production composition remain pending. Compile, tests,
   formatting/lint, Docker and runtime remain NOT_RUN; this is not readiness acceptance.
+mail_calendar_draft_sealed_bridge_2026_08_25: >-
+  SOURCE_CONTRACT_AUTHORED / INDEPENDENT_CONTRACT_AND_SECURITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for exact source blobs `fca778dc23ee984a9751d30a58350d8da2ac90f2`,
+  `9275020480e63ad6fb18bd8672456455f4f6a52a` and
+  `0ca137223a01e94693f2f8b2e796694f28c80e11`. Calendar delivery now converts its
+  authoritative sealed claim into a defensively copied `calendarMIMEPart` bound to the
+  delivery, organization, method and normalized sole recipient, and carries it only through
+  the private `MailboxDraftCreateInput` field. Invalid sealing resolves before any draft call.
+  Until the Q47-gated durable generic MIME repository state machine exists, the production
+  draft service fails every calendar-bearing create with safe `Unavailable` before owner,
+  repository or provider I/O, preventing a silent plain-only invitation; ordinary nil-calendar
+  drafts retain their existing path. This transitional fail-closed branch must be replaced
+  before Calendar delivery production composition is enabled. Compile, tests, generation,
+  migration/SQL, formatting/lint, Docker and runtime remain NOT_RUN; this is not readiness.
 mail_calendar_outbound_mime_part_2026_08_25: >-
   STATIC_IMPLEMENTED / STATIC_ACCEPTED only for the sealed outbound calendar
   part, private planner/stream and private calendar-only RFC822 UploadBlob seam

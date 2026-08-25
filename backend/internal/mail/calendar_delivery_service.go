@@ -311,7 +311,11 @@ func (service *CalendarMailDeliveryService) deliver(ctx context.Context, deliver
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeMailboxUnavailable)
 	}
 
-	draft, draftErr := service.safeCreateMailboxDraft(deliveryContext, claim.SenderActorID(), calendarMailDeliveryDraftCreateInput(claim, materialized))
+	draftInput, draftInputErr := calendarMailDeliveryDraftCreateInput(claim, materialized)
+	if draftInputErr != nil {
+		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeInvalid)
+	}
+	draft, draftErr := service.safeCreateMailboxDraft(deliveryContext, claim.SenderActorID(), draftInput)
 	if draftErr != nil {
 		return service.resolve(ctx, claim, calendarMailDeliveryDraftResolveCode(draftErr))
 	}
@@ -483,7 +487,48 @@ func (service *CalendarMailDeliveryService) leave() {
 	service.guard.Unlock()
 }
 
-func calendarMailDeliveryDraftCreateInput(claim CalendarMailDeliveryClaim, materialized CalendarMailMaterialization) MailboxDraftCreateInput {
+func calendarMailDeliveryDraftCreateInput(
+	claim CalendarMailDeliveryClaim,
+	materialized CalendarMailMaterialization,
+) (MailboxDraftCreateInput, error) {
+	if !validCalendarMailDeliveryClaim(claim) ||
+		!validCalendarMailMaterialization(materialized) {
+		return MailboxDraftCreateInput{},
+			newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
+	}
+
+	part, err := newCalendarMIMEPart(
+		claim.deliveryID,
+		claim.organizationID,
+		claim.recipient,
+		claim.materialization.message,
+	)
+	if err != nil {
+		return MailboxDraftCreateInput{},
+			newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
+	}
+
+	serialized := part.calendarBytes()
+	part.serialized = serialized
+	if !part.valid() ||
+		part.deliveryID() != claim.deliveryID ||
+		part.organization() != claim.organizationID ||
+		part.mimeMethod() != string(claim.method) {
+		return MailboxDraftCreateInput{},
+			newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
+	}
+
+	partRecipient, err := NormalizeAddress(part.recipientAddress())
+	if err != nil {
+		return MailboxDraftCreateInput{},
+			newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
+	}
+	claimRecipient, err := NormalizeAddress(claim.recipient)
+	if err != nil || partRecipient != claimRecipient {
+		return MailboxDraftCreateInput{},
+			newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
+	}
+
 	return MailboxDraftCreateInput{
 		MailboxDraftWriteInput: MailboxDraftWriteInput{
 			DraftClientID:  calendarMailDeliveryDraftClientID(claim.deliveryID),
@@ -493,7 +538,8 @@ func calendarMailDeliveryDraftCreateInput(claim CalendarMailDeliveryClaim, mater
 			Content:        materialized.content,
 		},
 		IdempotencyKey: calendarMailDeliveryDraftKey(claim.deliveryID),
-	}
+		calendar:       &part,
+	}, nil
 }
 
 func calendarMailDeliveryDraftClientID(deliveryID CalendarMailDeliveryID) uuid.UUID {
