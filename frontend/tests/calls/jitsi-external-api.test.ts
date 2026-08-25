@@ -55,6 +55,11 @@ describe("getJitsiExternalAPIScriptURL", () => {
     );
   });
 
+  it("allows a self-hosted meet origin under jit.si without broad suffix blocking", () => {
+    const origin = "https://meet.hub.jit.si";
+
+    expect(getJitsiExternalAPIScriptURL(origin)).toBe(`${origin}/external_api.js`);
+  });
   it("accepts a hostname at the 253-octet boundary", () => {
     const origin = `https://${maxLengthHost}`;
 
