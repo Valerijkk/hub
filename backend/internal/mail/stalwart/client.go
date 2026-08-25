@@ -124,6 +124,20 @@ func (c *Client) CallRegistry(ctx context.Context, request JMAPRequest) (JMAPRes
 // mailbox endpoint /jmap/. A transport ambiguity after a mutation is always
 // reported as indeterminate; this method performs no retry.
 func (c *Client) CallMailbox(ctx context.Context, session *MailboxSession, request JMAPRequest) (JMAPResponse, error) {
+	return c.callMailbox(ctx, session, request, maxJMAPBytes)
+}
+
+// CallMailboxBounded sends a standards-only mailbox batch while retaining no
+// more than maximumResponseBytes before JSON parsing. It is for callers whose
+// closed response shape has a stricter budget than the generic JMAP ceiling.
+func (c *Client) CallMailboxBounded(ctx context.Context, session *MailboxSession, request JMAPRequest, maximumResponseBytes int64) (JMAPResponse, error) {
+	return c.callMailbox(ctx, session, request, maximumResponseBytes)
+}
+
+func (c *Client) callMailbox(ctx context.Context, session *MailboxSession, request JMAPRequest, maximumResponseBytes int64) (JMAPResponse, error) {
+	if _, ok := boundedLimit(maximumResponseBytes, maxJMAPBytes); !ok {
+		return JMAPResponse{}, newError(ErrorInvalidRequest)
+	}
 	payload, mutation, err := validateRequest(jmapMailbox, request, session)
 	if err != nil {
 		return JMAPResponse{}, err
@@ -131,7 +145,7 @@ func (c *Client) CallMailbox(ctx context.Context, session *MailboxSession, reque
 	if !c.validMailboxAPIURL(session) {
 		return JMAPResponse{}, newError(ErrorProtocol)
 	}
-	status, _, response, err := c.doRequest(ctx, jmapDeadline, http.MethodPost, session.apiURL, bytes.NewReader(payload), "application/json", c.authorizeMailbox, maxJMAPBytes)
+	status, _, response, err := c.doRequest(ctx, jmapDeadline, http.MethodPost, session.apiURL, bytes.NewReader(payload), "application/json", c.authorizeMailbox, maximumResponseBytes)
 	if err != nil {
 		return JMAPResponse{}, mutationError(err, mutation)
 	}

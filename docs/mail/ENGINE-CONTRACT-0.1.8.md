@@ -317,6 +317,33 @@ private canonical locator and compare to requested hash; body substitution is an
 Changing the formula requires a versioned schema/event amendment. Prior 147-02D
 Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy `engine_message_id` is
 `CONSUMED/HISTORICAL`; those are forbidden Calendar fallbacks, not a removal of unrelated Mail reads.
+
+For V1 Stalwart exact-one hydration, `canonical_private_part_locator` is exactly
+`u32be(len(part_id_utf8)) || part_id_utf8 || u32be(len(blob_id_utf8)) || blob_id_utf8 ||
+u32be(len(method_ascii_upper)) || method_ascii_upper`. `part_id_utf8` and `blob_id_utf8` are each
+the unmodified 1..`MaxEngineOpaqueIDBytes` provider value; `method_ascii_upper` is exactly one of
+`REQUEST|CANCEL|REPLY`. All lengths are byte lengths. The admitted leaf fixes the media type to exact
+lowercase `text/calendar`; it is not another locator field. A Stalwart `ReadCalendarPart` rehydrates
+one requested account/message before and after its bounded exact-blob download, requests only `id`,
+`header:Authentication-Results:asRaw:all`, `bodyStructure`, and body `partId/blobId/size/type/`
+`header:Content-Type:asRaw:all`, and accepts exactly one `text/calendar` leaf with one raw
+Content-Type and matching MIME/iTIP method. Its required account-bound bounded-call capability rejects
+the generic mailbox call as a fallback and caps the complete JMAP response at 1 MiB before retention or
+JSON parsing; the one decoded list record is separately capped at 1 MiB. Raw `Authentication-Results`
+and `Content-Type` values are count- and byte-bounded before unfold allocation. Unfold accepts only
+`CRLF` followed by one or more SP/HTAB, replaces that fold and its WSP run with one SP, safely normalizes
+HTAB, and rejects bare CR/LF, NUL, and every other control. Before `mime.ParseMediaType`, the
+ASCII-SP/HTAB-trimmed bytes before the first semicolon must be exactly lowercase `text/calendar`; no
+case-normalized token is accepted. The parsed type must also be `text/calendar`, and `method` remains
+exactly uppercase `REQUEST|CANCEL|REPLY`; duplicate Content-Type values and invalid methods fail closed
+while safe extra MIME parameters remain permitted. The Stalwart server may internally inspect a full raw
+message to supply `bodyStructure`; this contract retains only the bounded JMAP response, bounded tree/
+header metadata, and a 1 MiB decoded leaf. Authentication remains `untrusted`: this atom has no
+deployment strip/overwrite proof or trust enable switch. Calendar projection discovery is
+`NOT_IMPLEMENTED`: `ListMessages`, `Changes`, and `EnumerateProjection` do not request
+`bodyStructure` or add hydration/N+1 work. This engine-private rule does not implement P3-C source,
+Ent, consumer, composition, or trust admission.
+
 P3-C snapshot/recheck requires the same private `engine_version` before/after engine I/O for TOCTOU, but
 an engine-version-only flag/folder change neither changes the hash nor loses the existing delivery.
 Provider/projection must recompute the hash only when canonical locator or decoded iTIP bytes change.

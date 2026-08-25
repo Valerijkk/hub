@@ -151,6 +151,26 @@ func (client *accountBoundStalwartMailboxClient) CallMailbox(ctx context.Context
 	return client.client.CallMailbox(ctx, session, request)
 }
 
+// CallMailboxBounded discovers the same account-bound mailbox session as the
+// generic call, then applies the calendar atom's stricter response budget
+// before the Stalwart client retains or parses JMAP JSON.
+func (client *accountBoundStalwartMailboxClient) CallMailboxBounded(ctx context.Context, request stalwart.JMAPRequest, maximumResponseBytes int64) (stalwart.JMAPResponse, error) {
+	if client == nil || client.client == nil || !validAccountID(client.accountID) || ctx == nil || maximumResponseBytes < 1 || maximumResponseBytes > MaxCalendarPartBytes {
+		return stalwart.JMAPResponse{}, stalwart.ErrInvalidRequest
+	}
+	if err := stalwartMailboxContextError(ctx); err != nil {
+		return stalwart.JMAPResponse{}, err
+	}
+	session, err := client.client.DiscoverMailboxSession(ctx)
+	if err != nil {
+		return stalwart.JMAPResponse{}, err
+	}
+	if err := stalwartMailboxContextError(ctx); err != nil {
+		return stalwart.JMAPResponse{}, err
+	}
+	return client.client.CallMailboxBounded(ctx, session, request, maximumResponseBytes)
+}
+
 // UploadBlob streams one exact-size, account-bound MIME payload. The caller's
 // source is closed exactly once on every path; session discovery happens before
 // the single provider upload, and no retry or buffering is introduced here.

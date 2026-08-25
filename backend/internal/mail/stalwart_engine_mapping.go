@@ -79,6 +79,7 @@ type stalwartEmailQueryResponse struct {
 
 type stalwartEmailGetArguments struct {
 	AccountID           string   `json:"accountId"`
+	BodyProperties      []string `json:"bodyProperties,omitempty"`
 	FetchHTMLBodyValues bool     `json:"fetchHTMLBodyValues,omitempty"`
 	FetchTextBodyValues bool     `json:"fetchTextBodyValues,omitempty"`
 	IDs                 []string `json:"ids"`
@@ -110,6 +111,7 @@ type stalwartEmailChangesResponse struct {
 }
 
 type stalwartEmailRecord struct {
+	AuthenticationResults []string                          `json:"header:Authentication-Results:asRaw:all"`
 	Attachments   []stalwartEmailBodyPart            `json:"attachments"`
 	BodyStructure *stalwartEmailBodyPart              `json:"bodyStructure"`
 	BodyValues    map[string]stalwartEmailBodyValue   `json:"bodyValues"`
@@ -141,6 +143,7 @@ type stalwartEmailAddress struct {
 type stalwartEmailBodyPart struct {
 	BlobID      string                    `json:"blobId"`
 	CID         string                    `json:"cid"`
+	ContentType []string                  `json:"header:Content-Type:asRaw:all"`
 	Disposition string                    `json:"disposition"`
 	Name        string                    `json:"name"`
 	PartID      string                    `json:"partId"`
