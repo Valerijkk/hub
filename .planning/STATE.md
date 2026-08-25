@@ -1,4 +1,17 @@
 ---
+mail_reader_authoritative_calendar_link_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_ACCESSIBILITY_AND_SECURITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Exact blobs: route `0e511cd84adac79124ea884ea58d9b21168d49fd`,
+  EN `d94fb06dbdb0c7cea274fa23717ebfbe936bb8ee`, RU
+  `5cac5654c315904a5f9e3a04ec932b7f1145f4bf`. Mail reader no longer derives
+  Calendar navigation from unauthoritative `MailMessage.calendar_event_id`; the
+  informational `calendar_method` label remains. A real deep-link and invitation card
+  wait for a Mail-owned resolver GET/POST plus the concrete Ent adapter; no dead control
+  replaces the removed link. Tests/build/lint/Docker/runtime are NOT_RUN; this is not
+  product, Docker or merge readiness. `provenance_source: dispatcher-enforced`;
+  implementation Terra/xhigh; reviews Contract/Accessibility high and Security xhigh;
+  no fallback; telemetry UNKNOWN.
 mail_calendar_message_correlation_2026_08_26: >-
   SOURCE_CONTRACT_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /

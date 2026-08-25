@@ -1,7 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-	CalendarDays,
 	ChevronDown,
 	ChevronLeft,
 	Download,
@@ -205,10 +204,6 @@ function MessageCard({
 			</div>
 		);
 	} else {
-		const calendarEventID =
-			detail.calendar_event_id && isValidMailEntityID(detail.calendar_event_id)
-				? detail.calendar_event_id.toLowerCase()
-				: null;
 		bodyContent = (
 			<div className="space-y-4 py-4">
 				{bodyQuery.isError ? (
@@ -298,17 +293,6 @@ function MessageCard({
 							})}
 						</ul>
 					</section>
-				) : null}
-				{calendarEventID ? (
-					<Button asChild variant="outline" className="min-h-11">
-						<Link
-							to="/calendar/events/$eventId"
-							params={{ eventId: calendarEventID }}
-						>
-							<CalendarDays aria-hidden="true" className="h-4 w-4" />
-							{t("reader.body.openCalendar")}
-						</Link>
-					</Button>
 				) : null}
 			</div>
 		);

@@ -184,7 +184,6 @@
 			"downloading": "Downloading…",
 			"downloadFailed": "This attachment could not be downloaded. Try again.",
 			"retryDownload": "Retry download",
-			"openCalendar": "Open calendar",
 			"disposition": {
 				"attachment": "Attachment",
 				"inline": "Inline"

@@ -184,7 +184,6 @@
 			"downloading": "Скачивание…",
 			"downloadFailed": "Не удалось скачать вложение. Повторите попытку.",
 			"retryDownload": "Повторить скачивание",
-			"openCalendar": "Открыть календарь",
 			"disposition": {
 				"attachment": "Вложение",
 				"inline": "В тексте"
