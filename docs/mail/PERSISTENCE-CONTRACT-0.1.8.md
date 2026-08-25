@@ -2066,6 +2066,24 @@ This source-only ABI introduces no Ent repository, transaction/CAS, rate debit, 
 hash comparison, provider dispatch, worker, migration, API, or runtime authority. Independent
 review is PASS C/I/M `0/0/0`; tests, generation, build, lint, Docker, and runtime are `NOT_RUN`.
 
+### Unknown submission reconciliation worker source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. `MailboxSubmissionReconciliationWorker` reuses the guarded sequential
+`MailboxSubmissionWorker` loop instead of introducing a second scheduler. Its private scanner adapter
+passes only a bounded limit to `ScanUnknownMailboxSubmissions`; the generic loop removes zero and
+duplicate UUIDs and caps the result before the private dispatcher adapter invokes `Reconcile` exactly
+once for each retained identity.
+
+The enabled defaults are a one-minute scan interval, thirty-second per-item deadline, and batch size
+twenty, with the inherited maximum of fifty. Disabled zero configuration is a no-op. Cancellation,
+panic containment, partial-failure continuation, safe content-free errors, timer boundaries, and
+result counts are inherited unchanged; `Dispatched` maps only to `Reconciled`.
+
+The wrapper has no engine, provider, transport, HTTP, NATS, submit, preflight, message-read, claim,
+resolve, or finalizer capability. Server wiring, production composition, generated Ent, migration,
+SQL application, executable tests, build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
+
 ### Queued submission dispatch worker source-only delta
 
 `STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:

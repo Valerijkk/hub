@@ -1,5 +1,17 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Unknown submission reconciliation worker
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxSubmissionReconciliationWorker` is a thin provider-free adapter over the already accepted
+bounded sequential submission-worker loop. It maps the UUID-only unknown-due repository scan to one
+`Reconcile` call per retained identity, with the same defaults, defensive filtering, per-item timeout,
+cancellation, panic containment, partial-failure continuation, and content-free counts. Disabled zero
+configuration is a no-op. The worker has no engine, provider, HTTP, NATS, claim, resolve, or finalizer
+capability. Production composition, generated Ent, migration, SQL application, compile, executable
+tests, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
+
 ## 2026-08-25 - Unknown submission Ent reconciliation adapter
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
