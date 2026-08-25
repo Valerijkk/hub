@@ -1,5 +1,14 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Calendar delivery stale-claim recovery indexes
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+Invite and reply delivery intents now expose separate non-unique `(lease_until,id)` partial indexes
+for `submitting` rows. A recovery worker can therefore reclaim an expired unbound claim after a crash
+between claim and submission bind instead of leaving it permanently outside the normal due index.
+Generated Ent, migration/SQL, executable tests, build, lint/gofmt, Docker and runtime remain `NOT_RUN`.
+
 ## 2026-08-25 - Calendar reply delivery lifecycle
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

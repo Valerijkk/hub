@@ -573,6 +573,9 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   `MailSubmission` binding, superseded remains unbound, and retry exhaustion is terminal only at the
   eighth attempt. This is source-only independent acceptance `C/I/M 0/0/0`; generated Ent,
   migration/SQL, executable verification, consumer/worker composition, Docker and runtime are `NOT_RUN`.
+  Both invite and reply delivery schemas also index expired `submitting` leases by
+  `(lease_until,id)`, so crash recovery can reclaim an unbound claim that would otherwise remain
+  outside the normal due index forever.
 - `calendar.reminder.due.v1` creates one durable in-app intent through existing preferences
   and quiet hours. Scheduler and consumer both recheck the current effective start,
   sequence, non-null reminder offset, derived due and owner/attendee eligibility under one

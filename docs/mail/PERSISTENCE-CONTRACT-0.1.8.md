@@ -1428,6 +1428,8 @@ database-due retry rows, token/deadline plus positive claim generation while sub
 safe error codes, and terminal timestamps. The optional MailSubmission is the sole linkage to a
 result MailMessage; no duplicate message column, raw iTIP/content, address, provider identifier or
 error detail is stored. The due index is `(next_attempt_at,id)` for due `pending|unknown` rows.
+Expired unbound `submitting` claims are discoverable through the non-unique
+`calendar_invite_deliveries_stale_lease_idx (lease_until,id)` partial index.
 Generated Ent, migration/SQL, executable tests, Docker and runtime are `NOT_RUN`.
 
 **Calendar reply delivery lifecycle amendment (source-only).**
@@ -1440,6 +1442,8 @@ before the Calendar outbox wake or a due time after it; retry and unknown rows a
 `MailSubmission` edge with `NO ACTION`, superseded is unbound, and `retry_exhausted` requires attempt
 8. This paragraph supersedes the historical `CalendarReplyDelivery absent/deferred` phrase in the
 MailSubmission row above. No iTIP/body/address/provider/error detail is persisted. Generated Ent,
+Expired unbound claims are discoverable through the non-unique
+`calendar_reply_deliveries_stale_lease_idx (lease_until,id)` partial index.
 migration/SQL, executable tests, Docker and runtime are `NOT_RUN`.
 
 **Literal SQL predicate forms.** Every line below is an intended named PostgreSQL `CHECK (...)` predicate. State/pair predicates are NULL-safe with `COALESCE(..., FALSE)`. JSON checks deliberately enforce only DB-representable outer types, cardinality, primitive/object fields, and member primitive types; unknown keys, canonical values/grammar, duplicate detection, per-member semantic bounds, and serialized-byte caps are reject-not-transform application-validator obligations.

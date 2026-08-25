@@ -51,6 +51,7 @@ func TestCalendarInviteDeliverySchemaContract(t *testing.T) {
 	mailBridgeAssertUniquePartialIndex(t, (entschema.CalendarInviteDelivery{}).Indexes(), []string{"calendar_event_id", "calendar_attendee_id", "event_sequence", "kind"}, "recurrence_id IS NULL")
 	mailBridgeAssertUniquePartialIndex(t, (entschema.CalendarInviteDelivery{}).Indexes(), []string{"calendar_event_id", "calendar_attendee_id", "event_sequence", "kind", "recurrence_id"}, "recurrence_id IS NOT NULL")
 	calendarInviteAssertPartialIndex(t, (entschema.CalendarInviteDelivery{}).Indexes(), []string{"next_attempt_at", "id"}, "state IN ('pending','unknown') AND next_attempt_at IS NOT NULL")
+	mailBridgeAssertNonUniquePartialIndex(t, (entschema.CalendarInviteDelivery{}).Indexes(), []string{"lease_until", "id"}, "calendar_invite_deliveries_stale_lease_idx", "state = 'submitting' AND lease_until IS NOT NULL")
 
 	edges := mailBridgeEdgeDescriptors((entschema.CalendarInviteDelivery{}).Edges())
 	mailBridgeAssertExactNames(t, "CalendarInviteDelivery edges", mailBridgeMapKeys(edges), []string{"attendee", "event", "mail_submission", "organization"})

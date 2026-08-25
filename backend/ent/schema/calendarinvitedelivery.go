@@ -131,5 +131,8 @@ func (CalendarInviteDelivery) Indexes() []ent.Index {
 		index.Fields("next_attempt_at", "id").
 			StorageKey("calendar_invite_deliveries_due_idx").
 			Annotations(entsql.IndexWhere("state IN ('pending','unknown') AND next_attempt_at IS NOT NULL")),
+		index.Fields("lease_until", "id").
+			StorageKey("calendar_invite_deliveries_stale_lease_idx").
+			Annotations(entsql.IndexWhere("state = 'submitting' AND lease_until IS NOT NULL")),
 	}
 }

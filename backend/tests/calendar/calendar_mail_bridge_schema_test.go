@@ -135,6 +135,7 @@ func TestCalendarReplyDelivery_SchemaContract(t *testing.T) {
 	})
 	mailBridgeAssertUniqueIndex(t, (entschema.CalendarReplyDelivery{}).Indexes(), []string{"calendar_attendee_id", "event_sequence", "attendee_version"})
 	mailBridgeAssertPartialIndex(t, (entschema.CalendarReplyDelivery{}).Indexes(), []string{"next_attempt_at", "id"}, "state IN ('pending','unknown') AND next_attempt_at IS NOT NULL")
+	mailBridgeAssertNonUniquePartialIndex(t, (entschema.CalendarReplyDelivery{}).Indexes(), []string{"lease_until", "id"}, "calendar_reply_deliveries_stale_lease_idx", "state = 'submitting' AND lease_until IS NOT NULL")
 
 	edges := mailBridgeEdgeDescriptors((entschema.CalendarReplyDelivery{}).Edges())
 	mailBridgeAssertExactNames(t, "CalendarReplyDelivery edges", mailBridgeMapKeys(edges), []string{"attendee", "event", "mail_submission"})
@@ -380,6 +381,29 @@ func mailBridgeAssertPartialIndex(t *testing.T, indexes []ent.Index, wantFields 
 		t.Fatalf("partial index over %v missing WHERE %q", wantFields, wantWhere)
 	}
 	t.Fatalf("missing partial index over %v", wantFields)
+}
+
+func mailBridgeAssertNonUniquePartialIndex(t *testing.T, indexes []ent.Index, wantFields []string, wantStorageKey, wantWhere string) {
+	t.Helper()
+	for _, schemaIndex := range indexes {
+		descriptor := schemaIndex.Descriptor()
+		if !reflect.DeepEqual(descriptor.Fields, wantFields) {
+			continue
+		}
+		if descriptor.Unique {
+			t.Fatalf("partial index over %v must be non-unique", wantFields)
+		}
+		if descriptor.StorageKey != wantStorageKey {
+			t.Fatalf("partial index over %v storage key = %q, want %q", wantFields, descriptor.StorageKey, wantStorageKey)
+		}
+		for _, annotation := range descriptor.Annotations {
+			if sqlAnnotation, ok := annotation.(*entsql.Annotation); ok && sqlAnnotation.IndexWhere == wantWhere {
+				return
+			}
+		}
+		t.Fatalf("partial index over %v missing WHERE %q", wantFields, wantWhere)
+	}
+	t.Fatalf("missing non-unique partial index over %v", wantFields)
 }
 
 func mailBridgeAssertEdge(t *testing.T, name string, descriptor *edge.Descriptor, inverse, unique, required bool, fieldName, refName string, onDelete any) {
