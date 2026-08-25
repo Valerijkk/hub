@@ -1,5 +1,22 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Sealed submission dispatcher source packet
+
+STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxSubmissionDispatcher` is the sole production provider-submit path. It claims, performs
+policy-bound preflight outside the durable transaction, maps preflight failures with a fixed
+60-second retry/rate delay, authorizes, invokes exactly one private provider mutation, and resolves
+only `accepted` or `unknown`. `accepted` requires both nonempty bounded opaque provider IDs;
+post-authorization cancellation, error, malformed/absent/indeterminate result and stale
+resolution stay `unknown`, never requeue or fail. Stale completion surfaces only safe
+`reconciliation_required`.
+
+`MailEngine`, `StalwartEngine`, and `FakeMailEngine` expose neither production `Submit` nor a
+test bypass. The private `submitMailboxSubmission` method is accessible only to the package
+dispatcher. The packet changes no service, finalizer, reconciliation flow, schema, migration, API,
+test execution, Docker, or runtime authority.
+
 ## 2026-08-25 - Clean-attachment proof and dispatch authorization hash V1
 
 STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN.

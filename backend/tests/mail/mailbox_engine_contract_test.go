@@ -86,10 +86,6 @@ func (consumerStub) PreflightSubmission(context.Context, mail.EngineSubmissionPr
 	return mail.EngineSubmissionPreflight{}, nil
 }
 
-func (consumerStub) Submit(context.Context, mail.EngineSubmission) (mail.EngineSubmissionResult, error) {
-	return mail.EngineSubmissionAbsent{}, nil
-}
-
 func (consumerStub) ReconcileSubmission(context.Context, mail.EngineSubmission) (mail.EngineSubmissionResult, error) {
 	return mail.EngineSubmissionAbsent{}, nil
 }

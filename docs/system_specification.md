@@ -451,6 +451,15 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   provisional attempt. Every requeue, including a rate limit, retains the linked draft in
   `submitting`; terminal policy, identity, attachment or tuple failures, including exhausted
   retry, atomically fail the submission and return that locked draft to `active`.
+  A post-provider dispatch resolution is another short Account -> Submission -> Draft transaction.
+  It samples one database clock, accepts only the live dual fence and the exact sealed-to-stored
+  dispatch authorization hash, and retains the draft in `submitting`. A valid opaque provider pair
+  whose message identifier equals the persisted engine message identifier transitions to `accepted`;
+  every provider-pair mismatch transitions to `unknown` with `MAIL_SUBMISSION_OUTCOME_UNKNOWN`.
+  Both outcomes release the account/submission leases and advance the account epoch; neither can
+  requeue or re-submit a stale `submitting` record. This dispatch-resolution adapter is
+  `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN` only, not runtime,
+  Ent-generation, database, product, or release evidence.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals

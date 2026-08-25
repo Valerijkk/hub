@@ -247,9 +247,16 @@ Changes(context.Context, EngineChangeRequest) (EngineChangePage, error)
 EnumerateProjection(context.Context, EngineEnumerationRequest) (EngineEnumerationPage, error)
 SaveDraft(context.Context, EngineDraft) (EngineMessage, error)
 ReconcileDraft(context.Context, EngineDraftReconciliation) (EngineDraftResult, error)
-Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 ReconcileSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 ```
+
+`MailEngine` no longer exposes `Submit`. Provider submission is package-private:
+`MailboxSubmissionDispatcher` requires an implementation of the unexported
+`submitMailboxSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)`
+interface in addition to the public read/preflight port. This makes direct provider mutation
+unrepresentable to an external consumer while retaining public read-only reconciliation.
+`FakeMailEngine` exposes no submission helper; production and tests must not bypass the sealed
+dispatcher boundary.
 
 ### P3 Calendar-part private read amendment
 

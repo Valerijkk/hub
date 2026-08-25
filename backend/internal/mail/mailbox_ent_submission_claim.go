@@ -459,7 +459,12 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			Exec(ctx); err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 		}
-		authorization := MailboxSubmissionDispatchAuthorization{submissionID: submission.ID, fence: claim.fence, authorizedAt: databaseNow}
+		authorization := MailboxSubmissionDispatchAuthorization{
+			submissionID:      submission.ID,
+			fence:             claim.fence,
+			authorizedAt:      databaseNow,
+			authorizationHash: authorizationHash,
+		}
 		if !mailboxSubmissionDispatchAuthorizationValid(authorization) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}

@@ -505,10 +505,10 @@ func stalwartErrorHasKind(err error, kind EngineErrorKind) bool {
 	return errors.As(err, &engineErr) && engineErr != nil && engineErr.Kind == kind
 }
 
-// Submit prepares an exact locator/binding pair, then records a separate
+// submitMailboxSubmission prepares an exact locator/binding pair, then records a separate
 // dispatch fence before creating one EmailSubmission. Only a confirmed fence
 // response authorises dispatch; an uncertain fence is never retried.
-func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
+func (engine *StalwartEngine) submitMailboxSubmission(ctx context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
 	if ctx == nil || validateSubmission(submission) != nil {
 		return nil, stalwartEngineError(EngineErrorRejectedPolicy)
 	}

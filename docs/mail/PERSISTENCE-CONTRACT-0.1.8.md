@@ -2045,6 +2045,28 @@ This source-only ABI introduces no Ent repository, transaction/CAS, rate debit, 
 hash comparison, provider dispatch, worker, migration, API, or runtime authority. Independent
 review is PASS C/I/M `0/0/0`; tests, generation, build, lint, Docker, and runtime are `NOT_RUN`.
 
+### Submission dispatcher source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN`. The previous clauses stating that a dispatcher and Ent
+authorization/dispatch CAS were absent are superseded only by this narrow source packet.
+`MailboxSubmissionDispatchRepository` embeds `MailboxSubmissionClaimRepository` and adds
+`ResolveMailboxSubmissionDispatch(context.Context, MailboxSubmissionDispatchResolutionRequest) error`.
+Its exact request contains only `Authorization`, closed `Resolution` (`accepted|unknown`), and
+two opaque provider result IDs. The dispatcher returns no result DTO and no provider error.
+
+The dispatcher claims a queued submission, derives `Policy().PreflightRequest`, performs
+`PreflightSubmission` outside a transaction, and resolves the existing preflight-failure mapping
+with a deterministic 60-second retry or rate-limit delay. It then authorizes durably; only an
+`authorized` result invokes the private engine mutation exactly once. Busy or stale `submitting`
+records do not reach that call. A confirmed `EngineSubmissionAccepted` with two nonempty bounded
+opaque provider IDs resolves `accepted`; every post-authorization cancellation, mutation error,
+malformed result, absence, indeterminate result, or invalid provider ID resolves `unknown` and is
+never requeued or failed by this path. A stale durable completion conflict is exposed only as the
+content-free dispatcher classification `reconciliation_required`.
+
+No service, finalizer, reconciliation worker, schema, migration, API, or runtime authority is
+changed. Tests, build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
+
 ## 143-04J pure projection candidate — no persistence authority
 
 The exact13 authority candidate is deliberately caller-owned and has no persistence port,

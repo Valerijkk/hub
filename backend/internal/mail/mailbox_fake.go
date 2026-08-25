@@ -1040,7 +1040,7 @@ func (f *FakeMailEngine) ReconcileDraftDeletion(_ context.Context, request Engin
 	return EngineDraftRetainedUnchanged{}, nil
 }
 
-func (f *FakeMailEngine) Submit(_ context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
+func (f *FakeMailEngine) submitMailboxSubmission(_ context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
 	if err := validateSubmission(submission); err != nil {
 		return nil, err
 	}

@@ -254,9 +254,10 @@ const (
 // MailboxSubmissionDispatchAuthorization is a sealed capability issued only
 // after the durable authorizing-to-submitting CAS has succeeded.
 type MailboxSubmissionDispatchAuthorization struct {
-	submissionID uuid.UUID
-	fence        MailboxEngineCommandFence
-	authorizedAt time.Time
+	submissionID      uuid.UUID
+	fence             MailboxEngineCommandFence
+	authorizedAt      time.Time
+	authorizationHash [sha256.Size]byte
 }
 
 // SubmissionID returns the durable submission identity authorized for dispatch.
@@ -561,7 +562,8 @@ func mailboxSubmissionPreflightValid(preflight EngineSubmissionPreflight) bool {
 
 func mailboxSubmissionDispatchAuthorizationValid(authorization MailboxSubmissionDispatchAuthorization) bool {
 	return authorization.submissionID != uuid.Nil && mailboxSubmissionClaimFenceValid(authorization.fence) &&
-		mailboxSubmissionClaimExactTimeValid(authorization.authorizedAt)
+		mailboxSubmissionClaimExactTimeValid(authorization.authorizedAt) &&
+		authorization.authorizationHash != [sha256.Size]byte{}
 }
 
 func mailboxSubmissionAuthorizeResultValid(result MailboxSubmissionAuthorizeResult) bool {
