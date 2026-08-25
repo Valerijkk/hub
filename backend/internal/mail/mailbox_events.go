@@ -324,7 +324,10 @@ func NewMailSentEnvelopeV1(
 	if err != nil {
 		return events.EnvelopeV1{}, err
 	}
-	to, err := validateMailEventAddresses(payload.To, true)
+	if payload.To == nil {
+		return events.EnvelopeV1{}, mailEventPolicyError(MailEventErrorInvalid)
+	}
+	to, err := validateMailEventAddresses(payload.To, false)
 	if err != nil {
 		return events.EnvelopeV1{}, err
 	}

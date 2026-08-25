@@ -260,6 +260,53 @@ func TestMailSentEnvelopeV1_AcceptsDeliveryClassValues(t *testing.T) {
 	}
 }
 
+func TestMailSentEnvelopeV1_VisibleToAllowsExplicitEmptyOnly(t *testing.T) {
+	t.Run("explicit empty visible to serializes as array", func(t *testing.T) {
+		payload := sentPayload()
+		payload.To = []mail.MailEventAddress{}
+		envelope, err := mail.NewMailSentEnvelopeV1(eventID, occurredAt, organizationID, nil, "corr-mail-03d", payload)
+		if err != nil {
+			t.Fatalf("map sent event with explicit empty visible to = %v", err)
+		}
+		encoded, err := json.Marshal(envelope)
+		if err != nil {
+			t.Fatalf("marshal sent event with explicit empty visible to = %v", err)
+		}
+		if !bytes.Contains(encoded, []byte(`"to":[]`)) {
+			t.Fatalf("sent envelope = %s, want explicit empty to array", encoded)
+		}
+	})
+
+	t.Run("nil visible to remains invalid", func(t *testing.T) {
+		payload := sentPayload()
+		payload.To = nil
+		_, err := mail.NewMailSentEnvelopeV1(eventID, occurredAt, organizationID, nil, "corr-mail-03d", payload)
+		requireMailEventFailure(t, err, mail.MailEventErrorInvalid)
+	})
+
+	t.Run("nonempty visible to remains unchanged", func(t *testing.T) {
+		envelope, err := mail.NewMailSentEnvelopeV1(eventID, occurredAt, organizationID, nil, "corr-mail-03d", sentPayload())
+		if err != nil {
+			t.Fatalf("map sent event with nonempty visible to = %v", err)
+		}
+		encoded, err := json.Marshal(envelope)
+		if err != nil {
+			t.Fatalf("marshal sent event with nonempty visible to = %v", err)
+		}
+		if !bytes.Contains(encoded, []byte(`"to":[{"email":"recipient@example.test"}]`)) {
+			t.Fatalf("sent envelope = %s, want unchanged visible to address", encoded)
+		}
+	})
+
+	t.Run("received explicit empty to remains invalid", func(t *testing.T) {
+		calendarMethod := mail.MailCalendarMethodRequest
+		payload := receivedPayload(&calendarMethod)
+		payload.To = []mail.MailEventAddress{}
+		_, err := mail.NewMailReceivedEnvelopeV1(eventID, occurredAt, organizationID, &actorID, "corr-mail-03d", payload)
+		requireMailEventFailure(t, err, mail.MailEventErrorInvalid)
+	})
+}
+
 func TestMailMessageChangedEnvelopeV1_AcceptsRemainingChangedFieldsAndFlags(t *testing.T) {
 	payload := changedPayload()
 	payload.ChangedFields = []mail.MailChangedField{

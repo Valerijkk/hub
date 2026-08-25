@@ -948,8 +948,9 @@ existing dead-letter/error policy and are not heuristically parsed.
 Contract fixtures must also prove every envelope/payload rejects undeclared top-level or
 payload properties, including `body`, `description`, raw MIME, attachment content, token
 and secret-shaped fields.
-`mail.received.v1` and `mail.sent.v1` admit at most 200 normalized `to` addresses, matching
-the engine projection-address ceiling; 201 rejects before outbox insertion.
+`mail.received.v1` admits 1..200 normalized `to` addresses. `mail.sent.v1` preserves the exact
+visible `To` set as a required nonnull array of 0..200 addresses so CC-only/BCC-only delivery does
+not invent or disclose recipients; nil and 201 reject before outbox insertion.
 `mail.message.changed.v1` additionally accepts only the frozen changed-field/flag enums;
 `deleted` has no live engine folder/flag state, preserves Hub-owned labels/verified links,
 and removes search/counter membership idempotently.

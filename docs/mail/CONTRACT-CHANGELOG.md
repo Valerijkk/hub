@@ -1,5 +1,16 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Sent event visible-To empty-array correction
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`mail.sent.v1.payload.to` now preserves the exact visible `To` set as a required nonnull array of
+zero through two hundred normalized addresses. This lets already valid CC-only and BCC-only
+submissions finalize without inventing or leaking recipients. A nil `To` remains invalid,
+`mail.received.v1` still requires at least one visible `To`, and duplicate/address/size validation is
+unchanged. The JSON Schema and focused source tests carry the same contract. Executable tests,
+build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
+
 ## 2026-08-25 - Unknown submission reconciliation worker
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
