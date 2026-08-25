@@ -57,6 +57,7 @@ interface MessengerState {
 	) => void;
 	/** Убрать печатающего пользователя из канала. */
 	removeTypingUser: (channelId: string, userId: string) => void;
+	reset: () => void;
 }
 
 /** Стор управления состоянием мессенджера. */
@@ -67,6 +68,16 @@ export const useMessengerStore = create<MessengerState>()((set) => ({
 	activeThreadMessageId: null,
 	replyToMessage: null,
 	typingUsers: {},
+
+	reset: () =>
+		set({
+			activeChannelId: null,
+			channels: [],
+			unreadCounts: {},
+			activeThreadMessageId: null,
+			replyToMessage: null,
+			typingUsers: {},
+		}),
 
 	setActiveChannel: (channelId) => set({ activeChannelId: channelId }),
 

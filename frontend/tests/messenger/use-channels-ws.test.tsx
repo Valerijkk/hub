@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import {
 	afterEach,
 	beforeEach,
@@ -11,7 +11,11 @@ import {
 	vi,
 } from "vitest";
 import type { Channel } from "@/api/messenger";
-import { CHANNELS_QUERY_KEY, useChannels } from "@/hooks/use-channels";
+import {
+	CHANNELS_QUERY_KEY,
+	useChannels,
+} from "@/hooks/use-channels";
+import { useMessengerChannelsRealtime } from "@/hooks/use-messenger-channels-realtime";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { clearWsReconnectTimer, useWsStore } from "@/stores/ws-store";
@@ -88,9 +92,10 @@ function emitWsEvent(event: string, payload: unknown) {
 	});
 }
 
-describe("useChannels WS → Query cache (A10-001)", () => {
+describe("messenger channel realtime ownership (P149)", () => {
 	let queryClient: QueryClient;
 	let setQueryDataSpy: MockInstance<QueryClient["setQueryData"]>;
+	let invalidateQueriesSpy: MockInstance<QueryClient["invalidateQueries"]>;
 	const existing = makeChannel({ id: "ch-existing", name: "Existing" });
 
 	beforeEach(() => {
@@ -134,6 +139,7 @@ describe("useChannels WS → Query cache (A10-001)", () => {
 			},
 		});
 		setQueryDataSpy = vi.spyOn(queryClient, "setQueryData");
+		invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
 
 		vi.mocked(getChannels).mockResolvedValue([existing]);
 	});
@@ -152,7 +158,15 @@ describe("useChannels WS → Query cache (A10-001)", () => {
 		);
 	}
 
-	async function mountUseChannels() {
+	function strictWrapper({ children }: { children: ReactNode }) {
+		return (
+			<StrictMode>
+				<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+			</StrictMode>
+		);
+	}
+
+	async function mountRealtimeOwner({ strict = false } = {}) {
 		await act(async () => {
 			useWsStore.getState().connect("tok-a10-001");
 			await Promise.resolve();
@@ -165,7 +179,14 @@ describe("useChannels WS → Query cache (A10-001)", () => {
 			FakeWebSocket.instances[0]?.open();
 		});
 
-		const hook = renderHook(() => useChannels(), { wrapper });
+		const hook = renderHook(
+			() => {
+				const query = useChannels();
+				useMessengerChannelsRealtime();
+				return query;
+			},
+			{ wrapper: strict ? strictWrapper : wrapper },
+		);
 
 		await waitFor(() => {
 			expect(hook.result.current.isSuccess).toBe(true);
@@ -175,55 +196,301 @@ describe("useChannels WS → Query cache (A10-001)", () => {
 		});
 		// Listener регистрируется в useEffect — дождёмся подписки.
 		await waitFor(() => {
-			expect(useWsStore.getState().listeners.size).toBeGreaterThan(0);
+			expect(useWsStore.getState().listeners.size).toBe(1);
 		});
 
 		return hook;
 	}
 
-	it("channel_created WS path calls setQueryData and prepends channel", async () => {
-		const { result } = await mountUseChannels();
-		setQueryDataSpy.mockClear();
-
-		const created = makeChannel({ id: "ch-new", name: "New Room" });
-		emitWsEvent("channel_created", created);
-
-		expect(setQueryDataSpy).toHaveBeenCalledWith(
-			CHANNELS_QUERY_KEY,
-			expect.any(Function),
-		);
+	it("keeps a shared useChannels observer detached from websocket ownership", async () => {
+		await act(async () => {
+			useWsStore.getState().connect("tok-a10-001");
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+		await waitFor(() => {
+			expect(FakeWebSocket.instances.length).toBeGreaterThan(0);
+		});
+		act(() => {
+			FakeWebSocket.instances[0]?.open();
+		});
+		const observer = renderHook(() => useChannels(), { wrapper });
 
 		await waitFor(() => {
-			expect(
-				queryClient.getQueryData<Channel[]>(CHANNELS_QUERY_KEY)?.map((c) => c.id),
-			).toEqual(["ch-new", "ch-existing"]);
-			expect(result.current.data?.map((c) => c.id)).toEqual([
-				"ch-new",
-				"ch-existing",
-			]);
+			expect(observer.result.current.isSuccess).toBe(true);
+		});
+
+		expect(FakeWebSocket.instances[0]?.sent).toEqual([]);
+		expect(useWsStore.getState().listeners.size).toBe(0);
+	});
+
+	it("subscribes only to the exact authenticated user room without an initial refetch", async () => {
+		await mountRealtimeOwner();
+
+		expect(FakeWebSocket.instances[0]?.sent).toEqual([
+			JSON.stringify({ type: "subscribe", room: "user:user-1" }),
+		]);
+		expect(FakeWebSocket.instances[0]?.sent.join(" ")).not.toContain(
+			"user:user-1:channels",
+		);
+		expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+		expect(getChannels).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not invalidate the initial connected room during StrictMode setup cleanup setup", async () => {
+		await mountRealtimeOwner({ strict: true });
+
+		const sent = FakeWebSocket.instances[0]?.sent ?? [];
+		expect(sent).toContain(
+			JSON.stringify({ type: "subscribe", room: "user:user-1" }),
+		);
+		expect(sent).not.toContain(
+			JSON.stringify({ type: "subscribe", room: "user:user-1:channels" }),
+		);
+		expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+	});
+
+	it("switches user rooms on the same socket before an exact authoritative refetch", async () => {
+		await mountRealtimeOwner();
+		const socket = FakeWebSocket.instances[0];
+		expect(socket).toBeDefined();
+		const sendSpy = vi.spyOn(socket as FakeWebSocket, "send");
+		invalidateQueriesSpy.mockClear();
+		vi.mocked(getChannels).mockClear();
+		const channelB = makeChannel({ id: "ch-user-b", name: "User B channel" });
+		vi.mocked(getChannels).mockResolvedValueOnce([channelB]);
+
+		const userA = useAuthStore.getState().user;
+		if (!userA) throw new Error("authenticated user A is required");
+		act(() => {
+			useAuthStore.setState({ user: { ...userA, id: "user-2" } });
+		});
+
+		await waitFor(() => {
+			expect(sendSpy).toHaveBeenCalledTimes(2);
+			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+				queryKey: CHANNELS_QUERY_KEY,
+				exact: true,
+			});
+		});
+		expect(sendSpy).toHaveBeenNthCalledWith(
+			1,
+			JSON.stringify({ type: "unsubscribe", room: "user:user-1" }),
+		);
+		expect(sendSpy).toHaveBeenNthCalledWith(
+			2,
+			JSON.stringify({ type: "subscribe", room: "user:user-2" }),
+		);
+		expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
+
+		const subscribeBOrder = sendSpy.mock.invocationCallOrder[1];
+		const invalidateOrder = invalidateQueriesSpy.mock.invocationCallOrder[0];
+		expect(subscribeBOrder).toBeLessThan(
+			invalidateOrder ?? Number.POSITIVE_INFINITY,
+		);
+		expect(useWsStore.getState().socket).toBe(socket as unknown as WebSocket);
+		expect(FakeWebSocket.instances).toHaveLength(1);
+		await waitFor(() => {
+			expect(getChannels).toHaveBeenCalledTimes(1);
+			expect(useMessengerStore.getState().channels).toEqual([channelB]);
 		});
 	});
 
-	it("channel_updated WS path calls setQueryData and patches name", async () => {
-		const { result } = await mountUseChannels();
-		setQueryDataSpy.mockClear();
+	it.each([
+		["channel_created", { channel_id: "ch-created" }],
+		["channel_updated", { channel_id: "ch-existing" }],
+		["channel_removed", { channel_id: "ch-removed" }],
+		[
+			"new_message_notification",
+			{ channel_id: "ch-existing", message_id: "msg-1" },
+		],
+	] as const)(
+		"%s invalidates and refetches the authoritative channel list without local patches",
+		async (event, payload) => {
+			await mountRealtimeOwner();
+			setQueryDataSpy.mockClear();
+			invalidateQueriesSpy.mockClear();
+			vi.mocked(getChannels).mockClear();
 
-		emitWsEvent("channel_updated", {
-			id: "ch-existing",
-			name: "Renamed",
-			updated_at: "2026-07-28T00:00:00Z",
+			emitWsEvent(event, payload);
+
+			expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
+			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+				queryKey: CHANNELS_QUERY_KEY,
+				exact: true,
+			});
+			expect(setQueryDataSpy).not.toHaveBeenCalled();
+			expect(useMessengerStore.getState().unreadCounts).toEqual({});
+
+			await waitFor(() => {
+				expect(getChannels).toHaveBeenCalledTimes(1);
+			});
+			expect(
+				queryClient.getQueryData<Channel[]>(CHANNELS_QUERY_KEY)?.map((channel) =>
+					channel.id,
+				),
+			).toEqual(["ch-existing"]);
+		},
+	);
+
+	it.each([
+		["channel_created", { channel_id: "ch-authoritative" }],
+		["channel_updated", { channel_id: "ch-stale" }],
+		["channel_removed", { channel_id: "ch-stale" }],
+		[
+			"new_message_notification",
+			{ channel_id: "ch-stale", message_id: "msg-deferred" },
+		],
+	] as const)(
+		"%s keeps Zustand channels unchanged until its authoritative refetch resolves",
+		async (event, payload) => {
+			await mountRealtimeOwner();
+			setQueryDataSpy.mockClear();
+			invalidateQueriesSpy.mockClear();
+			vi.mocked(getChannels).mockClear();
+			const stale = makeChannel({ id: "ch-stale", name: "Stale local state" });
+			const authoritative = makeChannel({
+				id: "ch-authoritative",
+				name: "Authoritative server state",
+			});
+			useMessengerStore.setState({ channels: [stale] });
+
+			let resolveRefetch: (channels: Channel[]) => void = () => undefined;
+			const refetch = new Promise<Channel[]>((resolve) => {
+				resolveRefetch = resolve;
+			});
+			vi.mocked(getChannels).mockImplementationOnce(() => refetch);
+
+			emitWsEvent(event, payload);
+
+			expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
+			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+				queryKey: CHANNELS_QUERY_KEY,
+				exact: true,
+			});
+			await waitFor(() => {
+				expect(getChannels).toHaveBeenCalledTimes(1);
+			});
+			expect(useMessengerStore.getState().channels).toEqual([stale]);
+			expect(setQueryDataSpy).not.toHaveBeenCalled();
+
+			await act(async () => {
+				resolveRefetch([authoritative]);
+				await refetch;
+			});
+
+			await waitFor(() => {
+				expect(useMessengerStore.getState().channels).toEqual([authoritative]);
+			});
+		},
+	);
+
+	it("handles duplicate notifications through the authoritative refetch path without unread arithmetic", async () => {
+		await mountRealtimeOwner();
+		setQueryDataSpy.mockClear();
+		invalidateQueriesSpy.mockClear();
+		vi.mocked(getChannels).mockClear();
+
+		emitWsEvent("new_message_notification", {
+			channel_id: "ch-existing",
+			message_id: "msg-duplicate",
+		});
+		emitWsEvent("new_message_notification", {
+			channel_id: "ch-existing",
+			message_id: "msg-duplicate",
 		});
 
-		expect(setQueryDataSpy).toHaveBeenCalledWith(
-			CHANNELS_QUERY_KEY,
-			expect.any(Function),
-		);
+		expect(invalidateQueriesSpy).toHaveBeenCalledTimes(2);
+		expect(invalidateQueriesSpy).toHaveBeenNthCalledWith(1, {
+			queryKey: CHANNELS_QUERY_KEY,
+			exact: true,
+		});
+		expect(invalidateQueriesSpy).toHaveBeenNthCalledWith(2, {
+			queryKey: CHANNELS_QUERY_KEY,
+			exact: true,
+		});
+		expect(setQueryDataSpy).not.toHaveBeenCalled();
+		expect(useMessengerStore.getState().unreadCounts).toEqual({});
 
 		await waitFor(() => {
-			expect(
-				queryClient.getQueryData<Channel[]>(CHANNELS_QUERY_KEY)?.[0]?.name,
-			).toBe("Renamed");
-			expect(result.current.data?.[0]?.name).toBe("Renamed");
+			expect(getChannels).toHaveBeenCalledTimes(2);
 		});
+	});
+
+	it("resubscribes before the exact-key reconnect invalidation after false to true", async () => {
+		await mountRealtimeOwner();
+		invalidateQueriesSpy.mockClear();
+
+		act(() => {
+			useWsStore.setState({ connected: false, socket: null });
+		});
+
+		const reconnected = new FakeWebSocket("ws://hub.test/ws");
+		reconnected.readyState = FakeWebSocket.OPEN;
+		const sendSpy = vi.spyOn(reconnected, "send");
+
+		act(() => {
+			useWsStore.setState({
+				connected: true,
+				socket: reconnected as unknown as WebSocket,
+			});
+		});
+
+		await waitFor(() => {
+			expect(sendSpy).toHaveBeenCalledWith(
+				JSON.stringify({ type: "subscribe", room: "user:user-1" }),
+			);
+			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+				queryKey: CHANNELS_QUERY_KEY,
+				exact: true,
+			});
+		});
+
+		const subscribeOrder = sendSpy.mock.invocationCallOrder[0];
+		const invalidateOrder = invalidateQueriesSpy.mock.invocationCallOrder[0];
+		expect(subscribeOrder).toBeLessThan(invalidateOrder ?? Number.POSITIVE_INFINITY);
+	});
+
+	it("does not let an extra useChannels observer unsubscribe the realtime owner", async () => {
+		const owner = await mountRealtimeOwner();
+		const socket = FakeWebSocket.instances[0];
+		if (!socket) throw new Error("an open websocket is required");
+		const sendSpy = vi.spyOn(socket, "send");
+		sendSpy.mockClear();
+
+		const extraObserver = renderHook(() => useChannels(), { wrapper });
+		await waitFor(() => {
+			expect(extraObserver.result.current.isSuccess).toBe(true);
+		});
+		extraObserver.unmount();
+
+		expect(sendSpy).not.toHaveBeenCalledWith(
+			JSON.stringify({ type: "unsubscribe", room: "user:user-1" }),
+		);
+		expect(useWsStore.getState().listeners.size).toBe(1);
+
+		owner.unmount();
+		expect(sendSpy).toHaveBeenCalledTimes(1);
+		expect(sendSpy).toHaveBeenCalledWith(
+			JSON.stringify({ type: "unsubscribe", room: "user:user-1" }),
+		);
+		expect(useWsStore.getState().listeners.size).toBe(0);
+	});
+
+	it("unsubscribes from the exact room and removes its event handler only when the realtime owner unmounts", async () => {
+		const hook = await mountRealtimeOwner();
+		setQueryDataSpy.mockClear();
+		invalidateQueriesSpy.mockClear();
+
+		hook.unmount();
+
+		expect(FakeWebSocket.instances[0]?.sent).toContain(
+			JSON.stringify({ type: "unsubscribe", room: "user:user-1" }),
+		);
+		expect(useWsStore.getState().listeners.size).toBe(0);
+
+		emitWsEvent("channel_updated", { channel_id: "ch-existing" });
+		expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+		expect(setQueryDataSpy).not.toHaveBeenCalled();
 	});
 });

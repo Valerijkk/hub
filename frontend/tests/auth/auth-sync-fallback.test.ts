@@ -19,18 +19,20 @@ function dispatchStorageEvent(value: string): void {
 
 describe("auth sync storage fallback", () => {
 	let subscribeAuthSync: SubscribeAuthSync;
+	let useAuthStore: typeof import("@/stores/auth-store").useAuthStore;
 
 	beforeEach(async () => {
 		localStorage.clear();
 		vi.resetModules();
 		vi.stubGlobal("BroadcastChannel", undefined);
 
-		({ subscribeAuthSync } = await import("@/stores/auth-store"));
+		({ subscribeAuthSync, useAuthStore } = await import("@/stores/auth-store"));
 	});
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
+		vi.resetModules();
 		localStorage.clear();
 	});
 
@@ -66,5 +68,36 @@ describe("auth sync storage fallback", () => {
 		dispatchStorageEvent(JSON.stringify({ type: "logout" }));
 
 		expect(handler).not.toHaveBeenCalled();
+	});
+	it("clearSessionLocal never writes the storage fallback", () => {
+		const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+		useAuthStore.setState({
+			accessToken: "access-remote",
+			refreshToken: "refresh-remote",
+			isAuthenticated: true,
+		});
+		setItemSpy.mockClear();
+
+		useAuthStore.getState().clearSessionLocal();
+
+		expect(setItemSpy).not.toHaveBeenCalled();
+	});
+
+	it("logout writes one valid logout event to the storage fallback", () => {
+		const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+		useAuthStore.setState({
+			accessToken: "access-local",
+			refreshToken: "refresh-local",
+			isAuthenticated: true,
+		});
+		setItemSpy.mockClear();
+
+		useAuthStore.getState().logout();
+
+		expect(setItemSpy).toHaveBeenCalledTimes(1);
+		expect(setItemSpy).toHaveBeenCalledWith(
+			"hub-auth-event",
+			JSON.stringify({ type: "logout" }),
+		);
 	});
 });

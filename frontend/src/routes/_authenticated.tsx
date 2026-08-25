@@ -1,17 +1,16 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { PushPermissionBanner } from "@/components/notifications/push-permission-banner";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { registerServiceWorker } from "@/lib/push-notifications";
+import { resetAuthenticatedClientState } from "@/lib/reset-authenticated-client-state";
 import { subscribeAuthSync, useAuthStore } from "@/stores/auth-store";
 
 function AuthenticatedLayout() {
 	// Подключаем WebSocket для real-time обновлений.
 	useWebSocket();
 
-	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 	const clearSessionLocal = useAuthStore((s) => s.clearSessionLocal);
 
@@ -26,13 +25,7 @@ function AuthenticatedLayout() {
 	useEffect(() => {
 		const unsubscribe = subscribeAuthSync((event) => {
 			if (event.type === "logout") {
-				queryClient.clear();
-				// Remote logout: только локальная очистка без повторного broadcast
-				// (W11-A2-004 / P2-FE-09).
-				const { isAuthenticated } = useAuthStore.getState();
-				if (isAuthenticated) {
-					clearSessionLocal();
-				}
+				clearSessionLocal();
 				void navigate({ to: "/login" });
 			} else if (event.type === "login") {
 				const currentId = useAuthStore.getState().user?.id ?? null;
@@ -40,12 +33,12 @@ function AuthenticatedLayout() {
 				if (event.userId && currentId && event.userId === currentId) {
 					return;
 				}
-				queryClient.clear();
+				resetAuthenticatedClientState();
 				window.location.reload();
 			}
 		});
 		return unsubscribe;
-	}, [queryClient, navigate, clearSessionLocal]);
+	}, [navigate, clearSessionLocal]);
 
 	return (
 		<>

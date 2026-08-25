@@ -31,6 +31,7 @@ interface WsState {
 	connect: (token: string) => void;
 	/** Отключиться от WS-сервера. */
 	disconnect: () => void;
+	resetSession: () => void;
 	/** Подписаться на WS-комнату (например, "channel:abc"). */
 	subscribe: (room: string) => void;
 	/** Отписаться от WS-комнаты. */
@@ -196,6 +197,11 @@ export const useWsStore = create<WsState>((set, get) => ({
 		} else {
 			set({ connected: false, socket: null });
 		}
+	},
+
+	resetSession: () => {
+		get().disconnect();
+		set({ listeners: new Set() });
 	},
 
 	subscribe: (room: string) => {

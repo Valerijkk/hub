@@ -1,16 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { queryClient } from "@/lib/query-client";
 
-const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			retry: 1,
-			staleTime: 30_000,
-		},
-	},
-});
 
 function RootLayout() {
 	return (

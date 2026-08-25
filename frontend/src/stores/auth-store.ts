@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { UserResponse } from "@/api/auth";
+import { resetAuthenticatedClientState } from "@/lib/reset-authenticated-client-state";
 
 /**
  * Состояние стора аутентификации.
@@ -167,6 +168,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 		broadcastAuth({ type: "login", userId: user.id });
 	},
 	clearSessionLocal: () => {
+		resetAuthenticatedClientState();
 		set({
 			accessToken: null,
 			refreshToken: null,
@@ -175,6 +177,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 		});
 	},
 	logout: () => {
+		resetAuthenticatedClientState();
 		set({
 			accessToken: null,
 			refreshToken: null,

@@ -4,6 +4,7 @@ import { ChannelDrawerContext } from "@/components/messenger/channel-drawer-cont
 import { ChannelList } from "@/components/messenger/channel-list";
 import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useMessengerChannelsRealtime } from "@/hooks/use-messenger-channels-realtime";
 
 /**
  * Лейаут-маршрут мессенджера.
@@ -14,6 +15,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
  * который читает `useChannelDrawer` через onSelect).
  */
 function MessengerLayout() {
+	useMessengerChannelsRealtime();
 	const [drawerOpen, setDrawerOpen] = useState(false);
 
 	const drawerCtx = useMemo(
