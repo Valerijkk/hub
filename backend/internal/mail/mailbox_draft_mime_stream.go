@@ -37,6 +37,21 @@ func newMailboxDraftMIMEStream(ctx context.Context, plan mailboxDraftMIMEPlan) (
 	if err := ctx.Err(); err != nil {
 		return nil, 0, err
 	}
+	if plan.calendarPresent {
+		var calendarValid bool
+		plan, calendarValid = mailboxDraftMIMEPlanWithResealedCalendar(plan)
+		if !calendarValid {
+			return nil, 0, fakeEngineError(EngineErrorRejectedPolicy)
+		}
+		pieces := make([]mailboxDraftMIMEPiece, len(plan.pieces))
+		copy(pieces, plan.pieces)
+		for index := range pieces {
+			if pieces[index].body != nil {
+				pieces[index].body = append([]byte(nil), pieces[index].body...)
+			}
+		}
+		plan.pieces = pieces
+	}
 	if !mailboxDraftMIMEStreamPlanValid(plan) {
 		return nil, 0, fakeEngineError(EngineErrorRejectedPolicy)
 	}
@@ -52,13 +67,7 @@ func newMailboxDraftMIMEStream(ctx context.Context, plan mailboxDraftMIMEPlan) (
 }
 
 func mailboxDraftMIMEStreamPlanValid(plan mailboxDraftMIMEPlan) bool {
-	if plan.size < 1 || plan.size > plan.draft.MaxContentBytes || plan.size > MaxEngineMessageBytes {
-		return false
-	}
-	if plan.sources == nil {
-		return len(plan.draft.Message.Attachments) == 0
-	}
-	return mailboxDraftAttachmentCapabilityMatches(plan.sources, plan.draft)
+	return mailboxDraftMIMEPlanValid(plan)
 }
 
 func (stream *mailboxDraftMIMEStream) Read(buffer []byte) (int, error) {
@@ -186,6 +195,13 @@ func (stream *mailboxDraftMIMEStream) unregisterActiveSource(active *mailboxDraf
 
 func (stream *mailboxDraftMIMEStream) planWithActiveSources() mailboxDraftMIMEPlan {
 	plan := stream.plan
+	if plan.calendarPresent {
+		var calendarValid bool
+		plan, calendarValid = mailboxDraftMIMEPlanWithResealedCalendar(plan)
+		if !calendarValid {
+			return mailboxDraftMIMEPlan{}
+		}
+	}
 	if plan.sources == nil {
 		return plan
 	}

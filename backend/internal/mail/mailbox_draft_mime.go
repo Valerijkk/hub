@@ -22,17 +22,34 @@ type mailboxDraftMIMEPiece struct {
 }
 
 type mailboxDraftMIMEPlan struct {
-	draft  EngineDraft
-	sources *mailboxDraftAttachmentCapability
-	pieces []mailboxDraftMIMEPiece
-	size   int64
+	draft                 EngineDraft
+	sources               *mailboxDraftAttachmentCapability
+	calendarPresent       bool
+	calendar              calendarMIMEPart
+	calendarBindingDigest [sha256.Size]byte
+	pieces                []mailboxDraftMIMEPiece
+	size                  int64
 }
 
 // mailboxDraftMIMEPlanForDraft prepares the complete byte-exact MIME layout
 // without opening an object-store stream.
 func mailboxDraftMIMEPlanForDraft(ctx context.Context, draft EngineDraft, capability *mailboxDraftAttachmentCapability) (mailboxDraftMIMEPlan, error) {
+	return mailboxDraftMIMEPlanForDraftWithCalendar(ctx, draft, capability, nil)
+}
+
+func mailboxDraftMIMEPlanForDraftWithCalendar(ctx context.Context, draft EngineDraft, capability *mailboxDraftAttachmentCapability, calendar *calendarMIMEPart) (mailboxDraftMIMEPlan, error) {
 	if ctx == nil || draft.MaxContentBytes < 1 || draft.MaxContentBytes > MaxEngineMessageBytes || capability == nil && len(draft.Message.Attachments) != 0 || capability != nil && !mailboxDraftAttachmentCapabilityMatches(capability, draft) {
 		return mailboxDraftMIMEPlan{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	var frozenCalendar calendarMIMEPart
+	var frozenCalendarBindingDigest [sha256.Size]byte
+	calendarPresent := calendar != nil
+	if calendarPresent {
+		var calendarValid bool
+		frozenCalendar, frozenCalendarBindingDigest, calendarValid = mailboxDraftMIMEFreezeCalendar(calendar)
+		if !calendarValid || !mailboxDraftMIMECalendarRecipientValid(draft, frozenCalendar) {
+			return mailboxDraftMIMEPlan{}, fakeEngineError(EngineErrorRejectedPolicy)
+		}
 	}
 	base := draft
 	base.Message.Attachments = nil
@@ -41,13 +58,13 @@ func mailboxDraftMIMEPlanForDraft(ctx context.Context, draft EngineDraft, capabi
 	}
 	mixedBoundary := ""
 	if capability != nil {
-		mixedBoundary = mailboxDraftMIMEBoundary("mixed", draft, capability)
+		mixedBoundary = mailboxDraftMIMEBoundary("mixed", draft, capability, frozenCalendar, calendarPresent)
 	}
 	altBoundary := ""
-	if draft.Message.Format == EngineBodyRich {
-		altBoundary = mailboxDraftMIMEBoundary("alt", draft, capability)
+	if draft.Message.Format == EngineBodyRich || calendarPresent {
+		altBoundary = mailboxDraftMIMEBoundary("alt", draft, capability, frozenCalendar, calendarPresent)
 	}
-	headers, err := mailboxDraftMIMERootHeaders(draft, mixedBoundary, altBoundary)
+	headers, err := mailboxDraftMIMERootHeaders(draft, mixedBoundary, altBoundary, calendarPresent)
 	if err != nil {
 		return mailboxDraftMIMEPlan{}, err
 	}
@@ -55,17 +72,31 @@ func mailboxDraftMIMEPlanForDraft(ctx context.Context, draft EngineDraft, capabi
 	if capability != nil {
 		sourceCount = len(capability.sources)
 	}
-	plan := mailboxDraftMIMEPlan{draft: draft, sources: capability, pieces: make([]mailboxDraftMIMEPiece, 0, 24+sourceCount*8)}
+	plan := mailboxDraftMIMEPlan{
+		draft:                 draft,
+		sources:               capability,
+		calendarPresent:       calendarPresent,
+		calendar:              frozenCalendar,
+		calendarBindingDigest: frozenCalendarBindingDigest,
+		pieces:                make([]mailboxDraftMIMEPiece, 0, 26+sourceCount*8),
+	}
 	plan.addText(headers)
 	if capability == nil {
-		if draft.Message.Format == EngineBodyRich {
+		if draft.Message.Format == EngineBodyRich || calendarPresent {
 			plan.addText("\r\n")
 			plan.addText("--" + altBoundary + "\r\n")
 			plan.addText("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
 			plan.addBody([]byte(draft.Message.PlainBody))
-			plan.addText("--" + altBoundary + "\r\n")
-			plan.addText("Content-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
-			plan.addBody([]byte(draft.Message.RichBody))
+			if draft.Message.Format == EngineBodyRich {
+				plan.addText("--" + altBoundary + "\r\n")
+				plan.addText("Content-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
+				plan.addBody([]byte(draft.Message.RichBody))
+			}
+			if calendarPresent {
+				plan.addText("--" + altBoundary + "\r\n")
+				plan.addText(mailboxDraftMIMECalendarHeaders(plan.calendar))
+				plan.addBody(plan.calendar.calendarBytes())
+			}
 			plan.addText("--" + altBoundary + "--\r\n")
 		} else {
 			plan.addText("Content-Transfer-Encoding: base64\r\n\r\n")
@@ -82,14 +113,21 @@ func mailboxDraftMIMEPlanForDraft(ctx context.Context, draft EngineDraft, capabi
 
 	plan.addText("\r\n")
 	plan.addText("--" + mixedBoundary + "\r\n")
-	if draft.Message.Format == EngineBodyRich {
+	if draft.Message.Format == EngineBodyRich || calendarPresent {
 		plan.addText("Content-Type: multipart/alternative; boundary=\"" + altBoundary + "\"\r\n\r\n")
 		plan.addText("--" + altBoundary + "\r\n")
 		plan.addText("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
 		plan.addBody([]byte(draft.Message.PlainBody))
-		plan.addText("--" + altBoundary + "\r\n")
-		plan.addText("Content-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
-		plan.addBody([]byte(draft.Message.RichBody))
+		if draft.Message.Format == EngineBodyRich {
+			plan.addText("--" + altBoundary + "\r\n")
+			plan.addText("Content-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
+			plan.addBody([]byte(draft.Message.RichBody))
+		}
+		if calendarPresent {
+			plan.addText("--" + altBoundary + "\r\n")
+			plan.addText(mailboxDraftMIMECalendarHeaders(plan.calendar))
+			plan.addBody(plan.calendar.calendarBytes())
+		}
 		plan.addText("--" + altBoundary + "--\r\n")
 	} else {
 		plan.addText("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
@@ -125,6 +163,75 @@ func (plan *mailboxDraftMIMEPlan) addSource(index int) {
 	plan.size = mailboxDraftMIMECheckedAdd(plan.size, mailboxDraftMIMEBase64Size(plan.sources.sources[index].sizeBytes))
 }
 
+func mailboxDraftMIMECalendarHeaders(calendar calendarMIMEPart) string {
+	return "Content-Type: text/calendar; charset=utf-8; method=" + calendar.mimeMethod() + "\r\n" +
+		"Content-Transfer-Encoding: base64\r\n" +
+		"Content-Disposition: inline\r\n\r\n"
+}
+
+func mailboxDraftMIMEFreezeCalendar(calendar *calendarMIMEPart) (calendarMIMEPart, [sha256.Size]byte, bool) {
+	if calendar == nil || !calendar.valid() {
+		return calendarMIMEPart{}, [sha256.Size]byte{}, false
+	}
+	frozen := *calendar
+	frozen.serialized = calendar.calendarBytes()
+	if !frozen.valid() {
+		return calendarMIMEPart{}, [sha256.Size]byte{}, false
+	}
+	return frozen, frozen.bindingDigest(), true
+}
+
+func mailboxDraftMIMECalendarRecipientValid(draft EngineDraft, calendar calendarMIMEPart) bool {
+	if !calendar.valid() || len(draft.Message.To) != 1 || len(draft.Message.CC) != 0 || len(draft.Message.BCC) != 0 {
+		return false
+	}
+	recipient, err := NormalizeAddress(calendar.recipientAddress())
+	if err != nil {
+		return false
+	}
+	to, err := NormalizeAddress(draft.Message.To[0])
+	if err != nil {
+		return false
+	}
+	return to.Email == recipient.Email && to.Name == recipient.Name
+}
+
+func mailboxDraftMIMEPlanCalendarValid(plan mailboxDraftMIMEPlan) bool {
+	if !plan.calendarPresent {
+		return true
+	}
+	if !plan.calendar.valid() || plan.calendar.bindingDigest() != plan.calendarBindingDigest {
+		return false
+	}
+	return mailboxDraftMIMECalendarRecipientValid(plan.draft, plan.calendar)
+}
+
+func mailboxDraftMIMEPlanWithResealedCalendar(plan mailboxDraftMIMEPlan) (mailboxDraftMIMEPlan, bool) {
+	if !plan.calendarPresent {
+		return plan, true
+	}
+	if !mailboxDraftMIMEPlanCalendarValid(plan) {
+		return mailboxDraftMIMEPlan{}, false
+	}
+	resealed := plan.calendar
+	resealed.serialized = plan.calendar.calendarBytes()
+	if !resealed.valid() || resealed.bindingDigest() != plan.calendarBindingDigest || !mailboxDraftMIMECalendarRecipientValid(plan.draft, resealed) {
+		return mailboxDraftMIMEPlan{}, false
+	}
+	plan.calendar = resealed
+	return plan, true
+}
+
+func mailboxDraftMIMEPlanValid(plan mailboxDraftMIMEPlan) bool {
+	if plan.size < 1 || plan.size > plan.draft.MaxContentBytes || plan.size > MaxEngineMessageBytes || !mailboxDraftMIMEPlanCalendarValid(plan) {
+		return false
+	}
+	if plan.sources == nil {
+		return len(plan.draft.Message.Attachments) == 0
+	}
+	return mailboxDraftAttachmentCapabilityMatches(plan.sources, plan.draft)
+}
+
 func mailboxDraftMIMECheckedAdd(left, right int64) int64 {
 	if left < 0 || right < 0 || left > MaxEngineMessageBytes-right {
 		return MaxEngineMessageBytes + 1
@@ -142,7 +249,7 @@ func mailboxDraftMIMEBase64Size(raw int64) int64 {
 
 // writeTo emits the planned MIME stream. It never retains attachment bytes.
 func (plan mailboxDraftMIMEPlan) writeTo(ctx context.Context, writer io.Writer) error {
-	if ctx == nil || writer == nil || plan.sources != nil && !mailboxDraftAttachmentCapabilityMatches(plan.sources, plan.draft) || plan.sources == nil && len(plan.draft.Message.Attachments) != 0 || plan.size < 1 || plan.size > plan.draft.MaxContentBytes || plan.size > MaxEngineMessageBytes {
+	if ctx == nil || writer == nil || !mailboxDraftMIMEPlanValid(plan) {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	counting := &mailboxDraftMIMECountingWriter{writer: writer}
@@ -394,11 +501,11 @@ func mailboxDraftContentIDValid(value string) bool {
 	return true
 }
 
-func mailboxDraftMIMERootHeaders(draft EngineDraft, mixedBoundary, altBoundary string) (string, error) {
+func mailboxDraftMIMERootHeaders(draft EngineDraft, mixedBoundary, altBoundary string, forceAlternative bool) (string, error) {
 	contentType := "text/plain; charset=utf-8"
 	if mixedBoundary != "" {
 		contentType = "multipart/mixed; boundary=\"" + mixedBoundary + "\""
-	} else if draft.Message.Format == EngineBodyRich {
+	} else if draft.Message.Format == EngineBodyRich || forceAlternative {
 		contentType = "multipart/alternative; boundary=\"" + altBoundary + "\""
 	}
 	values := []struct{ name, value string }{
@@ -572,7 +679,7 @@ func mailboxDraftMIMERFC2231Filename(value string) (string, error) {
 	return strings.Join(values, "; "), nil
 }
 
-func mailboxDraftMIMEBoundary(role string, draft EngineDraft, capability *mailboxDraftAttachmentCapability) string {
+func mailboxDraftMIMEBoundary(role string, draft EngineDraft, capability *mailboxDraftAttachmentCapability, calendar calendarMIMEPart, calendarPresent bool) string {
 	hash := sha256.New()
 	mailboxDraftMIMEHashField(hash, "hub-mail-draft-mime-v1")
 	mailboxDraftMIMEHashField(hash, role)
@@ -605,6 +712,11 @@ func mailboxDraftMIMEBoundary(role string, draft EngineDraft, capability *mailbo
 			mailboxDraftMIMEHashField(hash, string(source.attachment.SHA256[:]))
 			mailboxDraftMIMEHashField(hash, strconv.FormatInt(source.sizeBytes, 10))
 		}
+	}
+	if calendarPresent {
+		bindingDigest := calendar.bindingDigest()
+		mailboxDraftMIMEHashField(hash, "calendar-binding-digest")
+		mailboxDraftMIMEHashField(hash, string(bindingDigest[:]))
 	}
 	encoded := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(hash.Sum(nil))
 	return "hub-" + role + "-v1-" + strings.ToLower(encoded)
