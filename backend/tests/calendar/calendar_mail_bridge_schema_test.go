@@ -97,10 +97,10 @@ func TestCalendarReplyDelivery_SchemaContract(t *testing.T) {
 	fields := mailBridgeFieldDescriptors((entschema.CalendarReplyDelivery{}).Fields())
 	mailBridgeAssertExactNames(t, "CalendarReplyDelivery fields", mailBridgeMapKeys(fields), []string{
 		"attempts", "attendee_version", "calendar_attendee_id", "calendar_event_id", "claim_generation", "created_at", "event_sequence", "id",
-		"last_error_code", "lease_token", "lease_until", "mail_submission_id", "next_attempt_at", "recurrence_id", "rsvp_status", "state", "updated_at",
+		"last_error_code", "lease_token", "lease_until", "mail_submission_id", "next_attempt_at", "organization_id", "recurrence_id", "rsvp_status", "state", "updated_at",
 	})
 
-	for _, name := range []string{"id", "calendar_event_id", "calendar_attendee_id"} {
+	for _, name := range []string{"id", "organization_id", "calendar_event_id", "calendar_attendee_id"} {
 		mailBridgeAssertRequiredUUID(t, name, fields[name])
 		mailBridgeAssertImmutable(t, name, fields[name])
 	}
@@ -138,7 +138,8 @@ func TestCalendarReplyDelivery_SchemaContract(t *testing.T) {
 	mailBridgeAssertNonUniquePartialIndex(t, (entschema.CalendarReplyDelivery{}).Indexes(), []string{"lease_until", "id"}, "calendar_reply_deliveries_stale_lease_idx", "state = 'submitting' AND lease_until IS NOT NULL")
 
 	edges := mailBridgeEdgeDescriptors((entschema.CalendarReplyDelivery{}).Edges())
-	mailBridgeAssertExactNames(t, "CalendarReplyDelivery edges", mailBridgeMapKeys(edges), []string{"attendee", "event", "mail_submission"})
+	mailBridgeAssertExactNames(t, "CalendarReplyDelivery edges", mailBridgeMapKeys(edges), []string{"attendee", "event", "mail_submission", "organization"})
+	mailBridgeAssertEdge(t, "organization", edges["organization"], false, true, true, "organization_id", "", entsql.NoAction)
 	mailBridgeAssertEdge(t, "event", edges["event"], false, true, true, "calendar_event_id", "", entsql.NoAction)
 	mailBridgeAssertEdge(t, "attendee", edges["attendee"], false, true, true, "calendar_attendee_id", "", entsql.NoAction)
 	mailBridgeAssertEdge(t, "mail_submission", edges["mail_submission"], false, true, false, "mail_submission_id", "", entsql.NoAction)

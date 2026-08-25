@@ -160,6 +160,161 @@ func TestEventTransactionPersistedAvailabilityReconciliation_GuardsPostPersistDe
 	}
 }
 
+func TestEventEntPersistedAvailabilityReconciliation_SourceContract(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/calendar/availability_reservation_ent.go")
+	if err != nil {
+		t.Fatalf("read availability reservation Ent source: %v", err)
+	}
+	source := string(sourceBytes)
+	if !strings.Contains(source, "var _ PersistedAvailabilityReservationTransactionBackend = (*eventEntTransactionBackend)(nil)") {
+		t.Fatal("Ent transaction backend must prove persisted availability capability at compile time")
+	}
+
+	reconcileStart := strings.Index(source, "func (backend *eventEntTransactionBackend) ReconcilePersistedCalendarAvailabilityReservations")
+	if reconcileStart < 0 {
+		t.Fatal("persisted availability reconciliation source bounds are missing")
+	}
+	reconcileEndRelative := strings.Index(source[reconcileStart:], "func (backend *eventEntTransactionBackend) acquireCalendarAvailabilityAdvisoryLocks")
+	if reconcileEndRelative <= 0 {
+		t.Fatal("persisted availability reconciliation source bounds are missing")
+	}
+	reconcile := source[reconcileStart : reconcileStart+reconcileEndRelative]
+	for _, required := range []string{
+		"backend == nil",
+		"backend.tx == nil",
+		"backend.now == nil",
+		"ctx == nil",
+		"eventID == uuid.Nil",
+		"scope.ActorID() == uuid.Nil",
+		"scope.OrganizationID() == uuid.Nil",
+		"scope.transaction == nil",
+		"validEventMutationScope(scope)",
+		"EventMutationMeetingUpdate",
+		"EventMutationMeetingCancel",
+		"EventMutationCalendarUpdate",
+		"EventMutationCalendarOccurrenceCancel",
+		"backend.persistedCalendarAvailabilityReservationSet(ctx, scope, eventID)",
+	} {
+		if !strings.Contains(reconcile, required) {
+			t.Fatalf("persisted reconciliation is missing fail-closed contract %q", required)
+		}
+	}
+	if strings.Count(reconcile, "backend.ReconcileCalendarAvailabilityReservations(ctx, scope, set)") != 1 {
+		t.Fatal("persisted reconciliation must delegate exactly once to the existing reconciliation core")
+	}
+	for _, forbidden := range []string{
+		"AppendOutbox(",
+		"ReserveMutationReceipt(",
+		"CompleteMutationReceipt(",
+		"CalendarEventCommand",
+		"EventOutboxDescriptor",
+	} {
+		if strings.Contains(reconcile, forbidden) {
+			t.Fatalf("persisted reconciliation must not own caller snapshot, receipt or outbox work: %q", forbidden)
+		}
+	}
+
+	setStart := strings.Index(source, "func (backend *eventEntTransactionBackend) persistedCalendarAvailabilityReservationSet")
+	if setStart < 0 {
+		t.Fatal("persisted authoritative reservation-set source bounds are missing")
+	}
+	setEndRelative := strings.Index(source[setStart:], "func (backend *eventEntTransactionBackend) lockCalendarAvailabilityReservationMembers")
+	if setEndRelative <= 0 {
+		t.Fatal("persisted authoritative reservation-set source bounds are missing")
+	}
+	setSource := source[setStart : setStart+setEndRelative]
+	eventRead := strings.Index(setSource, "backend.tx.CalendarEvent.Query()")
+	attendeeRead := strings.Index(setSource, "backend.tx.CalendarAttendee.Query()")
+	exceptionRead := strings.Index(setSource, "backend.tx.CalendarEventException.Query()")
+	if eventRead < 0 || attendeeRead <= eventRead || exceptionRead <= attendeeRead {
+		t.Fatal("persisted reservation derivation must read event, active master internal attendees, then exceptions")
+	}
+	if strings.Count(setSource, "ForUpdate()") < 3 {
+		t.Fatal("persisted event, attendee and exception reads must all remain locked")
+	}
+	for _, required := range []string{
+		"calendarevent.IDEQ(eventID)",
+		"calendarevent.OrganizationIDEQ(scope.OrganizationID())",
+		"calendarevent.CalendarOwnerIDEQ(scope.ActorID())",
+		"calendarevent.OrganizerIDEQ(scope.ActorID())",
+		"calendarattendee.UserIDNotNil()",
+		"calendarattendee.RemovedAtIsNil()",
+		"calendarattendee.RecurrenceIDIsNil()",
+		"calendarattendee.FieldID",
+		"calendareventexception.FieldRecurrenceID",
+		"calendareventexception.FieldID",
+		"CalendarEventStatusCancelled",
+		"make([]CalendarAvailabilityReservationOccurrence, 0)",
+		"availabilityEventOccurrences(event, exceptions)",
+		"OccurrenceKey: startsAt.Format(time.RFC3339Nano)",
+		"NewCalendarAvailabilityReservationSet(",
+	} {
+		if !strings.Contains(setSource, required) {
+			t.Fatalf("persisted authoritative derivation is missing %q", required)
+		}
+	}
+	if strings.Contains(setSource, "|| event.AllDay") {
+		t.Fatal("all-day authoritative occurrences must be derived rather than treated as cancellation")
+	}
+	if strings.Contains(setSource, "OccurrenceKey: occurrence.key") {
+		t.Fatal("persisted derivation must use an effective UTC start key for moved exceptions")
+	}
+	lockStart := strings.Index(source, "func (backend *eventEntTransactionBackend) acquireCalendarAvailabilityAdvisoryLocks")
+	if lockStart < 0 {
+		t.Fatal("availability advisory-lock source bounds are missing")
+	}
+	lockEndRelative := strings.Index(source[lockStart:], "func calendarAvailabilityReservationAdvisoryKey")
+	if lockEndRelative <= 0 {
+		t.Fatal("availability advisory-lock source bounds are missing")
+	}
+	lockSource := source[lockStart : lockStart+lockEndRelative]
+	for _, required := range []string{
+		"SELECT pg_try_advisory_xact_lock($1)",
+		"sql.ScanOne(&rows, &acquired)",
+		"rows.Close()",
+		"participantID.String() <= previous",
+		"if scanErr != nil || closeErr != nil",
+		"if !acquired",
+		"ErrAvailabilitySlotUnavailable",
+	} {
+		if !strings.Contains(lockSource, required) {
+			t.Fatalf("availability advisory locks are missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{
+		"pg_advisory_xact_lock($1)",
+	} {
+		if strings.Contains(lockSource, forbidden) {
+			t.Fatalf("availability advisory locking must not retain %q", forbidden)
+		}
+	}
+	eventLockStart := strings.Index(source, "func (backend *eventEntTransactionBackend) lockCalendarAvailabilityReservationEvent")
+	if eventLockStart < 0 {
+		t.Fatal("availability event-lock source bounds are missing")
+	}
+	eventLockEndRelative := strings.Index(source[eventLockStart:], "func calendarAvailabilityReservationAttendeesMatch")
+	if eventLockEndRelative <= 0 {
+		t.Fatal("availability event-lock source bounds are missing")
+	}
+	eventLockSource := source[eventLockStart : eventLockStart+eventLockEndRelative]
+	for _, forbidden := range []string{"calendarevent.AllDay(false)", "event.AllDay"} {
+		if strings.Contains(eventLockSource, forbidden) {
+			t.Fatalf("all-day availability locking must not retain %q", forbidden)
+		}
+	}
+	for _, forbidden := range []string{
+		"AppendOutbox(",
+		"ReserveMutationReceipt(",
+		"CompleteMutationReceipt(",
+		"CalendarEventCommand",
+		"EventOutboxDescriptor",
+	} {
+		if strings.Contains(setSource, forbidden) {
+			t.Fatalf("persisted reservation derivation must use durable rows only, not %q", forbidden)
+		}
+	}
+}
+
 type persistedAvailabilityPortContextKey struct{}
 
 type persistedAvailabilityPortBackend struct {

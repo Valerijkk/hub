@@ -27,6 +27,7 @@ const (
 )
 
 var _ AvailabilityReservationTransactionBackend = (*eventEntTransactionBackend)(nil)
+var _ PersistedAvailabilityReservationTransactionBackend = (*eventEntTransactionBackend)(nil)
 
 type calendarAvailabilityReservationIdentity struct {
 	userID        uuid.UUID
@@ -111,6 +112,33 @@ func (backend *eventEntTransactionBackend) ReconcileCalendarAvailabilityReservat
 	return backend.insertMissingCalendarAvailabilityReservations(ctx, set, desired)
 }
 
+// ReconcilePersistedCalendarAvailabilityReservations derives one complete
+// reservation set only from the master event rows durably written in this
+// transaction. It deliberately owns no caller snapshot, receipt or outbox
+// work, and delegates the final lock-safe mutation exactly once.
+func (backend *eventEntTransactionBackend) ReconcilePersistedCalendarAvailabilityReservations(ctx context.Context, scope EventMutationScope, eventID uuid.UUID) error {
+	if backend == nil || backend.tx == nil || backend.now == nil || ctx == nil || eventID == uuid.Nil {
+		return ErrAvailabilitySourceInvalid
+	}
+	if scope.ActorID() == uuid.Nil || scope.OrganizationID() == uuid.Nil || scope.transaction == nil || !validEventMutationScope(scope) {
+		return ErrEventForbidden
+	}
+	switch scope.EventOperation() {
+	case EventMutationMeetingUpdate,
+		EventMutationMeetingCancel,
+		EventMutationCalendarUpdate,
+		EventMutationCalendarOccurrenceCancel:
+	default:
+		return ErrEventInvalid
+	}
+
+	set, err := backend.persistedCalendarAvailabilityReservationSet(ctx, scope, eventID)
+	if err != nil {
+		return err
+	}
+	return backend.ReconcileCalendarAvailabilityReservations(ctx, scope, set)
+}
+
 func (backend *eventEntTransactionBackend) acquireCalendarAvailabilityAdvisoryLocks(ctx context.Context, participants []uuid.UUID) error {
 	if backend == nil || backend.tx == nil || len(participants) == 0 {
 		return ErrAvailabilitySourceInvalid
@@ -125,9 +153,18 @@ func (backend *eventEntTransactionBackend) acquireCalendarAvailabilityAdvisoryLo
 			return ErrAvailabilitySourceInvalid
 		}
 		previous = participantID.String()
-		var result sql.Result
-		if err := driver.Exec(ctx, "SELECT pg_advisory_xact_lock($1)", []any{calendarAvailabilityReservationAdvisoryKey(participantID)}, &result); err != nil {
+		var rows sql.Rows
+		if err := driver.Query(ctx, "SELECT pg_try_advisory_xact_lock($1)", []any{calendarAvailabilityReservationAdvisoryKey(participantID)}, &rows); err != nil {
 			return calendarEntSafeError(err)
+		}
+		var acquired bool
+		scanErr := sql.ScanOne(&rows, &acquired)
+		closeErr := rows.Close()
+		if scanErr != nil || closeErr != nil {
+			return ErrAvailabilitySourceInvalid
+		}
+		if !acquired {
+			return ErrAvailabilitySlotUnavailable
 		}
 	}
 	return nil
@@ -153,6 +190,123 @@ func (backend *eventEntTransactionBackend) requireCalendarAvailabilityReservatio
 		return ErrAvailabilitySourceInvalid
 	}
 	return nil
+}
+
+func (backend *eventEntTransactionBackend) persistedCalendarAvailabilityReservationSet(ctx context.Context, scope EventMutationScope, eventID uuid.UUID) (CalendarAvailabilityReservationSet, error) {
+	event, err := backend.tx.CalendarEvent.Query().
+		Where(
+			calendarevent.IDEQ(eventID),
+			calendarevent.OrganizationIDEQ(scope.OrganizationID()),
+			calendarevent.CalendarOwnerIDEQ(scope.ActorID()),
+			calendarevent.OrganizerIDEQ(scope.ActorID()),
+		).
+		ForUpdate().
+		Only(ctx)
+	if err != nil {
+		return CalendarAvailabilityReservationSet{}, calendarEntAuthorizationError(err)
+	}
+	if event == nil || event.ID != eventID || event.OrganizationID != scope.OrganizationID() ||
+		event.CalendarOwnerID != scope.ActorID() || event.OrganizerID == nil || *event.OrganizerID != scope.ActorID() ||
+		event.DeletedAt != nil {
+		return CalendarAvailabilityReservationSet{}, ErrEventForbidden
+	}
+
+	attendees, err := backend.tx.CalendarAttendee.Query().
+		Where(
+			calendarattendee.CalendarEventIDEQ(event.ID),
+			calendarattendee.UserIDNotNil(),
+			calendarattendee.RemovedAtIsNil(),
+			calendarattendee.RecurrenceIDIsNil(),
+		).
+		Order(ent.Asc(calendarattendee.FieldID)).
+		ForUpdate().
+		Limit(calendarAvailabilityReservationMaxAttendees + 2).
+		All(ctx)
+	if err != nil {
+		return CalendarAvailabilityReservationSet{}, calendarEntSafeError(err)
+	}
+	if len(attendees) > calendarAvailabilityReservationMaxAttendees+1 {
+		return CalendarAvailabilityReservationSet{}, ErrAvailabilityLimitExceeded
+	}
+	attendeeIDs := make([]uuid.UUID, 0, len(attendees))
+	seenAttendees := make(map[uuid.UUID]struct{}, len(attendees))
+	organizerRows := 0
+	for _, attendee := range attendees {
+		if attendee == nil || attendee.ID == uuid.Nil || attendee.CalendarEventID != event.ID ||
+			attendee.UserID == nil || *attendee.UserID == uuid.Nil || attendee.RemovedAt != nil || attendee.RecurrenceID != nil {
+			return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+		}
+		attendeeID := *attendee.UserID
+		if _, duplicate := seenAttendees[attendeeID]; duplicate {
+			return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+		}
+		seenAttendees[attendeeID] = struct{}{}
+		role := CalendarEventAttendeeRole(attendee.Role)
+		status := RSVPStatus(attendee.RsvpStatus)
+		if !validCalendarEventStoredAttendeeRoleState(role, status, "") {
+			return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+		}
+		if role == CalendarEventAttendeeRoleOrganizer || attendeeID == *event.OrganizerID {
+			if organizerRows != 0 || !validCalendarEventStoredOrganizerAttendeeState(role, status, "", attendee.UserID, event.CalendarOwnerID, *event.OrganizerID) {
+				return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+			}
+			organizerRows++
+			continue
+		}
+		attendeeIDs = append(attendeeIDs, attendeeID)
+	}
+	if organizerRows != 1 {
+		return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+	}
+
+	exceptions, err := backend.tx.CalendarEventException.Query().
+		Where(calendareventexception.CalendarEventIDEQ(event.ID)).
+		Order(ent.Asc(calendareventexception.FieldRecurrenceID), ent.Asc(calendareventexception.FieldID)).
+		ForUpdate().
+		Limit(calendarAvailabilityReservationMaxOccurrences + 1).
+		All(ctx)
+	if err != nil {
+		return CalendarAvailabilityReservationSet{}, calendarEntSafeError(err)
+	}
+	if len(exceptions) > calendarAvailabilityReservationMaxOccurrences {
+		return CalendarAvailabilityReservationSet{}, ErrAvailabilityLimitExceeded
+	}
+
+	switch CalendarEventStatus(event.Status) {
+	case CalendarEventStatusConfirmed, CalendarEventStatusTentative, CalendarEventStatusCancelled:
+	default:
+		return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+	}
+	if CalendarEventStatus(event.Status) == CalendarEventStatusCancelled {
+		return NewCalendarAvailabilityReservationSet(
+			event.OrganizationID,
+			event.ID,
+			*event.OrganizerID,
+			attendeeIDs,
+			make([]CalendarAvailabilityReservationOccurrence, 0),
+		)
+	}
+
+	occurrences, _, _, err := availabilityEventOccurrences(event, exceptions)
+	if err != nil {
+		return CalendarAvailabilityReservationSet{}, err
+	}
+	desired := make([]CalendarAvailabilityReservationOccurrence, 0, len(occurrences))
+	for _, occurrence := range occurrences {
+		if occurrence.key == "" {
+			return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+		}
+		startsAt, endsAt, ok := canonicalCalendarAvailabilityReservationInterval(occurrence.from, occurrence.to)
+		if !ok {
+			return CalendarAvailabilityReservationSet{}, ErrAvailabilitySourceInvalid
+		}
+		desired = append(desired, CalendarAvailabilityReservationOccurrence{
+			OccurrenceKey: startsAt.Format(time.RFC3339Nano),
+			StartsAt:      startsAt,
+			EndsAt:        endsAt,
+		})
+	}
+	return NewCalendarAvailabilityReservationSet(event.OrganizationID, event.ID, *event.OrganizerID, attendeeIDs, desired)
 }
 
 func (backend *eventEntTransactionBackend) lockCalendarAvailabilityReservationMembers(ctx context.Context, organizationID uuid.UUID, participants []uuid.UUID) (map[uuid.UUID]*ent.User, error) {
@@ -184,7 +338,6 @@ func (backend *eventEntTransactionBackend) lockCalendarAvailabilityReservationEv
 		)
 	if !releaseAll {
 		query = query.Where(
-			calendarevent.AllDay(false),
 			calendarevent.StatusIn(calendarevent.StatusConfirmed, calendarevent.StatusTentative),
 		)
 	}
@@ -201,7 +354,7 @@ func (backend *eventEntTransactionBackend) lockCalendarAvailabilityReservationEv
 	if releaseAll {
 		return nil
 	}
-	if event.AllDay || event.DeletedAt != nil {
+	if event.DeletedAt != nil {
 		return ErrAvailabilitySourceInvalid
 	}
 	attendees, err := backend.tx.CalendarAttendee.Query().

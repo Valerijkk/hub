@@ -21,6 +21,8 @@ func (CalendarReplyDelivery) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
+		field.UUID("organization_id", uuid.UUID{}).
+			Immutable(),
 		field.UUID("calendar_event_id", uuid.UUID{}).
 			Immutable(),
 		field.UUID("calendar_attendee_id", uuid.UUID{}).
@@ -89,6 +91,11 @@ func (CalendarReplyDelivery) Annotations() []schema.Annotation {
 
 func (CalendarReplyDelivery) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("organization", Organization.Type).
+			Field("organization_id").
+			Unique().
+			Required().
+			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("event", CalendarEvent.Type).
 			Field("calendar_event_id").
 			Unique().
