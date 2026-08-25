@@ -2109,8 +2109,23 @@ Only after the proof does the core deep-copy the message and derive
 Every pre-completion failure calls one cancellation-detached release and retains `accepted`; a
 completion error is never followed by release because commit outcome may be ambiguous. Errors expose
 only closed content-free kinds. The Ent adapter, attachment transfer/message/outbox transaction,
-finalizer worker, server wiring, generated Ent, migration, SQL application, executable tests, build,
-gofmt, lint, Docker, and runtime remain pending or `NOT_RUN`.
+server wiring, generated Ent, migration, SQL application, executable tests, build, gofmt, lint,
+Docker, and runtime remain pending or `NOT_RUN`.
+
+### Accepted submission finalization worker source-only delta
+
+`STATIC_SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source:
+dispatcher-enforced`. `MailboxSubmissionFinalizationWorker` reuses the guarded sequential
+`MailboxSubmissionWorker` loop. Its private scanner adapter passes only the bounded limit to
+`ScanAcceptedMailboxSubmissions`; the generic loop filters zero and duplicate UUIDs and caps the
+result before the private dispatcher adapter invokes `Finalize` exactly once per retained identity.
+
+The enabled defaults are a one-minute scan interval, thirty-second per-item deadline, and batch size
+twenty. Disabled zero configuration is a no-op. Cancellation, panic containment, partial-failure
+continuation, content-free errors and counts are inherited unchanged; `Dispatched` maps only to
+`Finalized`. The wrapper has no engine, provider, transport, HTTP, NATS, storage, message/blob read,
+claim, complete, or release capability. The Ent adapter, server wiring, generated Ent, migration, SQL
+application, executable tests, build, gofmt, lint, Docker, and runtime remain pending or `NOT_RUN`.
 
 ### Queued submission dispatch worker source-only delta
 

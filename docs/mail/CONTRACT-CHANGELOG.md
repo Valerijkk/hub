@@ -1,5 +1,17 @@
 # Hub Mail contract changelog
 
+## 2026-08-25 - Accepted submission finalization worker
+
+SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
+
+`MailboxSubmissionFinalizationWorker` is a thin provider-free adapter over the accepted guarded
+sequential submission-worker loop. It maps the bounded accepted UUID scan to one `Finalize` call per
+retained identity with inherited filtering, limits, per-item timeout, cancellation, panic containment,
+partial-failure continuation, content-free counts, and disabled-zero behavior. It has no engine,
+provider, HTTP, NATS, storage, claim, complete, or release capability. The Ent adapter, server wiring,
+generated Ent, migration, executable tests, build, lint/gofmt, Docker, and runtime remain pending or
+`NOT_RUN`.
+
 ## 2026-08-25 - Accepted submission finalizer hydration core
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.
@@ -11,8 +23,8 @@ and one `GetBlob` per distinct opaque blob ID, rehashes actual bytes, validates 
 digests, and compares an exact normalized attachment multiset with multiplicity. It derives
 `confirmed_owner_submission` locally and passes only a sealed completion to persistence. Every
 pre-completion failure releases the accepted lease through a cancellation-detached boundary;
-ambiguous completion errors never trigger compensation. The Ent completion adapter, finalizer
-worker, production composition, generated Ent, migration, executable tests, build, lint/gofmt,
+ambiguous completion errors never trigger compensation. The Ent completion adapter, production
+composition, generated Ent, migration, executable tests, build, lint/gofmt,
 Docker, and runtime remain pending or `NOT_RUN`.
 
 ## 2026-08-25 - Sent event visible-To empty-array correction
