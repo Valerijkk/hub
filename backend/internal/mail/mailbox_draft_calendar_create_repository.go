@@ -17,6 +17,22 @@ import (
 type mailboxDraftCalendarCreateRepository interface {
 	ReserveMailboxDraftCalendarCreate(context.Context, mailboxDraftCalendarCreateReserveRequest) (MailboxDraftReservation, error)
 	AdvanceMailboxDraftCalendarCreateToImport(context.Context, mailboxDraftCalendarCreateAdvanceToImportRequest) (MailboxDraftReservation, error)
+	// MarkMailboxDraftCalendarCreateUnknown accepts only an exact saving/create/calendar/upload
+	// state with no handoff for upload. Its advance adapter may CAS either that state or an
+	// exact saving/create/calendar/import state with the supplied handoff after an ambiguous
+	// database result; import accepts only the latter. The transition atomically preserves the
+	// mutation, binding, attempt, and applicable handoff; sets unknown; uses database time to
+	// schedule retry or exhaustion only for resulting upload; leaves import without retry; and
+	// releases the exact fence. It performs no provider I/O, never abandons, and carries no raw
+	// MIME or ICS content.
+	MarkMailboxDraftCalendarCreateUnknown(context.Context, mailboxDraftCalendarCreateMarkUnknownRequest) (MailboxDraftRecord, error)
+	// FinishMailboxDraftCalendarCreateApplied CASes only an exact
+	// saving/create/calendar/import state with its binding, handoff, and attempt while the
+	// legacy attachment controls are idle. It atomically sets active revision one, provider
+	// IDs, and ConfirmedMutationID; clears LastMutationID, PendingMutationKind,
+	// PendingCreateMIME, and every legacy recovery control; and releases the exact fence. It
+	// performs no provider I/O.
+	FinishMailboxDraftCalendarCreateApplied(context.Context, mailboxDraftCalendarCreateFinishAppliedRequest) (MailboxDraftRecord, error)
 	RestartMailboxDraftCalendarCreateUpload(context.Context, mailboxDraftCalendarCreateRestartUploadRequest) (MailboxDraftReservation, error)
 	RestartMailboxDraftCalendarCreateUploadAfterBlobNotFound(context.Context, mailboxDraftCalendarCreateRestartAfterBlobNotFoundRequest) (MailboxDraftReservation, error)
 	AbandonMailboxDraftCalendarCreateUpload(context.Context, mailboxDraftCalendarCreateAbandonRequest) (mailboxDraftCalendarCreateAbandonResult, error)
@@ -34,6 +50,35 @@ type mailboxDraftCalendarCreateAdvanceToImportRequest struct {
 	ExpectedBindingDigest [sha256.Size]byte
 	BlobID                string
 	SizeBytes             int64
+}
+
+type mailboxDraftCalendarCreateUnknownStage string
+
+const (
+	mailboxDraftCalendarCreateUnknownStageUpload  mailboxDraftCalendarCreateUnknownStage = "upload"
+	mailboxDraftCalendarCreateUnknownStageAdvance mailboxDraftCalendarCreateUnknownStage = "advance"
+	mailboxDraftCalendarCreateUnknownStageImport  mailboxDraftCalendarCreateUnknownStage = "import"
+)
+
+type mailboxDraftCalendarCreateMarkUnknownRequest struct {
+	Fence                 MailboxEngineCommandFence
+	DraftID               uuid.UUID
+	MutationID            uuid.UUID
+	ExpectedAttempt       int
+	ExpectedBindingDigest [sha256.Size]byte
+	Stage                 mailboxDraftCalendarCreateUnknownStage
+	BlobID                string
+	SizeBytes             int64
+}
+
+type mailboxDraftCalendarCreateFinishAppliedRequest struct {
+	Fence                 MailboxEngineCommandFence
+	DraftID               uuid.UUID
+	MutationID            uuid.UUID
+	ExpectedBindingDigest [sha256.Size]byte
+	ExpectedBlobID        string
+	ExpectedSizeBytes     int64
+	Applied               MailboxDraftApplied
 }
 
 type mailboxDraftCalendarCreateRestartUploadRequest struct {
@@ -111,6 +156,36 @@ func validMailboxDraftCalendarCreateAdvanceToImportRequest(request mailboxDraftC
 		request.MutationID != uuid.Nil &&
 		mailboxDraftCalendarCreateDigestPresent(request.ExpectedBindingDigest) &&
 		validMailboxDraftAdvanceCreateToImportHandoff(request.BlobID, request.SizeBytes)
+}
+
+func validMailboxDraftCalendarCreateMarkUnknownRequest(request mailboxDraftCalendarCreateMarkUnknownRequest) bool {
+	if !mailboxEntEngineCommandFenceValid(request.Fence) ||
+		request.DraftID == uuid.Nil ||
+		request.MutationID == uuid.Nil ||
+		request.ExpectedAttempt < 1 ||
+		request.ExpectedAttempt > 3 ||
+		!mailboxDraftCalendarCreateDigestPresent(request.ExpectedBindingDigest) {
+		return false
+	}
+
+	switch request.Stage {
+	case mailboxDraftCalendarCreateUnknownStageUpload:
+		return request.BlobID == "" && request.SizeBytes == 0
+	case mailboxDraftCalendarCreateUnknownStageAdvance, mailboxDraftCalendarCreateUnknownStageImport:
+		return validMailboxDraftAdvanceCreateToImportHandoff(request.BlobID, request.SizeBytes)
+	default:
+		return false
+	}
+}
+
+func validMailboxDraftCalendarCreateFinishAppliedRequest(request mailboxDraftCalendarCreateFinishAppliedRequest) bool {
+	return mailboxEntEngineCommandFenceValid(request.Fence) &&
+		request.DraftID != uuid.Nil &&
+		request.MutationID != uuid.Nil &&
+		mailboxDraftCalendarCreateDigestPresent(request.ExpectedBindingDigest) &&
+		validMailboxDraftAdvanceCreateToImportHandoff(request.ExpectedBlobID, request.ExpectedSizeBytes) &&
+		syncValidOpaque(request.Applied.EngineMessageID, MaxEngineOpaqueIDBytes) &&
+		syncValidOpaque(request.Applied.EngineVersion, MaxEngineOpaqueIDBytes)
 }
 
 func validMailboxDraftCalendarCreateRestartUploadRequest(request mailboxDraftCalendarCreateRestartUploadRequest) bool {
