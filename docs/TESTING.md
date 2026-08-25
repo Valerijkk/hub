@@ -231,6 +231,12 @@ QA services disposable, а integration/e2e используют изолиров
 - `frontend/tests/messenger/use-messages-cache-events.test.tsx` covers strict nested-message acceptance, root/thread cache routing, durable-ID dedupe, fail-closed edit/delete, malformed-cache guards, room reference-count lifecycle, and subscribe-before-exact-key invalidation after reconnect. `frontend/tests/messenger/reaction-toggled-guard.test.tsx` covers immutable, idempotent reaction add/remove deltas in both caches and malformed/foreign-event guards.
 - The final frontend receipt is `PASS`: `result.json` `first_exit:0`, TypeScript `PASS` exit 0, Vitest 162/162 files and 427/427 tests in 47.28s, and JSON 340/340 suites. This is not browser E2E or a live WebSocket claim.
 - Task 5 user events/unread and persisted outbox, reload, and offline behavior remain out of scope/`NOT_RUN`.
+##### Phase 149 Task 5: authorised user-channel delivery
+
+- Backend unit coverage exercises exact self-only `user:<uuid>` authorization; strict user subjects and payloads; all lifecycle and five message producer paths; nil/instant Calls handling; delivery-time current-members filtering for Messenger and channel-scoped Calls; current call-chat audience handling; and fail-closed resolver errors, timeout, nil, and former-member cases. An instant call chat targets active participants plus its creator, not channel membership.
+- Frontend unit coverage proves that `useChannels` observes only cache invalidation while `useMessengerChannelsRealtime` owns the one subscription, uses exact `user:<uuid>`, subscribes before reconnect invalidation, and resets WebSocket/query/Messenger state at a real session boundary without resetting on token refresh.
+- Final Docker receipts, 2026-08-25: `backend-unit` `PASS` (`first_exit:0`; build, vet, unit, race `PASS`) and `frontend-unit` `PASS` (`first_exit:0`; TypeScript and Vitest `PASS`). Full independent static review is `C0/I0/M0`.
+- MongoDB, a real NATS broker, live external WebSocket/browser execution, Ent direct-DB audience behavior, and `python-integration` are `NOT_RUN`. The phase is therefore `PARTIAL`; these units are not integration or deployment evidence.
 
 #### TMS
 

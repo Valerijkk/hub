@@ -1282,6 +1282,14 @@ backend/internal/
 - The frontend accepts only a strict nested canonical message, then routes it by channel and thread and deduplicates by durable message ID. Reaction toggles are idempotent immutable deltas; edit/delete deltas fail closed unless their non-empty channel matches the cache target.
 - Root and thread hooks share module-local room ownership. The first owner subscribes, the last unsubscribes, and a false-to-true reconnect subscribes before invalidating that hook's exact cache key.
 - Real NATS, MongoDB, live WebSocket, and deployed-runtime behavior are `NOT_RUN`. Task 5 user events/unread plus persisted outbox, reload, and offline behavior remain out of scope.
+#### Authorized user-channel delivery (Phase 149 Task 5)
+
+- Messenger publishes only the four user subjects `messenger.user.<uuid>.channel_created`, `.channel_updated`, `.channel_removed`, and `.new_message_notification`. Lifecycle payload is exactly `{channel_id}`; notification payload is exactly `{channel_id,message_id}`.
+- The bridge accepts only the strict typed subject/payload forms above, maps them to the authenticated user's sole room `user:<uuid>`, and fails closed for malformed UUIDs, unknown events, or null, non-object, incomplete, extra-field, or invalid-ID payloads. A client may subscribe only to its own exact user room.
+- Before every Messenger or Calls channel-scoped fanout, the bridge resolves the current channel audience and the Hub sends only to connections authenticated as those users. Resolver absence/error/timeout and malformed IDs drop delivery. Instant-call channel subjects are rejected before that lookup; zero/nil channel IDs publish nothing.
+- Lifecycle recipients are post-success and mutation-specific: create uses persisted members; update current members; delete a pre-mutation snapshot; join, leave, and accepted invite only the affected user; `AddMembersInternal` only newly added users; DM follows persisted membership. Normal, forward, bot, poll-message, and promoted-message notifications target current members except the canonical sender. Idempotent nonce retry does not republish.
+- The frontend channel hook is a pure cache observer; `useMessengerChannelsRealtime` in `MessengerLayout` is the sole subscription owner. It subscribes before exact `CHANNELS_QUERY_KEY` invalidation on reconnect, while first connect only subscribes. Session boundaries reset in order WebSocket -> shared QueryClient -> Messenger store before local auth removal/broadcast; token refresh does not reset state.
+- The NATS producer remains best-effort and has no transactional outbox. Current-audience lookup and fanout have a bounded in-flight TOCTOU window. Snapshot-to-insert membership races and durable unread/projection recovery remain Phase 151 work.
 
 ### TMS (47 эндпоинтов)
 
@@ -1647,7 +1655,7 @@ JWT передаётся через query-параметр, так как WebSoc
 ```json
 {
   "type": "subscribe" | "unsubscribe" | "ping",
-  "room": "project:{projectId}" | "channel:{channelId}" | "call:{callId}",
+  "room": "project:{projectId}" | "channel:{channelId}" | "call:{callId}" | "user:{userId}",
   "payload": {}
 }
 ```
@@ -1657,8 +1665,8 @@ JWT передаётся через query-параметр, так как WebSoc
 ```json
 {
   "type": "event" | "pong",
-  "event": "issue_created" | "message_new" | "call.started" | "notification.new",
-  "room": "project:{projectId}" | "channel:{channelId}",
+  "event": "issue_created" | "message_sent" | "channel_created" | "channel_updated" | "channel_removed" | "new_message_notification" | "call.started" | "notification.new",
+  "room": "project:{projectId}" | "channel:{channelId}" | "call:{callId}" | "user:{userId}",
   "payload": {}
 }
 ```
@@ -1668,9 +1676,10 @@ JWT передаётся через query-параметр, так как WebSoc
 | NATS Subject | WS Room | События |
 |-------------|---------|---------|
 | project.{projectId}.* | project:{projectId} | issue_created, issue_updated, sprint_started и т.д. |
-| messenger.channel.{channelId}.* | channel:{channelId} | message_new, message_edited, message_deleted, typing |
+| messenger.channel.{channelId}.* | channel:{channelId} | message_sent, message_edited, message_deleted, typing |
 | calls.channel.{channelId}.* | channel:{channelId} | call.started, call.ended, call.joined, call.left |
 | calls.chat.{callId} | call:{callId} | chat.message (эфемерный чат звонка) |
+| messenger.user.{userId}.{channel_created|channel_updated|channel_removed|new_message_notification} | user:{userId} | `channel_created`/`channel_updated`/`channel_removed`: exactly `{channel_id}`; `new_message_notification`: exactly `{channel_id,message_id}` |
 | auth.session.{userID}.* | -> конкретный user | new_login (уведомление о новом входе) |
 | notification.user.{userID} | -> конкретный user | notification.new |
 
@@ -1868,6 +1877,7 @@ modules/
 | messenger.channel.{id}.* | События мессенджера |
 | calls.channel.{id}.* | События звонков |
 | calls.chat.{id} | Эфемерный чат звонка |
+| messenger.user.{userId}.{channel_created|channel_updated|channel_removed|new_message_notification} | Персональные invalidation-события Messenger; payload строго `{channel_id}` или `{channel_id,message_id}` |
 | auth.session.{userId}.* | Событие авторизации |
 | notification.user.{userId} | Уведомление пользователю |
 

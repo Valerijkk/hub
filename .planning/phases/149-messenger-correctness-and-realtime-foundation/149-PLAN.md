@@ -70,7 +70,7 @@
 - Consumes: `MessageRepository.FindMessageByID(ctx, messageID)` and `MessageDocument.{ChannelID,ThreadID,DeletedAt}`.
 - Produces: private `validateThreadParent(ctx context.Context, channelID uuid.UUID, threadID string) error`; `SendMessage` calls it after channel authorization and before constructing/inserting the reply.
 
-- [ ] **Step 1: Write failing service units**
+- [x] **Step 1: Write failing service units**
 
 Add tests using existing `newMockRepository`, `setupChannelWithMembers`, and `messenger.ExportNewMessengerServiceTest`:
 
@@ -84,7 +84,7 @@ func TestSendMessageAcceptsLiveRootInSameChannel(t *testing.T)
 
 Each rejection asserts `require.Error`, zero new documents, and unchanged parent `ReplyCount`. The foreign parent and missing parent must expose the same not-found class. The nested-parent case asserts invalid-input. The valid case asserts one reply with the requested root ID and `ReplyCount == 1`.
 
-- [ ] **Step 2: Run the Docker red gate**
+- [x] **Step 2: Run the Docker red gate**
 
 Run:
 
@@ -94,7 +94,7 @@ docker compose -f docker-compose.local.yml run --rm backend-unit
 
 Expected: FAIL in the new `TestSendMessageRejects*` cases because the current service inserts before verifying the parent.
 
-- [ ] **Step 3: Implement the minimal invariant**
+- [x] **Step 3: Implement the minimal invariant**
 
 Add and call:
 
@@ -115,11 +115,11 @@ Behavior is exact:
 5. `parent.ThreadID != ""` returns `apperrors.NewBadRequest("ответ должен ссылаться на корневое сообщение треда")` using the repository's existing invalid-input constructor name if it differs.
 6. Validation completes before `InsertMessage`; reply increment stays after successful creation.
 
-- [ ] **Step 4: Run new behavior and regression to green**
+- [x] **Step 4: Run new behavior and regression to green**
 
 Run `backend-unit` again. Expected: all backend build/vet/unit/race stages PASS. If it fails, perform `/test-triage` against `149-SPEC.md` before changing code or tests.
 
-- [ ] **Step 5: Commit exact paths**
+- [x] **Step 5: Commit exact paths**
 
 ```powershell
 git add backend/internal/messenger/service_messages.go backend/tests/messenger/service_messages_test.go backend/tests/messenger/mock_repository_test.go
@@ -181,11 +181,11 @@ FindMessageByClientNonce(
 - `nil` and empty attachments, mentions, and mention-groups are equivalent. Attachment order remains significant because it is visible to users; attachment fields compare exactly. Mentions and mention-groups are semantic sets and compare after sort plus de-duplication.
 - Repository code only creates or returns the canonical document. Compatibility and deleted-canonical decisions live in the service helper so pre-existing and concurrent retries follow one rule.
 
-- [ ] **Step 1: Write the Task 2A persistence-contract red units**
+- [x] **Step 1: Write the Task 2A persistence-contract red units**
 
 Add compile/behavior coverage in `backend/tests/messenger/message_idempotency_persistence_test.go` for `ClientNonce` propagation, `(senderID, nonce)` mock lookup, empty-nonce transitional insert, and concurrent mock create-or-return. Both `backend/internal/messenger/mock_repository.go` and `backend/tests/messenger/mock_repository_test.go` must implement the widened repository interface. Add mutex protection around every nonce-index/message-map read and write involved in create/find, plus `createMessageCalls` and a deterministic returned-result override used later by 2C tests. Run `docker compose -f docker-compose.local.yml run --rm backend-unit`; expected RED is compile/test failure on the missing contract.
 
-- [ ] **Step 2: Implement and accept Task 2A**
+- [x] **Step 2: Implement and accept Task 2A**
 
 Implement `CreateMessageIdempotent` as follows:
 
@@ -200,11 +200,11 @@ Implement `CreateMessageIdempotent` as follows:
 
 Run `docker compose -f docker-compose.local.yml run --rm backend-unit` to green, record real Mongo unique-index/upsert execution as `NOT_RUN`, update the two owned docs, then exact-path stage `backend/internal/messenger/dto.go backend/internal/messenger/repository.go backend/internal/messenger/mongo_repository.go backend/internal/messenger/mock_repository.go backend/tests/messenger/mock_repository_test.go backend/tests/messenger/message_idempotency_persistence_test.go docs/TECHNICAL.md docs/TESTING.md` and commit Task 2A.
 
-- [ ] **Step 3: Implement and accept Task 2B fail-startup policy**
+- [x] **Step 3: Implement and accept Task 2B fail-startup policy**
 
 Change `wiring_messenger.go` so failure to establish required Messenger indexes follows the existing startup fatal path instead of log-and-continue. Do not add a fake static-contract unit: no genuine isolated seam exists in this slice. Run `docker compose -f docker-compose.local.yml run --rm backend-unit` for build/vet/unit/race evidence, record a real failing-startup process test as `NOT_RUN`, update the two owned docs, then exact-path stage `backend/cmd/server/wiring_messenger.go docs/TECHNICAL.md docs/TESTING.md`, commit Task 2B, and obtain independent review.
 
-- [ ] **Step 4: Write RED units, implement, and accept Task 2C**
+- [x] **Step 4: Write RED units, implement, and accept Task 2C**
 
 Add tests:
 
@@ -222,7 +222,7 @@ func TestSendMessageWithoutNonceUsesTransitionalCreate(t *testing.T)
 
 For non-empty nonce, preserve membership/channel authorization, then call `FindMessageByClientNonce(senderID, nonce)` before thread-parent validation. A live compatible canonical document returns immediately; a deleted canonical or incompatible fingerprint conflicts. When no canonical exists, validate the thread parent and call `CreateMessageIdempotent`. Apply the same deleted/compatibility helper to every returned canonical document regardless of `Created`; side effects require both `Created=true` and a live compatible canonical. Run genuine RED and GREEN gates with `docker compose -f docker-compose.local.yml run --rm backend-unit`, update the two owned docs, then exact-path stage `backend/internal/messenger/message_idempotency.go backend/internal/messenger/service_messages.go backend/tests/messenger/service_messages_test.go docs/TECHNICAL.md docs/TESTING.md`, commit Task 2C, and obtain independent review.
 
-- [ ] **Step 5: Classify Task 2 evidence**
+- [x] **Step 5: Classify Task 2 evidence**
 
 Record each slice independently in the SDD ledger. Task 2 is accepted only when 2A, 2B, and 2C each have C0/I0 independent review and fresh Docker build/vet/unit/race PASS. Mongo driver concurrency/index execution and startup-process behavior remain explicitly `NOT_RUN` until Phase-owned `python-integration` coverage exists; do not convert compilation or mocks into integration PASS.
 
@@ -244,23 +244,23 @@ Record each slice independently in the SDD ledger. Task 2 is accepted only when 
 - Every text, attachment, GIF, sticker, and voice submit creates an immutable payload snapshot before the first request. Text/attachment/mention/reply editor state is cleared optimistically at that boundary; a later retry must never clear or overwrite a newer draft.
 - A failed snapshot is kept only in the mounted composer and exposed by one persistent, non-dismissible Sonner error toast with primary `Повторить` and secondary `Отменить отправку` actions. Retry reuses the exact snapshot and nonce; discard deletes it. Route change/reload/offline replay remains `NOT_READY` and must not be described as an outbox.
 
-- [ ] **Step 1: Write failing text/GIF/sticker/voice nonce tests**
+- [x] **Step 1: Write failing text/GIF/sticker/voice nonce tests**
 
 Mock `sendMessage`, `crypto.randomUUID`, and Sonner. Cover text/attachment, GIF, sticker, and voice routes. Force the first request to reject, invoke the toast `Повторить` action, and assert both calls use the exact same payload snapshot and nonce. Type a newer draft before the retry resolves and assert retry success does not clear it. Exercise `Отменить отправку`, then complete a new logical submit and assert it receives a different nonce. Assert route unmount dismisses its owned pending toasts.
 
-- [ ] **Step 2: Run the Docker red gate**
+- [x] **Step 2: Run the Docker red gate**
 
 Run `frontend-unit`. Expected: FAIL because current requests contain no `client_nonce`.
 
-- [ ] **Step 3: Implement one nonce per logical submission**
+- [x] **Step 3: Implement one nonce per logical submission**
 
 Add the optional TS fields and a composer-owned `Map` of pending immutable send snapshots keyed by nonce. Route all composer send handlers through one submit/attempt path. Generate the nonce before the first API call, register the snapshot, optimistically reset only the editor state captured by that new submit, and never mutate current editor state from a later retry. On failure render `toast.error(..., {duration: Infinity, dismissible: false, action, cancel})`; retry calls the same snapshot, success invalidates messages and dismisses/deletes only its toast, and discard deletes only that snapshot. Dismiss all composer-owned pending toasts on unmount. Do not generate a nonce in the API client and do not add reconnect/reload replay in this task.
 
-- [ ] **Step 4: Run frontend regression to green**
+- [x] **Step 4: Run frontend regression to green**
 
 Run `frontend-unit`. Expected: TypeScript and Vitest PASS. Triage any failure against the spec before editing.
 
-- [ ] **Step 5: Commit exact paths**
+- [x] **Step 5: Commit exact paths**
 
 ```powershell
 git add frontend/src/api/messenger.ts frontend/src/components/messenger/message-composer.tsx frontend/tests/messenger/message-composer-retry-nonce.test.tsx docs/TECHNICAL.md docs/TESTING.md
@@ -294,41 +294,41 @@ git commit -m "feat(messenger): preserve send nonce across retries"
 
 #### 4A: Publisher test seam
 
-- [ ] Change `MessengerService` and its production constructor to depend on the exported `EventPublisher`, retaining direct `*natsclient.Client` production compatibility.
-- [ ] Add `ExportNewMessengerServiceWithEventPublisher` behind the existing hubtest export boundary. The backend test fixture uses only an in-memory publisher that captures `(subject, payload)` calls; it must never open NATS or rely on a nil publisher.
-- [ ] Add RED coverage in `backend/tests/messenger/message_sent_producers_test.go` that proves the capture sees the exact message subject and a nested `MessageSentEvent.Message`; marshal the captured event to confirm the `message` JSON field. Do not inspect source text as a proxy for execution.
+- [x] Change `MessengerService` and its production constructor to depend on the exported `EventPublisher`, retaining direct `*natsclient.Client` production compatibility.
+- [x] Add `ExportNewMessengerServiceWithEventPublisher` behind the existing hubtest export boundary. The backend test fixture uses only an in-memory publisher that captures `(subject, payload)` calls; it must never open NATS or rely on a nil publisher.
+- [x] Add RED coverage in `backend/tests/messenger/message_sent_producers_test.go` that proves the capture sees the exact message subject and a nested `MessageSentEvent.Message`; marshal the captured event to confirm the `message` JSON field. Do not inspect source text as a proxy for execution.
 
 #### 4B: Canonical message event plus normal and forward producers
 
-- [ ] Add one `newMessageSentEvent(doc, mentionedUserIDs)` constructor in `events.go`; it constructs `MessageSentEvent{Message: toMessageResponse(doc), MentionedUserIDs: ...}`.
-- [ ] Route normal send and forward in `service_messages.go` through that constructor. Normal send returns the same single computed `MessageResponse` used by its event.
-- [ ] Extend the producer unit fixture to assert both paths publish exactly one matching `message_sent` event with the complete nested response, including nonce, thread, rich content, attachments, voice, reactions, mentions, and forwarded fields where applicable.
+- [x] Add one `newMessageSentEvent(doc, mentionedUserIDs)` constructor in `events.go`; it constructs `MessageSentEvent{Message: toMessageResponse(doc), MentionedUserIDs: ...}`.
+- [x] Route normal send and forward in `service_messages.go` through that constructor. Normal send returns the same single computed `MessageResponse` used by its event.
+- [x] Extend the producer unit fixture to assert both paths publish exactly one matching `message_sent` event with the complete nested response, including nonce, thread, rich content, attachments, voice, reactions, mentions, and forwarded fields where applicable.
 
 #### 4C: Bot, poll, and promote producers
 
-- [ ] Route bot send, poll-message creation, and the promote backlink message through the same canonical constructor in `service_bot.go`, `service_polls.go`, and `service_promote.go`.
-- [ ] Extend the owned producer fixture with the existing repository fixture plus `SetSystemBotID`, valid poll options, and fake injected promotion/permission collaborators. Filter poll assertions to its `message_sent` subject because poll creation emits an additional event.
-- [ ] Assert exact message subject, a single matching publication per path, and the complete nested response rather than only message ID or text. Assert an idempotent retry cannot duplicate a canonical publication.
+- [x] Route bot send, poll-message creation, and the promote backlink message through the same canonical constructor in `service_bot.go`, `service_polls.go`, and `service_promote.go`.
+- [x] Extend the owned producer fixture with the existing repository fixture plus `SetSystemBotID`, valid poll options, and fake injected promotion/permission collaborators. Filter poll assertions to its `message_sent` subject because poll creation emits an additional event.
+- [x] Assert exact message subject, a single matching publication per path, and the complete nested response rather than only message ID or text. Assert an idempotent retry cannot duplicate a canonical publication.
 
 #### 4D: Frontend canonical cache reconciliation
 
-- [ ] Update `buildMessageFromWsEvent` in `frontend/src/api/messenger.ts` and cache reducers in `frontend/src/hooks/use-messages.ts` to consume only `event.message` for `message_sent`.
-- [ ] RED and then satisfy `use-messages-cache-events.test.tsx`: insert the full nested response exactly once by durable message ID, route replies only to their exact thread query, and preserve the root channel query for non-thread messages. Client nonce is metadata, never the cache dedupe key.
+- [x] Update `buildMessageFromWsEvent` in `frontend/src/api/messenger.ts` and cache reducers in `frontend/src/hooks/use-messages.ts` to consume only `event.message` for `message_sent`.
+- [x] RED and then satisfy `use-messages-cache-events.test.tsx`: insert the full nested response exactly once by durable message ID, route replies only to their exact thread query, and preserve the root channel query for non-thread messages. Client nonce is metadata, never the cache dedupe key.
 
 #### 4E: Reaction delta reconciliation
 
-- [ ] Apply `ReactionToggledEvent` as an idempotent add/remove of `user_id` below the matching emoji without requiring a complete reaction list.
-- [ ] RED and then satisfy `reaction-toggled-guard.test.tsx` for duplicate add/remove, removal of an empty emoji bucket, and unrelated-message non-mutation.
+- [x] Apply `ReactionToggledEvent` as an idempotent add/remove of `user_id` below the matching emoji without requiring a complete reaction list.
+- [x] RED and then satisfy `reaction-toggled-guard.test.tsx` for duplicate add/remove, removal of an empty emoji bucket, and unrelated-message non-mutation.
 
 #### 4F: Reconnect invalidation
 
-- [ ] In both `useMessages` and `useThreadMessages`, distinguish the initial connection from a `connected: false -> true` transition and invalidate only the active query after resubscription.
-- [ ] Extend frontend cache-event coverage for active channel and thread invalidation after reconnect; initial connection must not produce a redundant recovery fetch.
+- [x] In both `useMessages` and `useThreadMessages`, distinguish the initial connection from a `connected: false -> true` transition and invalidate only the active query after resubscription.
+- [x] Extend frontend cache-event coverage for active channel and thread invalidation after reconnect; initial connection must not produce a redundant recovery fetch.
 
 #### Joint Docker gates and commit
 
-- [ ] Run the new RED gates through `backend-unit` and `frontend-unit`, then run both Docker services again after implementation. No host test, build, or lint command is valid evidence.
-- [ ] Commit only after both services PASS; Mongo/NATS integration remains outside Task 4 and is recorded separately as `NOT_RUN` unless a later scoped task adds it.
+- [x] Run the new RED gates through `backend-unit` and `frontend-unit`, then run both Docker services again after implementation. No host test, build, or lint command is valid evidence.
+- [x] Commit only after both services PASS; Mongo/NATS integration remains outside Task 4 and is recorded separately as `NOT_RUN` unless a later scoped task adds it.
 
 ```powershell
 git add backend/internal/calls/service_events.go backend/internal/calls/export_hooks.go backend/tests/calls/service_events_test.go backend/internal/messenger/events.go backend/internal/messenger/service.go backend/internal/messenger/export_hooks.go backend/internal/messenger/service_messages.go backend/internal/messenger/service_reactions.go backend/internal/messenger/service_bot.go backend/internal/messenger/service_polls.go backend/internal/messenger/service_promote.go backend/tests/messenger/message_sent_producers_test.go frontend/src/api/messenger.ts frontend/src/hooks/use-messages.ts frontend/tests/messenger/use-messages-cache-events.test.tsx frontend/tests/messenger/reaction-toggled-guard.test.tsx
@@ -376,19 +376,19 @@ git commit -m "fix(messenger): reconcile realtime message caches"
 - Normal, forward, bot, poll-message, and promoted-message producers notify current members other than the canonical sender. An idempotent nonce retry publishes nothing.
 - Every lifecycle/notification event invalidates exactly `CHANNELS_QUERY_KEY`; the client never patches the channel list or performs duplicate-sensitive local unread arithmetic. On reconnect it subscribes to `user:<id>` first and then invalidates; initial connect only subscribes.
 
-- [ ] **Step 1: Batch genuine failing backend and frontend tests**
+- [x] **Step 1: Batch genuine failing backend and frontend tests**
 
 Backend authorizer tests cover own user PASS, foreign user DENY, malformed UUID DENY, `user:<id>:channels` DENY, accessible channel PASS, and inaccessible private channel DENY. Messenger tests cover channel create/update/delete/join/leave, `AcceptInvite`, and all five canonical message-producing paths with exact subjects, recipient sets, invalidation-only payloads, post-success publication, sender exclusion, and retry suppression. Bridge tests exercise exact typed user-subject routing and malformed-schema drops; active/former already-subscribed clients for both Messenger and Calls; resolver error/timeout/nil drops for all; strict channel subject grammar including `calls.channel.instant.*`; and a missed removal event cannot leak the next channel event. Calls publisher units prove nil/zero channel IDs emit nothing while valid UUID subjects/payloads remain unchanged. Frontend tests assert exact `user:<id>`, all four invalidations, duplicate notification harmlessness, no local unread arithmetic, and subscribe-before-invalidate reconnect ordering without initial redundant invalidation.
 
-- [ ] **Step 2: Run one low-disk RED gate per stack**
+- [x] **Step 2: Run one low-disk RED gate per stack**
 
 Run `backend-unit` once and `frontend-unit` once after batching their RED oracles. Expected: FAIL on unsupported user rooms, missing exact bridge routing/fail-closed fanout, missing producers, and old frontend room/arithmetic behavior. Do not loop Docker per atomic edit and do not use host execution.
 
-- [ ] **Step 3: Implement the frozen contract in atomic slices**
+- [x] **Step 3: Implement the frozen contract in atomic slices**
 
 Implement **5A** typed event/auth contract; **5B** channel lifecycle producers; **5C** accepted-invite producer; **5D** normal/forward notifications; **5E** bot notification; **5F** poll-message notification; **5G** promoted-message notification; **5H** exact typed user bridge, nil-channel Calls publisher hygiene, and shared fail-closed Messenger/Calls channel fanout with a short membership-resolution timeout and a pure/testable subscription-definition seam; **5I** frontend exact subscription and persistence invalidation. Production wiring injects the existing Messenger repository membership query. Do not weaken existing channel/call/project authorization or use source scans as executable coverage.
 
-- [ ] **Step 4: Run full Phase 149 unit gates and classify integration**
+- [x] **Step 4: Run full Phase 149 unit gates and classify integration**
 
 Run:
 
