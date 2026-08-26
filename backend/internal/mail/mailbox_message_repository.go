@@ -427,13 +427,16 @@ func mailboxMessageDetailCopy(detail MailboxMessageDetail) MailboxMessageDetail 
 }
 
 func mailboxMessageDetailValid(detail MailboxMessageDetail) bool {
+	if detail.CalendarEventID != nil && *detail.CalendarEventID == uuid.Nil {
+		return false
+	}
 	summary := MailboxThreadDetailProjectionMessage{
 		ID: detail.ID, ThreadID: detail.ThreadID, From: detail.From, To: detail.To, CC: detail.CC,
 		Subject: detail.Subject, Snippet: detail.Snippet, SentAt: detail.SentAt, ReceivedAt: detail.ReceivedAt,
 		Priority: detail.Priority, SizeBytes: detail.SizeBytes, HasAttachments: detail.HasAttachments,
 		IsDraft: detail.IsDraft, FolderIDs: detail.FolderIDs, Seen: detail.Seen, Flagged: detail.Flagged,
 		Answered: detail.Answered, Junk: detail.Junk, CalendarMethod: detail.CalendarMethod,
-		CalendarEventID: detail.CalendarEventID, createdAt: time.Unix(1, 0).UTC(),
+		createdAt: time.Unix(1, 0).UTC(),
 	}
 	if !validMailboxThreadDetailProjectionMessage(summary, detail.ThreadID) || len(detail.PlainBody) > MailboxContentMaxPlainBytes ||
 		utf8.RuneCountInString(detail.PlainBody) > MailboxContentMaxRunes || detail.SanitizedHTML != nil &&

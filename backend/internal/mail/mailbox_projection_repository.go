@@ -261,7 +261,6 @@ type MailboxThreadDetailProjectionMessage struct {
 	Answered        bool                                   `json:"answered"`
 	Junk            bool                                   `json:"junk"`
 	CalendarMethod  *MailCalendarMethod                    `json:"calendar_method"`
-	CalendarEventID *uuid.UUID                             `json:"calendar_event_id"`
 
 	createdAt time.Time
 }
@@ -654,7 +653,6 @@ func mailboxThreadDetailProjectionMessageCopy(message MailboxThreadDetailProject
 		Answered:        message.Answered,
 		Junk:            message.Junk,
 		CalendarMethod:  copyMailCalendarMethod(message.CalendarMethod),
-		CalendarEventID: mailboxFolderProjectionUUIDPointer(message.CalendarEventID),
 		createdAt:       message.createdAt.UTC(),
 	}
 	return result
@@ -871,7 +869,7 @@ func validMailboxThreadDetailProjectionMessage(message MailboxThreadDetailProjec
 	if message.ID == uuid.Nil || message.ThreadID != threadID || !validMailboxThreadDetailProjectionAddress(message.From) || len(message.To) > 200 || len(message.CC) > 200 || !syncValidSafeText(message.Subject, 998, true) || !syncValidSafeText(message.Snippet, MaxEngineSnippetBytes, true) || !syncValidTime(message.createdAt) || message.SizeBytes < 0 || message.SizeBytes > MaxEngineMessageBytes || len(message.FolderIDs) > maxMailboxThreadProjectionLimit {
 		return false
 	}
-	if message.SentAt != nil && !syncValidTime(*message.SentAt) || message.ReceivedAt != nil && !syncValidTime(*message.ReceivedAt) || message.CalendarEventID != nil && *message.CalendarEventID == uuid.Nil || !validMailCalendarMethod(message.CalendarMethod) {
+	if message.SentAt != nil && !syncValidTime(*message.SentAt) || message.ReceivedAt != nil && !syncValidTime(*message.ReceivedAt) || !validMailCalendarMethod(message.CalendarMethod) {
 		return false
 	}
 	switch message.Priority {

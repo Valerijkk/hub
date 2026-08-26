@@ -491,7 +491,6 @@ func mailboxEntThreadDetailProjectionMessages(ctx context.Context, transaction *
 			Answered:        row.IsAnswered,
 			Junk:            row.IsJunk,
 			CalendarMethod:  calendarMethod,
-			CalendarEventID: mailboxFolderProjectionUUIDPointer(row.CalendarEventID),
 			createdAt:       row.CreatedAt.UTC(),
 		}
 	}
