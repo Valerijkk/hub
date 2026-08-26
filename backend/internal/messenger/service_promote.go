@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 	"time"
 
@@ -248,6 +249,13 @@ func (s *MessengerService) PromoteToIssue(
 		repliesWithSource = append(repliesWithSource, replies[:retained]...)
 		replies = append(repliesWithSource, source)
 	}
+	chronologicalReplies := append([]*MessageDocument(nil), replies...)
+	sort.Slice(chronologicalReplies, func(i, j int) bool {
+		if chronologicalReplies[i].CreatedAt.Equal(chronologicalReplies[j].CreatedAt) {
+			return chronologicalReplies[i].ID < chronologicalReplies[j].ID
+		}
+		return chronologicalReplies[i].CreatedAt.Before(chronologicalReplies[j].CreatedAt)
+	})
 
 	// 5. Канал — для имени в описании.
 	ch, chErr := s.repo.GetChannel(ctx, source.ChannelID)
@@ -257,7 +265,7 @@ func (s *MessengerService) PromoteToIssue(
 	}
 
 	// 6. Формируем описание (Plate-совместимый JSON: doc → paragraph children).
-	description := s.buildPromotionDescription(ctx, channelName, parent, replies)
+	description := s.buildPromotionDescription(ctx, channelName, parent, chronologicalReplies)
 
 	// 7. Повторно проверяем цель непосредственно перед созданием задачи.
 	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {

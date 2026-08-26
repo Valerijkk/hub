@@ -245,13 +245,14 @@ func (l *phase151PromoteThreadIntegrityLinker) LinkThreadToIssue(
 
 var phase151PromoteThreadIntegrityIssueID = uuid.MustParse("15151515-1515-4151-8151-151515151515")
 
-func TestPhase151PromoteToIssueRootUsesSelfAndScopedRepliesInRepositoryOrder(t *testing.T) {
+func TestPhase151PromoteToIssueRootRendersScopedRepliesChronologically(t *testing.T) {
 	ctx := context.Background()
 	order := make([]string, 0, 8)
 	repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, false)
 	repository.replies = []*messenger.MessageDocument{
 		phase151PromoteThreadIntegrityReply("reply-new", channelID, source.ID, "newest reply", time.Date(2026, time.August, 26, 10, 2, 0, 0, time.UTC)),
-		phase151PromoteThreadIntegrityReply("reply-old", channelID, source.ID, "older reply", time.Date(2026, time.August, 26, 10, 1, 0, 0, time.UTC)),
+		phase151PromoteThreadIntegrityReply("reply-old-b", channelID, source.ID, "older reply b", time.Date(2026, time.August, 26, 10, 1, 0, 0, time.UTC)),
+		phase151PromoteThreadIntegrityReply("reply-old-a", channelID, source.ID, "older reply a", time.Date(2026, time.August, 26, 10, 1, 0, 0, time.UTC)),
 	}
 	service, target, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
 
@@ -264,15 +265,15 @@ func TestPhase151PromoteToIssueRootUsesSelfAndScopedRepliesInRepositoryOrder(t *
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "target-authority", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "target-authority", "promoter", "backlink", "linker",
 	}, order)
-	assert.Equal(t, []string{"- @user: root source", "- @user: newest reply", "- @user: older reply"}, phase151PromoteThreadIntegrityLines(t, promoter.description))
+	assert.Equal(t, []string{"- @user: root source", "- @user: older reply a", "- @user: older reply b", "- @user: newest reply"}, phase151PromoteThreadIntegrityLines(t, promoter.description))
 	assert.Equal(t, 1, linker.calls)
 	assert.Equal(t, 1, repository.backlinkCalls)
 	phase151AssertPromoteThreadIntegritySuccessfulEffects(t, response, target, promoter, repository, linker, projectID, actorID, channelID, source.ID)
 }
 
-func TestPhase151PromoteToIssueReplyUsesExactScopedRootAndRepliesInRepositoryOrder(t *testing.T) {
+func TestPhase151PromoteToIssueReplyRendersExactScopedThreadChronologically(t *testing.T) {
 	ctx := context.Background()
 	order := make([]string, 0, 9)
 	repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
@@ -295,7 +296,7 @@ func TestPhase151PromoteToIssueReplyUsesExactScopedRootAndRepliesInRepositoryOrd
 		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	replyLines := phase151PromoteThreadIntegrityLines(t, promoter.description)
-	assert.Equal(t, []string{"- @user: root source", "- @user: later reply", "- @user: promoted reply", "- @user: earlier reply"}, replyLines)
+	assert.Equal(t, []string{"- @user: root source", "- @user: promoted reply", "- @user: earlier reply", "- @user: later reply"}, replyLines)
 	assert.Equal(t, 1, strings.Count(strings.Join(replyLines, "\n"), "- @user: promoted reply"))
 	assert.Equal(t, 1, linker.calls)
 	assert.Equal(t, 1, repository.backlinkCalls)
@@ -308,7 +309,6 @@ func TestPhase151PromoteToIssueRetainsSelectedReplyOutsideNewestHundred(t *testi
 	repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
 	newestAt := time.Date(2026, time.August, 26, 12, 0, 0, 0, time.UTC)
 	repository.replies = make([]*messenger.MessageDocument, 0, 100)
-	expectedLines := []string{"- @user: root source"}
 	for index := 0; index < 100; index++ {
 		content := fmt.Sprintf("page reply %03d", index)
 		repository.replies = append(repository.replies, phase151PromoteThreadIntegrityReply(
@@ -318,12 +318,12 @@ func TestPhase151PromoteToIssueRetainsSelectedReplyOutsideNewestHundred(t *testi
 			content,
 			newestAt.Add(-time.Duration(index)*time.Minute),
 		))
-		if index < 99 {
-			expectedLines = append(expectedLines, "- @user: "+content)
-		}
 	}
 	source.CreatedAt = newestAt.Add(-101 * time.Minute)
-	expectedLines = append(expectedLines, "- @user: promoted reply")
+	expectedLines := []string{"- @user: root source", "- @user: promoted reply"}
+	for index := 98; index >= 0; index-- {
+		expectedLines = append(expectedLines, fmt.Sprintf("- @user: page reply %03d", index))
+	}
 	originalReplies := append([]*messenger.MessageDocument(nil), repository.replies...)
 	service, target, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
 
@@ -364,9 +364,9 @@ func TestPhase151PromoteToIssueAppendsSelectedReplyToShortPage(t *testing.T) {
 	lines := phase151PromoteThreadIntegrityLines(t, promoter.description)
 	assert.Equal(t, []string{
 		"- @user: root source",
-		"- @user: later reply",
-		"- @user: earlier reply",
 		"- @user: promoted reply",
+		"- @user: earlier reply",
+		"- @user: later reply",
 	}, lines)
 	assert.Equal(t, 1, strings.Count(strings.Join(lines, "\n"), "- @user: promoted reply"))
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
