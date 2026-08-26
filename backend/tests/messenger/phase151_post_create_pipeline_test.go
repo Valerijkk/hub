@@ -29,6 +29,34 @@ func newPhase151PostCreateRecorder() *phase151PostCreateRecorder {
 	return &phase151PostCreateRecorder{created: true}
 }
 
+type phase151PostCreateResultRecorder struct {
+	*phase151PostCreateRecorder
+	findFound     bool
+	findResult    messenger.CreateMessageResult
+	persistResult *messenger.CreateMessageResult
+}
+
+func (r *phase151PostCreateResultRecorder) FindCanonicalCreateResult(
+	_ context.Context,
+	_ messenger.AuthorizedMessageProducerScope,
+	clientNonce string,
+) (messenger.CreateMessageResult, bool, error) {
+	r.calls = append(r.calls, "idempotency:"+clientNonce)
+	return r.findResult, r.findFound, nil
+}
+
+func (r *phase151PostCreateResultRecorder) PersistPendingCanonicalMessage(
+	_ context.Context,
+	_ messenger.AuthorizedMessageProducerScope,
+	_ *messenger.MessageDocument,
+) (messenger.CreateMessageResult, error) {
+	r.calls = append(r.calls, "persist-pending")
+	if r.persistResult == nil {
+		return messenger.CreateMessageResult{}, errPhase151PostCreateRecorder
+	}
+	return *r.persistResult, nil
+}
+
 func (r *phase151PostCreateRecorder) FindCanonicalCreateResult(
 	_ context.Context,
 	_ messenger.AuthorizedMessageProducerScope,
@@ -38,7 +66,13 @@ func (r *phase151PostCreateRecorder) FindCanonicalCreateResult(
 	if r.created {
 		return messenger.CreateMessageResult{}, false, nil
 	}
-	return messenger.CreateMessageResult{Created: false, Message: r.canonical}, true, nil
+	state := messenger.PostCreateEffectsStateComplete
+	if r.canonical != nil && r.canonical.PostCreateEffectsState != "" {
+		state = r.canonical.PostCreateEffectsState
+	}
+	return messenger.CreateMessageResult{
+		Created: false, Message: r.canonical, PostCreateEffectsState: state,
+	}, true, nil
 }
 
 func (r *phase151PostCreateRecorder) ResolveEligibleMentionUserIDs(
@@ -57,6 +91,9 @@ func (r *phase151PostCreateRecorder) PersistPendingCanonicalMessage(
 ) (messenger.CreateMessageResult, error) {
 	r.calls = append(r.calls, "persist-pending")
 	copyDocument := *document
+	if copyDocument.ID == "" {
+		copyDocument.ID = "phase151-canonical-" + document.ClientNonce
+	}
 	copyDocument.ResolvedMentionUserIDs = append([]uuid.UUID(nil), document.ResolvedMentionUserIDs...)
 	r.canonical = &copyDocument
 	return messenger.CreateMessageResult{Created: true, Message: r.canonical, PostCreateEffectsState: messenger.PostCreateEffectsStatePending}, nil
@@ -264,6 +301,7 @@ func TestPhase151CreatedFalseRetryRepeatsNoPostCreateEffect(t *testing.T) {
 	channelID := uuid.New()
 	canonical := &messenger.MessageDocument{
 		ID: "phase151-canonical-retry", ChannelID: channelID, SenderID: uuid.New(),
+		ClientNonce: "phase151-existing-canonical",
 		PostCreateEffectsState: messenger.PostCreateEffectsStateComplete,
 	}
 	recorder := newPhase151PostCreateRecorder()
@@ -291,6 +329,143 @@ func TestPhase151CreatedFalseRetryRepeatsNoPostCreateEffect(t *testing.T) {
 	assert.Zero(t, recorder.replyCountCalls)
 	assert.Zero(t, recorder.completeCalls)
 	assert.Zero(t, recorder.invalidationCalls)
+}
+
+func TestPhase151RejectsMalformedCanonicalLookupResultBeforeEffects(t *testing.T) {
+	for _, scenario := range []struct {
+		name   string
+		mutate func(*messenger.CreateMessageResult)
+	}{
+		{name: "nil message", mutate: func(result *messenger.CreateMessageResult) { result.Message = nil }},
+		{name: "lookup reports newly created", mutate: func(result *messenger.CreateMessageResult) { result.Created = true }},
+		{name: "empty canonical id", mutate: func(result *messenger.CreateMessageResult) { result.Message.ID = "" }},
+		{name: "foreign channel", mutate: func(result *messenger.CreateMessageResult) { result.Message.ChannelID = uuid.New() }},
+		{name: "foreign sender", mutate: func(result *messenger.CreateMessageResult) { result.Message.SenderID = uuid.New() }},
+		{name: "different nonce", mutate: func(result *messenger.CreateMessageResult) {
+			result.Message.ClientNonce = "phase151-foreign-nonce"
+		}},
+		{name: "unknown effects state", mutate: func(result *messenger.CreateMessageResult) {
+			result.Message.PostCreateEffectsState = messenger.PostCreateEffectsState("unknown")
+			result.PostCreateEffectsState = messenger.PostCreateEffectsState("unknown")
+		}},
+		{name: "result state mismatches message", mutate: func(result *messenger.CreateMessageResult) {
+			result.PostCreateEffectsState = messenger.PostCreateEffectsStatePending
+		}},
+		{name: "result state missing", mutate: func(result *messenger.CreateMessageResult) {
+			result.PostCreateEffectsState = ""
+		}},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			scope, request := phase151PostCreateCanonicalResultFixture()
+			canonical := phase151PostCreateCanonicalResult(scope, request, false, messenger.PostCreateEffectsStateComplete)
+			scenario.mutate(&canonical)
+			recorder := &phase151PostCreateResultRecorder{
+				phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
+				findFound: true,
+				findResult: canonical,
+			}
+
+			result, err := messenger.ExportPhase151ExecutePostCreatePipeline(context.Background(), scope, request, recorder)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.Nil(t, result.Message)
+			assert.False(t, result.Created)
+			assert.Equal(t, []string{"idempotency:" + request.Message.ClientNonce}, recorder.calls)
+			phase151AssertPostCreateNoEffects(t, recorder.phase151PostCreateRecorder)
+		})
+	}
+}
+
+func TestPhase151RejectsMalformedPersistResultBeforeEffects(t *testing.T) {
+	for _, scenario := range []struct {
+		name   string
+		mutate func(*messenger.CreateMessageResult)
+	}{
+		{name: "created false without canonical message", mutate: func(result *messenger.CreateMessageResult) {
+			result.Created = false
+			result.Message = nil
+		}},
+		{name: "empty canonical id", mutate: func(result *messenger.CreateMessageResult) { result.Message.ID = "" }},
+		{name: "foreign channel", mutate: func(result *messenger.CreateMessageResult) { result.Message.ChannelID = uuid.New() }},
+		{name: "foreign sender", mutate: func(result *messenger.CreateMessageResult) { result.Message.SenderID = uuid.New() }},
+		{name: "different nonce", mutate: func(result *messenger.CreateMessageResult) {
+			result.Message.ClientNonce = "phase151-foreign-persist-nonce"
+		}},
+		{name: "unknown effects state", mutate: func(result *messenger.CreateMessageResult) {
+			result.Message.PostCreateEffectsState = messenger.PostCreateEffectsState("unknown")
+			result.PostCreateEffectsState = messenger.PostCreateEffectsState("unknown")
+		}},
+		{name: "result state mismatches message", mutate: func(result *messenger.CreateMessageResult) {
+			result.Message.PostCreateEffectsState = messenger.PostCreateEffectsStateComplete
+		}},
+		{name: "result state missing", mutate: func(result *messenger.CreateMessageResult) {
+			result.PostCreateEffectsState = ""
+		}},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			scope, request := phase151PostCreateCanonicalResultFixture()
+			canonical := phase151PostCreateCanonicalResult(scope, request, true, messenger.PostCreateEffectsStatePending)
+			scenario.mutate(&canonical)
+			recorder := &phase151PostCreateResultRecorder{
+				phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
+				persistResult: &canonical,
+			}
+
+			result, err := messenger.ExportPhase151ExecutePostCreatePipeline(context.Background(), scope, request, recorder)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.Nil(t, result.Message)
+			assert.False(t, result.Created)
+			assert.Equal(t, []string{
+				"idempotency:" + request.Message.ClientNonce,
+				"resolve-mentions",
+				"persist-pending",
+			}, recorder.calls)
+			phase151AssertPostCreateNoEffects(t, recorder.phase151PostCreateRecorder)
+		})
+	}
+}
+
+func TestPhase151ValidCanonicalRetriesRemainNoEffect(t *testing.T) {
+	t.Run("legacy lookup missing message state is complete", func(t *testing.T) {
+		scope, request := phase151PostCreateCanonicalResultFixture()
+		canonical := phase151PostCreateCanonicalResult(scope, request, false, "")
+		canonical.PostCreateEffectsState = messenger.PostCreateEffectsStateComplete
+		recorder := &phase151PostCreateResultRecorder{
+			phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
+			findFound: true,
+			findResult: canonical,
+		}
+
+		result, err := messenger.ExportPhase151ExecutePostCreatePipeline(context.Background(), scope, request, recorder)
+
+		require.NoError(t, err)
+		assert.Same(t, canonical.Message, result.Message)
+		assert.Equal(t, []string{"idempotency:" + request.Message.ClientNonce}, recorder.calls)
+		phase151AssertPostCreateNoEffects(t, recorder.phase151PostCreateRecorder)
+	})
+
+	t.Run("persist race returns existing complete canonical", func(t *testing.T) {
+		scope, request := phase151PostCreateCanonicalResultFixture()
+		canonical := phase151PostCreateCanonicalResult(scope, request, false, messenger.PostCreateEffectsStateComplete)
+		recorder := &phase151PostCreateResultRecorder{
+			phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
+			persistResult: &canonical,
+		}
+
+		result, err := messenger.ExportPhase151ExecutePostCreatePipeline(context.Background(), scope, request, recorder)
+
+		require.NoError(t, err)
+		assert.Same(t, canonical.Message, result.Message)
+		assert.Equal(t, []string{
+			"idempotency:" + request.Message.ClientNonce,
+			"resolve-mentions",
+			"persist-pending",
+		}, recorder.calls)
+		phase151AssertPostCreateNoEffects(t, recorder.phase151PostCreateRecorder)
+	})
 }
 
 func TestPhase151TrustedProducerScopeRejectsGenericAndBotWidening(t *testing.T) {
@@ -331,6 +506,9 @@ func (r *phase151CompleteCreateRecorder) PersistPendingCanonicalMessage(
 ) (messenger.CreateMessageResult, error) {
 	r.calls = append(r.calls, "persist-pending")
 	copyDocument := *document
+	if copyDocument.ID == "" {
+		copyDocument.ID = "phase151-complete-" + document.ClientNonce
+	}
 	copyDocument.PostCreateEffectsState = messenger.PostCreateEffectsStateComplete
 	r.canonical = &copyDocument
 	return messenger.CreateMessageResult{
@@ -360,6 +538,60 @@ func TestPhase151CreatedCompleteResultRepeatsNoPostCreateEffect(t *testing.T) {
 	assert.Equal(t, []string{
 		"idempotency:" + request.Message.ClientNonce, "resolve-mentions", "persist-pending",
 	}, recorder.calls)
+	assert.Zero(t, recorder.followCalls)
+	assert.Zero(t, recorder.replyCountCalls)
+	assert.Zero(t, recorder.completeCalls)
+	assert.Zero(t, recorder.invalidationCalls)
+}
+
+func phase151PostCreateCanonicalResultFixture() (
+	messenger.AuthorizedMessageProducerScope,
+	messenger.PostCreatePipelineRequest,
+) {
+	scope := messenger.AuthorizedMessageProducerScope{
+		TenantID: uuid.New(), ActorID: uuid.New(), ChannelID: uuid.New(),
+		Producer: messenger.TrustedMessageProducerUser,
+	}
+	request := messenger.PostCreatePipelineRequest{
+		Producer: messenger.TrustedMessageProducerUser,
+		Message: messenger.MessageDocument{
+			ChannelID: scope.ChannelID,
+			SenderID: scope.ActorID,
+			ContentText: "phase151 canonical result",
+			ClientNonce: "phase151-canonical-result",
+		},
+	}
+	return scope, request
+}
+
+func phase151PostCreateCanonicalResult(
+	scope messenger.AuthorizedMessageProducerScope,
+	request messenger.PostCreatePipelineRequest,
+	created bool,
+	messageState messenger.PostCreateEffectsState,
+) messenger.CreateMessageResult {
+	message := &messenger.MessageDocument{
+		ID: "phase151-canonical-result-id",
+		ChannelID: scope.ChannelID,
+		SenderID: scope.ActorID,
+		ContentText: request.Message.ContentText,
+		ClientNonce: request.Message.ClientNonce,
+		PostCreateEffectsState: messageState,
+		CreatedAt: time.Date(2026, time.August, 27, 1, 0, 0, 0, time.UTC),
+	}
+	resultState := messageState
+	if resultState == "" {
+		resultState = messenger.PostCreateEffectsStateComplete
+	}
+	return messenger.CreateMessageResult{
+		Message: message,
+		Created: created,
+		PostCreateEffectsState: resultState,
+	}
+}
+
+func phase151AssertPostCreateNoEffects(t *testing.T, recorder *phase151PostCreateRecorder) {
+	t.Helper()
 	assert.Zero(t, recorder.followCalls)
 	assert.Zero(t, recorder.replyCountCalls)
 	assert.Zero(t, recorder.completeCalls)

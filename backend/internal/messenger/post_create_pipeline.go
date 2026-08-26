@@ -113,6 +113,9 @@ func ExportPhase151ExecutePostCreatePipeline(
 		return CreateMessageResult{}, fmt.Errorf("find canonical message: %w", err)
 	}
 	if found {
+		if err := validatePostCreateCanonicalResult(scope, request, canonical, true); err != nil {
+			return CreateMessageResult{}, err
+		}
 		return canonical, nil
 	}
 
@@ -129,11 +132,11 @@ func ExportPhase151ExecutePostCreatePipeline(
 	if err != nil {
 		return CreateMessageResult{}, fmt.Errorf("persist pending canonical message: %w", err)
 	}
+	if err := validatePostCreateCanonicalResult(scope, request, result, false); err != nil {
+		return CreateMessageResult{}, err
+	}
 	if !result.Created {
 		return result, nil
-	}
-	if result.Message == nil {
-		return result, ErrPostCreatePipelineInvalid
 	}
 	if !ExportPhase151ShouldClaimPostCreateEffects(result) {
 		return result, nil
@@ -157,6 +160,35 @@ func ExportPhase151ExecutePostCreatePipeline(
 		return result, fmt.Errorf("publish unread invalidation: %w", err)
 	}
 	return result, nil
+}
+
+func validatePostCreateCanonicalResult(
+	scope AuthorizedMessageProducerScope,
+	request PostCreatePipelineRequest,
+	result CreateMessageResult,
+	foundByLookup bool,
+) error {
+	if foundByLookup && result.Created {
+		return ErrPostCreatePipelineInvalid
+	}
+	if result.Message == nil || result.Message.ID == "" ||
+		result.Message.ChannelID != scope.ChannelID ||
+		result.Message.SenderID != scope.ActorID ||
+		result.Message.ClientNonce != request.Message.ClientNonce {
+		return ErrPostCreatePipelineInvalid
+	}
+
+	messageState := result.Message.PostCreateEffectsState
+	if messageState == "" {
+		messageState = PostCreateEffectsStateComplete
+	}
+	if messageState != PostCreateEffectsStatePending && messageState != PostCreateEffectsStateComplete {
+		return ErrPostCreatePipelineInvalid
+	}
+	if result.PostCreateEffectsState != messageState {
+		return ErrPostCreatePipelineInvalid
+	}
+	return nil
 }
 
 func ExportPhase151PreparePendingCanonicalMessage(

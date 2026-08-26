@@ -98,8 +98,12 @@ func (r *phase151RealtimePostCreateRecorder) ResolveEligibleMentionUserIDs(_ con
 
 func (r *phase151RealtimePostCreateRecorder) PersistPendingCanonicalMessage(_ context.Context, _ messenger.AuthorizedMessageProducerScope, document *messenger.MessageDocument) (messenger.CreateMessageResult, error) {
 	r.calls = append(r.calls, "persist-pending")
-	r.canonical = document
-	return messenger.CreateMessageResult{Created: true, Message: document, PostCreateEffectsState: messenger.PostCreateEffectsStatePending}, nil
+	copyDocument := *document
+	if copyDocument.ID == "" {
+		copyDocument.ID = "phase151-realtime-" + document.ClientNonce
+	}
+	r.canonical = &copyDocument
+	return messenger.CreateMessageResult{Created: true, Message: r.canonical, PostCreateEffectsState: messenger.PostCreateEffectsStatePending}, nil
 }
 
 func (r *phase151RealtimePostCreateRecorder) EnsureAutoThreadFollows(_ context.Context, _ messenger.AuthorizedMessageProducerScope, _ *messenger.MessageDocument) error {
@@ -145,7 +149,7 @@ func TestPhase151RecipientInvalidationIsAfterDurableCASAndRetryHasNoEffects(t *t
 	})
 
 	t.Run("CAS miss and created-false retry publish nothing and repeat no effects", func(t *testing.T) {
-		canonical := &messenger.MessageDocument{ID: "phase151-existing-canonical", ChannelID: scope.ChannelID, SenderID: scope.ActorID, PostCreateEffectsState: messenger.PostCreateEffectsStatePending}
+		canonical := &messenger.MessageDocument{ID: "phase151-existing-canonical", ChannelID: scope.ChannelID, SenderID: scope.ActorID, ClientNonce: request.Message.ClientNonce, PostCreateEffectsState: messenger.PostCreateEffectsStatePending}
 		recorder := &phase151RealtimePostCreateRecorder{canonical: canonical, casClaimed: false}
 		result, err := messenger.ExportPhase151ExecutePostCreatePipeline(context.Background(), scope, request, recorder)
 
