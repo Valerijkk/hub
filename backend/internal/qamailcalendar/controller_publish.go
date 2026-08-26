@@ -120,9 +120,7 @@ func (c *Controller) publishInboundRequestFixture(
 	}()
 
 	if err := outbox.NewPublisher().PublishInTx(ctx, tx, envelope.Subject(), envelope); err != nil {
-		if tx.Rollback() != nil {
-			return inboundRequestFixtureSnapshot{}, errInboundRequestFixtureLifecycle
-		}
+		_ = tx.Rollback()
 		finished = true
 		if _, restored := transition(inboundRequestFixtureStateCreated); !restored {
 			return inboundRequestFixtureSnapshot{}, errInboundRequestFixtureLifecycle
