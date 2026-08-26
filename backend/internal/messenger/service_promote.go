@@ -46,6 +46,28 @@ func lookupPromotionSource(
 	return source, nil
 }
 
+func lookupPromotionParent(
+	ctx context.Context,
+	lookup promoteSourceLookup,
+	channelID uuid.UUID,
+	parentID string,
+) (*MessageDocument, error) {
+	parent, found, err := lookup.FindLiveMessageInChannel(ctx, channelID, parentID)
+	if err != nil {
+		return nil, apperrors.NewInternal("\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430")
+	}
+	if !found {
+		return nil, apperrors.NewNotFound("\u0442\u0440\u0435\u0434 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d")
+	}
+	if parent == nil || parent.ID == "" || parent.ID != parentID || parent.ChannelID != channelID || parent.DeletedAt != nil {
+		return nil, apperrors.NewInternal("\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430")
+	}
+	if parent.ThreadID != "" {
+		return nil, apperrors.NewNotFound("\u0442\u0440\u0435\u0434 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d")
+	}
+	return parent, nil
+}
+
 type promoteThreadRepliesLookup interface {
 	ListLiveThreadRepliesInChannel(
 		ctx context.Context,
@@ -223,18 +245,9 @@ func (s *MessengerService) PromoteToIssue(
 	parent := source
 	parentID := source.ID
 	if source.ThreadID != "" {
-		resolvedParent, found, parentErr := sourceLookup.FindLiveMessageInChannel(ctx, source.ChannelID, source.ThreadID)
+		resolvedParent, parentErr := lookupPromotionParent(ctx, sourceLookup, source.ChannelID, source.ThreadID)
 		if parentErr != nil {
-			return nil, apperrors.NewInternal("ошибка проверки треда")
-		}
-		if !found {
-			return nil, apperrors.NewNotFound("тред не найден")
-		}
-		if resolvedParent == nil || resolvedParent.ID != source.ThreadID || resolvedParent.ChannelID != source.ChannelID || resolvedParent.DeletedAt != nil {
-			return nil, apperrors.NewInternal("ошибка проверки треда")
-		}
-		if resolvedParent.ThreadID != "" {
-			return nil, apperrors.NewNotFound("тред не найден")
+			return nil, parentErr
 		}
 		parent = resolvedParent
 		parentID = parent.ID
@@ -293,9 +306,14 @@ func (s *MessengerService) PromoteToIssue(
 	// 6. Формируем описание (Plate-совместимый JSON: doc → paragraph children).
 	description := s.buildPromotionDescription(ctx, channelName, parent, chronologicalReplies)
 
-	// 7. Повторно проверяем источник и затем цель непосредственно перед созданием задачи.
+	// 7. Повторно проверяем источник, корень reply-треда и затем цель непосредственно перед созданием задачи.
 	if _, sourceErr := lookupPromotionSource(ctx, sourceLookup, channelID, messageID); sourceErr != nil {
 		return nil, sourceErr
+	}
+	if source.ThreadID != "" {
+		if _, parentErr := lookupPromotionParent(ctx, sourceLookup, channelID, source.ThreadID); parentErr != nil {
+			return nil, parentErr
+		}
 	}
 	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
 		return nil, checkErr

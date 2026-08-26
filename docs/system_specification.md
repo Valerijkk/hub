@@ -755,3 +755,7 @@ At `PromoteToIssue` entry, the service must atomically read one `IssuePromoter`/
 ## Phase 151 mutation-adjacent live-source recheck contract (2026-08-26)
 
 Promotion must execute the same exact `(route channelID, route messageID)` live-source validator twice: once before target/thread reads and once after description assembly, immediately before the final target proof. Both proofs map lookup error or malformed found data to fixed/redacted 500 and missing/deleted to concealed 404. A second-proof failure returns no issue response and performs no issue promoter, backlink, or thread-link effect. The proof validates live identity, not content revision, and is not atomic with issue creation; later source deletion plus parent/reply/channel and target TOCTOU remain open.
+
+## Phase 151 promotion live-parent recheck contract (2026-08-26)
+
+For a reply source (`thread_id != ""`), `PromoteToIssue` must resolve an exact live root in the same route channel twice: initially before scoped reply reads, and after description/source recheck immediately before the final target-project proof. Missing or nested/non-root parent state is non-disclosive 404. Repository failure or nil, empty-ID, ID-mismatched, foreign-channel, or deleted found data is a fixed/redacted 500. Failure of the second proof returns no issue response and must not invoke the final target proof, issue promoter, backlink writer, or issue-thread linker. A root source performs no parent lookup. These are sequential proofs, not an atomic guarantee across Mongo, PostgreSQL, and tracker mutation.

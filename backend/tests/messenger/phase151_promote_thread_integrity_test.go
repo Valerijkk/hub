@@ -27,6 +27,12 @@ type phase151PromoteThreadIntegrityRepliesCall struct {
 	limit     int
 }
 
+type phase151PromoteThreadIntegrityLookupResult struct {
+	document *messenger.MessageDocument
+	found    bool
+	err      error
+}
+
 type phase151PromoteThreadIntegrityRepository struct {
 	*phase151PromoteSourceBindingRepositoryBase
 
@@ -39,6 +45,7 @@ type phase151PromoteThreadIntegrityRepository struct {
 	parentDocument *messenger.MessageDocument
 	parentFound    bool
 	parentErr      error
+	parentResults  []phase151PromoteThreadIntegrityLookupResult
 	replies        []*messenger.MessageDocument
 	repliesErr     error
 	sourceID       string
@@ -64,8 +71,13 @@ func (r *phase151PromoteThreadIntegrityRepository) FindLiveMessageInChannel(
 		r.sourceCalls = append(r.sourceCalls, phase151PromoteThreadIntegrityCall{channelID: channelID, messageID: messageID})
 		return r.mockRepository.FindLiveMessageInChannel(ctx, channelID, messageID)
 	}
+	callIndex := len(r.parentCalls)
 	r.record("scoped-parent")
 	r.parentCalls = append(r.parentCalls, phase151PromoteThreadIntegrityCall{channelID: channelID, messageID: messageID})
+	if callIndex < len(r.parentResults) {
+		result := r.parentResults[callIndex]
+		return result.document, result.found, result.err
+	}
 	return r.parentDocument, r.parentFound, r.parentErr
 }
 
@@ -289,11 +301,11 @@ func TestPhase151PromoteToIssueReplyRendersExactScopedThreadChronologically(t *t
 	require.NoError(t, err)
 	require.NotNil(t, response)
 	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ID}, {channelID: channelID, messageID: source.ID}}, repository.sourceCalls)
-	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ThreadID}}, repository.parentCalls)
+	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ThreadID}, {channelID: channelID, messageID: source.ThreadID}}, repository.parentCalls)
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ThreadID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "target-authority", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "scoped-parent", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	replyLines := phase151PromoteThreadIntegrityLines(t, promoter.description)
 	assert.Equal(t, []string{"- @user: root source", "- @user: promoted reply", "- @user: earlier reply", "- @user: later reply"}, replyLines)
@@ -595,6 +607,122 @@ func TestPhase151PromoteToIssueReplyRequiresExactScopedLiveRootBeforeEffects(t *
 			assert.Len(t, repository.parentCalls, scenario.wantParentCalls)
 			phase151AssertPromoteThreadIntegrityNoEffects(t, repository, promoter, linker)
 			phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
+		})
+	}
+}
+
+func TestPhase151PromoteToIssueRechecksLiveParentBeforeMutation(t *testing.T) {
+	ctx := context.Background()
+	for _, scenario := range []struct {
+		name        string
+		second      func(uuid.UUID, *messenger.MessageDocument, *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult
+		wantCode    int
+		wantMessage string
+		redact      string
+	}{
+		{
+			name: "missing parent",
+			second: func(_ uuid.UUID, _ *messenger.MessageDocument, _ *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				return phase151PromoteThreadIntegrityLookupResult{}
+			},
+			wantCode: 404, wantMessage: "\u0442\u0440\u0435\u0434 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d",
+		},
+		{
+			name: "parent store error",
+			second: func(_ uuid.UUID, _ *messenger.MessageDocument, parent *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				return phase151PromoteThreadIntegrityLookupResult{document: parent, found: true, err: errors.New("phase151 parent recheck store error")}
+			},
+			wantCode: 500, wantMessage: "\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430", redact: "phase151 parent recheck store error",
+		},
+		{
+			name: "found nil parent",
+			second: func(_ uuid.UUID, _ *messenger.MessageDocument, _ *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				return phase151PromoteThreadIntegrityLookupResult{found: true}
+			},
+			wantCode: 500, wantMessage: "\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430",
+		},
+		{
+			name: "empty parent ID",
+			second: func(_ uuid.UUID, _ *messenger.MessageDocument, parent *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				copy := *parent
+				copy.ID = ""
+				return phase151PromoteThreadIntegrityLookupResult{document: &copy, found: true}
+			},
+			wantCode: 500, wantMessage: "\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430",
+		},
+		{
+			name: "mismatched parent ID",
+			second: func(_ uuid.UUID, _ *messenger.MessageDocument, parent *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				copy := *parent
+				copy.ID = "phase151-parent-recheck-wrong-root"
+				return phase151PromoteThreadIntegrityLookupResult{document: &copy, found: true}
+			},
+			wantCode: 500, wantMessage: "\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430", redact: "phase151-parent-recheck-wrong-root",
+		},
+		{
+			name: "foreign parent",
+			second: func(_ uuid.UUID, _ *messenger.MessageDocument, parent *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				copy := *parent
+				copy.ChannelID = uuid.MustParse("15151515-1515-4151-8151-151515151516")
+				return phase151PromoteThreadIntegrityLookupResult{document: &copy, found: true}
+			},
+			wantCode: 500, wantMessage: "\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430", redact: "15151515-1515-4151-8151-151515151516",
+		},
+		{
+			name: "deleted parent",
+			second: func(_ uuid.UUID, _ *messenger.MessageDocument, parent *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				copy := *parent
+				deletedAt := time.Date(2026, time.August, 26, 10, 5, 0, 0, time.UTC)
+				copy.DeletedAt = &deletedAt
+				return phase151PromoteThreadIntegrityLookupResult{document: &copy, found: true}
+			},
+			wantCode: 500, wantMessage: "\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0442\u0440\u0435\u0434\u0430",
+		},
+		{
+			name: "nested parent",
+			second: func(_ uuid.UUID, source *messenger.MessageDocument, parent *messenger.MessageDocument) phase151PromoteThreadIntegrityLookupResult {
+				copy := *parent
+				copy.ThreadID = source.ID
+				return phase151PromoteThreadIntegrityLookupResult{document: &copy, found: true}
+			},
+			wantCode: 404, wantMessage: "\u0442\u0440\u0435\u0434 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d",
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			order := make([]string, 0, 10)
+			repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
+			parent := repository.parentDocument
+			repository.parentResults = []phase151PromoteThreadIntegrityLookupResult{
+				{document: parent, found: true},
+				scenario.second(channelID, source, parent),
+			}
+			service, target, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
+
+			response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteThreadIntegrityRequest(projectID))
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, scenario.wantCode)
+			var appErr *apperrors.AppError
+			require.ErrorAs(t, err, &appErr)
+			assert.Equal(t, scenario.wantMessage, appErr.Message)
+			if scenario.redact != "" {
+				phase151AssertPromoteThreadIntegrityRedactedError(t, err, scenario.redact)
+			}
+			assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ID}, {channelID: channelID, messageID: source.ID}}, repository.sourceCalls)
+			assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ThreadID}, {channelID: channelID, messageID: source.ThreadID}}, repository.parentCalls)
+			assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ThreadID, limit: 100}}, repository.repliesCalls)
+			assert.Equal(t, []phase151PromoteThreadIntegrityTargetCall{{actorID: actorID, projectID: projectID}}, target.arguments)
+			assert.Equal(t, 1, repository.getChannelCalls)
+			assert.Zero(t, repository.genericFindCalls)
+			assert.Zero(t, promoter.calls)
+			assert.Zero(t, repository.backlinkCalls)
+			assert.Zero(t, linker.calls)
+			phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
+			assert.Equal(t, []string{
+				"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "scoped-source", "scoped-parent",
+			}, order)
 		})
 	}
 }
