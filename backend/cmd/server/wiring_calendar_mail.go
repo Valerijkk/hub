@@ -101,6 +101,10 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 
+	if wireQAMailCalendarRuntime(d, mailboxSvc, mailboxRepo, eventRepo, eventSvc) {
+		return
+	}
+
 	mailboxEngineConfig, err := mailmod.ParseMailboxEngineConfig(os.LookupEnv)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
