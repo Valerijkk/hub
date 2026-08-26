@@ -195,6 +195,15 @@
 		"noPreview": "No message preview is available.",
 		"metadataOnly": "Message preview only; full content is not loaded in this view.",
 		"messageSize": "Message size: {{size}}",
+		"direct": {
+			"opening": "Opening message…",
+			"invalidTitle": "This message link is unavailable",
+			"invalidDescription": "The message address is invalid.",
+			"unavailableTitle": "This message is unavailable",
+			"unavailableDescription": "The message could not be opened. It may have moved or you may no longer have access.",
+			"retry": "Try again",
+			"back": "Back to Mail"
+		},
 		"body": {
 			"expand": "Read",
 			"collapse": "Close",

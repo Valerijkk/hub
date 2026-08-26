@@ -520,10 +520,14 @@ export function getMailThread(
 	);
 }
 
-export function getMailMessage(messageId: string): Promise<MailMessageDetail> {
+export function getMailMessage(
+	messageId: string,
+	options: ApiRequestOptions = {},
+): Promise<MailMessageDetail> {
 	const normalizedMessageID = normalizeMailMessageID(messageId);
 	return api.get<MailMessageDetail>(
 		`/mail/messages/${encodeURIComponent(normalizedMessageID)}`,
+		options,
 	);
 }
 

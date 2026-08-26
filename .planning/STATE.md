@@ -1,4 +1,31 @@
 ---
+mail_direct_message_route_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_RACE_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Exact source blobs: frontend API
+  `ec883e5e38dfb570d5f3c5e7c7e9fd43647bf8c6`, direct-message route
+  `7324395e11b8941db5cb7475e224f9d68ee0191c`, EN locale
+  `b45bd50b283db38fcba1aacd94d6cbe4b1db0805`, and RU locale
+  `eb0b2b33679f3198f2cffcbb09acd53f9a336842`. The authenticated one-shot
+  `/mail/message/:messageId` resolver validates and canonicalizes the UUID
+  before any request, performs only the existing owner-scoped message fetch,
+  and replace-navigates to the canonical all-folder thread reader only when
+  the response message ID exactly matches the request and the response thread
+  ID is independently valid. The transient TanStack query is partitioned by
+  the reactive authenticated user and message IDs, consumes the request abort
+  signal, disables automatic retry and discards cache immediately; existing
+  logout handling clears the application query cache. Invalid, unavailable,
+  mismatched and pending states remain generic and localized, expose no raw
+  identifiers, use semantic status/alert regions, and offer manual retry only
+  after a failed or mismatched lookup. The API adapter preserves its existing
+  normalization and encoded path while accepting request options. This route
+  enables future Calendar-to-Mail navigation but creates no Calendar
+  correlation authority and never reads `calendar_event_id`. Static evidence
+  only: route generation, tests/build/lint/validators/Docker/runtime are
+  NOT_RUN; this is not product, Docker or merge readiness.
+  `provenance_source: dispatcher-enforced`; implementation Terra/xhigh;
+  reviews Contract/high, Security/high and Race/high; no fallback; telemetry
+  UNKNOWN.
 mail_safe_rich_reader_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_ACCESSIBILITY_REVIEW_PASS_C_I_M_0_0_0 /
