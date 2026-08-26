@@ -89,6 +89,32 @@ type PromoteToIssueResponse struct {
 	IssueKey string `json:"issue_key"`
 }
 
+// checkPromotionTarget maps the target-project authorization result to the
+// public PromoteToIssue error contract.
+func checkPromotionTarget(
+	checker PromotePermissionChecker,
+	ctx context.Context,
+	userID, projectID uuid.UUID,
+) error {
+	if checker == nil {
+		return apperrors.NewInternal("ошибка проверки прав на создание задачи")
+	}
+	targetFound, canCreate, err := checker.AuthorizePromotionTarget(ctx, userID, projectID)
+	if err != nil {
+		return apperrors.NewInternal("ошибка проверки прав на создание задачи")
+	}
+	if !targetFound && canCreate {
+		return apperrors.NewInternal("ошибка проверки прав на создание задачи")
+	}
+	if !targetFound {
+		return apperrors.NewNotFound("проект не найден")
+	}
+	if !canCreate {
+		return apperrors.NewForbidden("нет права создавать задачи в проекте")
+	}
+	return nil
+}
+
 // PromoteToIssue превращает сообщение треда в задачу трекера и постит
 // backlink-сообщение в исходный тред.
 //
@@ -160,22 +186,10 @@ func (s *MessengerService) PromoteToIssue(
 	}
 
 
-	// 2b. Свежая проверка существования и PermTaskCreate в целевом проекте.
-	if s.promoteCheck == nil {
-		return nil, apperrors.NewInternal("ошибка проверки прав на создание задачи")
-	}
-	targetFound, canCreate, checkErr := s.promoteCheck.AuthorizePromotionTarget(ctx, userID, projectID)
-	if checkErr != nil {
-		return nil, apperrors.NewInternal("ошибка проверки прав на создание задачи")
-	}
-	if !targetFound && canCreate {
-		return nil, apperrors.NewInternal("ошибка проверки прав на создание задачи")
-	}
-	if !targetFound {
-		return nil, apperrors.NewNotFound("проект не найден")
-	}
-	if !canCreate {
-		return nil, apperrors.NewForbidden("нет права создавать задачи в проекте")
+	// 2b. Снимок проверки цели используется для обеих проверок этого промоушена.
+	promoteChecker := s.promoteCheck
+	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
+		return nil, checkErr
 	}
 
 	// 3. Разрешаем корень треда до чтения канала или запуска побочных эффектов.
@@ -245,7 +259,10 @@ func (s *MessengerService) PromoteToIssue(
 	// 6. Формируем описание (Plate-совместимый JSON: doc → paragraph children).
 	description := s.buildPromotionDescription(ctx, channelName, parent, replies)
 
-	// 7. Создаём задачу через IssuePromoter (RBAC уже проверен выше).
+	// 7. Повторно проверяем цель непосредственно перед созданием задачи.
+	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
+		return nil, checkErr
+	}
 	issueKey, issueID, err := s.issuePromoter.CreateIssueFromPromotion(ctx, projectID, userID, title, issueType, description)
 	if err != nil {
 		return nil, err

@@ -119,6 +119,14 @@ func (r *phase151PromoteThreadIntegrityRepository) GetChannel(
 	return r.mockRepository.GetChannel(ctx, channelID)
 }
 
+func (r *phase151PromoteThreadIntegrityRepository) GetUserDisplayName(
+	ctx context.Context,
+	userID uuid.UUID,
+) (string, error) {
+	r.record("display-name")
+	return r.mockRepository.GetUserDisplayName(ctx, userID)
+}
+
 func (r *phase151PromoteThreadIntegrityRepository) InsertMessage(
 	_ context.Context,
 	document *messenger.MessageDocument,
@@ -256,7 +264,7 @@ func TestPhase151PromoteToIssueRootUsesSelfAndScopedRepliesInRepositoryOrder(t *
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	assert.Equal(t, []string{"- @user: root source", "- @user: newest reply", "- @user: older reply"}, phase151PromoteThreadIntegrityLines(t, promoter.description))
 	assert.Equal(t, 1, linker.calls)
@@ -284,7 +292,7 @@ func TestPhase151PromoteToIssueReplyUsesExactScopedRootAndRepliesInRepositoryOrd
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ThreadID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	replyLines := phase151PromoteThreadIntegrityLines(t, promoter.description)
 	assert.Equal(t, []string{"- @user: root source", "- @user: later reply", "- @user: promoted reply", "- @user: earlier reply"}, replyLines)
@@ -857,7 +865,10 @@ func phase151AssertPromoteThreadIntegritySuccessfulEffects(
 	t.Helper()
 	assert.Equal(t, phase151PromoteThreadIntegrityIssueID.String(), response.IssueID)
 	assert.Equal(t, "HUB-151", response.IssueKey)
-	assert.Equal(t, []phase151PromoteThreadIntegrityTargetCall{{actorID: actorID, projectID: projectID}}, target.arguments)
+	assert.Equal(t, []phase151PromoteThreadIntegrityTargetCall{
+		{actorID: actorID, projectID: projectID},
+		{actorID: actorID, projectID: projectID},
+	}, target.arguments)
 	assert.Equal(t, []phase151PromoteThreadIntegrityPromoteCall{{
 		projectID: projectID,
 		actorID:   actorID,

@@ -138,7 +138,7 @@ func TestPhase151PromoteToIssueBindsSourceLookupToAuthorizedChannel(t *testing.T
 		assert.Equal(t, "HUB-98", response.IssueKey)
 		phase151AssertPromoteScopedCall(t, repository, channelID, source.ID)
 		assert.Zero(t, repository.genericFindCalls)
-		assert.Equal(t, 1, target.calls)
+		assert.Equal(t, 2, target.calls)
 		assert.Equal(t, 1, promoter.calls)
 		assert.Equal(t, 1, linker.calls)
 		assert.Equal(t, 1, repository.backlinkCalls)

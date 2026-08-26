@@ -69,6 +69,14 @@ func (r *phase151PromoteTargetAuthorityRepository) GetChannel(
 	return r.mockRepository.GetChannel(ctx, channelID)
 }
 
+func (r *phase151PromoteTargetAuthorityRepository) GetUserDisplayName(
+	ctx context.Context,
+	userID uuid.UUID,
+) (string, error) {
+	r.record("display-name")
+	return r.mockRepository.GetUserDisplayName(ctx, userID)
+}
+
 func (r *phase151PromoteTargetAuthorityRepository) FindMessageByID(
 	ctx context.Context,
 	messageID string,
@@ -114,11 +122,19 @@ func (r *phase151PromoteTargetAuthorityRepository) InsertMessage(
 }
 
 type phase151PromoteTargetAuthorityChecker struct {
-	order     *[]string
+	order       *[]string
+	found       bool
+	canCreate   bool
+	err         error
+	decisions   []phase151PromoteTargetAuthorityDecision
+	onFirstCall func()
+	calls       []phase151PromoteTargetAuthorityTargetCall
+}
+
+type phase151PromoteTargetAuthorityDecision struct {
 	found     bool
 	canCreate bool
 	err       error
-	calls     []phase151PromoteTargetAuthorityTargetCall
 }
 
 func (c *phase151PromoteTargetAuthorityChecker) AuthorizePromotionTarget(
@@ -131,6 +147,13 @@ func (c *phase151PromoteTargetAuthorityChecker) AuthorizePromotionTarget(
 		actorID: actorID,
 		projectID: projectID,
 	})
+	if len(c.calls) == 1 && c.onFirstCall != nil {
+		c.onFirstCall()
+	}
+	if decisionIndex := len(c.calls) - 1; decisionIndex < len(c.decisions) {
+		decision := c.decisions[decisionIndex]
+		return decision.found, decision.canCreate, decision.err
+	}
 	return c.found, c.canCreate, c.err
 }
 
@@ -327,6 +350,95 @@ func TestPhase151PromoteToIssueStopsBeforeTargetAuthorityWhenSourceFails(t *test
 	}
 }
 
+func TestPhase151PromoteToIssueRechecksTargetAuthorityBeforeMutation(t *testing.T) {
+	ctx := context.Background()
+
+	for _, scenario := range []struct {
+		name     string
+		second   phase151PromoteTargetAuthorityDecision
+		wantCode int
+		redact   string
+	}{
+		{
+			name:     "missing target is concealed after description",
+			second:   phase151PromoteTargetAuthorityDecision{found: false, canCreate: false},
+			wantCode: 404,
+		},
+		{
+			name:     "found target without create authority is forbidden after description",
+			second:   phase151PromoteTargetAuthorityDecision{found: true, canCreate: false},
+			wantCode: 403,
+		},
+		{
+			name: "target authority error is redacted after description",
+			second: phase151PromoteTargetAuthorityDecision{
+				err: errors.New("phase151 target authority recheck error"),
+			},
+			wantCode: 500,
+			redact:   "phase151 target authority recheck error",
+		},
+		{
+			name:     "target authority invariant violation is internal after description",
+			second:   phase151PromoteTargetAuthorityDecision{found: false, canCreate: true},
+			wantCode: 500,
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			order := make([]string, 0, 10)
+			repository, actorID, channelID, channel, source, projectID := phase151PromoteTargetAuthorityFixture(&order)
+			checker := &phase151PromoteTargetAuthorityChecker{
+				order: &order,
+				decisions: []phase151PromoteTargetAuthorityDecision{
+					{found: true, canCreate: true},
+					scenario.second,
+				},
+			}
+			service, resolver, promoter, linker := phase151PromoteTargetAuthorityService(
+				repository,
+				actorID,
+				channel,
+				&order,
+				checker,
+			)
+
+			response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteTargetAuthorityRequest(projectID))
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, scenario.wantCode)
+			if scenario.redact != "" {
+				phase151AssertPromoteThreadIntegrityRedactedError(t, err, scenario.redact)
+			}
+			phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID)
+			assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{
+				{actorID: actorID, projectID: projectID},
+				{actorID: actorID, projectID: projectID},
+			}, checker.calls)
+			assert.Equal(t, 1, repository.getChannelCalls)
+			assert.Zero(t, repository.genericParentCalls, "a root source is already the parent")
+			assert.Zero(t, repository.repliesCalls, "promotion must not use generic replies")
+			assert.Equal(t, []phase151PromoteTargetAuthorityRepliesCall{{
+				channelID: channelID,
+				rootID:    source.ID,
+				limit:     100,
+			}}, repository.scopedRepliesCalls)
+			assert.Zero(t, promoter.calls)
+			assert.Zero(t, linker.calls)
+			assert.Zero(t, repository.backlinkCalls)
+			assert.Equal(t, []string{
+				"source-action",
+				"scoped-live-source",
+				"target-authority",
+				"scoped-replies",
+				"get-channel",
+				"display-name",
+				"target-authority",
+			}, order)
+		})
+	}
+}
+
 func TestPhase151PromoteToIssueValidatesProjectBeforeSourceAndTargetAuthority(t *testing.T) {
 	ctx := context.Background()
 	order := make([]string, 0, 8)
@@ -378,9 +490,10 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 	require.NotNil(t, response)
 	assert.Equal(t, "HUB-151", response.IssueKey)
 	phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID)
-	assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{{
-		actorID: actorID, projectID: projectID,
-	}}, checker.calls)
+	assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{
+		{actorID: actorID, projectID: projectID},
+		{actorID: actorID, projectID: projectID},
+	}, checker.calls)
 	assert.Equal(t, 1, repository.getChannelCalls)
 	assert.Zero(t, repository.genericParentCalls, "a root source is already the parent")
 	assert.Zero(t, repository.repliesCalls, "promotion must not use generic replies")
@@ -398,6 +511,65 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 		"target-authority",
 		"scoped-replies",
 		"get-channel",
+		"display-name",
+		"target-authority",
+		"promoter",
+		"backlink",
+		"linker",
+	}, order)
+}
+
+func TestPhase151PromoteToIssueUsesSameTargetAuthorityCheckerForRecheck(t *testing.T) {
+	ctx := context.Background()
+	order := make([]string, 0, 10)
+	repository, actorID, channelID, channel, source, projectID := phase151PromoteTargetAuthorityFixture(&order)
+	originalChecker := &phase151PromoteTargetAuthorityChecker{
+		order: &order, found: true, canCreate: true,
+	}
+	replacementChecker := &phase151PromoteTargetAuthorityChecker{
+		order: &order, found: true, canCreate: false,
+	}
+	service, resolver, promoter, linker := phase151PromoteTargetAuthorityService(
+		repository,
+		actorID,
+		channel,
+		&order,
+		originalChecker,
+	)
+	originalChecker.onFirstCall = func() {
+		service.SetPromotePermissionChecker(replacementChecker)
+	}
+
+	response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteTargetAuthorityRequest(projectID))
+
+	require.NoError(t, err)
+	require.NotNil(t, response)
+	assert.Equal(t, "HUB-151", response.IssueKey)
+	phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID)
+	assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{
+		{actorID: actorID, projectID: projectID},
+		{actorID: actorID, projectID: projectID},
+	}, originalChecker.calls)
+	assert.Empty(t, replacementChecker.calls)
+	assert.Equal(t, 1, repository.getChannelCalls)
+	assert.Zero(t, repository.genericParentCalls, "a root source is already the parent")
+	assert.Zero(t, repository.repliesCalls, "promotion must not use generic replies")
+	assert.Equal(t, []phase151PromoteTargetAuthorityRepliesCall{{
+		channelID: channelID,
+		rootID:    source.ID,
+		limit:     100,
+	}}, repository.scopedRepliesCalls)
+	assert.Equal(t, 1, promoter.calls)
+	assert.Equal(t, 1, linker.calls)
+	assert.Equal(t, 1, repository.backlinkCalls)
+	assert.Equal(t, []string{
+		"source-action",
+		"scoped-live-source",
+		"target-authority",
+		"scoped-replies",
+		"get-channel",
+		"display-name",
+		"target-authority",
 		"promoter",
 		"backlink",
 		"linker",
