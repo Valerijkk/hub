@@ -1,4 +1,13 @@
 # Phase 147 — executable packet contracts
+> **2026-08-26 checkpoint - P3-E source complete and independently accepted.**
+> Strict decoder `f55eb408`, bounded consumer `f186302a`, iterator backoff
+> `32a6e221`, and stream/server composition `839b2935` each used Terra/xhigh
+> plus independent Terra/high `ACCEPT C/I/M 0/0/0` with
+> dispatcher-enforced/no-fallback provenance. Canonical poison Term, durable
+> no-op/result ACK, transient 65-second NAK, fixed pull/concurrency limits,
+> receipt event dedupe and drain-first shutdown are source-accepted. Compile,
+> formatting, tests, Docker and runtime remain `NOT_RUN`; authoritative API/UI
+> correlation, full-stack Docker and merge remain pending.
 > **2026-08-26 checkpoint - P3-D source complete and independently accepted.**
 > `8a7478dd`, `4befb938`, `2455a123`, `4c030bd6`, `8a238fcd`, `e1db48ce`, and
 > `690f77e5` form the accepted port, shared-clock, Ent claim/completion, private

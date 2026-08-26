@@ -14,6 +14,16 @@
 > Mail churn. P3-D repository/service/worker, 147-02B/02C, D1/D2 and full
 > application Docker readiness remain pending.
 
+> **P3-E source checkpoint (2026-08-26):** decoder `f55eb408`, consumer
+> `f186302a`, bounded iterator backoff `32a6e221`, and stream/production wiring
+> `839b2935` are `SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0 /
+> RUNTIME_NOT_RUN`. Every atom used Terra/xhigh and independent Terra/high with
+> dispatcher-enforced/no-fallback provenance. Strict canonical decode,
+> Term/Ack/Nak disposition, fixed JetStream bounds, application receipt dedupe,
+> and drain-then-cancel/wait shutdown are accepted statically. Compile,
+> formatting, tests, Docker and runtime remain `NOT_RUN`; authoritative
+> HTTP/UI correlation, full-stack Docker and merge remain pending.
+>
 > **P3-D source checkpoint (2026-08-26):** `SOURCE_AUTHORED /
 > INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0 / RUNTIME_NOT_RUN`. The accepted chain
 > is receipt port `8a7478dd`, shared DB clock `4befb938`, Ent registration/due

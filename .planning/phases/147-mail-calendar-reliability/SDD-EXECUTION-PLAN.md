@@ -113,6 +113,11 @@ Mail I/O. Only the frozen content-free error allowlist may be persisted.
 
 ## Task 3: Implement P3-E NATS ingress and production composition
 
+Status: completed and independently accepted. Strict decoder is `f55eb408`,
+bounded consumer is `f186302a`, iterator backoff is `32a6e221`, and stream plus
+production composition is `839b2935`. Independent Terra/high final reviews are
+`ACCEPT C/I/M 0/0/0`; Docker compile/runtime remains deferred to Task 6.
+
 Add the Mail-owned sanitized v1 decoder/consumer and server wiring in the exact
 P3-E files. Validate broker subject against JSON subject, deduplicate by
 application `event_id`, drop the compatibility engine id, apply bounded ACK/NAK

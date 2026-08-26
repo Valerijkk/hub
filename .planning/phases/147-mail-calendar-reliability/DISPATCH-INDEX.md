@@ -1,4 +1,11 @@
 # Phase 147 — exact Terra dispatch index
+> **P3-E source acceptance (2026-08-26):** `f55eb408`, `f186302a`, `32a6e221`,
+> and `839b2935` are the accepted strict decoder, bounded JetStream consumer,
+> iterator backoff and production composition chain. Every atom used
+> Terra/xhigh and independent Terra/high `ACCEPT C/I/M 0/0/0` with
+> dispatcher-enforced/no-fallback provenance. Compile, formatting, tests,
+> Docker and runtime remain `NOT_RUN`; authoritative API/UI correlation,
+> full-stack Docker and merge remain pending.
 > **P3-D source acceptance (2026-08-26):** `8a7478dd`, `4befb938`, `2455a123`,
 > `4c030bd6`, `8a238fcd`, `e1db48ce`, and `690f77e5` are `SOURCE_AUTHORED /
 > INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0 / RUNTIME_NOT_RUN` for the receipt

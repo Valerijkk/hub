@@ -1,4 +1,18 @@
 ---
+phase_147_p3e_source_checkpoint: >-
+  P3-E SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0. Strict
+  canonical mail.received.v1 delivery decoding is f55eb408, bounded JetStream
+  consumer lifecycle is f186302a, cancellation-aware 1s..30s iterator backoff
+  is 32a6e221, and mail.> plus production composition is 839b2935. Terra/xhigh
+  implementation and Terra/high independent review used dispatcher-enforced
+  provenance without fallback. The durable calendar-mail-inbound-v1 consumer
+  uses explicit ACK, AckWait90s, MaxAckPending16, MaxDeliver20, pull8,
+  concurrency4, delivery timeout45s and transient NAK delay65s; poison terms,
+  durable no-op/result ACKs, and application event dedupe is receipt-owned.
+  Server cleanup drains ingress before cancelling/waiting due recovery. Compile,
+  formatting, tests, Docker and runtime remain NOT_RUN. Authoritative
+  Mail/Calendar HTTP/UI correlation, bounded Docker verification and merge are
+  still pending; this is not product readiness.
 phase_147_p3d_source_checkpoint: >-
   P3-D SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0. The immutable
   receipt port is 8a7478dd and shared transaction database clock is 4befb938;
