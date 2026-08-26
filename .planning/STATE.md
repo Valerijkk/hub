@@ -1,4 +1,11 @@
 ---
+mail_calendar_inbound_invite_02b1_2026_08_26: >-
+  SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+  The first decomposed 147-02B atom adds only the opaque normalized
+  REQUEST/CANCEL request and server-resolved authorization snapshots. The
+  request carries no owner, organization, mailbox, locator or raw bytes;
+  authorization clones owner-bound current/series ordering states and
+  represents the unseen-UID quota gate without mutable Calendar state.
 mail_calendar_resource_limit_quarantine_abi_2026_08_26: >-
   SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
   The closed inbound-message completion vocabulary now permits resource_limit

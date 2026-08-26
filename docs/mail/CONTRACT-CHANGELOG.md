@@ -1,5 +1,16 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Inbound invite request boundary
+
+SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+
+The first decomposed 147-02B source atom adds constructor-only normalized
+REQUEST/CANCEL input and server-resolved authorization snapshots. Routing
+identity remains outside the request; current and series ordering states are
+cloned and owner-bound, while the unseen-UID resource-limit flag cannot carry
+mutable state. Transaction ports, service decisions and persistence remain
+separate follow-on atoms.
+
 ## 2026-08-26 - Quota-cap resource-limit completion
 
 SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
