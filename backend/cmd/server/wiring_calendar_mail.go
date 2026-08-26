@@ -50,9 +50,6 @@ func wireCalendarMail(d *serverDeps) {
 	eventSvc := calendarmod.NewEventService(eventRepo, serverUTCClock{}, serverEventIDs{}, serverITIPSerializer{})
 	eventHandler := calendarmod.NewEventHandler(eventSvc)
 	eventHandler.RegisterRoutes(d.api, d.requireAuth)
-	eventReadSvc := calendarmod.NewEventReadService(eventRepo)
-	eventReadHandler := calendarmod.NewEventReadHandler(eventReadSvc)
-	eventReadHandler.RegisterRoutes(d.api, d.requireAuth)
 	meetingSvc := calendarmod.NewMeetingService(eventRepo, serverUTCClock{}, serverEventIDs{})
 	meetingHandler := calendarmod.NewMeetingHandler(meetingSvc)
 	meetingHandler.RegisterRoutes(d.api, d.requireAuth)
@@ -68,6 +65,9 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	eventReadSvc := calendarmod.NewEventReadService(eventRepo, mailboxRepo)
+	eventReadHandler := calendarmod.NewEventReadHandler(eventReadSvc)
+	eventReadHandler.RegisterRoutes(d.api, d.requireAuth)
 	mailboxSvc, err := mailmod.NewMailboxService(mailboxRepo)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)

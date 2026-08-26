@@ -128,6 +128,7 @@ func calendarEventDetailFromEnt(input CalendarEventCommandInput, rows []*hubent.
 		OrganizerID:    copyUUID(input.OrganizerID),
 		OrganizerEmail: input.OrganizerEmail,
 		Attendees:      make([]CalendarEventReadAttendee, 0, len(rows)),
+		organizationID: input.OrganizationID,
 	}
 	if input.Temporal.AllDay {
 		startDate := input.Temporal.StartDate

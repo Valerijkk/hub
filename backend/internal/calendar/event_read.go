@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/internal/mail"
 )
 
 // CalendarEventReadRepository is the isolated authorization-aware read port
@@ -39,6 +40,8 @@ type CalendarEventDetail struct {
 	Attendees        []CalendarEventReadAttendee `json:"attendees"`
 	ViewerAttendee   *CalendarEventReadAttendee  `json:"viewer_attendee"`
 	CanRSVP          bool                        `json:"can_rsvp"`
+	MailMessageID    *uuid.UUID                  `json:"mail_message_id"`
+	organizationID   uuid.UUID
 }
 
 // CalendarEventReadAttendee is one active, master-series attendee. Absence of
@@ -57,11 +60,12 @@ type CalendarEventReadAttendee struct {
 // detail object to HTTP.
 type EventReadService struct {
 	repository CalendarEventReadRepository
+	resolver   mail.CalendarMailboxCorrelationResolver
 }
 
 // NewEventReadService creates the isolated Calendar event read service.
-func NewEventReadService(repository CalendarEventReadRepository) *EventReadService {
-	return &EventReadService{repository: repository}
+func NewEventReadService(repository CalendarEventReadRepository, resolver mail.CalendarMailboxCorrelationResolver) *EventReadService {
+	return &EventReadService{repository: repository, resolver: resolver}
 }
 
 // GetCalendarEvent returns one event visible to the authenticated actor.
@@ -79,6 +83,31 @@ func (service *EventReadService) GetCalendarEvent(ctx context.Context, actorID, 
 	if !calendarEventDetailValid(detail, actorID, eventID) {
 		return CalendarEventDetail{}, ErrEventInternal
 	}
+	detail.MailMessageID = nil
+	if calendarEventReadDependencyNil(service.resolver) {
+		return CalendarEventDetail{}, ErrEventInternal
+	}
+	request, err := mail.NewCalendarMailboxCorrelationRequest(actorID, detail.organizationID, eventID)
+	if err != nil {
+		return CalendarEventDetail{}, ErrEventInternal
+	}
+	correlation, err := mail.ResolveCalendarMailboxCorrelation(ctx, service.resolver, request)
+	if err != nil {
+		if kind, ok := mail.MailboxCalendarCorrelationErrorKindOf(err); ok {
+			switch kind {
+			case mail.MailboxCalendarCorrelationErrorKindNotFound,
+				mail.MailboxCalendarCorrelationErrorKindStale,
+				mail.MailboxCalendarCorrelationErrorKindAmbiguous:
+				return cloneCalendarEventDetail(detail), nil
+			}
+		}
+		return CalendarEventDetail{}, ErrEventInternal
+	}
+	if !correlation.Matches(request) || correlation.MessageID() == uuid.Nil {
+		return CalendarEventDetail{}, ErrEventInternal
+	}
+	messageID := correlation.MessageID()
+	detail.MailMessageID = &messageID
 	return cloneCalendarEventDetail(detail), nil
 }
 
@@ -87,13 +116,16 @@ func (service *EventReadService) ready() bool {
 }
 
 func calendarEventDetailValid(detail CalendarEventDetail, actorID, eventID uuid.UUID) bool {
-	if detail.ID != eventID || actorID == uuid.Nil || detail.Title == "" || detail.Version == 0 ||
+	if detail.ID != eventID || detail.organizationID == uuid.Nil || actorID == uuid.Nil || detail.Title == "" || detail.Version == 0 ||
 		detail.OrganizerEmail != normalizeCalendarCreateEmail(detail.OrganizerEmail) ||
 		!validCalendarCreateEmail(detail.OrganizerEmail) || !validCalendarEventStatus(detail.Status) ||
 		len(detail.Exdates) > calendarCreateMaxExdates || len(detail.Attendees) > calendarCreateMaxAttendees+1 {
 		return false
 	}
 	if detail.OrganizerID != nil && *detail.OrganizerID == uuid.Nil {
+		return false
+	}
+	if detail.MailMessageID != nil && *detail.MailMessageID == uuid.Nil {
 		return false
 	}
 	temporal := CalendarEvent{AllDay: detail.AllDay, Timezone: detail.Timezone}
@@ -209,6 +241,7 @@ func cloneCalendarEventDetail(detail CalendarEventDetail) CalendarEventDetail {
 	detail.EndDateExclusive = cloneCalendarEventReadString(detail.EndDateExclusive)
 	detail.RRULE = cloneCalendarEventReadString(detail.RRULE)
 	detail.OrganizerID = copyUUID(detail.OrganizerID)
+	detail.MailMessageID = copyUUID(detail.MailMessageID)
 	detail.Exdates = append([]string{}, detail.Exdates...)
 	detail.Attendees = append([]CalendarEventReadAttendee{}, detail.Attendees...)
 	for index := range detail.Attendees {
