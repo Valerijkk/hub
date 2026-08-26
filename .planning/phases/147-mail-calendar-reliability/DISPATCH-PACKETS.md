@@ -46,7 +46,10 @@ parser/validator, Docker, runtime, merge, product, or readiness authority.
 The exact opaque `package mail` request/result/delivery/sink and `package calendar`
 claim/scope/completion transaction signatures are in CONTRACT §2.6 and ENGINE-CONTRACT-0.1.8. V1 identity
 binds canonical private locator plus SHA-256 of decoded bounded iTIP bytes; `engine_version` is private
-before/after TOCTOU state only. P3-C, not accepted P3-A, recomputes returned-byte hash before accepting it.
+before/after TOCTOU state only. The engine adapter retains the private locator, recomputes and returns its
+verified locator-hash attestation, and rejects a mismatch. P3-C accepts bytes only when that attestation
+equals the durable requested hash and the independent durable post-I/O snapshot still matches; it never
+receives or exposes the private locator.
 
 ## Common execution envelope
 

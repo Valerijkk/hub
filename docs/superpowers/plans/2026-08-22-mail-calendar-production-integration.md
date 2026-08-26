@@ -1231,8 +1231,10 @@ wording is `CONSUMED/HISTORICAL`; no such fallback is permitted.
 - [ ] **P3-C — Mail Ent concrete calendar-part source — independently PENDING/BLOCKED:** after Mail generation only,
   exact future
   `backend/internal/mail/mailbox_ent_calendar_part.go` (new) and `mailbox_ent_repository.go`.
-  It owns concrete source I/O, exact byte/five-second bound, MIME/locator hash and durable pre/post
-  recheck; Stalwart is separately Phase-145-blocked and is not P3-C.
+  It owns concrete source I/O, exact byte/five-second bound, comparison of the engine-verified private
+  MIME-locator hash attestation with the durable requested hash, and durable pre/post recheck. The private
+  locator remains inside the engine adapter and does not expand the frozen ABI; Stalwart is separately
+  Phase-145-blocked and is not P3-C.
 - [ ] **P3-D — Calendar receipt/object-state repository, service, and due worker — PENDING/BLOCKED:** after Calendar
   generation only, exact future `backend/internal/calendar/mail_inbound_repository.go` (new),
   `mail_inbound_service.go` (new), `mail_inbound_due_worker.go` (new), `event_ent_transaction.go`,

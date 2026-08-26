@@ -327,9 +327,12 @@ the pending concrete source atom after Mail generation. It owns private account/
 and `maxBytes=1..1,048,576` with a five-second full-operation cap and whole-result
 `payload_too_large`. V1 locator hash is exactly
 `SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || engine_account_id || u32be(len(engine_message_id)) || engine_message_id || u32be(len(canonical_private_part_locator)) || canonical_private_part_locator || u32be(32) || SHA-256(decoded_itip_bytes))`.
-`Version` is excluded from hash identity. P3-C must recompute from returned exact decoded iTIP bytes and
-private canonical locator and compare to requested hash; body substitution is an integrity failure.
-Changing the formula requires a versioned schema/event amendment. Prior 147-02D
+`Version` is excluded from hash identity. `EngineCalendarPartReadResult.LocatorHash` is a verified engine
+adapter attestation: the adapter retains the private canonical locator, recomputes the V1 hash from that
+locator and the exact returned decoded iTIP bytes, and rejects a mismatch before returning. P3-C must not
+receive the private locator; it compares the returned attestation to the durable requested hash and then
+performs the independent durable post-I/O snapshot recheck. Body substitution is an integrity failure.
+Changing the formula or attestation boundary requires a versioned schema/event amendment. Prior 147-02D
 Calendar-ingestion use of `GetMessage`, full-body/MIME parsing, or legacy `engine_message_id` is
 `CONSUMED/HISTORICAL`; those are forbidden Calendar fallbacks, not a removal of unrelated Mail reads.
 

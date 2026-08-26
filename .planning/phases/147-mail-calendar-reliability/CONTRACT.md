@@ -279,11 +279,15 @@ implementation requires it, but is engine-private: only a future Mail `CalendarP
 never Calendar or the server. P3-C remains `UNIMPLEMENTED / PENDING`: it must supply the concrete request/
 result use, private engine account/message IDs, expected `Version`/hash/method/max bytes, one copied iTIP
 part, and exact-one canonical private MIME locator match (zero `part_unavailable`, multiple `invalid`).
-Raw locator remains adapter-private. P3-C locator-hash V1 semantics are exactly
+Raw locator remains engine-adapter-private. P3-C locator-hash V1 semantics are exactly
 `SHA-256("hub.mail.calendar-part-locator" || 0x00 || 0x01 || u32be(len(engine_account_id)) || engine_account_id || u32be(len(engine_message_id)) || engine_message_id || u32be(len(canonical_private_part_locator)) || canonical_private_part_locator || u32be(32) || SHA-256(decoded_itip_bytes))`.
-`Version` is not part of hash identity. P3-C must recompute the same hash from returned exact decoded iTIP
-bytes and private canonical locator before accepting bytes; a body substitution fails integrity rather than
-being relabelled as the old event. Any future formula change requires a versioned schema/event amendment.
+`Version` is not part of hash identity. `EngineCalendarPartReadResult.LocatorHash` is the engine adapter's
+verified attestation: the adapter rehydrates the exact-one private locator, recomputes the V1 hash from that
+locator and the exact returned decoded iTIP bytes, and rejects every mismatch before returning. P3-C cannot
+and must not receive the private locator; it accepts bytes only when the returned attestation equals the
+durable requested hash, followed by the independent durable post-I/O snapshot recheck. A body substitution
+therefore fails integrity rather than being relabelled as the old event. Any future formula or attestation
+boundary change requires a versioned schema/event amendment.
 For Calendar ingestion, historic 147-02D/GetMessage/full-body wording is
 `CONSUMED/HISTORICAL`: `GetMessage`, body/MIME parsing, and legacy event `engine_message_id` are forbidden
 fallbacks.

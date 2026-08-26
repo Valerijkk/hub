@@ -282,9 +282,10 @@ P3-A is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` at immutable
 It accepts only the `package mail` sealed opaque port/types/error ABI: Calendar may use exported types but
 Mail never imports Calendar. No concrete `CalendarPartSource`, engine/provider I/O, MIME/locator handling,
 Ent, NATS, wiring, or runtime follows. P3-C remains pending after Mail generation for exact
-`maxBytes=1..1_048_576`, five-second whole-result behavior, private engine read, canonical MIME-locator/
-decoded-iTIP hash, and durable pre/post TOCTOU recheck. These are P3-C contract semantics, not P3-A
-runtime evidence.
+`maxBytes=1..1_048_576`, five-second whole-result behavior, private engine read, engine-verified canonical
+MIME-locator/decoded-iTIP hash attestation, and durable pre/post TOCTOU recheck. The private locator remains
+inside the engine adapter; P3-C compares its returned attestation with the durable requested hash and never
+expands that ABI. These are P3-C contract semantics, not P3-A runtime evidence.
 raw locator/version never leaves Mail. The V1 formula and snapshot/recheck are normative in CONTRACT §2.6.
 
 Historic 147-02D `GetMessage`/full-body/MIME parsing and legacy event `engine_message_id` wording is
