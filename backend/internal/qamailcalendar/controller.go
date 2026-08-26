@@ -27,6 +27,7 @@ type inboundRequestFixtureState string
 const (
 	inboundRequestFixtureStateCreating       inboundRequestFixtureState = "creating"
 	inboundRequestFixtureStateCreated        inboundRequestFixtureState = "created"
+	inboundRequestFixtureStateDeleting       inboundRequestFixtureState = "deleting"
 	inboundRequestFixtureStatePublishing     inboundRequestFixtureState = "publishing"
 	inboundRequestFixtureStatePublished      inboundRequestFixtureState = "published"
 	inboundRequestFixtureStatePublishUnknown inboundRequestFixtureState = "publish_unknown"
