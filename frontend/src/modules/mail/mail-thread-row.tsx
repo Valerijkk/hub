@@ -8,6 +8,9 @@ interface MailThreadRowProps {
 	thread: MailThreadSummary;
 	folderKey: string;
 	selected?: boolean;
+	bulkSelected: boolean;
+	bulkLocked: boolean;
+	onBulkSelectionChange: (threadID: string, selected: boolean) => void;
 }
 
 function participantsLabel(participants: MailThreadSummary["participants"]): string {
@@ -44,6 +47,9 @@ export function MailThreadRow({
 	thread,
 	folderKey,
 	selected = false,
+	bulkSelected,
+	bulkLocked,
+	onBulkSelectionChange,
 }: MailThreadRowProps) {
 	const { i18n, t } = useTranslation("mail");
 	const participants = participantsLabel(thread.participants);
@@ -63,8 +69,29 @@ export function MailThreadRow({
 		.join(", ");
 
 	return (
-		<li className="border-b border-b1">
+		<li className="grid grid-cols-[auto_minmax(0,1fr)] border-b border-b1">
+			<label className="flex min-h-11 shrink-0 items-start px-3 py-3">
+				<input
+					type="checkbox"
+					checked={bulkSelected}
+					disabled={bulkLocked}
+					onChange={(event) =>
+						onBulkSelectionChange(thread.id, event.target.checked)
+					}
+					aria-label={t("threadList.bulk.selectThread", {
+						thread: accessibleParts,
+					})}
+					className="h-5 w-5 rounded border-b2 text-primary focus:ring-primary"
+				/>
+			</label>
 			<Link
+				onClick={(event) => {
+					if (bulkLocked) {
+						event.preventDefault();
+					}
+				}}
+				aria-disabled={bulkLocked || undefined}
+				tabIndex={bulkLocked ? -1 : undefined}
 				to="/mail/$folderKey/thread/$threadId"
 				params={{ folderKey, threadId: thread.id }}
 				aria-current={selected ? "page" : undefined}

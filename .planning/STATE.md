@@ -1,4 +1,30 @@
 ---
+mail_thread_bulk_ui_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_ACCESSIBILITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Source blobs: list
+  `7ca7b84e4da1f421cc76622edf985619100a2098`, row
+  `598b5f1417ec44838ce41268889d87fc39680a50`, toolbar
+  `397e2dc96b973038cbb9f7fc3cf7ec59ca1b105a`, EN
+  `3e7364d77d08105eac371213c46bc54eae07dc42`, and RU
+  `b6fea4b2dce6767be137f459ae2dc0d6c9dba685`. Loaded-thread selection is
+  bounded to 200, with a native indeterminate checkbox and separate row
+  checkbox/Link behavior. Mark read, mark unread, and Trash use the existing
+  thread-target bulk API. Each operation has one immutable idempotency intent;
+  only one manual same-intent retry is allowed for exact 423
+  `MAIL_ACCOUNT_BUSY` after 1..5 seconds, with no automatic retry for 409 or
+  an unknown outcome. During confirmation, execution, and retry retention,
+  selection, navigation, and query controls are locked. Success invalidates
+  threads/folders, clears selection, and restores focus to a stable heading;
+  partial results expose aggregate message counts, while every non-success
+  preserves selection and presents explicit no-auto-retry guidance in EN/RU.
+  This supersedes only the earlier `Thread-list selection, toolbar and locales
+  remain pending` clause in `mail_thread_bulk_api_2026_08_26`. Static
+  evidence only: tests/build/lint/validators/Docker/runtime are NOT_RUN; this
+  is not product, Docker or merge readiness. `provenance_source:
+  dispatcher-enforced`; implementation Terra/xhigh; reviews Contract/high,
+  Security/high and Accessibility/high including closure; no fallback;
+  telemetry UNKNOWN.
 mail_thread_bulk_api_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_TYPESCRIPT_REVIEW_PASS_C_I_M_0_0_0 /

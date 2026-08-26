@@ -139,7 +139,32 @@
 		"end": "You have reached the end of this mailbox.",
 		"bootstrapping": "Mailbox setup is in progress.",
 		"rebuilding": "Refreshing conversations. Current rows may be out of date.",
-		"degraded": "Conversation data may be out of date."
+		"degraded": "Conversation data may be out of date.",
+		"bulk": {
+			"label": "Bulk actions for selected conversations",
+			"selected": "{{count}} conversations selected",
+			"selectLoaded": "Select loaded conversations",
+			"selectThread": "Select conversation: {{thread}}",
+			"limitReached": "A maximum of 200 conversations can be selected.",
+			"markRead": "Mark read",
+			"markUnread": "Mark unread",
+			"trash": "Move to Trash",
+			"success": "Updated {{succeeded}} messages.",
+			"partial": "Updated {{succeeded}} of {{affected}} messages; {{failed}} failed. Review the selection before trying again.",
+			"failed": "No messages were updated. Review the selection before trying again.",
+			"unknown": "The result is unknown. No automatic retry was made.",
+			"busy": "Mail is temporarily busy.",
+			"busyExhausted": "Mail is still busy. No further retry was made.",
+			"conflict": "The selected conversations changed. Review the selection before trying again.",
+			"requestFailed": "The bulk action could not be completed.",
+			"retry": "Retry once",
+			"retryWait": "Retry in {{seconds}} s",
+			"cancelRetry": "Cancel retry",
+			"confirmTitle": "Move {{count}} conversations to Trash?",
+			"confirmDescription": "Messages in the selected conversations will move to Trash.",
+			"confirm": "Move to Trash",
+			"cancel": "Cancel"
+		}
 	},
 	"folder": {
 		"invalidTitle": "This folder is unavailable",

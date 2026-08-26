@@ -12,9 +12,11 @@ import {
 	Route as MailRoute,
 } from "@/routes/_authenticated/mail";
 import { mailKeys } from "./mail-query-keys";
+import { MailThreadBulkActions } from "./mail-thread-bulk-actions";
 import { MailThreadRow } from "./mail-thread-row";
 
 const MAIL_THREAD_PAGE_SIZE = 40;
+const MAIL_THREAD_BULK_SELECTION_LIMIT = 200;
 const MAIL_UUID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAIL_NIL_UUID = "00000000-0000-0000-0000-000000000000";
@@ -83,6 +85,11 @@ export function MailThreadList({
 	const mailSearchRef = useRef(mailSearch);
 	const submittedSearchRef = useRef<string | null>(null);
 	const folderID = folderKey === "all" ? undefined : folderKey.toLowerCase();
+	const [selectedThreadIDs, setSelectedThreadIDs] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const [selectionLocked, setSelectionLocked] = useState(false);
+	const selectLoadedCheckboxRef = useRef<HTMLInputElement>(null);
 	const hasActiveFilters = Boolean(
 		mailSearch.q ||
 		mailSearch.unread ||
@@ -154,6 +161,11 @@ export function MailThreadList({
 			mailSearch.unread,
 		],
 	);
+	const queryScopeKey = useMemo(
+		() => JSON.stringify(threadQueryParams),
+		[threadQueryParams],
+	);
+	const queryScopeKeyRef = useRef(queryScopeKey);
 	const threadsQuery = useInfiniteQuery({
 		queryKey: mailKeys.threads(threadQueryParams),
 		queryFn: ({ pageParam }) =>
@@ -183,6 +195,121 @@ export function MailThreadList({
 	);
 	const projectionState = worstProjectionState(threadsQuery.data?.pages);
 	const hasLoadedPages = (threadsQuery.data?.pages.length ?? 0) > 0;
+	const loadedThreadIDs = useMemo(
+		() => threads.map((thread) => thread.id),
+		[threads],
+	);
+	const selectedThreadIDSet = useMemo(
+		() =>
+			new Set(
+				Array.from(selectedThreadIDs, (threadID) => threadID.toLowerCase()),
+			),
+		[selectedThreadIDs],
+	);
+	const orderedSelectedThreadIDs = useMemo(
+		() =>
+			loadedThreadIDs.filter((threadID) =>
+				selectedThreadIDSet.has(threadID.toLowerCase()),
+			),
+		[loadedThreadIDs, selectedThreadIDSet],
+	);
+	const selectableLoadedThreadIDs = useMemo(
+		() => loadedThreadIDs.slice(0, MAIL_THREAD_BULK_SELECTION_LIMIT),
+		[loadedThreadIDs],
+	);
+	const allSelectableThreadsSelected =
+		selectableLoadedThreadIDs.length > 0 &&
+		selectableLoadedThreadIDs.every((threadID) =>
+			selectedThreadIDSet.has(threadID.toLowerCase()),
+		);
+	const someSelectableThreadsSelected =
+		!allSelectableThreadsSelected &&
+		selectableLoadedThreadIDs.some((threadID) =>
+			selectedThreadIDSet.has(threadID.toLowerCase()),
+		);
+	const selectionLimitReached =
+		orderedSelectedThreadIDs.length === MAIL_THREAD_BULK_SELECTION_LIMIT;
+
+	useEffect(() => {
+		if (queryScopeKeyRef.current === queryScopeKey) {
+			return;
+		}
+		queryScopeKeyRef.current = queryScopeKey;
+		setSelectedThreadIDs(new Set<string>());
+	}, [queryScopeKey]);
+
+	useEffect(() => {
+		if (!threadsQuery.isSuccess || threadsQuery.isFetching || selectionLocked) {
+			return;
+		}
+
+		const loadedThreadIDSet = new Set(
+			loadedThreadIDs.map((threadID) => threadID.toLowerCase()),
+		);
+		setSelectedThreadIDs((current) => {
+			const next = new Set(
+				Array.from(current).filter((threadID) =>
+					loadedThreadIDSet.has(threadID.toLowerCase()),
+				),
+			);
+			return next.size === current.size ? current : next;
+		});
+	}, [loadedThreadIDs, selectionLocked, threadsQuery.isFetching, threadsQuery.isSuccess]);
+
+	useEffect(() => {
+		const checkbox = selectLoadedCheckboxRef.current;
+		if (checkbox) {
+			checkbox.indeterminate = someSelectableThreadsSelected;
+		}
+	}, [someSelectableThreadsSelected]);
+
+	const clearSelection = useCallback(() => {
+		setSelectedThreadIDs(new Set<string>());
+	}, []);
+
+	const handleBulkSelectionChange = useCallback(
+		(threadID: string, selected: boolean) => {
+			if (selectionLocked) {
+				return;
+			}
+
+			setSelectedThreadIDs((current) => {
+				const normalizedThreadID = threadID.toLowerCase();
+				const hasThread = Array.from(current).some(
+					(currentThreadID) =>
+						currentThreadID.toLowerCase() === normalizedThreadID,
+				);
+				if (selected) {
+					if (hasThread || current.size >= MAIL_THREAD_BULK_SELECTION_LIMIT) {
+						return current;
+					}
+					return new Set([...current, threadID]);
+				}
+				if (!hasThread) {
+					return current;
+				}
+				return new Set(
+					Array.from(current).filter(
+						(currentThreadID) =>
+							currentThreadID.toLowerCase() !== normalizedThreadID,
+					),
+				);
+			});
+		},
+		[selectionLocked],
+	);
+
+	const handleSelectLoadedChange = useCallback(
+		(selected: boolean) => {
+			if (selectionLocked) {
+				return;
+			}
+			setSelectedThreadIDs(
+				selected ? new Set(selectableLoadedThreadIDs) : new Set<string>(),
+			);
+		},
+		[selectableLoadedThreadIDs, selectionLocked],
+	);
 
 	let content;
 	if (threadsQuery.isPending) {
@@ -195,6 +322,7 @@ export function MailThreadList({
 					size="sm"
 					variant="outline"
 					onClick={() => void threadsQuery.refetch()}
+					disabled={selectionLocked}
 				>
 					{t("retry")}
 				</Button>
@@ -211,6 +339,7 @@ export function MailThreadList({
 					size="sm"
 					variant="outline"
 					onClick={() => void threadsQuery.refetch()}
+					disabled={selectionLocked}
 				>
 					{t("retry")}
 				</Button>
@@ -245,12 +374,18 @@ export function MailThreadList({
 							size="sm"
 							variant="ghost"
 							className="shrink-0"
+							disabled={selectionLocked}
 							onClick={() => void threadsQuery.refetch()}
 						>
 							{t("retry")}
 						</Button>
 					</div>
 				) : null}
+				<MailThreadBulkActions
+					selectedThreadIDs={orderedSelectedThreadIDs}
+					onClearSelection={clearSelection}
+					onSelectionLockedChange={setSelectionLocked}
+				/>
 				<ul aria-label={t("threadList.listLabel")} className="divide-y divide-b1">
 					{threads.map((thread) => (
 						<MailThreadRow
@@ -258,6 +393,9 @@ export function MailThreadList({
 							thread={thread}
 							folderKey={folderKey}
 							selected={selectedThreadId?.toLowerCase() === thread.id.toLowerCase()}
+							bulkSelected={selectedThreadIDSet.has(thread.id.toLowerCase())}
+							bulkLocked={selectionLocked}
+							onBulkSelectionChange={handleBulkSelectionChange}
 						/>
 					))}
 				</ul>
@@ -266,7 +404,7 @@ export function MailThreadList({
 						<Button
 							size="sm"
 							variant="ghost"
-							disabled={threadsQuery.isFetchingNextPage}
+							disabled={selectionLocked || threadsQuery.isFetchingNextPage}
 							onClick={() => void threadsQuery.fetchNextPage()}
 						>
 							{threadsQuery.isFetchingNextPage
@@ -292,7 +430,11 @@ export function MailThreadList({
 			<header className="border-b border-b1 px-4 py-3">
 				<div className="flex min-h-8 items-center justify-between gap-3">
 					<div>
-						<h2 id="mail-thread-list-heading" className="text-sm font-semibold text-t1">
+						<h2
+							id="mail-thread-list-heading"
+							className="text-sm font-semibold text-t1"
+							tabIndex={-1}
+						>
 							{t(folderKey === "all" ? "threadList.title" : "threadList.folderTitle")}
 						</h2>
 						{projectionState ? (
@@ -307,7 +449,23 @@ export function MailThreadList({
 						</span>
 					) : null}
 				</div>
-				<div className="mt-3 flex flex-wrap items-center gap-2">
+				<fieldset
+					disabled={selectionLocked}
+					className="m-0 mt-3 flex min-w-0 flex-wrap items-center gap-2 border-0 p-0"
+				>
+					<label className="flex min-h-11 items-center gap-2 text-sm text-t2">
+						<input
+							ref={selectLoadedCheckboxRef}
+							type="checkbox"
+							checked={allSelectableThreadsSelected}
+							disabled={selectableLoadedThreadIDs.length === 0}
+							onChange={(event) =>
+								handleSelectLoadedChange(event.target.checked)
+							}
+							className="h-5 w-5 rounded border-b2 text-primary focus:ring-primary"
+						/>
+						<span>{t("threadList.bulk.selectLoaded")}</span>
+					</label>
 					<form
 						className="min-w-0 flex-1 basis-44"
 						onSubmit={(event) => {
@@ -400,7 +558,12 @@ export function MailThreadList({
 							{t("threadList.clearFilters")}
 						</button>
 					) : null}
-				</div>
+				</fieldset>
+				{selectionLimitReached ? (
+					<p className="mt-2 text-sm text-t2" role="status">
+						{t("threadList.bulk.limitReached")}
+					</p>
+				) : null}
 			</header>
 			{content}
 		</section>
