@@ -70,7 +70,7 @@ func (authorizer *registryAuthorizer) lookup(ctx context.Context) (key []byte, e
 }
 
 func validRegistryRequest(request *http.Request) bool {
-	if request == nil || request.Header == nil || request.URL == nil || request.Method != http.MethodPost || request.URL.Path != "/api" {
+	if request == nil || request.Header == nil || request.URL == nil || request.Method != http.MethodPost || request.URL.Path != "/jmap" {
 		return false
 	}
 	for name := range request.Header {

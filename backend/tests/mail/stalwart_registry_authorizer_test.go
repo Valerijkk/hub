@@ -37,32 +37,32 @@ func TestRegistryAuthorizer_AuthorizeRegistry(t *testing.T) {
 		{
 			name: "method other than post", ctx: context.Background(),
 			provider: func(context.Context) ([]byte, error) { return []byte("key"), nil },
-			request: &http.Request{Method: http.MethodGet, URL: &url.URL{Path: "/api"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
+			request: &http.Request{Method: http.MethodGet, URL: &url.URL{Path: "/jmap"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
 		},
 		{
-			name: "jmap path is rejected", ctx: context.Background(),
+			name: "api path is rejected", ctx: context.Background(),
 			provider: func(context.Context) ([]byte, error) { return []byte("key"), nil },
-			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/jmap"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
+			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
 		},
 		{
 			name: "encoded path", ctx: context.Background(),
 			provider: func(context.Context) ([]byte, error) { return []byte("key"), nil },
-			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api", RawPath: "/%61pi"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
+			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/jmap", RawPath: "/%6amap"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
 		},
 		{
 			name: "query", ctx: context.Background(),
 			provider: func(context.Context) ([]byte, error) { return []byte("key"), nil },
-			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api", RawQuery: "next=1"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
+			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/jmap", RawQuery: "next=1"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
 		},
 		{
 			name: "fragment", ctx: context.Background(),
 			provider: func(context.Context) ([]byte, error) { return []byte("key"), nil },
-			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api", Fragment: "fragment"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
+			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/jmap", Fragment: "fragment"}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
 		},
 		{
 			name: "userinfo", ctx: context.Background(),
 			provider: func(context.Context) ([]byte, error) { return []byte("key"), nil },
-			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api", User: url.User("user")}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
+			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/jmap", User: url.User("user")}, Header: make(http.Header)}, wantErr: stalwart.ErrUnauthorized,
 		},
 		{
 			name: "pre-existing authorization", ctx: context.Background(),
@@ -86,7 +86,7 @@ func TestRegistryAuthorizer_AuthorizeRegistry(t *testing.T) {
 		{
 			name: "nil header", ctx: context.Background(),
 			provider: func(context.Context) ([]byte, error) { return []byte("key"), nil },
-			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api"}}, wantErr: stalwart.ErrUnauthorized,
+			request: &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/jmap"}}, wantErr: stalwart.ErrUnauthorized,
 		},
 		{
 			name: "provider error", ctx: context.Background(),
@@ -196,7 +196,7 @@ func TestRegistryAuthorizer_NewRejectsNilProvider(t *testing.T) {
 }
 
 func newRegistryRequest() *http.Request {
-	return &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api"}, Header: make(http.Header)}
+	return &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/jmap"}, Header: make(http.Header)}
 }
 
 func registryRequestWithAuthorization(value string) *http.Request {
