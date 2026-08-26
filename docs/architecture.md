@@ -304,3 +304,7 @@ The Mongo adapter continues to select the bounded newest-100 reply page in `crea
 ## Phase 151 promotion live-parent recheck boundary (2026-08-26)
 
 For reply-to-issue promotion, parent resolution is an exact `(channel_id, root_message_id, deleted_at:nil)` live-message capability. The same mapper runs once before reply loading and again after description construction plus the live-source recheck. The final target-project authority proof remains the last check before tracker mutation. Root promotion skips both parent reads. This narrows a sequential TOCTOU window but is not a cross-store transaction: source/parent deletion after recheck, reply/channel revoke-delete, target change after proof, and backlink/post-create recovery remain separate boundaries. No live Mongo, Ent/PostgreSQL, NATS, or WebSocket evidence is inferred from the unit gate.
+
+## Promotion mutation-adjacent source-channel authority boundary (2026-08-27)
+
+The promotion service owns one mapper for configured `ChannelActionPromote` authority and the legacy repository-membership fallback. It invokes that mapper at request entry and again after the route source and optional root have been revalidated, before the final target-authority proof and tracker mutation. Both calls preserve identical public error semantics and the second failure stops before target recheck or post-create effects. The boundary intentionally remains sequential: it narrows authorization drift but does not provide an atomic Mongo/channel-membership/Ent/tracker transaction or durable post-create lifecycle.

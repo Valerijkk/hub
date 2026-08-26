@@ -435,6 +435,7 @@ func TestPhase151PromoteToIssueRechecksTargetAuthorityBeforeMutation(t *testing.
 				"get-channel",
 				"display-name",
 				"scoped-live-source",
+				"source-action",
 				"target-authority",
 			}, order)
 		})
@@ -515,6 +516,7 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 		"get-channel",
 		"display-name",
 		"scoped-live-source",
+		"source-action",
 		"target-authority",
 		"promoter",
 		"backlink",
@@ -579,6 +581,7 @@ func TestPhase151PromoteToIssueSnapshotsPromotionDependenciesForRequest(t *testi
 		"get-channel",
 		"display-name",
 		"scoped-live-source",
+		"source-action",
 		"target-authority",
 		"promoter",
 		"backlink",
@@ -699,9 +702,13 @@ func phase151AssertPromoteTargetSourceAuthority(
 	sourceCallCount int,
 ) {
 	t.Helper()
-	assert.Equal(t, []phase151ChannelAccessKey{{
-		actorID: actorID, channelID: channelID, action: messenger.ChannelActionPromote,
-	}}, resolver.calls)
+	expectedAuthorityCalls := make([]phase151ChannelAccessKey, 0, sourceCallCount)
+	for index := 0; index < sourceCallCount; index++ {
+		expectedAuthorityCalls = append(expectedAuthorityCalls, phase151ChannelAccessKey{
+			actorID: actorID, channelID: channelID, action: messenger.ChannelActionPromote,
+		})
+	}
+	assert.Equal(t, expectedAuthorityCalls, resolver.calls)
 	expectedSourceCalls := make([]phase151PromoteTargetAuthoritySourceCall, 0, sourceCallCount)
 	for index := 0; index < sourceCallCount; index++ {
 		expectedSourceCalls = append(expectedSourceCalls, phase151PromoteTargetAuthoritySourceCall{

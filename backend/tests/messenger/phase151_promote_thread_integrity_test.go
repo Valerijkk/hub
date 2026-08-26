@@ -33,6 +33,33 @@ type phase151PromoteThreadIntegrityLookupResult struct {
 	err      error
 }
 
+type phase151PromoteThreadIntegrityAccessResult struct {
+	access messenger.ChannelAccess
+	err    error
+}
+
+type phase151PromoteThreadIntegrityAccessResolver struct {
+	order   *[]string
+	calls   []phase151ChannelAccessKey
+	results []phase151PromoteThreadIntegrityAccessResult
+}
+
+func (r *phase151PromoteThreadIntegrityAccessResolver) AuthorizeChannelAccess(
+	_ context.Context,
+	actorID uuid.UUID,
+	channelID uuid.UUID,
+	action messenger.ChannelAction,
+) (messenger.ChannelAccess, error) {
+	*r.order = append(*r.order, "source-action")
+	r.calls = append(r.calls, phase151ChannelAccessKey{actorID: actorID, channelID: channelID, action: action})
+	callIndex := len(r.calls) - 1
+	if callIndex >= len(r.results) {
+		return messenger.ChannelAccess{}, errors.New("phase151 unexpected source authority call")
+	}
+	result := r.results[callIndex]
+	return result.access, result.err
+}
+
 type phase151PromoteThreadIntegrityRepository struct {
 	*phase151PromoteSourceBindingRepositoryBase
 
@@ -55,6 +82,38 @@ type phase151PromoteThreadIntegrityRepository struct {
 	getChannelCalls     int
 	backlinkCalls       int
 	backlinks           []messenger.MessageDocument
+}
+
+type phase151PromoteThreadIntegrityMembershipCall struct {
+	channelID uuid.UUID
+	actorID   uuid.UUID
+}
+
+type phase151PromoteThreadIntegrityMembershipResult struct {
+	isMember bool
+	err      error
+}
+
+type phase151PromoteThreadIntegrityMembershipRepository struct {
+	*phase151PromoteThreadIntegrityRepository
+
+	calls   []phase151PromoteThreadIntegrityMembershipCall
+	results []phase151PromoteThreadIntegrityMembershipResult
+}
+
+func (r *phase151PromoteThreadIntegrityMembershipRepository) IsMember(
+	ctx context.Context,
+	channelID uuid.UUID,
+	actorID uuid.UUID,
+) (bool, error) {
+	r.record("source-membership")
+	r.calls = append(r.calls, phase151PromoteThreadIntegrityMembershipCall{channelID: channelID, actorID: actorID})
+	callIndex := len(r.calls) - 1
+	if callIndex < len(r.results) {
+		result := r.results[callIndex]
+		return result.isMember, result.err
+	}
+	return r.phase151PromoteThreadIntegrityRepository.IsMember(ctx, channelID, actorID)
 }
 
 func (r *phase151PromoteThreadIntegrityRepository) record(operation string) {
@@ -277,7 +336,7 @@ func TestPhase151PromoteToIssueRootRendersScopedRepliesChronologically(t *testin
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "target-authority", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "source-action", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	assert.Equal(t, []string{"- @user: root source", "- @user: older reply a", "- @user: older reply b", "- @user: newest reply"}, phase151PromoteThreadIntegrityLines(t, promoter.description))
 	assert.Equal(t, 1, linker.calls)
@@ -305,7 +364,7 @@ func TestPhase151PromoteToIssueReplyRendersExactScopedThreadChronologically(t *t
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ThreadID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "scoped-parent", "target-authority", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "scoped-parent", "source-action", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	replyLines := phase151PromoteThreadIntegrityLines(t, promoter.description)
 	assert.Equal(t, []string{"- @user: root source", "- @user: promoted reply", "- @user: earlier reply", "- @user: later reply"}, replyLines)
@@ -313,6 +372,127 @@ func TestPhase151PromoteToIssueReplyRendersExactScopedThreadChronologically(t *t
 	assert.Equal(t, 1, linker.calls)
 	assert.Equal(t, 1, repository.backlinkCalls)
 	phase151AssertPromoteThreadIntegritySuccessfulEffects(t, response, target, promoter, repository, linker, projectID, actorID, channelID, source.ThreadID)
+}
+
+func TestPhase151PromoteToIssueRechecksScopedSourceAuthorityBeforeMutation(t *testing.T) {
+	ctx := context.Background()
+	for _, scenario := range []struct {
+		name   string
+		second func(messenger.ChannelAccess) phase151PromoteThreadIntegrityAccessResult
+		redact string
+	}{
+		{
+			name: "resolver error",
+			second: func(_ messenger.ChannelAccess) phase151PromoteThreadIntegrityAccessResult {
+				return phase151PromoteThreadIntegrityAccessResult{err: errors.New("phase151 late source authority infrastructure")}
+			},
+			redact: "phase151 late source authority infrastructure",
+		},
+		{
+			name: "promotion capability revoked",
+			second: func(access messenger.ChannelAccess) phase151PromoteThreadIntegrityAccessResult {
+				access.CanPromote = false
+				return phase151PromoteThreadIntegrityAccessResult{access: access}
+			},
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			order := make([]string, 0, 14)
+			repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
+			access := phase151ReadableAccess(channel, true)
+			access.CanPromote = true
+			resolver := &phase151PromoteThreadIntegrityAccessResolver{
+				order: &order,
+				results: []phase151PromoteThreadIntegrityAccessResult{
+					{access: access},
+					scenario.second(access),
+				},
+			}
+			service, target, promoter, linker := phase151PromoteThreadIntegrityServiceWithChannelAccess(repository, resolver, &order)
+
+			response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteThreadIntegrityRequest(projectID))
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, 403)
+			var appErr *apperrors.AppError
+			require.ErrorAs(t, err, &appErr)
+			assert.Equal(t, "\u043d\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u0430 \u043a \u043a\u0430\u043d\u0430\u043b\u0443", appErr.Message)
+			if scenario.redact != "" {
+				phase151AssertPromoteThreadIntegrityRedactedError(t, err, scenario.redact)
+			}
+			expectedAccess := phase151ChannelAccessKey{actorID: actorID, channelID: channelID, action: messenger.ChannelActionPromote}
+			assert.Equal(t, []phase151ChannelAccessKey{expectedAccess, expectedAccess}, resolver.calls)
+			assert.Equal(t, []phase151PromoteThreadIntegrityTargetCall{{actorID: actorID, projectID: projectID}}, target.arguments)
+			assert.Zero(t, promoter.calls)
+			assert.Zero(t, repository.backlinkCalls)
+			assert.Zero(t, linker.calls)
+			assert.Equal(t, []string{
+				"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "scoped-source", "scoped-parent", "source-action",
+			}, order)
+		})
+	}
+}
+
+func TestPhase151PromoteToIssueRechecksLegacySourceMembershipBeforeMutation(t *testing.T) {
+	ctx := context.Background()
+	for _, scenario := range []struct {
+		name        string
+		second      phase151PromoteThreadIntegrityMembershipResult
+		wantCode    int
+		wantMessage string
+		redact      string
+	}{
+		{
+			name:        "membership revoked",
+			second:      phase151PromoteThreadIntegrityMembershipResult{isMember: false},
+			wantCode:    403,
+			wantMessage: "\u0432\u044b \u043d\u0435 \u044f\u0432\u043b\u044f\u0435\u0442\u0435\u0441\u044c \u0443\u0447\u0430\u0441\u0442\u043d\u0438\u043a\u043e\u043c \u043a\u0430\u043d\u0430\u043b\u0430-\u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430",
+		},
+		{
+			name:        "membership lookup error",
+			second:      phase151PromoteThreadIntegrityMembershipResult{err: errors.New("phase151 late membership infrastructure")},
+			wantCode:    500,
+			wantMessage: "\u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0443\u0447\u0430\u0441\u0442\u0438\u044f",
+			redact:      "phase151 late membership infrastructure",
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			order := make([]string, 0, 14)
+			repository, actorID, channelID, _, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
+			membershipRepository := &phase151PromoteThreadIntegrityMembershipRepository{
+				phase151PromoteThreadIntegrityRepository: repository,
+				results: []phase151PromoteThreadIntegrityMembershipResult{
+					{isMember: true},
+					scenario.second,
+				},
+			}
+			service, target, promoter, linker := phase151PromoteThreadIntegrityServiceWithChannelAccess(membershipRepository, nil, &order)
+
+			response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteThreadIntegrityRequest(projectID))
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, scenario.wantCode)
+			var appErr *apperrors.AppError
+			require.ErrorAs(t, err, &appErr)
+			assert.Equal(t, scenario.wantMessage, appErr.Message)
+			if scenario.redact != "" {
+				phase151AssertPromoteThreadIntegrityRedactedError(t, err, scenario.redact)
+			}
+			expectedMembership := phase151PromoteThreadIntegrityMembershipCall{channelID: channelID, actorID: actorID}
+			assert.Equal(t, []phase151PromoteThreadIntegrityMembershipCall{expectedMembership, expectedMembership}, membershipRepository.calls)
+			assert.Equal(t, []phase151PromoteThreadIntegrityTargetCall{{actorID: actorID, projectID: projectID}}, target.arguments)
+			assert.Zero(t, promoter.calls)
+			assert.Zero(t, repository.backlinkCalls)
+			assert.Zero(t, linker.calls)
+			assert.Equal(t, []string{
+				"source-membership", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "scoped-source", "scoped-parent", "source-membership",
+			}, order)
+		})
+	}
 }
 
 func TestPhase151PromoteToIssueRetainsSelectedReplyOutsideNewestHundred(t *testing.T) {
@@ -924,11 +1104,23 @@ func phase151PromoteThreadIntegrityService(
 	access := phase151ReadableAccess(channel, true)
 	access.CanPromote = true
 	phase151Grant(resolver, actorID, channel, messenger.ChannelActionPromote, access)
+	return phase151PromoteThreadIntegrityServiceWithChannelAccess(repository, resolver, order)
+}
 
+func phase151PromoteThreadIntegrityServiceWithChannelAccess(
+	repository messenger.Repository,
+	resolver messenger.ChannelAccessResolver,
+	order *[]string,
+) (*messenger.MessengerService, *phase151PromoteThreadIntegrityTargetChecker, *phase151PromoteThreadIntegrityPromoter, *phase151PromoteThreadIntegrityLinker) {
 	target := &phase151PromoteThreadIntegrityTargetChecker{order: order}
 	promoter := &phase151PromoteThreadIntegrityPromoter{order: order}
 	linker := &phase151PromoteThreadIntegrityLinker{order: order}
-	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repository, resolver)
+	var service *messenger.MessengerService
+	if resolver == nil {
+		service = messenger.ExportNewMessengerServiceTest(repository)
+	} else {
+		service = messenger.ExportNewMessengerServiceWithChannelAccessTest(repository, resolver)
+	}
 	service.SetPromotePermissionChecker(target)
 	service.SetIssuePromoter(promoter)
 	service.SetIssueThreadLinker(linker)

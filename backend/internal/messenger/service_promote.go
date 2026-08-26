@@ -171,6 +171,27 @@ func checkPromotionTarget(
 	return nil
 }
 
+func (s *MessengerService) checkPromotionChannelAccess(
+	ctx context.Context,
+	userID, channelID uuid.UUID,
+) error {
+	_, scoped, accessErr := s.resolveChannelAction(ctx, userID, channelID, ChannelActionPromote)
+	if accessErr != nil {
+		return accessErr
+	}
+	if scoped {
+		return nil
+	}
+	isMember, membershipErr := s.repo.IsMember(ctx, channelID, userID)
+	if membershipErr != nil {
+		return apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return apperrors.NewForbidden("вы не являетесь участником канала-источника")
+	}
+	return nil
+}
+
 // PromoteToIssue превращает сообщение треда в задачу трекера и постит
 // backlink-сообщение в исходный тред.
 //
@@ -213,18 +234,8 @@ func (s *MessengerService) PromoteToIssue(
 	}
 
 	// 1. Достаём исходное сообщение.
-	_, scoped, accessErr := s.resolveChannelAction(ctx, userID, channelID, ChannelActionPromote)
-	if accessErr != nil {
+	if accessErr := s.checkPromotionChannelAccess(ctx, userID, channelID); accessErr != nil {
 		return nil, accessErr
-	}
-	if !scoped {
-		isMember, membershipErr := s.repo.IsMember(ctx, channelID, userID)
-		if membershipErr != nil {
-			return nil, apperrors.NewInternal("ошибка проверки участия")
-		}
-		if !isMember {
-			return nil, apperrors.NewForbidden("вы не являетесь участником канала-источника")
-		}
 	}
 
 	sourceLookup, ok := s.repo.(promoteSourceLookup)
@@ -314,6 +325,9 @@ func (s *MessengerService) PromoteToIssue(
 		if _, parentErr := lookupPromotionParent(ctx, sourceLookup, channelID, source.ThreadID); parentErr != nil {
 			return nil, parentErr
 		}
+	}
+	if accessErr := s.checkPromotionChannelAccess(ctx, userID, channelID); accessErr != nil {
+		return nil, accessErr
 	}
 	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
 		return nil, checkErr
