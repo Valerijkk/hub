@@ -3,11 +3,12 @@ package rbac
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
@@ -100,16 +101,41 @@ func (s *RBACService) InvalidateUserCache(ctx context.Context, userID string) er
 	return s.cache.InvalidateUser(ctx, userID)
 }
 
-// CanCreateTaskInProject возвращает true, если user имеет PermTaskCreate в проекте.
-// Реализует messenger.PromotePermissionChecker. Не-участник (ent.IsNotFound) →
-// false, nil — чтобы promote-to-issue отдавал 403, а не 500.
-func (s *RBACService) CanCreateTaskInProject(ctx context.Context, userID, projectID uuid.UUID) (bool, error) {
-	eff, err := s.GetEffectivePermissions(ctx, userID, projectID)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return false, nil
-		}
-		return false, err
+// AuthorizePromotionTarget возвращает свежую видимость target-проекта и право task.create.
+func (s *RBACService) AuthorizePromotionTarget(ctx context.Context, userID, projectID uuid.UUID) (bool, bool, error) {
+	if s == nil || s.repo == nil {
+		return false, false, fmt.Errorf("promotion target authority: service or repository is not configured")
 	}
-	return eff.Has(PermTaskCreate), nil
+
+	facts, err := s.repo.ResolveFreshPromotionTargetAuthority(ctx, userID, projectID)
+	if err != nil {
+		return false, false, err
+	}
+	if !facts.TargetFound {
+		if facts.Member != nil {
+			return false, false, fmt.Errorf("promotion target authority: member without target")
+		}
+		return false, false, nil
+	}
+
+	switch facts.ActorSystemRole {
+	case user.SystemRoleFounder, user.SystemRoleAdmin:
+		return true, true, nil
+	case user.SystemRoleMember:
+		if facts.Member == nil {
+			return true, false, nil
+		}
+	default:
+		return false, false, fmt.Errorf("promotion target authority: invalid actor system role %q", facts.ActorSystemRole)
+	}
+
+	perm := DefaultRolePermissions[string(facts.Member.ProjectRole)]
+	if customRole := facts.Member.Edges.CustomRole; customRole != nil {
+		if len(customRole.PermissionNames) > 0 {
+			perm = permissionsFromNames(customRole.PermissionNames)
+		} else {
+			perm = Permission(customRole.Permissions)
+		}
+	}
+	return true, perm.Has(PermTaskCreate), nil
 }

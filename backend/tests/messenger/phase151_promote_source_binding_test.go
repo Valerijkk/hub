@@ -79,13 +79,13 @@ type phase151PromoteSourceBindingTargetChecker struct {
 	calls int
 }
 
-func (c *phase151PromoteSourceBindingTargetChecker) CanCreateTaskInProject(
+func (c *phase151PromoteSourceBindingTargetChecker) AuthorizePromotionTarget(
 	_ context.Context,
 	_ uuid.UUID,
 	_ uuid.UUID,
-) (bool, error) {
+) (bool, bool, error) {
 	c.calls++
-	return true, nil
+	return true, true, nil
 }
 
 type phase151PromoteSourceBindingPromoter struct {

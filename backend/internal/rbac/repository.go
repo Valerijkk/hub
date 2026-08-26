@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/organization"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/role"
@@ -20,10 +21,18 @@ type RoleWriteInput struct {
 	PermissionNames []string
 }
 
+// PromotionTargetAuthorityFacts содержит свежие факты авторизации target-проекта для promote-to-issue.
+type PromotionTargetAuthorityFacts struct {
+	TargetFound     bool
+	ActorSystemRole user.SystemRole
+	Member          *ent.ProjectMember
+}
+
 // Repository — контракт persistence RBAC (ARCH-01).
 type Repository interface {
 	GetUser(ctx context.Context, userID uuid.UUID) (*ent.User, error)
 	GetProjectMemberWithCustomRole(ctx context.Context, userID, projectID uuid.UUID) (*ent.ProjectMember, error)
+	ResolveFreshPromotionTargetAuthority(ctx context.Context, actorID, projectID uuid.UUID) (PromotionTargetAuthorityFacts, error)
 	CreateCustomRole(ctx context.Context, projectID uuid.UUID, input RoleWriteInput) (*ent.Role, error)
 	ListCustomRoles(ctx context.Context, projectID uuid.UUID) ([]*ent.Role, error)
 	UpdateCustomRole(ctx context.Context, roleID uuid.UUID, input RoleWriteInput) (*ent.Role, error)
@@ -62,6 +71,79 @@ func (r *EntRepository) GetProjectMemberWithCustomRole(ctx context.Context, user
 		).
 		WithCustomRole().
 		Only(ctx)
+}
+
+func (r *EntRepository) ResolveFreshPromotionTargetAuthority(
+	ctx context.Context,
+	actorID, projectID uuid.UUID,
+) (PromotionTargetAuthorityFacts, error) {
+	if r == nil || r.client == nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve promotion target authority: repository is not configured")
+	}
+	if ctx == nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve promotion target authority: context is nil")
+	}
+	if actorID == uuid.Nil || projectID == uuid.Nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve promotion target authority: actor or project ID is nil")
+	}
+
+	actor, err := r.client.User.Query().
+		Where(
+			user.IDEQ(actorID),
+			user.StatusEQ(user.StatusActive),
+		).
+		WithOrganization().
+		Only(ctx)
+	if err != nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve active promotion actor: %w", err)
+	}
+	if actor == nil || actor.Edges.Organization == nil || actor.Edges.Organization.ID == uuid.Nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve active promotion actor: organization invariant failed")
+	}
+
+	facts := PromotionTargetAuthorityFacts{ActorSystemRole: actor.SystemRole}
+	target, err := r.client.Project.Query().
+		Where(
+			project.IDEQ(projectID),
+			project.StatusEQ(project.StatusActive),
+			project.DeletedAtIsNil(),
+			project.HasOrganizationWith(organization.IDEQ(actor.Edges.Organization.ID)),
+		).
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return facts, nil
+	}
+	if err != nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve live promotion target: %w", err)
+	}
+	if target == nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve live promotion target: target invariant failed")
+	}
+
+	facts.TargetFound = true
+	if actor.SystemRole == user.SystemRoleFounder || actor.SystemRole == user.SystemRoleAdmin {
+		return facts, nil
+	}
+
+	member, err := r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasUserWith(user.IDEQ(actorID)),
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+		).
+		WithCustomRole().
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return facts, nil
+	}
+	if err != nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve promotion target membership: %w", err)
+	}
+	if member == nil {
+		return PromotionTargetAuthorityFacts{}, fmt.Errorf("resolve promotion target membership: member invariant failed")
+	}
+
+	facts.Member = member
+	return facts, nil
 }
 
 func (r *EntRepository) CreateCustomRole(ctx context.Context, projectID uuid.UUID, input RoleWriteInput) (*ent.Role, error) {

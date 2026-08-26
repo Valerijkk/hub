@@ -40,9 +40,9 @@ type IssuePromoter interface {
 // PromotePermissionChecker — узкий интерфейс для проверки права создавать задачи
 // в целевом проекте. Реализуется rbac.RBACService через адаптер в main.go.
 //
-// Возвращает true, если пользователь имеет право task.create в указанном проекте.
+// Возвращает существование целевого проекта и право пользователя task.create в нём.
 type PromotePermissionChecker interface {
-	CanCreateTaskInProject(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
+	AuthorizePromotionTarget(ctx context.Context, userID, projectID uuid.UUID) (targetFound bool, canCreate bool, err error)
 }
 
 // IssueThreadLinker создаёт связь issue↔thread после promote (PROD-03).
@@ -62,7 +62,7 @@ func (s *MessengerService) SetIssuePromoter(p IssuePromoter) {
 }
 
 // SetPromotePermissionChecker подключает RBAC-проверку target-проекта для
-// /promote-to-issue. Nil недопустим в prod: PromoteToIssue fail-closed (403).
+// /promote-to-issue. Nil недопустим в prod: PromoteToIssue fail-closed (500).
 func (s *MessengerService) SetPromotePermissionChecker(c PromotePermissionChecker) {
 	s.promoteCheck = c
 }
@@ -151,13 +151,19 @@ func (s *MessengerService) PromoteToIssue(
 	}
 
 
-	// 2b. PermTaskCreate в целевом проекте (TASK-010 / W3-A2-001). Fail-closed.
+	// 2b. Свежая проверка существования и PermTaskCreate в целевом проекте.
 	if s.promoteCheck == nil {
-		return nil, apperrors.NewForbidden("проверка прав не сконфигурирована")
+		return nil, apperrors.NewInternal("ошибка проверки прав на создание задачи")
 	}
-	canCreate, checkErr := s.promoteCheck.CanCreateTaskInProject(ctx, userID, projectID)
+	targetFound, canCreate, checkErr := s.promoteCheck.AuthorizePromotionTarget(ctx, userID, projectID)
 	if checkErr != nil {
 		return nil, apperrors.NewInternal("ошибка проверки прав на создание задачи")
+	}
+	if !targetFound && canCreate {
+		return nil, apperrors.NewInternal("ошибка проверки прав на создание задачи")
+	}
+	if !targetFound {
+		return nil, apperrors.NewNotFound("проект не найден")
 	}
 	if !canCreate {
 		return nil, apperrors.NewForbidden("нет права создавать задачи в проекте")

@@ -28,6 +28,9 @@ func (s *stubRepo) GetUser(context.Context, uuid.UUID) (*ent.User, error) { retu
 func (s *stubRepo) GetProjectMemberWithCustomRole(context.Context, uuid.UUID, uuid.UUID) (*ent.ProjectMember, error) {
 	return nil, errors.New("unused")
 }
+func (s *stubRepo) ResolveFreshPromotionTargetAuthority(context.Context, uuid.UUID, uuid.UUID) (rbac.PromotionTargetAuthorityFacts, error) {
+	return rbac.PromotionTargetAuthorityFacts{}, errors.New("unused")
+}
 func (s *stubRepo) CreateCustomRole(context.Context, uuid.UUID, rbac.RoleWriteInput) (*ent.Role, error) {
 	return nil, errors.New("unused")
 }

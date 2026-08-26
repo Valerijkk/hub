@@ -659,8 +659,8 @@ func (p fixedIssuePromoter) CreateIssueFromPromotion(_ context.Context, _ uuid.U
 
 type allowPromotionChecker struct{}
 
-func (allowPromotionChecker) CanCreateTaskInProject(_ context.Context, _ uuid.UUID, _ uuid.UUID) (bool, error) {
-	return true, nil
+func (allowPromotionChecker) AuthorizePromotionTarget(_ context.Context, _ uuid.UUID, _ uuid.UUID) (bool, bool, error) {
+	return true, true, nil
 }
 
 // messageNotificationFailureRepository exposes failure seams only for this
