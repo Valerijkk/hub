@@ -41,7 +41,7 @@ func TestRegistryAccountClient_EnsureLocalUserAccount(t *testing.T) {
 	t.Run("creates the documented minimal user then verifies it", func(t *testing.T) {
 		fixture := newRegistryAccountHTTPFixture(t, []string{
 			`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
-			`{"methodResponses":[["x:Account/set",{"created":{"hub-local-user":{"id":"account-2"}}},"registry-account-set"]]}`,
+			`{"methodResponses":[["x:Account/set",{"accountId":"0","created":{"hub-local-user":{"id":"account-2"}}},"registry-account-set"]]}`,
 			`{"methodResponses":[["x:Account/get",{"accountId":"0","list":[{"id":"account-2","@type":"User","name":"ada","domainId":"domain-1","emailAddress":"ada@example.test"}],"notFound":[]},"registry-account-get"]]}`,
 		})
 
@@ -121,33 +121,40 @@ func TestRegistryAccountClient_EnsureLocalUserAccount(t *testing.T) {
 		}
 	})
 
-	t.Run("rejects not created mutation result", func(t *testing.T) {
+	t.Run("recovers the concurrent create winner after not created state mismatch", func(t *testing.T) {
 		fixture := newRegistryAccountHTTPFixture(t, []string{
 			`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
-			`{"methodResponses":[["x:Account/set",{"notCreated":{"hub-local-user":{"type":"stateMismatch"}}},"registry-account-set"]]}`,
+			`{"methodResponses":[["x:Account/set",{"accountId":"0","notCreated":{"hub-local-user":{"type":"stateMismatch"}}},"registry-account-set"]]}`,
+			`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-2","canCalculateChanges":false,"position":0,"ids":["account-3"]},"registry-account-query"]]}`,
+			`{"methodResponses":[["x:Account/get",{"accountId":"0","list":[{"id":"account-3","@type":"User","name":"ada","domainId":"domain-1","emailAddress":"ada@example.test"}],"notFound":[]},"registry-account-get"]]}`,
 		})
 
-		_, err := fixture.accountClient.EnsureLocalUserAccount(context.Background(), stalwart.LocalUserAccountSpec{EmailLocalPart: "ada", DomainID: "domain-1"})
-		if !errors.Is(err, stalwart.ErrIndeterminate) {
-			t.Fatalf("EnsureLocalUserAccount() error = %v, want redacted ErrIndeterminate", err)
+		account, err := fixture.accountClient.EnsureLocalUserAccount(context.Background(), stalwart.LocalUserAccountSpec{EmailLocalPart: "ada", DomainID: "domain-1", DomainName: "example.test"})
+		if err != nil || account.AccountID != "account-3" {
+			t.Fatalf("EnsureLocalUserAccount() = %#v, %v; want concurrent winner account-3", account, err)
 		}
-		if len(fixture.requests) != 2 {
-			t.Fatalf("JMAP request count = %d, want query plus one failed set", len(fixture.requests))
-		}
+		fixture.requirePayloads(t,
+			`{"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"],"methodCalls":[["x:Account/query",{"filter":{"operator":"AND","conditions":[{"name":"ada"},{"domainId":"domain-1"}]},"limit":2,"sort":[{"property":"id","isAscending":true}]},"registry-account-query"]]}`,
+			`{"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"],"methodCalls":[["x:Account/set",{"create":{"hub-local-user":{"@type":"User","name":"ada","domainId":"domain-1","credentials":{},"memberGroupIds":{},"roles":{"@type":"User"},"permissions":{"@type":"Inherit"},"quotas":{},"aliases":{},"encryptionAtRest":{"@type":"Disabled"}}}},"registry-account-set"]]}`,
+			`{"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"],"methodCalls":[["x:Account/query",{"filter":{"operator":"AND","conditions":[{"name":"ada"},{"domainId":"domain-1"}]},"limit":2,"sort":[{"property":"id","isAscending":true}]},"registry-account-query"]]}`,
+			`{"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"],"methodCalls":[["x:Account/get",{"ids":["account-3"],"properties":["id","@type","name","domainId","emailAddress"]},"registry-account-get"]]}`,
+		)
 	})
 
-	t.Run("maps state mismatch method error", func(t *testing.T) {
+	t.Run("recovers the concurrent create winner after method state mismatch", func(t *testing.T) {
 		fixture := newRegistryAccountHTTPFixture(t, []string{
 			`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
 			`{"methodResponses":[["error",{"type":"stateMismatch","description":"provider-secret"},"registry-account-set"]]}`,
+			`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-2","canCalculateChanges":false,"position":0,"ids":["account-4"]},"registry-account-query"]]}`,
+			`{"methodResponses":[["x:Account/get",{"accountId":"0","list":[{"id":"account-4","@type":"User","name":"ada","domainId":"domain-1","emailAddress":"provider@example.test"}],"notFound":[]},"registry-account-get"]]}`,
 		})
 
-		_, err := fixture.accountClient.EnsureLocalUserAccount(context.Background(), stalwart.LocalUserAccountSpec{EmailLocalPart: "ada", DomainID: "domain-1"})
-		if !errors.Is(err, stalwart.ErrStateMismatch) || strings.Contains(err.Error(), "provider-secret") {
-			t.Fatalf("EnsureLocalUserAccount() error = %v, want redacted ErrStateMismatch", err)
+		account, err := fixture.accountClient.EnsureLocalUserAccount(context.Background(), stalwart.LocalUserAccountSpec{EmailLocalPart: "ada", DomainID: "domain-1"})
+		if err != nil || account.AccountID != "account-4" {
+			t.Fatalf("EnsureLocalUserAccount() = %#v, %v; want concurrent winner account-4", account, err)
 		}
-		if len(fixture.requests) != 2 {
-			t.Fatalf("JMAP request count = %d, want query plus one state-mismatched set", len(fixture.requests))
+		if len(fixture.requests) != 4 {
+			t.Fatalf("JMAP request count = %d, want query, failed set, recovery query and get", len(fixture.requests))
 		}
 	})
 
@@ -195,6 +202,8 @@ type registryAccountHTTPFixture struct {
 	accountClient *stalwart.RegistryAccountClient
 	responses     []string
 	requests      []string
+	registryCalls int
+	mailboxCalls  int
 }
 
 func newRegistryAccountHTTPFixture(t *testing.T, responses []string) *registryAccountHTTPFixture {
@@ -223,8 +232,8 @@ func newRegistryAccountHTTPFixture(t *testing.T, responses []string) *registryAc
 	client, err := stalwart.NewClient(stalwart.Config{
 		Origin:             server.URL,
 		HTTPClient:         server.Client(),
-		RegistryAuthorizer: registryAccountTestAuthorizer{},
-		MailboxAuthorizer:  registryAccountTestAuthorizer{},
+		RegistryAuthorizer: registryAccountTestAuthorizer{calls: &fixture.registryCalls},
+		MailboxAuthorizer:  registryAccountTestAuthorizer{calls: &fixture.mailboxCalls},
 	})
 	if err != nil {
 		t.Fatalf("NewClient() error = %v", err)
@@ -241,6 +250,9 @@ func (fixture *registryAccountHTTPFixture) requirePayloads(t *testing.T, want ..
 	if len(fixture.requests) != len(want) {
 		t.Fatalf("JMAP request count = %d, want %d; requests = %#v", len(fixture.requests), len(want), fixture.requests)
 	}
+	if fixture.registryCalls != len(want) || fixture.mailboxCalls != 0 {
+		t.Fatalf("authorizer calls = registry %d, mailbox %d; want registry %d, mailbox 0", fixture.registryCalls, fixture.mailboxCalls, len(want))
+	}
 	for index := range want {
 		var gotValue any
 		if err := json.Unmarshal([]byte(fixture.requests[index]), &gotValue); err != nil {
@@ -256,8 +268,20 @@ func (fixture *registryAccountHTTPFixture) requirePayloads(t *testing.T, want ..
 	}
 }
 
-type registryAccountTestAuthorizer struct{}
+type registryAccountTestAuthorizer struct {
+	calls *int
+}
 
-func (registryAccountTestAuthorizer) AuthorizeRegistry(context.Context, *http.Request) error { return nil }
+func (authorizer registryAccountTestAuthorizer) AuthorizeRegistry(context.Context, *http.Request) error {
+	if authorizer.calls != nil {
+		(*authorizer.calls)++
+	}
+	return nil
+}
 
-func (registryAccountTestAuthorizer) AuthorizeMailbox(context.Context, *http.Request) error { return nil }
+func (authorizer registryAccountTestAuthorizer) AuthorizeMailbox(context.Context, *http.Request) error {
+	if authorizer.calls != nil {
+		(*authorizer.calls)++
+	}
+	return nil
+}

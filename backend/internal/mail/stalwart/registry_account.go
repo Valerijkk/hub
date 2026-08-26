@@ -3,6 +3,7 @@ package stalwart
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"unicode/utf8"
 )
@@ -55,6 +56,7 @@ func NewRegistryAccountClient(client *Client) (*RegistryAccountClient, error) {
 // EnsureLocalUserAccount returns the exact existing local User account or
 // creates the documented credential-free User shape once. It does not retry a
 // mutation: an uncertain create result remains indeterminate for the caller.
+// A known write-conflict is resolved by one read-only re-query of the winner.
 func (client *RegistryAccountClient) EnsureLocalUserAccount(ctx context.Context, spec LocalUserAccountSpec) (LocalUserAccount, error) {
 	if client == nil || client.client == nil {
 		return LocalUserAccount{}, newError(ErrorInvalidConfiguration)
@@ -76,12 +78,25 @@ func (client *RegistryAccountClient) EnsureLocalUserAccount(ctx context.Context,
 
 	createdID, err := client.createLocalUserAccount(ctx, spec)
 	if err != nil {
-		return LocalUserAccount{}, err
+		if !errors.Is(err, ErrStateMismatch) {
+			return LocalUserAccount{}, err
+		}
+		recoveredID, recovered, recoveryErr := client.queryLocalUserAccount(ctx, spec)
+		if recoveryErr != nil {
+			return LocalUserAccount{}, recoveryErr
+		}
+		if !recovered {
+			return LocalUserAccount{}, err
+		}
+		return client.getLocalUserAccount(ctx, recoveredID, spec)
 	}
 	return client.getLocalUserAccount(ctx, createdID, spec)
 }
 
 func (client *RegistryAccountClient) queryLocalUserAccount(ctx context.Context, spec LocalUserAccountSpec) (string, bool, error) {
+	if err := registryAccountContextError(ctx); err != nil {
+		return "", false, err
+	}
 	arguments, err := json.Marshal(struct {
 		Filter struct {
 			Operator   string `json:"operator"`
@@ -132,11 +147,12 @@ func (client *RegistryAccountClient) queryLocalUserAccount(ctx context.Context, 
 		return "", false, err
 	}
 	var query struct {
+		AccountID  json.RawMessage `json:"accountId"`
 		QueryState string          `json:"queryState"`
 		IDs        json.RawMessage `json:"ids"`
 	}
 	var ids []string
-	if err := json.Unmarshal(payload, &query); err != nil || !validOpaque(query.QueryState) || len(query.IDs) == 0 || !strings.HasPrefix(strings.TrimSpace(string(query.IDs)), "[") || json.Unmarshal(query.IDs, &ids) != nil || len(ids) > 1 {
+	if err := json.Unmarshal(payload, &query); err != nil || !validRegistryAccountResponseAccountID(query.AccountID) || !validOpaque(query.QueryState) || len(query.IDs) == 0 || !strings.HasPrefix(strings.TrimSpace(string(query.IDs)), "[") || json.Unmarshal(query.IDs, &ids) != nil || len(ids) > 1 {
 		return "", false, newError(ErrorProtocol)
 	}
 	if len(ids) == 0 {
@@ -191,10 +207,30 @@ func (client *RegistryAccountClient) createLocalUserAccount(ctx context.Context,
 		return "", newError(ErrorIndeterminate)
 	}
 	var result struct {
+		AccountID  json.RawMessage            `json:"accountId"`
 		Created    map[string]json.RawMessage `json:"created"`
 		NotCreated map[string]json.RawMessage `json:"notCreated"`
 	}
-	if err := json.Unmarshal(payload, &result); err != nil || len(result.NotCreated) != 0 || len(result.Created) != 1 {
+	if err := json.Unmarshal(payload, &result); err != nil || !validRegistryAccountResponseAccountID(result.AccountID) {
+		return "", newError(ErrorIndeterminate)
+	}
+	if len(result.NotCreated) != 0 {
+		if len(result.Created) != 0 || len(result.NotCreated) != 1 {
+			return "", newError(ErrorIndeterminate)
+		}
+		notCreated, present := result.NotCreated[registryAccountCreationID]
+		if !present || !validJSONObject(notCreated) {
+			return "", newError(ErrorIndeterminate)
+		}
+		var failure struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(notCreated, &failure); err != nil || failure.Type != "stateMismatch" {
+			return "", newError(ErrorIndeterminate)
+		}
+		return "", newError(ErrorStateMismatch)
+	}
+	if len(result.Created) != 1 {
 		return "", newError(ErrorIndeterminate)
 	}
 	created, present := result.Created[registryAccountCreationID]
@@ -240,13 +276,22 @@ func (client *RegistryAccountClient) getLocalUserAccount(ctx context.Context, ac
 		return LocalUserAccount{}, err
 	}
 	var result struct {
-		List     []json.RawMessage `json:"list"`
-		NotFound []string          `json:"notFound"`
+		AccountID json.RawMessage   `json:"accountId"`
+		List      []json.RawMessage `json:"list"`
+		NotFound  []string          `json:"notFound"`
 	}
-	if err := json.Unmarshal(payload, &result); err != nil || len(result.List) != 1 || len(result.NotFound) != 0 || int64(len(result.List[0])) > registryAccountResponseMaximumBytes {
+	if err := json.Unmarshal(payload, &result); err != nil || !validRegistryAccountResponseAccountID(result.AccountID) || len(result.List) != 1 || len(result.NotFound) != 0 || int64(len(result.List[0])) > registryAccountResponseMaximumBytes {
 		return LocalUserAccount{}, newError(ErrorProtocol)
 	}
 	return registryAccountFromObject(result.List[0], accountID, spec)
+}
+
+func validRegistryAccountResponseAccountID(payload json.RawMessage) bool {
+	if len(payload) == 0 {
+		return true
+	}
+	var accountID string
+	return json.Unmarshal(payload, &accountID) == nil && validOpaque(accountID)
 }
 
 func registryAccountMethodPayload(response JMAPResponse, method, callID string) (json.RawMessage, error) {
