@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"log/slog"
-	"net"
-	"net/http"
 	"os"
 	"time"
 
@@ -164,19 +162,9 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 
-	mailboxHTTPClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy:                 nil,
-			DialContext:           (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
-			MaxIdleConns:          8,
-			MaxIdleConnsPerHost:   4,
-			MaxConnsPerHost:       8,
-			IdleConnTimeout:       30 * time.Second,
-			TLSHandshakeTimeout:   5 * time.Second,
-			ResponseHeaderTimeout: 10 * time.Second,
-			ExpectContinueTimeout: time.Second,
-		},
-		Timeout: 15 * time.Second,
+	mailboxHTTPClient, err := newMailboxHTTPClient(os.LookupEnv)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	d.addCleanup(mailboxHTTPClient.CloseIdleConnections)
 
