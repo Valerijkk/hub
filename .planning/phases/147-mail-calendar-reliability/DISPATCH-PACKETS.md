@@ -1,4 +1,22 @@
 # Phase 147 — executable packet contracts
+> **2026-08-26 checkpoint — 147-02B service packet consumed.**
+> The final `EventService.ApplyInboundITIPInvite` atom is source-authored at
+> `backend/internal/calendar/event_service_inbound_invite.go` and independently
+> reviewed `C/I/M 0/0/0`. It validates/normalizes the existing opaque request,
+> resolves transaction-bound authorization once, constructs canonical ingest
+> input, calls policy once, quarantines quota-cap input before mutation, avoids
+> persistence for quarantine/stale/duplicate, creates one server outbox ID only
+> for apply/tombstone, and persists apply/tombstone/deferred once through the
+> existing same `EventTransaction` capability. It maps only
+> constructor-validated completion/result, does not use raw/provider/body
+> identity, and neither opens/commits a transaction nor completes a receipt.
+> 147-02C owns concrete Ent inbound transaction claim/lock/mutation/outbox/final
+> receipt persistence. Provenance: Terra/xhigh implementation; independent
+> Terra/high review; `dispatcher-enforced`, no fallback. Status:
+> `SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 /
+> DOCKER_COMPILE_NOT_RUN`. Earlier 147-02B pending/blocked clauses are
+> `CONSUMED/HISTORICAL` only in this scope. Tests remain `NOT_RUN`; 147-02C,
+> P3-D, P3-E, API/UI/full-stack Docker, and merge remain pending.
 > **P3-D schema/migration checkpoint (2026-08-26):**
 > SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. Receipt/object-state Ent
 > desired state and the exact additive 20260826000000 lineage are accepted;

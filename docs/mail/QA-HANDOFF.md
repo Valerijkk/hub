@@ -1,4 +1,24 @@
 # Hub Mail + Calendar Sync — QA handoff
+> **2026-08-26 execution-status checkpoint.** DNS isolation `076968f0` is
+> statically accepted: independent Terra/high review `C/I/M 0/0/0`, static
+> import scan/diff `PASS`; JSON/default/validation/error behavior unchanged and
+> no SQL/migration. Docker execution
+> `docker compose -f docker-compose.local.yml run --rm --build backend-unit`
+> stopped before Ent schema loading/generation in `RUN go generate ./ent`
+> because BuildKit could not fetch
+> `github.com/olekukonko/tablewriter@v0.0.5` and
+> `github.com/spf13/cobra@v1.7.0` from `proxy.golang.org` (`connect: connection
+> refused`). Generation, compile, tests, race, and runtime are
+> `NOT_RUN/BLOCKED_PRE_GENERATION_TOOL_DOWNLOAD`; rerun is required when
+> dependency network/cache is available.
+>
+> 147-02B inbound invite orchestration is `SOURCE_AUTHORED` and independently
+> reviewed `C/I/M 0/0/0` (Terra/xhigh implementation; Terra/high review;
+> `dispatcher-enforced`, no fallback), but `DOCKER_COMPILE_NOT_RUN` and all
+> executable evidence/tests remain `NOT_RUN`. It does not replace 147-02C
+> concrete Ent transaction/receipt ownership. Older 147-02B pending/blocked
+> clauses are `CONSUMED/HISTORICAL` only in this scope; 147-02C, P3-D, P3-E,
+> API/UI/full-stack Docker, and merge remain pending. No readiness claim.
 > **Current narrow deletion-source authority (2026-08-23; highest precedence):** accepted plan `3f7aa2c58407ac3a10ad427cfa86256e0a9d340a` is `DOCS_PLAN_STATIC_ACCEPTED / SOURCE_AUTHORITY_ACCEPTED` only for one future atomic no-test exact2 production packet: `backend/internal/mail/mailbox_deletion.go` and `backend/internal/mail/mailbox_deletion_fake.go`. Plan Contract/high, Security/xhigh and Lifecycle/high reviews are C/I/M `0/0/0`; `provenance_source: dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. Source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its own commit and immutable C/S/L triple `0/0/0`. Adapter capability proof is not required only for this provider-neutral ABI plus two standalone fakes exception, but remains mandatory for every concrete provider adapter. Persistence/Ent/schema/generation/migration/SQL/worker/storage drain/account finalization/User-GDPR/HTTP/NATS/Docker/runtime stay `BLOCKED` / `NOT_RUN`. Old blanket deletion-source-blocked or plan-pending claims are `CONSUMED/HISTORICAL` only within this exact2 scope; unrelated gates are unchanged.
 > **Engine deletion-port adjudication (2026-08-23):** `STATIC_ACCEPTED / DOCS_DESIGN_ONLY`; former deletion-port-next selection is `CONSUMED/HISTORICAL`, never source authority. Freeze separate opaque future ports: `EngineAccountDeletionPort` (`DeleteAccount`, `ReconcileAccountAbsence`) and `MailObjectDeletionPort` (`DeleteObject`, `ReconcileObjectAbsence`); do not widen normal `MailEngine` or combine account delete with drain. Requests durably retain nonzero `DeletionID` plus account provisioning key+engine account ID or object bucket+key; opaque IDs use `MaxEngineOpaqueIDBytes` and bucket/key existing storage bounds. Results are `deleted|authoritatively_absent`, observations `present|authoritatively_absent`; bare `NotFound` preserves intent unless scoped authoritative absence is proven. No provider/raw IDs or causes are public/logged. Private intent/control is not owner projection; short lease transactions keep I/O outside locks, use exact token+generation+scope CAS, reclaim expired lease only, and stale token/zero rows cause no I/O/compensation. Object drain starts after `upload_drain_until` and attachment/reference terminality; account removal is last after exact child/object/receipt/control/activity manifest; hard-delete only after closed evidence. No Stalwart route/OAuth/DNS/OpenAPI assumption. Adapter capability and independent contract/security/lifecycle reviews are mandatory; future source is bounded ABI/fake then separately planned persistence/worker. Ent/source/generated/migration/SQL/tests/Docker/runtime and physical User/GDPR remain `BLOCKED` / `NOT_RUN`.
 > **Phase 147 147-02A static acceptance (2026-08-23):** source `3f4d174f888f08a119bbe381dc86e5e9b34e0301` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly the sole production file `backend/internal/calendar/itip_ingest_policy.go`, after independent Contract/high and Security/xhigh APPROVED C/I/M `0/0/0`. Tests are intentionally absent under the current production-only constraint; executable/generation/runtime evidence is `NOT_RUN`. This accepts only pure REQUEST/CANCEL order policy, not product, merge, readiness, schema, generation, migration, SQL, Docker, or runtime. D0-next is `CONSUMED/HISTORICAL`; P3-C, 147-02B/147-02C, D1/D2, and P3-E retain their stated blockers; no next unblocked P3 source is selected.

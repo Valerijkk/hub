@@ -1,4 +1,23 @@
 # Phase 147 — reliability and integration contract
+> **2026-08-26 checkpoint — 147-02B source-authored, executable evidence pending.**
+> `EventService.ApplyInboundITIPInvite` is source-authored in
+> `backend/internal/calendar/event_service_inbound_invite.go`: it validates and
+> normalizes the opaque request, resolves transaction-bound authorization once,
+> builds canonical ingest input, calls policy once, and performs quota-cap
+> quarantine before mutation. Quarantine/stale/duplicate do not persist;
+> apply/tombstone generate one server outbox ID and apply/tombstone/deferred
+> persist once through the existing `EventTransaction` capability. It maps only
+> constructor-validated completion/result and exposes no raw/provider/body
+> identity. It does not open/commit a transaction or complete the receipt;
+> 147-02C owns concrete Ent claim/lock/mutation/outbox/final-receipt persistence.
+> Status: `SOURCE_AUTHORED`, `INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0`,
+> `DOCKER_COMPILE_NOT_RUN`; Terra/xhigh implementation and independent
+> Terra/high review, `dispatcher-enforced`, no fallback. Request/authorization,
+> command, result, transaction capability, completion mapping, and service are
+> now source-authored; older 147-02B pending/blocked clauses are
+> `CONSUMED/HISTORICAL` only in this scope. Tests/executable evidence remain
+> `NOT_RUN`; 147-02C, P3-D, P3-E, API/UI/full-stack Docker, and merge remain
+> pending. No product, merge, or readiness claim.
 > **P3-D schema/migration checkpoint (2026-08-26):**
 > SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. The desired Ent fields, owning
 > many-to-one NoAction object-state edge, four database checks and traversal

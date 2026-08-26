@@ -1,5 +1,43 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 — Inbound invite service orchestration
+
+147-02B source-authors `EventService.ApplyInboundITIPInvite` in
+`backend/internal/calendar/event_service_inbound_invite.go`. It validates and
+normalizes the existing opaque request; resolves transaction-bound
+authorization once; constructs canonical ingest input; calls policy once; and
+quarantines quota-cap input before mutation. Quarantine, stale, and duplicate
+paths do not persist. Apply/tombstone generate one server outbox ID and,
+together with deferred, persist once through the existing `EventTransaction`
+capability; only constructor-validated completion/result is mapped. No
+raw/provider/body identity is introduced. The service neither opens or commits
+a transaction nor completes the receipt; 147-02C owns concrete Ent
+claim/lock/mutation/outbox/final-receipt persistence.
+
+Status: `SOURCE_AUTHORED`; Terra/xhigh implementation, independent Terra/high
+review `C/I/M 0/0/0`, `dispatcher-enforced` provenance with no fallback.
+Executable evidence remains `NOT_RUN`; Docker compile is `NOT_RUN`.
+
+## 2026-08-26 — Mail DNS schema value isolation
+
+Committed `076968f0` (`fix(mail): isolate DNS schema values`) moves the
+`RequiredDNSRecords` defined value and `Validate` from the Ent schema dependency
+path to stdlib-only `backend/internal/mailvalue`; `backend/internal/mail`
+preserves its public API with type/const aliases. JSON field/default and
+validation/error behavior are unchanged; no SQL or migration is introduced.
+
+Independent Terra/high post-apply review: `C/I/M 0/0/0`. Static import scan and
+diff checks: `PASS`. Docker command
+`docker compose -f docker-compose.local.yml run --rm --build backend-unit`
+stopped in Dockerfile `RUN go generate ./ent`, before Ent schema loading or
+generation, because BuildKit could not fetch
+`github.com/olekukonko/tablewriter@v0.0.5` and
+`github.com/spf13/cobra@v1.7.0` from `proxy.golang.org` (`connect: connection
+refused`). Generation, compile, tests, race, and runtime are
+`NOT_RUN/BLOCKED_PRE_GENERATION_TOOL_DOWNLOAD`; this is not source-failure
+evidence. The prior import-cycle diagnosis is statically addressed and requires
+rerun when dependency network/cache is available.
+
 ## 2026-08-26 - Inbound invite completion mapping
 
 SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.

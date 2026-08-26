@@ -688,3 +688,189 @@ func calendarInboundInviteQuarantinedResult(
 		completion,
 	)
 }
+
+func (service *EventService) ApplyInboundITIPInvite(
+	ctx context.Context,
+	transaction *EventTransaction,
+	messageScope CalendarInboundMessageScope,
+	request CalendarInboundInviteRequest,
+) (result CalendarInboundInviteResult, err error) {
+	defer func() {
+		if recover() != nil {
+			result = CalendarInboundInviteResult{}
+			err = ErrEventInvalid
+		}
+	}()
+
+	if ctx == nil || service == nil || transaction == nil || !request.valid() {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	scope, err := transaction.ResolveCalendarInboundInvite(
+		ctx,
+		messageScope,
+		request.identity,
+	)
+	if err != nil {
+		return CalendarInboundInviteResult{}, err
+	}
+
+	var recurrenceID *string
+	if request.identity.HasRecurrenceID {
+		value := request.identity.RecurrenceID
+		recurrenceID = &value
+	}
+
+	key, err := NewCalendarInboundObjectKey(
+		scope.authorization.ownerID,
+		request.identity.UID,
+		recurrenceID,
+	)
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	payload, err := NewCalendarInboundCanonicalPayload(
+		request.identity.CanonicalVersion,
+		request.identity.PayloadHash,
+	)
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	incoming, err := NewCalendarInboundITIP(
+		key,
+		request.message.Organizer.Email,
+		request.authentication,
+		request.identity.Method,
+		uint32(request.identity.Sequence),
+		payload,
+	)
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	input, err := NewCalendarInboundIngestInput(
+		incoming,
+		scope.authorization.current,
+		scope.authorization.series,
+	)
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	decision, err := DecideCalendarInboundITIP(input)
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	_, mutating := decision.NextState()
+	if mutating && scope.authorization.resourceLimited {
+		result, err = calendarInboundInviteQuarantinedResult(
+			CalendarInboundMessageErrorResourceLimit,
+		)
+		if err != nil {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+		if !result.valid() {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+		return result, nil
+	}
+
+	switch decision.Outcome() {
+	case CalendarInboundIngestQuarantined:
+		result, err = calendarInboundInviteQuarantinedResult(
+			calendarInboundInviteQuarantineReason(input),
+		)
+		if err != nil {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestIgnoredStale,
+		CalendarInboundIngestDuplicate:
+		var eventID *uuid.UUID
+		if scope.authorization.current != nil {
+			eventID = scope.authorization.current.EventID()
+		}
+		result, err = calendarInboundInviteObservedResult(
+			decision.Outcome(),
+			eventID,
+		)
+		if err != nil {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestApplyRequest,
+		CalendarInboundIngestTombstoneOccurrence,
+		CalendarInboundIngestTombstoneSeries,
+		CalendarInboundIngestDeferred:
+		outboxEnvelopeID := uuid.Nil
+		if decision.Outcome() != CalendarInboundIngestDeferred {
+			if calendarInboundInviteDependencyTypedNil(service.ids) {
+				return CalendarInboundInviteResult{}, ErrEventInvalid
+			}
+
+			outboxEnvelopeID = service.ids.NewEventID()
+			if outboxEnvelopeID == uuid.Nil {
+				return CalendarInboundInviteResult{}, ErrEventInvalid
+			}
+		}
+
+		command, commandErr := NewCalendarInboundInvitePersistenceCommand(
+			request,
+			input,
+			decision,
+			outboxEnvelopeID,
+		)
+		if commandErr != nil {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+
+		persisted, persistErr := transaction.PersistCalendarInboundInvite(
+			ctx,
+			scope,
+			command,
+		)
+		if persistErr != nil {
+			return CalendarInboundInviteResult{}, persistErr
+		}
+
+		result, err = calendarInboundInviteResultFromPersistence(persisted)
+		if err != nil {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	default:
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	if !result.valid() {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+	return result, nil
+}
+
+func calendarInboundInviteQuarantineReason(
+	input CalendarInboundIngestInput,
+) CalendarInboundMessageErrorCode {
+	if !calendarInboundAuthenticationAdmitted(input.incoming.Authentication()) {
+		return CalendarInboundMessageErrorUntrustedSender
+	}
+	if calendarInboundOrganizerMismatch(input, input.incoming) {
+		return CalendarInboundMessageErrorOrganizerMismatch
+	}
+	return CalendarInboundMessageErrorEqualSequenceConflict
+}
+
+func calendarInboundInviteDependencyTypedNil(value any) bool {
+	if value == nil {
+		return true
+	}
+
+	reflected := reflect.ValueOf(value)
+	switch reflected.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
+		reflect.Pointer, reflect.Slice:
+		return reflected.IsNil()
+	default:
+		return false
+	}
+}

@@ -1,5 +1,29 @@
 # Mail engine boundary 0.1.8
 >
+> **2026-08-26 highest-status checkpoint.** DNS schema value isolation is
+> committed as `076968f0` (`fix(mail): isolate DNS schema values`):
+> `RequiredDNSRecords` and `Validate` moved to stdlib-only
+> `backend/internal/mailvalue`, while `backend/internal/mail` retains public
+> type/const aliases. JSON field/default and validation/error behavior are
+> unchanged; no SQL/migration. Independent Terra/high post-apply review is
+> `C/I/M 0/0/0`; static import scan/diff checks `PASS`. The only Docker attempt,
+> `docker compose -f docker-compose.local.yml run --rm --build backend-unit`,
+> stopped at Dockerfile `RUN go generate ./ent` before Ent schema loading or
+> generation: BuildKit could not download `tablewriter@v0.0.5` and
+> `cobra@v1.7.0` from `proxy.golang.org` (`connect: connection refused`).
+> Generation, compile, tests, race, and runtime are
+> `NOT_RUN/BLOCKED_PRE_GENERATION_TOOL_DOWNLOAD`; no source failure is proven.
+> The previous import-cycle diagnosis is statically addressed and awaits rerun
+> with dependency network/cache available.
+>
+> 147-02B inbound invite orchestration is `SOURCE_AUTHORED` and independently
+> reviewed `C/I/M 0/0/0` (Terra/xhigh implementation; Terra/high review;
+> `dispatcher-enforced`, no fallback), but `DOCKER_COMPILE_NOT_RUN` and all
+> executable evidence/tests remain `NOT_RUN`. It does not replace 147-02C
+> concrete Ent transaction/receipt ownership. Older 147-02B pending/blocked
+> clauses are `CONSUMED/HISTORICAL` only in this scope; 147-02C, P3-D, P3-E,
+> API/UI/full-stack Docker, and merge remain pending. No readiness claim.
+>
 > **P3-D schema/migration checkpoint (2026-08-26):**
 > SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. The inbound receipt now has
 > the nullable co-null deferred object-state link and exact expiry, protected

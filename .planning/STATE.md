@@ -1,4 +1,21 @@
 ---
+mail_dns_schema_value_isolation_2026_08_26: >-
+  COMMITTED 076968f0: RequiredDNSRecords defined value and Validate moved to
+  stdlib-only backend/internal/mailvalue; backend/internal/mail retains public
+  type/const aliases. JSON field/default and validation/error behavior are
+  unchanged; no SQL or migration. Independent Terra/high post-apply review
+  C/I/M 0/0/0; static import scan and diff checks PASS. Docker generation was
+  not reached: backend-unit build is BLOCKED_PRE_GENERATION_TOOL_DOWNLOAD by
+  proxy.golang.org connection refusals for tablewriter and cobra.
+mail_calendar_inbound_invite_02b5_2026_08_26: >-
+  147-02B request/authorization, command, result, transaction capability,
+  completion mapping, and ApplyInboundITIPInvite service are SOURCE_AUTHORED;
+  service provenance is Terra/xhigh implementation plus independent Terra/high
+  review C/I/M 0/0/0, dispatcher-enforced/no fallback. Docker
+  compile/tests/runtime are NOT_RUN. Older 147-02B pending/blocked clauses are
+  CONSUMED/HISTORICAL only in this scope; 147-02C concrete Ent inbound
+  transaction, P3-D repository/due worker, P3-E NATS/production composition,
+  API/UI/full-stack Docker, and merge remain pending.
 mail_calendar_inbound_invite_02b4a_2026_08_26: >-
   SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
   The decomposed 147-02B result now exposes only the ingest outcome, material
