@@ -23,6 +23,12 @@ type phase151PromoteTargetAuthorityTargetCall struct {
 	projectID uuid.UUID
 }
 
+type phase151PromoteTargetAuthorityRepliesCall struct {
+	channelID uuid.UUID
+	rootID    string
+	limit     int
+}
+
 type phase151PromoteTargetAuthorityRepository struct {
 	*phase151PromoteSourceBindingRepositoryBase
 	order              *[]string
@@ -33,6 +39,7 @@ type phase151PromoteTargetAuthorityRepository struct {
 	getChannelCalls    int
 	genericParentCalls int
 	repliesCalls       int
+	scopedRepliesCalls []phase151PromoteTargetAuthorityRepliesCall
 	backlinkCalls      int
 }
 
@@ -80,6 +87,21 @@ func (r *phase151PromoteTargetAuthorityRepository) ListThreadReplies(
 	r.record("list-replies")
 	r.repliesCalls++
 	return r.mockRepository.ListThreadReplies(ctx, threadID, before, limit)
+}
+
+func (r *phase151PromoteTargetAuthorityRepository) ListLiveThreadRepliesInChannel(
+	ctx context.Context,
+	channelID uuid.UUID,
+	rootID string,
+	limit int,
+) ([]*messenger.MessageDocument, error) {
+	r.record("scoped-replies")
+	r.scopedRepliesCalls = append(r.scopedRepliesCalls, phase151PromoteTargetAuthorityRepliesCall{
+		channelID: channelID,
+		rootID:    rootID,
+		limit:     limit,
+	})
+	return r.mockRepository.ListLiveThreadRepliesInChannel(ctx, channelID, rootID, limit)
 }
 
 func (r *phase151PromoteTargetAuthorityRepository) InsertMessage(
@@ -361,7 +383,12 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 	}}, checker.calls)
 	assert.Equal(t, 1, repository.getChannelCalls)
 	assert.Zero(t, repository.genericParentCalls, "a root source is already the parent")
-	assert.Equal(t, 1, repository.repliesCalls)
+	assert.Zero(t, repository.repliesCalls, "promotion must not use generic replies")
+	assert.Equal(t, []phase151PromoteTargetAuthorityRepliesCall{{
+		channelID: channelID,
+		rootID:    source.ID,
+		limit:     100,
+	}}, repository.scopedRepliesCalls)
 	assert.Equal(t, 1, promoter.calls)
 	assert.Equal(t, 1, linker.calls)
 	assert.Equal(t, 1, repository.backlinkCalls)
@@ -369,8 +396,8 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 		"source-action",
 		"scoped-live-source",
 		"target-authority",
+		"scoped-replies",
 		"get-channel",
-		"list-replies",
 		"promoter",
 		"backlink",
 		"linker",
@@ -462,6 +489,7 @@ func phase151AssertPromoteTargetNoDownstream(
 	assert.Zero(t, repository.getChannelCalls)
 	assert.Zero(t, repository.genericParentCalls)
 	assert.Zero(t, repository.repliesCalls)
+	assert.Empty(t, repository.scopedRepliesCalls)
 	assert.Zero(t, promoter.calls)
 	assert.Zero(t, linker.calls)
 	assert.Zero(t, repository.backlinkCalls)

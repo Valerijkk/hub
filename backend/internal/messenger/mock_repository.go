@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -440,6 +441,32 @@ func (m *mockRepository) ListThreadReplies(_ context.Context, threadID string, _
 		}
 	}
 	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
+func (m *mockRepository) ListLiveThreadRepliesInChannel(_ context.Context, channelID uuid.UUID, rootID string, limit int) ([]*MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+
+	result := make([]*MessageDocument, 0)
+	for _, doc := range m.messages {
+		if doc != nil && doc.ChannelID == channelID && doc.ThreadID == rootID && doc.DeletedAt == nil {
+			result = append(result, doc)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].CreatedAt.Equal(result[j].CreatedAt) {
+			return result[i].ID > result[j].ID
+		}
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+	if len(result) > limit {
 		result = result[:limit]
 	}
 	return result, nil

@@ -323,6 +323,36 @@ func (r *MongoRepository) ListThreadReplies(ctx context.Context, threadID string
 	return results, nil
 }
 
+func (r *MongoRepository) ListLiveThreadRepliesInChannel(ctx context.Context, channelID uuid.UUID, rootID string, limit int) ([]*MessageDocument, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+
+	filter := bson.M{
+		"channel_id": channelID,
+		"thread_id":  rootID,
+		"deleted_at": nil,
+	}
+	opts := options.Find().
+		SetSort(bson.D{
+			{Key: "created_at", Value: -1},
+			{Key: "_id", Value: -1},
+		}).
+		SetLimit(int64(limit))
+
+	cursor, err := r.messages().Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []*MessageDocument
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
 // AddReaction добавляет реакцию пользователя к сообщению.
 // A2W3-3-004: после MatchedCount-фикса concurrent first-react всё ещё TOCTOU —
 // оба видят emoji absent и оба $push. Push только при "reactions.emoji" $ne;

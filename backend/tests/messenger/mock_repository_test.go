@@ -5,6 +5,8 @@ package messenger_test
 
 import (
 	"context"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -466,6 +468,32 @@ func (m *mockRepository) ListThreadReplies(_ context.Context, threadID string, _
 	return result, nil
 }
 
+func (m *mockRepository) ListLiveThreadRepliesInChannel(_ context.Context, channelID uuid.UUID, rootID string, limit int) ([]*messenger.MessageDocument, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+
+	result := make([]*messenger.MessageDocument, 0)
+	for _, doc := range m.messages {
+		if doc != nil && doc.ChannelID == channelID && doc.ThreadID == rootID && doc.DeletedAt == nil {
+			result = append(result, doc)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].CreatedAt.Equal(result[j].CreatedAt) {
+			return result[i].ID > result[j].ID
+		}
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+	if len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
 // --- Реакции ---
 
 func (m *mockRepository) AddReaction(_ context.Context, messageID, userID, emoji string) error {
@@ -909,4 +937,70 @@ func TestMockRepository_AddReactionContract(t *testing.T) {
 	list, err := repo.ListMessages(ctx, channelID, nil, 10)
 	require.NoError(t, err)
 	assert.Len(t, list, 1)
+}
+
+func TestMockRepositoryListLiveThreadRepliesInChannelContract(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("filters exact live channel root and orders newest with ID tie break", func(t *testing.T) {
+		repo := newMockRepository()
+		channelID := uuid.New()
+		foreignChannelID := uuid.New()
+		rootID := "thread-root"
+		base := time.Date(2026, time.August, 26, 11, 0, 0, 0, time.UTC)
+		deletedAt := base
+
+		repo.messages["reply-new"] = &messenger.MessageDocument{ID: "reply-new", ChannelID: channelID, ThreadID: rootID, CreatedAt: base.Add(3 * time.Minute)}
+		repo.messages["reply-tie-a"] = &messenger.MessageDocument{ID: "reply-tie-a", ChannelID: channelID, ThreadID: rootID, CreatedAt: base.Add(2 * time.Minute)}
+		repo.messages["reply-tie-z"] = &messenger.MessageDocument{ID: "reply-tie-z", ChannelID: channelID, ThreadID: rootID, CreatedAt: base.Add(2 * time.Minute)}
+		repo.messages["reply-old"] = &messenger.MessageDocument{ID: "reply-old", ChannelID: channelID, ThreadID: rootID, CreatedAt: base.Add(time.Minute)}
+		repo.messages["foreign-channel"] = &messenger.MessageDocument{ID: "foreign-channel", ChannelID: foreignChannelID, ThreadID: rootID, CreatedAt: base.Add(4 * time.Minute)}
+		repo.messages["wrong-root"] = &messenger.MessageDocument{ID: "wrong-root", ChannelID: channelID, ThreadID: "other-root", CreatedAt: base.Add(4 * time.Minute)}
+		repo.messages["deleted"] = &messenger.MessageDocument{ID: "deleted", ChannelID: channelID, ThreadID: rootID, DeletedAt: &deletedAt, CreatedAt: base.Add(4 * time.Minute)}
+		repo.messages[rootID] = &messenger.MessageDocument{ID: rootID, ChannelID: channelID, CreatedAt: base.Add(4 * time.Minute)}
+		repo.messages["nil-document"] = nil
+
+		replies, err := repo.ListLiveThreadRepliesInChannel(ctx, channelID, rootID, 100)
+
+		require.NoError(t, err)
+		require.Len(t, replies, 4)
+		assert.Equal(t, "reply-new", replies[0].ID)
+		assert.Equal(t, "reply-tie-z", replies[1].ID)
+		assert.Equal(t, "reply-tie-a", replies[2].ID)
+		assert.Equal(t, "reply-old", replies[3].ID)
+	})
+
+	t.Run("normalizes invalid limit and keeps exactly newest one hundred", func(t *testing.T) {
+		repo := newMockRepository()
+		channelID := uuid.New()
+		rootID := "capped-thread-root"
+		base := time.Date(2026, time.August, 26, 12, 0, 0, 0, time.UTC)
+		for index := 0; index <= 100; index++ {
+			id := "cap-" + strconv.Itoa(index)
+			repo.messages[id] = &messenger.MessageDocument{
+				ID:        id,
+				ChannelID: channelID,
+				ThreadID:  rootID,
+				CreatedAt: base.Add(time.Duration(index) * time.Second),
+			}
+		}
+
+		defaulted, err := repo.ListLiveThreadRepliesInChannel(ctx, channelID, rootID, 0)
+		require.NoError(t, err)
+		require.Len(t, defaulted, 50)
+		assert.Equal(t, "cap-100", defaulted[0].ID)
+		assert.Equal(t, "cap-51", defaulted[49].ID)
+
+		overLimit, err := repo.ListLiveThreadRepliesInChannel(ctx, channelID, rootID, 101)
+		require.NoError(t, err)
+		require.Len(t, overLimit, 50)
+		assert.Equal(t, "cap-100", overLimit[0].ID)
+		assert.Equal(t, "cap-51", overLimit[49].ID)
+
+		capped, err := repo.ListLiveThreadRepliesInChannel(ctx, channelID, rootID, 100)
+		require.NoError(t, err)
+		require.Len(t, capped, 100)
+		assert.Equal(t, "cap-100", capped[0].ID)
+		assert.Equal(t, "cap-1", capped[99].ID)
+	})
 }

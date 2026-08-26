@@ -26,6 +26,15 @@ type promoteSourceLookup interface {
 	) (*MessageDocument, bool, error)
 }
 
+type promoteThreadRepliesLookup interface {
+	ListLiveThreadRepliesInChannel(
+		ctx context.Context,
+		channelID uuid.UUID,
+		rootID string,
+		limit int,
+	) ([]*MessageDocument, error)
+}
+
 type IssuePromoter interface {
 	// CreateIssueFromPromotion создаёт задачу в проекте и возвращает её ключ и id
 	// для построения backlink-сообщения.
@@ -169,41 +178,47 @@ func (s *MessengerService) PromoteToIssue(
 		return nil, apperrors.NewForbidden("нет права создавать задачи в проекте")
 	}
 
-	// 3. Канал — для имени в описании.
+	// 3. Разрешаем корень треда до чтения канала или запуска побочных эффектов.
+	parent := source
+	parentID := source.ID
+	if source.ThreadID != "" {
+		resolvedParent, found, parentErr := sourceLookup.FindLiveMessageInChannel(ctx, source.ChannelID, source.ThreadID)
+		if parentErr != nil {
+			return nil, apperrors.NewInternal("ошибка проверки треда")
+		}
+		if !found {
+			return nil, apperrors.NewNotFound("тред не найден")
+		}
+		if resolvedParent == nil || resolvedParent.ID != source.ThreadID || resolvedParent.ChannelID != source.ChannelID || resolvedParent.DeletedAt != nil {
+			return nil, apperrors.NewInternal("ошибка проверки треда")
+		}
+		if resolvedParent.ThreadID != "" {
+			return nil, apperrors.NewNotFound("тред не найден")
+		}
+		parent = resolvedParent
+		parentID = parent.ID
+	}
+
+	// 4. Читаем только живые ответы того же канала и проверяем целостность набора.
+	threadRepliesLookup, ok := s.repo.(promoteThreadRepliesLookup)
+	if !ok {
+		return nil, apperrors.NewInternal("ошибка проверки треда")
+	}
+	replies, repliesErr := threadRepliesLookup.ListLiveThreadRepliesInChannel(ctx, source.ChannelID, parentID, 100)
+	if repliesErr != nil {
+		return nil, apperrors.NewInternal("ошибка проверки треда")
+	}
+	for _, reply := range replies {
+		if reply == nil || reply.ID == "" || reply.ChannelID != source.ChannelID || reply.DeletedAt != nil || reply.ThreadID != parentID || reply.ID == parentID {
+			return nil, apperrors.NewInternal("ошибка проверки треда")
+		}
+	}
+
+	// 5. Канал — для имени в описании.
 	ch, chErr := s.repo.GetChannel(ctx, source.ChannelID)
 	channelName := "channel"
 	if chErr == nil && ch != nil && ch.Name != "" {
 		channelName = ch.Name
-	}
-
-	// 4. Определяем родителя треда. Если сообщение — это ответ в треде,
-	// то «верхушкой» считаем его ThreadID; иначе само сообщение становится
-	// родителем (siblings = пустые, описание состоит из самого сообщения).
-	parentID := source.ThreadID
-	if parentID == "" {
-		parentID = messageID
-	}
-
-	// 5. Собираем сообщения треда: родителя + всех реплаев.
-	var parent *MessageDocument
-	if parentID == messageID {
-		parent = source
-	} else {
-		p, pErr := s.repo.FindMessageByID(ctx, parentID)
-		if pErr != nil {
-			// Парент удалён — продолжаем без него.
-			slog.Warn("promote-to-issue: parent message not found", "thread_id", parentID, "error", pErr)
-		} else {
-			parent = p
-		}
-	}
-
-	// ListThreadReplies без курсора → последние limit штук в обратном порядке;
-	// для описания нам нужны все — но ограничим разумным лимитом 100.
-	replies, repliesErr := s.repo.ListThreadReplies(ctx, parentID, nil, 100)
-	if repliesErr != nil {
-		slog.Warn("promote-to-issue: failed to load thread replies", "error", repliesErr)
-		replies = nil
 	}
 
 	// 6. Формируем описание (Plate-совместимый JSON: doc → paragraph children).
