@@ -372,7 +372,7 @@ func NewCalendarInboundObservedCompletion(state CalendarInboundObservedState, ca
 func NewCalendarInboundQuarantinedCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundDeadLetterCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundRetryCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
-func NewCalendarInboundDeferredCompletion(calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundDeferredCompletion(deferredObjectStateID uuid.UUID) (CalendarInboundMessageCompletion, error)
 // added to EventTransaction:
 LockCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageClaim) (CalendarInboundMessageScope, bool, error)
 CompleteCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageScope, CalendarInboundMessageCompletion) error

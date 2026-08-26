@@ -1,4 +1,10 @@
 ---
+mail_calendar_deferred_completion_abi_2026_08_26: >-
+  SOURCE_AUTHORED / STATIC_REVIEW_PASS / RUNTIME_NOT_RUN. The opaque deferred
+  receipt completion now requires the nonzero persisted inbound object-state
+  ID and cannot also carry an event ID. Other completion kinds reject that
+  private binding. The future Ent adapter alone derives database-now plus
+  seven days and must preserve the same ID/expiry on repeated deferral.
 mail_calendar_deferred_receipt_amendment_2026_08_26: >-
   SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. Ent desired state now adds the
   nullable co-null deferred_object_state_id and deferred_expires_at pair, a

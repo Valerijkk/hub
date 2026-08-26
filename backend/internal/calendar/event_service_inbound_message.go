@@ -66,10 +66,11 @@ const (
 // CalendarInboundMessageCompletion is an opaque, constructor-only receipt
 // disposition. Its optional event identifier is copied at every boundary.
 type CalendarInboundMessageCompletion struct {
-	kind            calendarInboundMessageCompletionKind
-	observedState   CalendarInboundObservedState
-	errorCode       CalendarInboundMessageErrorCode
-	calendarEventID *uuid.UUID
+	kind                  calendarInboundMessageCompletionKind
+	observedState         CalendarInboundObservedState
+	errorCode             CalendarInboundMessageErrorCode
+	calendarEventID       *uuid.UUID
+	deferredObjectStateID uuid.UUID
 }
 
 // NewCalendarInboundAppliedCompletion constructs an applied receipt outcome
@@ -125,14 +126,14 @@ func NewCalendarInboundRetryCompletion(code CalendarInboundMessageErrorCode) (Ca
 }
 
 // NewCalendarInboundDeferredCompletion constructs a missing-master deferral
-// with no error code. A resolved event identity is optional and copied.
-func NewCalendarInboundDeferredCompletion(calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error) {
-	if !validCalendarInboundMessageUUIDPointer(calendarEventID) {
+// bound to the persisted inbound object state, with no event identity or error.
+func NewCalendarInboundDeferredCompletion(deferredObjectStateID uuid.UUID) (CalendarInboundMessageCompletion, error) {
+	if deferredObjectStateID == uuid.Nil {
 		return CalendarInboundMessageCompletion{}, ErrEventInvalid
 	}
 	return CalendarInboundMessageCompletion{
-		kind:            calendarInboundMessageCompletionDeferred,
-		calendarEventID: cloneCalendarInboundMessageUUIDPointer(calendarEventID),
+		kind:                  calendarInboundMessageCompletionDeferred,
+		deferredObjectStateID: deferredObjectStateID,
 	}, nil
 }
 
@@ -158,17 +159,17 @@ func (completion CalendarInboundMessageCompletion) valid() bool {
 	}
 	switch completion.kind {
 	case calendarInboundMessageCompletionApplied:
-		return completion.observedState == "" && completion.errorCode == "" && completion.calendarEventID != nil
+		return completion.observedState == "" && completion.errorCode == "" && completion.calendarEventID != nil && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionObserved:
-		return validCalendarInboundObservedState(completion.observedState) && completion.errorCode == ""
+		return validCalendarInboundObservedState(completion.observedState) && completion.errorCode == "" && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionQuarantined:
-		return completion.observedState == "" && completion.calendarEventID == nil && validCalendarInboundQuarantinedErrorCode(completion.errorCode)
+		return completion.observedState == "" && completion.calendarEventID == nil && validCalendarInboundQuarantinedErrorCode(completion.errorCode) && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionDeadLetter:
-		return completion.observedState == "" && completion.calendarEventID == nil && validCalendarInboundDeadLetterErrorCode(completion.errorCode)
+		return completion.observedState == "" && completion.calendarEventID == nil && validCalendarInboundDeadLetterErrorCode(completion.errorCode) && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionRetry:
-		return completion.observedState == "" && completion.calendarEventID == nil && validCalendarInboundRetryErrorCode(completion.errorCode)
+		return completion.observedState == "" && completion.calendarEventID == nil && validCalendarInboundRetryErrorCode(completion.errorCode) && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionDeferred:
-		return completion.observedState == "" && completion.errorCode == ""
+		return completion.observedState == "" && completion.errorCode == "" && completion.calendarEventID == nil && completion.deferredObjectStateID != uuid.Nil
 	default:
 		return false
 	}

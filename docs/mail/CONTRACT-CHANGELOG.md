@@ -1,5 +1,15 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Deferred receipt completion binding
+
+SOURCE_AUTHORED / STATIC_REVIEW_PASS / RUNTIME_NOT_RUN.
+
+The opaque deferred inbound-message completion now requires the persisted
+inbound object-state ID and excludes both a Calendar event ID and caller-owned
+expiry. All other completion kinds reject the private deferred binding. The
+future Ent adapter remains responsible for the first database-time seven-day
+expiry and write-once ID/expiry CAS.
+
 ## 2026-08-26 - Deferred inbound receipt expiry schema
 
 SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN.
