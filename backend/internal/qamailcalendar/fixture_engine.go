@@ -33,7 +33,8 @@ func seedInboundRequestFixtureEngine(
 	if ctx == nil || engine == nil {
 		return inboundRequestEngineFixture{}, errInboundRequestFixtureEngineInput
 	}
-	if !ValidNonce(plan.nonce) {
+	canonicalPlan, err := newInboundRequestFixturePlan(plan.nonce)
+	if err != nil || plan != canonicalPlan {
 		return inboundRequestEngineFixture{}, errInvalidFixtureNonce
 	}
 
@@ -64,7 +65,9 @@ func seedInboundRequestFixtureEngine(
 	if account.AccountID == "" ||
 		account.State != mail.EngineAccountActive ||
 		account.AppliedGeneration != 1 ||
-		account.AppliedHash != accountHash {
+		account.AppliedHash != accountHash ||
+		account.PrimaryIdentityID == "" ||
+		len(account.AliasIdentityIDs) != 0 {
 		return inboundRequestEngineFixture{}, compensate()
 	}
 
@@ -195,7 +198,7 @@ func destroyInboundRequestFixtureEngine(
 	engine *mail.FakeMailEngine,
 	fixture inboundRequestEngineFixture,
 ) error {
-	if fixture.accountID == "" {
+	if engine == nil || fixture.accountID == "" {
 		return errInboundRequestFixtureEngineInput
 	}
 	if !engine.DeleteAccount(fixture.accountID) {
