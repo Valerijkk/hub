@@ -1,5 +1,14 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Inbound invite completion mapping
+
+SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+
+The decomposed 147-02B result now maps each policy or persistence outcome to
+one constructor-validated receipt completion. The public result exposes only
+outcome, material-change and a cloned opaque completion; Calendar event,
+object-state and message-body identity remain private.
+
 ## 2026-08-26 - Inbound invite transaction capability
 
 SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.

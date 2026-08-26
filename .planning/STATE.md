@@ -1,4 +1,10 @@
 ---
+mail_calendar_inbound_invite_02b4a_2026_08_26: >-
+  SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+  The decomposed 147-02B result now exposes only the ingest outcome, material
+  change bit and cloned receipt completion. Apply, tombstone, defer,
+  stale/duplicate and quarantine each require the exact constructor-validated
+  completion kind; no event, object-state or body identity is exposed.
 mail_calendar_inbound_invite_02b3_2026_08_26: >-
   SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
   The decomposed 147-02B optional transaction port now binds the server

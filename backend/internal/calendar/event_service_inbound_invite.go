@@ -528,3 +528,163 @@ func calendarInboundInviteTransactionBackendTypedNil(
 		return false
 	}
 }
+
+type CalendarInboundInviteResult struct {
+	outcome         CalendarInboundIngestOutcome
+	materialChanged bool
+	completion      CalendarInboundMessageCompletion
+}
+
+func newCalendarInboundInviteResult(
+	outcome CalendarInboundIngestOutcome,
+	materialChanged bool,
+	completion CalendarInboundMessageCompletion,
+) (CalendarInboundInviteResult, error) {
+	if !completion.valid() {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	switch outcome {
+	case CalendarInboundIngestApplyRequest:
+		if completion.kind != calendarInboundMessageCompletionApplied || !materialChanged {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestTombstoneOccurrence,
+		CalendarInboundIngestTombstoneSeries:
+		if completion.kind != calendarInboundMessageCompletionTombstoned {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestDeferred:
+		if completion.kind != calendarInboundMessageCompletionDeferred || materialChanged {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestIgnoredStale:
+		if completion.kind != calendarInboundMessageCompletionObserved ||
+			completion.observedState != CalendarInboundObservedIgnoredStale ||
+			materialChanged {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestDuplicate:
+		if completion.kind != calendarInboundMessageCompletionObserved ||
+			completion.observedState != CalendarInboundObservedDuplicate ||
+			materialChanged {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestQuarantined:
+		if completion.kind != calendarInboundMessageCompletionQuarantined || materialChanged {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+	default:
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	return CalendarInboundInviteResult{
+		outcome:         outcome,
+		materialChanged: materialChanged,
+		completion:      cloneCalendarInboundMessageCompletion(completion),
+	}, nil
+}
+
+func (result CalendarInboundInviteResult) Outcome() CalendarInboundIngestOutcome {
+	return result.outcome
+}
+
+func (result CalendarInboundInviteResult) MaterialChanged() bool {
+	return result.materialChanged
+}
+
+func (result CalendarInboundInviteResult) Completion() CalendarInboundMessageCompletion {
+	return cloneCalendarInboundMessageCompletion(result.completion)
+}
+
+func (result CalendarInboundInviteResult) valid() bool {
+	_, err := newCalendarInboundInviteResult(
+		result.outcome,
+		result.materialChanged,
+		result.completion,
+	)
+	return err == nil
+}
+
+func calendarInboundInviteResultFromPersistence(
+	result CalendarInboundInvitePersistenceResult,
+) (CalendarInboundInviteResult, error) {
+	if !result.valid() {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	var (
+		completion CalendarInboundMessageCompletion
+		err        error
+	)
+
+	switch result.Outcome() {
+	case CalendarInboundIngestApplyRequest:
+		eventID := result.CalendarEventID()
+		if eventID == nil {
+			return CalendarInboundInviteResult{}, ErrEventInvalid
+		}
+		completion, err = NewCalendarInboundAppliedCompletion(*eventID)
+	case CalendarInboundIngestTombstoneOccurrence,
+		CalendarInboundIngestTombstoneSeries:
+		completion, err = NewCalendarInboundTombstonedCompletion(
+			result.CalendarEventID(),
+		)
+	case CalendarInboundIngestDeferred:
+		completion, err = NewCalendarInboundDeferredCompletion(
+			result.ObjectStateID(),
+		)
+	default:
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	return newCalendarInboundInviteResult(
+		result.Outcome(),
+		result.MaterialChanged(),
+		completion,
+	)
+}
+
+func calendarInboundInviteObservedResult(
+	outcome CalendarInboundIngestOutcome,
+	eventID *uuid.UUID,
+) (CalendarInboundInviteResult, error) {
+	var observedState CalendarInboundObservedState
+
+	switch outcome {
+	case CalendarInboundIngestIgnoredStale:
+		observedState = CalendarInboundObservedIgnoredStale
+	case CalendarInboundIngestDuplicate:
+		observedState = CalendarInboundObservedDuplicate
+	default:
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	completion, err := NewCalendarInboundObservedCompletion(
+		observedState,
+		eventID,
+	)
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	return newCalendarInboundInviteResult(outcome, false, completion)
+}
+
+func calendarInboundInviteQuarantinedResult(
+	code CalendarInboundMessageErrorCode,
+) (CalendarInboundInviteResult, error) {
+	completion, err := NewCalendarInboundQuarantinedCompletion(code)
+	if err != nil {
+		return CalendarInboundInviteResult{}, ErrEventInvalid
+	}
+
+	return newCalendarInboundInviteResult(
+		CalendarInboundIngestQuarantined,
+		false,
+		completion,
+	)
+}
