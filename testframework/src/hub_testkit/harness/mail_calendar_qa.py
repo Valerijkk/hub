@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 from os import environ
+from time import monotonic, sleep
+from typing import Final
 
 from hub_testkit.domains.mail_calendar_qa import (
+    DevSession,
     MailCalendarQAClient,
     MailCalendarQAConfig,
     MailCalendarQAError,
+    MailCorrelation,
 )
+
+
+_CORRELATION_TIMEOUT_SECONDS: Final = 30.0
+_CORRELATION_POLL_INTERVAL_SECONDS: Final = 0.25
+_CORRELATION_TIMEOUT_FAILURE: Final = "mail calendar QA request failed"
 
 
 class MailCalendarQAHarnessError(ValueError):
@@ -42,3 +51,21 @@ def close_mail_calendar_qa_client(client: MailCalendarQAClient) -> None:
         client.close()
     except Exception:
         raise MailCalendarQAHarnessError("mail calendar QA harness cleanup failed") from None
+
+
+def wait_for_mail_calendar_correlation(
+    client: MailCalendarQAClient,
+    session: DevSession,
+    message_id: str,
+) -> MailCorrelation:
+    """Boundedly wait until a published fixture's mail message projects an event."""
+    deadline = monotonic() + _CORRELATION_TIMEOUT_SECONDS
+    while True:
+        correlation = client.mail_message_detail(session, message_id)
+        if correlation.calendar_event_id is not None:
+            return correlation
+
+        remaining_seconds = deadline - monotonic()
+        if remaining_seconds <= 0:
+            raise MailCalendarQAError(_CORRELATION_TIMEOUT_FAILURE)
+        sleep(min(_CORRELATION_POLL_INTERVAL_SECONDS, remaining_seconds))
