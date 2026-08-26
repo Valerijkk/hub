@@ -1,4 +1,24 @@
 ---
+mail_thread_bulk_api_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_TYPESCRIPT_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Frontend API blob
+  `91ef667b36f56a79197c348b8885f1dc94a57748` adds a thread-target adapter to
+  the existing `/api/mail/messages/bulk` endpoint: immutable ordered unique
+  canonical thread IDs (1..200), one UUIDv4 idempotency key, and exact
+  folder/action rules. Its multi-result matcher requires exact
+  order/type/id/status/code, enforces the cumulative 200-message expansion
+  cap, distinguishes 200 from receipt-backed 202, and returns aggregate
+  message counts. Existing message-singleton public behavior is unchanged.
+  Security findings are closed by the existing authenticated
+  owner/organization/account-scoped Ent resolution, exact folder/target
+  fences, and full semantic request-hash replay-conflict handling; this is
+  static evidence only. Thread-list selection, toolbar and locales remain
+  pending; there is no UI-ready claim. Tests/build/lint/validators/Docker/
+  runtime are NOT_RUN; this is not product, Docker or merge readiness.
+  `provenance_source: dispatcher-enforced`; implementation Terra/xhigh;
+  reviews Contract/high, Security/high plus evidence-closure/high, and
+  TypeScript/high; no fallback; telemetry UNKNOWN.
 mail_reply_all_frontend_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_ACCESSIBILITY_REVIEW_PASS_C_I_M_0_0_0 /

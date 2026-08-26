@@ -1037,11 +1037,29 @@ export interface MailMessageMutationIntent {
 	readonly idempotencyKey: string;
 }
 
+export interface MailThreadMutationIntent {
+	readonly targetType: "thread";
+	readonly targetIDs: readonly string[];
+	readonly action: MailMessageMutationAction;
+	readonly folderID: string | null;
+	readonly idempotencyKey: string;
+}
+
 export type MailMessageMutationOutcome =
 	| "succeeded"
 	| "partial"
 	| "failed"
 	| "unknown";
+
+export interface MailThreadMutationResult {
+	readonly outcome: MailMessageMutationOutcome;
+	readonly targetCount: number;
+	readonly affectedMessageCount: number;
+	readonly succeededMessageCount: number;
+	readonly failedMessageCount: number;
+}
+
+type MailMutationIntent = MailMessageMutationIntent | MailThreadMutationIntent;
 
 const MAIL_UUID_V4_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -1067,6 +1085,17 @@ function mailMessageMutationActionValid(
 	);
 }
 
+function createMailMutationIdempotencyKey(): string {
+	const idempotencyKey = globalThis.crypto?.randomUUID?.();
+	if (
+		typeof idempotencyKey !== "string" ||
+		!MAIL_UUID_V4_PATTERN.test(idempotencyKey)
+	) {
+		throw new Error("Unable to create mail mutation idempotency key");
+	}
+	return idempotencyKey.toLowerCase();
+}
+
 export function createMailMessageMutationIntent(
 	messageID: string,
 	action: MailMessageMutationAction,
@@ -1083,109 +1112,276 @@ export function createMailMessageMutationIntent(
 	if (action !== "move" && folderID !== undefined) {
 		throw new Error("Unexpected mail mutation folder ID");
 	}
-	const idempotencyKey = globalThis.crypto?.randomUUID?.();
-	if (
-		typeof idempotencyKey !== "string" ||
-		!MAIL_UUID_V4_PATTERN.test(idempotencyKey)
-	) {
-		throw new Error("Unable to create mail mutation idempotency key");
-	}
 	return Object.freeze({
 		targetType: "message" as const,
 		targetIDs: Object.freeze([normalizedMessageID]) as readonly [string],
 		action,
 		folderID: normalizedFolderID,
-		idempotencyKey: idempotencyKey.toLowerCase(),
+		idempotencyKey: createMailMutationIdempotencyKey(),
 	});
 }
 
-function isMailMessageMutationRecord(value: unknown): value is Record<string, unknown> {
+export function createMailThreadMutationIntent(
+	threadIDs: readonly string[],
+	action: MailMessageMutationAction,
+	folderID?: string,
+): MailThreadMutationIntent {
+	if (!Array.isArray(threadIDs) || threadIDs.length < 1 || threadIDs.length > 200) {
+		throw new Error("Invalid mail thread mutation target IDs");
+	}
+	if (!mailMessageMutationActionValid(action)) {
+		throw new Error("Invalid mail message mutation action");
+	}
+
+	const normalizedThreadIDs: string[] = [];
+	const seenThreadIDs = new Set<string>();
+	for (const threadID of threadIDs) {
+		const normalizedThreadID = normalizeMailThreadID(threadID);
+		if (seenThreadIDs.has(normalizedThreadID)) {
+			throw new Error("Duplicate mail thread mutation target ID");
+		}
+		seenThreadIDs.add(normalizedThreadID);
+		normalizedThreadIDs.push(normalizedThreadID);
+	}
+
+	const normalizedFolderID =
+		action === "move"
+			? normalizeMailMessageMutationFolderID(folderID ?? "")
+			: null;
+	if (action !== "move" && folderID !== undefined) {
+		throw new Error("Unexpected mail mutation folder ID");
+	}
+
+	return Object.freeze({
+		targetType: "thread" as const,
+		targetIDs: Object.freeze([...normalizedThreadIDs]) as readonly string[],
+		action,
+		folderID: normalizedFolderID,
+		idempotencyKey: createMailMutationIdempotencyKey(),
+	});
+}
+
+function isMailMutationRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isMailMessageMutationNonNegativeInteger(value: unknown): value is number {
+function isMailMutationNonNegativeInteger(value: unknown): value is number {
 	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
-function mailMessageMutationResponseMatches(
+interface MailMutationTargetResponseMatch {
+	readonly outcome: MailMessageMutationOutcome;
+	readonly affectedMessageCount: number;
+	readonly succeededMessageCount: number;
+	readonly failedMessageCount: number;
+}
+
+interface MailMutationResponseMatch {
+	readonly outcome: MailMessageMutationOutcome;
+	readonly targetCount: number;
+	readonly affectedMessageCount: number;
+	readonly succeededMessageCount: number;
+	readonly failedMessageCount: number;
+}
+
+function mailMutationTargetResponseMatches(
 	value: unknown,
-	intent: MailMessageMutationIntent,
-	status: 200 | 202,
-): MailMessageMutationOutcome | null {
-	if (!isMailMessageMutationRecord(value) || !Array.isArray(value.results)) {
+	intent: MailMutationIntent,
+	expectedTargetID: string,
+): MailMutationTargetResponseMatch | null {
+	if (!isMailMutationRecord(value)) {
 		return null;
 	}
-	if (value.results.length !== 1 || intent.targetIDs.length !== 1) {
-		return null;
-	}
-	const target = value.results[0];
+
+	const normalizedTargetID =
+		typeof value.target_id === "string"
+			? normalizeMailUUID(value.target_id)
+			: null;
+	const affectedMessageCount = value.affected_message_count;
+	const succeededMessageCount = value.succeeded_message_count;
+	const failedMessageCount = value.failed_message_count;
+
 	if (
-		!isMailMessageMutationRecord(target) ||
-		target.target_type !== intent.targetType ||
-		target.target_id !== intent.targetIDs[0] ||
-		target.training_status !== "not_requested" ||
-		!isMailMessageMutationNonNegativeInteger(target.affected_message_count) ||
-		!isMailMessageMutationNonNegativeInteger(target.succeeded_message_count) ||
-		!isMailMessageMutationNonNegativeInteger(target.failed_message_count) ||
-		target.affected_message_count > 200 ||
-		target.succeeded_message_count > 200 ||
-		target.failed_message_count > 200 ||
-		target.succeeded_message_count + target.failed_message_count >
-			target.affected_message_count
+		value.target_type !== intent.targetType ||
+		normalizedTargetID !== expectedTargetID ||
+		value.training_status !== "not_requested" ||
+		!isMailMutationNonNegativeInteger(affectedMessageCount) ||
+		!isMailMutationNonNegativeInteger(succeededMessageCount) ||
+		!isMailMutationNonNegativeInteger(failedMessageCount) ||
+		affectedMessageCount > 200 ||
+		succeededMessageCount > 200 ||
+		failedMessageCount > 200 ||
+		succeededMessageCount + failedMessageCount > affectedMessageCount
 	) {
 		return null;
 	}
-	if (status === 200) {
-		if (
-			target.status === "succeeded" &&
-			target.affected_message_count >= 1 &&
-			target.succeeded_message_count === target.affected_message_count &&
-			target.failed_message_count === 0 &&
-			target.code === null
-		) {
-			return "succeeded";
-		}
-		if (
-			target.status === "partial" &&
-			target.affected_message_count >= 2 &&
-			target.succeeded_message_count >= 1 &&
-			target.failed_message_count >= 1 &&
-			target.succeeded_message_count + target.failed_message_count ===
-				target.affected_message_count &&
-			target.code === "MAIL_ACTION_REJECTED"
-		) {
-			return "partial";
-		}
-		if (
-			target.status === "failed" &&
-			((target.affected_message_count === 0 &&
-				target.succeeded_message_count === 0 &&
-				target.failed_message_count === 0 &&
-				(target.code === "MAIL_TARGET_UNAVAILABLE" ||
-					target.code === "MAIL_FOLDER_UNAVAILABLE")) ||
-				(target.affected_message_count >= 1 &&
-					target.succeeded_message_count === 0 &&
-					target.failed_message_count === target.affected_message_count &&
-					target.code === "MAIL_ACTION_REJECTED"))
-		) {
-			return "failed";
-		}
-		return null;
+
+	if (
+		value.status === "succeeded" &&
+		affectedMessageCount >= 1 &&
+		succeededMessageCount === affectedMessageCount &&
+		failedMessageCount === 0 &&
+		value.code === null
+	) {
+		return {
+			outcome: "succeeded",
+			affectedMessageCount,
+			succeededMessageCount,
+			failedMessageCount,
+		};
 	}
-	return (
-		target.status === "unknown" &&
-		target.affected_message_count >= 1 &&
-		target.succeeded_message_count + target.failed_message_count <
-			target.affected_message_count &&
-		target.code === "MAIL_ENGINE_OUTCOME_UNKNOWN"
-			? "unknown"
-			: null
-	);
+
+	if (
+		value.status === "partial" &&
+		affectedMessageCount >= 2 &&
+		succeededMessageCount >= 1 &&
+		failedMessageCount >= 1 &&
+		succeededMessageCount + failedMessageCount === affectedMessageCount &&
+		value.code === "MAIL_ACTION_REJECTED"
+	) {
+		return {
+			outcome: "partial",
+			affectedMessageCount,
+			succeededMessageCount,
+			failedMessageCount,
+		};
+	}
+
+	if (
+		value.status === "failed" &&
+		((affectedMessageCount === 0 &&
+			succeededMessageCount === 0 &&
+			failedMessageCount === 0 &&
+			(value.code === "MAIL_TARGET_UNAVAILABLE" ||
+				value.code === "MAIL_FOLDER_UNAVAILABLE")) ||
+			(affectedMessageCount >= 1 &&
+				succeededMessageCount === 0 &&
+				failedMessageCount === affectedMessageCount &&
+				value.code === "MAIL_ACTION_REJECTED"))
+	) {
+		return {
+			outcome: "failed",
+			affectedMessageCount,
+			succeededMessageCount,
+			failedMessageCount,
+		};
+	}
+
+	if (
+		value.status === "unknown" &&
+		affectedMessageCount >= 1 &&
+		succeededMessageCount + failedMessageCount < affectedMessageCount &&
+		value.code === "MAIL_ENGINE_OUTCOME_UNKNOWN"
+	) {
+		return {
+			outcome: "unknown",
+			affectedMessageCount,
+			succeededMessageCount,
+			failedMessageCount,
+		};
+	}
+
+	return null;
 }
 
-export async function mutateMailMessage(
-	intent: MailMessageMutationIntent,
-): Promise<MailMessageMutationOutcome> {
+function mailMutationResponseMatches(
+	value: unknown,
+	intent: MailMutationIntent,
+	status: 200 | 202,
+): MailMutationResponseMatch | null {
+	if (!isMailMutationRecord(value) || !Array.isArray(value.results)) {
+		return null;
+	}
+	const targetCount = intent.targetIDs.length;
+	if (targetCount < 1 || targetCount > 200 || value.results.length !== targetCount) {
+		return null;
+	}
+
+	let affectedMessageCount = 0;
+	let succeededMessageCount = 0;
+	let failedMessageCount = 0;
+	let allSucceeded = true;
+	let allFailed = true;
+	let unknownTargetCount = 0;
+
+	for (let index = 0; index < targetCount; index += 1) {
+		const expectedTargetID = intent.targetIDs[index];
+		if (typeof expectedTargetID !== "string") {
+			return null;
+		}
+
+		const targetMatch = mailMutationTargetResponseMatches(
+			value.results[index],
+			intent,
+			expectedTargetID,
+		);
+		if (targetMatch === null) {
+			return null;
+		}
+
+		const nextAffectedMessageCount =
+			affectedMessageCount + targetMatch.affectedMessageCount;
+		const nextSucceededMessageCount =
+			succeededMessageCount + targetMatch.succeededMessageCount;
+		const nextFailedMessageCount =
+			failedMessageCount + targetMatch.failedMessageCount;
+		const nextResolvedMessageCount =
+			nextSucceededMessageCount + nextFailedMessageCount;
+		if (
+			!Number.isSafeInteger(nextAffectedMessageCount) ||
+			!Number.isSafeInteger(nextSucceededMessageCount) ||
+			!Number.isSafeInteger(nextFailedMessageCount) ||
+			!Number.isSafeInteger(nextResolvedMessageCount) ||
+			nextAffectedMessageCount > 200 ||
+			nextSucceededMessageCount > 200 ||
+			nextFailedMessageCount > 200 ||
+			nextResolvedMessageCount > nextAffectedMessageCount
+		) {
+			return null;
+		}
+
+		affectedMessageCount = nextAffectedMessageCount;
+		succeededMessageCount = nextSucceededMessageCount;
+		failedMessageCount = nextFailedMessageCount;
+		allSucceeded = allSucceeded && targetMatch.outcome === "succeeded";
+		allFailed = allFailed && targetMatch.outcome === "failed";
+		if (targetMatch.outcome === "unknown") {
+			unknownTargetCount += 1;
+		}
+	}
+
+	if (status === 200) {
+		if (unknownTargetCount !== 0) {
+			return null;
+		}
+		return {
+			outcome: allSucceeded
+				? "succeeded"
+				: allFailed
+					? "failed"
+					: "partial",
+			targetCount,
+			affectedMessageCount,
+			succeededMessageCount,
+			failedMessageCount,
+		};
+	}
+
+	if (unknownTargetCount < 1) {
+		return null;
+	}
+	return {
+		outcome: "unknown",
+		targetCount,
+		affectedMessageCount,
+		succeededMessageCount,
+		failedMessageCount,
+	};
+}
+
+async function mutateMailMutation(
+	intent: MailMutationIntent,
+): Promise<MailMutationResponseMatch> {
 	const request = {
 		target_type: intent.targetType,
 		target_ids: [...intent.targetIDs],
@@ -1197,17 +1393,31 @@ export async function mutateMailMessage(
 		request,
 		{ idempotencyKey: intent.idempotencyKey },
 	);
-	if (response.status === 200) {
-		const outcome = mailMessageMutationResponseMatches(response.data, intent, 200);
-		if (outcome === "succeeded" || outcome === "partial" || outcome === "failed") {
-			return outcome;
+	if (response.status === 200 || response.status === 202) {
+		const match = mailMutationResponseMatches(response.data, intent, response.status);
+		if (match !== null) {
+			return match;
 		}
 	}
-	if (response.status === 202) {
-		const outcome = mailMessageMutationResponseMatches(response.data, intent, 202);
-		if (outcome === "unknown") return outcome;
-	}
 	throw new Error("Invalid mail message mutation response");
+}
+
+export async function mutateMailMessage(
+	intent: MailMessageMutationIntent,
+): Promise<MailMessageMutationOutcome> {
+	if (intent.targetType !== "message") {
+		throw new Error("Invalid mail message mutation intent");
+	}
+	return (await mutateMailMutation(intent)).outcome;
+}
+
+export async function mutateMailThreads(
+	intent: MailThreadMutationIntent,
+): Promise<MailThreadMutationResult> {
+	if (intent.targetType !== "thread") {
+		throw new Error("Invalid mail thread mutation intent");
+	}
+	return mutateMailMutation(intent);
 }
 
 export function normalizeMailMessageMutationFolderIDForRoute(
