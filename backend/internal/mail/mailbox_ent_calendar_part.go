@@ -15,10 +15,15 @@ const mailboxEntCalendarPartTimeout = 5 * time.Second
 
 var _ CalendarPartSource = (*MailboxEntCalendarPartSource)(nil)
 
-// MailboxEntCalendarPartSource читает календарную часть письма через MailEngine.
+// MailboxCalendarPartReadEngine reads one bounded decoded calendar part.
+type MailboxCalendarPartReadEngine interface {
+	ReadCalendarPart(context.Context, EngineCalendarPartReadRequest) (EngineCalendarPartReadResult, error)
+}
+
+// MailboxEntCalendarPartSource читает календарную часть письма через MailboxCalendarPartReadEngine.
 type MailboxEntCalendarPartSource struct {
 	repository *MailboxEntRepository
-	engine     MailEngine
+	engine     MailboxCalendarPartReadEngine
 }
 
 type mailboxEntCalendarPartSnapshot struct {
@@ -39,8 +44,8 @@ type mailboxEntCalendarPartSnapshot struct {
 	locatorHash         [sha256.Size]byte
 }
 
-// NewMailboxEntCalendarPartSource создаёт источник календарных частей на Ent и MailEngine.
-func NewMailboxEntCalendarPartSource(repository *MailboxEntRepository, engine MailEngine) *MailboxEntCalendarPartSource {
+// NewMailboxEntCalendarPartSource создаёт источник календарных частей на Ent и MailboxCalendarPartReadEngine.
+func NewMailboxEntCalendarPartSource(repository *MailboxEntRepository, engine MailboxCalendarPartReadEngine) *MailboxEntCalendarPartSource {
 	return &MailboxEntCalendarPartSource{
 		repository: repository,
 		engine:     engine,

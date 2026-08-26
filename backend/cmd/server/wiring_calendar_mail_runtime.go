@@ -23,7 +23,7 @@ func wireMailboxMessageDetail(d *serverDeps, mailboxSvc *mailmod.MailboxService,
 	}
 }
 
-func wireCalendarInboundRuntime(d *serverDeps, mailboxRepo *mailmod.MailboxEntRepository, engine mailmod.MailEngine, eventRepo *calendarmod.EventEntRepository, eventSvc *calendarmod.EventService) {
+func wireCalendarInboundRuntime(d *serverDeps, mailboxRepo *mailmod.MailboxEntRepository, engine mailmod.MailboxCalendarPartReadEngine, eventRepo *calendarmod.EventEntRepository, eventSvc *calendarmod.EventService) {
 	calendarInboundSource := mailmod.NewMailboxEntCalendarPartSource(mailboxRepo, engine)
 	calendarInboundService, err := calendarmod.NewCalendarInboundMessageService(eventRepo, calendarInboundSource, eventSvc)
 	if err != nil {
