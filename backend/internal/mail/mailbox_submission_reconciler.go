@@ -7,15 +7,24 @@ import (
 	"github.com/google/uuid"
 )
 
+type mailboxSubmissionReconciliationEngine interface {
+	ReconcileSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)
+}
+
+var (
+	_ mailboxSubmissionReconciliationEngine = (*FakeMailEngine)(nil)
+	_ mailboxSubmissionReconciliationEngine = (*StalwartEngine)(nil)
+)
+
 // MailboxSubmissionReconciler performs one claimed, read-only submission
 // reconciliation and durably records only its closed observation.
 type MailboxSubmissionReconciler struct {
 	repository MailboxSubmissionReconciliationRepository
-	engine     MailEngine
+	engine     mailboxSubmissionReconciliationEngine
 }
 
 // NewMailboxSubmissionReconciler requires non-nil durable and engine ports.
-func NewMailboxSubmissionReconciler(repository MailboxSubmissionReconciliationRepository, engine MailEngine) (*MailboxSubmissionReconciler, error) {
+func NewMailboxSubmissionReconciler(repository MailboxSubmissionReconciliationRepository, engine mailboxSubmissionReconciliationEngine) (*MailboxSubmissionReconciler, error) {
 	if mailboxSubmissionTypedNil(repository) || mailboxSubmissionTypedNil(engine) {
 		return nil, newMailboxSubmissionReconciliationError(MailboxSubmissionReconciliationErrorInvalid)
 	}

@@ -12,6 +12,8 @@ import (
 
 const mailboxSubmissionFinalizationMaximum = 50
 
+var _ MailboxMessageReadEngine = (*FakeMailEngine)(nil)
+
 // MailboxSubmissionFinalizationScanRequest bounds one advisory selection of
 // accepted submission identities. It grants no claim or engine capability.
 type MailboxSubmissionFinalizationScanRequest struct {
@@ -245,11 +247,11 @@ func validMailboxSubmissionFinalizationErrorKind(kind MailboxSubmissionFinalizat
 // it matches the immutable durable attachment multiset before completion.
 type MailboxSubmissionFinalizer struct {
 	repository MailboxSubmissionFinalizationRepository
-	engine     MailEngine
+	engine     MailboxMessageReadEngine
 }
 
 // NewMailboxSubmissionFinalizer requires non-nil durable and engine ports.
-func NewMailboxSubmissionFinalizer(repository MailboxSubmissionFinalizationRepository, engine MailEngine) (*MailboxSubmissionFinalizer, error) {
+func NewMailboxSubmissionFinalizer(repository MailboxSubmissionFinalizationRepository, engine MailboxMessageReadEngine) (*MailboxSubmissionFinalizer, error) {
 	if mailboxSubmissionTypedNil(repository) || mailboxSubmissionTypedNil(engine) {
 		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
 	}

@@ -8,9 +8,14 @@ import (
 )
 
 type mailboxSubmissionEngine interface {
-	MailEngine
+	PreflightSubmission(context.Context, EngineSubmissionPreflightRequest) (EngineSubmissionPreflight, error)
 	submitMailboxSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 }
+
+var (
+	_ mailboxSubmissionEngine = (*FakeMailEngine)(nil)
+	_ mailboxSubmissionEngine = (*StalwartEngine)(nil)
+)
 
 // MailboxSubmissionDispatcher is the sole production path that can invoke a
 // provider submission. It performs provider I/O only after the repository has
@@ -20,18 +25,14 @@ type MailboxSubmissionDispatcher struct {
 	engine     mailboxSubmissionEngine
 }
 
-// NewMailboxSubmissionDispatcher requires a MailEngine implementation that
-// also exposes the package-private mutation method. External consumers can use
-// the read/preflight port but cannot construct a provider mutation call.
-func NewMailboxSubmissionDispatcher(repository MailboxSubmissionDispatchRepository, engine MailEngine) (*MailboxSubmissionDispatcher, error) {
+// NewMailboxSubmissionDispatcher requires the exact submission preflight and
+// package-private dispatch port. External consumers cannot construct a provider
+// mutation call because the dispatch method remains package-private.
+func NewMailboxSubmissionDispatcher(repository MailboxSubmissionDispatchRepository, engine mailboxSubmissionEngine) (*MailboxSubmissionDispatcher, error) {
 	if mailboxSubmissionTypedNil(repository) || mailboxSubmissionTypedNil(engine) {
 		return nil, newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorInvalid)
 	}
-	submissionEngine, ok := engine.(mailboxSubmissionEngine)
-	if !ok || mailboxSubmissionTypedNil(submissionEngine) {
-		return nil, newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorInvalid)
-	}
-	return &MailboxSubmissionDispatcher{repository: repository, engine: submissionEngine}, nil
+	return &MailboxSubmissionDispatcher{repository: repository, engine: engine}, nil
 }
 
 func mailboxSubmissionTypedNil(value any) bool {
