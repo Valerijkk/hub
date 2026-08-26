@@ -31,6 +31,7 @@ type eventEntTransactionBackend struct {
 }
 
 var _ EventTransactionBackend = (*eventEntTransactionBackend)(nil)
+var _ CalendarInboundMessageTransactionBackend = (*eventEntTransactionBackend)(nil)
 var _ MeetingTransactionBackend = (*eventEntTransactionBackend)(nil)
 var _ MeetingUpdateTransactionBackend = (*eventEntTransactionBackend)(nil)
 var _ MeetingCancelTransactionBackend = (*eventEntTransactionBackend)(nil)

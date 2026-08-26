@@ -19,6 +19,7 @@ const (
 	calendarInboundMessageLeaseTTL           = 60 * time.Second
 	calendarInboundMessageMaximumAttempts    = 8
 	calendarInboundMessageFinalizedRetention = 30 * 24 * time.Hour
+	calendarInboundMessageDeferredLifetime   = 7 * 24 * time.Hour
 )
 
 const (
@@ -229,6 +230,104 @@ func (repository *EventEntRepository) CleanupFinalizedCalendarInboundMessages(
 		return 0, ErrEventInvalid
 	}
 	return removed, nil
+}
+
+// LockCalendarInboundMessageReceipt locks one live processing receipt in the
+// existing Event transaction without changing its fence or lease.
+func (backend *eventEntTransactionBackend) LockCalendarInboundMessageReceipt(
+	ctx context.Context,
+	claim CalendarInboundMessageClaim,
+) (CalendarInboundMessageScope, bool, error) {
+	if backend == nil || backend.tx == nil || ctx == nil || !claim.valid() {
+		return CalendarInboundMessageScope{}, false, ErrEventInvalid
+	}
+
+	receipt, found, err := calendarInboundMessageLockClaimReceipt(ctx, backend.tx, claim)
+	if err != nil {
+		return CalendarInboundMessageScope{}, false, err
+	}
+	if !found {
+		return CalendarInboundMessageScope{}, false, nil
+	}
+	if !calendarInboundMessageReceiptValid(receipt) || !calendarInboundMessageReceiptMatchesClaim(receipt, claim) {
+		return CalendarInboundMessageScope{}, false, ErrEventInvalid
+	}
+	clock, err := backend.calendarInboundMessageDatabaseClock(ctx)
+	if err != nil || !calendarInboundMessageWholeSecondUTC(clock) {
+		if err != nil {
+			return CalendarInboundMessageScope{}, false, err
+		}
+		return CalendarInboundMessageScope{}, false, ErrEventInvalid
+	}
+	if !receipt.LeaseUntil.After(clock) {
+		return CalendarInboundMessageScope{}, false, nil
+	}
+	return CalendarInboundMessageScope{claim: claim}, true, nil
+}
+
+// CompleteCalendarInboundMessageReceipt is the fenced last operation of an
+// Event transaction. It derives every durable due value from its cached DB
+// clock and preserves the immutable receipt registration and deferral pair.
+func (backend *eventEntTransactionBackend) CompleteCalendarInboundMessageReceipt(
+	ctx context.Context,
+	scope CalendarInboundMessageScope,
+	completion CalendarInboundMessageCompletion,
+) error {
+	if backend == nil || backend.tx == nil || ctx == nil || scope.transaction == nil || !scope.claim.valid() || !completion.valid() {
+		return ErrEventInvalid
+	}
+	clock, err := backend.calendarInboundMessageDatabaseClock(ctx)
+	if err != nil || !calendarInboundMessageWholeSecondUTC(clock) {
+		if err != nil {
+			return err
+		}
+		return ErrEventInvalid
+	}
+	receipt, found, err := calendarInboundMessageLockClaimReceipt(ctx, backend.tx, scope.claim)
+	if err != nil {
+		return err
+	}
+	if !found || !calendarInboundMessageReceiptValid(receipt) ||
+		!calendarInboundMessageReceiptMatchesClaim(receipt, scope.claim) || !receipt.LeaseUntil.After(clock) {
+		return ErrEventConflict
+	}
+	return calendarInboundMessageCompleteReceipt(ctx, backend.tx, receipt, scope.claim, completion, clock)
+}
+
+func calendarInboundMessageLockClaimReceipt(
+	ctx context.Context,
+	transaction *ent.Tx,
+	claim CalendarInboundMessageClaim,
+) (*ent.CalendarInboundMessageReceipt, bool, error) {
+	if ctx == nil || transaction == nil || !claim.valid() {
+		return nil, false, ErrEventInvalid
+	}
+	receipt, err := transaction.CalendarInboundMessageReceipt.Query().
+		Where(
+			calendarinboundmessagereceipt.IDEQ(claim.ReceiptID),
+			calendarinboundmessagereceipt.StateEQ(calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateProcessing)),
+			calendarinboundmessagereceipt.LeaseTokenEQ(claim.LeaseToken),
+			calendarinboundmessagereceipt.LeaseGenerationEQ(claim.LeaseGeneration),
+		).
+		ForUpdate().
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, calendarEntSafeError(err)
+	}
+	return receipt, true, nil
+}
+
+func calendarInboundMessageReceiptMatchesClaim(
+	receipt *ent.CalendarInboundMessageReceipt,
+	claim CalendarInboundMessageClaim,
+) bool {
+	return receipt != nil && claim.valid() && receipt.ID == claim.ReceiptID &&
+		calendarInboundMessageReceiptState(receipt) == calendarInboundMessageReceiptStateProcessing &&
+		receipt.LeaseToken != nil && *receipt.LeaseToken == claim.LeaseToken &&
+		receipt.LeaseGeneration == claim.LeaseGeneration
 }
 
 func (repository *EventEntRepository) withCalendarInboundMessageTransaction(
@@ -452,6 +551,234 @@ func calendarInboundMessageTerminalizeReceipt(
 		return calendarEntSafeError(err)
 	}
 	return nil
+}
+
+func calendarInboundMessageCompleteReceipt(
+	ctx context.Context,
+	transaction *ent.Tx,
+	receipt *ent.CalendarInboundMessageReceipt,
+	claim CalendarInboundMessageClaim,
+	completion CalendarInboundMessageCompletion,
+	clock time.Time,
+) error {
+	if ctx == nil || transaction == nil || !calendarInboundMessageWholeSecondUTC(clock) ||
+		!calendarInboundMessageReceiptValid(receipt) || !calendarInboundMessageReceiptMatchesClaim(receipt, claim) ||
+		!receipt.LeaseUntil.After(clock) || !completion.valid() {
+		return ErrEventInvalid
+	}
+
+	state := calendarinboundmessagereceipt.State("")
+	var errorCode *calendarinboundmessagereceipt.ErrorCode
+	var due *time.Time
+	var calendarEventID *uuid.UUID
+	var setDeferredPair bool
+	var deferredExpiresAt time.Time
+
+	setDeadLetter := func(code string) {
+		state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateDeadLetter)
+		value := calendarinboundmessagereceipt.ErrorCode(code)
+		errorCode = &value
+	}
+	setRetry := func() error {
+		if receipt.DeferredExpiresAt != nil && !receipt.DeferredExpiresAt.After(clock) {
+			setDeadLetter(calendarInboundMessageReceiptErrorMissingMasterExpired)
+			return nil
+		}
+		if receipt.Attempts == calendarInboundMessageMaximumAttempts {
+			setDeadLetter(calendarInboundMessageReceiptErrorRetryExhausted)
+			return nil
+		}
+		nextAttemptAt, ok := calendarInboundMessageRetryDue(clock, receipt.Attempts)
+		if !ok {
+			return ErrEventInvalid
+		}
+		if receipt.DeferredExpiresAt != nil {
+			nextAttemptAt, ok = calendarInboundMessageCapDueAtExpiry(nextAttemptAt, *receipt.DeferredExpiresAt)
+			if !ok || !nextAttemptAt.After(clock) {
+				return ErrEventInvalid
+			}
+		}
+		state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStatePending)
+		value := calendarinboundmessagereceipt.ErrorCode(completion.errorCode)
+		errorCode = &value
+		due = &nextAttemptAt
+		return nil
+	}
+	setDeferred := func() error {
+		if receipt.DeferredObjectStateID == nil {
+			if receipt.Attempts == calendarInboundMessageMaximumAttempts {
+				setDeadLetter(calendarInboundMessageReceiptErrorMissingMasterExpired)
+				return nil
+			}
+			deferredExpiresAt = clock.Add(calendarInboundMessageDeferredLifetime)
+			if !calendarInboundMessageWholeSecondUTC(deferredExpiresAt) || !deferredExpiresAt.After(clock) {
+				return ErrEventInvalid
+			}
+			nextAttemptAt, ok := calendarInboundMessageDeferredDue(clock, receipt.Attempts)
+			if !ok {
+				return ErrEventInvalid
+			}
+			nextAttemptAt, ok = calendarInboundMessageCapDueAtExpiry(nextAttemptAt, deferredExpiresAt)
+			if !ok || !nextAttemptAt.After(clock) {
+				return ErrEventInvalid
+			}
+			state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateDeferredMissingMaster)
+			due = &nextAttemptAt
+			setDeferredPair = true
+			return nil
+		}
+		if *receipt.DeferredObjectStateID != completion.deferredObjectStateID {
+			return ErrEventInvalid
+		}
+		if receipt.Attempts == calendarInboundMessageMaximumAttempts || !receipt.DeferredExpiresAt.After(clock) {
+			setDeadLetter(calendarInboundMessageReceiptErrorMissingMasterExpired)
+			return nil
+		}
+		nextAttemptAt, ok := calendarInboundMessageDeferredDue(clock, receipt.Attempts)
+		if !ok {
+			return ErrEventInvalid
+		}
+		nextAttemptAt, ok = calendarInboundMessageCapDueAtExpiry(nextAttemptAt, *receipt.DeferredExpiresAt)
+		if !ok || !nextAttemptAt.After(clock) {
+			return ErrEventInvalid
+		}
+		state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateDeferredMissingMaster)
+		due = &nextAttemptAt
+		return nil
+	}
+
+	switch completion.kind {
+	case calendarInboundMessageCompletionApplied, calendarInboundMessageCompletionTombstoned:
+		state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateApplied)
+		calendarEventID = cloneCalendarInboundMessageUUIDPointer(completion.calendarEventID)
+	case calendarInboundMessageCompletionObserved:
+		switch completion.observedState {
+		case CalendarInboundObservedIgnoredStale:
+			state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateIgnoredStale)
+		case CalendarInboundObservedDuplicate:
+			state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateDuplicate)
+		default:
+			return ErrEventInvalid
+		}
+		calendarEventID = cloneCalendarInboundMessageUUIDPointer(completion.calendarEventID)
+	case calendarInboundMessageCompletionQuarantined:
+		state = calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateQuarantined)
+		value := calendarinboundmessagereceipt.ErrorCode(completion.errorCode)
+		errorCode = &value
+	case calendarInboundMessageCompletionDeadLetter:
+		setDeadLetter(string(completion.errorCode))
+	case calendarInboundMessageCompletionRetry:
+		if err := setRetry(); err != nil {
+			return err
+		}
+	case calendarInboundMessageCompletionDeferred:
+		if err := setDeferred(); err != nil {
+			return err
+		}
+	default:
+		return ErrEventInvalid
+	}
+	if state == "" {
+		return ErrEventInvalid
+	}
+
+	update := transaction.CalendarInboundMessageReceipt.Update().
+		Where(
+			calendarinboundmessagereceipt.IDEQ(claim.ReceiptID),
+			calendarinboundmessagereceipt.StateEQ(calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateProcessing)),
+			calendarinboundmessagereceipt.LeaseTokenEQ(claim.LeaseToken),
+			calendarinboundmessagereceipt.LeaseGenerationEQ(claim.LeaseGeneration),
+			calendarinboundmessagereceipt.LeaseUntilGT(clock),
+		).
+		SetState(state).
+		ClearLeaseToken().
+		ClearLeaseUntil().
+		SetUpdatedAt(clock)
+	if errorCode == nil {
+		update.ClearErrorCode()
+	} else {
+		update.SetErrorCode(*errorCode)
+	}
+	if due == nil {
+		update.ClearNextAttemptAt()
+	} else {
+		update.SetNextAttemptAt(*due)
+	}
+	if calendarEventID == nil {
+		update.ClearCalendarEventID()
+	} else {
+		update.SetCalendarEventID(*calendarEventID)
+	}
+	if setDeferredPair {
+		update.SetDeferredObjectStateID(completion.deferredObjectStateID).
+			SetDeferredExpiresAt(deferredExpiresAt)
+	}
+	affected, err := update.Save(ctx)
+	if err != nil {
+		return calendarEntCASFailure(err)
+	}
+	if affected != 1 {
+		return ErrEventConflict
+	}
+	return nil
+}
+
+func calendarInboundMessageRetryDue(clock time.Time, attempts int) (time.Time, bool) {
+	var delay time.Duration
+	switch attempts {
+	case 1:
+		delay = 30 * time.Second
+	case 2:
+		delay = 2 * time.Minute
+	case 3:
+		delay = 10 * time.Minute
+	case 4:
+		delay = 30 * time.Minute
+	case 5:
+		delay = 2 * time.Hour
+	case 6:
+		delay = 6 * time.Hour
+	case 7:
+		delay = 24 * time.Hour
+	default:
+		return time.Time{}, false
+	}
+	due := clock.Add(delay)
+	return due, calendarInboundMessageWholeSecondUTC(due) && due.After(clock)
+}
+
+func calendarInboundMessageDeferredDue(clock time.Time, attempts int) (time.Time, bool) {
+	var delay time.Duration
+	switch attempts {
+	case 1:
+		delay = 15 * time.Minute
+	case 2:
+		delay = time.Hour
+	case 3:
+		delay = 4 * time.Hour
+	case 4:
+		delay = 12 * time.Hour
+	case 5:
+		delay = 24 * time.Hour
+	case 6:
+		delay = 48 * time.Hour
+	case 7:
+		delay = 72 * time.Hour
+	default:
+		return time.Time{}, false
+	}
+	due := clock.Add(delay)
+	return due, calendarInboundMessageWholeSecondUTC(due) && due.After(clock)
+}
+
+func calendarInboundMessageCapDueAtExpiry(due, expiry time.Time) (time.Time, bool) {
+	if !calendarInboundMessageWholeSecondUTC(due) || !calendarInboundMessageWholeSecondUTC(expiry) {
+		return time.Time{}, false
+	}
+	if due.After(expiry) {
+		due = expiry
+	}
+	return due, true
 }
 
 func calendarInboundMessageReceiptMatchesRegistration(
