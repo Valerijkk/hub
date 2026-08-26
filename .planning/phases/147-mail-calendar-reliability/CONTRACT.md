@@ -1,4 +1,18 @@
 # Phase 147 — reliability and integration contract
+> **2026-08-26 checkpoint - P3-D1 port and transaction clock accepted.**
+> `8a7478dd` adds the Calendar-only, content-free inbound receipt repository
+> ABI in `backend/internal/calendar/mail_inbound_repository.go`: validated
+> registration, claimed-or-durable-noop ingress result, bounded due work and
+> bounded finalized cleanup, with no Ent or Mail dependency. `4befb938` adds a
+> private transaction-local database clock cache used by current inbound invite
+> Resolve/Persist and reserved for receipt Lock/Complete. The cache reads one
+> defensive UTC whole-second SQL value per `EventTransaction` and cannot cross
+> commit/rollback boundaries. Terra/xhigh implementation and independent
+> Terra/high review are dispatcher-enforced/no fallback; final
+> `ACCEPT C/I/M 0/0/0`. Docker compile/tests/runtime remain `NOT_RUN`. P3-D2
+> Ent claim/completion, P3-D3 service, P3-D4 worker, P3-E, API/UI/full-stack
+> Docker and merge remain pending.
+
 > **2026-08-26 checkpoint - 147-02C source-authored and statically accepted.**
 > Resolve is committed at `97ae294d`, concrete Persist at `53869c07`, and the
 > independently accepted owner-attendee correction at `83cbe222`, all only in

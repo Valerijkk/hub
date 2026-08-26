@@ -1,4 +1,16 @@
 # Phase 147 — executable packet contracts
+> **2026-08-26 checkpoint - P3-D1 port and transaction clock accepted.**
+> `8a7478dd` adds the immutable Calendar-owned receipt repository ABI for
+> content-free registration, claimed-or-durable-noop ingress, bounded due work
+> and bounded finalized cleanup. `4befb938` shares one private defensive UTC
+> whole-second database-clock sample across inbound receipt
+> Lock/Resolve/Persist/Complete in the same `EventTransaction` and never across
+> transactions. Terra/xhigh implementation; Terra/high independent final
+> `ACCEPT C/I/M 0/0/0`; dispatcher-enforced/no fallback. Docker
+> compile/tests/runtime are `NOT_RUN`. P3-D2 Ent claim/completion, P3-D3
+> service, P3-D4 worker, P3-E, API/UI/full-stack Docker and merge remain
+> pending.
+
 > **2026-08-26 checkpoint - 147-02C source-authored and statically accepted.**
 > Resolve `97ae294d`, Persist `53869c07`, and owner-attendee correction
 > `83cbe222` modify only

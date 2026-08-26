@@ -1,4 +1,17 @@
 ---
+phase_147_p3d1_receipt_port_clock_checkpoint: >-
+  P3-D1 SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0 at
+  8a7478dd for backend/internal/calendar/mail_inbound_repository.go. The
+  Calendar-owned port freezes content-free registration, claimed-or-durable-
+  noop ingress outcome, bounded due work and finalized cleanup without Ent or
+  Mail imports. The transaction-local database-clock prerequisite is accepted
+  at 4befb938 in event_ent_transaction.go and the inbound invite adapter:
+  Resolve, Persist and future receipt Lock/Complete share one defensive UTC
+  whole-second SQL clock sample per EventTransaction with no cross-transaction
+  cache. Terra/xhigh implementation and Terra/high independent review used
+  dispatcher-enforced provenance with no fallback. Docker compile/tests/runtime
+  are NOT_RUN. P3-D2 Ent claim/completion, P3-D3 service, P3-D4 worker, P3-E,
+  API/UI, full-stack Docker and merge remain pending.
 phase_147_02c_persist_checkpoint: >-
   147-02C SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0. Resolve is
   committed at 97ae294d; concrete Persist at 53869c07; the reviewed owner

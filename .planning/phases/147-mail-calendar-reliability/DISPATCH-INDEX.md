@@ -1,4 +1,12 @@
 # Phase 147 — exact Terra dispatch index
+> **P3-D1/clock static acceptance (2026-08-26):** `8a7478dd` freezes the
+> Calendar-owned content-free receipt repository port and `4befb938` freezes
+> one transaction-local defensive UTC whole-second database-clock sample for
+> inbound receipt Lock/Resolve/Persist/Complete. Terra/xhigh implementation and
+> Terra/high independent review are dispatcher-enforced/no fallback; final
+> `ACCEPT C/I/M 0/0/0`. Docker compile/tests/runtime are `NOT_RUN`. P3-D2
+> Ent claim/completion, P3-D3 service, P3-D4 worker, P3-E, API/UI/full-stack
+> Docker and merge remain pending.
 > **147-02C static acceptance (2026-08-26):** Resolve `97ae294d`, Persist
 > `53869c07`, and owner-attendee correction `83cbe222` are source-authored only
 > in `backend/internal/calendar/event_ent_repository_inbound_invite.go`.
