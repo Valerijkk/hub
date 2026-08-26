@@ -155,7 +155,7 @@ func (s *MessengerService) PromoteToIssue(
 	if !found {
 		return nil, apperrors.NewNotFound("сообщение не найдено")
 	}
-	if source == nil || source.ChannelID != channelID || source.DeletedAt != nil {
+	if source == nil || source.ID == "" || source.ID != messageID || source.ChannelID != channelID || source.DeletedAt != nil {
 		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
 	}
 

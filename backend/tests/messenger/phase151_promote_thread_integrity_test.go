@@ -293,6 +293,56 @@ func TestPhase151PromoteToIssueReplyUsesExactScopedRootAndRepliesInRepositoryOrd
 	phase151AssertPromoteThreadIntegritySuccessfulEffects(t, response, target, promoter, repository, linker, projectID, actorID, channelID, source.ThreadID)
 }
 
+func TestPhase151PromoteToIssueRejectsMalformedFoundRootSourceIdentityBeforeEffects(t *testing.T) {
+	ctx := context.Background()
+	for _, scenario := range []struct {
+		name               string
+		mutateSource       func(*messenger.MessageDocument)
+		redactMismatchedID bool
+	}{
+		{
+			name: "empty source ID",
+			mutateSource: func(source *messenger.MessageDocument) {
+				source.ID = ""
+			},
+		},
+		{
+			name: "mismatched source ID",
+			mutateSource: func(source *messenger.MessageDocument) {
+				source.ID = "phase151-mismatched-source-" + uuid.NewString()
+			},
+			redactMismatchedID: true,
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			order := make([]string, 0, 2)
+			repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, false)
+			routeMessageID := source.ID
+			scenario.mutateSource(source)
+			service, target, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
+
+			response, err := service.PromoteToIssue(ctx, channelID, routeMessageID, actorID, phase151PromoteThreadIntegrityRequest(projectID))
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, 500)
+			phase151AssertPromoteThreadIntegrityRedactedError(t, err, routeMessageID)
+			if scenario.redactMismatchedID {
+				phase151AssertPromoteThreadIntegrityRedactedError(t, err, source.ID)
+			}
+			assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: routeMessageID}}, repository.sourceCalls)
+			assert.Empty(t, repository.parentCalls)
+			assert.Empty(t, repository.repliesCalls)
+			assert.Zero(t, target.calls)
+			assert.Zero(t, repository.genericFindCalls)
+			phase151AssertPromoteThreadIntegrityNoEffects(t, repository, promoter, linker)
+			phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
+			assert.Equal(t, []string{"source-action", "scoped-source"}, order)
+		})
+	}
+}
+
 func TestPhase151PromoteToIssueReplyRequiresExactScopedLiveRootBeforeEffects(t *testing.T) {
 	ctx := context.Background()
 	var nonDisclosureMessage string

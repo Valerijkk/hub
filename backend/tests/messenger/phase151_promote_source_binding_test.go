@@ -238,6 +238,28 @@ func TestPhase151PromoteToIssueBindsSourceLookupToAuthorizedChannel(t *testing.T
 	}
 }
 
+func TestPhase151PromoteToIssueRejectsFoundScopedSourceWithEmptyIdentity(t *testing.T) {
+	ctx := context.Background()
+	repository := &phase151PromoteSourceBindingRepository{
+		phase151PromoteSourceBindingRepositoryBase: newPhase151PromoteSourceBindingRepositoryBase(),
+		scopedOverride:                           true,
+		scopedFound:                              true,
+	}
+	actorID, channelID, channel, source := phase151PromoteSourceBindingFixture(repository.phase151PromoteSourceBindingRepositoryBase)
+	emptyIdentitySource := *source
+	emptyIdentitySource.ID = ""
+	repository.scopedDocument = &emptyIdentitySource
+	service, target, promoter, linker := phase151PromoteSourceBindingService(repository, actorID, channel)
+
+	response, err := service.PromoteToIssue(ctx, channelID, "", actorID, phase151PromoteSourceBindingRequest())
+
+	require.Nil(t, response)
+	require.Error(t, err)
+	requireAppErrorCode(t, err, 500)
+	phase151AssertPromoteScopedCall(t, repository, channelID, "")
+	phase151AssertPromoteNoDownstream(t, repository.phase151PromoteSourceBindingRepositoryBase, target, promoter, linker)
+}
+
 func phase151PromoteSourceBindingFixture(
 	repository *phase151PromoteSourceBindingRepositoryBase,
 ) (uuid.UUID, uuid.UUID, *ent.Channel, *messenger.MessageDocument) {
