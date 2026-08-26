@@ -1,4 +1,26 @@
 ---
+mail_reply_all_ent_identity_proof_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for
+  `backend/internal/mail/mailbox_ent_reply_all_identity_proof.go` blob
+  `02bf501e6d193a49f19103017c5c86e99800400c`. One short account-first Ent
+  transaction proves the exact actor/organization/account, selected active
+  sendable primary-or-alias identity, and a deterministic complete bounded set
+  of all active owner addresses. The `limit + 1` query fails closed above 100;
+  every address must round-trip canonicalization and remain globally unique.
+  Active group addresses are included only for Reply All self-exclusion and are
+  forbidden as sendable identities; no group expansion or membership data is
+  read. The exact account lock precedes all identity locks, cross-scope absence
+  remains nondisclosing, and all failures normalize to the closed draft
+  repository family. Independent reviewers used the frozen gofmt semantics
+  supplied in-message because child filesystem ACL denied direct reads. No Ent
+  schema, migration, provider, Calendar or production wiring changes are in
+  this packet. HTTP/OpenAPI, server composition and frontend remain pending.
+  Tests/build/lint/Docker/runtime are NOT_RUN; this is not product, Docker or
+  merge readiness. `provenance_source: dispatcher-enforced`; implementation
+  Terra/xhigh; reviews Contract/high, Security/xhigh and Lifecycle/high; no
+  fallback; telemetry UNKNOWN.
 mail_reply_all_core_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
