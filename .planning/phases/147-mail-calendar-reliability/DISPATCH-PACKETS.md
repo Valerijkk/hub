@@ -1,4 +1,12 @@
 # Phase 147 — executable packet contracts
+> **P3-D schema amendment (2026-08-26; frozen):** before D1/D2, add the exact
+> nullable co-null receipt fields `deferred_object_state_id` and
+> `deferred_expires_at`, with a many-to-one `NoAction` object-state FK,
+> first-deferral write-once CAS, exact `+7d` database-clock deadline and all
+> later due values capped to it. Expired or attempt-8 missing-master work is
+> dead-lettered before Mail I/O. Only the receipt/object-state Ent schemas are
+> authorized for the source atom; generated Ent and migration follow through
+> the accepted Docker schema launcher.
 > **P3-C source checkpoint (2026-08-26):** `da197b74` is
 > `SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN` for the exact
 > concrete Mail Ent calendar-part source files. It owns the five-second bound,

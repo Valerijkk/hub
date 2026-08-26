@@ -1,4 +1,18 @@
 # Phase 147 — reliability and integration contract
+> **P3-D deferred-receipt amendment (2026-08-26; frozen):** a receipt must add
+> nullable `deferred_object_state_id` and `deferred_expires_at`. They are
+> globally co-null, set together only on the first missing-master completion,
+> and preserved unchanged by every later claim/completion CAS. The receipt owns
+> a many-to-one `NoAction` FK to its canonical inbound object state. A deferred
+> receipt requires the pair and `next_attempt_at <= deferred_expires_at`; later
+> transient due times carrying the pair are capped by the same absolute
+> deadline. The deadline equals the first deferral database clock plus exactly
+> seven days and is a logical expiry until bounded retention cleanup. Claims
+> already at/after the deadline, and attempt 8 for still-missing master, become
+> `dead_letter/missing_master_expired` before Mail I/O. Attempts 1..7 use
+> `15m,1h,4h,12h,24h,48h,72h`, capped to the absolute deadline. This minimal
+> amendment closes the otherwise impossible no-body-read expiry proof; schema,
+> migration and P3-D source/runtime evidence remain pending.
 > **P3-C source checkpoint (2026-08-26):** `da197b74` is
 > `SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN` for exactly
 > `backend/internal/mail/mailbox_ent_calendar_part.go` and

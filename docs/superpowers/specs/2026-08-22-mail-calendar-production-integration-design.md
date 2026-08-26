@@ -1,4 +1,11 @@
 # Mail and Calendar Production Integration Design
+> **Deferred receipt correction (2026-08-26):** P3-D requires receipt-owned
+> `deferred_object_state_id` plus absolute `deferred_expires_at`, co-null and
+> write-once from first deferral. The safe FK is many-to-one/`NoAction`; every
+> missing-master or transient due time carrying the pair is capped to the exact
+> first-deferral `+7d` deadline. Expiry and attempt 8 terminalize before Mail
+> body/part I/O. This supersedes any design inference that attempts/timestamps
+> already present on the receipt could reconstruct the deadline or object key.
 > **P3-C source update (2026-08-26):** concrete source commit `da197b74` is
 > `SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN`. The private
 > Ent/engine boundary now implements the frozen five-second, pre/post snapshot,

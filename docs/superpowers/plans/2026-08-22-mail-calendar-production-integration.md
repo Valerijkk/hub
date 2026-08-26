@@ -1,4 +1,11 @@
 # Mail and Calendar Production Integration Implementation Plan
+> **P3-D amendment and next atom (2026-08-26):** first add nullable co-null
+> `deferred_object_state_id`/`deferred_expires_at` to the inbound message
+> receipt and the many-to-one `NoAction` inverse edge. Repository code later
+> sets the pair once from the first-deferral DB clock, preserves it by CAS,
+> caps due times to it, and dead-letters expired/attempt-8 missing-master work
+> before Mail I/O. After Docker generation/diff, D1 is split into pure schedule,
+> repository port, service and bounded worker atoms; D2 owns Ent persistence.
 > **P3-C source update (2026-08-26):** `da197b74` completes the concrete source
 > atom as `SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN` for
 > exactly `mailbox_ent_calendar_part.go` and the narrow read-snapshot helper in

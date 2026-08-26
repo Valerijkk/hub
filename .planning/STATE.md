@@ -1,4 +1,15 @@
 ---
+mail_calendar_deferred_receipt_amendment_2026_08_26: >-
+  CONTRACT_FROZEN / SOURCE_PENDING. P3-D review found that a due receipt could
+  not prove first-deferral plus seven-day expiry or locate its deferred object
+  state without re-reading Mail. The minimal frozen fix adds nullable co-null
+  deferred_object_state_id and deferred_expires_at to the Calendar inbound
+  message receipt. The pair is set atomically on first deferral, preserved by
+  later CAS transitions, caps every later due time, and lets an expired or
+  attempt-8 claim dead-letter missing_master_expired before Mail I/O. The
+  receipt owns a many-to-one NoAction FK to the canonical object state; expiry
+  is logical until bounded retention cleanup. Schema source, migration,
+  repository/service/worker, Docker and runtime evidence remain pending.
 mail_calendar_part_source_2026_08_26: >-
   SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN. Commit
   da197b74 adds the concrete MailboxEntCalendarPartSource and a short
