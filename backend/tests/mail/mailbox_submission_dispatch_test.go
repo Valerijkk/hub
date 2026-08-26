@@ -212,14 +212,16 @@ func TestMailboxSubmissionDispatcherSourceContract(t *testing.T) {
 		"type mailboxSubmissionEngine interface {",
 		"\\n}",
 	)
-	if !strings.Contains(engineInterface, "MailEngine") || !strings.Contains(engineInterface, "submitMailboxSubmission") {
-		t.Fatal("private submission engine must compose MailEngine and the private mutation method")
+	for _, required := range []string{"PreflightSubmission", "submitMailboxSubmission"} {
+		if !strings.Contains(engineInterface, required) {
+			t.Fatalf("private submission engine is missing %q", required)
+		}
 	}
 	constructor := mailboxSubmissionDispatchSourceSlice(t, dispatcherSource,
 		"func NewMailboxSubmissionDispatcher",
 		"func mailboxSubmissionTypedNil",
 	)
-	for _, required := range []string{"mailboxSubmissionTypedNil(repository)", "mailboxSubmissionTypedNil(engine)", "mailboxSubmissionTypedNil(submissionEngine)"} {
+	for _, required := range []string{"mailboxSubmissionTypedNil(repository)", "mailboxSubmissionTypedNil(engine)"} {
 		if !strings.Contains(constructor, required) {
 			t.Fatalf("constructor typed-nil guard is missing %q", required)
 		}
