@@ -1,4 +1,26 @@
 ---
+mail_reply_all_core_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for
+  `backend/internal/mail/mailbox_reply_all_draft_service.go` blob
+  `6ff27681b2d81fee87714df7a4d637672304b165`. The source-only core adds a
+  server-authoritative Reply All bootstrap with an operation-separated
+  idempotency namespace, exact owner/message/projection rechecks, and a bounded
+  complete owner-identity proof seam. It derives To from Reply-To (or From) plus
+  original To, preserves original CC, excludes every canonical owner address,
+  deduplicates globally with To precedence, never copies BCC, and fails closed
+  on empty To, invalid proof or recipient overflow. The existing generic draft
+  writer still account-fences replay by full request hash and re-proves the
+  selected active sendable From identity before reservation/provider mutation.
+  The independent exact-source review used the frozen gofmt source supplied
+  in-message because child filesystem ACL denied direct reads. Ent identity-set
+  adapter, HTTP/OpenAPI, production wiring, frontend action and localized copy
+  remain pending; existing Reply/Forward are unchanged. Tests/build/lint/Docker/
+  runtime are NOT_RUN; this is not product, Docker or merge readiness.
+  `provenance_source: dispatcher-enforced`; implementation Terra/xhigh;
+  reviews Contract/high, Security/xhigh and Lifecycle/high; no fallback;
+  telemetry UNKNOWN.
 mail_submission_receipt_polling_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
