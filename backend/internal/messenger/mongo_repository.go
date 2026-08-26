@@ -178,6 +178,27 @@ func (r *MongoRepository) FindMessageByID(ctx context.Context, messageID string)
 	return &doc, nil
 }
 
+// FindLiveMessageInChannel возвращает живое сообщение только из указанного канала.
+func (r *MongoRepository) FindLiveMessageInChannel(
+	ctx context.Context,
+	channelID uuid.UUID,
+	messageID string,
+) (*MessageDocument, bool, error) {
+	var doc MessageDocument
+	err := r.messages().FindOne(ctx, bson.M{
+		"_id":        messageID,
+		"channel_id": channelID,
+		"deleted_at": nil,
+	}).Decode(&doc)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return &doc, true, nil
+}
+
 // ListMessages возвращает сообщения канала с курсорной пагинацией по created_at.
 func (r *MongoRepository) ListMessages(ctx context.Context, channelID uuid.UUID, before *time.Time, limit int) ([]*MessageDocument, error) {
 	if limit <= 0 || limit > 100 {

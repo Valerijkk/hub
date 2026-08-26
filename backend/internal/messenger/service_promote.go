@@ -18,6 +18,14 @@ import (
 // IssuePromoter — узкий интерфейс для создания задачи из сообщения треда.
 // Реализуется trackermod.TrackerService — определён здесь, чтобы избежать
 // обратного импорта messenger -> tracker и сохранить тестируемость через мок.
+type promoteSourceLookup interface {
+	FindLiveMessageInChannel(
+		ctx context.Context,
+		channelID uuid.UUID,
+		messageID string,
+	) (*MessageDocument, bool, error)
+}
+
 type IssuePromoter interface {
 	// CreateIssueFromPromotion создаёт задачу в проекте и возвращает её ключ и id
 	// для построения backlink-сообщения.
@@ -127,12 +135,19 @@ func (s *MessengerService) PromoteToIssue(
 		}
 	}
 
-	source, err := s.repo.FindMessageByID(ctx, messageID)
+	sourceLookup, ok := s.repo.(promoteSourceLookup)
+	if !ok {
+		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
+	}
+	source, found, err := sourceLookup.FindLiveMessageInChannel(ctx, channelID, messageID)
 	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
+	}
+	if !found {
 		return nil, apperrors.NewNotFound("сообщение не найдено")
 	}
-	if source.ChannelID != channelID {
-		return nil, apperrors.NewNotFound("сообщение не найдено")
+	if source == nil || source.ChannelID != channelID || source.DeletedAt != nil {
+		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
 	}
 
 

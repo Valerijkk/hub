@@ -367,6 +367,21 @@ func (m *mockRepository) FindMessageByID(_ context.Context, messageID string) (*
 	return doc, nil
 }
 
+func (m *mockRepository) FindLiveMessageInChannel(
+	_ context.Context,
+	channelID uuid.UUID,
+	messageID string,
+) (*messenger.MessageDocument, bool, error) {
+	m.messageMu.Lock()
+	defer m.messageMu.Unlock()
+
+	doc, ok := m.messages[messageID]
+	if !ok || doc == nil || doc.ChannelID != channelID || doc.DeletedAt != nil {
+		return nil, false, nil
+	}
+	return doc, true, nil
+}
+
 func (m *mockRepository) ListMessages(_ context.Context, channelID uuid.UUID, _ *time.Time, limit int) ([]*messenger.MessageDocument, error) {
 	m.messageMu.Lock()
 	defer m.messageMu.Unlock()
