@@ -19,6 +19,12 @@ type phase151PromoteSourceBindingCall struct {
 	messageID string
 }
 
+type phase151PromoteSourceBindingResult struct {
+	document *messenger.MessageDocument
+	found    bool
+	err      error
+}
+
 type phase151PromoteSourceBindingRepositoryBase struct {
 	*phase151MessageAccessRepository
 	genericFindCalls int
@@ -54,6 +60,7 @@ type phase151PromoteSourceBindingRepository struct {
 	scopedFound    bool
 	scopedErr      error
 	scopedCalls    []phase151PromoteSourceBindingCall
+	scopedResults  []phase151PromoteSourceBindingResult
 }
 
 func (r *phase151PromoteSourceBindingRepository) FindLiveMessageInChannel(
@@ -61,10 +68,15 @@ func (r *phase151PromoteSourceBindingRepository) FindLiveMessageInChannel(
 	channelID uuid.UUID,
 	messageID string,
 ) (*messenger.MessageDocument, bool, error) {
+	callIndex := len(r.scopedCalls)
 	r.scopedCalls = append(r.scopedCalls, phase151PromoteSourceBindingCall{
 		channelID: channelID,
 		messageID: messageID,
 	})
+	if callIndex < len(r.scopedResults) {
+		result := r.scopedResults[callIndex]
+		return result.document, result.found, result.err
+	}
 	if r.scopedOverride {
 		return r.scopedDocument, r.scopedFound, r.scopedErr
 	}
@@ -123,7 +135,7 @@ func (l *phase151PromoteSourceBindingLinker) LinkThreadToIssue(
 func TestPhase151PromoteToIssueBindsSourceLookupToAuthorizedChannel(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("authorized route A uses one scoped lookup without generic fallback", func(t *testing.T) {
+	t.Run("authorized route A uses two scoped live proofs without generic fallback", func(t *testing.T) {
 		repository := &phase151PromoteSourceBindingRepository{
 			phase151PromoteSourceBindingRepositoryBase: newPhase151PromoteSourceBindingRepositoryBase(),
 		}
@@ -136,7 +148,7 @@ func TestPhase151PromoteToIssueBindsSourceLookupToAuthorizedChannel(t *testing.T
 		require.NoError(t, err)
 		require.NotNil(t, response)
 		assert.Equal(t, "HUB-98", response.IssueKey)
-		phase151AssertPromoteScopedCall(t, repository, channelID, source.ID)
+		phase151AssertPromoteScopedCall(t, repository, channelID, source.ID, 2)
 		assert.Zero(t, repository.genericFindCalls)
 		assert.Equal(t, 2, target.calls)
 		assert.Equal(t, 1, promoter.calls)
@@ -176,7 +188,7 @@ func TestPhase151PromoteToIssueBindsSourceLookupToAuthorizedChannel(t *testing.T
 				} else {
 					assert.Equal(t, notFoundMessage, appErr.Message)
 				}
-				phase151AssertPromoteScopedCall(t, repository, channelID, source.ID)
+				phase151AssertPromoteScopedCall(t, repository, channelID, source.ID, 1)
 				phase151AssertPromoteNoDownstream(t, repository.phase151PromoteSourceBindingRepositoryBase, target, promoter, linker)
 			})
 		}
@@ -232,8 +244,75 @@ func TestPhase151PromoteToIssueBindsSourceLookupToAuthorizedChannel(t *testing.T
 			require.Nil(t, response)
 			require.Error(t, err)
 			requireAppErrorCode(t, err, 500)
-			phase151AssertPromoteScopedCall(t, repository, channelID, source.ID)
+			phase151AssertPromoteScopedCall(t, repository, channelID, source.ID, 1)
 			phase151AssertPromoteNoDownstream(t, repository.phase151PromoteSourceBindingRepositoryBase, target, promoter, linker)
+		})
+	}
+}
+
+func TestPhase151PromoteToIssueRechecksLiveSourceBeforeMutation(t *testing.T) {
+	ctx := context.Background()
+
+	for _, scenario := range []struct {
+		name     string
+		second   func(*messenger.MessageDocument) phase151PromoteSourceBindingResult
+		wantCode int
+		redact   string
+	}{
+		{
+			name:     "missing source is concealed after description",
+			second:   func(*messenger.MessageDocument) phase151PromoteSourceBindingResult { return phase151PromoteSourceBindingResult{} },
+			wantCode: 404,
+		},
+		{
+			name: "source store error is redacted after description",
+			second: func(source *messenger.MessageDocument) phase151PromoteSourceBindingResult {
+				return phase151PromoteSourceBindingResult{document: source, found: true, err: errors.New("phase151 source recheck store error")}
+			},
+			wantCode: 500,
+			redact:   "phase151 source recheck store error",
+		},
+		{
+			name:     "found nil source is internal after description",
+			second:   func(*messenger.MessageDocument) phase151PromoteSourceBindingResult { return phase151PromoteSourceBindingResult{found: true} },
+			wantCode: 500,
+		},
+		{
+			name: "mismatched source identity is internal after description",
+			second: func(source *messenger.MessageDocument) phase151PromoteSourceBindingResult {
+				mismatch := *source
+				mismatch.ID += "-other"
+				return phase151PromoteSourceBindingResult{document: &mismatch, found: true}
+			},
+			wantCode: 500,
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			repository := &phase151PromoteSourceBindingRepository{
+				phase151PromoteSourceBindingRepositoryBase: newPhase151PromoteSourceBindingRepositoryBase(),
+			}
+			actorID, channelID, channel, source := phase151PromoteSourceBindingFixture(repository.phase151PromoteSourceBindingRepositoryBase)
+			repository.scopedResults = []phase151PromoteSourceBindingResult{
+				{document: source, found: true},
+				scenario.second(source),
+			}
+			service, target, promoter, linker := phase151PromoteSourceBindingService(repository, actorID, channel)
+
+			response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteSourceBindingRequest())
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, scenario.wantCode)
+			if scenario.redact != "" {
+				phase151AssertPromoteThreadIntegrityRedactedError(t, err, scenario.redact)
+			}
+			phase151AssertPromoteScopedCall(t, repository, channelID, source.ID, 2)
+			assert.Equal(t, 1, target.calls)
+			assert.Zero(t, repository.genericFindCalls)
+			assert.Zero(t, promoter.calls)
+			assert.Zero(t, linker.calls)
+			assert.Zero(t, repository.backlinkCalls)
 		})
 	}
 }
@@ -256,7 +335,7 @@ func TestPhase151PromoteToIssueRejectsFoundScopedSourceWithEmptyIdentity(t *test
 	require.Nil(t, response)
 	require.Error(t, err)
 	requireAppErrorCode(t, err, 500)
-	phase151AssertPromoteScopedCall(t, repository, channelID, "")
+	phase151AssertPromoteScopedCall(t, repository, channelID, "", 1)
 	phase151AssertPromoteNoDownstream(t, repository.phase151PromoteSourceBindingRepositoryBase, target, promoter, linker)
 }
 
@@ -308,12 +387,14 @@ func phase151AssertPromoteScopedCall(
 	repository *phase151PromoteSourceBindingRepository,
 	channelID uuid.UUID,
 	messageID string,
+	callCount int,
 ) {
 	t.Helper()
-	assert.Equal(t, []phase151PromoteSourceBindingCall{{
-		channelID: channelID,
-		messageID: messageID,
-	}}, repository.scopedCalls)
+	expectedCalls := make([]phase151PromoteSourceBindingCall, 0, callCount)
+	for index := 0; index < callCount; index++ {
+		expectedCalls = append(expectedCalls, phase151PromoteSourceBindingCall{channelID: channelID, messageID: messageID})
+	}
+	assert.Equal(t, expectedCalls, repository.scopedCalls)
 }
 
 func phase151AssertPromoteNoDownstream(

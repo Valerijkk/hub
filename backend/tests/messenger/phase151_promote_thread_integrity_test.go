@@ -59,7 +59,7 @@ func (r *phase151PromoteThreadIntegrityRepository) FindLiveMessageInChannel(
 	channelID uuid.UUID,
 	messageID string,
 ) (*messenger.MessageDocument, bool, error) {
-	if messageID == r.sourceID && len(r.sourceCalls) == 0 {
+	if messageID == r.sourceID && (len(r.sourceCalls) == 0 || r.getChannelCalls > 0) {
 		r.record("scoped-source")
 		r.sourceCalls = append(r.sourceCalls, phase151PromoteThreadIntegrityCall{channelID: channelID, messageID: messageID})
 		return r.mockRepository.FindLiveMessageInChannel(ctx, channelID, messageID)
@@ -260,12 +260,12 @@ func TestPhase151PromoteToIssueRootRendersScopedRepliesChronologically(t *testin
 
 	require.NoError(t, err)
 	require.NotNil(t, response)
-	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ID}}, repository.sourceCalls)
+	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ID}, {channelID: channelID, messageID: source.ID}}, repository.sourceCalls)
 	assert.Empty(t, repository.parentCalls, "root source must not issue a second parent lookup")
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "target-authority", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	assert.Equal(t, []string{"- @user: root source", "- @user: older reply a", "- @user: older reply b", "- @user: newest reply"}, phase151PromoteThreadIntegrityLines(t, promoter.description))
 	assert.Equal(t, 1, linker.calls)
@@ -288,12 +288,12 @@ func TestPhase151PromoteToIssueReplyRendersExactScopedThreadChronologically(t *t
 
 	require.NoError(t, err)
 	require.NotNil(t, response)
-	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ID}}, repository.sourceCalls)
+	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ID}, {channelID: channelID, messageID: source.ID}}, repository.sourceCalls)
 	assert.Equal(t, []phase151PromoteThreadIntegrityCall{{channelID: channelID, messageID: source.ThreadID}}, repository.parentCalls)
 	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ThreadID, limit: 100}}, repository.repliesCalls)
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	assert.Equal(t, []string{
-		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "target-authority", "promoter", "backlink", "linker",
+		"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies", "get-channel", "display-name", "display-name", "display-name", "display-name", "scoped-source", "target-authority", "promoter", "backlink", "linker",
 	}, order)
 	replyLines := phase151PromoteThreadIntegrityLines(t, promoter.description)
 	assert.Equal(t, []string{"- @user: root source", "- @user: promoted reply", "- @user: earlier reply", "- @user: later reply"}, replyLines)

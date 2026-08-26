@@ -255,7 +255,7 @@ func TestPhase151PromoteToIssueTargetAuthorityConcealsAndStopsBeforeDownstream(t
 			require.Nil(t, response)
 			require.Error(t, err)
 			requireAppErrorCode(t, err, scenario.wantCode)
-			phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID)
+			phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID, 1)
 			if checker != nil {
 				assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{{
 					actorID: actorID, projectID: projectID,
@@ -411,7 +411,7 @@ func TestPhase151PromoteToIssueRechecksTargetAuthorityBeforeMutation(t *testing.
 			if scenario.redact != "" {
 				phase151AssertPromoteThreadIntegrityRedactedError(t, err, scenario.redact)
 			}
-			phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID)
+			phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID, 2)
 			assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{
 				{actorID: actorID, projectID: projectID},
 				{actorID: actorID, projectID: projectID},
@@ -434,6 +434,7 @@ func TestPhase151PromoteToIssueRechecksTargetAuthorityBeforeMutation(t *testing.
 				"scoped-replies",
 				"get-channel",
 				"display-name",
+				"scoped-live-source",
 				"target-authority",
 			}, order)
 		})
@@ -490,7 +491,7 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 	require.NoError(t, err)
 	require.NotNil(t, response)
 	assert.Equal(t, "HUB-151", response.IssueKey)
-	phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID)
+	phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID, 2)
 	assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{
 		{actorID: actorID, projectID: projectID},
 		{actorID: actorID, projectID: projectID},
@@ -513,6 +514,7 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 		"scoped-replies",
 		"get-channel",
 		"display-name",
+		"scoped-live-source",
 		"target-authority",
 		"promoter",
 		"backlink",
@@ -550,7 +552,7 @@ func TestPhase151PromoteToIssueSnapshotsPromotionDependenciesForRequest(t *testi
 	require.NoError(t, err)
 	require.NotNil(t, response)
 	assert.Equal(t, "HUB-151", response.IssueKey)
-	phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID)
+	phase151AssertPromoteTargetSourceAuthority(t, resolver, repository, actorID, channelID, source.ID, 2)
 	assert.Equal(t, []phase151PromoteTargetAuthorityTargetCall{
 		{actorID: actorID, projectID: projectID},
 		{actorID: actorID, projectID: projectID},
@@ -576,6 +578,7 @@ func TestPhase151PromoteToIssueSnapshotsPromotionDependenciesForRequest(t *testi
 		"scoped-replies",
 		"get-channel",
 		"display-name",
+		"scoped-live-source",
 		"target-authority",
 		"promoter",
 		"backlink",
@@ -693,14 +696,19 @@ func phase151AssertPromoteTargetSourceAuthority(
 	actorID uuid.UUID,
 	channelID uuid.UUID,
 	messageID string,
+	sourceCallCount int,
 ) {
 	t.Helper()
 	assert.Equal(t, []phase151ChannelAccessKey{{
 		actorID: actorID, channelID: channelID, action: messenger.ChannelActionPromote,
 	}}, resolver.calls)
-	assert.Equal(t, []phase151PromoteTargetAuthoritySourceCall{{
-		channelID: channelID, messageID: messageID,
-	}}, repository.sourceCalls)
+	expectedSourceCalls := make([]phase151PromoteTargetAuthoritySourceCall, 0, sourceCallCount)
+	for index := 0; index < sourceCallCount; index++ {
+		expectedSourceCalls = append(expectedSourceCalls, phase151PromoteTargetAuthoritySourceCall{
+			channelID: channelID, messageID: messageID,
+		})
+	}
+	assert.Equal(t, expectedSourceCalls, repository.sourceCalls)
 }
 
 func phase151AssertPromoteTargetNoDownstream(

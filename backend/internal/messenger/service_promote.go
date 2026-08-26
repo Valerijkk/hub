@@ -27,6 +27,25 @@ type promoteSourceLookup interface {
 	) (*MessageDocument, bool, error)
 }
 
+func lookupPromotionSource(
+	ctx context.Context,
+	lookup promoteSourceLookup,
+	channelID uuid.UUID,
+	messageID string,
+) (*MessageDocument, error) {
+	source, found, err := lookup.FindLiveMessageInChannel(ctx, channelID, messageID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
+	}
+	if !found {
+		return nil, apperrors.NewNotFound("сообщение не найдено")
+	}
+	if source == nil || source.ID == "" || source.ID != messageID || source.ChannelID != channelID || source.DeletedAt != nil {
+		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
+	}
+	return source, nil
+}
+
 type promoteThreadRepliesLookup interface {
 	ListLiveThreadRepliesInChannel(
 		ctx context.Context,
@@ -190,17 +209,10 @@ func (s *MessengerService) PromoteToIssue(
 	if !ok {
 		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
 	}
-	source, found, err := sourceLookup.FindLiveMessageInChannel(ctx, channelID, messageID)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
+	source, sourceErr := lookupPromotionSource(ctx, sourceLookup, channelID, messageID)
+	if sourceErr != nil {
+		return nil, sourceErr
 	}
-	if !found {
-		return nil, apperrors.NewNotFound("сообщение не найдено")
-	}
-	if source == nil || source.ID == "" || source.ID != messageID || source.ChannelID != channelID || source.DeletedAt != nil {
-		return nil, apperrors.NewInternal("ошибка проверки исходного сообщения")
-	}
-
 
 	// 2b. Снимок проверки цели используется для обеих проверок этого промоушена.
 	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
@@ -281,7 +293,10 @@ func (s *MessengerService) PromoteToIssue(
 	// 6. Формируем описание (Plate-совместимый JSON: doc → paragraph children).
 	description := s.buildPromotionDescription(ctx, channelName, parent, chronologicalReplies)
 
-	// 7. Повторно проверяем цель непосредственно перед созданием задачи.
+	// 7. Повторно проверяем источник и затем цель непосредственно перед созданием задачи.
+	if _, sourceErr := lookupPromotionSource(ctx, sourceLookup, channelID, messageID); sourceErr != nil {
+		return nil, sourceErr
+	}
 	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
 		return nil, checkErr
 	}
