@@ -1,4 +1,13 @@
 # Phase 147 — reliability and integration contract
+> **P3-D schema/migration checkpoint (2026-08-26):**
+> SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. The desired Ent fields, owning
+> many-to-one NoAction object-state edge, four database checks and traversal
+> index are authored. Exact migration 20260826000000 performs lock,
+> legacy-row preflight and additive DDL in one PostgreSQL DO statement.
+> Docker verification passed with 3 linted/applied versions, current version
+> 20260826000000, zero pending files, a converged one-file snapshot and empty
+> semantic comparisons. P3-D repository/service/worker, 147-02B/02C, D1/D2
+> and full runtime remain pending or NOT_RUN.
 > **P3-D deferred-receipt amendment (2026-08-26; frozen):** a receipt must add
 > nullable `deferred_object_state_id` and `deferred_expires_at`. They are
 > globally co-null, set together only on the first missing-master completion,

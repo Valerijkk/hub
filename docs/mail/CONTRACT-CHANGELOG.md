@@ -1,5 +1,19 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Deferred inbound receipt expiry schema
+
+SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN.
+
+Calendar inbound message receipts now carry a nullable co-null link to the
+canonical inbound object state and an exact logical expiry. Database checks
+enforce pair integrity, second precision, deferred-state completeness and the
+retry due cap; the many-to-one foreign key uses NO ACTION and has a
+non-unique traversal index. Exact additive migration 20260826000000 performs
+its exclusive lock, legacy deferred-row preflight and DDL in one PostgreSQL
+DO statement. The bounded Docker schema gate passed with 3 executed/0
+pending migrations and converged lint, snapshot and semantic comparisons.
+P3-D repository/service/worker and full Mail/Calendar runtime remain pending.
+
 ## 2026-08-25 - Calendar delivery stale-claim recovery indexes
 
 SOURCE_ONLY / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / NOT_RUN / provenance_source: dispatcher-enforced.

@@ -68,6 +68,12 @@ func (CalendarInboundMessageReceipt) Fields() []ent.Field {
 		field.UUID("calendar_event_id", uuid.UUID{}).
 			Optional().
 			Nillable(),
+		field.UUID("deferred_object_state_id", uuid.UUID{}).
+			Optional().
+			Nillable(),
+		field.Time("deferred_expires_at").
+			Optional().
+			Nillable(),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -85,6 +91,10 @@ func (CalendarInboundMessageReceipt) Annotations() []schema.Annotation {
 			"calendar_inbound_message_receipts_attempts_bounds":          "attempts >= 0 AND attempts <= 8",
 			"calendar_inbound_message_receipts_organization_id_nonzero":  "organization_id <> '00000000-0000-0000-0000-000000000000'::uuid",
 			"calendar_inbound_message_receipts_mailbox_id_nonzero":       "mailbox_id <> '00000000-0000-0000-0000-000000000000'::uuid",
+			"calendar_inbound_message_receipts_deferred_pair":            "(deferred_object_state_id IS NULL) = (deferred_expires_at IS NULL)",
+			"calendar_inbound_message_receipts_deferred_expiry_second":   "deferred_expires_at IS NULL OR date_trunc('second', deferred_expires_at) = deferred_expires_at",
+			"calendar_inbound_message_receipts_deferred_state":           "state <> 'deferred_missing_master' OR (deferred_object_state_id IS NOT NULL AND deferred_expires_at IS NOT NULL)",
+			"calendar_inbound_message_receipts_deferred_retry":           "deferred_object_state_id IS NULL OR next_attempt_at IS NULL OR next_attempt_at <= deferred_expires_at",
 			"calendar_inbound_message_receipts_state_shape":              "COALESCE((state = 'pending' AND lease_token IS NULL AND lease_until IS NULL AND ((attempts = 0 AND next_attempt_at IS NULL) OR (attempts > 0 AND next_attempt_at IS NOT NULL))) OR (state = 'processing' AND lease_token IS NOT NULL AND lease_until IS NOT NULL AND lease_generation >= 1 AND attempts >= 1 AND next_attempt_at IS NULL AND error_code IS NULL) OR (state IN ('applied','ignored_stale','duplicate','quarantined','dead_letter') AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NULL) OR (state = 'deferred_missing_master' AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NOT NULL), FALSE)",
 		}),
 	}
@@ -97,6 +107,10 @@ func (CalendarInboundMessageReceipt) Edges() []ent.Edge {
 			Field("calendar_event_id").
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("deferred_object_state", CalendarInboundObjectState.Type).
+			Field("deferred_object_state_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.NoAction)),
 	}
 }
 
@@ -110,5 +124,7 @@ func (CalendarInboundMessageReceipt) Indexes() []ent.Index {
 		index.Fields("state", "next_attempt_at", "id").
 			StorageKey("calendar_inbound_message_receipts_due_idx").
 			Annotations(entsql.IndexWhere("state IN ('pending','deferred_missing_master') AND next_attempt_at IS NOT NULL")),
+		index.Fields("deferred_object_state_id").
+			StorageKey("calendar_inbound_message_receipts_deferred_object_state_idx"),
 	}
 }

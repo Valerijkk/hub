@@ -7,6 +7,14 @@
 > **Contract:** `CONTRACT.md` + Mail 0.1.8 root candidate
 > **Execution:** one row/variant per executor; overlapping files are sequential
 
+> **P3-D schema/migration checkpoint (2026-08-26):**
+> SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. The exact Ent schema and
+> additive 20260826000000 lineage passed the bounded Docker schema gate:
+> 3 versions linted/applied, current version exact, 0 pending, snapshot and
+> semantic parity converged. Only schema/migration authority is consumed;
+> repository/service/worker, 147-02B/02C, D1/D2 and product runtime remain
+> pending.
+
 Every code packet starts from a root-reviewed clean SHA, writes its stated genuine unit
 first, owns only its allowed files, makes no commit, and returns `BLOCKED` when a dependency,
 model, generation or external gate is missing. Assemble the Common envelope plus exactly

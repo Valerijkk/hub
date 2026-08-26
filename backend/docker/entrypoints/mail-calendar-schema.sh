@@ -21,7 +21,8 @@ readonly GENERATE_FIRST_EXEC_DIR="$GO_RUN_EXEC_ROOT/generate-first"
 readonly GENERATE_SECOND_EXEC_DIR="$GO_RUN_EXEC_ROOT/generate-second"
 readonly BASELINE_FILENAME=20260823000000_mail_calendar_baseline.sql
 readonly CORE_FILENAME=20260823000001_mail_calendar_core.sql
-readonly SNAPSHOT_FILENAME=20260823000001_current_snapshot.sql
+readonly DEFERRED_RECEIPT_EXPIRY_FILENAME=20260826000000_calendar_deferred_receipt_expiry.sql
+readonly SNAPSHOT_FILENAME=20260826000000_current_snapshot.sql
 readonly EXPECTED_DATABASE_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public'
 readonly EXPECTED_PREFEATURE_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar'
 readonly EXPECTED_CURRENT_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar'
@@ -707,7 +708,7 @@ run_diff() {
 run_verify() {
   require_exact_atlas_cli
   require_internal_database_urls
-  require_exact_files 3 "$BASELINE_FILENAME" "$CORE_FILENAME" atlas.sum
+  require_exact_files 4 "$BASELINE_FILENAME" "$CORE_FILENAME" "$DEFERRED_RECEIPT_EXPIRY_FILENAME" atlas.sum
   start_materializer_job
 
   run_materializer materialize current || fail 'schema-maintenance: cannot materialize current schema' "$EX_CONFIG"
@@ -718,7 +719,7 @@ run_verify() {
   "$ATLAS_CLI" migrate lint \
     --dir "file://$LINEAGE_DIR" \
     --dev-url "$ATLAS_LINT_DEV_URL" \
-    --latest 2 ||
+    --latest 3 ||
     fail 'schema-maintenance: Mail/Calendar lineage lint failed' "$EX_CONFIG"
   "$ATLAS_CLI" migrate apply \
     --dir "file://$LINEAGE_DIR" \
@@ -741,9 +742,9 @@ run_verify() {
   [ "$materializer_verification_status_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
     fail 'schema-maintenance: verification migration status exceeds review size limit' "$EX_CONFIG"
   if ! grep -Eq '^[[:space:]]*Migration Status:[[:space:]]*OK[[:space:]]*$' "$materializer_verification_status" ||
-    ! grep -Eq '^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*20260823000001[[:space:]]*$' "$materializer_verification_status" ||
+    ! grep -Eq '^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*20260826000000[[:space:]]*$' "$materializer_verification_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Next Version:[[:space:]]*Already at latest version[[:space:]]*$' "$materializer_verification_status" ||
-    ! grep -Eq '^[[:space:]]*--[[:space:]]+Executed Files:[[:space:]]*2[[:space:]]*$' "$materializer_verification_status" ||
+    ! grep -Eq '^[[:space:]]*--[[:space:]]+Executed Files:[[:space:]]*3[[:space:]]*$' "$materializer_verification_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Pending Files:[[:space:]]*0[[:space:]]*$' "$materializer_verification_status"; then
     emit_review_file "$materializer_verification_status" >&2
     fail 'schema-maintenance: verification migration status did not converge' "$EX_CONFIG"
@@ -824,7 +825,7 @@ run_verify() {
   [ "$materializer_snapshot_status_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
     fail 'schema-maintenance: current schema snapshot migration status exceeds review size limit' "$EX_CONFIG"
   if ! grep -Eq '^[[:space:]]*Migration Status:[[:space:]]*OK[[:space:]]*$' "$materializer_snapshot_status" ||
-    ! grep -Eq '^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*20260823000001[[:space:]]*$' "$materializer_snapshot_status" ||
+    ! grep -Eq '^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*20260826000000[[:space:]]*$' "$materializer_snapshot_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Next Version:[[:space:]]*Already at latest version[[:space:]]*$' "$materializer_snapshot_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Executed Files:[[:space:]]*1[[:space:]]*$' "$materializer_snapshot_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Pending Files:[[:space:]]*0[[:space:]]*$' "$materializer_snapshot_status"; then

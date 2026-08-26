@@ -1,15 +1,15 @@
 ---
 mail_calendar_deferred_receipt_amendment_2026_08_26: >-
-  CONTRACT_FROZEN / SOURCE_PENDING. P3-D review found that a due receipt could
-  not prove first-deferral plus seven-day expiry or locate its deferred object
-  state without re-reading Mail. The minimal frozen fix adds nullable co-null
-  deferred_object_state_id and deferred_expires_at to the Calendar inbound
-  message receipt. The pair is set atomically on first deferral, preserved by
-  later CAS transitions, caps every later due time, and lets an expired or
-  attempt-8 claim dead-letter missing_master_expired before Mail I/O. The
-  receipt owns a many-to-one NoAction FK to the canonical object state; expiry
-  is logical until bounded retention cleanup. Schema source, migration,
-  repository/service/worker, Docker and runtime evidence remain pending.
+  SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. Ent desired state now adds the
+  nullable co-null deferred_object_state_id and deferred_expires_at pair, a
+  many-to-one NoAction object-state FK, second-precision/pair/state/due-cap
+  checks and the traversal index. The exact additive 20260826000000 migration
+  locks and preflights legacy deferred rows before changing the table in one
+  PostgreSQL DO statement. Docker schema-maintenance-verify passed: lint 3
+  versions/260 changes, apply current 20260826000000 with 3 executed and 0
+  pending, snapshot current with 1 executed and 0 pending, and empty semantic
+  comparisons. Repository/service/worker behavior, 147-02B/02C, D1/D2, full
+  application Docker runtime and product readiness remain pending/NOT_RUN.
 mail_calendar_part_source_2026_08_26: >-
   SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN. Commit
   da197b74 adds the concrete MailboxEntCalendarPartSource and a short

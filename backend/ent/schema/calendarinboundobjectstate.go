@@ -102,6 +102,8 @@ func (CalendarInboundObjectState) Edges() []ent.Edge {
 			Field("calendar_event_id").
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.From("deferred_message_receipts", CalendarInboundMessageReceipt.Type).
+			Ref("deferred_object_state"),
 	}
 }
 

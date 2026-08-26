@@ -1,4 +1,11 @@
 # Phase 147 — executable packet contracts
+> **P3-D schema/migration checkpoint (2026-08-26):**
+> SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. Receipt/object-state Ent
+> desired state and the exact additive 20260826000000 lineage are accepted;
+> Docker lint/apply/status/snapshot/semantic comparison passed at 3 executed
+> and 0 pending migrations. This consumes only the schema/migration portion of
+> the packet. Repository/service/worker code, 147-02B/02C, D1/D2 and full
+> application Docker readiness remain pending.
 > **P3-D schema amendment (2026-08-26; frozen):** before D1/D2, add the exact
 > nullable co-null receipt fields `deferred_object_state_id` and
 > `deferred_expires_at`, with a many-to-one `NoAction` object-state FK,

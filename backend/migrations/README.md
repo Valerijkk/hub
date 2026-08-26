@@ -1,5 +1,29 @@
 # Migration artifacts
 
+## Mail/Calendar deferred-receipt expiry checkpoint (2026-08-26)
+
+The accepted mail-calendar-v1 lineage now contains
+20260826000000_calendar_deferred_receipt_expiry.sql after the baseline and
+core migrations. A broad Atlas-generated candidate was rejected because it
+included unrelated Mail constraint/index drop-and-recreate noise. The accepted
+file is an exact additive migration: one PostgreSQL DO statement acquires an
+ACCESS EXCLUSIVE receipt-table lock, aborts when legacy
+deferred_missing_master rows exist, and then adds the nullable object-state
+link, exact expiry, four checks, NO ACTION foreign key, and traversal index in
+the same transaction.
+
+schema-maintenance-verify passed in Docker on 2026-08-26: Atlas lint covered
+three versions and 260 schema changes; all three migrations (555 statements)
+applied at version 20260826000000 with zero pending files; the one-file
+current-schema snapshot converged to the same version; forward and reverse
+semantic comparisons were empty. This proves this schema lineage only. The
+run used the disposable schema-maintenance PostgreSQL instance; it is not
+evidence of an upgrade over retained production receipts. A live rollout still
+requires a verified backup and successful execution of the same fail-closed
+preflight on the target database. The
+P3-D repository/service/worker, 147-02B/02C, D1/D2, full application runtime,
+and product readiness remain NOT_RUN or pending.
+
 Ent schemas in `backend/ent/schema/**` are the desired-state source of truth.
 Atlas may derive candidate SQL, lint it, maintain checksums and apply an accepted
 versioned lineage; it is not a second schema authority. Generated Ent Go remains

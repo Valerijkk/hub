@@ -6,6 +6,14 @@
 > Required code runtime: `gpt-5.6-terra` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
+> **P3-D schema/migration checkpoint (2026-08-26):**
+> SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. Ent desired state and exact
+> additive version 20260826000000 are authored and Docker-verified at 3
+> executed/0 pending migrations; lint, snapshot and semantic parity passed.
+> The broad generated candidate was rejected because it contained unrelated
+> Mail churn. P3-D repository/service/worker, 147-02B/02C, D1/D2 and full
+> application Docker readiness remain pending.
+
 ## Outcome
 
 Close deterministic incoming invitation ordering and outward REPLY recovery, private

@@ -1,5 +1,15 @@
 # Mail engine boundary 0.1.8
 >
+> **P3-D schema/migration checkpoint (2026-08-26):**
+> SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. The inbound receipt now has
+> the nullable co-null deferred object-state link and exact expiry, protected
+> by the owning NO ACTION FK, four checks and traversal index. The additive
+> migration locks, preflights and changes the table in one PostgreSQL DO
+> statement. Docker lineage verification passed at version 20260826000000
+> with 3 executed/0 pending and converged snapshot/semantic comparisons.
+> Repository/service/worker, 147-02B/02C, D1/D2 and product runtime remain
+> pending.
+>
 > **Concrete P3-C source checkpoint (2026-08-26):** `da197b74` adds the exact
 > Mail Ent source boundary around `ReadCalendarPart` with two short read-only
 > repeatable-read snapshots, one five-second bounded engine call, verified

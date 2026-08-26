@@ -6,6 +6,18 @@
 
 > **Phase-147 P3-B static acceptance (2026-08-23):** Source commit `43a6c42af88524be2951966bdbfc83b422ecb7f9` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/internal/calendar/event_repository.go`, `backend/internal/calendar/event_service_inbound_reply.go`, and `backend/internal/calendar/event_service_inbound_message.go`. Scope is transaction ABI only: receipt-first single `EventTransaction`, opaque claim/scope/completion, and closed observed/error-code constructor ABI, preserving REPLY receipt/outbox behavior without nested transactions or duplicate logic. Contract/high and Security/xhigh approved C/I/M `0/0/0`. CONSUMED/HISTORICAL: P3-C was the sole next pending atom, blocked on Mail Ent generation, for exactly `backend/internal/mail/mailbox_ent_calendar_part.go` and `backend/internal/mail/mailbox_ent_repository.go`; P3-D/E remain pending/blocked. All generation, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker, and runtime evidence is `NOT_RUN`. No merge, product, or Docker-readiness claim is authorized.
 
+> **P3-D schema/migration checkpoint (2026-08-26):**
+> SCHEMA_MIGRATION_VERIFIED / RUNTIME_NOT_RUN. Docker
+> schema-maintenance-verify passed for the exact three-file lineage: lint
+> covered 3 versions/260 changes; apply reached 20260826000000 with 3
+> executed/0 pending; the one-file snapshot reached the same version and
+> semantic comparisons were empty. This is schema evidence only. P3-D
+> verification used disposable schema-maintenance PostgreSQL, not retained
+> production rows; live rollout still requires a verified backup and the same
+> target-database preflight to succeed. P3-D
+> repository/service/worker, 147-02B/02C, D1/D2, API/UI integration and the
+> full application Docker run remain pending/NOT_RUN.
+
 ## Inbound Mail-to-Calendar P0-P2 prerequisite acceptance (2026-08-23)
 
 `STATIC_SOURCE_ONLY / RUNTIME_NOT_RUN`: P0 contract `0d4fa053d569631234c5a7f902341bb6a73a7d46`
