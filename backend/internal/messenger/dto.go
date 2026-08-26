@@ -187,6 +187,8 @@ type MessageDocument struct {
 	ContentText     string                 `bson:"content_text,omitempty"`
 	ThreadID        string                 `bson:"thread_id,omitempty"`
 	ClientNonce     string                 `bson:"client_nonce,omitempty"`
+	ClientNonceFingerprint        string                 `bson:"client_nonce_fingerprint,omitempty"`
+	ClientNonceFingerprintVersion int                    `bson:"client_nonce_fingerprint_version,omitempty"`
 	ReplyCount      int                    `bson:"reply_count"`
 	ForwardedFromID string                 `bson:"forwarded_from_id,omitempty"`
 	VoiceURL        string                 `bson:"voice_url,omitempty"`

@@ -149,7 +149,10 @@ func TestPhase151RecipientInvalidationIsAfterDurableCASAndRetryHasNoEffects(t *t
 	})
 
 	t.Run("CAS miss and created-false retry publish nothing and repeat no effects", func(t *testing.T) {
-		canonical := &messenger.MessageDocument{ID: "phase151-existing-canonical", ChannelID: scope.ChannelID, SenderID: scope.ActorID, ClientNonce: request.Message.ClientNonce, PostCreateEffectsState: messenger.PostCreateEffectsStatePending}
+		canonical := phase151PostCreateCanonicalResult(
+			t, scope, request, false, messenger.PostCreateEffectsStatePending,
+		).Message
+		canonical.ID = "phase151-existing-canonical"
 		recorder := &phase151RealtimePostCreateRecorder{canonical: canonical, casClaimed: false}
 		result, err := messenger.ExportPhase151ExecutePostCreatePipeline(context.Background(), scope, request, recorder)
 

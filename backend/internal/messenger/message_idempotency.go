@@ -2,11 +2,71 @@ package messenger
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"sort"
 
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
+
+const clientNonceFingerprintVersionV1 = 1
+
+type clientNonceFingerprintPayloadV1 struct {
+	Version           int                    `json:"version"`
+	Producer          TrustedMessageProducer `json:"producer"`
+	ChannelID         string                 `json:"channel_id"`
+	SenderID          string                 `json:"sender_id"`
+	ClientNonce       string                 `json:"client_nonce"`
+	MessageType       string                 `json:"message_type"`
+	PollID            string                 `json:"poll_id"`
+	ContentJSON       json.RawMessage        `json:"content_json"`
+	ContentText       string                 `json:"content_text"`
+	ThreadID          string                 `json:"thread_id"`
+	AlsoSendToChannel bool                   `json:"also_send_to_channel"`
+	ForwardedFromID   string                 `json:"forwarded_from_id"`
+	VoiceURL          string                 `json:"voice_url"`
+	VoiceDurationMs   int                    `json:"voice_duration_ms"`
+	Attachments       []AttachmentRef        `json:"attachments"`
+	Mentions          []string               `json:"mentions"`
+	MentionGroups     []string               `json:"mention_groups"`
+}
+
+func buildPostCreateClientNonceFingerprint(request PostCreatePipelineRequest) (string, error) {
+	contentJSON, err := json.Marshal(request.Message.ContentJSON)
+	if err != nil {
+		return "", err
+	}
+	attachments := append([]AttachmentRef(nil), request.Message.Attachments...)
+	if len(attachments) == 0 {
+		attachments = nil
+	}
+	payload := clientNonceFingerprintPayloadV1{
+		Version:           clientNonceFingerprintVersionV1,
+		Producer:          request.Producer,
+		ChannelID:         request.Message.ChannelID.String(),
+		SenderID:          request.Message.SenderID.String(),
+		ClientNonce:       request.Message.ClientNonce,
+		MessageType:       request.Message.MessageType,
+		PollID:            request.Message.PollID,
+		ContentJSON:       contentJSON,
+		ContentText:       request.Message.ContentText,
+		ThreadID:          request.Message.ThreadID,
+		AlsoSendToChannel: request.Message.AlsoSendToChannel,
+		ForwardedFromID:   request.Message.ForwardedFromID,
+		VoiceURL:          request.Message.VoiceURL,
+		VoiceDurationMs:   request.Message.VoiceDurationMs,
+		Attachments:       attachments,
+		Mentions:          sortedUniqueStrings(request.Message.Mentions),
+		MentionGroups:     sortedUniqueStrings(request.Message.MentionGroups),
+	}
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256(encoded)
+	return hex.EncodeToString(digest[:]), nil
+}
 
 func validateCanonicalMessage(requested, canonical *MessageDocument) error {
 	if canonical == nil {

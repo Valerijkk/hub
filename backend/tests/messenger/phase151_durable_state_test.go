@@ -137,6 +137,8 @@ func TestPhase151DurableMessageContractPersistsNoUnreadCounter(t *testing.T) {
 	require.Contains(t, fields, "post_create_effects_completed_at")
 	require.Contains(t, fields, "also_send_to_channel")
 	require.Contains(t, fields, "resolved_mention_user_ids")
+	require.Contains(t, fields, "client_nonce_fingerprint")
+	require.Contains(t, fields, "client_nonce_fingerprint_version")
 	assert.NotContains(t, fields, "unread_count")
 	assert.NotContains(t, fields, "unread_counter")
 }

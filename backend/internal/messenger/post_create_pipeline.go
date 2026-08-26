@@ -178,6 +178,13 @@ func validatePostCreateCanonicalResult(
 		return ErrPostCreatePipelineInvalid
 	}
 
+	expectedFingerprint, err := buildPostCreateClientNonceFingerprint(request)
+	if err != nil ||
+		result.Message.ClientNonceFingerprintVersion != clientNonceFingerprintVersionV1 ||
+		result.Message.ClientNonceFingerprint != expectedFingerprint {
+		return ErrPostCreatePipelineInvalid
+	}
+
 	messageState := result.Message.PostCreateEffectsState
 	if messageState == "" {
 		messageState = PostCreateEffectsStateComplete
@@ -208,12 +215,18 @@ func ExportPhase151PreparePendingCanonicalMessage(
 	if err != nil {
 		return nil, fmt.Errorf("%w: content_json", ErrPostCreatePipelineInvalid)
 	}
+	fingerprint, err := buildPostCreateClientNonceFingerprint(request)
+	if err != nil {
+		return nil, fmt.Errorf("%w: client_nonce_fingerprint", ErrPostCreatePipelineInvalid)
+	}
 	document := request.Message
 	document.ContentJSON = contentJSON
 	document.Attachments = append([]AttachmentRef(nil), request.Message.Attachments...)
 	document.Mentions = append([]string(nil), request.Message.Mentions...)
 	document.MentionGroups = append([]string(nil), request.Message.MentionGroups...)
 	document.ResolvedMentionUserIDs = append([]uuid.UUID(nil), resolvedMentions...)
+	document.ClientNonceFingerprint = fingerprint
+	document.ClientNonceFingerprintVersion = clientNonceFingerprintVersionV1
 	document.PostCreateEffectsState = PostCreateEffectsStatePending
 	document.CreatedAt = now.UTC()
 	return &document, nil
@@ -250,7 +263,8 @@ func validatePostCreatePipelineRequest(
 		message.ClientNonce == "" {
 		return ErrPostCreatePipelineInvalid
 	}
-	if message.ID != "" || message.ReplyCount != 0 || len(message.Reactions) != 0 ||
+	if message.ID != "" || message.ClientNonceFingerprint != "" ||
+		message.ClientNonceFingerprintVersion != 0 || message.ReplyCount != 0 || len(message.Reactions) != 0 ||
 		len(message.ResolvedMentionUserIDs) != 0 || message.PostCreateEffectsState != "" ||
 		message.PostCreateEffectsCompletedAt != nil || message.EditedAt != nil ||
 		message.DeletedAt != nil || !message.CreatedAt.IsZero() {

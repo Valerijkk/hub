@@ -298,26 +298,25 @@ func TestPhase151InvalidFullPayloadStopsBeforeRepository(t *testing.T) {
 	assert.Empty(t, recorder.calls, "invalid prepared payload must stop before nonce lookup, mention resolution, or persistence")
 }
 func TestPhase151CreatedFalseRetryRepeatsNoPostCreateEffect(t *testing.T) {
-	channelID := uuid.New()
-	canonical := &messenger.MessageDocument{
-		ID: "phase151-canonical-retry", ChannelID: channelID, SenderID: uuid.New(),
-		ClientNonce: "phase151-existing-canonical",
-		PostCreateEffectsState: messenger.PostCreateEffectsStateComplete,
-	}
-	recorder := newPhase151PostCreateRecorder()
-	recorder.created = false
-	recorder.canonical = canonical
+	channelID, actorID := uuid.New(), uuid.New()
 	scope := messenger.AuthorizedMessageProducerScope{
-		TenantID: uuid.New(), ActorID: canonical.SenderID, ChannelID: channelID,
+		TenantID: uuid.New(), ActorID: actorID, ChannelID: channelID,
 		Producer: messenger.TrustedMessageProducerUser,
 	}
 	request := messenger.PostCreatePipelineRequest{
 		Producer: messenger.TrustedMessageProducerUser,
 		Message: messenger.MessageDocument{
-			ChannelID: channelID, SenderID: canonical.SenderID, ContentText: "retry",
+			ChannelID: channelID, SenderID: actorID, ContentText: "retry",
 			ClientNonce: "phase151-existing-canonical",
 		},
 	}
+	canonicalResult := phase151PostCreateCanonicalResult(
+		t, scope, request, false, messenger.PostCreateEffectsStateComplete,
+	)
+	canonical := canonicalResult.Message
+	recorder := newPhase151PostCreateRecorder()
+	recorder.created = false
+	recorder.canonical = canonical
 
 	result, err := messenger.ExportPhase151ExecutePostCreatePipeline(context.Background(), scope, request, recorder)
 
@@ -358,7 +357,7 @@ func TestPhase151RejectsMalformedCanonicalLookupResultBeforeEffects(t *testing.T
 		scenario := scenario
 		t.Run(scenario.name, func(t *testing.T) {
 			scope, request := phase151PostCreateCanonicalResultFixture()
-			canonical := phase151PostCreateCanonicalResult(scope, request, false, messenger.PostCreateEffectsStateComplete)
+			canonical := phase151PostCreateCanonicalResult(t, scope, request, false, messenger.PostCreateEffectsStateComplete)
 			scenario.mutate(&canonical)
 			recorder := &phase151PostCreateResultRecorder{
 				phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
@@ -406,7 +405,7 @@ func TestPhase151RejectsMalformedPersistResultBeforeEffects(t *testing.T) {
 		scenario := scenario
 		t.Run(scenario.name, func(t *testing.T) {
 			scope, request := phase151PostCreateCanonicalResultFixture()
-			canonical := phase151PostCreateCanonicalResult(scope, request, true, messenger.PostCreateEffectsStatePending)
+			canonical := phase151PostCreateCanonicalResult(t, scope, request, true, messenger.PostCreateEffectsStatePending)
 			scenario.mutate(&canonical)
 			recorder := &phase151PostCreateResultRecorder{
 				phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
@@ -431,7 +430,7 @@ func TestPhase151RejectsMalformedPersistResultBeforeEffects(t *testing.T) {
 func TestPhase151ValidCanonicalRetriesRemainNoEffect(t *testing.T) {
 	t.Run("legacy lookup missing message state is complete", func(t *testing.T) {
 		scope, request := phase151PostCreateCanonicalResultFixture()
-		canonical := phase151PostCreateCanonicalResult(scope, request, false, "")
+		canonical := phase151PostCreateCanonicalResult(t, scope, request, false, "")
 		canonical.PostCreateEffectsState = messenger.PostCreateEffectsStateComplete
 		recorder := &phase151PostCreateResultRecorder{
 			phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
@@ -449,7 +448,7 @@ func TestPhase151ValidCanonicalRetriesRemainNoEffect(t *testing.T) {
 
 	t.Run("persist race returns existing complete canonical", func(t *testing.T) {
 		scope, request := phase151PostCreateCanonicalResultFixture()
-		canonical := phase151PostCreateCanonicalResult(scope, request, false, messenger.PostCreateEffectsStateComplete)
+		canonical := phase151PostCreateCanonicalResult(t, scope, request, false, messenger.PostCreateEffectsStateComplete)
 		recorder := &phase151PostCreateResultRecorder{
 			phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
 			persistResult: &canonical,
@@ -565,20 +564,22 @@ func phase151PostCreateCanonicalResultFixture() (
 }
 
 func phase151PostCreateCanonicalResult(
+	t *testing.T,
 	scope messenger.AuthorizedMessageProducerScope,
 	request messenger.PostCreatePipelineRequest,
 	created bool,
 	messageState messenger.PostCreateEffectsState,
 ) messenger.CreateMessageResult {
-	message := &messenger.MessageDocument{
-		ID: "phase151-canonical-result-id",
-		ChannelID: scope.ChannelID,
-		SenderID: scope.ActorID,
-		ContentText: request.Message.ContentText,
-		ClientNonce: request.Message.ClientNonce,
-		PostCreateEffectsState: messageState,
-		CreatedAt: time.Date(2026, time.August, 27, 1, 0, 0, 0, time.UTC),
-	}
+	t.Helper()
+	message, err := messenger.ExportPhase151PreparePendingCanonicalMessage(
+		scope,
+		request,
+		nil,
+		time.Date(2026, time.August, 27, 1, 0, 0, 0, time.UTC),
+	)
+	require.NoError(t, err)
+	message.ID = "phase151-canonical-result-id"
+	message.PostCreateEffectsState = messageState
 	resultState := messageState
 	if resultState == "" {
 		resultState = messenger.PostCreateEffectsStateComplete

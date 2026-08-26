@@ -108,6 +108,8 @@ func ExportPhase151DurableMessageBSONFields() []string {
 		"post_create_effects_completed_at",
 		"also_send_to_channel",
 		"resolved_mention_user_ids",
+		"client_nonce_fingerprint",
+		"client_nonce_fingerprint_version",
 	}
 }
 
