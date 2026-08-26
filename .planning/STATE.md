@@ -1,4 +1,10 @@
 ---
+mail_calendar_resource_limit_quarantine_abi_2026_08_26: >-
+  SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+  The closed inbound-message completion vocabulary now permits resource_limit
+  for quota-cap quarantine as well as payload terminal dead-letter. The
+  completion kind remains authoritative: unseen-UID cap quarantine performs
+  no Calendar/object mutation or outbox emission.
 mail_calendar_tombstone_completion_abi_2026_08_26: >-
   SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
   The opaque inbound-message completion now distinguishes material applied

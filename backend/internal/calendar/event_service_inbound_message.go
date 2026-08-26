@@ -235,6 +235,7 @@ func validCalendarInboundQuarantinedErrorCode(code CalendarInboundMessageErrorCo
 		CalendarInboundMessageErrorUntrustedSender,
 		CalendarInboundMessageErrorOrganizerMismatch,
 		CalendarInboundMessageErrorEqualSequenceConflict,
+		CalendarInboundMessageErrorResourceLimit,
 		CalendarInboundMessageErrorInternal:
 		return true
 	default:

@@ -1,5 +1,14 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Quota-cap resource-limit completion
+
+SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+
+Resource limit is now valid for the quota-cap quarantine path as well as
+the existing payload terminal dead-letter path. Completion kind remains part
+of the contract: unseen-UID cap quarantine performs no Calendar/object
+mutation and emits no outbox event.
+
 ## 2026-08-26 - Early CANCEL tombstone completion
 
 SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.

@@ -422,10 +422,12 @@ receipt allowlist: `message_unavailable|part_unavailable|malformed_itip|unsuppor
 unsupported_version|untrusted_sender|organizer_mismatch|equal_sequence_conflict|missing_master_expired|
 resource_limit|retry_exhausted|engine_unavailable|database_unavailable|internal_error`.
 Quarantine allows only `malformed_itip|unsupported_method|unsupported_version|untrusted_sender|
-organizer_mismatch|equal_sequence_conflict|internal_error`; dead letter only
+organizer_mismatch|equal_sequence_conflict|resource_limit|internal_error`; dead letter only
 `message_unavailable|part_unavailable|missing_master_expired|resource_limit|retry_exhausted|
 internal_error`; retry only `engine_unavailable|database_unavailable|internal_error`; deferred has nil
-error. Constructors take no timestamp, lease token, generation, or raw content. The repository derives due
+error. `quarantined/resource_limit` is the zero-mutation, no-outbox unseen-UID quota-cap
+path; `dead_letter/resource_limit` remains the separate payload terminal path. Consumers classify
+the kind/code pair. Constructors take no timestamp, lease token, generation, or raw content. The repository derives due
 time from receipt attempts and its DB clock; `CompleteCalendarInboundMessageReceipt` alone clears/sets
 lease and due by validated kind. `bool=false, nil` (that is, `valid=false, err=nil`) is a lease-lost/
 terminal no-op with no Calendar mutation.

@@ -394,10 +394,13 @@ receipt allowlist: `message_unavailable|part_unavailable|malformed_itip|unsuppor
 unsupported_version|untrusted_sender|organizer_mismatch|equal_sequence_conflict|missing_master_expired|
 resource_limit|retry_exhausted|engine_unavailable|database_unavailable|internal_error`.
 Quarantine permits only `malformed_itip|unsupported_method|unsupported_version|untrusted_sender|
-organizer_mismatch|equal_sequence_conflict|internal_error`; dead letter only
+organizer_mismatch|equal_sequence_conflict|resource_limit|internal_error`; dead letter only
 `message_unavailable|part_unavailable|missing_master_expired|resource_limit|retry_exhausted|
 internal_error`; retry only `engine_unavailable|database_unavailable|internal_error`; deferred has nil
-error. Constructors accept no timestamp, lease token, generation, or raw content. The repository computes
+error. The quota-cap pair `quarantined/resource_limit` performs no Calendar/object mutation
+or outbox and remains distinct from payload terminal `dead_letter/resource_limit`; consumers
+classify the completion kind and error code together. Constructors accept no timestamp, lease token,
+generation, or raw content. The repository computes
 due time from receipt attempts and its database clock; `CompleteCalendarInboundMessageReceipt` alone
 clears/sets lease and due according to the validated completion kind. `bool=false, nil` (that is,
 `valid=false, err=nil`) means the lease was lost or terminal and causes no Calendar mutation. This seam factors the current public
