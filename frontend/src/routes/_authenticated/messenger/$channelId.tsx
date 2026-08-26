@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
 import { ChatView } from "@/components/messenger/chat-view";
 import { useMessengerStore } from "@/stores/messenger-store";
@@ -75,16 +75,22 @@ class ChatErrorBoundary extends Component<
 
 function ChannelPage() {
 	const { channelId } = Route.useParams();
+	const navigate = useNavigate();
 	const setActiveChannel = useMessengerStore((s) => s.setActiveChannel);
-	const resetUnread = useMessengerStore((s) => s.resetUnread);
+	const isRevoked = useMessengerStore((s) =>
+		s.revokedChannelIds.has(channelId),
+	);
+
+	useEffect(() => {
+		if (isRevoked) void navigate({ to: "/messenger", replace: true });
+	}, [isRevoked, navigate]);
 
 	useEffect(() => {
 		setActiveChannel(channelId);
-		resetUnread(channelId);
 		return () => {
 			setActiveChannel(null);
 		};
-	}, [channelId, setActiveChannel, resetUnread]);
+	}, [channelId, setActiveChannel]);
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">

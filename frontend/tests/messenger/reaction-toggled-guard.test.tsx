@@ -3,7 +3,13 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message } from "@/api/messenger";
-import { useMessages, useThreadMessages } from "@/hooks/use-messages";
+import {
+	messagesQueryKey,
+	threadMessagesQueryKey,
+	useMessages,
+	useThreadMessages,
+} from "@/hooks/use-messages";
+import { useAuthStore } from "@/stores/auth-store";
 import { useWsStore } from "@/stores/ws-store";
 
 const api = vi.hoisted(() => ({
@@ -35,8 +41,16 @@ type ReactionDelta = {
 
 const channelId = "channel-1";
 const threadId = "root-1";
-const rootQueryKey = ["messenger", "messages", channelId] as const;
-const threadQueryKey = ["messenger", "thread", channelId, threadId] as const;
+const user = {
+	id: "reaction-user",
+	email: "reaction@example.test",
+	timezone: "UTC",
+	language: "en",
+	system_role: "member",
+	onboarding_completed: true,
+};
+const rootQueryKey = messagesQueryKey(channelId, user.id);
+const threadQueryKey = threadMessagesQueryKey(channelId, threadId, user.id);
 
 function message(id: string, thread?: string): Message {
 	return {
@@ -60,6 +74,7 @@ describe("reaction_toggled delta reconciliation", () => {
 		});
 		api.getMessages.mockResolvedValue([]);
 		api.getThreadReplies.mockResolvedValue([]);
+		useAuthStore.setState({ user });
 		useWsStore.setState({
 			connected: true,
 			socket: null,
@@ -70,6 +85,7 @@ describe("reaction_toggled delta reconciliation", () => {
 	afterEach(() => {
 		cleanup();
 		queryClient.clear();
+		useAuthStore.setState({ user: null });
 		useWsStore.setState({ connected: false, socket: null, listeners: new Set() });
 		vi.clearAllMocks();
 	});

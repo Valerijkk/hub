@@ -40,6 +40,7 @@ export function SidebarLink({
 	indent,
 	unread,
 	badge,
+	unreadDot,
 }: {
 	to: string;
 	label: string;
@@ -52,6 +53,8 @@ export function SidebarLink({
 	unread?: boolean;
 	/** Числовой бейдж (кол-во непрочитанных, задач и т.д.). */
 	badge?: number;
+	/** Boolean unread indicator; category counts are never summed. */
+	unreadDot?: boolean;
 }) {
 	const matchRoute = useMatchRoute();
 	const isActive = matchRoute({ to, fuzzy: true });
@@ -99,6 +102,13 @@ export function SidebarLink({
 				)}
 			>
 				{icon}
+				{unreadDot && (
+					<span
+						data-testid="sidebar-unread-dot"
+						className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"
+						aria-hidden="true"
+					/>
+				)}
 				{collapsed && badge != null && badge > 0 && (
 					<span
 						className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"

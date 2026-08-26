@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BookmarksPanel } from "@/components/messenger/bookmarks-panel";
+import { useAuthStore } from "@/stores/auth-store";
 import { querySuccess } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
@@ -26,6 +27,20 @@ import { useQuery } from "@tanstack/react-query";
 describe("BookmarksPanel preview labels (A3W9-2-001 / TASK-173)", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		useAuthStore.setState({
+			user: {
+				id: "bookmark-preview-user",
+				email: "bookmark-preview@example.test",
+				timezone: "UTC",
+				language: "en",
+				system_role: "member",
+				onboarding_completed: true,
+			},
+		});
+	});
+
+	afterEach(() => {
+		useAuthStore.setState({ user: null });
 	});
 
 	it("shows channel_name + content_preview, not raw UUIDs as primary label", async () => {

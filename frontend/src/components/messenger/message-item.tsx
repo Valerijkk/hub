@@ -1,15 +1,16 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Message } from "@/api/messenger";
+import type { ChannelCapabilities, ChannelCapability, Message } from "@/api/messenger";
 import {
 	addBookmark,
 	deleteMessage,
 	editMessage,
+	toggleReaction,
 	togglePin,
 } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import { messagesQueryKey } from "@/hooks/use-messages";
 import { isSafeUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
 import { useAIStore } from "@/stores/ai-store";
@@ -20,6 +21,7 @@ import { ForwardDialog } from "./forward-dialog";
 import { LinkPreview } from "./link-preview";
 import { MessageActions } from "./message-actions";
 import { MessageAttachments } from "./message-attachments";
+import { pinsQueryKey } from "./pinned-messages";
 import { PollMessage } from "./poll-message";
 import { RenderContent } from "./render-content";
 
@@ -35,6 +37,8 @@ interface MessageItemProps {
 	message: Message;
 	/** ID канала. */
 	channelId: string;
+	/** Fresh server-authoritative action capabilities. */
+	capabilities?: ChannelCapabilities;
 	/** Предыдущее сообщение (для группировки). */
 	previousMessage?: Message;
 	/** Показать разделитель даты перед сообщением. */
@@ -153,6 +157,7 @@ function MessageEditMode({
 function MessageItemInner({
 	message,
 	channelId,
+	capabilities,
 	previousMessage,
 	showDateSeparator,
 	dateSeparatorText,
@@ -163,10 +168,14 @@ function MessageItemInner({
 	const [isEditing, setIsEditing] = useState(false);
 	const [editText, setEditText] = useState("");
 	const queryClient = useQueryClient();
-	const invalidateMessages = useInvalidateMessages(channelId);
 	const openThread = useMessengerStore((s) => s.openThread);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
+	const channelRevoked = useMessengerStore((state) =>
+		state.revokedChannelIds.has(channelId),
+	);
 	const currentUserId = useAuthStore((s) => s.user?.id);
+	const capabilitiesRef = useRef(capabilities);
+	capabilitiesRef.current = capabilities;
 	const loadBotInfo = useAIStore((s) => s.loadBotInfo);
 	const isBotMessage = useAIStore((s) => s.isBotMessage);
 	const botDisplayName = useAIStore((s) => s.botDisplayName);
@@ -184,6 +193,58 @@ function MessageItemInner({
 		message && typeof message.id === "string" ? message.id : "";
 	const messageContentText = message?.content_text;
 	const messageContentJson = message?.content_json;
+
+	const canPinNow = useCallback(() => {
+		const state = useMessengerStore.getState();
+		if (state.isChannelRevoked(channelId)) return false;
+		const currentCapabilities = state.channels.find(
+			(item) => item.id === channelId,
+		)?.capabilities;
+		return (
+			capabilitiesRef.current?.can_pin === true &&
+			currentCapabilities?.can_pin === true
+		);
+	}, [channelId]);
+
+	const canAct = useCallback(
+		(capability: ChannelCapability) => {
+			const state = useMessengerStore.getState();
+			if (state.isChannelRevoked(channelId)) return false;
+			const currentChannel = state.channels.find((item) => item.id === channelId);
+			return (
+				capabilities?.[capability] === true &&
+				currentChannel?.capabilities?.[capability] === true
+			);
+		},
+		[capabilities, channelId],
+	);
+	const isOwnMessage =
+		currentUserId !== undefined && currentUserId === message?.sender_id;
+	const canReact = capabilities?.can_react === true && !channelRevoked;
+	const canForward = capabilities?.can_forward === true && !channelRevoked;
+	const canEdit =
+		capabilities?.can_edit === true && !channelRevoked && isOwnMessage;
+	const canDeleteMessage = useCallback(() => {
+		const state = useMessengerStore.getState();
+		if (state.isChannelRevoked(channelId)) return false;
+		const currentCapabilities = state.channels.find(
+			(item) => item.id === channelId,
+		)?.capabilities;
+		const canDeleteOwn =
+			isOwnMessage &&
+			capabilities?.is_member === true &&
+			currentCapabilities?.is_member === true;
+		const canDeleteAny =
+			capabilities?.can_delete_message === true &&
+			currentCapabilities?.can_delete_message === true;
+		return canDeleteOwn || canDeleteAny;
+	}, [capabilities, channelId, isOwnMessage]);
+
+	useEffect(() => {
+		if (channelRevoked || !canReact) setShowReactionPicker(false);
+		if (channelRevoked || !canForward) setShowForwardDialog(false);
+		if (channelRevoked || !canEdit) setIsEditing(false);
+	}, [canEdit, canForward, canReact, channelRevoked]);
 
 	/**
 	 * Извлекает уникальные URL из текста сообщения.
@@ -227,42 +288,92 @@ function MessageItemInner({
 	}, [messageContentText, messageContentJson]);
 
 	const handleDelete = useCallback(async () => {
+		if (!canDeleteMessage()) return;
 		await deleteMessage(channelId, safeMessageId);
-	}, [channelId, safeMessageId]);
+	}, [canDeleteMessage, channelId, safeMessageId]);
 
 	const handlePin = useCallback(async () => {
-		await togglePin(channelId, safeMessageId);
-	}, [channelId, safeMessageId]);
+		const capturedUserId = currentUserId;
+		const capturedChannelId = channelId;
+		if (
+			!capturedUserId ||
+			safeMessageId.length === 0 ||
+			useAuthStore.getState().user?.id !== capturedUserId ||
+			!canPinNow()
+		) {
+			return;
+		}
+
+		await togglePin(capturedChannelId, safeMessageId);
+		if (
+			useAuthStore.getState().user?.id !== capturedUserId ||
+			!canPinNow()
+		) {
+			return;
+		}
+		await queryClient.invalidateQueries({
+			queryKey: pinsQueryKey(capturedChannelId, capturedUserId),
+			exact: true,
+		});
+	}, [
+		canPinNow,
+		channelId,
+		currentUserId,
+		queryClient,
+		safeMessageId,
+	]);
 
 	const handleBookmark = useCallback(async () => {
+		if (!canAct("can_bookmark")) return;
 		await addBookmark(safeMessageId, channelId);
-	}, [channelId, safeMessageId]);
-
+	}, [canAct, channelId, safeMessageId]);
 	/** Ответить на сообщение (установить reply-to). */
 	const handleReply = useCallback(() => {
-		if (message) setReplyTo(message);
-	}, [message, setReplyTo]);
+		if (message && canAct("can_reply")) setReplyTo(message);
+	}, [canAct, message, setReplyTo]);
+
+	const handleOpenThread = useCallback(() => {
+		if (canAct("can_read")) openThread(channelId, safeMessageId);
+	}, [canAct, channelId, openThread, safeMessageId]);
+
+	const handleReaction = useCallback(
+		async (emoji: string) => {
+			if (!canAct("can_react")) return;
+			await toggleReaction(channelId, safeMessageId, emoji);
+		},
+		[canAct, channelId, safeMessageId],
+	);
 
 	/** Начать редактирование сообщения. */
 	const handleStartEdit = useCallback(() => {
+		if (!isOwnMessage || !canAct("can_edit")) return;
 		setEditText(messageContentText ?? "");
 		setIsEditing(true);
-	}, [messageContentText]);
-
+	}, [canAct, isOwnMessage, messageContentText]);
 	/** Сохранить отредактированное сообщение. */
 	const handleSaveEdit = useCallback(
 		async (newText?: string) => {
+			const capturedUserId = currentUserId;
+			if (
+				!capturedUserId ||
+				useAuthStore.getState().user?.id !== capturedUserId ||
+				!isOwnMessage ||
+				!canAct("can_edit")
+			) {
+				setIsEditing(false);
+				return;
+			}
 			const trimmed = (newText ?? editText).trim();
 			if (!trimmed || trimmed === (messageContentText ?? "").trim()) {
 				setIsEditing(false);
 				return;
 			}
+			const queryKey = messagesQueryKey(channelId, capturedUserId);
 			try {
 				const contentJson = {
 					type: "doc",
 					children: [{ type: "p", children: [{ text: trimmed }] }],
 				};
-				const queryKey = ["messenger", "messages", channelId];
 				queryClient.setQueryData(queryKey, (old: unknown) => {
 					if (!old) return old;
 					const typed = old as { pages: Message[][]; pageParams: unknown[] };
@@ -283,12 +394,19 @@ function MessageItemInner({
 					};
 				});
 				setIsEditing(false);
+				if (
+					useAuthStore.getState().user?.id !== capturedUserId ||
+					!canAct("can_edit")
+				) {
+					void queryClient.invalidateQueries({ queryKey, exact: true });
+					return;
+				}
 				await editMessage(channelId, safeMessageId, {
 					content_json: contentJson,
 					content_text: trimmed,
 				});
 			} catch {
-				invalidateMessages();
+				void queryClient.invalidateQueries({ queryKey, exact: true });
 			}
 		},
 		[
@@ -296,8 +414,10 @@ function MessageItemInner({
 			messageContentText,
 			safeMessageId,
 			channelId,
+			currentUserId,
 			queryClient,
-			invalidateMessages,
+			canAct,
+			isOwnMessage,
 		],
 	);
 
@@ -309,11 +429,11 @@ function MessageItemInner({
 
 	// Защита: не рендерим битое сообщение (частичный WS event).
 	// Только ПОСЛЕ всех хуков — иначе нарушим Rules of Hooks.
-	if (!message || !message.id || typeof message.id !== "string") {
+	if (channelRevoked || !message || !message.id || typeof message.id !== "string") {
 		return null;
 	}
 
-	const isOwn = currentUserId === message.sender_id;
+	const isOwn = isOwnMessage;
 	const isGrouped = shouldGroupWithPrevious(message, previousMessage);
 	const fromBot =
 		isBotMessage(message.sender_id) ||
@@ -500,15 +620,8 @@ function MessageItemInner({
 												hasReacted &&
 													"border-[color-mix(in_srgb,var(--green)_20%,transparent)] bg-[var(--gG)]",
 											)}
-											onClick={() =>
-												void import("@/api/messenger").then((m) =>
-													m.toggleReaction(
-														channelId,
-														message.id,
-														reaction.emoji,
-													),
-												)
-											}
+											disabled={!canReact || channelRevoked}
+											onClick={() => void handleReaction(reaction.emoji)}
 										>
 											<span>{reaction.emoji}</span>
 											<span className="text-[11.5px] font-semibold text-[var(--t2)]">
@@ -525,7 +638,7 @@ function MessageItemInner({
 							<button
 								type="button"
 								className="mt-1.5 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
-								onClick={() => openThread(message.id)}
+								onClick={handleOpenThread}
 							>
 								<svg
 									aria-hidden="true"
@@ -553,7 +666,7 @@ function MessageItemInner({
 				</div>
 
 				{/* Hover-действия — pill-toolbar справа */}
-				{!isEditing && (
+				{!isEditing && !channelRevoked && (
 					<div
 						role="toolbar"
 						aria-label="Действия с сообщением"
@@ -564,13 +677,16 @@ function MessageItemInner({
 							message={message}
 							channelId={channelId}
 							isOwn={isOwn}
+							capabilities={capabilities}
 							showReactionPicker={showReactionPicker}
 							onReactionPickerChange={setShowReactionPicker}
 							onReply={handleReply}
-							onOpenThread={() => openThread(message.id)}
+							onOpenThread={handleOpenThread}
 							onPin={handlePin}
 							onBookmark={handleBookmark}
-							onForward={() => setShowForwardDialog(true)}
+							onForward={() => {
+								if (canAct("can_forward")) setShowForwardDialog(true);
+							}}
 							onEdit={handleStartEdit}
 							onDelete={handleDelete}
 						/>
@@ -581,6 +697,7 @@ function MessageItemInner({
 				<ForwardDialog
 					message={message}
 					channelId={channelId}
+					canForward={canForward}
 					open={showForwardDialog}
 					onOpenChange={setShowForwardDialog}
 				/>

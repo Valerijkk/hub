@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BookmarksPanel } from "@/components/messenger/bookmarks-panel";
+import { useAuthStore } from "@/stores/auth-store";
 import { queryError } from "../support/query-result";
 import { renderWithProviders } from "../support/render";
 
@@ -25,6 +26,20 @@ import { useQuery } from "@tanstack/react-query";
 describe("BookmarksPanel error≠empty (W9-A2-009 / TASK-047)", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		useAuthStore.setState({
+			user: {
+				id: "bookmark-error-user",
+				email: "bookmark-error@example.test",
+				timezone: "UTC",
+				language: "en",
+				system_role: "member",
+				onboarding_completed: true,
+			},
+		});
+	});
+
+	afterEach(() => {
+		useAuthStore.setState({ user: null });
 	});
 
 	it("shows alert + retry instead of «Нет закладок» when query fails", async () => {

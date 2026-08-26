@@ -1,56 +1,69 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as messengerApi from "@/api/messenger";
-import { useMarkRead } from "@/hooks/use-unread";
+import { unreadQueryKey, useMarkRead } from "@/hooks/use-unread";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 
 vi.mock("@/api/messenger", () => ({
-	getUnreadCounts: vi.fn(),
 	markChannelRead: vi.fn(),
 }));
 
-describe("P2-FE-02 · useMarkRead rollback (W11-A4-004)", () => {
+const snapshot = {
+	channels: { "ch-1": 4, "ch-2": 1 },
+	dms: {},
+	mentions: {},
+	threads: {},
+	any_unread: true,
+};
+
+describe("Phase 151 channel read receipt", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		useMessengerStore.setState({ unreadCounts: { "ch-1": 4, "ch-2": 1 } });
+		useMessengerStore.getState().reset();
+		useAuthStore.setState({
+			user: {
+				id: "user-1",
+				email: "u@hub.local",
+				timezone: "UTC",
+				language: "en",
+				system_role: "member",
+				onboarding_completed: true,
+			},
+		});
+		useMessengerStore.getState().setUnreadSnapshot(snapshot);
 	});
 
-	it("rolls back badge when markChannelRead fails", async () => {
+	function setup() {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+		const wrapper = ({ children }: { children: ReactNode }) => (
+			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+		);
+		return { queryClient, invalidateQueries, wrapper };
+	}
+
+	it("keeps the authoritative snapshot and surfaces a failed receipt", async () => {
 		vi.mocked(messengerApi.markChannelRead).mockRejectedValue(
 			new Error("network"),
 		);
-
-		const qc = new QueryClient({
-			defaultOptions: { queries: { retry: false } },
-		});
-		const wrapper = ({ children }: { children: ReactNode }) => (
-			<QueryClientProvider client={qc}>{children}</QueryClientProvider>
-		);
-
+		const { wrapper } = setup();
 		const { result } = renderHook(() => useMarkRead(), { wrapper });
 
 		await act(async () => {
-			await result.current("ch-1");
+			await expect(result.current("ch-1")).rejects.toThrow("network");
 		});
 
-		await waitFor(() => {
-			expect(useMessengerStore.getState().unreadCounts["ch-1"]).toBe(4);
-		});
-		expect(useMessengerStore.getState().unreadCounts["ch-2"]).toBe(1);
+		expect(useMessengerStore.getState().unreadSnapshot).toEqual(snapshot);
 	});
 
-	it("keeps zero after successful markRead", async () => {
+	it("keeps the snapshot until exact authoritative refetch after success", async () => {
 		vi.mocked(messengerApi.markChannelRead).mockResolvedValue(undefined);
-
-		const qc = new QueryClient({
-			defaultOptions: { queries: { retry: false } },
-		});
-		const wrapper = ({ children }: { children: ReactNode }) => (
-			<QueryClientProvider client={qc}>{children}</QueryClientProvider>
-		);
-
+		const { invalidateQueries, wrapper } = setup();
 		const { result } = renderHook(() => useMarkRead(), { wrapper });
 
 		await act(async () => {
@@ -58,6 +71,10 @@ describe("P2-FE-02 · useMarkRead rollback (W11-A4-004)", () => {
 		});
 
 		expect(messengerApi.markChannelRead).toHaveBeenCalledWith("ch-1");
-		expect(useMessengerStore.getState().unreadCounts["ch-1"]).toBe(0);
+		expect(useMessengerStore.getState().unreadSnapshot).toEqual(snapshot);
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: unreadQueryKey("user-1"),
+			exact: true,
+		});
 	});
 });

@@ -14,11 +14,12 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { useChannels } from "@/hooks/use-channels";
+import { useChannels, useDiscoverableChannels } from "@/hooks/use-channels";
 import { usePresence } from "@/hooks/use-presence";
 import { useUnread } from "@/hooks/use-unread";
 import { formatRelativeTime } from "@/lib/format-time";
@@ -41,6 +42,7 @@ import { PresenceIndicator } from "./presence-indicator";
 const CHANNEL_VIRTUALIZE_THRESHOLD = 40;
 const CHANNEL_ROW_ESTIMATE = 52;
 const CHANNEL_HEADER_ESTIMATE = 28;
+const BROWSE_CHANNELS_DIALOG_ID = "messenger-browse-channels-dialog";
 
 /** Варианты длительности мьюта канала. */
 const MUTE_OPTIONS = [
@@ -163,6 +165,86 @@ function BookmarksList() {
 	);
 }
 
+/** Read-only seed list of public channels the current user may view. */
+function BrowseChannelsButton() {
+	const [open, setOpen] = useState(false);
+	const { data: discoveredChannels, isLoading, isFetching, isError } =
+		useDiscoverableChannels(open);
+	const isBusy = isLoading || isFetching;
+	const visibleChannels = isError || isBusy
+		? []
+		: (discoveredChannels ?? []).filter(
+			(channel) =>
+				channel.channel_type === "public" &&
+				channel.capabilities?.can_read === true,
+		);
+
+	return (
+		<>
+			<button
+				type="button"
+				className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-colors"
+				aria-expanded={open}
+				aria-controls={BROWSE_CHANNELS_DIALOG_ID}
+				onClick={() => setOpen(true)}
+			>
+				Обзор каналов
+			</button>
+			<Dialog open={open} onOpenChange={setOpen}>
+				<DialogContent
+					id={BROWSE_CHANNELS_DIALOG_ID}
+					className="max-w-md"
+					aria-busy={isBusy}
+				>
+					<DialogHeader>
+						<DialogTitle>Обзор каналов</DialogTitle>
+						<DialogDescription>
+							Доступные публичные каналы без присоединения и перехода.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="py-2">
+						{isBusy ? (
+							<div className="px-1 py-4 text-sm text-[var(--t3)]">
+								Загрузка каналов…
+							</div>
+						) : isError ? (
+							<div role="status" className="px-1 py-4 text-sm text-[var(--t3)]">
+								Не удалось загрузить список каналов
+							</div>
+						) : visibleChannels.length === 0 ? (
+							<div role="status" className="px-1 py-4 text-sm text-[var(--t3)]">
+								Нет доступных каналов
+							</div>
+						) : (
+							<ul className="space-y-1" aria-label="Доступные каналы">
+								{visibleChannels.map((channel) => (
+									<li
+										key={channel.id}
+										className="rounded-[var(--r2)] border border-[var(--b1)] px-3 py-2.5"
+									>
+										<div className="flex items-center justify-between gap-3">
+											<span className="min-w-0 truncate text-sm font-medium text-[var(--t1)]">
+												{channel.name}
+											</span>
+											<span className="shrink-0 text-xs text-[var(--t3)]">
+												{channel.project_id ? "Проектный канал" : "Глобальный канал"}
+											</span>
+										</div>
+										{channel.description && (
+											<p className="mt-1 text-xs text-[var(--t3)]">
+												{channel.description}
+											</p>
+										)}
+									</li>
+								))}
+							</ul>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
+		</>
+	);
+}
 /** Кнопка "+" для создания канала рядом с заголовком секции. */
 function SectionAddButton({ type }: { type: string }) {
 	if (type === "starred") return null;
@@ -670,7 +752,7 @@ interface ChannelListProps {
 export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 	const { data: channels, isLoading, isError, refetch } = useChannels();
 	useUnread();
-	const unreadCounts = useMessengerStore((s) => s.unreadCounts);
+	const unreadSnapshot = useMessengerStore((s) => s.unreadSnapshot);
 	const matchRoute = useMatchRoute();
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -765,7 +847,10 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 			params: { channelId: channel.id },
 			fuzzy: true,
 		});
-		const unread = unreadCounts[channel.id] ?? 0;
+		const unread =
+			(channel.channel_type === "dm"
+				? unreadSnapshot.dms[channel.id]
+				: unreadSnapshot.channels[channel.id]) ?? 0;
 
 		return (
 			<ChannelItem
@@ -820,6 +905,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 			{/* Нижняя панель: канал + новый DM */}
 			<div className="border-t border-[var(--b1)] px-3.5 h-12 flex items-center gap-2">
 				<NewDmDialog />
+				<BrowseChannelsButton />
 				<Dialog>
 					<DialogTrigger asChild>
 						<button

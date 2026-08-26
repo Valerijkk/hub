@@ -8,6 +8,32 @@ import { api } from "./client";
 /** Тип канала мессенджера. */
 export type ChannelType = "dm" | "group" | "private" | "public";
 
+export interface ChannelCapabilities {
+	is_member: boolean;
+	has_active_project_membership: boolean;
+	can_read: boolean;
+	can_post: boolean;
+	can_reply: boolean;
+	can_join: boolean;
+	can_follow: boolean;
+	can_unfollow: boolean;
+	can_view_unread: boolean;
+	can_type: boolean;
+	can_edit: boolean;
+	can_forward: boolean;
+	can_react: boolean;
+	can_delete_message: boolean;
+	can_pin: boolean;
+	can_list_pins: boolean;
+	can_bookmark: boolean;
+	can_promote: boolean;
+}
+
+export type ChannelCapability = Exclude<
+	keyof ChannelCapabilities,
+	"is_member" | "has_active_project_membership"
+>;
+
 /** Тип вложения сообщения. */
 export type AttachmentType = "file" | "image" | "voice";
 
@@ -22,6 +48,7 @@ export interface Channel {
 	name: string;
 	description?: string;
 	is_readonly: boolean;
+	capabilities?: ChannelCapabilities;
 	project_id?: string;
 	created_by: string;
 	is_starred: boolean;
@@ -69,6 +96,7 @@ export interface Message {
 	voice_duration_ms?: number;
 	attachments?: AttachmentRef[];
 	thread_id?: string;
+	also_send_to_channel?: boolean;
 	reply_count: number;
 	reactions?: MessageReaction[];
 	forwarded_from_id?: string;
@@ -145,6 +173,7 @@ export interface SendMessageRequest {
 	voice_url?: string;
 	voice_duration_ms?: number;
 	thread_id?: string;
+	also_send_to_channel?: boolean;
 	attachment_ids?: string[];
 	/** ID упомянутых пользователей (@mentions). */
 	mentions?: string[];
@@ -163,8 +192,19 @@ export interface EditMessageRequest {
 // ---------------------------------------------------------------------------
 
 /** Получить список каналов текущего пользователя. */
+export function canChannel(
+	channel: Pick<Channel, "capabilities">,
+	capability: ChannelCapability,
+): boolean {
+	return channel.capabilities?.[capability] === true;
+}
+
 export function getChannels() {
 	return api.get<Channel[]>("/messenger/channels");
+}
+
+export function discoverChannels(): Promise<Channel[]> {
+	return api.get<Channel[]>("/messenger/channels/discover");
 }
 
 /** Получить информацию о канале по ID. */
@@ -295,15 +335,62 @@ export function forwardMessage(
 // ---------------------------------------------------------------------------
 
 /** Получить ответы в треде (с курсорной пагинацией). */
-export function getThreadReplies(
+export interface ThreadResponse {
+	parent: Message;
+	replies: Message[];
+	follow_mode?: string;
+}
+
+export interface ThreadReceiptResponse {
+	advanced: boolean;
+}
+
+export interface ThreadFollowResponse {
+	changed: boolean;
+	mode: string;
+}
+
+export function getThread(
+	channelId: string,
+	rootMessageId: string,
+	params?: { before?: string; limit?: number },
+) {
+	const qs = buildQueryString(params);
+	return api.get<ThreadResponse>(
+		`/messenger/channels/${channelId}/threads/${rootMessageId}${qs}`,
+	);
+}
+
+export function markThreadRead(
+	channelId: string,
+	rootMessageId: string,
+	messageId: string,
+) {
+	return api.post<ThreadReceiptResponse>(
+		`/messenger/channels/${channelId}/threads/${rootMessageId}/read`,
+		{ category: "followed_thread", message_id: messageId },
+	);
+}
+
+export function followThread(channelId: string, rootMessageId: string) {
+	return api.post<ThreadFollowResponse>(
+		`/messenger/channels/${channelId}/threads/${rootMessageId}/follow`,
+	);
+}
+
+export function unfollowThread(channelId: string, rootMessageId: string) {
+	return api.delete<ThreadFollowResponse>(
+		`/messenger/channels/${channelId}/threads/${rootMessageId}/follow`,
+	);
+}
+
+/** Compatibility adapter for remaining consumers; it uses the exact thread resource. */
+export async function getThreadReplies(
 	channelId: string,
 	messageId: string,
 	params?: { before?: string; limit?: number },
 ) {
-	const qs = buildQueryString(params);
-	return api.get<Message[]>(
-		`/messenger/channels/${channelId}/messages/${messageId}/replies${qs}`,
-	);
+	return (await getThread(channelId, messageId, params)).replies;
 }
 
 // ---------------------------------------------------------------------------
@@ -367,8 +454,16 @@ export function setCustomStatus(text: string, duration?: string) {
 // ---------------------------------------------------------------------------
 
 /** Получить счётчики непрочитанных для всех каналов. */
+export interface UnreadSnapshot {
+	channels: Record<string, number>;
+	dms: Record<string, number>;
+	mentions: Record<string, number>;
+	threads: Record<string, number>;
+	any_unread: boolean;
+}
+
 export function getUnreadCounts() {
-	return api.get<Record<string, number>>("/messenger/unread");
+	return api.get<UnreadSnapshot>("/messenger/unread");
 }
 
 /** Отметить канал как прочитанный. */

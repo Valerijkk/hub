@@ -4,7 +4,10 @@ import type { Channel, Message } from "@/api/messenger";
 import { CHANNELS_QUERY_KEY } from "@/hooks/use-channels";
 import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth-store";
-import { useMessengerStore } from "@/stores/messenger-store";
+import {
+	emptyUnreadSnapshot,
+	useMessengerStore,
+} from "@/stores/messenger-store";
 import { clearWsReconnectTimer, useWsStore } from "@/stores/ws-store";
 
 const testUser: UserResponse = {
@@ -91,7 +94,7 @@ function resetIdentityDerivedState(): void {
 	queryClient.clear();
 	const messenger = useMessengerStore.getState();
 	messenger.setChannels([]);
-	messenger.setUnreadCounts({});
+	messenger.setUnreadSnapshot(emptyUnreadSnapshot());
 	messenger.setActiveChannel(null);
 	messenger.closeThread();
 	messenger.setReplyTo(null);
@@ -115,9 +118,15 @@ function seedIdentityDerivedState() {
 
 	const messenger = useMessengerStore.getState();
 	messenger.setChannels([testChannel]);
-	messenger.setUnreadCounts({ [testChannel.id]: 4 });
+	messenger.setUnreadSnapshot({
+		channels: { [testChannel.id]: 4 },
+		dms: {},
+		mentions: {},
+		threads: {},
+		any_unread: true,
+	});
 	messenger.setActiveChannel(testChannel.id);
-	messenger.openThread(testMessage.id);
+	messenger.openThread(testChannel.id, testMessage.id);
 	messenger.setReplyTo(testMessage);
 	messenger.addTypingUser(testChannel.id, "user-2", "Teammate");
 
@@ -140,9 +149,9 @@ function expectIdentityDerivedStateCleared(
 
 	const messenger = useMessengerStore.getState();
 	expect(messenger.channels).toEqual([]);
-	expect(messenger.unreadCounts).toEqual({});
+	expect(messenger.unreadSnapshot).toEqual(emptyUnreadSnapshot());
 	expect(messenger.activeChannelId).toBeNull();
-	expect(messenger.activeThreadMessageId).toBeNull();
+	expect(messenger.activeThread).toBeNull();
 	expect(messenger.replyToMessage).toBeNull();
 	expect(messenger.typingUsers).toEqual({});
 
@@ -208,9 +217,18 @@ describe("auth-store", () => {
 
 		const messenger = useMessengerStore.getState();
 		expect(messenger.channels).toEqual([testChannel]);
-		expect(messenger.unreadCounts).toEqual({ [testChannel.id]: 4 });
+		expect(messenger.unreadSnapshot).toEqual({
+			channels: { [testChannel.id]: 4 },
+			dms: {},
+			mentions: {},
+			threads: {},
+			any_unread: true,
+		});
 		expect(messenger.activeChannelId).toBe(testChannel.id);
-		expect(messenger.activeThreadMessageId).toBe(testMessage.id);
+		expect(messenger.activeThread).toEqual({
+			channelId: testChannel.id,
+			rootId: testMessage.id,
+		});
 		expect(messenger.replyToMessage).toEqual(testMessage);
 		expect(messenger.typingUsers).toMatchObject({
 			[testChannel.id]: [{ userId: "user-2", displayName: "Teammate" }],
@@ -378,9 +396,9 @@ describe("auth-store", () => {
 					"messenger",
 				]),
 				channels: messenger.channels,
-				unreadCounts: messenger.unreadCounts,
+				unreadSnapshot: messenger.unreadSnapshot,
 				activeChannelId: messenger.activeChannelId,
-				activeThreadMessageId: messenger.activeThreadMessageId,
+				activeThread: messenger.activeThread,
 				replyToMessage: messenger.replyToMessage,
 				typingUsers: messenger.typingUsers,
 				connected: ws.connected,
@@ -400,9 +418,9 @@ describe("auth-store", () => {
 			channelsQuery: undefined,
 			identityQuery: undefined,
 			channels: [],
-			unreadCounts: {},
+			unreadSnapshot: emptyUnreadSnapshot(),
 			activeChannelId: null,
-			activeThreadMessageId: null,
+			activeThread: null,
 			replyToMessage: null,
 			typingUsers: {},
 			connected: false,

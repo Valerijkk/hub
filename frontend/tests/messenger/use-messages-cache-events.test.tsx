@@ -3,7 +3,13 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message } from "@/api/messenger";
-import { useMessages, useThreadMessages } from "@/hooks/use-messages";
+import {
+	messagesQueryKey,
+	threadMessagesQueryKey,
+	useMessages,
+	useThreadMessages,
+} from "@/hooks/use-messages";
+import { useAuthStore } from "@/stores/auth-store";
 import { useWsStore } from "@/stores/ws-store";
 
 const api = vi.hoisted(() => ({
@@ -27,10 +33,18 @@ type MessageCache = {
 
 const channelId = "channel-1";
 const threadId = "root-1";
-const rootQueryKey = ["messenger", "messages", channelId] as const;
+const user = {
+	id: "cache-events-user",
+	email: "cache-events@example.test",
+	timezone: "UTC",
+	language: "en",
+	system_role: "member",
+	onboarding_completed: true,
+};
+const rootQueryKey = messagesQueryKey(channelId, user.id);
 
 function threadQueryKey(id: string) {
-	return ["messenger", "thread", channelId, id] as const;
+	return threadMessagesQueryKey(channelId, id, user.id);
 }
 
 function cacheMessage(id: string, contentText: string, overrides: Partial<Message> = {}): Message {
@@ -55,6 +69,7 @@ describe("useMessages canonical cache events", () => {
 		});
 		api.getMessages.mockResolvedValue([]);
 		api.getThreadReplies.mockResolvedValue([]);
+		useAuthStore.setState({ user });
 		useWsStore.setState({
 			connected: false,
 			socket: null,
@@ -65,6 +80,7 @@ describe("useMessages canonical cache events", () => {
 	afterEach(() => {
 		cleanup();
 		queryClient.clear();
+		useAuthStore.setState({ user: null });
 		useWsStore.setState({ connected: false, socket: null, listeners: new Set() });
 		vi.clearAllMocks();
 	});

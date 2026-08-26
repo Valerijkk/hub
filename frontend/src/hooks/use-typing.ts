@@ -26,6 +26,7 @@ export function useTypingIndicator(channelId: string | undefined) {
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
 			if (event !== "typing" || !channelId) return;
+			if (useMessengerStore.getState().isChannelRevoked(channelId)) return;
 			// W11-A3-011 / P2-FE-10: битый/пустой WS typing не валит общий listener.
 			if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
 				return;

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useMessages } from "@/hooks/use-messages";
 import { useTypingIndicator } from "@/hooks/use-typing";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { useWsStore } from "@/stores/ws-store";
 
@@ -31,11 +32,22 @@ describe("WS payload guards (P2-FE-10)", () => {
 			socket: null,
 			listeners: new Set(),
 		});
+		useAuthStore.setState({
+			user: {
+				id: "ws-guard-user",
+				email: "ws-guard@example.test",
+				timezone: "UTC",
+				language: "en",
+				system_role: "member",
+				onboarding_completed: true,
+			},
+		});
 		useMessengerStore.setState({ typingUsers: {} });
 	});
 
 	afterEach(() => {
 		queryClient.clear();
+		useAuthStore.setState({ user: null });
 		useWsStore.setState({ listeners: new Set(), connected: false });
 	});
 

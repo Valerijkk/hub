@@ -3,7 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Menu } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Channel, Message } from "@/api/messenger";
-import { getChannel } from "@/api/messenger";
+import { canChannel, getChannel } from "@/api/messenger";
 import { CallButton } from "@/components/calls/CallButton";
 import { useMessages } from "@/hooks/use-messages";
 import { useTypingIndicator } from "@/hooks/use-typing";
@@ -128,8 +128,9 @@ function ChannelHeaderIcon({ type }: { type: string }) {
 export function ChatView({ channelId }: ChatViewProps) {
 	const { messages, loadMore, hasMore, isLoading } = useMessages(channelId);
 	const markRead = useMarkRead();
-	const activeThreadMessageId = useMessengerStore(
-		(s) => s.activeThreadMessageId,
+	const activeThread = useMessengerStore((state) => state.activeThread);
+	const channelRevoked = useMessengerStore((state) =>
+		state.revokedChannelIds.has(channelId),
 	);
 	const closeThread = useMessengerStore((s) => s.closeThread);
 	const typingUsers = useMessengerStore((s) => s.typingUsers[channelId]) ?? [];
@@ -140,15 +141,22 @@ export function ChatView({ channelId }: ChatViewProps) {
 
 	// Пометить канал как прочитанный при открытии.
 	useEffect(() => {
-		if (channelId) {
+		if (
+			channelId &&
+			!channelRevoked &&
+			!useMessengerStore.getState().isChannelRevoked(channelId)
+		) {
 			void markRead(channelId);
 		}
-	}, [channelId, markRead]);
+	}, [channelId, channelRevoked, markRead]);
 
 	const { data: channel } = useQuery<Channel>({
 		queryKey: ["messenger", "channel", channelId],
 		queryFn: () => getChannel(channelId),
+		enabled: !channelRevoked,
 	});
+	const canPost = channel ? canChannel(channel, "can_post") : false;
+	const canReply = channel ? canChannel(channel, "can_reply") : false;
 
 	const parentRef = useRef<HTMLDivElement>(null);
 	const [isAtBottom, setIsAtBottom] = useState(true);
@@ -217,6 +225,8 @@ export function ChatView({ channelId }: ChatViewProps) {
 		return `${first.displayName} и ещё ${typingUsers.length - 1} печатают`;
 	}, [typingUsers]);
 
+	if (channelRevoked) return null;
+
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
 			{/* Заголовок канала */}
@@ -258,7 +268,10 @@ export function ChatView({ channelId }: ChatViewProps) {
 					)}
 					<CallButton channelId={channelId} />
 					<SearchDialog channelId={channelId} />
-					<PinnedMessages channelId={channelId} />
+					<PinnedMessages
+				channelId={channelId}
+				capabilities={channel?.capabilities}
+			/>
 				</div>
 				{/* Градиентная линия под заголовком */}
 				<div className="absolute bottom-[-1px] left-[5%] right-[5%] h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--green)_6%,transparent)] to-transparent" />
@@ -343,6 +356,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 											<MessageItem
 												message={message}
 												channelId={channelId}
+												capabilities={channel?.capabilities}
 												previousMessage={prevMessage}
 												showDateSeparator={showDateSep}
 												dateSeparatorText={
@@ -412,10 +426,11 @@ export function ChatView({ channelId }: ChatViewProps) {
 					)}
 
 					{/* Композер сообщений */}
-					{!channel?.is_readonly && (
+					{canPost && (
 						<div className="px-[22px] pb-[18px] pt-3 shrink-0">
 							<MessageComposer
 								channelId={channelId}
+								canSend={canPost}
 								placeholder={
 									channel
 										? `Написать в ${channel.channel_type === "dm" ? channel.name : `#${channel.name}`}...`
@@ -427,7 +442,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 				</div>
 
 				{/* Панель треда */}
-				{activeThreadMessageId && (
+				{activeThread?.channelId === channelId && (
 					<div
 						role="dialog"
 						aria-label="Тред"
@@ -445,7 +460,9 @@ export function ChatView({ channelId }: ChatViewProps) {
 					>
 						<ThreadPanel
 							channelId={channelId}
-							messageId={activeThreadMessageId}
+							canReply={canReply}
+							canPost={canPost}
+							messageId={activeThread.rootId}
 							projectId={channel?.project_id}
 							onClose={closeThread}
 						/>

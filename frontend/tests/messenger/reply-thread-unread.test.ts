@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Message } from "@/api/messenger";
+import type { Message, UnreadSnapshot } from "@/api/messenger";
 import { findParentInMessagesCache } from "@/components/messenger/thread-panel";
 import { useMessengerStore } from "@/stores/messenger-store";
 
@@ -8,14 +8,14 @@ function msg(id: string): Message {
 		id,
 		channel_id: "ch-1",
 		sender_id: "u-1",
-		content_text: `msg ${id}`,
+		content_text: "msg " + id,
 		reply_count: 0,
 		created_at: "2026-07-28T12:00:00Z",
 	};
 }
 
-describe("FE-P1-MESSENGER · thread parent cache (W9-A3-001)", () => {
-	it("finds parent in infinite pages, not only first message", () => {
+describe("Messenger thread parent cache", () => {
+	it("finds parent in infinite pages, not only the first message", () => {
 		const cache = {
 			pages: [[msg("newest")], [msg("parent-42"), msg("older")]],
 		};
@@ -26,21 +26,28 @@ describe("FE-P1-MESSENGER · thread parent cache (W9-A3-001)", () => {
 	});
 });
 
-describe("FE-P1-MESSENGER · unread map replace (W11-A4-001)", () => {
-	it("setUnreadCounts drops channels absent from poll (MarkRead HDel)", () => {
-		useMessengerStore.setState({
-			unreadCounts: { "ch-a": 3, "ch-b": 5 },
-		});
-		useMessengerStore.getState().setUnreadCounts({ "ch-a": 1 });
-		expect(useMessengerStore.getState().unreadCounts).toEqual({ "ch-a": 1 });
-		expect(useMessengerStore.getState().unreadCounts["ch-b"]).toBeUndefined();
-	});
+describe("Phase 151 unread snapshot replacement", () => {
+	it("drops every category key absent from the latest server snapshot", () => {
+		const first: UnreadSnapshot = {
+			channels: { "ch-a": 3, "ch-b": 5 },
+			dms: { "dm-a": 2 },
+			mentions: { "ch-a": 1 },
+			threads: { "root-a": 4 },
+			any_unread: true,
+		};
+		const second: UnreadSnapshot = {
+			channels: { "ch-a": 1 },
+			dms: {},
+			mentions: {},
+			threads: {},
+			any_unread: true,
+		};
+		useMessengerStore.getState().setUnreadSnapshot(first);
+		useMessengerStore.getState().setUnreadSnapshot(second);
 
-	it("updateUnread alone would leave sticky badge (mutation criterion)", () => {
-		useMessengerStore.setState({
-			unreadCounts: { "ch-a": 3, "ch-b": 5 },
-		});
-		useMessengerStore.getState().updateUnread("ch-a", 1);
-		expect(useMessengerStore.getState().unreadCounts["ch-b"]).toBe(5);
+		expect(useMessengerStore.getState().unreadSnapshot).toEqual(second);
+		expect(
+			useMessengerStore.getState().unreadSnapshot.channels["ch-b"],
+		).toBeUndefined();
 	});
 });

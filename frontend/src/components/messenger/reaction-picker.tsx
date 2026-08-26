@@ -1,3 +1,4 @@
+import { useCallback, useEffect } from "react";
 import { toggleReaction } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import {
@@ -5,60 +6,78 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { useMessengerStore } from "@/stores/messenger-store";
 
 /** Набор популярных эмодзи для быстрого выбора. */
 const POPULAR_EMOJIS = [
-	"\u{1F44D}", // thumbs up
-	"\u{1F44E}", // thumbs down
-	"\u{2764}\u{FE0F}", // red heart
-	"\u{1F602}", // laughing
-	"\u{1F622}", // crying
-	"\u{1F632}", // astonished
-	"\u{1F525}", // fire
-	"\u{1F4AF}", // 100
-	"\u{1F440}", // eyes
-	"\u{1F389}", // party popper
-	"\u{1F680}", // rocket
-	"\u{2705}", // check mark
-	"\u{274C}", // cross mark
-	"\u{1F914}", // thinking
-	"\u{1F44F}", // clapping
-	"\u{1F60D}", // heart eyes
-	"\u{1F64F}", // folded hands
-	"\u{1F4A1}", // light bulb
-	"\u{26A0}\u{FE0F}", // warning
-	"\u{1F3AF}", // bullseye
+	"\u{1F44D}",
+	"\u{2764}\u{FE0F}",
+	"\u{1F602}",
+	"\u{1F389}",
+	"\u{1F525}",
+	"\u{1F440}",
+	"\u{1F64C}",
+	"\u{1F914}",
+	"\u{2705}",
+	"\u{274C}",
+	"\u{1F680}",
+	"\u{1F4AF}",
+	"\u{1F44F}",
+	"\u{1F622}",
+	"\u{1F621}",
+	"\u{1F60D}",
+	"\u{1F973}",
+	"\u{1F4A1}",
+	"\u{26A0}\u{FE0F}",
+	"\u{1F3AF}",
 ];
 
-/** Пропсы компонента ReactionPicker. */
 interface ReactionPickerProps {
-	/** ID канала. */
 	channelId: string;
-	/** ID сообщения. */
 	messageId: string;
-	/** Управление открытием попавера. */
+	canReact: boolean;
 	open: boolean;
-	/** Колбэк изменения состояния попавера. */
 	onOpenChange: (open: boolean) => void;
 }
 
-/**
- * ReactionPicker -- компонент выбора эмодзи-реакции в Popover.
- * Показывает сетку популярных эмодзи, клик переключает реакцию.
- */
+/** Emoji picker с прямым capability/revoke barrier перед сетевым вызовом. */
 export function ReactionPicker({
 	channelId,
 	messageId,
+	canReact,
 	open,
 	onOpenChange,
 }: ReactionPickerProps) {
+	const channelRevoked = useMessengerStore((state) =>
+		state.revokedChannelIds.has(channelId),
+	);
+	const disabled = !canReact || channelRevoked;
+	const canReactNow = useCallback(() => {
+		const state = useMessengerStore.getState();
+		if (!canReact || state.isChannelRevoked(channelId)) return false;
+		const channel = state.channels.find((item) => item.id === channelId);
+		return channel?.capabilities?.can_react === true;
+	}, [canReact, channelId]);
+
+	useEffect(() => {
+		if (disabled && open) onOpenChange(false);
+	}, [disabled, onOpenChange, open]);
+
 	const handleSelect = async (emoji: string) => {
+		if (disabled || !canReactNow()) return;
 		await toggleReaction(channelId, messageId, emoji);
+		if (!canReactNow()) return;
 		onOpenChange(false);
 	};
 
 	return (
-		<Popover open={open} onOpenChange={onOpenChange}>
+		<Popover
+			open={open && !disabled}
+			onOpenChange={(nextOpen) => {
+				if (nextOpen && disabled) return;
+				onOpenChange(nextOpen);
+			}}
+		>
 			<PopoverTrigger asChild>
 				<Button
 					variant="ghost"
@@ -66,6 +85,7 @@ export function ReactionPicker({
 					className="h-7 w-7"
 					title="Реакция"
 					aria-label="Реакция"
+					disabled={disabled}
 				>
 					<svg
 						aria-hidden="true"
@@ -90,7 +110,8 @@ export function ReactionPicker({
 							key={emoji}
 							type="button"
 							aria-label={emoji}
-							className="flex h-8 w-8 items-center justify-center rounded text-lg hover:bg-accent transition-colors"
+							className="flex h-8 w-8 items-center justify-center rounded text-lg transition-colors hover:bg-accent"
+							disabled={disabled}
 							onClick={() => void handleSelect(emoji)}
 						>
 							{emoji}

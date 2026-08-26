@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import {
 	createIssueMessageLink,
@@ -10,11 +10,30 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toastApiError } from "@/lib/format-api-error";
+import { useAuthStore } from "@/stores/auth-store";
+import { useMessengerStore } from "@/stores/messenger-store";
 
 interface ThreadIssueLinksProps {
 	projectId: string;
 	channelId: string;
 	messageId: string;
+}
+
+export const THREAD_ISSUE_LINKS_QUERY_KEY = ["thread-issue-links"] as const;
+
+export function threadIssueLinksQueryKey(
+	projectId: string,
+	channelId: string,
+	messageId: string,
+	userId: string,
+) {
+	return [
+		...THREAD_ISSUE_LINKS_QUERY_KEY,
+		projectId,
+		channelId,
+		messageId,
+		userId,
+	] as const;
 }
 
 /** PROD-03: связанные задачи в заголовке треда. */
@@ -25,41 +44,77 @@ export function ThreadIssueLinks({
 }: ThreadIssueLinksProps) {
 	const queryClient = useQueryClient();
 	const [issueKey, setIssueKey] = useState("");
+	const userId = useAuthStore((state) => state.user?.id ?? null);
+	const channelRevoked = useMessengerStore((state) =>
+		state.revokedChannelIds.has(channelId),
+	);
+	const hasAccess = Boolean(userId) && !channelRevoked;
+	const queryKey = threadIssueLinksQueryKey(
+		projectId,
+		channelId,
+		messageId,
+		userId ?? "__no-user__",
+	);
+	const canMutateNow = useCallback(() => {
+		return (
+			Boolean(userId) &&
+			useAuthStore.getState().user?.id === userId &&
+			!useMessengerStore.getState().revokedChannelIds.has(channelId)
+		);
+	}, [channelId, userId]);
 
 	const { data: links = [] } = useQuery({
-		queryKey: ["thread-issue-links", projectId, channelId, messageId],
+		queryKey,
 		queryFn: () => listThreadIssueLinks(projectId, channelId, messageId),
+		enabled: hasAccess,
 	});
 
 	const linkMutation = useMutation({
-		mutationFn: () =>
-			createIssueMessageLink(projectId, issueKey.trim().toUpperCase(), {
+		mutationFn: () => {
+			if (!canMutateNow()) {
+				throw new Error("thread issue links access unavailable");
+			}
+			return createIssueMessageLink(projectId, issueKey.trim().toUpperCase(), {
 				channel_id: channelId,
 				message_id: messageId,
 				mirror_to_thread: true,
-			}),
+			});
+		},
 		onSuccess: () => {
+			if (!canMutateNow()) return;
 			toast.success("Задача привязана к треду");
 			setIssueKey("");
 			void queryClient.invalidateQueries({
-				queryKey: ["thread-issue-links", projectId, channelId, messageId],
+				queryKey,
+				exact: true,
 			});
 		},
-		onError: (err) => toastApiError(err),
+		onError: (err) => {
+			if (canMutateNow()) toastApiError(err);
+		},
 	});
 
 	const unlinkMutation = useMutation({
 		mutationFn: (link: { issue_key?: string; id: string }) => {
+			if (!canMutateNow()) {
+				throw new Error("thread issue links access unavailable");
+			}
 			if (!link.issue_key) throw new Error("missing issue key");
 			return deleteIssueMessageLink(projectId, link.issue_key, link.id);
 		},
 		onSuccess: () => {
+			if (!canMutateNow()) return;
 			void queryClient.invalidateQueries({
-				queryKey: ["thread-issue-links", projectId, channelId, messageId],
+				queryKey,
+				exact: true,
 			});
 		},
-		onError: (err) => toastApiError(err),
+		onError: (err) => {
+			if (canMutateNow()) toastApiError(err);
+		},
 	});
+
+	if (!hasAccess) return null;
 
 	return (
 		<div className="border-b bg-raised/20 px-4 py-2 space-y-2">
@@ -83,7 +138,9 @@ export function ThreadIssueLinks({
 						<button
 							type="button"
 							className="text-t4 hover:text-[var(--red)] text-xs"
-							onClick={() => unlinkMutation.mutate(link)}
+							onClick={() => {
+								if (canMutateNow()) unlinkMutation.mutate(link);
+							}}
 							aria-label={`Отвязать ${link.issue_key}`}
 						>
 							×
@@ -104,7 +161,9 @@ export function ThreadIssueLinks({
 					variant="outline"
 					className="h-8 text-xs"
 					disabled={!issueKey.trim() || linkMutation.isPending}
-					onClick={() => linkMutation.mutate()}
+					onClick={() => {
+						if (canMutateNow()) linkMutation.mutate();
+					}}
 				>
 					Привязать
 				</Button>

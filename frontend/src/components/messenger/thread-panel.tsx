@@ -1,9 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import type { Message } from "@/api/messenger";
-import { getMessages } from "@/api/messenger";
+import { getThread } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useThreadMessages } from "@/hooks/use-messages";
+import { threadDetailQueryKey, useThreadMessages } from "@/hooks/use-messages";
+import { useAuthStore } from "@/stores/auth-store";
+import { useMessengerStore } from "@/stores/messenger-store";
 import { MessageComposer } from "./message-composer";
 import { MessageItem } from "./message-item";
 import { ThreadIssueLinks } from "./thread-issue-links";
@@ -14,6 +17,10 @@ interface ThreadPanelProps {
 	channelId: string;
 	/** ID сообщения (родительского). */
 	messageId: string;
+	/** Fresh право отвечать в тред. */
+	canReply?: boolean;
+	/** Fresh право вывести ответ в основную ленту. */
+	canPost?: boolean;
 	/** ID проекта для issue↔thread links (optional). */
 	projectId?: string;
 	/** Колбэк закрытия панели. */
@@ -40,35 +47,47 @@ export function findParentInMessagesCache(
 export function ThreadPanel({
 	channelId,
 	messageId,
+	canReply = false,
+	canPost = false,
 	projectId,
 	onClose,
 }: ThreadPanelProps) {
-	const queryClient = useQueryClient();
-	const { messages: replies, isLoading } = useThreadMessages(
-		channelId,
-		messageId,
+	const userId = useAuthStore((state) => state.user?.id ?? null);
+	const isRevoked = useMessengerStore((state) =>
+		state.revokedChannelIds.has(channelId),
 	);
+	const returnFocusRef = useRef<HTMLElement | null>(null);
+	const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-	// Родитель: сначала cache ленты (limit:1 почти всегда miss — W9-A3-001).
-	const { data: parentMessage } = useQuery({
-		queryKey: ["messenger", "parent-message", channelId, messageId],
-		queryFn: async () => {
-			const cached = findParentInMessagesCache(
-				queryClient.getQueryData<{ pages: Message[][] }>([
-					"messenger",
-					"messages",
-					channelId,
-				]),
-				messageId,
-			);
-			if (cached) return cached;
+	useEffect(() => {
+		returnFocusRef.current =
+			document.activeElement instanceof HTMLElement
+				? document.activeElement
+				: null;
+		closeButtonRef.current?.focus();
+	}, []);
 
-			// Fallback: страница истории — parent обычно недавно в ленте.
-			const page = await getMessages(channelId, { limit: 50 });
-			return page.find((m) => m.id === messageId) ?? null;
-		},
-		enabled: !!channelId && !!messageId,
+	const parentQuery = useQuery({
+		queryKey: threadDetailQueryKey(
+			channelId,
+			messageId,
+			userId ?? "__no-user__",
+		),
+		queryFn: async () => (await getThread(channelId, messageId)).parent,
+		enabled: !!channelId && !!messageId && !!userId && !isRevoked,
 	});
+	const {
+		messages: replies,
+		isLoading: isRepliesLoading,
+	} = useThreadMessages(channelId, messageId);
+	const parentMessage = userId && !isRevoked ? (parentQuery.data ?? null) : null;
+	const isLoading = userId && !isRevoked ? isRepliesLoading : false;
+
+	const handleClose = () => {
+		const returnTarget = returnFocusRef.current;
+		onClose();
+		returnTarget?.focus();
+	};
 
 	return (
 		<div className="flex h-full flex-col">
@@ -76,11 +95,12 @@ export function ThreadPanel({
 			<div className="flex h-12 shrink-0 items-center justify-between border-b px-4">
 				<span className="text-sm font-semibold">Тред</span>
 				<Button
+					ref={closeButtonRef}
 					variant="ghost"
 					size="icon"
 					className="h-7 w-7"
 					aria-label="Закрыть тред"
-					onClick={onClose}
+					onClick={handleClose}
 				>
 					<svg
 						aria-hidden="true"
@@ -99,7 +119,7 @@ export function ThreadPanel({
 				</Button>
 			</div>
 
-			{projectId && (
+			{projectId && userId && !isRevoked && (
 				<ThreadIssueLinks
 					projectId={projectId}
 					channelId={channelId}
@@ -138,13 +158,17 @@ export function ThreadPanel({
 			</ScrollArea>
 
 			{/* Composer для ответа в тред */}
-			<div className="shrink-0 border-t p-3">
-				<MessageComposer
-					channelId={channelId}
-					threadId={messageId}
-					placeholder="Ответить в тред..."
-				/>
-			</div>
+			{userId && !isRevoked && (
+				<div className="shrink-0 border-t p-3">
+					<MessageComposer
+						channelId={channelId}
+						canSend={canReply}
+						canAlsoSendToChannel={canPost}
+						threadId={messageId}
+						placeholder="Ответить в тред..."
+					/>
+				</div>
+			)}
 		</div>
 	);
 }

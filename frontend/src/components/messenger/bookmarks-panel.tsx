@@ -6,10 +6,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { type Bookmark, getBookmarks, removeBookmark } from "@/api/messenger";
-import { QueryStateView } from "@/components/query-state-view";
+import {
+	QueryStateView,
+	type QueryLike,
+} from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toastApiError } from "@/lib/format-api-error";
+import { useAuthStore } from "@/stores/auth-store";
+
+export const BOOKMARKS_QUERY_KEY = ["messenger", "bookmarks"] as const;
+
+export function bookmarksQueryKey(userId: string) {
+	return [...BOOKMARKS_QUERY_KEY, userId] as const;
+}
 
 /** Primary accessible label: channel name, never raw UUID (A3W9-2-001). */
 function bookmarkTitle(bm: Bookmark): string {
@@ -26,34 +36,54 @@ function bookmarkSubtitle(bm: Bookmark): string {
 export function BookmarksPanel() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const userId = useAuthStore((state) => state.user?.id ?? null);
+	const queryKey = bookmarksQueryKey(userId ?? "__no-user__");
 
 	const bookmarksQuery = useQuery({
-		queryKey: ["messenger", "bookmarks"],
+		queryKey,
 		queryFn: getBookmarks,
+		enabled: Boolean(userId),
 	});
+	const bookmarksViewQuery: typeof bookmarksQuery | QueryLike<Bookmark[]> =
+		userId ? bookmarksQuery : { isLoading: false, data: undefined };
 
 	const handleRemove = useCallback(
 		async (bookmark: Bookmark) => {
+			const capturedUserId = userId;
+			const capturedQueryKey = bookmarksQueryKey(
+				capturedUserId ?? "__no-user__",
+			);
+			if (
+				!capturedUserId ||
+				useAuthStore.getState().user?.id !== capturedUserId
+			) {
+				return;
+			}
+
 			try {
 				await removeBookmark(bookmark.id);
+				if (useAuthStore.getState().user?.id !== capturedUserId) return;
 				await queryClient.invalidateQueries({
-					queryKey: ["messenger", "bookmarks"],
+					queryKey: capturedQueryKey,
+					exact: true,
 				});
 			} catch (err) {
+				if (useAuthStore.getState().user?.id !== capturedUserId) return;
 				toastApiError(err, "Не удалось удалить закладку");
 			}
 		},
-		[queryClient],
+		[queryClient, userId],
 	);
 
 	const handleNavigate = useCallback(
 		(bookmark: Bookmark) => {
+			if (!userId || useAuthStore.getState().user?.id !== userId) return;
 			void navigate({
 				to: "/messenger/$channelId",
 				params: { channelId: bookmark.channel_id },
 			});
 		},
-		[navigate],
+		[navigate, userId],
 	);
 
 	return (
@@ -63,8 +93,8 @@ export function BookmarksPanel() {
 			</div>
 			<ScrollArea className="flex-1">
 				{/* W9-A2-009: isError + retry, не путать с «Нет закладок» */}
-				<QueryStateView
-					query={bookmarksQuery}
+				<QueryStateView<Bookmark[]>
+					query={bookmarksViewQuery}
 					loadingFallback={
 						<div className="flex items-center justify-center py-8">
 							<span className="text-sm text-t2">Загрузка...</span>

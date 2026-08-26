@@ -24,7 +24,12 @@ vi.mock("@tanstack/react-router", () => ({
  */
 describe("P2-FE-03 · accessible names (TASK-049)", () => {
 	it("PinnedMessages trigger has accessible name", () => {
-		renderWithProviders(<PinnedMessages channelId="ch-1" />);
+		renderWithProviders(
+			<PinnedMessages
+				channelId="ch-1"
+				capabilities={{ can_list_pins: true, can_pin: true }}
+			/>
+		);
 		expect(
 			screen.getByRole("button", { name: "Закреплённые сообщения" }),
 		).toBeInTheDocument();
@@ -43,6 +48,7 @@ describe("P2-FE-03 · accessible names (TASK-049)", () => {
 				<ReactionPicker
 					channelId="ch-1"
 					messageId="m-1"
+					canReact
 					open
 					onOpenChange={() => undefined}
 				/>

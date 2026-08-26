@@ -1,7 +1,8 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message } from "@/api/messenger";
 import { MessageComposer } from "@/components/messenger/message-composer";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { renderWithProviders } from "../support/render";
 
@@ -33,11 +34,25 @@ describe("FE-P1-MESSENGER · reply thread_id (W9-A3-002)", () => {
 	beforeEach(() => {
 		sendMessage.mockReset();
 		sendMessage.mockResolvedValue({ id: "new-msg" });
+		useAuthStore.setState({
+			user: {
+				id: "composer-reply-user",
+				email: "composer-reply@example.test",
+				timezone: "UTC",
+				language: "en",
+				system_role: "member",
+				onboarding_completed: true,
+			},
+		});
 		useMessengerStore.setState({ replyToMessage: parent });
 	});
 
+	afterEach(() => {
+		useAuthStore.setState({ user: null });
+	});
+
 	it("sendMessage includes replyToMessage.id as thread_id when not in thread panel", async () => {
-		renderWithProviders(<MessageComposer channelId="ch-1" />);
+		renderWithProviders(<MessageComposer canSend channelId="ch-1" />);
 
 		const input = screen.getByRole("textbox");
 		fireEvent.change(input, { target: { value: "Ответ на сообщение" } });
@@ -56,7 +71,7 @@ describe("FE-P1-MESSENGER · reply thread_id (W9-A3-002)", () => {
 
 	it("mutation: without reply id message would go without thread (guard)", async () => {
 		useMessengerStore.setState({ replyToMessage: null });
-		renderWithProviders(<MessageComposer channelId="ch-1" />);
+		renderWithProviders(<MessageComposer canSend channelId="ch-1" />);
 
 		fireEvent.change(screen.getByRole("textbox"), {
 			target: { value: "Обычное" },

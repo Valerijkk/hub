@@ -26,6 +26,7 @@ import {
 import { formatApiError, toastApiError } from "@/lib/format-api-error";
 import { type PlateDoc, plateDocToContentJson } from "@/lib/plate-doc";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
 import { GifPicker } from "./gif-picker";
@@ -146,6 +147,7 @@ interface PendingAttachment {
 
 interface MessageSendSnapshot {
 	nonce: string;
+	userId: string;
 	channelId: string;
 	threadId?: string;
 	payload: Readonly<SendMessageRequest>;
@@ -161,6 +163,10 @@ interface PendingMessageSend {
 interface MessageComposerProps {
 	/** ID канала для отправки сообщения. */
 	channelId: string;
+	/** Явное свежее право отправки; отсутствие всегда deny. */
+	canSend: boolean;
+	/** Право вывести ответ треда в основную ленту. */
+	canAlsoSendToChannel?: boolean;
 	/** ID треда (если отвечаем в тред). */
 	threadId?: string;
 	/** Заглушка-подсказка. */
@@ -222,12 +228,17 @@ function ReplyPreview({
  */
 export function MessageComposer({
 	channelId,
+	canSend,
+	canAlsoSendToChannel = false,
 	threadId,
 	placeholder = "Написать сообщение...",
 }: MessageComposerProps) {
 	const invalidateMessages = useInvalidateMessages(channelId);
+	const canSendRef = useRef(canSend);
+	const canAlsoSendToChannelRef = useRef(canAlsoSendToChannel);
 	const [text, setText] = useState("");
 	const [isSending, setIsSending] = useState(false);
+	const [alsoSendToChannel, setAlsoSendToChannel] = useState(false);
 	const pendingSendsRef = useRef(new Map<string, PendingMessageSend>());
 	const activeInitialNonceRef = useRef<string | null>(null);
 	const [showVoice, setShowVoice] = useState(false);
@@ -252,10 +263,19 @@ export function MessageComposer({
 	const [aiSuggestionFor, setAiSuggestionFor] = useState<string | null>(null);
 	const [aiSuggestLoading, setAiSuggestLoading] = useState(false);
 
+	const userId = useAuthStore((state) => state.user?.id ?? null);
 	const replyToMessage = useMessengerStore((s) => s.replyToMessage);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
+	const channelRevoked = useMessengerStore((s) =>
+		s.revokedChannelIds.has(channelId),
+	);
+	const hasSendAccess = canSend && userId !== null && !channelRevoked;
+	canSendRef.current = hasSendAccess;
+	canAlsoSendToChannelRef.current =
+		canAlsoSendToChannel && !channelRevoked;
 	/** threadId из панели треда или id сообщения при «Ответить». */
-	const effectiveThreadId = threadId ?? replyToMessage?.id;
+	const effectiveThreadId =
+		threadId ?? replyToMessage?.thread_id ?? replyToMessage?.id;
 
 	const discardPendingSend = useCallback((pending: PendingMessageSend) => {
 		if (
@@ -269,6 +289,11 @@ export function MessageComposer({
 		}
 	}, []);
 
+	const clearActiveInitialSend = useCallback(() => {
+		activeInitialNonceRef.current = null;
+		setIsSending(false);
+	}, []);
+
 	useEffect(
 		() => () => {
 			for (const pending of pendingSendsRef.current.values()) {
@@ -277,17 +302,55 @@ export function MessageComposer({
 				}
 			}
 			pendingSendsRef.current.clear();
-			activeInitialNonceRef.current = null;
-			setIsSending(false);
+			clearActiveInitialSend();
 		},
-		[channelId],
+		[channelId, clearActiveInitialSend],
 	);
+
+	useEffect(() => {
+		if (hasSendAccess) return;
+		for (const pending of [...pendingSendsRef.current.values()]) {
+			discardPendingSend(pending);
+		}
+		setPendingAttachments([]);
+		setAlsoSendToChannel(false);
+		setEmojiOpen(false);
+		setShowVoice(false);
+		setShowPollDialog(false);
+		clearActiveInitialSend();
+	}, [clearActiveInitialSend, discardPendingSend, hasSendAccess]);
+
+	useEffect(() => {
+		let discardedPriorUserSend = false;
+		for (const pending of [...pendingSendsRef.current.values()]) {
+			if (pending.snapshot.userId !== userId) {
+				discardPendingSend(pending);
+				discardedPriorUserSend = true;
+			}
+		}
+		if (discardedPriorUserSend) {
+			clearActiveInitialSend();
+		}
+	}, [clearActiveInitialSend, discardPendingSend, userId]);
 
 	const attemptPendingSend = useCallback(
 		async (pending: PendingMessageSend, isInitialAttempt: boolean) => {
 			if (
 				pendingSendsRef.current.get(pending.snapshot.nonce) !== pending
 			) {
+				return;
+			}
+			const currentUserId = useAuthStore.getState().user?.id ?? null;
+			if (
+				!canSendRef.current ||
+				currentUserId !== pending.snapshot.userId ||
+				useMessengerStore
+					.getState()
+					.isChannelRevoked(pending.snapshot.channelId) ||
+				(pending.snapshot.payload.also_send_to_channel === true &&
+					!canAlsoSendToChannelRef.current)
+			) {
+				discardPendingSend(pending);
 				return;
 			}
 			if (isInitialAttempt) {
@@ -297,14 +360,32 @@ export function MessageComposer({
 
 			try {
 				await sendMessage(pending.snapshot.channelId, pending.snapshot.payload);
+				const currentUserId = useAuthStore.getState().user?.id ?? null;
 				if (
-					pendingSendsRef.current.get(pending.snapshot.nonce) !== pending
+					pendingSendsRef.current.get(pending.snapshot.nonce) !== pending ||
+					!canSendRef.current ||
+					currentUserId !== pending.snapshot.userId ||
+					useMessengerStore
+						.getState()
+						.isChannelRevoked(pending.snapshot.channelId)
 				) {
+					discardPendingSend(pending);
 					return;
 				}
-				invalidateMessages();
+				invalidateMessages(pending.snapshot.threadId);
 				discardPendingSend(pending);
 			} catch (err) {
+				const currentUserId = useAuthStore.getState().user?.id ?? null;
+				if (
+					!canSendRef.current ||
+					currentUserId !== pending.snapshot.userId ||
+					useMessengerStore
+						.getState()
+						.isChannelRevoked(pending.snapshot.channelId)
+				) {
+					discardPendingSend(pending);
+					return;
+				}
 				if (
 					pendingSendsRef.current.get(pending.snapshot.nonce) !== pending ||
 					pending.toastId !== undefined
@@ -349,14 +430,26 @@ export function MessageComposer({
 			payload: Omit<SendMessageRequest, "client_nonce" | "thread_id">,
 			failureMessage: string,
 		) => {
+			const currentUserId = useAuthStore.getState().user?.id ?? null;
+			if (
+				!canSendRef.current ||
+				currentUserId === null ||
+				useMessengerStore.getState().isChannelRevoked(channelId)
+			) {
+				return;
+			}
 			const nonce = crypto.randomUUID();
 			const snapshot: MessageSendSnapshot = Object.freeze({
 				nonce,
+				userId: currentUserId,
 				channelId,
 				threadId: effectiveThreadId,
 				payload: Object.freeze({
 					...payload,
 					thread_id: effectiveThreadId,
+					...(effectiveThreadId && alsoSendToChannel && canAlsoSendToChannelRef.current
+						? { also_send_to_channel: true }
+						: {}),
 					attachment_ids: payload.attachment_ids
 						? [...payload.attachment_ids]
 						: undefined,
@@ -370,8 +463,9 @@ export function MessageComposer({
 			const pending: PendingMessageSend = { snapshot, failureMessage };
 			pendingSendsRef.current.set(nonce, pending);
 			void attemptPendingSend(pending, true);
+			setAlsoSendToChannel(false);
 		},
-		[attemptPendingSend, channelId, effectiveThreadId],
+		[alsoSendToChannel, attemptPendingSend, channelId, effectiveThreadId],
 	);
 
 	/** Время последней отправки typing-индикатора (троттлинг 3 сек). */
@@ -404,24 +498,49 @@ export function MessageComposer({
 
 	/** Открытие диалога выбора файла. */
 	const handleAttachClick = useCallback(() => {
+		if (
+			!canSendRef.current ||
+			useMessengerStore.getState().isChannelRevoked(channelId)
+		) {
+			return;
+		}
 		fileInputRef.current?.click();
-	}, []);
+	}, [channelId]);
 
 	/** Загрузка выбранного файла в хранилище. */
 	const handleFileChange = useCallback(
 		async (e: React.ChangeEvent<HTMLInputElement>) => {
 			const files = e.target.files;
-			if (!files || files.length === 0) return;
+			if (
+				!files ||
+				files.length === 0 ||
+				!canSendRef.current ||
+				useMessengerStore.getState().isChannelRevoked(channelId)
+			) {
+				return;
+			}
 
 			setIsUploading(true);
 			try {
 				for (const file of Array.from(files)) {
+					if (
+						!canSendRef.current ||
+						useMessengerStore.getState().isChannelRevoked(channelId)
+					) {
+						return;
+					}
 					const fileId = await uploadFile(
 						file,
 						"messenger",
 						"attachment",
 						channelId,
 					);
+					if (
+						!canSendRef.current ||
+						useMessengerStore.getState().isChannelRevoked(channelId)
+					) {
+						return;
+					}
 					setPendingAttachments((prev) => [
 						...prev,
 						{
@@ -433,10 +552,14 @@ export function MessageComposer({
 					]);
 				}
 			} catch (err) {
-				toastApiError(err, "Не удалось загрузить файл");
+				if (
+					canSendRef.current &&
+					!useMessengerStore.getState().isChannelRevoked(channelId)
+				) {
+					toastApiError(err, "Не удалось загрузить файл");
+				}
 			} finally {
 				setIsUploading(false);
-				// Сбрасываем input, чтобы можно было выбрать тот же файл повторно.
 				if (fileInputRef.current) {
 					fileInputRef.current.value = "";
 				}
@@ -452,7 +575,13 @@ export function MessageComposer({
 
 	/** Отправка текстового сообщения. */
 	const handleSend = useCallback(() => {
-		if (isUploading) return;
+		if (
+			!hasSendAccess ||
+			isUploading ||
+			useMessengerStore.getState().isChannelRevoked(channelId)
+		) {
+			return;
+		}
 		const trimmed = text.trim();
 		if (!trimmed && pendingAttachments.length === 0) return;
 
@@ -484,6 +613,8 @@ export function MessageComposer({
 			textareaRef.current.style.height = "auto";
 		}
 	}, [
+		hasSendAccess,
+		channelId,
 		isUploading,
 		text,
 		pendingAttachments,
@@ -516,6 +647,12 @@ export function MessageComposer({
 	/** Обработка клавиш: @mention → Tab AI → Enter отправить. */
 	const handleKeyDown = useCallback(
 		async (e: KeyboardEvent<HTMLTextAreaElement>) => {
+			if (
+				!canSendRef.current ||
+				useMessengerStore.getState().isChannelRevoked(channelId)
+			) {
+				return;
+			}
 			if (mentionKeyHandlerRef.current?.(e)) return;
 
 			if (e.key === "Tab" && !e.shiftKey && canSuggestComposer(text)) {
@@ -577,7 +714,11 @@ export function MessageComposer({
 			el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
 
 			// Отправка typing-индикатора (троттлинг: не чаще 1 раза в 3 сек).
-			if (value.trim()) {
+			if (
+				canSendRef.current &&
+				!useMessengerStore.getState().isChannelRevoked(channelId) &&
+				value.trim()
+			) {
 				const now = Date.now();
 				if (now - lastTypingSentRef.current > 3000) {
 					lastTypingSentRef.current = now;
@@ -659,6 +800,17 @@ export function MessageComposer({
 				/>
 			)}
 
+			{effectiveThreadId && canAlsoSendToChannel && (
+				<label className="flex items-center gap-2 px-1 py-1 text-xs text-t2">
+					<input
+						type="checkbox"
+						checked={alsoSendToChannel}
+						onChange={(event) => setAlsoSendToChannel(event.target.checked)}
+					/>
+					Также отправить в канал
+				</label>
+			)}
+
 			{/* Превью прикреплённых файлов */}
 			{pendingAttachments.length > 0 && (
 				<div className="flex flex-wrap gap-1.5 px-1 pb-1.5">
@@ -711,7 +863,7 @@ export function MessageComposer({
 				</div>
 			)}
 
-			{showVoice ? (
+			{showVoice && hasSendAccess ? (
 				<VoiceRecorder
 					onSend={handleVoiceSend}
 					onCancel={() => setShowVoice(false)}
@@ -742,7 +894,7 @@ export function MessageComposer({
 						title="Прикрепить файл"
 						aria-label="Прикрепить файл"
 						onClick={handleAttachClick}
-						disabled={isUploading}
+						disabled={!hasSendAccess || isUploading}
 					>
 						<svg
 							aria-hidden="true"
@@ -795,7 +947,7 @@ export function MessageComposer({
 								canSuggestComposer(text) ? "Tab — дополнение AI" : undefined
 							}
 							rows={1}
-							disabled={isSending || aiSuggestLoading}
+							disabled={!hasSendAccess || isSending || aiSuggestLoading}
 							className="relative z-[1] w-full bg-transparent border-none text-sm text-[var(--t1)] resize-none min-h-[38px] max-h-[200px] py-[9px] leading-relaxed outline-none placeholder:text-[var(--t3)]"
 						/>
 					</div>
@@ -919,7 +1071,7 @@ export function MessageComposer({
 								: "bg-[var(--input)] text-[var(--t4)]",
 						)}
 						onClick={() => void handleSend()}
-						disabled={isSending || isUploading || !hasContent}
+						disabled={!hasSendAccess || isSending || isUploading || !hasContent}
 						title="Отправить"
 						aria-label="Отправить сообщение"
 					>
@@ -947,7 +1099,7 @@ export function MessageComposer({
 			{/* Диалог создания опроса */}
 			<CreatePollDialog
 				channelId={channelId}
-				open={showPollDialog}
+				open={showPollDialog && hasSendAccess}
 				onOpenChange={setShowPollDialog}
 			/>
 		</div>

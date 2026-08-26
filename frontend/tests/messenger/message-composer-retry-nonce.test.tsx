@@ -1,8 +1,9 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message, SendMessageRequest } from "@/api/messenger";
 import { MessageComposer } from "@/components/messenger/message-composer";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { renderWithProviders } from "../support/render";
 
@@ -14,6 +15,21 @@ const UUIDS = [
 	"00000000-0000-4000-8000-000000000004",
 	"00000000-0000-4000-8000-000000000005",
 ] as const;
+
+const userA = {
+	id: "composer-user-a",
+	email: "composer-user-a@example.test",
+	timezone: "UTC",
+	language: "ru",
+	system_role: "employee",
+	onboarding_completed: true,
+};
+
+const userB = {
+	...userA,
+	id: "composer-user-b",
+	email: "composer-user-b@example.test",
+};
 
 const sendMessage = vi.fn();
 const sendTypingIndicator = vi.fn();
@@ -225,11 +241,13 @@ describe("FE-P149-MESSENGER · retry nonce and optimistic recovery", () => {
 				options?.id ?? `retry-toast-${++toastIndex}`,
 		);
 		uploadFile.mockResolvedValue("retry-attachment-id");
+		useAuthStore.setState({ user: userA, isAuthenticated: true });
 		useMessengerStore.setState({ replyToMessage: null });
 		vi.stubGlobal("crypto", { randomUUID });
 	});
 
 	afterEach(() => {
+		useAuthStore.setState({ user: null, isAuthenticated: false });
 		vi.unstubAllGlobals();
 	});
 
@@ -258,7 +276,7 @@ describe("FE-P149-MESSENGER · retry nonce and optimistic recovery", () => {
 			.mockRejectedValueOnce(new Error("initial send failed"))
 			.mockReturnValueOnce(retry.promise);
 		const { container } = renderWithProviders(
-			<MessageComposer channelId="channel-retry" threadId="thread-retry" />,
+			<MessageComposer canSend channelId="channel-retry" threadId="thread-retry" />,
 		);
 
 		await addAttachment(container);
@@ -301,16 +319,92 @@ describe("FE-P149-MESSENGER · retry nonce and optimistic recovery", () => {
 		retry.resolve({ id: "retry-success" });
 		await waitFor(() => {
 			expect(invalidateMessages).toHaveBeenCalledTimes(1);
+			expect(invalidateMessages).toHaveBeenCalledWith("thread-retry");
 			expect(toastDismiss).toHaveBeenCalledWith(retryToast.id);
 			expect(composerInput()).toHaveValue("newer draft");
 		});
+	});
+
+	it("keeps the root-composer reply target snapshotted after it is cleared during send", async () => {
+		const inFlight = deferred<unknown>();
+		const replyRoot: Message = {
+			id: "root-composer-thread",
+			channel_id: "channel-retry",
+			sender_id: "user-retry",
+			content_text: "reply root",
+			reply_count: 0,
+			created_at: "2026-08-26T00:00:00Z",
+		};
+		useMessengerStore.setState({ replyToMessage: replyRoot });
+		sendMessage.mockReturnValueOnce(inFlight.promise);
+		renderWithProviders(<MessageComposer canSend channelId="channel-retry" />);
+
+		fireEvent.change(composerInput(), {
+			target: { value: "reply through root composer" },
+		});
+		fireEvent.click(sendButton());
+
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+		const [, payload] = sendMessage.mock.calls[0] as [
+			string,
+			SendMessageRequest,
+		];
+		expect(payload.thread_id).toBe(replyRoot.id);
+
+		useMessengerStore.setState({ replyToMessage: null });
+		expect(useMessengerStore.getState().replyToMessage).toBeNull();
+		inFlight.resolve({ id: "root-reply-success" });
+
+		await waitFor(() => {
+			expect(invalidateMessages).toHaveBeenCalledTimes(1);
+			expect(invalidateMessages).toHaveBeenCalledWith(replyRoot.id);
+		});
+	});
+
+	it("does not retry user A's rejected send after the authenticated user changes to B", async () => {
+		sendMessage.mockRejectedValueOnce(new Error("initial send failed"));
+		renderWithProviders(<MessageComposer canSend channelId="channel-retry" />);
+
+		fireEvent.change(composerInput(), { target: { value: "A-only draft" } });
+		fireEvent.click(sendButton());
+
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+		const retryToast = await waitFor(() => retryToastAt(0));
+
+		act(() => {
+			useAuthStore.setState({ user: userB, isAuthenticated: true });
+		});
+		await waitFor(() => expect(toastDismiss).toHaveBeenCalledWith(retryToast.id));
+
+		retryToast.options.action.onClick();
+		await Promise.resolve();
+		expect(sendMessage).toHaveBeenCalledTimes(1);
+	});
+
+	it("re-enables the composer after send access is lost during an unresolved initial send", async () => {
+		const inFlight = deferred<unknown>();
+		sendMessage.mockReturnValueOnce(inFlight.promise);
+		const { rerender } = renderWithProviders(
+			<MessageComposer canSend channelId="channel-retry" />,
+		);
+
+		fireEvent.change(composerInput(), { target: { value: "access-race draft" } });
+		fireEvent.click(sendButton());
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+		expect(composerInput()).toBeDisabled();
+
+		rerender(<MessageComposer canSend={false} channelId="channel-retry" />);
+		expect(composerInput()).toBeDisabled();
+
+		rerender(<MessageComposer canSend channelId="channel-retry" />);
+		await waitFor(() => expect(composerInput()).toBeEnabled());
 	});
 
 	it("cancels without another request and gives the next logical text send a new nonce", async () => {
 		sendMessage
 			.mockRejectedValueOnce(new Error("cancelled send failed"))
 			.mockResolvedValueOnce({ id: "later-send" });
-		renderWithProviders(<MessageComposer channelId="channel-retry" />);
+		renderWithProviders(<MessageComposer canSend channelId="channel-retry" />);
 
 		fireEvent.change(composerInput(), { target: { value: "cancelled draft" } });
 		fireEvent.click(sendButton());
@@ -370,7 +464,7 @@ describe("FE-P149-MESSENGER · retry nonce and optimistic recovery", () => {
 				},
 			},
 		] as const;
-		renderWithProviders(<MessageComposer channelId="channel-retry" />);
+		renderWithProviders(<MessageComposer canSend channelId="channel-retry" />);
 
 		const firstRouteNonces: string[] = [];
 		for (const [routeIndex, route] of routes.entries()) {
@@ -416,14 +510,14 @@ describe("FE-P149-MESSENGER · retry nonce and optimistic recovery", () => {
 		const inFlight = deferred<unknown>();
 		sendMessage.mockReturnValueOnce(inFlight.promise);
 		const { rerender } = renderWithProviders(
-			<MessageComposer channelId="channel-retry" />,
+			<MessageComposer canSend channelId="channel-retry" />,
 		);
 
 		fireEvent.change(composerInput(), { target: { value: "route-bound draft" } });
 		fireEvent.click(sendButton());
 		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
 
-		rerender(<MessageComposer channelId="channel-next" />);
+		rerender(<MessageComposer canSend channelId="channel-next" />);
 		inFlight.reject(new Error("late route failure"));
 		await Promise.resolve();
 		await Promise.resolve();
@@ -433,7 +527,7 @@ describe("FE-P149-MESSENGER · retry nonce and optimistic recovery", () => {
 	it("dismisses the owned retry toast when unmounted after one failed pending send", async () => {
 		sendMessage.mockRejectedValueOnce(new Error("unmount send failed"));
 		const { unmount } = renderWithProviders(
-			<MessageComposer channelId="channel-retry" />,
+			<MessageComposer canSend channelId="channel-retry" />,
 		);
 
 		fireEvent.change(composerInput(), { target: { value: "pending draft" } });

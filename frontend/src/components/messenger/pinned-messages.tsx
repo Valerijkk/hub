@@ -1,11 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	getChannelPins,
+	type ChannelCapabilities,
 	type Message,
 	type PinnedMessage,
 	togglePin,
 } from "@/api/messenger";
+import { QueryErrorAlert, QueryStateView } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -15,11 +17,22 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { messagesQueryKey } from "@/hooks/use-messages";
+import { useAuthStore } from "@/stores/auth-store";
+import { useMessengerStore } from "@/stores/messenger-store";
 
 /** Пропсы компонента PinnedMessages. */
 interface PinnedMessagesProps {
 	/** ID канала. */
 	channelId: string;
+	/** Fresh server-authoritative pin capabilities; missing data fails closed. */
+	capabilities?: Pick<ChannelCapabilities, "can_list_pins" | "can_pin">;
+}
+
+export const PINS_QUERY_KEY = ["messenger", "pins"] as const;
+
+export function pinsQueryKey(channelId: string, userId: string) {
+	return [...PINS_QUERY_KEY, channelId, userId] as const;
 }
 
 /**
@@ -46,29 +59,91 @@ export function resolvePinPreview(
  * PinnedMessages -- панель закреплённых сообщений канала.
  * Открывается кнопкой pin в заголовке чата.
  */
-export function PinnedMessages({ channelId }: PinnedMessagesProps) {
+export function PinnedMessages({
+	channelId,
+	capabilities,
+}: PinnedMessagesProps) {
 	const [open, setOpen] = useState(false);
 	const queryClient = useQueryClient();
+	const userId = useAuthStore((state) => state.user?.id ?? null);
+	const capabilitiesRef = useRef(capabilities);
+	capabilitiesRef.current = capabilities;
+	const channelRevoked = useMessengerStore((state) =>
+		state.revokedChannelIds.has(channelId),
+	);
+	const canListPins =
+		capabilities?.can_list_pins === true && !channelRevoked;
+	const canPin = canListPins && capabilities?.can_pin === true;
+	const queryKey = pinsQueryKey(channelId, userId ?? "__no-user__");
 
-	const { data: pins, refetch } = useQuery({
-		queryKey: ["messenger", "pins", channelId],
+	const pinsQuery = useQuery({
+		queryKey,
 		queryFn: () => getChannelPins(channelId),
-		enabled: open,
+		enabled: open && Boolean(userId) && canListPins,
 	});
 
-	const messagesCache = queryClient.getQueryData<{ pages: Message[][] }>([
-		"messenger",
-		"messages",
-		channelId,
-	]);
+	useEffect(() => {
+		if (!canListPins && open) setOpen(false);
+	}, [canListPins, open]);
+
+	const messagesCache = userId
+		? queryClient.getQueryData<{ pages: Message[][] }>(
+				messagesQueryKey(channelId, userId),
+			)
+		: undefined;
+
+	const canUnpinNow = useCallback(() => {
+		const currentSnapshot = capabilitiesRef.current;
+		if (
+			currentSnapshot?.can_list_pins !== true ||
+			currentSnapshot.can_pin !== true
+		) {
+			return false;
+		}
+		const state = useMessengerStore.getState();
+		if (state.isChannelRevoked(channelId)) return false;
+		const currentCapabilities = state.channels.find(
+			(item) => item.id === channelId,
+		)?.capabilities;
+		return (
+			currentCapabilities?.can_list_pins === true &&
+			currentCapabilities.can_pin === true
+		);
+	}, [channelId]);
 
 	const handleUnpin = useCallback(
 		async (pin: PinnedMessage) => {
-			await togglePin(pin.channel_id, pin.message_id);
-			await refetch();
+			const capturedUserId = userId;
+			const capturedChannelId = channelId;
+			const capturedQueryKey = pinsQueryKey(
+				capturedChannelId,
+				capturedUserId ?? "__no-user__",
+			);
+			if (
+				!capturedUserId ||
+				!canUnpinNow() ||
+				pin.channel_id !== capturedChannelId ||
+				useAuthStore.getState().user?.id !== capturedUserId
+			) {
+				return;
+			}
+
+			await togglePin(capturedChannelId, pin.message_id);
+			if (
+				useAuthStore.getState().user?.id !== capturedUserId ||
+				!canUnpinNow()
+			) {
+				return;
+			}
+			await queryClient.invalidateQueries({
+				queryKey: capturedQueryKey,
+				exact: true,
+			});
 		},
-		[refetch],
+		[canUnpinNow, channelId, queryClient, userId],
 	);
+
+	if (!canListPins) return null;
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -101,43 +176,78 @@ export function PinnedMessages({ channelId }: PinnedMessagesProps) {
 					<DialogTitle>Закреплённые сообщения</DialogTitle>
 				</DialogHeader>
 				<ScrollArea className="max-h-96">
-					{pins && pins.length > 0 ? (
-						<div className="space-y-2 pt-2">
-							{pins.map((pin) => {
-								const preview = resolvePinPreview(
-									messagesCache?.pages,
-									pin.message_id,
-								);
-								return (
-									<div
-										key={pin.id}
-										className="flex items-start justify-between rounded-md border p-3"
-									>
-										<div className="min-w-0 flex-1">
-											<p className="text-sm line-clamp-2" title={preview}>
-												{preview}
-											</p>
-											<p className="text-xs text-t2">
-												Закреплено:{" "}
-												{new Date(pin.pinned_at).toLocaleDateString("ru-RU")}
-											</p>
-										</div>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="shrink-0"
-											onClick={() => void handleUnpin(pin)}
-										>
-											Открепить
-										</Button>
-									</div>
-								);
-							})}
-						</div>
-					) : (
+					{!userId ? (
 						<p className="py-4 text-center text-sm text-t2">
 							Нет закреплённых сообщений
 						</p>
+					) : (
+						<QueryStateView<PinnedMessage[]>
+							query={pinsQuery}
+							loadingFallback={
+								<p
+									role="status"
+									aria-live="polite"
+									className="py-4 text-center text-sm text-t2"
+								>
+									Загрузка закреплённых сообщений...
+								</p>
+							}
+							errorFallback={(_, retry) => (
+								<QueryErrorAlert
+									compact
+									message="Не удалось загрузить закреплённые сообщения"
+									retry={retry}
+								/>
+							)}
+							isEmpty={(data) => data.length === 0}
+							emptyFallback={
+								<p className="py-4 text-center text-sm text-t2">
+									Нет закреплённых сообщений
+								</p>
+							}
+						>
+							{(currentPins) => (
+								<div className="space-y-2 pt-2">
+									{currentPins.map((pin) => {
+										const preview = resolvePinPreview(
+											messagesCache?.pages,
+											pin.message_id,
+										);
+										return (
+											<div
+												key={pin.id}
+												className="flex items-start justify-between rounded-md border p-3"
+											>
+												<div className="min-w-0 flex-1">
+													<p
+														className="text-sm line-clamp-2"
+														title={preview}
+													>
+														{preview}
+													</p>
+													<p className="text-xs text-t2">
+														Закреплено:{" "}
+														{new Date(pin.pinned_at).toLocaleDateString(
+															"ru-RU",
+														)}
+													</p>
+												</div>
+												{canPin && (
+													<Button
+														variant="ghost"
+														size="sm"
+														className="shrink-0"
+														onClick={() => void handleUnpin(pin)}
+													>
+														Открепить
+													</Button>
+												)}
+											</div>
+										);
+									})}
+								</div>
+							)}
+						</QueryStateView>
 					)}
 				</ScrollArea>
 			</DialogContent>

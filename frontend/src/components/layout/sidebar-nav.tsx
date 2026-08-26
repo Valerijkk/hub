@@ -2,7 +2,6 @@
  * Навигация сайдбара -- Slack-style ссылки на основные разделы.
  * Иконки 20px (viewBox 20x20), высота элемента 32px.
  */
-import { useMemo } from "react";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { NAV_ICON_COLORS, SidebarLink } from "./sidebar-link";
 
@@ -14,10 +13,8 @@ export function SidebarNav({
 	collapsed: boolean;
 	t: (key: string, options?: Record<string, string>) => string;
 }) {
-	const unreadCounts = useMessengerStore((s) => s.unreadCounts);
-	const totalUnread = useMemo(
-		() => Object.values(unreadCounts).reduce((sum, n) => sum + n, 0),
-		[unreadCounts],
+	const hasMessengerUnread = useMessengerStore(
+		(state) => state.unreadSnapshot.any_unread,
 	);
 	return (
 		<div className="space-y-0.5 px-3 py-2">
@@ -49,7 +46,7 @@ export function SidebarNav({
 				to="/messenger"
 				label={t("nav.messenger")}
 				collapsed={collapsed}
-				badge={totalUnread || undefined}
+				unreadDot={hasMessengerUnread}
 				icon={
 					<svg
 						aria-hidden="true"

@@ -12,12 +12,16 @@ import {
 } from "vitest";
 import type { Channel } from "@/api/messenger";
 import {
-	CHANNELS_QUERY_KEY,
+	channelsQueryKey,
 	useChannels,
 } from "@/hooks/use-channels";
 import { useMessengerChannelsRealtime } from "@/hooks/use-messenger-channels-realtime";
+import { unreadQueryKey } from "@/hooks/use-unread";
 import { useAuthStore } from "@/stores/auth-store";
-import { useMessengerStore } from "@/stores/messenger-store";
+import {
+	emptyUnreadSnapshot,
+	useMessengerStore,
+} from "@/stores/messenger-store";
 import { clearWsReconnectTimer, useWsStore } from "@/stores/ws-store";
 
 vi.mock("@/api/messenger", async (importOriginal) => {
@@ -96,6 +100,8 @@ describe("messenger channel realtime ownership (P149)", () => {
 	let queryClient: QueryClient;
 	let setQueryDataSpy: MockInstance<QueryClient["setQueryData"]>;
 	let invalidateQueriesSpy: MockInstance<QueryClient["invalidateQueries"]>;
+	let cancelQueriesSpy: MockInstance<QueryClient["cancelQueries"]>;
+	let removeQueriesSpy: MockInstance<QueryClient["removeQueries"]>;
 	const existing = makeChannel({ id: "ch-existing", name: "Existing" });
 
 	beforeEach(() => {
@@ -130,7 +136,7 @@ describe("messenger channel realtime ownership (P149)", () => {
 				onboarding_completed: true,
 			},
 		});
-		useMessengerStore.setState({ channels: [], unreadCounts: {} });
+		useMessengerStore.setState({ channels: [], unreadSnapshot: emptyUnreadSnapshot() });
 
 		queryClient = new QueryClient({
 			defaultOptions: {
@@ -140,6 +146,8 @@ describe("messenger channel realtime ownership (P149)", () => {
 		});
 		setQueryDataSpy = vi.spyOn(queryClient, "setQueryData");
 		invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+		cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
+		removeQueriesSpy = vi.spyOn(queryClient, "removeQueries");
 
 		vi.mocked(getChannels).mockResolvedValue([existing]);
 	});
@@ -250,12 +258,14 @@ describe("messenger channel realtime ownership (P149)", () => {
 		expect(invalidateQueriesSpy).not.toHaveBeenCalled();
 	});
 
-	it("switches user rooms on the same socket before an exact authoritative refetch", async () => {
+	it("clears the previous identity before subscribing the same socket to the next user", async () => {
 		await mountRealtimeOwner();
 		const socket = FakeWebSocket.instances[0];
 		expect(socket).toBeDefined();
 		const sendSpy = vi.spyOn(socket as FakeWebSocket, "send");
 		invalidateQueriesSpy.mockClear();
+		cancelQueriesSpy.mockClear();
+		removeQueriesSpy.mockClear();
 		vi.mocked(getChannels).mockClear();
 		const channelB = makeChannel({ id: "ch-user-b", name: "User B channel" });
 		vi.mocked(getChannels).mockResolvedValueOnce([channelB]);
@@ -268,10 +278,6 @@ describe("messenger channel realtime ownership (P149)", () => {
 
 		await waitFor(() => {
 			expect(sendSpy).toHaveBeenCalledTimes(2);
-			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-				queryKey: CHANNELS_QUERY_KEY,
-				exact: true,
-			});
 		});
 		expect(sendSpy).toHaveBeenNthCalledWith(
 			1,
@@ -281,13 +287,14 @@ describe("messenger channel realtime ownership (P149)", () => {
 			2,
 			JSON.stringify({ type: "subscribe", room: "user:user-2" }),
 		);
-		expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
+		expect(invalidateQueriesSpy).not.toHaveBeenCalled();
 
+		const cancelOrder = cancelQueriesSpy.mock.invocationCallOrder[0];
+		const removeOrder = removeQueriesSpy.mock.invocationCallOrder[0];
 		const subscribeBOrder = sendSpy.mock.invocationCallOrder[1];
-		const invalidateOrder = invalidateQueriesSpy.mock.invocationCallOrder[0];
-		expect(subscribeBOrder).toBeLessThan(
-			invalidateOrder ?? Number.POSITIVE_INFINITY,
-		);
+		expect(cancelOrder).toBeLessThan(removeOrder ?? Number.POSITIVE_INFINITY);
+		expect(removeOrder).toBeLessThan(subscribeBOrder ?? Number.POSITIVE_INFINITY);
+		expect(useMessengerStore.getState().activeChannelId).toBeNull();
 		expect(useWsStore.getState().socket).toBe(socket as unknown as WebSocket);
 		expect(FakeWebSocket.instances).toHaveLength(1);
 		await waitFor(() => {
@@ -314,19 +321,21 @@ describe("messenger channel realtime ownership (P149)", () => {
 
 			emitWsEvent(event, payload);
 
-			expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
+			expect(invalidateQueriesSpy).toHaveBeenCalledTimes(
+				event === "channel_removed" || event === "new_message_notification" ? 2 : 1,
+			);
 			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-				queryKey: CHANNELS_QUERY_KEY,
+				queryKey: channelsQueryKey("user-1"),
 				exact: true,
 			});
 			expect(setQueryDataSpy).not.toHaveBeenCalled();
-			expect(useMessengerStore.getState().unreadCounts).toEqual({});
+			expect(useMessengerStore.getState().unreadSnapshot).toEqual(emptyUnreadSnapshot());
 
 			await waitFor(() => {
 				expect(getChannels).toHaveBeenCalledTimes(1);
 			});
 			expect(
-				queryClient.getQueryData<Channel[]>(CHANNELS_QUERY_KEY)?.map((channel) =>
+				queryClient.getQueryData<Channel[]>(channelsQueryKey("user-1"))?.map((channel) =>
 					channel.id,
 				),
 			).toEqual(["ch-existing"]);
@@ -342,7 +351,7 @@ describe("messenger channel realtime ownership (P149)", () => {
 			{ channel_id: "ch-stale", message_id: "msg-deferred" },
 		],
 	] as const)(
-		"%s keeps Zustand channels unchanged until its authoritative refetch resolves",
+		"%s uses immediate revoke only for removal, then accepts authoritative refetch",
 		async (event, payload) => {
 			await mountRealtimeOwner();
 			setQueryDataSpy.mockClear();
@@ -363,15 +372,19 @@ describe("messenger channel realtime ownership (P149)", () => {
 
 			emitWsEvent(event, payload);
 
-			expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
+			expect(invalidateQueriesSpy).toHaveBeenCalledTimes(
+				event === "channel_removed" || event === "new_message_notification" ? 2 : 1,
+			);
 			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-				queryKey: CHANNELS_QUERY_KEY,
+				queryKey: channelsQueryKey("user-1"),
 				exact: true,
 			});
 			await waitFor(() => {
 				expect(getChannels).toHaveBeenCalledTimes(1);
 			});
-			expect(useMessengerStore.getState().channels).toEqual([stale]);
+			expect(useMessengerStore.getState().channels).toEqual(
+				event === "channel_removed" ? [] : [stale],
+			);
 			expect(setQueryDataSpy).not.toHaveBeenCalled();
 
 			await act(async () => {
@@ -400,17 +413,25 @@ describe("messenger channel realtime ownership (P149)", () => {
 			message_id: "msg-duplicate",
 		});
 
-		expect(invalidateQueriesSpy).toHaveBeenCalledTimes(2);
+		expect(invalidateQueriesSpy).toHaveBeenCalledTimes(4);
 		expect(invalidateQueriesSpy).toHaveBeenNthCalledWith(1, {
-			queryKey: CHANNELS_QUERY_KEY,
+			queryKey: channelsQueryKey("user-1"),
 			exact: true,
 		});
 		expect(invalidateQueriesSpy).toHaveBeenNthCalledWith(2, {
-			queryKey: CHANNELS_QUERY_KEY,
+			queryKey: unreadQueryKey("user-1"),
+			exact: true,
+		});
+		expect(invalidateQueriesSpy).toHaveBeenNthCalledWith(3, {
+			queryKey: channelsQueryKey("user-1"),
+			exact: true,
+		});
+		expect(invalidateQueriesSpy).toHaveBeenNthCalledWith(4, {
+			queryKey: unreadQueryKey("user-1"),
 			exact: true,
 		});
 		expect(setQueryDataSpy).not.toHaveBeenCalled();
-		expect(useMessengerStore.getState().unreadCounts).toEqual({});
+		expect(useMessengerStore.getState().unreadSnapshot).toEqual(emptyUnreadSnapshot());
 
 		await waitFor(() => {
 			expect(getChannels).toHaveBeenCalledTimes(2);
@@ -440,10 +461,13 @@ describe("messenger channel realtime ownership (P149)", () => {
 			expect(sendSpy).toHaveBeenCalledWith(
 				JSON.stringify({ type: "subscribe", room: "user:user-1" }),
 			);
-			expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-				queryKey: CHANNELS_QUERY_KEY,
-				exact: true,
-			});
+			expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+				{
+					queryKey: channelsQueryKey("user-1"),
+					exact: true,
+				},
+				{ cancelRefetch: false },
+			);
 		});
 
 		const subscribeOrder = sendSpy.mock.invocationCallOrder[0];

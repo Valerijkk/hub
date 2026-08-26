@@ -9,6 +9,12 @@ const refetch = vi.fn();
 
 vi.mock("@/hooks/use-channels", () => ({
 	useChannels: vi.fn(),
+	useDiscoverableChannels: () => ({
+		data: [],
+		isLoading: false,
+		isFetching: false,
+		isError: false,
+	}),
 }));
 
 vi.mock("@/hooks/use-unread", () => ({
