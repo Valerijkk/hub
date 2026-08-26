@@ -48,6 +48,7 @@ _QA_INFRASTRUCTURE = (
     "qa-nats",
     "qa-seaweedfs",
 )
+_QA_PRIVATE_APPLICATIONS = ("qa-backend",)
 _RETAINED_DOCKER_PATHS = (
     "testframework/docker/Dockerfile.qa",
     "testframework/docker/README.md",
@@ -138,6 +139,9 @@ _INFRASTRUCTURE_IMAGES = MappingProxyType(
 _INFRASTRUCTURE_DEPENDENTS = frozenset(
     {"python-integration", "python-e2e-smoke", "python-e2e-full"}
 )
+_QA_BACKEND_DEPENDENTS = frozenset(
+    {"python-api", "python-integration", "python-e2e-smoke", "python-e2e-full"}
+)
 _QA_NETWORK = "qa-internal"
 _MAINTENANCE_SERVICE = "qa-lock"
 _MAINTENANCE_PROFILE = "qa-maintenance"
@@ -218,6 +222,7 @@ def test_root_compose_exposes_exact_fixed_qa_services() -> None:
         _PUBLIC_SERVICES
     )
     assert _qa_service_profiles_are_closed(services)
+    assert _qa_private_application_services_are_closed(services)
     assert _maintenance_service_profiles_are_closed(services)
     assert _qa_lock_service_is_closed(services)
     assert _qa_extensions_are_closed(compose)
@@ -232,6 +237,7 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
 
     assert _qa_public_services_are_closed(services)
+    assert _qa_private_application_services_are_closed(services)
     assert _qa_lock_service_is_closed(services)
     for name in _PUBLIC_SERVICES:
         service = _mapping_value(services, name)
@@ -253,6 +259,25 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
         assert "ports" not in service
         assert not _contains_token(service, "docker.sock")
         assert _dependencies_are_closed(name, service)
+
+
+def test_private_qa_application_is_closed_and_unpublished() -> None:
+    services = _compose_services(load_root_compose_contract(_REPO_ROOT))
+
+    assert _qa_private_application_services_are_closed(services)
+    for name in _QA_PRIVATE_APPLICATIONS:
+        service = _mapping_value(services, name)
+        assert service["profiles"] == ("qa",)
+        assert service["networks"] == MappingProxyType(
+            {
+                _QA_NETWORK: MappingProxyType(
+                    {"aliases": ("backend",)}
+                )
+            }
+        )
+        assert "ports" not in service
+        assert "privileged" not in service
+        assert not _contains_token(service, "docker.sock")
 
 
 def test_qa_infrastructure_is_unpublished_and_disposable() -> None:
@@ -408,6 +433,7 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
 
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
     assert _qa_public_services_are_closed(services)
+    assert _qa_private_application_services_are_closed(services)
     assert _qa_infrastructure_services_are_closed(services)
     assert _maintenance_service_profiles_are_closed(services)
     assert _qa_lock_service_is_closed(services)
@@ -617,6 +643,32 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
             {"depends_on": MappingProxyType(dependencies)},
         )
     )
+    api = _mapping_value(services, "python-api")
+    api_dependencies = dict(_mapping_value(api, "depends_on"))
+    api_dependencies.pop("qa-backend")
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-api",
+            {"depends_on": MappingProxyType(api_dependencies)},
+        )
+    )
+    qa_backend = _mapping_value(services, "qa-backend")
+    backend_dependencies = dict(_mapping_value(qa_backend, "depends_on"))
+    backend_dependencies.pop("qa-nats")
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(
+            services,
+            "qa-backend",
+            {"depends_on": MappingProxyType(backend_dependencies)},
+        )
+    )
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(services, "qa-backend", {"ports": ("3000:3000",)})
+    )
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(services, "qa-backend", {"privileged": True})
+    )
     assert not _qa_public_services_are_closed(
         _mutate_service(services, "frontend-unit", {"privileged": True})
     )
@@ -704,6 +756,7 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
             "qa-redis": MappingProxyType({"profiles": ("qa",)}),
             "qa-nats": MappingProxyType({"profiles": ("qa",)}),
             "qa-seaweedfs": MappingProxyType({"profiles": ("qa",)}),
+            "qa-backend": MappingProxyType({"profiles": ("qa",)}),
         }
     )
     assert _qa_service_profiles_are_closed(admitted_qa_services)
@@ -1123,7 +1176,9 @@ def _qa_service_profiles_are_closed(services: object) -> bool:
     try:
         if not isinstance(services, Mapping):
             return False
-        allowed = frozenset(_PUBLIC_SERVICES + _QA_INFRASTRUCTURE)
+        allowed = frozenset(
+            _PUBLIC_SERVICES + _QA_INFRASTRUCTURE + _QA_PRIVATE_APPLICATIONS
+        )
         selected: set[str] = set()
         for name, value in services.items():
             if type(name) is not str or not isinstance(value, Mapping):
@@ -1290,7 +1345,9 @@ def _qa_merge_provenance_is_closed(text: object) -> bool:
             )
         ):
             return False
-        for name in _PUBLIC_SERVICES + _QA_INFRASTRUCTURE:
+        for name in (
+            _PUBLIC_SERVICES + _QA_INFRASTRUCTURE + _QA_PRIVATE_APPLICATIONS
+        ):
             service = _yaml_mapping_child(services, name)
             if not isinstance(service, MappingNode):
                 return False
@@ -1360,6 +1417,80 @@ def _qa_public_services_are_closed(services: object) -> bool:
         return False
 
 
+def _qa_private_application_services_are_closed(services: object) -> bool:
+    try:
+        if not isinstance(services, Mapping):
+            return False
+        return all(
+            services.get(name) == _expected_private_application_service(name)
+            for name in _QA_PRIVATE_APPLICATIONS
+        )
+    except Exception:
+        return False
+
+
+def _expected_private_application_service(name: str) -> Mapping[str, object]:
+    if name != "qa-backend":
+        raise ValueError("unknown private QA application")
+    expected = dict(_qa_common_service_fields())
+    expected.update(
+        {
+            "build": MappingProxyType(
+                {
+                    "context": "./backend",
+                    "dockerfile": "Dockerfile",
+                    "args": MappingProxyType({"GO_BUILD_TAGS": "qa"}),
+                }
+            ),
+            "user": "10001:10001",
+            "restart": "no",
+            "networks": MappingProxyType(
+                {
+                    _QA_NETWORK: MappingProxyType({"aliases": ("backend",)})
+                }
+            ),
+            "environment": MappingProxyType(
+                {
+                    "SERVER_PORT": "3000",
+                    "FIBER_IMMUTABLE": "true",
+                    "ENVIRONMENT": "development",
+                    "DEV_MODE": "true",
+                    "DATABASE_URL": "postgresql://hubqa:hubqa-local-only@qa-postgres:5432/hubqa?sslmode=disable",
+                    "MONGODB_URL": "mongodb://hubqa:hubqa-local-only@qa-mongo:27017/?authSource=admin",
+                    "MONGODB_DATABASE": "hubqa",
+                    "REDIS_URL": "redis://qa-redis:6379/0",
+                    "NATS_URL": "nats://qa-nats:4222",
+                    "S3_ENDPOINT": "http://qa-seaweedfs:8333",
+                    "S3_ACCESS_KEY": "hubqa-access",
+                    "S3_SECRET_KEY": "hubqa-secret-local-only",
+                    "S3_BUCKET": "hubqa",
+                    "S3_REGION": "us-east-1",
+                    "S3_USE_SSL": "false",
+                    "JWT_SECRET": "qa-local-jwt-secret-mail-calendar-not-for-production",
+                    "HUB_QA_MAIL_CALENDAR_TOKEN": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                    "AI_OFFLINE_ONLY": "true",
+                }
+            ),
+            "depends_on": _healthy_infrastructure_dependencies(),
+            "healthcheck": MappingProxyType(
+                {
+                    "test": (
+                        "CMD",
+                        "wget",
+                        "-qO-",
+                        "http://127.0.0.1:3000/api/health",
+                    ),
+                    "interval": "5s",
+                    "timeout": "3s",
+                    "retries": 30,
+                    "start_period": "30s",
+                }
+            ),
+        }
+    )
+    return MappingProxyType(expected)
+
+
 def _expected_public_service(name: str) -> Mapping[str, object]:
     expected = dict(_qa_common_service_fields())
     expected["build"] = MappingProxyType(
@@ -1372,8 +1503,9 @@ def _expected_public_service(name: str) -> Mapping[str, object]:
     expected["command"] = _FIXED_COMMANDS[name]
     if name.startswith("python-"):
         expected["environment"] = _qa_python_environment()
-    if name in _INFRASTRUCTURE_DEPENDENTS:
-        expected["depends_on"] = _healthy_infrastructure_dependencies()
+    dependencies = _healthy_public_dependencies(name)
+    if dependencies:
+        expected["depends_on"] = dependencies
     return MappingProxyType(expected)
 
 
@@ -1415,12 +1547,24 @@ def _healthy_infrastructure_dependencies() -> Mapping[str, object]:
     )
 
 
+def _healthy_public_dependencies(name: str) -> Mapping[str, object]:
+    dependencies: dict[str, object] = {}
+    if name in _INFRASTRUCTURE_DEPENDENTS:
+        dependencies.update(_healthy_infrastructure_dependencies())
+    if name in _QA_BACKEND_DEPENDENTS:
+        dependencies["qa-backend"] = MappingProxyType(
+            {"condition": "service_healthy"}
+        )
+    return MappingProxyType(dependencies)
+
+
 def _dependencies_are_closed(
     name: str,
     service: Mapping[str, object],
 ) -> bool:
-    if name in _INFRASTRUCTURE_DEPENDENTS:
-        return service.get("depends_on") == _healthy_infrastructure_dependencies()
+    dependencies = _healthy_public_dependencies(name)
+    if dependencies:
+        return service.get("depends_on") == dependencies
     return "depends_on" not in service
 
 

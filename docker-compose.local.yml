@@ -346,6 +346,9 @@ services:
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
     command: [api]
+    depends_on:
+      qa-backend:
+        condition: service_healthy
 
   python-integration:
     <<: [*qa-common, *qa-python]
@@ -364,6 +367,8 @@ services:
       qa-nats:
         condition: service_healthy
       qa-seaweedfs:
+        condition: service_healthy
+      qa-backend:
         condition: service_healthy
 
   python-e2e-smoke:
@@ -384,6 +389,8 @@ services:
         condition: service_healthy
       qa-seaweedfs:
         condition: service_healthy
+      qa-backend:
+        condition: service_healthy
 
   python-e2e-full:
     <<: [*qa-common, *qa-python]
@@ -403,6 +410,8 @@ services:
         condition: service_healthy
       qa-seaweedfs:
         condition: service_healthy
+      qa-backend:
+        condition: service_healthy
 
   python-load:
     <<: [*qa-common, *qa-python]
@@ -411,6 +420,55 @@ services:
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
     command: [load]
+
+  qa-backend:
+    <<: *qa-common
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        GO_BUILD_TAGS: qa
+    user: "10001:10001"
+    restart: "no"
+    networks:
+      qa-internal:
+        aliases: [backend]
+    environment:
+      SERVER_PORT: "3000"
+      FIBER_IMMUTABLE: "true"
+      ENVIRONMENT: "development"
+      DEV_MODE: "true"
+      DATABASE_URL: "postgresql://hubqa:hubqa-local-only@qa-postgres:5432/hubqa?sslmode=disable"
+      MONGODB_URL: "mongodb://hubqa:hubqa-local-only@qa-mongo:27017/?authSource=admin"
+      MONGODB_DATABASE: "hubqa"
+      REDIS_URL: "redis://qa-redis:6379/0"
+      NATS_URL: "nats://qa-nats:4222"
+      S3_ENDPOINT: "http://qa-seaweedfs:8333"
+      S3_ACCESS_KEY: "hubqa-access"
+      S3_SECRET_KEY: "hubqa-secret-local-only"
+      S3_BUCKET: "hubqa"
+      S3_REGION: "us-east-1"
+      S3_USE_SSL: "false"
+      JWT_SECRET: "qa-local-jwt-secret-mail-calendar-not-for-production"
+      HUB_QA_MAIL_CALENDAR_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      AI_OFFLINE_ONLY: "true"
+    depends_on:
+      qa-postgres:
+        condition: service_healthy
+      qa-mongo:
+        condition: service_healthy
+      qa-redis:
+        condition: service_healthy
+      qa-nats:
+        condition: service_healthy
+      qa-seaweedfs:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
 
   qa-lock:
     profiles: [qa-maintenance]
