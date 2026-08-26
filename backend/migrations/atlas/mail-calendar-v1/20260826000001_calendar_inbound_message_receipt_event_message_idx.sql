@@ -1,0 +1,2 @@
+-- Create index "calendar_inbound_message_receipts_event_message_idx" to table: "calendar_inbound_message_receipts"
+CREATE INDEX "calendar_inbound_message_receipts_event_message_idx" ON "calendar_inbound_message_receipts" ("calendar_event_id", "mail_message_id") WHERE (("calendar_event_id" IS NOT NULL) AND ((state)::text = ANY ((ARRAY['applied'::character varying, 'ignored_stale'::character varying, 'duplicate'::character varying])::text[])));
