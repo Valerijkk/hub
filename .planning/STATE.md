@@ -1,4 +1,19 @@
 ---
+mail_calendar_part_source_2026_08_26: >-
+  SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN. Commit
+  da197b74 adds the concrete MailboxEntCalendarPartSource and a short
+  read-only repeatable-read Mail Ent snapshot helper. One five-second operation
+  performs durable pre-I/O authorization, exactly one private MailEngine
+  calendar-part read, verified locator-hash attestation comparison, and an
+  independent durable post-I/O TOCTOU recheck without holding a database
+  transaction over engine I/O. Only the closed content-free
+  CalendarPartSourceError family crosses the Mail-to-Calendar boundary.
+  Contract Terra/high review PASS C/I/M 0/0/0; adversarial Terra/xhigh review
+  withdrew its only critical concern after applying the frozen trusted-engine
+  attestation boundary and reported no security blocker. Dependent Calendar
+  receipt repository/service/worker, NATS consumer, production composition,
+  backend Docker compile, tests, full-stack runtime, merge, push and deploy
+  remain pending or NOT_RUN.
 mail_calendar_schema_gate_2026_08_26: >-
   DOCKER_SCHEMA_GATE_PASS / INDEPENDENT_REVIEW_PASS. The bounded
   schema-maintenance pipeline uses pinned Atlas v1.3.2 and PostgreSQL 17 in

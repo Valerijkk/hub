@@ -1,4 +1,12 @@
 # Phase 147 — executable packet contracts
+> **P3-C source checkpoint (2026-08-26):** `da197b74` is
+> `SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN` for the exact
+> concrete Mail Ent calendar-part source files. It owns the five-second bound,
+> short durable pre/post snapshots, one private engine read, verified
+> attestation comparison, and closed safe errors without exposing provider IDs
+> or the private locator. Contract Terra/high PASS C/I/M `0/0/0`; adversarial
+> Terra/xhigh found no security blocker. Its former generation blocker is
+> `CONSUMED/HISTORICAL`; P3-D/E and executable/runtime gates remain pending.
 > **147-02A static acceptance (2026-08-23):** `3f4d174f888f08a119bbe381dc86e5e9b34e0301` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly the sole production file `backend/internal/calendar/itip_ingest_policy.go`; independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. Tests are intentionally absent under the current production-only constraint and executable/generation/runtime evidence remains `NOT_RUN`. The accepted scope is pure REQUEST/CANCEL order policy only: no product, merge, readiness, schema, generation, migration, SQL, Docker, or runtime authority. D0-next is `CONSUMED/HISTORICAL`; P3-C, 147-02B/147-02C, D1/D2, and P3-E retain their stated blockers; no next unblocked P3 source is selected.
 > **P3-D0 static acceptance (2026-08-23):** immutable source `47faf3a705e5641f4ceb7ee365c3dfeeeace725d` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/ent/schema/calendarinboundmessagereceipt.go`. It adds required immutable `organization_id`/`mailbox_id` UUID scalars and database nonzero checks, with no Ent edges or raw data; existing uniqueness, state-shape, and due behavior are unchanged. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. The D0-next route is `CONSUMED/HISTORICAL`. P3-C remains blocked on Mail Ent generation; 147-02B/147-02C and D1/D2 remain blocked on active Calendar generation/dependencies; P3-E is conjunction-blocked. No next unblocked P3 source is selected. Generation, migration, SQL, build, tests, Docker, and runtime are `NOT_RUN`; no readiness, merge, or product claim.
 

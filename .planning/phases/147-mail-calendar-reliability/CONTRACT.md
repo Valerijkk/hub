@@ -1,4 +1,16 @@
 # Phase 147 — reliability and integration contract
+> **P3-C source checkpoint (2026-08-26):** `da197b74` is
+> `SOURCE_AUTHORED / STATIC_REVIEW_PASS / DOCKER_COMPILE_NOT_RUN` for exactly
+> `backend/internal/mail/mailbox_ent_calendar_part.go` and
+> `backend/internal/mail/mailbox_ent_repository.go`. The source uses two short
+> read-only repeatable-read snapshots around exactly one five-second bounded
+> private engine read, validates the engine's verified locator-hash attestation,
+> and returns only the closed content-free source error family. Contract
+> Terra/high review PASS C/I/M `0/0/0`; adversarial Terra/xhigh review has no
+> security blocker after confirming the frozen trusted-engine attestation
+> boundary. P3-D/E, composition, dependent Docker compile/tests/runtime, merge,
+> push and deploy remain pending or `NOT_RUN`. Earlier clauses calling P3-C
+> blocked on Mail Ent generation are `CONSUMED/HISTORICAL` only.
 > **147-02A static acceptance (2026-08-23):** `3f4d174f888f08a119bbe381dc86e5e9b34e0301` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly the sole production file `backend/internal/calendar/itip_ingest_policy.go`; independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. Tests are intentionally absent under the current production-only constraint and all executable/generation/runtime evidence is `NOT_RUN`. Only pure REQUEST/CANCEL order policy is accepted: no product, merge, readiness, schema, generation, migration, SQL, Docker, or runtime claim. D0-next is `CONSUMED/HISTORICAL`; P3-C, 147-02B/147-02C, D1/D2, and P3-E retain their stated blockers; no next unblocked P3 source is selected.
 > **P3-D0 static acceptance (2026-08-23):** immutable source `47faf3a705e5641f4ceb7ee365c3dfeeeace725d` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/ent/schema/calendarinboundmessagereceipt.go`. It adds required immutable `organization_id`/`mailbox_id` UUID scalars and database nonzero checks, with no Ent edges or raw data; existing uniqueness, state-shape, and due behavior are unchanged. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. The D0-next route is `CONSUMED/HISTORICAL`. P3-C remains blocked on Mail Ent generation; 147-02B/147-02C and D1/D2 remain blocked on active Calendar generation/dependencies; P3-E is conjunction-blocked. No next unblocked P3 source is selected. Generation, migration, SQL, build, tests, Docker, and runtime are `NOT_RUN`; no readiness, merge, or product claim.
 

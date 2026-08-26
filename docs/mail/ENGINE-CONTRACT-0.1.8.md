@@ -1,5 +1,15 @@
 # Mail engine boundary 0.1.8
 >
+> **Concrete P3-C source checkpoint (2026-08-26):** `da197b74` adds the exact
+> Mail Ent source boundary around `ReadCalendarPart` with two short read-only
+> repeatable-read snapshots, one five-second bounded engine call, verified
+> engine-owned locator-hash attestation comparison, and closed content-free
+> errors. Contract Terra/high PASS C/I/M `0/0/0`; adversarial Terra/xhigh found
+> no security blocker after confirming that the private locator stays inside
+> the trusted engine adapter. Docker compile/tests/runtime remain `NOT_RUN`;
+> this is not P3-D/E, composition, product, merge, push or deploy acceptance.
+> Earlier P3-C-generation-blocked statements are `CONSUMED/HISTORICAL` only.
+>
 > **Submission policy-preflight corrective atom (2026-08-25):** MailEngine.PreflightSubmission(ctx, EngineSubmissionPreflightRequest) receives reference-only frozen `Submission` plus the current content-free policy snapshot: `PolicyMaxMessageBytes`, `MaxRecipients`, `ExternalMailEnabled`, and 1..100 canonical strictly sorted unique `InternalDomains`. The policy maximum is 1,048,576..MaxEngineMessageBytes; recipients are limited to 1..300 and each To/CC/BCC partition remains at most 100. Invalid policy snapshots, noncanonical/duplicate recipients, and external recipients while external mail is disabled fail closed as rejected_policy; a configured recipient ceiling is recipient_limit. The concrete read-only EngineSubmissionPreflight returns canonical FromEmail, RecipientCount, local MessageBytes, nonzero SHA-256 BindingHash, and nonzero SHA-256 PolicyBindingHash only: no address collections or domains leave the engine boundary.
 >
 > MessageBytes is the deterministic size of the local Hub EngineMessage projection representation calculated by the existing messageVariableBytes function: its bounded variable projection fields, addresses, references, keywords, attachments, and plain/rich body strings. It is neither RFC/MIME wire bytes nor an authoritative provider-size assertion. The effective byte ceiling is min(frozen Submission.MaxMessageBytes, current PolicyMaxMessageBytes), so a current lowered policy takes effect after reservation. BindingHash preserves its SHA-256 explicit binary V1 framing: literal domain hub.mail.submission.preflight.binding.v1, U32BE numeric version 1, then field-tagged account ID, draft key, message ID, expected version, submission key, frozen max message bytes, canonical From email, recipient count, and local message bytes. PolicyBindingHash uses separate SHA-256 V1 framing under hub.mail.submission.preflight.policy.v1 over current PolicyMaxMessageBytes, MaxRecipients, ExternalMailEnabled, the domain count, and ordered InternalDomains. ExpectedVersion supplies the exact provider snapshot binding; Submit must re-read and no duplicate content digest is added.
