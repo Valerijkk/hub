@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/internal/mail"
+	"github.com/valerii/hub/backend/internal/mailvalue"
 )
 
 type MailDomain struct {
@@ -55,8 +55,8 @@ func (MailDomain) Fields() []ent.Field {
 		field.Enum("dkim_status").
 			Values("unknown", "pending", "valid", "invalid").
 			Default("unknown"),
-		field.JSON("required_dns_records", mail.RequiredDNSRecords{}).
-			Default(mail.RequiredDNSRecords{}),
+		field.JSON("required_dns_records", mailvalue.RequiredDNSRecords{}).
+			Default(mailvalue.RequiredDNSRecords{}),
 		field.Int64("desired_generation").
 			Default(1).
 			Min(1),

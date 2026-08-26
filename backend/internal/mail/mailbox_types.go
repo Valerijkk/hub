@@ -48,8 +48,6 @@ const (
 	MaxEngineBodyPartBytes = 8388608
 	// MaxEngineSpamTrainingItems ограничивает feedback-команду classifier.
 	MaxEngineSpamTrainingItems = 200
-	// MaxEngineDNSRecordItems ограничивает публичные DNS-требования домена.
-	MaxEngineDNSRecordItems = 32
 )
 
 // EngineCapabilities — подтверждённые безопасные возможности движка.

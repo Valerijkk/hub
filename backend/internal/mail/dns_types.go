@@ -1,24 +1,23 @@
 package mail
 
+import "github.com/valerii/hub/backend/internal/mailvalue"
+
 // EngineDNSRecordType — тип публичной DNS-записи.
-type EngineDNSRecordType string
+type EngineDNSRecordType = mailvalue.EngineDNSRecordType
 
 const (
 	// EngineDNSRecordTXT обозначает TXT-запись.
-	EngineDNSRecordTXT EngineDNSRecordType = "TXT"
+	EngineDNSRecordTXT = mailvalue.EngineDNSRecordTXT
 	// EngineDNSRecordMX обозначает MX-запись.
-	EngineDNSRecordMX EngineDNSRecordType = "MX"
+	EngineDNSRecordMX = mailvalue.EngineDNSRecordMX
 	// EngineDNSRecordCNAME обозначает CNAME-запись.
-	EngineDNSRecordCNAME EngineDNSRecordType = "CNAME"
+	EngineDNSRecordCNAME = mailvalue.EngineDNSRecordCNAME
+	// MaxEngineDNSRecordItems ограничивает публичные DNS-требования домена.
+	MaxEngineDNSRecordItems = mailvalue.MaxRequiredDNSRecordItems
 )
 
 // RequiredDNSRecord хранит публичную DNS-запись, нужную для домена.
-type RequiredDNSRecord struct {
-	Type  EngineDNSRecordType `json:"type"`
-	Name  string              `json:"name"`
-	Value string              `json:"value"`
-	TTL   int                 `json:"ttl"`
-}
+type RequiredDNSRecord = mailvalue.RequiredDNSRecord
 
 // RequiredDNSRecords хранит упорядоченный набор публичных DNS-записей домена.
-type RequiredDNSRecords []RequiredDNSRecord
+type RequiredDNSRecords = mailvalue.RequiredDNSRecords
