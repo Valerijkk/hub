@@ -346,6 +346,7 @@ function CalendarEventDetailPage() {
 										type="button"
 										variant={viewer.rsvp_status === action.status ? "default" : "outline"}
 										aria-pressed={viewer.rsvp_status === action.status}
+										data-testid={`calendar-rsvp-${action.status}`}
 										disabled={rsvpBusy}
 										onClick={() => submitRSVP(action.status)}
 									>

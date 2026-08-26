@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from os import environ
 
 import pytest
@@ -48,18 +49,19 @@ def test_mail_origin_invite_opens_event_updates_rsvp_and_returns_to_mail(page: P
         event_id = mail_correlation.calendar_event_id
         assert event_id is not None
 
+        auth_bootstrap = {
+            "accessToken": session.access_token,
+            "refreshToken": session.refresh_token,
+            "user": dict(session.user),
+            "isAuthenticated": True,
+        }
+        auth_bootstrap_json = json.dumps(
+            auth_bootstrap,
+            ensure_ascii=True,
+            separators=(",", ":"),
+        )
         page.add_init_script(
-            """
-            (bootstrap) => {
-                window.__HUB_AUTH_BOOTSTRAP__ = bootstrap;
-            }
-            """,
-            arg={
-                "accessToken": session.access_token,
-                "refreshToken": session.refresh_token,
-                "user": dict(session.user),
-                "isAuthenticated": True,
-            },
+            f"window.__HUB_AUTH_BOOTSTRAP__ = {auth_bootstrap_json};",
         )
         mail_thread_url = (
             f"{frontend_base_url}/mail/all/thread/{published.mail_thread_id}"
@@ -72,7 +74,7 @@ def test_mail_origin_invite_opens_event_updates_rsvp_and_returns_to_mail(page: P
         calendar_link.click()
         expect(page).to_have_url(f"{frontend_base_url}/calendar/events/{event_id}")
 
-        accept_rsvp = page.get_by_role("button", name="Принять")
+        accept_rsvp = page.get_by_test_id("calendar-rsvp-accepted")
         expect(accept_rsvp).to_be_visible()
         accept_rsvp.click()
         expect(accept_rsvp).to_have_attribute("aria-pressed", "true")
