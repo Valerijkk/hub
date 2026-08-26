@@ -295,7 +295,9 @@
 		"calendar": {
 			"request": "Calendar invitation",
 			"cancel": "Calendar cancellation",
-			"reply": "Calendar response"
+			"reply": "Calendar response",
+			"openEvent": "Open event",
+			"openRelatedEmail": "Open related email"
 		}
 	}
 }

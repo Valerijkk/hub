@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+	CalendarDays,
 	ChevronDown,
 	ChevronLeft,
 	Download,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { isCanonicalCalendarEventID } from "@/api/calendar";
 import {
 	downloadMailMessageAttachment,
 	getMailMessage,
@@ -225,6 +227,18 @@ function MessageCard({
 						<ImageOff aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
 						<p>{t("reader.body.remoteImagesBlocked")}</p>
 					</div>
+				) : null}
+				{detail.calendar_event_id !== null &&
+				isCanonicalCalendarEventID(detail.calendar_event_id) ? (
+					<Button asChild variant="outline" size="sm" className="min-h-11">
+						<Link
+							to="/calendar/events/$eventId"
+							params={{ eventId: detail.calendar_event_id.toLowerCase() }}
+						>
+							<CalendarDays aria-hidden="true" className="h-4 w-4" />
+							{t("reader.calendar.openEvent")}
+						</Link>
+					</Button>
 				) : null}
 				<MailSafeContent
 					language={i18n.language}

@@ -138,7 +138,6 @@ export interface MailThreadMessageSummary {
 	answered: boolean;
 	junk: boolean;
 	calendar_method: MailCalendarMethod | null;
-	calendar_event_id: string | null;
 }
 
 export interface MailThreadDetail extends MailThreadSummary {
@@ -160,6 +159,7 @@ export interface MailMessageAttachment {
 }
 
 export interface MailMessageDetail extends MailThreadMessageSummary {
+	calendar_event_id: string | null;
 	plain_body: string;
 	sanitized_html: string | null;
 	remote_images_blocked: boolean;

@@ -316,6 +316,7 @@ interface CalendarEventDetailBase {
 	attendees: CalendarEventReadAttendee[];
 	viewer_attendee: CalendarEventReadAttendee | null;
 	can_rsvp: boolean;
+	mail_message_id: string | null;
 }
 
 export type CalendarEventDetail = CalendarEventDetailBase &

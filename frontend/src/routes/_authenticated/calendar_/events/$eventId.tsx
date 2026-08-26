@@ -4,10 +4,12 @@ import {
 	ArrowLeft,
 	CalendarDays,
 	Clock3,
+	Mail,
 	MapPin,
 	Repeat2,
 	UsersRound,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
 	getCalendarEvent,
 	isCanonicalCalendarEventID,
@@ -164,6 +166,7 @@ function CalendarEventUnavailable({
 
 function CalendarEventDetailPage() {
 	const { eventId } = Route.useParams();
+	const { t } = useTranslation("mail");
 	const queryClient = useQueryClient();
 	const validEventId = isCanonicalCalendarEventID(eventId);
 	const queryKey = calendarEventDetailKey(eventId);
@@ -292,6 +295,18 @@ function CalendarEventDetailPage() {
 								{event.description}
 							</p>
 						</section>
+					) : null}
+
+					{event.mail_message_id !== null ? (
+						<Button asChild variant="outline" className="min-h-11">
+							<Link
+								to="/mail/message/$messageId"
+								params={{ messageId: event.mail_message_id }}
+							>
+								<Mail aria-hidden="true" className="h-4 w-4" />
+								{t("reader.calendar.openRelatedEmail")}
+							</Link>
+						</Button>
 					) : null}
 
 					<section aria-labelledby="calendar-event-attendees">

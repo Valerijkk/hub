@@ -2837,7 +2837,6 @@ components:
         answered: {type: boolean}
         junk: {type: boolean}
         calendar_method: {type: [string, "null"], enum: [request, cancel, reply, null]}
-        calendar_event_id: {type: [string, "null"], format: uuid}
     MailMessageSummary:
       unevaluatedProperties: false
       allOf:
@@ -2861,8 +2860,12 @@ components:
       allOf:
         - {$ref: "#/components/schemas/MailMessageFields"}
         - type: object
-          required: [plain_body, remote_images_blocked, attachments]
+          required: [plain_body, remote_images_blocked, attachments, calendar_event_id]
           properties:
+            calendar_event_id:
+              type: [string, "null"]
+              format: uuid
+              description: Authoritative derived link to the related Calendar event.
             plain_body:
               type: string
               maxLength: 2000000
@@ -3548,6 +3551,7 @@ components:
         - attendees
         - viewer_attendee
         - can_rsvp
+        - mail_message_id
       oneOf:
         - properties:
             all_day: {const: true}
@@ -3591,6 +3595,10 @@ components:
             - {$ref: "#/components/schemas/CalendarEventReadAttendee"}
             - {type: "null"}
         can_rsvp: {type: boolean}
+        mail_message_id:
+          type: [string, "null"]
+          format: uuid
+          description: The authenticated actor's authoritative related mailbox message.
     CalendarAttendee:
       type: object
       additionalProperties: false
