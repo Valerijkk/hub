@@ -1,5 +1,15 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Inbound invite persistence command
+
+SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+
+The second decomposed 147-02B atom adds an immutable persistence command that
+keeps one normalized materialization body and a separately validated ordering
+proof. UID, recurrence, organizer, authentication, method, sequence and
+canonical payload identity must match. The adapter receives only the already
+selected apply, tombstone or defer decision and cannot reparse or re-decide it.
+
 ## 2026-08-26 - Inbound invite request boundary
 
 SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.

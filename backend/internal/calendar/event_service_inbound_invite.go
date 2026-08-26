@@ -132,3 +132,129 @@ func (authorization CalendarInboundInviteAuthorization) clone() (
 		authorization.resourceLimited,
 	)
 }
+
+type CalendarInboundInvitePersistenceCommand struct {
+	request          CalendarInboundInviteRequest
+	input            CalendarInboundIngestInput
+	decision         CalendarInboundIngestResult
+	outboxEnvelopeID uuid.UUID
+}
+
+func NewCalendarInboundInvitePersistenceCommand(
+	request CalendarInboundInviteRequest,
+	input CalendarInboundIngestInput,
+	decision CalendarInboundIngestResult,
+	outboxEnvelopeID uuid.UUID,
+) (CalendarInboundInvitePersistenceCommand, error) {
+	if !request.valid() || !input.valid() || !decision.valid() {
+		return CalendarInboundInvitePersistenceCommand{}, ErrEventInvalid
+	}
+
+	switch decision.Outcome() {
+	case CalendarInboundIngestApplyRequest,
+		CalendarInboundIngestTombstoneOccurrence,
+		CalendarInboundIngestTombstoneSeries,
+		CalendarInboundIngestDeferred:
+	default:
+		return CalendarInboundInvitePersistenceCommand{}, ErrEventInvalid
+	}
+
+	if !calendarInboundInviteRequestMatchesInput(request, input) {
+		return CalendarInboundInvitePersistenceCommand{}, ErrEventInvalid
+	}
+
+	switch decision.Outcome() {
+	case CalendarInboundIngestApplyRequest:
+		if outboxEnvelopeID == uuid.Nil {
+			return CalendarInboundInvitePersistenceCommand{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestDeferred:
+		if outboxEnvelopeID != uuid.Nil {
+			return CalendarInboundInvitePersistenceCommand{}, ErrEventInvalid
+		}
+	}
+
+	clonedRequest, err := request.clone()
+	if err != nil {
+		return CalendarInboundInvitePersistenceCommand{}, ErrEventInvalid
+	}
+
+	clonedInput, err := NewCalendarInboundIngestInput(
+		input.incoming,
+		input.current,
+		input.series,
+	)
+	if err != nil {
+		return CalendarInboundInvitePersistenceCommand{}, ErrEventInvalid
+	}
+
+	return CalendarInboundInvitePersistenceCommand{
+		request:          clonedRequest,
+		input:            clonedInput,
+		decision:         decision,
+		outboxEnvelopeID: outboxEnvelopeID,
+	}, nil
+}
+
+func (command CalendarInboundInvitePersistenceCommand) Outcome() CalendarInboundIngestOutcome {
+	return command.decision.Outcome()
+}
+
+func (command CalendarInboundInvitePersistenceCommand) OutboxEnvelopeID() uuid.UUID {
+	return command.outboxEnvelopeID
+}
+
+func (command CalendarInboundInvitePersistenceCommand) valid() bool {
+	_, err := NewCalendarInboundInvitePersistenceCommand(
+		command.request,
+		command.input,
+		command.decision,
+		command.outboxEnvelopeID,
+	)
+	return err == nil
+}
+
+func (command CalendarInboundInvitePersistenceCommand) clone() (
+	CalendarInboundInvitePersistenceCommand,
+	error,
+) {
+	return NewCalendarInboundInvitePersistenceCommand(
+		command.request,
+		command.input,
+		command.decision,
+		command.outboxEnvelopeID,
+	)
+}
+
+func calendarInboundInviteRequestMatchesInput(
+	request CalendarInboundInviteRequest,
+	input CalendarInboundIngestInput,
+) bool {
+	component := input.incoming.Component()
+	payload := input.incoming.Payload()
+
+	return component.UID() == request.identity.UID &&
+		calendarInboundInviteSameRecurrence(
+			request.identity.HasRecurrenceID,
+			request.identity.RecurrenceID,
+			component.RecurrenceID(),
+		) &&
+		component.IsSeries() == !request.identity.HasRecurrenceID &&
+		request.message.Organizer.Email == input.incoming.OrganizerEmail() &&
+		request.authentication == input.incoming.Authentication() &&
+		request.identity.Method == input.incoming.Method() &&
+		uint32(request.identity.Sequence) == input.incoming.Sequence() &&
+		request.identity.CanonicalVersion == payload.CanonicalVersion() &&
+		request.identity.PayloadHash == payload.Hash()
+}
+
+func calendarInboundInviteSameRecurrence(
+	hasRecurrenceID bool,
+	recurrenceID string,
+	other *string,
+) bool {
+	if !hasRecurrenceID {
+		return other == nil
+	}
+	return other != nil && *other == recurrenceID
+}

@@ -1,4 +1,11 @@
 ---
+mail_calendar_inbound_invite_02b2a_2026_08_26: >-
+  SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+  The decomposed 147-02B persistence command now cross-validates the sole
+  normalized materialization request against the immutable ordering proof and
+  admits only apply, tombstone or defer decisions. Apply requires a
+  server-generated outbox envelope ID, defer forbids one, and no adapter may
+  reparse or re-decide the request.
 mail_calendar_inbound_invite_02b1_2026_08_26: >-
   SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
   The first decomposed 147-02B atom adds only the opaque normalized
