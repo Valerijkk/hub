@@ -122,8 +122,8 @@ _BUILD_TARGETS = MappingProxyType(
         "python-contract": "python-tests",
         "python-api": "python-tests",
         "python-integration": "python-tests",
-        "python-e2e-smoke": "python-tests",
-        "python-e2e-full": "python-tests",
+        "python-e2e-smoke": "python-e2e",
+        "python-e2e-full": "python-e2e",
         "python-load": "python-tests",
     }
 )
@@ -278,6 +278,9 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
     assert _qa_public_services_are_closed(services)
     assert _qa_private_application_services_are_closed(services)
     assert _qa_lock_service_is_closed(services)
+    assert frozenset(
+        name for name, target in _BUILD_TARGETS.items() if target == "python-e2e"
+    ) == _QA_FRONTEND_DEPENDENTS
     for name in _PUBLIC_SERVICES:
         service = _mapping_value(services, name)
         assert service["profiles"] == ("qa",)
@@ -2119,6 +2122,19 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                         "ENV PYTHONSAFEPATH=1",
                         "USER 10001:10001",
                         'ENTRYPOINT ["/usr/local/bin/python-qa"]',
+                    ),
+                ),
+            ),
+            (
+                "python-e2e",
+                (
+                    "python-tests",
+                    (
+                        "ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
+                        "USER root",
+                        "RUN /opt/hub/.venv/bin/playwright install --with-deps chromium",
+                        "RUN chown -R 10001:10001 /ms-playwright",
+                        "USER 10001:10001",
                     ),
                 ),
             ),

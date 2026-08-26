@@ -55,6 +55,7 @@ testpaths = ["selftests", "tests"]
 python_files = ["test_*.py"]
 xfail_strict = true
 filterwarnings = ["error"]
+markers = ["smoke: critical browser journey selected by python-e2e-smoke"]
 
 [tool.ruff]
 target-version = "py312"

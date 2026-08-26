@@ -388,7 +388,7 @@ services:
     build:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa
-      target: python-tests
+      target: python-e2e
     command: [e2e-smoke]
     environment:
       PYTHONDONTWRITEBYTECODE: "1"
@@ -418,7 +418,7 @@ services:
     build:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa
-      target: python-tests
+      target: python-e2e
     command: [e2e-full]
     environment:
       PYTHONDONTWRITEBYTECODE: "1"

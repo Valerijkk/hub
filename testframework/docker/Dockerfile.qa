@@ -62,6 +62,13 @@ ENV PYTHONSAFEPATH=1
 USER 10001:10001
 ENTRYPOINT ["/usr/local/bin/python-qa"]
 
+FROM python-tests AS python-e2e
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+USER root
+RUN /opt/hub/.venv/bin/playwright install --with-deps chromium
+RUN chown -R 10001:10001 /ms-playwright
+USER 10001:10001
+
 FROM python-base AS python-lock
 RUN mkdir -p /workspace/testframework /opt/hub/uv-cache /opt/hub/lock-input /home/hubqa && chown -R 10001:10001 /workspace/testframework /opt/hub/uv-cache /opt/hub/lock-input /home/hubqa
 WORKDIR /workspace/testframework
