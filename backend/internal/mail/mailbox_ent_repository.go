@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	stdsql "database/sql"
 	"errors"
 	"reflect"
 	"time"
@@ -10,6 +11,40 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 )
+
+func (repository *MailboxEntRepository) withMailboxEntReadSnapshot(ctx context.Context, callback func(*ent.Tx) error) (err error) {
+	if ctx == nil || ctx.Err() != nil || repository == nil || repository.client == nil || callback == nil {
+		return mailboxEntSafeError(errors.New("mailbox ent read snapshot is unavailable"))
+	}
+
+	transaction, err := repository.client.BeginTx(ctx, &stdsql.TxOptions{
+		Isolation: stdsql.LevelRepeatableRead,
+		ReadOnly:  true,
+	})
+	if err != nil {
+		return mailboxEntSafeError(err)
+	}
+
+	committed := false
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			_ = transaction.Rollback()
+			panic(recovered)
+		}
+		if !committed {
+			_ = transaction.Rollback()
+		}
+	}()
+
+	if err := callback(transaction); err != nil {
+		return err
+	}
+	if err := transaction.Commit(); err != nil {
+		return mailboxEntSafeError(err)
+	}
+	committed = true
+	return nil
+}
 
 // MailboxRepositoryClock is the sole time authority for durable mailbox work.
 type MailboxRepositoryClock interface {
