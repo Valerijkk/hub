@@ -124,6 +124,9 @@ func (CalendarInboundMessageReceipt) Indexes() []ent.Index {
 		index.Fields("state", "next_attempt_at", "id").
 			StorageKey("calendar_inbound_message_receipts_due_idx").
 			Annotations(entsql.IndexWhere("state IN ('pending','deferred_missing_master') AND next_attempt_at IS NOT NULL")),
+		index.Fields("calendar_event_id", "mail_message_id").
+			StorageKey("calendar_inbound_message_receipts_event_message_idx").
+			Annotations(entsql.IndexWhere("calendar_event_id IS NOT NULL AND state IN ('applied','ignored_stale','duplicate')")),
 		index.Fields("deferred_object_state_id").
 			StorageKey("calendar_inbound_message_receipts_deferred_object_state_idx"),
 	}
