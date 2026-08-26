@@ -176,7 +176,7 @@ func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transac
 			calendarinboundmessagereceipt.OrganizationIDEQ(request.organizationID),
 			calendarinboundmessagereceipt.MailboxIDEQ(request.accountID),
 			calendarinboundmessagereceipt.MailMessageIDEQ(request.messageID),
-			calendarinboundmessagereceipt.PartLocatorHashEQ(message.CalendarPartLocatorHash...),
+			calendarinboundmessagereceipt.PartLocatorHashEQ(message.CalendarPartLocatorHash),
 		).
 		Order(ent.Asc(calendarinboundmessagereceipt.FieldID)).
 		Limit(mailboxEntCalendarCorrelationCandidateLimit + 1).
@@ -370,6 +370,9 @@ func mailboxEntCalendarCorrelationArbitrate(ctx context.Context, transaction *en
 	eventIDs := mailboxEntCalendarCorrelationEventIDs(candidates)
 	if len(eventIDs) == 0 {
 		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindNotFound)
+	}
+	if len(eventIDs) > 1 {
+		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindAmbiguous)
 	}
 	if len(eventIDs) > mailboxEntCalendarCorrelationEventLimit {
 		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
