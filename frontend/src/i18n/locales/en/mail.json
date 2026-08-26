@@ -204,6 +204,7 @@
 			"remoteImagesBlocked": "Remote images are blocked and were not loaded.",
 			"plainUnavailable": "No plain-text message body is available.",
 			"richUnavailable": "A rich-text version exists but is not displayed in this view.",
+			"richContentTitle": "Formatted message content",
 			"attachments": "Attachments ({{count}})",
 			"download": "Download",
 			"downloading": "Downloading…",

@@ -21,6 +21,7 @@ import {
 } from "@/api/mail";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { MailSafeContent } from "@/modules/mail/mail-safe-content";
 import {
 	isValidMailEntityID,
 	isValidMailFolderKey,
@@ -225,22 +226,14 @@ function MessageCard({
 						<p>{t("reader.body.remoteImagesBlocked")}</p>
 					</div>
 				) : null}
-				<div className="rounded-[var(--r2)] bg-base/60 p-4">
-					{detail.plain_body.length > 0 ? (
-						<div className="whitespace-pre-wrap break-words text-sm leading-7 text-t1">
-							{detail.plain_body}
-						</div>
-					) : (
-						<p className="text-sm text-t3">{t("reader.body.plainUnavailable")}</p>
-					)}
-					{detail.plain_body.length === 0 &&
-					detail.sanitized_html !== null &&
-					detail.sanitized_html.length > 0 ? (
-						<p className="mt-2 text-xs leading-5 text-t3">
-							{t("reader.body.richUnavailable")}
-						</p>
-					) : null}
-				</div>
+				<MailSafeContent
+					language={i18n.language}
+					plainBody={detail.plain_body}
+					plainUnavailable={t("reader.body.plainUnavailable")}
+					richUnavailable={t("reader.body.richUnavailable")}
+					sanitizedHTML={detail.sanitized_html}
+					title={t("reader.body.richContentTitle")}
+				/>
 				{detail.attachments.length > 0 ? (
 					<section aria-labelledby={attachmentsHeadingID}>
 						<h4 id={attachmentsHeadingID} className="text-xs font-semibold uppercase tracking-[0.06em] text-t3">

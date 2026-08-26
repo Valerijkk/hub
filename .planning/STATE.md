@@ -1,4 +1,29 @@
 ---
+mail_safe_rich_reader_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_ACCESSIBILITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Exact source blobs: isolated reader
+  d9364a9ac9cae19d3c4b8a0b1d7acf2b42e93972, thread-reader route
+  518e42204e6264ddadee4791784639ab2d494451, EN locale
+  967e9f2aa20606a20d395ce5d563d3e76c25c54f, and RU locale
+  cd352872453c660fc3ff7e0ec4a966de8fc6eb1f. The reader now prefers
+  non-empty server-sanitized rich content only after an independent browser
+  boundary revalidates raw and entity-decoded controls, exact HTML namespace,
+  the frozen attribute-free tag allowlist, UTF-8 bytes, node count and depth,
+  then requires a second parse/serialization fixed point. Accepted content is
+  placed only in a complete localized srcDoc document whose first head
+  element is the restrictive CSP meta, inside an empty-sandbox iframe with no
+  referrer or remote-resource capability. Invalid or unavailable rich content
+  fails closed to the canonical plain body with one quiet localized notice;
+  whitespace-only rich content is absent. The iframe exposes localized
+  title/lang/dir, semantic main content, a visible focus ring and a bounded
+  viewport-aware reading surface with light/dark contrast. Existing remote
+  image notice, attachments, message actions and reader ordering are
+  unchanged. Static evidence only: tests/build/lint/validators/Docker/runtime
+  are NOT_RUN; this is not product, Docker or merge readiness.
+  provenance_source: dispatcher-enforced; implementation Terra/xhigh;
+  reviews Contract/high, Security/xhigh and Accessibility/high; no fallback;
+  telemetry UNKNOWN.
 mail_thread_bulk_ui_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_ACCESSIBILITY_REVIEW_PASS_C_I_M_0_0_0 /
