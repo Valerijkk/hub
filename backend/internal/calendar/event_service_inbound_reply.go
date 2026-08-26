@@ -38,16 +38,54 @@ const (
 
 // CalendarInboundReplyResult intentionally exposes only an outcome; inbound
 // mail processing must not disclose event, attendee, UID or hash state.
-type CalendarInboundReplyResult struct{ outcome CalendarInboundReplyOutcome }
+type CalendarInboundReplyResult struct {
+	outcome         CalendarInboundReplyOutcome
+	calendarEventID *uuid.UUID
+}
 
 func (result CalendarInboundReplyResult) Outcome() CalendarInboundReplyOutcome { return result.outcome }
 
 func (result CalendarInboundReplyResult) valid() bool {
+	if !validCalendarInboundMessageUUIDPointer(result.calendarEventID) {
+		return false
+	}
 	switch result.outcome {
 	case CalendarInboundReplyApplied, CalendarInboundReplyObservedNoChange, CalendarInboundReplyDuplicate, CalendarInboundReplyStale, CalendarInboundReplyQuarantined:
 		return true
 	default:
 		return false
+	}
+}
+
+func newCalendarInboundReplyResult(outcome CalendarInboundReplyOutcome, calendarEventID *uuid.UUID) (CalendarInboundReplyResult, error) {
+	result := CalendarInboundReplyResult{
+		outcome:         outcome,
+		calendarEventID: cloneCalendarInboundMessageUUIDPointer(calendarEventID),
+	}
+	if !result.valid() {
+		return CalendarInboundReplyResult{}, ErrEventInvalid
+	}
+	return result, nil
+}
+
+func (result CalendarInboundReplyResult) calendarInboundMessageCompletion() (CalendarInboundMessageCompletion, error) {
+	if !result.valid() {
+		return CalendarInboundMessageCompletion{}, ErrEventInvalid
+	}
+	switch result.outcome {
+	case CalendarInboundReplyApplied, CalendarInboundReplyObservedNoChange:
+		if result.calendarEventID == nil {
+			return CalendarInboundMessageCompletion{}, ErrEventInvalid
+		}
+		return NewCalendarInboundAppliedCompletion(*result.calendarEventID)
+	case CalendarInboundReplyDuplicate:
+		return NewCalendarInboundObservedCompletion(CalendarInboundObservedDuplicate, result.calendarEventID)
+	case CalendarInboundReplyStale:
+		return NewCalendarInboundObservedCompletion(CalendarInboundObservedIgnoredStale, result.calendarEventID)
+	case CalendarInboundReplyQuarantined:
+		return NewCalendarInboundQuarantinedCompletion(CalendarInboundMessageErrorOrganizerMismatch)
+	default:
+		return CalendarInboundMessageCompletion{}, ErrEventInvalid
 	}
 }
 
@@ -126,7 +164,7 @@ func (service *EventService) applyInboundITIPReplyInTransaction(ctx context.Cont
 	}
 	canonical, normalized, sender, accepted := calendarInboundReplyPreflight(input.Sender, input.Message)
 	if !accepted {
-		return calendarInboundReplyResult(CalendarInboundReplyQuarantined), nil
+		return newCalendarInboundReplyResult(CalendarInboundReplyQuarantined, nil)
 	}
 	receipt, receiptErr := NewCalendarInboundReplyReceiptKey(canonical.CanonicalVersion, sender, canonical.PayloadHash)
 	if receiptErr != nil {
@@ -137,13 +175,20 @@ func (service *EventService) applyInboundITIPReplyInTransaction(ctx context.Cont
 		if transaction == nil {
 			return ErrEventInvalid
 		}
+		setResult := func(outcome CalendarInboundReplyOutcome, calendarEventID *uuid.UUID) error {
+			candidate, resultErr := newCalendarInboundReplyResult(outcome, calendarEventID)
+			if resultErr != nil {
+				return ErrEventInvalid
+			}
+			result = candidate
+			return nil
+		}
 		scope, found, scopeErr := transaction.ResolveCalendarInboundReplyScope(ctx, input.OwnerID)
 		if scopeErr != nil {
 			return scopeErr
 		}
 		if !found {
-			result = calendarInboundReplyResult(CalendarInboundReplyQuarantined)
-			return nil
+			return setResult(CalendarInboundReplyQuarantined, nil)
 		}
 		scope = scope.withOrganizerEmail(normalized.Organizer.Email)
 		authorization, resolveErr := transaction.ResolveCalendarInboundReply(ctx, scope, CalendarInboundReplyAuthorizationRequest{
@@ -154,31 +199,26 @@ func (service *EventService) applyInboundITIPReplyInTransaction(ctx context.Cont
 			return resolveErr
 		}
 		if !authorization.Matched {
-			result = calendarInboundReplyResult(CalendarInboundReplyQuarantined)
-			return nil
+			return setResult(CalendarInboundReplyQuarantined, nil)
 		}
 		// Existing receipt has strict precedence over all mutable comparisons so
 		// replaying an older A after a later B cannot roll the attendee back.
 		if authorization.ExistingReceipt {
-			result = calendarInboundReplyResult(CalendarInboundReplyDuplicate)
-			return nil
+			return setResult(CalendarInboundReplyDuplicate, &authorization.Current.EventID)
 		}
 		effectiveSequence, policyOutcome, policyErr := calendarInboundReplyAuthorize(scope, authorization, normalized, sender)
 		if policyErr != nil {
 			return policyErr
 		}
 		if policyOutcome != "" {
-			result = calendarInboundReplyResult(policyOutcome)
-			return nil
+			return setResult(policyOutcome, &authorization.Current.EventID)
 		}
 		incomingSequence := uint(canonical.Sequence)
 		if incomingSequence < effectiveSequence {
-			result = calendarInboundReplyResult(CalendarInboundReplyStale)
-			return nil
+			return setResult(CalendarInboundReplyStale, &authorization.Current.EventID)
 		}
 		if incomingSequence > effectiveSequence || authorization.DistinctReceiptCount == calendarInboundReplyMaxDistinctReceipts {
-			result = calendarInboundReplyResult(CalendarInboundReplyQuarantined)
-			return nil
+			return setResult(CalendarInboundReplyQuarantined, &authorization.Current.EventID)
 		}
 
 		prior := authorization.Target
@@ -190,8 +230,7 @@ func (service *EventService) applyInboundITIPReplyInTransaction(ctx context.Cont
 			if _, persistErr := transaction.PersistCalendarInboundReply(ctx, scope, command); persistErr != nil {
 				return persistErr
 			}
-			result = calendarInboundReplyResult(CalendarInboundReplyObservedNoChange)
-			return nil
+			return setResult(CalendarInboundReplyObservedNoChange, &authorization.Current.EventID)
 		}
 		if prior.Version == ^uint(0) {
 			return ErrEventInvalid
@@ -236,8 +275,7 @@ func (service *EventService) applyInboundITIPReplyInTransaction(ctx context.Cont
 		if _, persistErr := transaction.PersistCalendarInboundReply(ctx, scope, command); persistErr != nil {
 			return persistErr
 		}
-		result = calendarInboundReplyResult(CalendarInboundReplyApplied)
-		return nil
+		return setResult(CalendarInboundReplyApplied, &authorization.Current.EventID)
 	}()
 	if err != nil {
 		return CalendarInboundReplyResult{}, calendarInboundReplySafeError(err)
@@ -246,10 +284,6 @@ func (service *EventService) applyInboundITIPReplyInTransaction(ctx context.Cont
 		return CalendarInboundReplyResult{}, ErrEventInvalid
 	}
 	return result, nil
-}
-
-func calendarInboundReplyResult(outcome CalendarInboundReplyOutcome) CalendarInboundReplyResult {
-	return CalendarInboundReplyResult{outcome: outcome}
 }
 
 func calendarInboundReplyPreflight(rawSender string, message ITIPMessage) (identity ITIPIdentity, normalized ITIPMessage, sender string, accepted bool) {
