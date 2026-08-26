@@ -1,15 +1,17 @@
 # Phase 147 — executable packet contracts
-> **2026-08-26 checkpoint - 147-02C Resolve source-authored only.**
-> The sole new production file
-> `backend/internal/calendar/event_ent_repository_inbound_invite.go` authors only
-> `ResolveCalendarInboundInvite` plus private helpers. Terra/xhigh author;
-> initial Terra/high review `C/I/M 0/2/0`, two exact fixes, independent
-> Terra/high post-fix `ACCEPT C/I/M 0/0/0`; dispatcher-enforced/no fallback.
-> Receipt, account authority, lock order, fail-closed state mapping and the
-> 10,000 unbound unseen-UID quota are source-authored read-only. Schema generation
-> passed; Docker compile/tests are `NOT_RUN`. Do not treat this as complete 02C:
-> Persist, P3-D receipt/due worker, P3-E, API/UI/full stack/merge remain pending,
-> and the backend does not yet satisfy the full invite transaction interface.
+> **2026-08-26 checkpoint - 147-02C source-authored and statically accepted.**
+> Resolve `97ae294d`, Persist `53869c07`, and owner-attendee correction
+> `83cbe222` modify only
+> `backend/internal/calendar/event_ent_repository_inbound_invite.go`.
+> Terra/xhigh author; Terra/high independent final `ACCEPT C/I/M 0/0/0`;
+> dispatcher-enforced/no fallback. Receipt/database-clock/tenant/account/identity
+> revalidation, quota, series/occurrence REQUEST/CANCEL/defer persistence,
+> deterministic attendee/exception locks, object high-watermarks and material
+> outbox are source-authored. Exactly one authoritative active primary-or-alias
+> recipient is bound to the owner for RSVP; ambiguity is fail-closed. Receipt
+> completion stays with P3-D as the final same-transaction operation. Docker
+> compile/tests/runtime are `NOT_RUN`; P3-D, P3-E, API/UI/full stack and merge
+> remain pending.
 
 > **2026-08-26 checkpoint — 147-02B service packet consumed.**
 > The final `EventService.ApplyInboundITIPInvite` atom is source-authored at

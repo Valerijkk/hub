@@ -1,18 +1,20 @@
 # Phase 147 — reliability and integration contract
-> **2026-08-26 checkpoint - 147-02C Resolve source-authored only.**
-> `backend/internal/calendar/event_ent_repository_inbound_invite.go` now authors
-> `eventEntTransactionBackend.ResolveCalendarInboundInvite` and private helpers.
-> Terra/xhigh implementation, initial Terra/high review `C/I/M 0/2/0`, two exact
-> fixes, then independent Terra/high `ACCEPT C/I/M 0/0/0`; provenance is
-> `dispatcher-enforced`, no fallback. It revalidates the exact claim-locked
-> receipt; derives owner only from MailAccount; locks Organization -> active
-> User -> active-ready MailAccount -> series -> occurrence; maps stored state
-> fail-closed; and enforces the 10,000 unbound unseen-UID quota under the account
-> lock. It performs no write, event/outbox, raw/provider/body, nested transaction
-> or Mail-service work. Schema generation passed, but generated Ent remains
-> image-local and Docker compile/tests are `NOT_RUN`. This is not complete 02C:
-> Persist, P3-D receipt/due worker, P3-E, API/UI/full stack/merge remain pending,
-> and the backend does not yet satisfy the full invite transaction interface.
+> **2026-08-26 checkpoint - 147-02C source-authored and statically accepted.**
+> Resolve is committed at `97ae294d`, concrete Persist at `53869c07`, and the
+> independently accepted owner-attendee correction at `83cbe222`, all only in
+> `backend/internal/calendar/event_ent_repository_inbound_invite.go`. Terra/xhigh
+> implementation and Terra/high independent review are `dispatcher-enforced`,
+> no fallback; final verdict `ACCEPT C/I/M 0/0/0`. The adapter revalidates the
+> exact claimed receipt, one database clock, tenant, active owner/account and
+> active primary-or-alias Mail identity, policy input and 10,000-state quota.
+> It persists series/occurrence REQUEST, CANCEL and missing-master deferral,
+> deterministic attendees/exceptions, object high-watermarks and one outbox only
+> for a material mutation. Exactly one authoritative recipient attendee is
+> bound to the calendar owner for RSVP; zero or ambiguous matches fail closed
+> before writes. It performs no raw/provider/body read, nested transaction,
+> Mail-service call or receipt completion. P3-D must complete the receipt last
+> in the same Event transaction. Docker compile/tests/runtime remain `NOT_RUN`;
+> P3-D, P3-E, API/UI/full-stack Docker and merge remain pending.
 
 > **2026-08-26 checkpoint — 147-02B source-authored, executable evidence pending.**
 > `EventService.ApplyInboundITIPInvite` is source-authored in

@@ -1,16 +1,19 @@
 ---
-phase_147_02c_resolve_checkpoint: >-
-  147-02C RESOLVE_SOURCE_AUTHORED: only
-  backend/internal/calendar/event_ent_repository_inbound_invite.go authors
-  ResolveCalendarInboundInvite and private helpers. Terra/xhigh author; initial
-  Terra/high review C/I/M 0/2/0, two exact fixes applied, independent
-  Terra/high post-fix ACCEPT C/I/M 0/0/0; dispatcher-enforced, no fallback.
-  It revalidates the claim-locked receipt and locks Organization, active User,
-  active-ready MailAccount, series and occurrence before a fail-closed state
-  projection and the 10,000 unbound unseen-UID quota. It performs no writes.
-  schema-maintenance-generate exited 0, but Docker compile/tests are NOT_RUN.
-  Persist, P3-D receipt/due worker, P3-E, API/UI/full stack/merge remain pending;
-  the backend does not yet satisfy the full invite transaction interface.
+phase_147_02c_persist_checkpoint: >-
+  147-02C SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0. Resolve is
+  committed at 97ae294d; concrete Persist at 53869c07; the reviewed owner
+  attendee binding correction is 83cbe222. All production changes remain in
+  backend/internal/calendar/event_ent_repository_inbound_invite.go. Terra/xhigh
+  author and Terra/high independent review used dispatcher-enforced provenance
+  with no fallback. The adapter revalidates receipt, database clock, tenant,
+  active owner/account/identity, policy input and quota; persists series and
+  occurrence REQUEST/CANCEL/defer state, deterministic attendees/exceptions,
+  object high-watermarks and exactly one material outbox atomically. The exact
+  active primary-or-alias recipient attendee is bound to the calendar owner so
+  RSVP remains reachable; ambiguity fails closed before mutation. Receipt
+  completion intentionally remains P3-D's final operation in the same Event
+  transaction. Docker compile/tests/runtime are NOT_RUN. P3-D, P3-E, API/UI,
+  full-stack Docker and merge remain pending.
 mail_schema_launcher_source_sync_2026_08_26: >-
   The exact4 launcher/source-input synchronization includes
   internal/mailvalue/dns.go in the fresh schema image, isolated generator and
