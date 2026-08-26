@@ -1,4 +1,16 @@
 ---
+phase_147_02c_resolve_checkpoint: >-
+  147-02C RESOLVE_SOURCE_AUTHORED: only
+  backend/internal/calendar/event_ent_repository_inbound_invite.go authors
+  ResolveCalendarInboundInvite and private helpers. Terra/xhigh author; initial
+  Terra/high review C/I/M 0/2/0, two exact fixes applied, independent
+  Terra/high post-fix ACCEPT C/I/M 0/0/0; dispatcher-enforced, no fallback.
+  It revalidates the claim-locked receipt and locks Organization, active User,
+  active-ready MailAccount, series and occurrence before a fail-closed state
+  projection and the 10,000 unbound unseen-UID quota. It performs no writes.
+  schema-maintenance-generate exited 0, but Docker compile/tests are NOT_RUN.
+  Persist, P3-D receipt/due worker, P3-E, API/UI/full stack/merge remain pending;
+  the backend does not yet satisfy the full invite transaction interface.
 mail_schema_launcher_source_sync_2026_08_26: >-
   The exact4 launcher/source-input synchronization includes
   internal/mailvalue/dns.go in the fresh schema image, isolated generator and

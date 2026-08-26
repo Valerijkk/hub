@@ -1,5 +1,21 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - 147-02C inbound invite resolution
+
+`backend/internal/calendar/event_ent_repository_inbound_invite.go` now
+source-authors only `eventEntTransactionBackend.ResolveCalendarInboundInvite`
+and private helpers. Terra/xhigh authored it; initial Terra/high review found two
+minor issues, both were fixed, and independent post-fix review accepted
+`C/I/M 0/0/0` with dispatcher-enforced provenance and no fallback. The resolver
+revalidates the exact claim-locked receipt, derives owner only from MailAccount,
+locks Organization -> active User -> active-ready MailAccount -> series ->
+occurrence, maps stored state fail-closed, and enforces the 10,000 unbound
+unseen-UID quota under the account lock. It performs no write, event/outbox,
+raw/provider/body, nested transaction or Mail-service work. Schema generation
+passed; Docker compile/tests are `NOT_RUN`. Persist, P3-D receipt/due worker,
+P3-E, API/UI/full stack/merge remain pending, so the backend does not yet
+implement the full invite transaction interface and no readiness follows.
+
 ## 2026-08-26 — Schema launcher source synchronization
 
 `internal/mailvalue/dns.go` is now copied into the schema-maintenance image and

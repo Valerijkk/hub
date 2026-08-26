@@ -1,4 +1,19 @@
 # Phase 147 — reliability and integration contract
+> **2026-08-26 checkpoint - 147-02C Resolve source-authored only.**
+> `backend/internal/calendar/event_ent_repository_inbound_invite.go` now authors
+> `eventEntTransactionBackend.ResolveCalendarInboundInvite` and private helpers.
+> Terra/xhigh implementation, initial Terra/high review `C/I/M 0/2/0`, two exact
+> fixes, then independent Terra/high `ACCEPT C/I/M 0/0/0`; provenance is
+> `dispatcher-enforced`, no fallback. It revalidates the exact claim-locked
+> receipt; derives owner only from MailAccount; locks Organization -> active
+> User -> active-ready MailAccount -> series -> occurrence; maps stored state
+> fail-closed; and enforces the 10,000 unbound unseen-UID quota under the account
+> lock. It performs no write, event/outbox, raw/provider/body, nested transaction
+> or Mail-service work. Schema generation passed, but generated Ent remains
+> image-local and Docker compile/tests are `NOT_RUN`. This is not complete 02C:
+> Persist, P3-D receipt/due worker, P3-E, API/UI/full stack/merge remain pending,
+> and the backend does not yet satisfy the full invite transaction interface.
+
 > **2026-08-26 checkpoint — 147-02B source-authored, executable evidence pending.**
 > `EventService.ApplyInboundITIPInvite` is source-authored in
 > `backend/internal/calendar/event_service_inbound_invite.go`: it validates and
