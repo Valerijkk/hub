@@ -10,22 +10,30 @@ import (
 )
 
 type calendarCorrelationFixture struct {
-	actorID         uuid.UUID
-	otherActorID    uuid.UUID
-	organizationID  uuid.UUID
-	accountID       uuid.UUID
-	messageID       uuid.UUID
-	calendarEventID uuid.UUID
+	actorID              uuid.UUID
+	otherActorID         uuid.UUID
+	organizationID       uuid.UUID
+	otherOrganizationID  uuid.UUID
+	accountID            uuid.UUID
+	otherAccountID       uuid.UUID
+	messageID            uuid.UUID
+	otherMessageID       uuid.UUID
+	calendarEventID      uuid.UUID
+	otherCalendarEventID uuid.UUID
 }
 
 func calendarCorrelationFixtureValues() calendarCorrelationFixture {
 	return calendarCorrelationFixture{
-		actorID:         uuid.MustParse("11111111-1111-4111-8111-111111111111"),
-		otherActorID:    uuid.MustParse("22222222-2222-4222-8222-222222222222"),
-		organizationID:  uuid.MustParse("33333333-3333-4333-8333-333333333333"),
-		accountID:       uuid.MustParse("44444444-4444-4444-8444-444444444444"),
-		messageID:       uuid.MustParse("55555555-5555-4555-8555-555555555555"),
-		calendarEventID: uuid.MustParse("66666666-6666-4666-8666-666666666666"),
+		actorID:              uuid.MustParse("11111111-1111-4111-8111-111111111111"),
+		otherActorID:         uuid.MustParse("22222222-2222-4222-8222-222222222222"),
+		organizationID:       uuid.MustParse("33333333-3333-4333-8333-333333333333"),
+		otherOrganizationID:  uuid.MustParse("44444444-4444-4444-8444-444444444444"),
+		accountID:            uuid.MustParse("55555555-5555-4555-8555-555555555555"),
+		otherAccountID:       uuid.MustParse("66666666-6666-4666-8666-666666666666"),
+		messageID:            uuid.MustParse("77777777-7777-4777-8777-777777777777"),
+		otherMessageID:       uuid.MustParse("88888888-8888-4888-8888-888888888888"),
+		calendarEventID:      uuid.MustParse("99999999-9999-4999-8999-999999999999"),
+		otherCalendarEventID: uuid.MustParse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
 	}
 }
 
@@ -299,6 +307,51 @@ func TestMailboxCalendarCorrelationEntrypointsRejectInvalidAndMismatchedSuccess(
 	} {
 		t.Run("reverse "+test.name, func(t *testing.T) {
 			_, err := mail.ResolveCalendarMailboxCorrelation(context.Background(), &calendarMailboxCorrelationResolverFake{result: test.result}, reverseRequest)
+			requireMailboxCalendarCorrelationErrorKind(t, err, mail.MailboxCalendarCorrelationErrorKindUnavailable)
+		})
+	}
+}
+
+func TestMailboxCalendarCorrelationEntrypointsRejectEveryMismatchedScope(t *testing.T) {
+	fixture := calendarCorrelationFixtureValues()
+	forwardRequest := mailboxCalendarCorrelationRequest(t, fixture)
+	reverseRequest := calendarMailboxCorrelationRequest(t, fixture)
+	forwardResult := mailboxCalendarCorrelationResult(t, forwardRequest, fixture.calendarEventID, mail.MailboxCalendarCorrelationPathInboundReceipt)
+	reverseResult := calendarMailboxCorrelationResult(t, reverseRequest, fixture.accountID, fixture.messageID, mail.MailboxCalendarCorrelationPathOutboundInvite)
+
+	for _, test := range []struct {
+		name   string
+		mutate func(calendarCorrelationFixture) calendarCorrelationFixture
+	}{
+		{name: "actor", mutate: func(value calendarCorrelationFixture) calendarCorrelationFixture { value.actorID = value.otherActorID; return value }},
+		{name: "organization", mutate: func(value calendarCorrelationFixture) calendarCorrelationFixture { value.organizationID = value.otherOrganizationID; return value }},
+		{name: "account", mutate: func(value calendarCorrelationFixture) calendarCorrelationFixture { value.accountID = value.otherAccountID; return value }},
+		{name: "message", mutate: func(value calendarCorrelationFixture) calendarCorrelationFixture { value.messageID = value.otherMessageID; return value }},
+	} {
+		t.Run("forward "+test.name, func(t *testing.T) {
+			mismatchedRequest := mailboxCalendarCorrelationRequest(t, test.mutate(fixture))
+			if forwardResult.Matches(mismatchedRequest) {
+				t.Fatal("MailboxCalendarCorrelationResult.Matches() accepted a mismatched request scope")
+			}
+			_, err := mail.ResolveMailboxCalendarCorrelation(context.Background(), &mailboxCalendarCorrelationResolverFake{result: forwardResult}, mismatchedRequest)
+			requireMailboxCalendarCorrelationErrorKind(t, err, mail.MailboxCalendarCorrelationErrorKindUnavailable)
+		})
+	}
+
+	for _, test := range []struct {
+		name   string
+		mutate func(calendarCorrelationFixture) calendarCorrelationFixture
+	}{
+		{name: "actor", mutate: func(value calendarCorrelationFixture) calendarCorrelationFixture { value.actorID = value.otherActorID; return value }},
+		{name: "organization", mutate: func(value calendarCorrelationFixture) calendarCorrelationFixture { value.organizationID = value.otherOrganizationID; return value }},
+		{name: "calendar event", mutate: func(value calendarCorrelationFixture) calendarCorrelationFixture { value.calendarEventID = value.otherCalendarEventID; return value }},
+	} {
+		t.Run("reverse "+test.name, func(t *testing.T) {
+			mismatchedRequest := calendarMailboxCorrelationRequest(t, test.mutate(fixture))
+			if reverseResult.Matches(mismatchedRequest) {
+				t.Fatal("CalendarMailboxCorrelationResult.Matches() accepted a mismatched request scope")
+			}
+			_, err := mail.ResolveCalendarMailboxCorrelation(context.Background(), &calendarMailboxCorrelationResolverFake{result: reverseResult}, mismatchedRequest)
 			requireMailboxCalendarCorrelationErrorKind(t, err, mail.MailboxCalendarCorrelationErrorKindUnavailable)
 		})
 	}
