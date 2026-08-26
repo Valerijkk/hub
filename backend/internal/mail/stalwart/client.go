@@ -102,13 +102,13 @@ func (c *Client) DiscoverMailboxSession(ctx context.Context) (*MailboxSession, e
 }
 
 // CallRegistry sends an allowlisted Stalwart Registry batch to exact POST
-// /jmap. Registry methods and credentials can never cross into mailbox calls.
+// /api. Registry methods and credentials can never cross into mailbox calls.
 func (c *Client) CallRegistry(ctx context.Context, request JMAPRequest) (JMAPResponse, error) {
 	payload, mutation, err := validateRequest(jmapRegistry, request, nil)
 	if err != nil {
 		return JMAPResponse{}, err
 	}
-	endpoint := c.fixedURL("/jmap")
+	endpoint := c.fixedURL("/api")
 	status, _, response, err := c.doRequest(ctx, jmapDeadline, http.MethodPost, endpoint, bytes.NewReader(payload), "application/json", c.authorizeRegistry, maxJMAPBytes)
 	if err != nil {
 		return JMAPResponse{}, mutationError(err, mutation)

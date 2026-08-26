@@ -39,7 +39,7 @@ func TestStalwartClient_RateLimitKeepsReadsRetryableAndMakesMutationsIndetermina
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-				if request.Method != http.MethodPost || request.URL.Path != "/jmap" {
+				if request.Method != http.MethodPost || request.URL.Path != "/api" {
 					writer.WriteHeader(http.StatusBadRequest)
 					return
 				}
