@@ -143,6 +143,41 @@ _QA_BACKEND_DEPENDENTS = frozenset(
     {"python-api", "python-integration", "python-e2e-smoke", "python-e2e-full"}
 )
 _QA_FRONTEND_DEPENDENTS = frozenset({"python-e2e-smoke", "python-e2e-full"})
+_QA_API_BASE_URL = "http://qa-backend:3000/"
+_QA_FRONTEND_BASE_URL = "http://qa-frontend:8080/"
+_QA_MAIL_CALENDAR_TOKEN = (
+    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+)
+_QA_PYTHON_APPLICATION_ENVIRONMENTS = MappingProxyType(
+    {
+        "python-api": MappingProxyType(
+            {
+                "HUB_QA_API_BASE_URL": _QA_API_BASE_URL,
+                "HUB_QA_MAIL_CALENDAR_TOKEN": _QA_MAIL_CALENDAR_TOKEN,
+            }
+        ),
+        "python-integration": MappingProxyType(
+            {
+                "HUB_QA_API_BASE_URL": _QA_API_BASE_URL,
+                "HUB_QA_MAIL_CALENDAR_TOKEN": _QA_MAIL_CALENDAR_TOKEN,
+            }
+        ),
+        "python-e2e-smoke": MappingProxyType(
+            {
+                "HUB_QA_API_BASE_URL": _QA_API_BASE_URL,
+                "HUB_QA_MAIL_CALENDAR_TOKEN": _QA_MAIL_CALENDAR_TOKEN,
+                "HUB_QA_FRONTEND_BASE_URL": _QA_FRONTEND_BASE_URL,
+            }
+        ),
+        "python-e2e-full": MappingProxyType(
+            {
+                "HUB_QA_API_BASE_URL": _QA_API_BASE_URL,
+                "HUB_QA_MAIL_CALENDAR_TOKEN": _QA_MAIL_CALENDAR_TOKEN,
+                "HUB_QA_FRONTEND_BASE_URL": _QA_FRONTEND_BASE_URL,
+            }
+        ),
+    }
+)
 _QA_NETWORK = "qa-internal"
 _MAINTENANCE_SERVICE = "qa-lock"
 _MAINTENANCE_PROFILE = "qa-maintenance"
@@ -681,6 +716,59 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
             services,
             "python-e2e-full",
             {"depends_on": MappingProxyType(full_dependencies)},
+        )
+    )
+    api_environment = dict(_mapping_value(api, "environment"))
+    missing_api_url = dict(api_environment)
+    missing_api_url.pop("HUB_QA_API_BASE_URL")
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-api",
+            {"environment": MappingProxyType(missing_api_url)},
+        )
+    )
+    changed_api_token = dict(api_environment)
+    changed_api_token["HUB_QA_MAIL_CALENDAR_TOKEN"] = "changed"
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-api",
+            {"environment": MappingProxyType(changed_api_token)},
+        )
+    )
+    extra_api_environment = dict(api_environment)
+    extra_api_environment["HUB_QA_UNEXPECTED"] = "1"
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-api",
+            {"environment": MappingProxyType(extra_api_environment)},
+        )
+    )
+    cross_layer_api_environment = dict(api_environment)
+    cross_layer_api_environment["HUB_QA_FRONTEND_BASE_URL"] = (
+        _QA_FRONTEND_BASE_URL
+    )
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-api",
+            {"environment": MappingProxyType(cross_layer_api_environment)},
+        )
+    )
+    contract = _mapping_value(services, "python-contract")
+    cross_layer_contract_environment = dict(
+        _mapping_value(contract, "environment")
+    )
+    cross_layer_contract_environment["HUB_QA_MAIL_CALENDAR_TOKEN"] = (
+        _QA_MAIL_CALENDAR_TOKEN
+    )
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-contract",
+            {"environment": MappingProxyType(cross_layer_contract_environment)},
         )
     )
     qa_backend = _mapping_value(services, "qa-backend")
@@ -1570,7 +1658,7 @@ def _expected_private_application_service(name: str) -> Mapping[str, object]:
                     "S3_REGION": "us-east-1",
                     "S3_USE_SSL": "false",
                     "JWT_SECRET": "qa-local-jwt-secret-mail-calendar-not-for-production",
-                    "HUB_QA_MAIL_CALENDAR_TOKEN": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                    "HUB_QA_MAIL_CALENDAR_TOKEN": _QA_MAIL_CALENDAR_TOKEN,
                     "AI_OFFLINE_ONLY": "true",
                 }
             ),
@@ -1605,7 +1693,7 @@ def _expected_public_service(name: str) -> Mapping[str, object]:
     )
     expected["command"] = _FIXED_COMMANDS[name]
     if name.startswith("python-"):
-        expected["environment"] = _qa_python_environment()
+        expected["environment"] = _qa_python_environment(name)
     dependencies = _healthy_public_dependencies(name)
     if dependencies:
         expected["depends_on"] = dependencies
@@ -1631,14 +1719,15 @@ def _qa_common_service_fields() -> Mapping[str, object]:
     )
 
 
-def _qa_python_environment() -> Mapping[str, object]:
-    return MappingProxyType(
-        {
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "PYTEST_ADDOPTS": "-p no:cacheprovider",
-            "PYTHONSAFEPATH": "1",
-        }
-    )
+def _qa_python_environment(name: str | None = None) -> Mapping[str, object]:
+    environment: dict[str, object] = {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTEST_ADDOPTS": "-p no:cacheprovider",
+        "PYTHONSAFEPATH": "1",
+    }
+    if name is not None:
+        environment.update(_QA_PYTHON_APPLICATION_ENVIRONMENTS.get(name, {}))
+    return MappingProxyType(environment)
 
 
 def _healthy_infrastructure_dependencies() -> Mapping[str, object]:

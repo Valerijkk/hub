@@ -346,6 +346,12 @@ services:
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
     command: [api]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_ADDOPTS: "-p no:cacheprovider"
+      PYTHONSAFEPATH: "1"
+      HUB_QA_API_BASE_URL: "http://qa-backend:3000/"
+      HUB_QA_MAIL_CALENDAR_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     depends_on:
       qa-backend:
         condition: service_healthy
@@ -357,6 +363,12 @@ services:
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
     command: [integration]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_ADDOPTS: "-p no:cacheprovider"
+      PYTHONSAFEPATH: "1"
+      HUB_QA_API_BASE_URL: "http://qa-backend:3000/"
+      HUB_QA_MAIL_CALENDAR_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     depends_on:
       qa-postgres:
         condition: service_healthy
@@ -378,6 +390,13 @@ services:
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
     command: [e2e-smoke]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_ADDOPTS: "-p no:cacheprovider"
+      PYTHONSAFEPATH: "1"
+      HUB_QA_API_BASE_URL: "http://qa-backend:3000/"
+      HUB_QA_MAIL_CALENDAR_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      HUB_QA_FRONTEND_BASE_URL: "http://qa-frontend:8080/"
     depends_on:
       qa-postgres:
         condition: service_healthy
@@ -401,6 +420,13 @@ services:
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
     command: [e2e-full]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_ADDOPTS: "-p no:cacheprovider"
+      PYTHONSAFEPATH: "1"
+      HUB_QA_API_BASE_URL: "http://qa-backend:3000/"
+      HUB_QA_MAIL_CALENDAR_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      HUB_QA_FRONTEND_BASE_URL: "http://qa-frontend:8080/"
     depends_on:
       qa-postgres:
         condition: service_healthy
