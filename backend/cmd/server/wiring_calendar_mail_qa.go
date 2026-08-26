@@ -11,7 +11,8 @@ import (
 )
 
 func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService, mailboxRepo *mailmod.MailboxEntRepository, eventRepo *calendarmod.EventEntRepository, eventSvc *calendarmod.EventService) bool {
-	if _, err := qamailcalendar.ParseConfig(os.LookupEnv); err != nil {
+	config, err := qamailcalendar.ParseConfig(os.LookupEnv)
+	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 		return true
 	}
@@ -19,6 +20,15 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 	mailboxEngine := mailmod.NewFakeMailEngine(mailmod.FakeMailEngineConfig{
 		Now: serverUTCClock{}.Now,
 	})
+	controller, err := qamailcalendar.NewController(d.db, mailboxEngine, config)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+		return true
+	}
+	if err := controller.RegisterRoutes(d.api); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+		return true
+	}
 	wireMailboxMessageDetail(d, mailboxSvc, mailboxRepo, mailboxEngine)
 	wireCalendarInboundRuntime(d, mailboxRepo, mailboxEngine, eventRepo, eventSvc)
 	return true
