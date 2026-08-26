@@ -238,6 +238,8 @@ require_generate_source_files() {
     "$SOURCE_ROOT/ent/generate.go" \
     "$SOURCE_ROOT/ent/schema" \
     "$SOURCE_ROOT/internal" \
+    "$SOURCE_ROOT/internal/mailvalue" \
+    "$SOURCE_ROOT/internal/mailvalue/dns.go" \
     "$SOURCE_ROOT/internal/mail" \
     "$SOURCE_ROOT/internal/mail/dns_types.go"; do
     require_non_symlink "$source_path"
@@ -246,6 +248,7 @@ require_generate_source_files() {
   [ -f "$SOURCE_ROOT/go.sum" ] || fail 'schema-maintenance: generate source go.sum is absent' "$EX_CONFIG"
   [ -f "$SOURCE_ROOT/ent/generate.go" ] || fail 'schema-maintenance: generate source directive is absent' "$EX_CONFIG"
   [ -d "$SOURCE_ROOT/ent/schema" ] || fail 'schema-maintenance: generate source schema is absent' "$EX_CONFIG"
+  [ -f "$SOURCE_ROOT/internal/mailvalue/dns.go" ] || fail 'schema-maintenance: generate source mailvalue DNS helper is absent' "$EX_CONFIG"
   [ -f "$SOURCE_ROOT/internal/mail/dns_types.go" ] || fail 'schema-maintenance: generate source mail DNS types are absent' "$EX_CONFIG"
   if find "$SOURCE_ROOT/ent/schema" -mindepth 1 \( -type l -o \( ! -type f -a ! -type d \) \) -print -quit | grep -q .; then
     fail 'schema-maintenance: generate source schema contains a symlink or non-regular entry' "$EX_CONFIG"
@@ -260,10 +263,11 @@ require_generate_source_files() {
 prepare_generate_module_root() {
   module_root="$1"
   rm -rf "$module_root"
-  mkdir -p "$module_root/ent" "$module_root/internal/mail"
+  mkdir -p "$module_root/ent" "$module_root/internal/mailvalue" "$module_root/internal/mail"
   cp "$SOURCE_ROOT/go.mod" "$module_root/go.mod"
   cp "$SOURCE_ROOT/go.sum" "$module_root/go.sum"
   cp "$SOURCE_ROOT/ent/generate.go" "$module_root/ent/generate.go"
+  cp "$SOURCE_ROOT/internal/mailvalue/dns.go" "$module_root/internal/mailvalue/dns.go"
   cp "$SOURCE_ROOT/internal/mail/dns_types.go" "$module_root/internal/mail/dns_types.go"
   cp -R "$SOURCE_ROOT/ent/schema" "$module_root/ent/schema"
 }
@@ -278,6 +282,8 @@ require_generate_module_source_files() {
     "$module_root/ent/generate.go" \
     "$module_root/ent/schema" \
     "$module_root/internal" \
+    "$module_root/internal/mailvalue" \
+    "$module_root/internal/mailvalue/dns.go" \
     "$module_root/internal/mail" \
     "$module_root/internal/mail/dns_types.go"; do
     require_non_symlink "$source_path"
@@ -286,6 +292,7 @@ require_generate_module_source_files() {
   [ -f "$module_root/go.sum" ] || fail 'schema-maintenance: isolated generate root go.sum is absent' "$EX_CONFIG"
   [ -f "$module_root/ent/generate.go" ] || fail 'schema-maintenance: isolated generate root directive is absent' "$EX_CONFIG"
   [ -d "$module_root/ent/schema" ] || fail 'schema-maintenance: isolated generate root schema is absent' "$EX_CONFIG"
+  [ -f "$module_root/internal/mailvalue/dns.go" ] || fail 'schema-maintenance: isolated generate root mailvalue DNS helper is absent' "$EX_CONFIG"
   [ -f "$module_root/internal/mail/dns_types.go" ] || fail 'schema-maintenance: isolated generate root mail DNS types are absent' "$EX_CONFIG"
   if find "$module_root/ent/schema" -mindepth 1 \( -type l -o \( ! -type f -a ! -type d \) \) -print -quit | grep -q .; then
     fail 'schema-maintenance: isolated generate root schema contains a symlink or non-regular entry' "$EX_CONFIG"
@@ -318,6 +325,7 @@ write_generate_source_manifest() {
   append_generate_source_manifest_entry "$module_root" "$module_root/go.mod" "$manifest"
   append_generate_source_manifest_entry "$module_root" "$module_root/go.sum" "$manifest"
   append_generate_source_manifest_entry "$module_root" "$module_root/ent/generate.go" "$manifest"
+  append_generate_source_manifest_entry "$module_root" "$module_root/internal/mailvalue/dns.go" "$manifest"
   append_generate_source_manifest_entry "$module_root" "$module_root/internal/mail/dns_types.go" "$manifest"
   LC_ALL=C find "$module_root/ent/schema" -type f -print | LC_ALL=C sort > "$source_list"
   while IFS= read -r source_file; do
@@ -463,6 +471,7 @@ require_materializer_source() {
   require_regular_non_symlink "$SOURCE_ROOT/go.mod" "current go.mod"
   require_regular_non_symlink "$SOURCE_ROOT/go.sum" "current go.sum"
   require_safe_nonempty_schema_tree "$SOURCE_ROOT/ent/schema" "current ent schema"
+  require_regular_non_symlink "$SOURCE_ROOT/internal/mailvalue/dns.go" "current mailvalue DNS helper"
   require_regular_non_symlink "$SOURCE_ROOT/internal/mail/dns_types.go" "current mail DNS helper"
   require_regular_non_symlink "$MATERIALIZER_SOURCE" "materializer source"
   require_regular_non_symlink "$MATERIALIZER_LOCK" "materializer lock"
@@ -510,6 +519,7 @@ write_materializer_source_manifest() {
   append_materializer_source_manifest_entry current "$SOURCE_ROOT" "$SOURCE_ROOT/go.sum" "$MATERIALIZER_SOURCE_MANIFEST"
   append_materializer_source_manifest_entry current "$SOURCE_ROOT" "$SOURCE_ROOT/docker/schema-maintenance/materializer/main.go" "$MATERIALIZER_SOURCE_MANIFEST"
   append_materializer_source_manifest_entry current "$SOURCE_ROOT" "$SOURCE_ROOT/docker/schema-materializer.lock.json" "$MATERIALIZER_SOURCE_MANIFEST"
+  append_materializer_source_manifest_entry current "$SOURCE_ROOT" "$SOURCE_ROOT/internal/mailvalue/dns.go" "$MATERIALIZER_SOURCE_MANIFEST"
   append_materializer_source_manifest_entry current "$SOURCE_ROOT" "$SOURCE_ROOT/internal/mail/dns_types.go" "$MATERIALIZER_SOURCE_MANIFEST"
   find "$SOURCE_ROOT/ent/schema" -type f -print |
     LC_ALL=C sort |

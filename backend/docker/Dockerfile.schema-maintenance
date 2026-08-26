@@ -99,6 +99,7 @@ COPY --chown=10001:10001 go.mod go.sum atlas.hcl ./
 COPY --chown=10001:10001 ent/generate.go ./ent/generate.go
 COPY --chown=10001:10001 ent/schema/ ./ent/schema/
 COPY --chown=10001:10001 docker/schema-maintenance/materializer/main.go ./docker/schema-maintenance/materializer/main.go
+COPY --chown=10001:10001 internal/mailvalue/dns.go ./internal/mailvalue/dns.go
 COPY --chown=10001:10001 internal/mail/dns_types.go ./internal/mail/dns_types.go
 COPY --chown=10001:10001 migrations/ ./migrations/
 RUN mkdir -p /opt/hub/backend/migrations/atlas/mail-calendar-v1 && \

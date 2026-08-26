@@ -101,6 +101,7 @@
       "go.mod",
       "go.sum",
       "ent/schema",
+      "internal/mailvalue/dns.go",
       "internal/mail/dns_types.go",
       "docker/schema-maintenance/materializer/main.go"
     ],

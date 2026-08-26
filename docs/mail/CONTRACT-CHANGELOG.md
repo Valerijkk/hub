@@ -1,5 +1,15 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 — Schema launcher source synchronization
+
+`internal/mailvalue/dns.go` is now copied into the schema-maintenance image and
+included in the isolated generator/current materializer manifests and both
+locked input lists. Hashes, dependency pins and prefeature inputs are unchanged.
+Independent Terra/high review recorded C/I/M `0/0/0`; the Docker-only
+`schema-maintenance-generate` service built a fresh image and exited `0` after
+offline double Ent generation. This is launcher/source-generation evidence only;
+`backend-unit` has not been rerun.
+
 ## 2026-08-26 — Inbound invite service orchestration
 
 147-02B source-authors `EventService.ApplyInboundITIPInvite` in

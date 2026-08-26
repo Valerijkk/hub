@@ -1,4 +1,13 @@
 ---
+mail_schema_launcher_source_sync_2026_08_26: >-
+  The exact4 launcher/source-input synchronization includes
+  internal/mailvalue/dns.go in the fresh schema image, isolated generator and
+  current materializer manifests and both locked input lists, without changing
+  hashes, pins or prefeature inputs. Independent Terra/high review C/I/M
+  0/0/0. Docker schema-maintenance-generate built a fresh image and exited 0
+  after offline double Ent generation. This validates only launcher/source
+  generation; backend-unit was not rerun and its prior tool-download blocker
+  may now be cleared.
 mail_dns_schema_value_isolation_2026_08_26: >-
   COMMITTED 076968f0: RequiredDNSRecords defined value and Validate moved to
   stdlib-only backend/internal/mailvalue; backend/internal/mail retains public
