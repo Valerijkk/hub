@@ -16,6 +16,7 @@ import (
 	"github.com/valerii/hub/backend/ent/calendarinboundmessagereceipt"
 	"github.com/valerii/hub/backend/ent/calendarinboundobjectstate"
 	"github.com/valerii/hub/backend/ent/mailaccount"
+	"github.com/valerii/hub/backend/ent/mailidentity"
 	"github.com/valerii/hub/backend/ent/organization"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/ical"
@@ -372,13 +373,14 @@ func (backend *eventEntTransactionBackend) PersistCalendarInboundInvite(
 }
 
 type calendarInboundInviteDurableScope struct {
-	organizationID  uuid.UUID
-	ownerID         uuid.UUID
-	clock           time.Time
-	currentRow      *ent.CalendarInboundObjectState
-	current         *CalendarInboundObjectState
-	series          *CalendarInboundObjectState
-	resourceLimited bool
+	organizationID         uuid.UUID
+	ownerID                uuid.UUID
+	ownerParticipantEmail string
+	clock                  time.Time
+	currentRow             *ent.CalendarInboundObjectState
+	current                *CalendarInboundObjectState
+	series                 *CalendarInboundObjectState
+	resourceLimited        bool
 }
 
 func (backend *eventEntTransactionBackend) revalidateCalendarInboundInvite(
@@ -473,6 +475,14 @@ func (backend *eventEntTransactionBackend) revalidateCalendarInboundInvite(
 	}
 	if !calendarInboundInviteMailAccountReady(lockedAccount, receipt, candidateAccount.UserID) {
 		return calendarInboundInviteDurableScope{}, ErrEventForbidden
+	}
+	ownerParticipantEmail, err := backend.lockCalendarInboundInviteOwnerParticipantEmail(
+		ctx,
+		lockedAccount.ID,
+		command.request.message.Attendees,
+	)
+	if err != nil {
+		return calendarInboundInviteDurableScope{}, err
 	}
 
 	component := command.input.incoming.Component()
@@ -571,13 +581,14 @@ func (backend *eventEntTransactionBackend) revalidateCalendarInboundInvite(
 	}
 
 	return calendarInboundInviteDurableScope{
-		organizationID:  receipt.OrganizationID,
-		ownerID:         candidateAccount.UserID,
-		clock:           clock,
-		currentRow:      currentRow,
-		current:         current,
-		series:          series,
-		resourceLimited: resourceLimited,
+		organizationID:         receipt.OrganizationID,
+		ownerID:                candidateAccount.UserID,
+		ownerParticipantEmail: ownerParticipantEmail,
+		clock:                  clock,
+		currentRow:             currentRow,
+		current:                current,
+		series:                 series,
+		resourceLimited:        resourceLimited,
 	}, nil
 }
 
@@ -662,6 +673,63 @@ func calendarInboundInviteMailAccountReady(
 		return false
 	}
 	return true
+}
+
+func (backend *eventEntTransactionBackend) lockCalendarInboundInviteOwnerParticipantEmail(
+	ctx context.Context,
+	mailAccountID uuid.UUID,
+	attendees []ITIPParticipant,
+) (string, error) {
+	if backend == nil || backend.tx == nil || mailAccountID == uuid.Nil {
+		return "", ErrEventInvalid
+	}
+	participants, err := calendarInboundInviteParticipants(attendees)
+	if err != nil {
+		return "", err
+	}
+	rows, err := backend.tx.MailIdentity.Query().
+		Where(
+			mailidentity.MailAccountIDEQ(mailAccountID),
+			mailidentity.StatusEQ(mailidentity.StatusActive),
+			mailidentity.KindIn(mailidentity.KindPrimary, mailidentity.KindAlias),
+		).
+		Order(
+			ent.Asc(mailidentity.FieldNormalizedAddress),
+			ent.Asc(mailidentity.FieldID),
+		).
+		ForUpdate().
+		All(ctx)
+	if err != nil {
+		return "", calendarEntSafeError(err)
+	}
+	authoritative := make(map[string]struct{}, len(rows))
+	for _, row := range rows {
+		if row == nil || row.ID == uuid.Nil || row.MailAccountID != mailAccountID ||
+			row.Status != mailidentity.StatusActive ||
+			row.Kind != mailidentity.KindPrimary && row.Kind != mailidentity.KindAlias ||
+			row.NormalizedAddress == "" || normalizeCalendarCreateEmail(row.NormalizedAddress) != row.NormalizedAddress {
+			return "", ErrEventInvalid
+		}
+		if _, duplicate := authoritative[row.NormalizedAddress]; duplicate {
+			return "", ErrEventInvalid
+		}
+		authoritative[row.NormalizedAddress] = struct{}{}
+	}
+
+	ownerParticipantEmail := ""
+	for _, participant := range participants {
+		if _, matches := authoritative[participant.email]; !matches {
+			continue
+		}
+		if ownerParticipantEmail != "" {
+			return "", ErrEventInvalid
+		}
+		ownerParticipantEmail = participant.email
+	}
+	if ownerParticipantEmail == "" {
+		return "", ErrEventInvalid
+	}
+	return ownerParticipantEmail, nil
 }
 
 func calendarInboundInviteLockObjectState(
@@ -1256,6 +1324,8 @@ func (backend *eventEntTransactionBackend) persistCalendarInboundInviteSeriesReq
 		event.ID,
 		attendees,
 		command.request.message.Attendees,
+		durable.ownerID,
+		durable.ownerParticipantEmail,
 		durable.clock,
 	)
 	if err != nil {
@@ -1502,16 +1572,30 @@ func (backend *eventEntTransactionBackend) syncCalendarInboundInviteAttendees(
 	eventID uuid.UUID,
 	rows []*ent.CalendarAttendee,
 	values []ITIPParticipant,
+	ownerID uuid.UUID,
+	ownerParticipantEmail string,
 	clock time.Time,
 ) ([]uuid.UUID, error) {
-	if backend == nil || backend.tx == nil || eventID == uuid.Nil || !calendarInboundInviteWholeSecondUTC(clock) {
+	if backend == nil || backend.tx == nil || eventID == uuid.Nil || ownerID == uuid.Nil ||
+		ownerParticipantEmail == "" || normalizeCalendarCreateEmail(ownerParticipantEmail) != ownerParticipantEmail ||
+		!calendarInboundInviteWholeSecondUTC(clock) {
 		return nil, ErrEventInvalid
 	}
 	participants, err := calendarInboundInviteParticipants(values)
 	if err != nil {
 		return nil, err
 	}
+	ownerParticipantCount := 0
+	for _, participant := range participants {
+		if participant.email == ownerParticipantEmail {
+			ownerParticipantCount++
+		}
+	}
+	if ownerParticipantCount != 1 {
+		return nil, ErrEventInvalid
+	}
 	existing := make(map[string]*ent.CalendarAttendee, len(rows))
+	activeOwnerBindings := 0
 	for _, row := range rows {
 		if row == nil || row.ID == uuid.Nil || row.CalendarEventID != eventID {
 			return nil, ErrEventInvalid
@@ -1523,10 +1607,27 @@ func (backend *eventEntTransactionBackend) syncCalendarInboundInviteAttendees(
 			row.Version < 1 || row.Version == int(^uint(0)>>1) {
 			return nil, ErrEventInvalid
 		}
+		if row.UserID != nil {
+			if *row.UserID == uuid.Nil {
+				return nil, ErrEventInvalid
+			}
+			if row.NormalizedEmail == ownerParticipantEmail && *row.UserID != ownerID {
+				return nil, ErrEventInvalid
+			}
+			if row.RemovedAt == nil && *row.UserID == ownerID {
+				activeOwnerBindings++
+				if row.NormalizedEmail != ownerParticipantEmail {
+					return nil, ErrEventInvalid
+				}
+			}
+		}
 		if _, duplicate := existing[row.NormalizedEmail]; duplicate {
 			return nil, ErrEventInvalid
 		}
 		existing[row.NormalizedEmail] = row
+	}
+	if activeOwnerBindings > 1 {
+		return nil, ErrEventInvalid
 	}
 
 	activeIDs := make([]uuid.UUID, 0, len(participants))
@@ -1539,6 +1640,9 @@ func (backend *eventEntTransactionBackend) syncCalendarInboundInviteAttendees(
 				SetRole(calendarattendee.Role(participant.role)).
 				SetRsvpStatus(calendarattendee.RsvpStatus(participant.status)).
 				SetVersion(1)
+			if participant.email == ownerParticipantEmail {
+				create.SetUserID(ownerID)
+			}
 			if participant.displayName != "" {
 				create.SetDisplayName(participant.displayName)
 			}
@@ -1560,6 +1664,11 @@ func (backend *eventEntTransactionBackend) syncCalendarInboundInviteAttendees(
 			SetRsvpStatus(calendarattendee.RsvpStatus(participant.status)).
 			ClearRemovedAt().
 			SetVersion(row.Version + 1)
+		if participant.email == ownerParticipantEmail {
+			update.SetUserID(ownerID)
+		} else {
+			update.ClearUserID()
+		}
 		if participant.displayName == "" {
 			update.ClearDisplayName()
 		} else {
