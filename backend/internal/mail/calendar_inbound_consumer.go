@@ -22,6 +22,8 @@ const (
 	calendarInboundConsumerWorkerConcurrency = 4
 	calendarInboundConsumerDeliveryTimeout   = 45 * time.Second
 	calendarInboundConsumerNakDelay          = 65 * time.Second
+	calendarInboundConsumerRetryInitialDelay = time.Second
+	calendarInboundConsumerRetryMaximumDelay = 30 * time.Second
 )
 
 var (
@@ -152,6 +154,7 @@ func (consumer *CalendarInboundConsumer) runDispatcher(ctx context.Context, run 
 		consumer.finishRun(run)
 	}()
 
+	retryDelay := calendarInboundConsumerRetryInitialDelay
 	for {
 		if ctx.Err() != nil {
 			return
@@ -162,14 +165,44 @@ func (consumer *CalendarInboundConsumer) runDispatcher(ctx context.Context, run 
 				return
 			}
 			slog.Error("calendar inbound consumer iterator failed")
+			if !calendarInboundConsumerWait(ctx, retryDelay) {
+				return
+			}
+			retryDelay = calendarInboundConsumerNextRetryDelay(retryDelay)
 			continue
 		}
+		retryDelay = calendarInboundConsumerRetryInitialDelay
 		select {
 		case jobs <- message:
 		case <-ctx.Done():
 			return
 		}
 	}
+}
+
+func calendarInboundConsumerWait(ctx context.Context, delay time.Duration) bool {
+	timer := time.NewTimer(delay)
+	defer func() {
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+	}()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+func calendarInboundConsumerNextRetryDelay(delay time.Duration) time.Duration {
+	if delay >= calendarInboundConsumerRetryMaximumDelay/2 {
+		return calendarInboundConsumerRetryMaximumDelay
+	}
+	return delay * 2
 }
 
 func (consumer *CalendarInboundConsumer) runWorker(ctx context.Context, run *calendarInboundConsumerRun, jobs <-chan jetstream.Msg) {
