@@ -45,7 +45,7 @@ type inboundRequestFixturePlan struct {
 	calendarLocatorHash    [sha256.Size]byte
 	domainControlHash      [sha256.Size]byte
 	accountControlHash     [sha256.Size]byte
-	calendarBytes          []byte
+	calendarText           string
 }
 
 func newInboundRequestFixturePlan(nonce string) (inboundRequestFixturePlan, error) {
@@ -92,13 +92,13 @@ func newInboundRequestFixturePlan(nonce string) (inboundRequestFixturePlan, erro
 		calendarLocatorHash:    inboundRequestFixtureHash("calendar-locator", nonce),
 		domainControlHash:      inboundRequestFixtureHash("domain-control", nonce),
 		accountControlHash:     inboundRequestFixtureHash("account-control", nonce),
+		calendarText: fmt.Sprintf(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCALSCALE:GREGORIAN\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:%s\r\nDTSTAMP:20260826T000000Z\r\nDTSTART:20260827T100000Z\r\nDTEND:20260827T103000Z\r\nSEQUENCE:0\r\nSTATUS:CONFIRMED\r\nSUMMARY:QA Mail Calendar Meeting\r\nORGANIZER:mailto:%s\r\nATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:\r\n mailto:%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+			itipUID,
+			organizerAddress,
+			ownerAddress,
+		),
 	}
-	plan.calendarBytes = []byte(fmt.Sprintf(
-		"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCALSCALE:GREGORIAN\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:%s\r\nDTSTAMP:20260826T000000Z\r\nDTSTART:20260827T100000Z\r\nDTEND:20260827T103000Z\r\nSEQUENCE:0\r\nSTATUS:CONFIRMED\r\nSUMMARY:QA Mail Calendar Meeting\r\nORGANIZER:mailto:%s\r\nATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
-		plan.itipUID,
-		plan.organizerAddress,
-		plan.ownerAddress,
-	))
 
 	return plan, nil
 }
