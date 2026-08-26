@@ -974,6 +974,67 @@ func TestFakeMailEnginePreflightSubmissionUsesLoweredCurrentMessagePolicy(t *tes
 	}
 }
 
+func TestFakeMailEngineDeleteAccountClearsOnlyExactAccountState(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	fake := newFake("account-a", "account-b", "folder-a", "folder-b")
+	accountA, err := fake.EnsureAccount(ctx, mail.AccountSpec{ProvisioningKey: "provisioning-a", LocalPart: "owner-a", Domain: "example.test", Enabled: true, Primary: mail.AccountIdentitySpec{LocalPart: "owner-a", Domain: "example.test", Enabled: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountB, err := fake.EnsureAccount(ctx, mail.AccountSpec{ProvisioningKey: "provisioning-b", LocalPart: "owner-b", Domain: "example.test", Enabled: true, Primary: mail.AccountIdentitySpec{LocalPart: "owner-b", Domain: "example.test", Enabled: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	messageA := testMessage(accountA.AccountID, "message-a", "version-a", "body-a")
+	messageB := testMessage(accountB.AccountID, "message-b", "version-b", "body-b")
+	fake.PutMessage(messageA)
+	fake.PutMessage(messageB)
+	fake.PutBlob(mail.EngineBlob{AccountID: accountA.AccountID, BlobID: "blob-a", MediaType: "text/plain", SizeBytes: 6, Bytes: []byte("blob-a")})
+	fake.PutBlob(mail.EngineBlob{AccountID: accountB.AccountID, BlobID: "blob-b", MediaType: "text/plain", SizeBytes: 6, Bytes: []byte("blob-b")})
+	locatorA := [32]byte{1}
+	locatorB := [32]byte{2}
+	fake.PutCalendarPart(mail.FakeCalendarPart{AccountID: accountA.AccountID, MessageID: "message-a", Version: "version-a", LocatorHash: locatorA, Method: mail.MailCalendarMethodRequest, ITIP: []byte("request-a")})
+	fake.PutCalendarPart(mail.FakeCalendarPart{AccountID: accountB.AccountID, MessageID: "message-b", Version: "version-b", LocatorHash: locatorB, Method: mail.MailCalendarMethodRequest, ITIP: []byte("request-b")})
+	if _, err := fake.CreateFolder(ctx, accountA.AccountID, mail.FolderSpec{Name: "folder-a"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fake.CreateFolder(ctx, accountB.AccountID, mail.FolderSpec{Name: "folder-b"}); err != nil {
+		t.Fatal(err)
+	}
+	fake.ScriptChanges(mail.FakeMailChangeScript{AccountID: accountA.AccountID, FromCursor: "script-a", Fault: mail.EngineErrorUnavailable})
+	fake.ScriptChanges(mail.FakeMailChangeScript{AccountID: accountB.AccountID, FromCursor: "script-b", Fault: mail.EngineErrorUnavailable})
+	var nilFake *mail.FakeMailEngine
+	if nilFake.DeleteAccount(accountA.AccountID) || fake.DeleteAccount("") {
+		t.Fatal("invalid DeleteAccount mutated fake state")
+	}
+	if !fake.DeleteAccount(accountA.AccountID) || fake.DeleteAccount(accountA.AccountID) {
+		t.Fatal("DeleteAccount must remove state exactly once")
+	}
+	if _, err := fake.GetMessage(ctx, mail.EngineMessageReadRequest{AccountID: accountA.AccountID, MessageID: messageA.Projection.MessageID, MaxContentBytes: 4096}); !errors.Is(err, mail.ErrEngineNotFound) {
+		t.Fatal(err)
+	}
+	if _, err := fake.GetBlob(ctx, mail.EngineBlobReadRequest{AccountID: accountA.AccountID, BlobID: "blob-a", MaxBytes: 1024}); !errors.Is(err, mail.ErrEngineNotFound) {
+		t.Fatal(err)
+	}
+	if _, err := fake.ReadCalendarPart(ctx, mail.EngineCalendarPartReadRequest{AccountID: accountA.AccountID, MessageID: messageA.Projection.MessageID, Version: messageA.Projection.Version, LocatorHash: locatorA, Method: mail.MailCalendarMethodRequest, MaxBytes: 1024}); !errors.Is(err, mail.ErrEngineNotFound) {
+		t.Fatal(err)
+	}
+	folders, err := fake.ListFolders(ctx, accountA.AccountID)
+	if err != nil || len(folders) != 0 {
+		t.Fatal(folders, err)
+	}
+	if _, err := fake.Changes(ctx, mail.EngineChangeRequest{AccountID: accountA.AccountID, FromCursor: "script-a", Page: mail.EnginePageRequest{Limit: 1}}); !errors.Is(err, mail.ErrEngineInvalidCursor) {
+		t.Fatal(err)
+	}
+	if _, err := fake.GetMessage(ctx, mail.EngineMessageReadRequest{AccountID: accountB.AccountID, MessageID: messageB.Projection.MessageID, MaxContentBytes: 4096}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fake.Changes(ctx, mail.EngineChangeRequest{AccountID: accountB.AccountID, FromCursor: "script-b", Page: mail.EnginePageRequest{Limit: 1}}); !errors.Is(err, mail.ErrEngineUnavailable) {
+		t.Fatal(err)
+	}
+}
+
 func testSubmissionPreflightRequest(submission mail.EngineSubmission) mail.EngineSubmissionPreflightRequest {
 	return mail.EngineSubmissionPreflightRequest{
 		Submission:            submission,

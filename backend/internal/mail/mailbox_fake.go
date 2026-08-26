@@ -220,6 +220,101 @@ func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
 	}
 }
 
+// DeleteAccount removes every fake state record scoped to one exact account.
+func (f *FakeMailEngine) DeleteAccount(accountID string) bool {
+	if f == nil || !validAccountID(accountID) {
+		return false
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	removed := false
+	if _, ok := f.accounts[accountID]; ok {
+		delete(f.accounts, accountID)
+		removed = true
+	}
+	if _, ok := f.identityEmails[accountID]; ok {
+		delete(f.identityEmails, accountID)
+		removed = true
+	}
+	if _, ok := f.folders[accountID]; ok {
+		delete(f.folders, accountID)
+		removed = true
+	}
+	if _, ok := f.messages[accountID]; ok {
+		delete(f.messages, accountID)
+		removed = true
+	}
+	if _, ok := f.blobs[accountID]; ok {
+		delete(f.blobs, accountID)
+		removed = true
+	}
+	if _, ok := f.drafts[accountID]; ok {
+		delete(f.drafts, accountID)
+		removed = true
+	}
+	if _, ok := f.submissions[accountID]; ok {
+		delete(f.submissions, accountID)
+		removed = true
+	}
+	if _, ok := f.sieves[accountID]; ok {
+		delete(f.sieves, accountID)
+		removed = true
+	}
+	if _, ok := f.changes[accountID]; ok {
+		delete(f.changes, accountID)
+		removed = true
+	}
+	for key, value := range f.accountKeys {
+		if value == accountID {
+			delete(f.accountKeys, key)
+			removed = true
+		}
+	}
+	for key := range f.calendarParts {
+		if key.accountID == accountID {
+			delete(f.calendarParts, key)
+			removed = true
+		}
+	}
+	for key := range f.spamResults {
+		if key.accountID == accountID {
+			delete(f.spamResults, key)
+			removed = true
+		}
+	}
+	for key := range f.changeScript {
+		if key.accountID == accountID {
+			delete(f.changeScript, key)
+			removed = true
+		}
+	}
+	for key := range f.enumScript {
+		if key.accountID == accountID {
+			delete(f.enumScript, key)
+			removed = true
+		}
+	}
+	for key := range f.overrides {
+		if key.accountID == accountID {
+			delete(f.overrides, key)
+			removed = true
+		}
+	}
+	for key, snapshot := range f.snapshots {
+		if key.accountID == accountID || snapshot.accountID == accountID {
+			delete(f.snapshots, key)
+			removed = true
+		}
+	}
+	for key, checkpoint := range f.checkpoints {
+		if key.accountID == accountID || checkpoint.accountID == accountID {
+			delete(f.checkpoints, key)
+			removed = true
+		}
+	}
+	return removed
+}
+
 // EnqueueFault appends one typed failure consumed by the next matching dispatch.
 func (f *FakeMailEngine) EnqueueFault(fault FakeMailFault) {
 	f.mu.Lock()
