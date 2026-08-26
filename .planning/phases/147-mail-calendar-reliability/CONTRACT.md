@@ -103,6 +103,11 @@ One current ordering record exists for `(calendar_owner_id, uid, recurrence_id)`
 | `expires_at` | nullable; required only for `deferred_missing_master` |
 | timestamps | required |
 
+Receipt completion preserves this distinction: a material applied event uses
+`applied` with a required event ID, while a durable CANCEL tombstone uses the
+separate `tombstoned` completion and may omit the event ID only for
+cancel-before-request. Both finalize to receipt state `applied`.
+
 PostgreSQL uses two partial unique indexes because nullable recurrence values are not equal:
 owner + UID where recurrence is null, and owner + UID + recurrence where non-null. The row
 is locked while comparing and advancing sequence. It is not an HTTP idempotency receipt.
@@ -368,6 +373,7 @@ type CalendarInboundObservedState string // only ignored_stale|duplicate
 type CalendarInboundMessageErrorCode string // exact Phase147 allowlist
 type CalendarInboundMessageCompletion struct { /* opaque */ }
 func NewCalendarInboundAppliedCompletion(calendarEventID uuid.UUID) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundTombstonedCompletion(calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundObservedCompletion(state CalendarInboundObservedState, calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundQuarantinedCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundDeadLetterCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
@@ -380,7 +386,9 @@ CompleteCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageSco
 
 `CalendarInboundMessageCompletion` is constructor-only, carries no raw MIME, iTIP, provider text, or
 unvalidated outcome, and defensively copies optional UUID pointers; every nonnil UUID is nonzero and
-applied requires a nonzero event UUID. `CalendarInboundObservedState` is only
+applied requires a nonzero event UUID. Tombstoned is the only terminal success
+that permits a nil event UUID, rejects every deferred/observed/error field, and
+maps to durable receipt state `applied`. `CalendarInboundObservedState` is only
 `ignored_stale|duplicate`, with nil error. `CalendarInboundMessageErrorCode` is exactly the Phase 147
 receipt allowlist: `message_unavailable|part_unavailable|malformed_itip|unsupported_method|
 unsupported_version|untrusted_sender|organizer_mismatch|equal_sequence_conflict|missing_master_expired|

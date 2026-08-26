@@ -56,6 +56,7 @@ type calendarInboundMessageCompletionKind string
 
 const (
 	calendarInboundMessageCompletionApplied     calendarInboundMessageCompletionKind = "applied"
+	calendarInboundMessageCompletionTombstoned  calendarInboundMessageCompletionKind = "tombstoned"
 	calendarInboundMessageCompletionObserved    calendarInboundMessageCompletionKind = "observed"
 	calendarInboundMessageCompletionQuarantined calendarInboundMessageCompletionKind = "quarantined"
 	calendarInboundMessageCompletionDeadLetter  calendarInboundMessageCompletionKind = "dead_letter"
@@ -82,6 +83,18 @@ func NewCalendarInboundAppliedCompletion(calendarEventID uuid.UUID) (CalendarInb
 	return CalendarInboundMessageCompletion{
 		kind:            calendarInboundMessageCompletionApplied,
 		calendarEventID: cloneCalendarInboundMessageUUIDPointer(&calendarEventID),
+	}, nil
+}
+
+// NewCalendarInboundTombstonedCompletion constructs a terminal CANCEL
+// disposition whose resolved Calendar event identity remains optional.
+func NewCalendarInboundTombstonedCompletion(calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error) {
+	if !validCalendarInboundMessageUUIDPointer(calendarEventID) {
+		return CalendarInboundMessageCompletion{}, ErrEventInvalid
+	}
+	return CalendarInboundMessageCompletion{
+		kind:            calendarInboundMessageCompletionTombstoned,
+		calendarEventID: cloneCalendarInboundMessageUUIDPointer(calendarEventID),
 	}, nil
 }
 
@@ -160,6 +173,8 @@ func (completion CalendarInboundMessageCompletion) valid() bool {
 	switch completion.kind {
 	case calendarInboundMessageCompletionApplied:
 		return completion.observedState == "" && completion.errorCode == "" && completion.calendarEventID != nil && completion.deferredObjectStateID == uuid.Nil
+	case calendarInboundMessageCompletionTombstoned:
+		return completion.observedState == "" && completion.errorCode == "" && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionObserved:
 		return validCalendarInboundObservedState(completion.observedState) && completion.errorCode == "" && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionQuarantined:

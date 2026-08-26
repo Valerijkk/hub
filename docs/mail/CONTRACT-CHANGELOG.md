@@ -1,5 +1,15 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Early CANCEL tombstone completion
+
+SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+
+Inbound receipt completion now distinguishes a material applied Calendar
+event from a durable CANCEL tombstone. Only the tombstoned completion accepts
+an absent event ID for cancel-before-request; a supplied ID must be nonzero,
+and deferred-state, observed and error fields remain forbidden. The Ent
+adapter will persist both success kinds as receipt state `applied`.
+
 ## 2026-08-26 - Deferred receipt completion binding
 
 SOURCE_AUTHORED / STATIC_REVIEW_PASS / RUNTIME_NOT_RUN.

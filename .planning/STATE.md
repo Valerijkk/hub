@@ -1,4 +1,10 @@
 ---
+mail_calendar_tombstone_completion_abi_2026_08_26: >-
+  SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+  The opaque inbound-message completion now distinguishes material applied
+  events from durable CANCEL tombstones. Tombstoned completion alone accepts
+  a nil Calendar event ID for cancel-before-request, while rejecting zero
+  UUID pointers, deferred-state binding, observed state and error codes.
 mail_calendar_deferred_completion_abi_2026_08_26: >-
   SOURCE_AUTHORED / STATIC_REVIEW_PASS / RUNTIME_NOT_RUN. The opaque deferred
   receipt completion now requires the nonzero persisted inbound object-state

@@ -400,6 +400,7 @@ type CalendarInboundObservedState string // only ignored_stale|duplicate
 type CalendarInboundMessageErrorCode string // exact Phase147 allowlist
 type CalendarInboundMessageCompletion struct { /* opaque */ }
 func NewCalendarInboundAppliedCompletion(calendarEventID uuid.UUID) (CalendarInboundMessageCompletion, error)
+func NewCalendarInboundTombstonedCompletion(calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundObservedCompletion(state CalendarInboundObservedState, calendarEventID *uuid.UUID) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundQuarantinedCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
 func NewCalendarInboundDeadLetterCompletion(code CalendarInboundMessageErrorCode) (CalendarInboundMessageCompletion, error)
@@ -410,9 +411,13 @@ LockCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageClaim) 
 CompleteCalendarInboundMessageReceipt(context.Context, CalendarInboundMessageScope, CalendarInboundMessageCompletion) error
 ```
 
-Completion is constructor-only, carries no raw MIME, iTIP, provider text, or unvalidated outcome, and
-defensively copies optional UUID pointers; every nonnil UUID is nonzero and applied requires a nonzero
-event UUID. Observed is only `ignored_stale|duplicate` with nil error. Error code is exactly the Phase 147
+Completion is constructor-only, carries no raw MIME, iTIP, provider text, or
+unvalidated outcome. Applied requires a nonzero event UUID. Tombstoned is the
+only terminal success that permits a nil event UUID for cancel-before-request;
+it rejects deferred-state, observed and error fields, and the adapter maps it
+to durable receipt state `applied`.
+Optional UUID pointers are defensively copied and every nonnil UUID is nonzero.
+Observed is only `ignored_stale|duplicate` with nil error. Error code is exactly the Phase 147
 receipt allowlist: `message_unavailable|part_unavailable|malformed_itip|unsupported_method|
 unsupported_version|untrusted_sender|organizer_mismatch|equal_sequence_conflict|missing_master_expired|
 resource_limit|retry_exhausted|engine_unavailable|database_unavailable|internal_error`.
