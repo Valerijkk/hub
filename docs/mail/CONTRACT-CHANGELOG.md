@@ -1,5 +1,15 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Inbound invite persistence result
+
+SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+
+The 147-02B persistence result now binds a selected mutating outcome to the
+nonzero durable object-state ID and enforces material-change/outbox parity.
+Apply requires a resolved Calendar event and outbox insertion; an early
+tombstone may omit the event only when no material change occurred, and defer
+cannot carry event or outbox state.
+
 ## 2026-08-26 - Inbound invite persistence command
 
 SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.

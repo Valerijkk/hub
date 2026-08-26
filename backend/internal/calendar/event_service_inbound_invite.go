@@ -258,3 +258,95 @@ func calendarInboundInviteSameRecurrence(
 	}
 	return other != nil && *other == recurrenceID
 }
+
+type CalendarInboundInvitePersistenceResult struct {
+	outcome          CalendarInboundIngestOutcome
+	objectStateID    uuid.UUID
+	calendarEventID  *uuid.UUID
+	materialChanged  bool
+	outboxPersisted  bool
+}
+
+func NewCalendarInboundInvitePersistenceResult(
+	outcome CalendarInboundIngestOutcome,
+	objectStateID uuid.UUID,
+	calendarEventID *uuid.UUID,
+	materialChanged bool,
+	outboxPersisted bool,
+) (CalendarInboundInvitePersistenceResult, error) {
+	if objectStateID == uuid.Nil ||
+		!validCalendarInboundMessageUUIDPointer(calendarEventID) ||
+		materialChanged != outboxPersisted {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+
+	switch outcome {
+	case CalendarInboundIngestApplyRequest:
+		if calendarEventID == nil || !materialChanged || !outboxPersisted {
+			return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestTombstoneOccurrence,
+		CalendarInboundIngestTombstoneSeries:
+		if calendarEventID == nil && (materialChanged || outboxPersisted) {
+			return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+		}
+	case CalendarInboundIngestDeferred:
+		if calendarEventID != nil || materialChanged || outboxPersisted {
+			return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+		}
+	default:
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+
+	return CalendarInboundInvitePersistenceResult{
+		outcome:          outcome,
+		objectStateID:    objectStateID,
+		calendarEventID:  cloneCalendarInboundMessageUUIDPointer(calendarEventID),
+		materialChanged:  materialChanged,
+		outboxPersisted:  outboxPersisted,
+	}, nil
+}
+
+func (result CalendarInboundInvitePersistenceResult) Outcome() CalendarInboundIngestOutcome {
+	return result.outcome
+}
+
+func (result CalendarInboundInvitePersistenceResult) ObjectStateID() uuid.UUID {
+	return result.objectStateID
+}
+
+func (result CalendarInboundInvitePersistenceResult) CalendarEventID() *uuid.UUID {
+	return cloneCalendarInboundMessageUUIDPointer(result.calendarEventID)
+}
+
+func (result CalendarInboundInvitePersistenceResult) MaterialChanged() bool {
+	return result.materialChanged
+}
+
+func (result CalendarInboundInvitePersistenceResult) OutboxPersisted() bool {
+	return result.outboxPersisted
+}
+
+func (result CalendarInboundInvitePersistenceResult) valid() bool {
+	_, err := NewCalendarInboundInvitePersistenceResult(
+		result.outcome,
+		result.objectStateID,
+		result.calendarEventID,
+		result.materialChanged,
+		result.outboxPersisted,
+	)
+	return err == nil
+}
+
+func (result CalendarInboundInvitePersistenceResult) clone() (
+	CalendarInboundInvitePersistenceResult,
+	error,
+) {
+	return NewCalendarInboundInvitePersistenceResult(
+		result.outcome,
+		result.objectStateID,
+		result.calendarEventID,
+		result.materialChanged,
+		result.outboxPersisted,
+	)
+}

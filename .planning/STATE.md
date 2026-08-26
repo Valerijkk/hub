@@ -1,4 +1,10 @@
 ---
+mail_calendar_inbound_invite_02b2b_2026_08_26: >-
+  SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+  The decomposed 147-02B persistence result now proves outcome echo, persisted
+  object-state identity and material-change/outbox parity. Apply requires a
+  resolved event and an outbox; tombstone permits an absent event only without
+  material change; defer requires its state ID and forbids event/outbox state.
 mail_calendar_inbound_invite_02b2a_2026_08_26: >-
   SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
   The decomposed 147-02B persistence command now cross-validates the sole
