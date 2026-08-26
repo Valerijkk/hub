@@ -71,7 +71,7 @@ func (backend *eventEntTransactionBackend) ResolveCalendarInboundInvite(
 		return CalendarInboundInviteAuthorization{}, ErrEventForbidden
 	}
 
-	clock, err := calendarInboundInviteDatabaseClock(ctx, backend.tx)
+	clock, err := backend.calendarInboundMessageDatabaseClock(ctx)
 	if err != nil {
 		return CalendarInboundInviteAuthorization{}, err
 	}
@@ -405,7 +405,7 @@ func (backend *eventEntTransactionBackend) revalidateCalendarInboundInvite(
 	if !calendarInboundInviteReceiptReady(receipt, claim) {
 		return calendarInboundInviteDurableScope{}, ErrEventInvalid
 	}
-	clock, err := calendarInboundInviteDatabaseClock(ctx, backend.tx)
+	clock, err := backend.calendarInboundMessageDatabaseClock(ctx)
 	if err != nil {
 		return calendarInboundInviteDurableScope{}, err
 	}

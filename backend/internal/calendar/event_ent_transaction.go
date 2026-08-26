@@ -25,8 +25,9 @@ import (
 )
 
 type eventEntTransactionBackend struct {
-	tx  *ent.Tx
-	now func() time.Time
+	tx                          *ent.Tx
+	now                         func() time.Time
+	inboundMessageDatabaseClock *time.Time
 }
 
 var _ EventTransactionBackend = (*eventEntTransactionBackend)(nil)
@@ -36,6 +37,27 @@ var _ MeetingCancelTransactionBackend = (*eventEntTransactionBackend)(nil)
 
 func newEventEntTransactionBackend(transaction *ent.Tx, now func() time.Time) *eventEntTransactionBackend {
 	return &eventEntTransactionBackend{tx: transaction, now: now}
+}
+
+func (backend *eventEntTransactionBackend) calendarInboundMessageDatabaseClock(ctx context.Context) (time.Time, error) {
+	if backend == nil || backend.tx == nil || ctx == nil {
+		return time.Time{}, ErrEventInvalid
+	}
+	if backend.inboundMessageDatabaseClock != nil {
+		clock := *backend.inboundMessageDatabaseClock
+		if !calendarInboundInviteWholeSecondUTC(clock) {
+			return time.Time{}, ErrEventInvalid
+		}
+		return clock, nil
+	}
+
+	clock, err := calendarInboundInviteDatabaseClock(ctx, backend.tx)
+	if err != nil {
+		return time.Time{}, err
+	}
+	clockCopy := clock
+	backend.inboundMessageDatabaseClock = &clockCopy
+	return clockCopy, nil
 }
 
 func (backend *eventEntTransactionBackend) ResolveActorOrganization(ctx context.Context, actorID uuid.UUID) (uuid.UUID, error) {
