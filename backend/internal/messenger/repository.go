@@ -59,8 +59,9 @@ type StarMuteRepository interface {
 
 // CreateMessageResult содержит каноническое сообщение и признак новой записи.
 type CreateMessageResult struct {
-	Message *MessageDocument
-	Created bool
+	Message                *MessageDocument
+	Created                bool
+	PostCreateEffectsState PostCreateEffectsState
 }
 
 // MessageRepository управляет сообщениями и тредами (MongoDB).

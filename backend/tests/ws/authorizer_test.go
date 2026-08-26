@@ -205,3 +205,65 @@ func assertMembershipCall(t *testing.T, wantEntityID, wantUserID uuid.UUID) ws.M
 		return true, nil
 	}
 }
+
+type phase151ChannelRoomAuthorizerRecorder struct {
+	allowed bool
+	err     error
+	calls   []struct{ userID, channelID uuid.UUID }
+}
+
+func (r *phase151ChannelRoomAuthorizerRecorder) AuthorizeChannelRoom(
+	_ context.Context, userID, channelID uuid.UUID,
+) (bool, error) {
+	r.calls = append(r.calls, struct{ userID, channelID uuid.UUID }{userID, channelID})
+	return r.allowed, r.err
+}
+
+func TestPhase151ChannelRoomAuthorizer_DelegatesFreshMessengerAuthorityDecision(t *testing.T) {
+	userID, channelID := uuid.New(), uuid.New()
+	for _, tt := range []struct {
+		name, upstreamDecision string
+		allowed                bool
+	}{
+		{name: "active member", upstreamDecision: "messenger ChannelAccess member", allowed: true},
+		{name: "active project member", upstreamDecision: "messenger ChannelAccess project member", allowed: true},
+		{name: "public prejoin read only", upstreamDecision: "messenger ChannelAccess prejoin", allowed: false},
+		{name: "private nonmember", upstreamDecision: "messenger ChannelAccess nonmember", allowed: false},
+		{name: "revoked member", upstreamDecision: "messenger ChannelAccess revoked", allowed: false},
+		{name: "disabled account", upstreamDecision: "messenger ChannelAccess disabled", allowed: false},
+		{name: "cross tenant", upstreamDecision: "messenger ChannelAccess cross tenant", allowed: false},
+		{name: "inactive channel", upstreamDecision: "messenger ChannelAccess inactive", allowed: false},
+		{name: "project ineligible", upstreamDecision: "messenger ChannelAccess project ineligible", allowed: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			_ = tt.upstreamDecision
+			resolver := &phase151ChannelRoomAuthorizerRecorder{allowed: tt.allowed}
+			authorizer := ws.ExportNewPhase151ChannelRoomAuthorizer(resolver)
+			allowed, err := authorizer.CanSubscribe(context.Background(), userID.String(), "channel:"+channelID.String())
+			require.NoError(t, err)
+			assert.Equal(t, tt.allowed, allowed)
+			assert.Equal(t, []struct{ userID, channelID uuid.UUID }{{userID, channelID}}, resolver.calls)
+		})
+	}
+}
+
+func TestPhase151ChannelRoomAuthorizer_RechecksMessengerAuthorityAndFailsClosed(t *testing.T) {
+	userID, channelID := uuid.New(), uuid.New()
+	resolver := &phase151ChannelRoomAuthorizerRecorder{allowed: true}
+	authorizer := ws.ExportNewPhase151ChannelRoomAuthorizer(resolver)
+	allowed, err := authorizer.CanSubscribe(context.Background(), userID.String(), "channel:"+channelID.String())
+	require.NoError(t, err)
+	require.True(t, allowed)
+
+	resolver.allowed = false
+	allowed, err = authorizer.CanSubscribe(context.Background(), userID.String(), "channel:"+channelID.String())
+	require.NoError(t, err)
+	assert.False(t, allowed)
+	assert.Len(t, resolver.calls, 2, "room access must be delegated fresh, not cached in ws")
+
+	resolver.err = errors.New("messenger authority unavailable")
+	allowed, err = authorizer.CanSubscribe(context.Background(), userID.String(), "channel:"+channelID.String())
+	assert.False(t, allowed)
+	assert.Error(t, err)
+	assert.Panics(t, func() { ws.ExportNewPhase151ChannelRoomAuthorizer(nil) })
+}

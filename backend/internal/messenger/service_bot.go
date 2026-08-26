@@ -64,18 +64,6 @@ func (s *MessengerService) SendBotMessage(ctx context.Context, channelID uuid.UU
 		}
 	}
 
-	if s.unread != nil {
-		memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
-		if mErr == nil {
-			memberStrs := make([]string, len(memberIDs))
-			for i, m := range memberIDs {
-				memberStrs[i] = m.String()
-			}
-			if uErr := s.unread.Increment(ctx, channelID.String(), memberStrs, s.systemBotID.String()); uErr != nil {
-				slog.Error("bot: increment unread", "error", uErr)
-			}
-		}
-	}
 
 	event := newMessageSentEvent(doc, nil)
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), event)

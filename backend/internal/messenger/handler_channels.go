@@ -65,6 +65,31 @@ func (h *Handler) ListMyChannels(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// DiscoverChannels returns public channels visible to the current actor.
+// @Summary Browse public channels
+// @Description Returns a non-paginated browse seed of up to 100 same-tenant public channels, including active project-scoped public channels.
+// @Tags Мессенджер
+// @Produce json
+// @Success 200 {array} ChannelResponse "Discoverable channels"
+// @Failure 401 {object} fiber.Error "Not authenticated"
+// @Failure 403 {object} fiber.Error "Discovery denied"
+// @Failure 500 {object} fiber.Error "Discovery unavailable"
+// @Security BearerAuth
+// @Router /messenger/channels/discover [get]
+func (h *Handler) DiscoverChannels(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.DiscoverChannels(c.Context(), userID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
 // GetChannel — Получить канал
 // @Summary Получить канал
 // @Description Возвращает детальную информацию о канале по его ID.

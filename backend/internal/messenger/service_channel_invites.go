@@ -166,7 +166,7 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 		if err != nil {
 			return nil, apperrors.NewInternal("ошибка получения канала")
 		}
-		return toChannelResponse(ch), nil
+		return s.recipientChannelResponse(ctx, userID, ch)
 	}
 
 	// Валидация приглашения.
@@ -210,7 +210,7 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения канала")
 	}
-	return toChannelResponse(ch), nil
+	return s.recipientChannelResponse(ctx, userID, ch)
 }
 
 // RevokeInvite отзывает пригласительную ссылку.

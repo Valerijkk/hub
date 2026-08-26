@@ -282,3 +282,160 @@ func TestPhase151AllowedDeletePinAndListPinsRequireDistinctCapabilities(t *testi
 	assert.Len(t, pins, 1)
 	assert.Equal(t, []messenger.ChannelAction{messenger.ChannelActionListPins}, listFixture.calls)
 }
+
+type phase151InstanceOrganizationSource struct {
+	ids   []uuid.UUID
+	err   error
+	calls int
+}
+
+var _ messenger.InstanceOrganizationIDSource = (*phase151InstanceOrganizationSource)(nil)
+
+func (s *phase151InstanceOrganizationSource) ListInstanceOrganizationIDs(
+	_ context.Context,
+) ([]uuid.UUID, error) {
+	s.calls++
+	if s.err != nil {
+		return nil, s.err
+	}
+	return append([]uuid.UUID(nil), s.ids...), nil
+}
+
+func TestPhase151ResolveInstanceOrganizationIDUsesExactlyOneServerSideOrganization(t *testing.T) {
+	organizationID := uuid.New()
+	source := &phase151InstanceOrganizationSource{ids: []uuid.UUID{organizationID}}
+
+	resolved, err := messenger.ExportPhase151ResolveInstanceOrganizationID(context.Background(), source)
+
+	require.NoError(t, err)
+	assert.Equal(t, organizationID, resolved)
+	assert.Equal(t, 1, source.calls)
+}
+
+func TestPhase151ResolveInstanceOrganizationIDFailsClosedForZeroOrMultiple(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		ids  []uuid.UUID
+	}{
+		{name: "zero organizations"},
+		{name: "multiple organizations", ids: []uuid.UUID{uuid.New(), uuid.New()}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			source := &phase151InstanceOrganizationSource{ids: tt.ids}
+			resolved, err := messenger.ExportPhase151ResolveInstanceOrganizationID(context.Background(), source)
+			require.Error(t, err)
+			assert.Equal(t, uuid.Nil, resolved)
+			assert.Equal(t, 1, source.calls)
+		})
+	}
+}
+
+func TestPhase151ChannelAccessAuthorityMatrix(t *testing.T) {
+	tenantID := uuid.New()
+	actorID := uuid.New()
+	projectID := uuid.New()
+
+	base := messenger.ChannelAuthorityFacts{
+		TenantID:                     tenantID,
+		ActorID:                      actorID,
+		ActorOrganizationID:          tenantID,
+		ActorActive:                  true,
+		IsMember:                    true,
+		Role:                         "member",
+		HasActiveProjectMembership:   true,
+	}
+
+	t.Run("public same-tenant prejoin exposes read and join only", func(t *testing.T) {
+		facts := base
+		facts.Channel = &ent.Channel{ID: uuid.New(), ChannelType: "public"}
+		facts.IsMember = false
+		facts.Role = ""
+
+		access, err := messenger.ExportPhase151ResolveChannelAccessFromFacts(facts, messenger.ChannelActionReadTimeline)
+		require.NoError(t, err)
+		assert.True(t, access.CanRead)
+		assert.True(t, access.CanJoin)
+		assert.False(t, access.CanPost)
+		assert.False(t, access.CanReply)
+		assert.False(t, access.CanFollow)
+		assert.False(t, access.CanUnfollow)
+		assert.False(t, access.CanViewUnread)
+	})
+
+	t.Run("private nonmember is non-disclosive", func(t *testing.T) {
+		facts := base
+		facts.Channel = &ent.Channel{ID: uuid.New(), ChannelType: "private"}
+		facts.IsMember = false
+		facts.Role = ""
+
+		access, err := messenger.ExportPhase151ResolveChannelAccessFromFacts(facts, messenger.ChannelActionReadTimeline)
+		require.Error(t, err)
+		assert.False(t, access.CanRead)
+		assert.Nil(t, access.Channel)
+	})
+
+	t.Run("disabled account fails before capability projection", func(t *testing.T) {
+		facts := base
+		facts.Channel = &ent.Channel{ID: uuid.New(), ChannelType: "public"}
+		facts.ActorActive = false
+
+		access, err := messenger.ExportPhase151ResolveChannelAccessFromFacts(facts, messenger.ChannelActionReadTimeline)
+		require.Error(t, err)
+		assert.False(t, access.CanRead)
+		assert.Nil(t, access.Channel)
+	})
+
+	t.Run("cross-tenant actor cannot select tenant from caller data", func(t *testing.T) {
+		facts := base
+		facts.Channel = &ent.Channel{ID: uuid.New(), ChannelType: "public"}
+		facts.ActorOrganizationID = uuid.New()
+
+		access, err := messenger.ExportPhase151ResolveChannelAccessFromFacts(facts, messenger.ChannelActionReadTimeline)
+		require.Error(t, err)
+		assert.Equal(t, uuid.Nil, access.TenantID)
+		assert.Nil(t, access.Channel)
+	})
+
+	t.Run("project channel requires current active project membership", func(t *testing.T) {
+		facts := base
+		facts.Channel = &ent.Channel{ID: uuid.New(), ChannelType: "private", ProjectID: &projectID}
+		facts.HasActiveProjectMembership = false
+
+		access, err := messenger.ExportPhase151ResolveChannelAccessFromFacts(facts, messenger.ChannelActionReadTimeline)
+		require.Error(t, err)
+		assert.False(t, access.CanRead)
+		assert.Nil(t, access.Channel)
+	})
+
+	t.Run("active project member retains channel capabilities", func(t *testing.T) {
+		facts := base
+		facts.Channel = &ent.Channel{ID: uuid.New(), ChannelType: "private", ProjectID: &projectID}
+
+		access, err := messenger.ExportPhase151ResolveChannelAccessFromFacts(facts, messenger.ChannelActionReadTimeline)
+		require.NoError(t, err)
+		assert.True(t, access.CanRead)
+		assert.True(t, access.HasActiveProjectMembership)
+		assert.Equal(t, facts.Channel.ID, access.Channel.ID)
+	})
+}
+
+func TestPhase151RecipientProjectionCopiesFreshCapabilitiesWithoutRoleInference(t *testing.T) {
+	channel := &ent.Channel{ID: uuid.New(), ChannelType: "private"}
+	access := messenger.ChannelAccess{
+		TenantID: uuid.New(),
+		Channel: channel,
+		IsMember: true,
+		Role: "owner",
+		CanRead: true,
+		CanPost: false,
+		CanReply: false,
+	}
+
+	projection := messenger.ExportPhase151RecipientChannelProjection(access)
+
+	assert.Equal(t, channel.ID.String(), projection.ID)
+	assert.Equal(t, "owner", projection.Role)
+	assert.True(t, projection.CanRead)
+	assert.False(t, projection.CanPost, "role labels must not manufacture a capability")
+	assert.False(t, projection.CanReply, "recipient projection copies fresh ChannelAccess only")
+}

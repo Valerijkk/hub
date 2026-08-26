@@ -426,3 +426,88 @@ func startChannelHandler(
 	}()
 	return result
 }
+type phase151ChannelAudienceResolver struct {
+	recipients []uuid.UUID
+	err        error
+	calls      []struct {
+		channelID uuid.UUID
+		event     string
+	}
+}
+
+func (r *phase151ChannelAudienceResolver) ResolveChannelEventAudience(
+	_ context.Context, channelID uuid.UUID, event string,
+) ([]uuid.UUID, error) {
+	r.calls = append(r.calls, struct {
+		channelID uuid.UUID
+		event     string
+	}{channelID, event})
+	return append([]uuid.UUID(nil), r.recipients...), r.err
+}
+
+func TestPhase151ChannelDeliveryAudience_IntersectsFreshAuthorizedRecipientsWithSubscribers(t *testing.T) {
+	channelID := uuid.New()
+	active, former, authorizedOffRoom := uuid.New(), uuid.New(), uuid.New()
+	resolver := &phase151ChannelAudienceResolver{recipients: []uuid.UUID{active, authorizedOffRoom, active}}
+
+	recipients := ws.ExportPhase151ResolveChannelDeliveryRecipients(
+		context.Background(), channelID, "message_sent", []uuid.UUID{former, active}, resolver,
+	)
+
+	assert.Equal(t, []uuid.UUID{active}, recipients)
+	assert.Equal(t, []struct {
+		channelID uuid.UUID
+		event     string
+	}{{channelID, "message_sent"}}, resolver.calls)
+
+	resolver.recipients = nil
+	recipients = ws.ExportPhase151ResolveChannelDeliveryRecipients(
+		context.Background(), channelID, "message_sent", []uuid.UUID{former, active}, resolver,
+	)
+	assert.Empty(t, recipients, "access revoked after enqueue must suppress delivery")
+	assert.Len(t, resolver.calls, 2)
+}
+
+func TestPhase151ChannelDeliveryAudience_FailsClosedOnResolverErrorOrNilDependency(t *testing.T) {
+	channelID, subscriber := uuid.New(), uuid.New()
+	resolver := &phase151ChannelAudienceResolver{recipients: []uuid.UUID{subscriber}, err: errors.New("authority unavailable")}
+	assert.Empty(t, ws.ExportPhase151ResolveChannelDeliveryRecipients(
+		context.Background(), channelID, "message_sent", []uuid.UUID{subscriber}, resolver,
+	))
+	assert.Empty(t, ws.ExportPhase151ResolveChannelDeliveryRecipients(
+		context.Background(), channelID, "message_sent", []uuid.UUID{subscriber}, nil,
+	))
+}
+
+func TestPhase151TypingDelivery_ReauthorizesSenderAndRecipientAudience(t *testing.T) {
+	channelID := uuid.New()
+	senderID := uuid.New()
+	active, disabled, removed, projectIneligible := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	subscribers := []uuid.UUID{active, disabled, removed, projectIneligible}
+	senderAuthority := &phase151UserEventAuthorizer{allowed: true}
+	audience := &phase151ChannelAudienceResolver{recipients: []uuid.UUID{active}}
+
+	recipients := ws.ExportPhase151ResolveTypingDeliveryRecipients(
+		context.Background(), channelID, senderID, subscribers, senderAuthority, audience,
+	)
+	assert.Equal(t, []uuid.UUID{active}, recipients)
+	assert.Equal(t, []phase151UserEventAuthCall{{senderID, channelID, "typing"}}, senderAuthority.calls)
+	assert.Len(t, audience.calls, 1)
+
+	senderAuthority.allowed = false
+	recipients = ws.ExportPhase151ResolveTypingDeliveryRecipients(
+		context.Background(), channelID, senderID, subscribers, senderAuthority, audience,
+	)
+	assert.Empty(t, recipients, "sender access change after publish must suppress typing delivery")
+	assert.Len(t, senderAuthority.calls, 2)
+	assert.Len(t, audience.calls, 1, "denied sender stops before recipient audience resolution")
+
+	senderAuthority.allowed = true
+	audience.recipients = nil
+	recipients = ws.ExportPhase151ResolveTypingDeliveryRecipients(
+		context.Background(), channelID, senderID, subscribers, senderAuthority, audience,
+	)
+	assert.Empty(t, recipients, "recipient access change after publish must suppress typing delivery")
+	assert.Len(t, senderAuthority.calls, 3)
+	assert.Len(t, audience.calls, 2)
+}

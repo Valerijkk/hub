@@ -321,7 +321,7 @@ func (m *mockRepository) CreateMessageIdempotent(_ context.Context, doc *Message
 		m.messages[doc.ID] = doc
 	}
 
-	return &CreateMessageResult{Message: canonical, Created: created}, nil
+	return newCreateMessageResult(canonical, created), nil
 }
 
 func (m *mockRepository) FindMessageByClientNonce(_ context.Context, senderID uuid.UUID, clientNonce string) (*MessageDocument, error) {
@@ -352,7 +352,7 @@ func (m *mockRepository) ListMessages(_ context.Context, channelID uuid.UUID, _ 
 
 	var result []*MessageDocument
 	for _, doc := range m.messages {
-		if doc.ChannelID == channelID && doc.ThreadID == "" && doc.DeletedAt == nil {
+		if doc.ChannelID == channelID && (doc.ThreadID == "" || doc.AlsoSendToChannel) && doc.DeletedAt == nil {
 			result = append(result, doc)
 		}
 	}

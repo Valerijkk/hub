@@ -173,8 +173,30 @@ func (s *TrackerService) ListThreadIssueLinks(
 	ctx context.Context,
 	projectID uuid.UUID,
 	channelID uuid.UUID,
+	actorID uuid.UUID,
 	messageID string,
 ) ([]IssueMessageLinkResponse, error) {
+	if _, err := s.repo.FindChannelInProject(ctx, projectID, channelID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("канал не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка проверки доступа к каналу")
+	}
+	isProjectMember, err := s.repo.IsProjectMember(ctx, projectID, actorID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки доступа к каналу")
+	}
+	if !isProjectMember {
+		return nil, apperrors.NewNotFound("канал не найден")
+	}
+	isMember, err := s.repo.IsChannelMember(ctx, channelID, actorID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки доступа к каналу")
+	}
+	if !isMember {
+		return nil, apperrors.NewNotFound("канал не найден")
+	}
+
 	links, err := s.repo.ListIssueMessageLinksByThread(ctx, channelID, messageID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения связей")

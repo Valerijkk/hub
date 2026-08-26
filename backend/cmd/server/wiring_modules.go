@@ -22,6 +22,7 @@ func wireModules(d *serverDeps) {
 
 	// Dashboard routes (дашборды: персональный, проектный, админский)
 	dashSvc := dashboardmod.NewDashboardService(dashboardmod.NewEntRepository(d.db), d.rdb, d.mongoDB)
+	dashSvc.SetMessengerUnreadSummaryProvider(d.messengerSvc)
 	dashHandler := dashboardmod.NewHandler(dashSvc)
 	dashHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 	d.dashSvc = dashSvc

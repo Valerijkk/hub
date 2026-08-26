@@ -59,6 +59,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	channels := msg.Group("/channels")
 	channels.Post("/", h.CreateChannel)
 	channels.Get("/", h.ListMyChannels)
+	channels.Get("/discover", h.DiscoverChannels)
 	channels.Get("/:channelId", h.GetChannel)
 	channels.Put("/:channelId", h.UpdateChannel)
 	channels.Delete("/:channelId", h.DeleteChannel)
@@ -82,7 +83,12 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	messages.Post("/:messageId/reactions", h.ToggleReaction)
 	messages.Post("/:messageId/pin", h.TogglePin)
 	messages.Post("/:messageId/forward", h.ForwardMessage)
+	messages.Post("/:messageId/promote-to-issue", h.PromoteToIssue)
 	messages.Get("/:messageId/replies", h.ListThreadReplies)
+	channels.Get("/:channelId/threads/:messageId", h.GetThread)
+	channels.Post("/:channelId/threads/:messageId/read", h.MarkThreadRead)
+	channels.Post("/:channelId/threads/:messageId/follow", h.FollowThread)
+	channels.Delete("/:channelId/threads/:messageId/follow", h.UnfollowThread)
 
 	// Присутствие
 	msg.Get("/presence", h.GetPresence)
@@ -113,12 +119,6 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	polls.Post("/:pollId/vote", h.VotePoll)
 	polls.Post("/:pollId/close", h.ClosePoll)
 	polls.Get("/:pollId", h.GetPollResults)
-
-	// Промоушн сообщения в задачу трекера (Feature #58).
-	// Регистрируется отдельной группой /api/messages, чтобы не зависеть от channel ID
-	// в URL — сообщение однозначно адресуется только своим UUID.
-	messagesTop := api.Group("/messages", authMw)
-	messagesTop.Post("/:messageId/promote-to-issue", h.PromoteToIssue)
 
 	// Пригласительные ссылки
 	channels.Post("/:channelId/invites", h.CreateInviteLink)

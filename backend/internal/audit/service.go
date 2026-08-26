@@ -61,9 +61,11 @@ const (
 type AuditService struct {
 	repo       Repository
 	redis      *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
-	msgEraser  MessageEraser // optional — Mongo messages by sender_id (P1-BE-34).
+	msgEraser       MessageEraser
+	messengerEraser MessengerDataEraser // optional — Mongo messages by sender_id (P1-BE-34).
 	sessions   SessionRevoker // optional — C-W19-001: Redis+NATS session kill on deactivate/ban.
 	eraseRetry MongoEraseRetryEnqueuer // optional — C-W19-002: JetStream retry after post-Commit fail.
+	messengerEraseRetry MessengerEraseRetryEnqueuer
 }
 
 // MessageEraser удаляет персональные сообщения пользователя (Mongo messenger).
@@ -72,6 +74,19 @@ type MessageEraser interface {
 	DeleteMessagesBySender(ctx context.Context, senderID uuid.UUID) (int64, error)
 }
 
+// MessengerDataEraseResult records the four idempotent Mongo cleanup effects.
+type MessengerDataEraseResult struct {
+	DeletedMessages        int64
+	DeletedReadStates      int64
+	DeletedThreadFollows   int64
+	PulledResolvedMentions int64
+}
+
+// MessengerDataEraser removes all user-owned Messenger durable data after the
+// authoritative Ent transaction commits.
+type MessengerDataEraser interface {
+	EraseMessengerUserData(context.Context, uuid.UUID) (MessengerDataEraseResult, error)
+}
 // SessionRevoker — C-W19-001: DB+Redis invalidate + NATS revoked/logout → WS Bridge kill.
 // Реализация: auth.SessionService.RevokeAllUserSessions (не дублировать pipeline).
 type SessionRevoker interface {
@@ -92,6 +107,10 @@ func (s *AuditService) SetMessageEraser(e MessageEraser) {
 	s.msgEraser = e
 }
 
+// SetMessengerDataEraser installs the complete Phase 151 Messenger GDPR erase.
+func (s *AuditService) SetMessengerDataEraser(eraser MessengerDataEraser) {
+	s.messengerEraser = eraser
+}
 // SetSessionRevoker подключает session-kill path (Redis + NATS revoked) для Deactivate/Ban.
 // C-W19-001: без этого живой WS жертвы не рвётся. Wiring: wireAuth → authSvc.Sessions.
 func (s *AuditService) SetSessionRevoker(r SessionRevoker) {
@@ -102,6 +121,10 @@ func (s *AuditService) SetSessionRevoker(r SessionRevoker) {
 // C-W19-002: sync eraser fail → user уже HardDelete; retry по sender_id (идемпотентный DeleteMany).
 func (s *AuditService) SetMongoEraseRetry(e MongoEraseRetryEnqueuer) {
 	s.eraseRetry = e
+}
+
+func (s *AuditService) SetMessengerEraseRetry(e MessengerEraseRetryEnqueuer) {
+	s.messengerEraseRetry = e
 }
 
 // IsSystemAdmin возвращает true, если пользователь — системный администратор.
@@ -655,7 +678,17 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 	}
 
 	// A3W6-4-001: Mongo только после успешного Ent Commit.
-	if s.msgEraser != nil {
+	if s.messengerEraser != nil {
+		if _, err := s.messengerEraser.EraseMessengerUserData(ctx, userID); err != nil {
+			if s.messengerEraseRetry == nil {
+				return fmt.Errorf("erase messenger user data after commit: %w; full retry unavailable", err)
+			}
+			if retryErr := s.messengerEraseRetry.EnqueueMessengerErase(ctx, userID, actorID); retryErr != nil {
+				return fmt.Errorf("erase messenger user data after commit: %w; enqueue full retry: %v", err, retryErr)
+			}
+			return fmt.Errorf("erase messenger user data after commit: %w", err)
+		}
+	} else if s.msgEraser != nil {
 		if _, err := s.msgEraser.DeleteMessagesBySender(ctx, userID); err != nil {
 			slog.Error("GDPR mongo erase after commit failed",
 				"error", err, "user_id", userID, "actor_id", actorID)

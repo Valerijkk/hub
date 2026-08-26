@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/predicate"
+"github.com/valerii/hub/backend/internal/messenger"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -39,6 +40,15 @@ func ExportNewSearchServiceFull(repo Repository, sqlDB *sql.DB, mongoDB *mongo.D
 	return &SearchService{repo: repo, sqlDB: sqlDB, mongoDB: mongoDB}
 }
 
+func ExportNewSearchServiceWithAuthorizedMessageSearchScopeTest(
+	resolver messenger.AuthorizedMessageSearchScopeResolver,
+	executor AuthorizedMessageSearchExecutor,
+	starter AuthorizedMessageSearchTaskStarter,
+) *SearchService {
+	return newSearchServiceWithAuthorizedMessageSearchDependencies(
+		nil, nil, nil, resolver, executor, starter,
+	)
+}
 func ExportSetSearchServiceRepo(s *SearchService, repo Repository) {
 	s.repo = repo
 }
@@ -72,7 +82,7 @@ func ExportSearchChannels(s *SearchService, ctx context.Context, query string, p
 }
 
 func ExportSearchMessages(s *SearchService, ctx context.Context, query string, userID uuid.UUID) ([]SearchResult, error) {
-	return s.searchMessages(ctx, query, userID)
+	return s.searchAuthorizedMessagesForUser(ctx, query, userID)
 }
 
 func ExportGetUserChannelIDs(s *SearchService, ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {

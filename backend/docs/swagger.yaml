@@ -1832,6 +1832,31 @@ definitions:
     required:
     - emoji
     type: object
+  internal_messenger.UnreadResponse:
+    properties:
+      channels:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      dms:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      mentions:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      threads:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      any_unread:
+        type: boolean
+    type: object
   internal_messenger.VotePollRequest:
     properties:
       option_ids:
@@ -6922,7 +6947,7 @@ paths:
       summary: Превью ссылки
       tags:
       - GitHub
-  /messages/{messageId}/promote-to-issue:
+  /messenger/channels/{channelId}/messages/{messageId}/promote-to-issue:
     post:
       consumes:
       - application/json
@@ -6930,6 +6955,11 @@ paths:
         Создаёт новую задачу в указанном проекте на основе содержимого сообщения и его треда,
         постит в исходный тред backlink-ссылку на созданную задачу.
       parameters:
+      - description: ID канала
+        in: path
+        name: channelId
+        required: true
+        type: string
       - description: ID сообщения
         in: path
         name: messageId
@@ -7093,6 +7123,36 @@ paths:
       security:
       - BearerAuth: []
       summary: Создать канал
+      tags:
+      - Мессенджер
+  /messenger/channels/discover:
+    get:
+      description: Returns a non-paginated browse seed of up to 100 same-tenant public
+        channels, including active project-scoped public channels.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Discoverable channels
+          schema:
+            items:
+              $ref: '#/definitions/internal_messenger.ChannelResponse'
+            type: array
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/fiber.Error'
+        "403":
+          description: Discovery denied
+          schema:
+            $ref: '#/definitions/fiber.Error'
+        "500":
+          description: Discovery unavailable
+          schema:
+            $ref: '#/definitions/fiber.Error'
+      security:
+      - BearerAuth: []
+      summary: Browse public channels
       tags:
       - Мессенджер
   /messenger/channels/{channelId}:
@@ -7495,8 +7555,7 @@ paths:
       - Мессенджер
   /messenger/channels/{channelId}/messages/{messageId}:
     delete:
-      description: Удаляет сообщение из канала. Доступно автору или администратору
-        канала.
+      description: Удаляет сообщение из канала. Доступно автору либо owner/admin/moderator канала.
       parameters:
       - description: ID канала
         in: path
@@ -8261,17 +8320,16 @@ paths:
       - Мессенджер
   /messenger/unread:
     get:
-      description: Возвращает количество непрочитанных сообщений по каналам для текущего
-        пользователя.
+      description: Возвращает количество непрочитанных сообщений по каналам, личным
+        сообщениям, упоминаниям и тредам для текущего пользователя.
       produces:
       - application/json
       responses:
         "200":
-          description: Счётчики непрочитанных по каналам
+          description: Счётчики непрочитанных по каналам, личным сообщениям, упоминаниям
+            и тредам
           schema:
-            additionalProperties:
-              type: integer
-            type: object
+            $ref: '#/definitions/internal_messenger.UnreadResponse'
         "401":
           description: Не авторизован
           schema:

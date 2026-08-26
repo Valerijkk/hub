@@ -67,18 +67,36 @@ func wireMessenger(d *serverDeps) {
 	// C-W19-002 / TASK-178: post-Commit fail → JetStream compensating retry (идемпотентный DeleteMany).
 	if d.auditSvc != nil {
 		eraser := auditmod.NewMongoMessageEraser(mongoDB)
+		fullEraser := &messengerGDPRDataEraser{
+			tenantSource: messengerEntRepo,
+			repository:   messengerMongoRepo,
+		}
+		retry := auditmod.NewJetStreamMongoEraseRetry(d.nc)
 		d.auditSvc.SetMessageEraser(eraser)
-		d.auditSvc.SetMongoEraseRetry(auditmod.NewJetStreamMongoEraseRetry(d.nc))
+		d.auditSvc.SetMessengerDataEraser(fullEraser)
+		d.auditSvc.SetMongoEraseRetry(retry)
+		d.auditSvc.SetMessengerEraseRetry(retry)
 		eraseRetryCons := auditmod.NewMongoEraseRetryConsumer(d.nc, eraser)
 		if err := eraseRetryCons.Start(d.rootCtx); err != nil {
 			slog.Error("failed to start gdpr mongo erase retry consumer", "error", err)
+			os.Exit(1)
 		}
 		d.addCleanup(eraseRetryCons.Stop)
+		fullEraseRetryCons := auditmod.NewMessengerEraseRetryConsumer(d.nc, fullEraser)
+		if err := fullEraseRetryCons.Start(d.rootCtx); err != nil {
+			slog.Error("failed to start full gdpr messenger erase retry consumer", "error", err)
+			os.Exit(1)
+		}
+		d.addCleanup(fullEraseRetryCons.Stop)
 	}
 	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
 	presenceSvc := messengermod.NewPresenceService(d.rdb)
-	unreadSvc := messengermod.NewUnreadService(d.rdb)
-	messengerSvc := messengermod.NewMessengerService(messengerRepo, d.nc, presenceSvc, unreadSvc)
+	channelAccess := messengermod.NewPGChannelAccessResolver(messengerEntRepo)
+	unreadScope := messengermod.NewPGAuthorizedUnreadScopeResolver(d.db)
+	messageSearchScope := messengermod.NewPGMessageSearchScopeResolver(messengerEntRepo)
+	messengerSvc := messengermod.NewMessengerServiceWithAuthority(
+		messengerRepo, d.nc, presenceSvc, channelAccess, unreadScope, messageSearchScope,
+	)
 	// Feature #58 (Thread → Issue): MessengerService.PromoteToIssue делегирует в trackerSvc.
 	messengerSvc.SetIssuePromoter(trackerSvc)
 	// TASK-010: обязательный PermTaskCreate в целевом проекте (fail-closed при nil).
@@ -111,7 +129,9 @@ func wireMessenger(d *serverDeps) {
 		slog.Error("failed to ensure search indexes", "error", err)
 	}
 	searchRepo := searchmod.NewEntRepository(d.db)
-	searchSvc := searchmod.NewSearchService(searchRepo, d.rawDB, mongoDB)
+	searchSvc := searchmod.NewSearchServiceWithAuthorizedMessageSearchScope(
+		searchRepo, d.rawDB, mongoDB, messageSearchScope,
+	)
 	searchHandler := searchmod.NewHandler(searchSvc)
 	searchHandler.RegisterRoutes(api, requireAuth)
 	d.searchSvc = searchSvc

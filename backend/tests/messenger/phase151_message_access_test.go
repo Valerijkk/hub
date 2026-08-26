@@ -202,7 +202,7 @@ func TestPhase151ListMessagesIncludesRootAndCanonicalAlsoSendReplyOnly(t *testin
 	require.NoError(t, err)
 	require.Len(t, messages, 2)
 	assert.Equal(t, []string{root.ID, alsoSend.ID}, []string{messages[0].ID, messages[1].ID})
-	assert.True(t, messages[1].AlsoSendToChannel)
+	assert.Equal(t, root.ID, messages[1].ThreadID)
 	assert.Equal(t, 1, repo.listMessagesCalls)
 }
 
@@ -214,7 +214,7 @@ func TestPhase151ListBookmarksOmitsDeniedChannelBeforeMongoEnrichment(t *testing
 	publicChannelID := setupChannelWithMembers(repo.mockRepository, "public", false, ownerID)
 	privateChannelID := setupChannelWithMembers(repo.mockRepository, "private", false, ownerID)
 	publicChannel := repo.channels[publicChannelID]
-	privateChannel := repo.channels[privateChannelID]
+
 	publicMessage := &messenger.MessageDocument{ID: "phase151-public-bookmark", ChannelID: publicChannelID, SenderID: ownerID, ContentText: "visible", CreatedAt: time.Now().UTC()}
 	privateMessage := &messenger.MessageDocument{ID: "phase151-private-bookmark", ChannelID: privateChannelID, SenderID: ownerID, ContentText: "secret", CreatedAt: time.Now().UTC()}
 	repo.messages[publicMessage.ID] = publicMessage
@@ -253,6 +253,107 @@ func TestPhase151ListBookmarksOmitsDeniedChannelBeforeMongoEnrichment(t *testing
 	}, resolver.calls)
 }
 
+func TestPhase151ListBookmarksGroupsReadAuthorityBeforeMongoAndPreservesSourceOrder(t *testing.T) {
+	ctx := context.Background()
+	repo := newPhase151MessageAccessRepository()
+	ownerID := uuid.New()
+	viewerID := uuid.New()
+	channelAID := setupChannelWithMembers(repo.mockRepository, "public", false, ownerID)
+	channelBID := setupChannelWithMembers(repo.mockRepository, "public", false, ownerID)
+	channelA := repo.channels[channelAID]
+	channelB := repo.channels[channelBID]
+
+	firstBookmark := &ent.Bookmark{ID: uuid.New(), UserID: viewerID, ChannelID: channelAID, MessageID: "phase151-bookmark-a-first", CreatedAt: time.Now().UTC()}
+	secondBookmark := &ent.Bookmark{ID: uuid.New(), UserID: viewerID, ChannelID: channelBID, MessageID: "phase151-bookmark-b", CreatedAt: time.Now().UTC()}
+	thirdBookmark := &ent.Bookmark{ID: uuid.New(), UserID: viewerID, ChannelID: channelAID, MessageID: "phase151-bookmark-a-second", CreatedAt: time.Now().UTC()}
+	repo.bookmarks[viewerID] = []*ent.Bookmark{firstBookmark, secondBookmark, thirdBookmark}
+	repo.messages[firstBookmark.MessageID] = &messenger.MessageDocument{ID: firstBookmark.MessageID, ChannelID: channelAID, SenderID: ownerID, ContentText: "first A", CreatedAt: time.Now().UTC()}
+	repo.messages[secondBookmark.MessageID] = &messenger.MessageDocument{ID: secondBookmark.MessageID, ChannelID: channelBID, SenderID: ownerID, ContentText: "only B", CreatedAt: time.Now().UTC()}
+	repo.messages[thirdBookmark.MessageID] = &messenger.MessageDocument{ID: thirdBookmark.MessageID, ChannelID: channelAID, SenderID: ownerID, ContentText: "second A", CreatedAt: time.Now().UTC()}
+
+	resolver := &phase151ChannelAccessResolver{grants: make(map[phase151ChannelAccessKey]messenger.ChannelAccess)}
+	resolver.onAuthorize = func(key phase151ChannelAccessKey) {
+		repo.operations = append(repo.operations, "pg:authorize:"+key.channelID.String())
+	}
+	phase151Grant(resolver, viewerID, channelA, messenger.ChannelActionReadTimeline, phase151ReadableAccess(channelA, false))
+	phase151Grant(resolver, viewerID, channelB, messenger.ChannelActionReadTimeline, phase151ReadableAccess(channelB, false))
+	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repo, resolver)
+
+	bookmarks, err := service.ListBookmarks(ctx, viewerID)
+
+	require.NoError(t, err)
+	require.Len(t, bookmarks, 3)
+	assert.Equal(t, []string{firstBookmark.ID.String(), secondBookmark.ID.String(), thirdBookmark.ID.String()}, []string{bookmarks[0].ID, bookmarks[1].ID, bookmarks[2].ID})
+	assert.Equal(t, []string{channelAID.String(), channelBID.String(), channelAID.String()}, []string{bookmarks[0].ChannelID, bookmarks[1].ChannelID, bookmarks[2].ChannelID})
+	assert.Equal(t, []string{"first A", "only B", "second A"}, []string{bookmarks[0].ContentPreview, bookmarks[1].ContentPreview, bookmarks[2].ContentPreview})
+	assert.Equal(t, []phase151ChannelAccessKey{
+		{actorID: viewerID, channelID: channelAID, action: messenger.ChannelActionReadTimeline},
+		{actorID: viewerID, channelID: channelBID, action: messenger.ChannelActionReadTimeline},
+	}, resolver.calls)
+
+	require.NotEmpty(t, repo.operations)
+	assert.Equal(t, "pg:list_bookmarks", repo.operations[0])
+	firstMongoIndex := -1
+	channelAAuthorizationIndex := -1
+	channelBAuthorizationIndex := -1
+	for index, operation := range repo.operations {
+		switch operation {
+		case "mongo:find_message:" + firstBookmark.MessageID, "mongo:find_message:" + secondBookmark.MessageID, "mongo:find_message:" + thirdBookmark.MessageID:
+			if firstMongoIndex == -1 {
+				firstMongoIndex = index
+			}
+		case "pg:authorize:" + channelAID.String():
+			channelAAuthorizationIndex = index
+		case "pg:authorize:" + channelBID.String():
+			channelBAuthorizationIndex = index
+		}
+	}
+	require.GreaterOrEqual(t, firstMongoIndex, 0)
+	require.GreaterOrEqual(t, channelAAuthorizationIndex, 0)
+	require.GreaterOrEqual(t, channelBAuthorizationIndex, 0)
+	assert.Less(t, channelAAuthorizationIndex, firstMongoIndex)
+	assert.Less(t, channelBAuthorizationIndex, firstMongoIndex)
+}
+func TestPhase151ListBookmarksKeepsCrossChannelBookmarkButOmitsPreview(t *testing.T) {
+	ctx := context.Background()
+	repo := newPhase151MessageAccessRepository()
+	ownerID := uuid.New()
+	viewerID := uuid.New()
+	readableChannelID := setupChannelWithMembers(repo.mockRepository, "public", false, ownerID)
+	foreignChannelID := setupChannelWithMembers(repo.mockRepository, "private", false, ownerID)
+	readableChannel := repo.channels[readableChannelID]
+
+	bookmark := &ent.Bookmark{
+		ID:        uuid.New(),
+		UserID:    viewerID,
+		ChannelID: readableChannelID,
+		MessageID: "phase151-cross-channel-bookmark",
+		CreatedAt: time.Now().UTC(),
+	}
+	repo.bookmarks[viewerID] = []*ent.Bookmark{bookmark}
+	repo.messages[bookmark.MessageID] = &messenger.MessageDocument{
+		ID:          bookmark.MessageID,
+		ChannelID:   foreignChannelID,
+		SenderID:    ownerID,
+		ContentText: "secret preview from another channel",
+		CreatedAt:   time.Now().UTC(),
+	}
+
+	resolver := &phase151ChannelAccessResolver{grants: make(map[phase151ChannelAccessKey]messenger.ChannelAccess)}
+	phase151Grant(resolver, viewerID, readableChannel, messenger.ChannelActionReadTimeline, phase151ReadableAccess(readableChannel, false))
+	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repo, resolver)
+
+	bookmarks, err := service.ListBookmarks(ctx, viewerID)
+
+	require.NoError(t, err)
+	require.Len(t, bookmarks, 1, "the bookmark row remains usable for its authorized channel")
+	assert.Equal(t, bookmark.ID.String(), bookmarks[0].ID)
+	assert.Equal(t, readableChannelID.String(), bookmarks[0].ChannelID)
+	assert.Equal(t, bookmark.MessageID, bookmarks[0].MessageID)
+	assert.Empty(t, bookmarks[0].ContentPreview, "a message from another channel must not enrich this bookmark")
+	assert.NotContains(t, bookmarks[0].ContentPreview, "secret preview from another channel")
+	assert.Equal(t, 1, repo.findMessageCalls[bookmark.MessageID])
+}
 func TestPhase151AddBookmarkProjectIneligibleUserIsDeniedBeforeMongoAndEntWrite(t *testing.T) {
 	ctx := context.Background()
 	repo := newPhase151MessageAccessRepository()
@@ -290,7 +391,9 @@ func TestPhase151PromotionUsesChannelBoundRouteAndRejectsOldOrUnauthorizedRouteB
 	repo.messages[source.ID] = source
 
 	resolver := &phase151ChannelAccessResolver{grants: make(map[phase151ChannelAccessKey]messenger.ChannelAccess)}
-	phase151Grant(resolver, ownerID, channel, messenger.ChannelActionPromote, phase151ReadableAccess(channel, true))
+	promoteAccess := phase151ReadableAccess(channel, true)
+	promoteAccess.CanPromote = true
+	phase151Grant(resolver, ownerID, channel, messenger.ChannelActionPromote, promoteAccess)
 	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repo, resolver)
 	service.SetIssuePromoter(fixedIssuePromoter{issueKey: "HUB-151", issueID: uuid.NewString()})
 	service.SetPromotePermissionChecker(allowPromotionChecker{})
@@ -343,4 +446,80 @@ func phase151MessengerRouteApp(service *messenger.MessengerService, userID uuid.
 	}
 	messenger.NewHandler(service).RegisterRoutes(api, auth, nil)
 	return app
+}
+
+func TestPhase151ListMessagesAllowsActivePrivateMemberAfterFreshProof(t *testing.T) {
+	ctx := context.Background()
+	repo := newPhase151MessageAccessRepository()
+	ownerID := uuid.New()
+	memberID := uuid.New()
+	channelID := setupChannelWithMembers(repo.mockRepository, "private", false, ownerID, memberID)
+	channel := repo.channels[channelID]
+	root := &messenger.MessageDocument{
+		ID: "phase151-private-member-root", ChannelID: channelID, SenderID: ownerID,
+		ContentText: "member history", CreatedAt: time.Now().UTC(),
+	}
+	repo.timeline = []*messenger.MessageDocument{root}
+	resolver := &phase151ChannelAccessResolver{grants: make(map[phase151ChannelAccessKey]messenger.ChannelAccess)}
+	resolver.onAuthorize = func(key phase151ChannelAccessKey) {
+		repo.operations = append(repo.operations, "pg:authorize:"+key.channelID.String())
+	}
+	phase151Grant(resolver, memberID, channel, messenger.ChannelActionReadTimeline, phase151ReadableAccess(channel, true))
+	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repo, resolver)
+
+	messages, err := service.ListMessages(ctx, channelID, memberID, nil, 50)
+
+	require.NoError(t, err)
+	require.Len(t, messages, 1)
+	assert.Equal(t, root.ID, messages[0].ID)
+	assert.Equal(t, []phase151ChannelAccessKey{{
+		actorID: memberID, channelID: channelID, action: messenger.ChannelActionReadTimeline,
+	}}, resolver.calls)
+	assert.Equal(t, []string{
+		"pg:authorize:" + channelID.String(),
+		"mongo:list_messages:" + channelID.String(),
+	}, repo.operations)
+	assert.Equal(t, 1, repo.listMessagesCalls)
+}
+
+func TestPhase151ListMessagesAuthorityDenialsStopBeforeMongo(t *testing.T) {
+	for _, reason := range []string{
+		"private nonmember",
+		"revoked member",
+		"disabled account",
+		"cross-tenant actor",
+		"inactive or missing project member",
+	} {
+		t.Run(reason, func(t *testing.T) {
+			ctx := context.Background()
+			repo := newPhase151MessageAccessRepository()
+			ownerID := uuid.New()
+			actorID := uuid.New()
+			channelID := setupChannelWithMembers(repo.mockRepository, "private", false, ownerID)
+			channel := repo.channels[channelID]
+			if reason == "inactive or missing project member" {
+				projectID := uuid.New()
+				channel.ProjectID = &projectID
+			}
+			secret := &messenger.MessageDocument{
+				ID: "phase151-denied-history-" + strings.ReplaceAll(reason, " ", "-"),
+				ChannelID: channelID, SenderID: ownerID, ContentText: "must remain undisclosed",
+				CreatedAt: time.Now().UTC(),
+			}
+			repo.timeline = []*messenger.MessageDocument{secret}
+			resolver := &phase151ChannelAccessResolver{grants: make(map[phase151ChannelAccessKey]messenger.ChannelAccess)}
+			service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repo, resolver)
+
+			messages, err := service.ListMessages(ctx, channelID, actorID, nil, 50)
+
+			require.Error(t, err)
+			assert.Empty(t, messages)
+			assert.Equal(t, []phase151ChannelAccessKey{{
+				actorID: actorID, channelID: channelID, action: messenger.ChannelActionReadTimeline,
+			}}, resolver.calls)
+			assert.Zero(t, repo.listMessagesCalls, "fresh PG denial must precede every Mongo timeline lookup")
+			assert.Empty(t, repo.operations)
+			assert.NotContains(t, messages, secret)
+		})
+	}
 }

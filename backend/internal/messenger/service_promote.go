@@ -87,6 +87,7 @@ type PromoteToIssueResponse struct {
 //     логируется как warn.
 func (s *MessengerService) PromoteToIssue(
 	ctx context.Context,
+	channelID uuid.UUID,
 	messageID string,
 	userID uuid.UUID,
 	req PromoteToIssueRequest,
@@ -112,19 +113,28 @@ func (s *MessengerService) PromoteToIssue(
 	}
 
 	// 1. Достаём исходное сообщение.
+	_, scoped, accessErr := s.resolveChannelAction(ctx, userID, channelID, ChannelActionPromote)
+	if accessErr != nil {
+		return nil, accessErr
+	}
+	if !scoped {
+		isMember, membershipErr := s.repo.IsMember(ctx, channelID, userID)
+		if membershipErr != nil {
+			return nil, apperrors.NewInternal("ошибка проверки участия")
+		}
+		if !isMember {
+			return nil, apperrors.NewForbidden("вы не являетесь участником канала-источника")
+		}
+	}
+
 	source, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("сообщение не найдено")
 	}
+	if source.ChannelID != channelID {
+		return nil, apperrors.NewNotFound("сообщение не найдено")
+	}
 
-	// 2. Проверяем членство в исходном канале (HI-02-style guard).
-	isMember, err := s.repo.IsMember(ctx, source.ChannelID, userID)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка проверки участия")
-	}
-	if !isMember {
-		return nil, apperrors.NewForbidden("вы не являетесь участником канала-источника")
-	}
 
 	// 2b. PermTaskCreate в целевом проекте (TASK-010 / W3-A2-001). Fail-closed.
 	if s.promoteCheck == nil {

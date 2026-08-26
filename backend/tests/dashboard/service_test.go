@@ -1,9 +1,16 @@
-﻿package dashboard_test
+package dashboard_test
 import (
-	"github.com/valerii/hub/backend/internal/dashboard"
+	"context"
+	"encoding/json"
+	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/dashboard"
+	"github.com/valerii/hub/backend/internal/messenger"
 )
 
 // TestLayoutItemSerialization проверяет корректность структуры dashboard.LayoutItem.
@@ -92,4 +99,45 @@ func TestLayoutDTOEmptyItems(t *testing.T) {
 	assert.Empty(t, dto.Items)
 	assert.Equal(t, "admin", dto.DashboardType)
 	assert.Nil(t, dto.ProjectID)
+}
+
+type phase151UnreadSummaryProvider struct {
+	summary messenger.DashboardUnreadSummary
+	err     error
+	calls   []uuid.UUID
+}
+
+func (p *phase151UnreadSummaryProvider) ResolveUnreadSummary(
+	_ context.Context, userID uuid.UUID,
+) (messenger.DashboardUnreadSummary, error) {
+	p.calls = append(p.calls, userID)
+	return p.summary, p.err
+}
+
+func TestPhase151DashboardUnreadSummary_UsesMandatoryDurableProvider(t *testing.T) {
+	userID := uuid.New()
+	provider := &phase151UnreadSummaryProvider{summary: messenger.DashboardUnreadSummary{
+		UniqueMessageCount: 5, HasUnread: true,
+	}}
+	service := dashboard.ExportNewServiceWithUnreadSummaryProviderTest(provider)
+
+	summary, err := service.MessengerUnreadSummary(context.Background(), userID)
+
+	require.NoError(t, err)
+	assert.Equal(t, messenger.DashboardUnreadSummary{UniqueMessageCount: 5, HasUnread: true}, summary)
+	assert.Equal(t, []uuid.UUID{userID}, provider.calls)
+	payload, err := json.Marshal(summary)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"unique_message_count":5,"has_unread":true}`, string(payload))
+}
+
+func TestPhase151DashboardUnreadSummary_FailsClosedWithoutProviderOrOnProviderError(t *testing.T) {
+	assert.Panics(t, func() { dashboard.ExportNewServiceWithUnreadSummaryProviderTest(nil) })
+	provider := &phase151UnreadSummaryProvider{err: errors.New("durable unread unavailable")}
+	service := dashboard.ExportNewServiceWithUnreadSummaryProviderTest(provider)
+
+	summary, err := service.MessengerUnreadSummary(context.Background(), uuid.New())
+
+	require.Error(t, err)
+	assert.Equal(t, messenger.DashboardUnreadSummary{}, summary)
 }

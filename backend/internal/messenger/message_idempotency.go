@@ -30,6 +30,7 @@ func validateCanonicalMessage(requested, canonical *MessageDocument) error {
 func messageFingerprintMatches(requested, canonical *MessageDocument) (bool, error) {
 	if requested.ChannelID != canonical.ChannelID ||
 		requested.ThreadID != canonical.ThreadID ||
+		requested.AlsoSendToChannel != canonical.AlsoSendToChannel ||
 		requested.ContentText != canonical.ContentText ||
 		requested.VoiceURL != canonical.VoiceURL ||
 		requested.VoiceDurationMs != canonical.VoiceDurationMs ||

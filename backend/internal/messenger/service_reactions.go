@@ -13,20 +13,26 @@ import (
 // Требуется membership в канале сообщения (P1-BE-16).
 // A2W3-1-003: path channelID обязан совпадать с msg.ChannelID.
 func (s *MessengerService) ToggleReaction(ctx context.Context, channelID uuid.UUID, messageID string, userID uuid.UUID, emoji string) (bool, error) {
+	_, scoped, accessErr := s.resolveChannelAction(ctx, userID, channelID, ChannelActionReact)
+	if accessErr != nil {
+		return false, accessErr
+	}
+	if !scoped {
+		isMember, membershipErr := s.repo.IsMember(ctx, channelID, userID)
+		if membershipErr != nil {
+			return false, apperrors.NewInternal("ошибка проверки участия")
+		}
+		if !isMember {
+			return false, apperrors.NewForbidden("вы не являетесь участником канала")
+		}
+	}
+
 	msg, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return false, apperrors.NewNotFound("сообщение не найдено")
 	}
 	if msg.ChannelID != channelID {
 		return false, apperrors.NewNotFound("сообщение не найдено")
-	}
-
-	isMember, err := s.repo.IsMember(ctx, msg.ChannelID, userID)
-	if err != nil {
-		return false, apperrors.NewInternal("ошибка проверки участия")
-	}
-	if !isMember {
-		return false, apperrors.NewForbidden("вы не являетесь участником канала")
 	}
 
 	exists, err := s.repo.FindReaction(ctx, messageID, userID.String(), emoji)

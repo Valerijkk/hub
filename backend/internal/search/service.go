@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+"github.com/valerii/hub/backend/internal/messenger"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -34,7 +35,28 @@ var ErrFilterNotFound = errors.New("фильтр не найден")
 
 // ErrSearchUnavailable — A2W5-A4-003: все шарды упали (total outage → hard error).
 var ErrSearchUnavailable = errors.New("search unavailable: all shards failed")
+// AuthorizedMessageSearchScopeResolver supplies fresh PostgreSQL authority
+// before the global-search Mongo shard can be scheduled.
+type AuthorizedMessageSearchScopeResolver interface {
+	ResolveAuthorizedMessageSearchScope(context.Context, uuid.UUID) (messenger.AuthorizedMessageSearchScope, error)
+}
 
+// AuthorizedMessageSearchExecutor is the only Mongo message-search boundary.
+type AuthorizedMessageSearchExecutor interface {
+	SearchAuthorizedMessages(context.Context, messenger.AuthorizedMessageSearchScope, string, int) ([]SearchResult, error)
+}
+
+// AuthorizedMessageSearchTaskStarter makes scheduling observable while keeping
+// the production path concurrent with the other global-search shards.
+type AuthorizedMessageSearchTaskStarter interface {
+	StartAuthorizedMessageSearch(func())
+}
+
+type goAuthorizedMessageSearchTaskStarter struct{}
+
+func (goAuthorizedMessageSearchTaskStarter) StartAuthorizedMessageSearch(task func()) {
+	go task()
+}
 // SearchService реализует глобальный поиск по всем сущностям платформы.
 // Выполняет параллельные запросы к PostgreSQL (tsvector) и MongoDB ($text),
 // затем объединяет результаты по релевантности.
@@ -44,9 +66,12 @@ var ErrSearchUnavailable = errors.New("search unavailable: all shards failed")
 // эти БД-уровневые драйверы концептуально ниже ORM и для них репозиторий-
 // абстракция избыточна.
 type SearchService struct {
-	repo    Repository
-	sqlDB   *sql.DB
-	mongoDB *mongo.Database
+	repo                 Repository
+	sqlDB                *sql.DB
+	mongoDB              *mongo.Database
+	messageScopeResolver AuthorizedMessageSearchScopeResolver
+	messageExecutor      AuthorizedMessageSearchExecutor
+	messageTaskStarter   AuthorizedMessageSearchTaskStarter
 }
 
 // NewSearchService создаёт новый сервис поиска.
@@ -55,6 +80,128 @@ func NewSearchService(repo Repository, sqlDB *sql.DB, mongoDB *mongo.Database) *
 	return &SearchService{repo: repo, sqlDB: sqlDB, mongoDB: mongoDB}
 }
 
+// NewSearchServiceWithAuthorizedMessageSearchScope creates the production
+// service. The resolver is mandatory; Mongo execution and scheduling use the
+// same dependencies exercised by the Phase 151 contract tests.
+func NewSearchServiceWithAuthorizedMessageSearchScope(
+	repo Repository,
+	sqlDB *sql.DB,
+	mongoDB *mongo.Database,
+	resolver AuthorizedMessageSearchScopeResolver,
+) *SearchService {
+	if resolver == nil {
+		panic("search authorized message scope resolver is required")
+	}
+	service := newSearchServiceWithAuthorizedMessageSearchDependencies(
+		repo, sqlDB, mongoDB, resolver, nil, goAuthorizedMessageSearchTaskStarter{},
+	)
+	service.messageExecutor = service
+	return service
+}
+
+func newSearchServiceWithAuthorizedMessageSearchDependencies(
+	repo Repository,
+	sqlDB *sql.DB,
+	mongoDB *mongo.Database,
+	resolver AuthorizedMessageSearchScopeResolver,
+	executor AuthorizedMessageSearchExecutor,
+	starter AuthorizedMessageSearchTaskStarter,
+) *SearchService {
+	return &SearchService{
+		repo: repo, sqlDB: sqlDB, mongoDB: mongoDB,
+		messageScopeResolver: resolver,
+		messageExecutor:      executor,
+		messageTaskStarter:   starter,
+	}
+}
+const maxAuthorizedMessageSearchTargets = 500
+
+func (s *SearchService) resolveAuthorizedMessageSearchScope(
+	ctx context.Context,
+	userID uuid.UUID,
+) (messenger.AuthorizedMessageSearchScope, bool, error) {
+	if s == nil || s.messageScopeResolver == nil {
+		return messenger.AuthorizedMessageSearchScope{}, false, nil
+	}
+	scope, err := s.messageScopeResolver.ResolveAuthorizedMessageSearchScope(ctx, userID)
+	if err != nil {
+		if errors.Is(err, messenger.ErrChannelAccessDenied) {
+			return messenger.AuthorizedMessageSearchScope{}, false, nil
+		}
+		return messenger.AuthorizedMessageSearchScope{}, false, fmt.Errorf("resolve authorized message search scope: %w", err)
+	}
+	if scope.TenantID == uuid.Nil || scope.UserID != userID || len(scope.Targets) == 0 || len(scope.Targets) > maxAuthorizedMessageSearchTargets {
+		return messenger.AuthorizedMessageSearchScope{}, false, nil
+	}
+	seen := make(map[uuid.UUID]struct{}, len(scope.Targets))
+	targets := make([]messenger.AuthorizedMessageSearchTarget, 0, len(scope.Targets))
+	for _, target := range scope.Targets {
+		if target.ChannelID == uuid.Nil || (target.Kind != "channel" && target.Kind != "dm") {
+			return messenger.AuthorizedMessageSearchScope{}, false, nil
+		}
+		if _, duplicate := seen[target.ChannelID]; duplicate {
+			continue
+		}
+		seen[target.ChannelID] = struct{}{}
+		targets = append(targets, target)
+	}
+	if len(targets) == 0 {
+		return messenger.AuthorizedMessageSearchScope{}, false, nil
+	}
+	scope.Targets = targets
+	return scope, true, nil
+}
+
+func (s *SearchService) SearchAuthorizedMessages(
+	ctx context.Context,
+	scope messenger.AuthorizedMessageSearchScope,
+	query string,
+	limit int,
+) ([]SearchResult, error) {
+	if s == nil || s.mongoDB == nil || scope.TenantID == uuid.Nil || scope.UserID == uuid.Nil || len(scope.Targets) == 0 || len(scope.Targets) > maxAuthorizedMessageSearchTargets {
+		return nil, nil
+	}
+	channelIDs := make([]uuid.UUID, 0, len(scope.Targets))
+	seen := make(map[uuid.UUID]struct{}, len(scope.Targets))
+	for _, target := range scope.Targets {
+		if target.ChannelID == uuid.Nil || (target.Kind != "channel" && target.Kind != "dm") {
+			return nil, nil
+		}
+		if _, duplicate := seen[target.ChannelID]; duplicate {
+			continue
+		}
+		seen[target.ChannelID] = struct{}{}
+		channelIDs = append(channelIDs, target.ChannelID)
+	}
+	return s.searchMessages(ctx, query, channelIDs, limit)
+}
+
+func (s *SearchService) searchAuthorizedMessagesForUser(
+	ctx context.Context,
+	query string,
+	userID uuid.UUID,
+) ([]SearchResult, error) {
+	scope, allowed, err := s.resolveAuthorizedMessageSearchScope(ctx, userID)
+	if err != nil || !allowed {
+		return nil, err
+	}
+	if s.messageExecutor == nil || s.messageTaskStarter == nil {
+		return nil, errors.New("authorized message search runtime is not configured")
+	}
+	var results []SearchResult
+	var searchErr error
+	done := make(chan struct{})
+	s.messageTaskStarter.StartAuthorizedMessageSearch(func() {
+		defer close(done)
+		results, searchErr = s.messageExecutor.SearchAuthorizedMessages(ctx, scope, query, defaultSearchLimit)
+	})
+	select {
+	case <-done:
+		return results, searchErr
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
 // Search выполняет глобальный поиск по всем сущностям с фильтрацией по правам доступа.
 // Параллельно запрашивает PostgreSQL (tsvector) и MongoDB ($text), объединяет по score.
 // partial=true — часть шардов упала, но есть результаты (W5-A4-007 / P2-BE-18).
@@ -63,17 +210,29 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		limit = 20
 	}
 
-	// Получаем ID проектов пользователя для фильтрации по правам
 	projectIDs, err := s.getUserProjectIDs(ctx, userID)
 	if err != nil {
-		return nil, false, fmt.Errorf("не удалось получить проекты пользователя: %w", err)
+		return nil, false, fmt.Errorf("get user projects: %w", err)
 	}
 
 	typeSet := make(map[string]bool, len(types))
-	for _, t := range types {
-		typeSet[t] = true
+	for _, resultType := range types {
+		typeSet[resultType] = true
 	}
 	searchAll := len(typeSet) == 0
+	messageRequested := searchAll || typeSet["message"]
+	messageScope := messenger.AuthorizedMessageSearchScope{}
+	if messageRequested {
+		resolvedScope, allowed, scopeErr := s.resolveAuthorizedMessageSearchScope(ctx, userID)
+		if scopeErr != nil {
+			return nil, false, scopeErr
+		}
+		if allowed && (s.messageExecutor == nil || s.messageTaskStarter == nil) {
+			return nil, false, errors.New("authorized message search runtime is not configured")
+		}
+		messageRequested = allowed
+		messageScope = resolvedScope
+	}
 
 	var (
 		mu       sync.Mutex
@@ -83,8 +242,6 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		shardOK  int
 		shardErr int
 	)
-
-	// Вспомогательная функция для добавления результатов потокобезопасно
 	appendResults := func(items []SearchResult, searchErr error) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -97,7 +254,6 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		results = append(results, items...)
 	}
 
-	// Параллельный поиск по PostgreSQL-сущностям
 	if searchAll || typeSet["issue"] {
 		wg.Add(1)
 		go func() {
@@ -106,7 +262,6 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 			appendResults(items, searchErr)
 		}()
 	}
-
 	if searchAll || typeSet["test_case"] {
 		wg.Add(1)
 		go func() {
@@ -115,19 +270,14 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 			appendResults(items, searchErr)
 		}()
 	}
-
 	if searchAll || typeSet["user"] {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// HI-12: ограничиваем выдачу пользователями, разделяющими хотя
-			// бы один проект с вызывающим — иначе search превращается в
-			// глобальный email/name enumerator.
 			items, searchErr := s.searchUsers(ctx, query, userID)
 			appendResults(items, searchErr)
 		}()
 	}
-
 	if searchAll || typeSet["project"] {
 		wg.Add(1)
 		go func() {
@@ -136,7 +286,6 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 			appendResults(items, searchErr)
 		}()
 	}
-
 	if searchAll || typeSet["file"] {
 		wg.Add(1)
 		go func() {
@@ -145,54 +294,44 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 			appendResults(items, searchErr)
 		}()
 	}
-
 	if searchAll || typeSet["channel"] {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// P1-BE-32 / NF-03: private/group требуют membership; soft-delete исключаем.
 			items, searchErr := s.searchChannels(ctx, query, projectIDs, userID)
 			appendResults(items, searchErr)
 		}()
 	}
-
-	// Поиск в MongoDB (сообщения)
-	if searchAll || typeSet["message"] {
+	if messageRequested {
 		wg.Add(1)
-		go func() {
+		s.messageTaskStarter.StartAuthorizedMessageSearch(func() {
 			defer wg.Done()
-			items, searchErr := s.searchMessages(ctx, query, userID)
+			items, searchErr := s.messageExecutor.SearchAuthorizedMessages(
+				ctx, messageScope, query, defaultSearchLimit,
+			)
 			appendResults(items, searchErr)
-		}()
+		})
 	}
 
 	wg.Wait()
-
-	// W5-A4-007 / P2-BE-18: не глотать ошибки шардов — partial flag или hard error.
 	joined := errors.Join(errs...)
 	if joined != nil {
-		slog.Warn("ошибки при поиске", "count", len(errs), "errors", joined)
+		slog.Warn("search shard errors", "count", len(errs), "errors", joined)
 	}
-
-	// Сортировка по убыванию score и ограничение по limit
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
 	})
 	if len(results) > limit {
 		results = results[:limit]
 	}
-
 	if shardErr > 0 && shardOK == 0 {
-		// A2W5-A4-003: total outage → hard error (не partial+пусто).
 		if joined != nil {
 			return nil, false, fmt.Errorf("%w: %w", ErrSearchUnavailable, joined)
 		}
 		return nil, false, ErrSearchUnavailable
 	}
-	partial := shardErr > 0
-	return results, partial, nil
+	return results, shardErr > 0, nil
 }
-
 // getUserChannelIDs возвращает ID активных каналов мессенджера, в которых
 // состоит пользователь. Используется SEC-H2 для скоупа Mongo $text-поиска.
 // JOIN на channels + deleted_at IS NULL (W5-A4-004): после soft-delete канала
@@ -605,19 +744,13 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 // любого канала (HI-01 закрыл только messenger-handler-путь, но search
 // шёл напрямую в Mongo без scope). Без права хотя бы в одном канале —
 // ранний выход с пустым результатом.
-func (s *SearchService) searchMessages(ctx context.Context, query string, userID uuid.UUID) ([]SearchResult, error) {
-	if s.mongoDB == nil {
+func (s *SearchService) searchMessages(ctx context.Context, query string, channelIDs []uuid.UUID, limit int) ([]SearchResult, error) {
+	if s.mongoDB == nil || len(channelIDs) == 0 {
 		return nil, nil
 	}
-
-	channelIDs, err := s.getUserChannelIDs(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("получение каналов пользователя: %w", err)
+	if limit <= 0 || limit > defaultSearchLimit {
+		limit = defaultSearchLimit
 	}
-	if len(channelIDs) == 0 {
-		return nil, nil
-	}
-
 	coll := s.mongoDB.Collection("messages")
 	// P1-BE-32 / W5-A4-003: soft-deleted сообщения (messenger SoftDeleteMessage)
 	// не должны попадать в Ctrl+K — тот же фильтр, что ListMessages.
@@ -635,7 +768,7 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, userID
 			"sender_id":    1,
 		}).
 		SetSort(bson.M{"score": bson.M{"$meta": "textScore"}}).
-		SetLimit(int64(defaultSearchLimit))
+		SetLimit(int64(limit))
 
 	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {

@@ -243,6 +243,10 @@ services:
         target: /opt/hub/source/backend/internal
         read_only: true
       - type: bind
+        source: ./backend/docs
+        target: /opt/hub/source/backend/docs
+        read_only: true
+      - type: bind
         source: ./backend/tests
         target: /opt/hub/source/backend/tests
         read_only: true

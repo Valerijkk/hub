@@ -72,6 +72,11 @@ func ExportToChannelResponse(ch *ent.Channel) *ChannelResponse {
 	return toChannelResponse(ch)
 }
 
+// ExportToRecipientChannelResponse exposes the recipient-safe mapper for tests.
+func ExportToRecipientChannelResponse(access ChannelAccess) (*ChannelResponse, error) {
+	return toRecipientChannelResponse(access)
+}
+
 // ExportNewMessengerServiceEmpty создаёт пустой MessengerService для hubtest.
 func ExportNewMessengerServiceEmpty() *MessengerService {
 	return newMessengerServiceWithEventPublisher(nil, nil, nil, nil)
@@ -98,8 +103,8 @@ func ExportQueryInt(c fiber.Ctx, key string, defaultVal int) int {
 }
 
 // ExportMessengerServiceUnread возвращает unread-сервис из MessengerService для hubtest.
-func ExportMessengerServiceUnread(s *MessengerService) *UnreadService {
-	return s.unread
+func ExportMessengerServiceUnread(_ *MessengerService) *UnreadService {
+	return nil
 }
 
 // ExportMessengerServiceResolveGroupMentions вызывает resolveGroupMentions для hubtest.
@@ -165,4 +170,36 @@ func ExportBase62Chars() string {
 // ExportTruncateRunes — P3-BE-04 / TASK-060: rune-safe truncate для hubtest.
 func ExportTruncateRunes(s string, maxRunes int) string {
 	return truncateRunes(s, maxRunes)
+}
+
+func ExportNewMessengerServiceWithChannelAccessTest(
+	repo Repository,
+	channelAccess ChannelAccessResolver,
+) *MessengerService {
+	if channelAccess == nil {
+		panic("messenger hubtest channel access resolver must not be nil")
+	}
+	service := newMessengerServiceWithEventPublisher(repo, nil, nil, nil)
+	service.channelAccess = channelAccess
+	return service
+}
+
+func ExportNewMessengerServiceWithChannelAccessAndUnreadScopeTest(
+	repo Repository,
+	channelAccess ChannelAccessResolver,
+	unreadScope AuthorizedUnreadScopeResolver,
+) *MessengerService {
+	service := ExportNewMessengerServiceWithChannelAccessTest(repo, channelAccess)
+	service.unreadScope = unreadScope
+	return service
+}
+
+func ExportNewMessengerServiceWithChannelAccessAndSearchScopeTest(
+	repo Repository,
+	channelAccess ChannelAccessResolver,
+	searchScope AuthorizedMessageSearchScopeResolver,
+) *MessengerService {
+	service := ExportNewMessengerServiceWithChannelAccessTest(repo, channelAccess)
+	service.messageSearchScope = searchScope
+	return service
 }

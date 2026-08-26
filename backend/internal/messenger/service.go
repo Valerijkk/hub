@@ -23,7 +23,10 @@ type MessengerService struct {
 	repo              Repository
 	nats              EventPublisher
 	presence          *PresenceService
-	unread            *UnreadService
+	durableUnread     Phase151DurableUnreadRuntime
+	channelAccess     ChannelAccessResolver
+	unreadScope       AuthorizedUnreadScopeResolver
+	messageSearchScope AuthorizedMessageSearchScopeResolver
 	issuePromoter     IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
 	promoteCheck      PromotePermissionChecker // опционально: RBAC-проверка целевого проекта при /promote-to-issue
 	issueThreadLinker IssueThreadLinker        // опционально: auto-link после promote (PROD-03)
@@ -38,17 +41,40 @@ func NewMessengerService(repo Repository, nats *natsclient.Client, presence *Pre
 	return newMessengerServiceWithEventPublisher(repo, nats, presence, unread)
 }
 
+// NewMessengerServiceWithAuthority is the production constructor. Every
+// Mongo-touching consumer receives explicit PostgreSQL authority dependencies
+// before handlers, Search or Dashboard can observe the service.
+func NewMessengerServiceWithAuthority(
+	repo Repository,
+	nats *natsclient.Client,
+	presence *PresenceService,
+	channelAccess ChannelAccessResolver,
+	unreadScope AuthorizedUnreadScopeResolver,
+	messageSearchScope AuthorizedMessageSearchScopeResolver,
+) *MessengerService {
+	if repo == nil || channelAccess == nil || unreadScope == nil || messageSearchScope == nil {
+		panic("messenger production authority dependencies are required")
+	}
+	service := newMessengerServiceWithEventPublisher(repo, nats, presence, nil)
+	service.channelAccess = channelAccess
+	service.unreadScope = unreadScope
+	service.messageSearchScope = messageSearchScope
+	return service
+}
 type noopEventPublisher struct{}
 
 func (noopEventPublisher) PublishJSON(string, any) {}
 
-func newMessengerServiceWithEventPublisher(repo Repository, publisher EventPublisher, presence *PresenceService, unread *UnreadService) *MessengerService {
-	return &MessengerService{
+func newMessengerServiceWithEventPublisher(repo Repository, publisher EventPublisher, presence *PresenceService, _ *UnreadService) *MessengerService {
+	service := &MessengerService{
 		repo:     repo,
 		nats:     normalizeEventPublisher(publisher),
 		presence: presence,
-		unread:   unread,
 	}
+	if durableUnread, ok := repo.(Phase151DurableUnreadRuntime); ok {
+		service.durableUnread = durableUnread
+	}
+	return service
 }
 
 func normalizeEventPublisher(publisher EventPublisher) EventPublisher {
@@ -142,9 +168,13 @@ func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, 
 	if err != nil {
 		return apperrors.NewBadRequest("некорректный ID канала")
 	}
-	if s.repo != nil {
-		ok, err := s.repo.IsMember(ctx, chID, userID)
-		if err != nil {
+	_, scoped, accessErr := s.resolveChannelAction(ctx, userID, chID, ChannelActionTyping)
+	if accessErr != nil {
+		return accessErr
+	}
+	if !scoped && s.repo != nil {
+		ok, membershipErr := s.repo.IsMember(ctx, chID, userID)
+		if membershipErr != nil {
 			return apperrors.NewInternal("ошибка проверки участия")
 		}
 		if !ok {
@@ -175,18 +205,65 @@ func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, 
 
 // GetUnreadCounts возвращает счётчики непрочитанных для пользователя.
 func (s *MessengerService) GetUnreadCounts(ctx context.Context, userID string) (map[string]int64, error) {
-	if s.unread == nil {
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil || parsedUserID == uuid.Nil {
+		return nil, apperrors.NewBadRequest("некорректный ID пользователя")
+	}
+	if s.durableUnread == nil {
 		return map[string]int64{}, nil
 	}
-	return s.unread.GetAll(ctx, userID)
+	return s.durableUnread.GetDurableUnreadCounts(ctx, parsedUserID)
 }
 
 // MarkChannelRead сбрасывает счётчик непрочитанных для канала.
 func (s *MessengerService) MarkChannelRead(ctx context.Context, userID, channelID string) error {
-	if s.unread == nil {
+	parsedUserID, userErr := uuid.Parse(userID)
+	parsedChannelID, channelErr := uuid.Parse(channelID)
+	if userErr != nil || channelErr != nil || parsedUserID == uuid.Nil || parsedChannelID == uuid.Nil {
+		return apperrors.NewBadRequest("invalid user or channel ID")
+	}
+	if s.unreadScope == nil {
+		return apperrors.NewForbidden("authorized unread scope is required")
+	}
+	scope, err := s.unreadScope.ResolveAuthorizedUnreadScope(ctx, parsedUserID)
+	if err != nil || scope.TenantID == uuid.Nil || scope.UserID != parsedUserID {
+		return apperrors.NewForbidden("authorized unread scope is unavailable")
+	}
+	var target *AuthorizedUnreadTarget
+	for index := range scope.Targets {
+		candidate := &scope.Targets[index]
+		if candidate.ChannelID == parsedChannelID {
+			target = candidate
+			break
+		}
+	}
+	if target == nil {
+		return apperrors.NewForbidden("unread target is unavailable")
+	}
+	category := UnreadCategoryChannel
+	if target.Kind == "dm" {
+		category = UnreadCategoryDM
+	} else if target.Kind != "channel" {
+		return apperrors.NewForbidden("unread target kind is unavailable")
+	}
+	runtime, ok := s.repo.(phase151UnreadReceiptRuntime)
+	if !ok {
+		return apperrors.NewInternal("durable unread receipt runtime is not configured")
+	}
+	position, err := runtime.CurrentAuthorizedTargetHead(ctx, scope, *target, category)
+	if err != nil {
+		return apperrors.NewInternal("failed to resolve unread target head")
+	}
+	if position.CreatedAt.IsZero() && position.MessageID == "" {
+		if err := runtime.PersistUnreadCutoverBaseline(ctx, scope, category, parsedChannelID.String(), position); err != nil {
+			return apperrors.NewInternal("failed to persist empty unread baseline")
+		}
 		return nil
 	}
-	return s.unread.MarkRead(ctx, userID, channelID)
+	if _, err := runtime.AdvanceAuthorizedUnreadCursor(ctx, scope, category, parsedChannelID.String(), position); err != nil {
+		return apperrors.NewInternal("failed to advance unread cursor")
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -302,4 +379,35 @@ func toChannelResponse(ch *ent.Channel) *ChannelResponse {
 		resp.ProjectID = ch.ProjectID.String()
 	}
 	return resp
+}
+
+// toRecipientChannelResponse maps one fresh authorization proof without role inference.
+func toRecipientChannelResponse(access ChannelAccess) (*ChannelResponse, error) {
+	if access.Channel == nil {
+		return nil, ErrChannelAccessDenied
+	}
+
+	projection := ExportPhase151RecipientChannelProjection(access)
+	response := toChannelResponse(access.Channel)
+	response.Capabilities = &ChannelCapabilitiesResponse{
+		IsMember:                   projection.IsMember,
+		HasActiveProjectMembership: projection.HasActiveProjectMembership,
+		CanRead:                    projection.CanRead,
+		CanPost:                    projection.CanPost,
+		CanReply:                   projection.CanReply,
+		CanJoin:                    projection.CanJoin,
+		CanFollow:                  projection.CanFollow,
+		CanUnfollow:                projection.CanUnfollow,
+		CanViewUnread:              projection.CanViewUnread,
+		CanType:                    projection.CanType,
+		CanEdit:                    projection.CanEdit,
+		CanForward:                 projection.CanForward,
+		CanReact:                   projection.CanReact,
+		CanDeleteMessage:           projection.CanDeleteMessage,
+		CanPin:                     projection.CanPin,
+		CanListPins:                projection.CanListPins,
+		CanBookmark:                projection.CanBookmark,
+		CanPromote:                 projection.CanPromote,
+	}
+	return response, nil
 }

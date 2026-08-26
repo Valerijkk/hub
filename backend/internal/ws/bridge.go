@@ -22,6 +22,8 @@ type Bridge struct {
 	nats                    *natsclient.Client
 	channelMembersResolver  ChannelMembersResolver
 	callChatAudienceResolver CallChatAudienceResolver
+	userEventAuthorizer      UserChannelEventAuthorizer
+	userEventAudience        ChannelEventAudienceResolver
 	subs                    []*nats.Subscription
 }
 
@@ -161,6 +163,31 @@ func (b *Bridge) handleMessengerEvent(msg *nats.Msg) {
 // handleMessengerUserEvent routes recipient-scoped lifecycle and notification
 // events only to the exact user-owned room.
 func (b *Bridge) handleMessengerUserEvent(msg *nats.Msg) {
+	if msg == nil {
+		return
+	}
+	if b.userEventAuthorizer != nil || b.userEventAudience != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		delivery, ok := ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(
+			ctx,
+			msg.Subject,
+			msg.Data,
+			b.userEventAuthorizer,
+			b.userEventAudience,
+		)
+		if !ok {
+			return
+		}
+		b.hub.BroadcastToRoom(delivery.Room, ServerMessage{
+			Type:    TypeEvent,
+			Event:   delivery.Event,
+			Room:    delivery.Room,
+			Payload: delivery.Identifiers,
+		})
+		return
+	}
+
 	userID, event, ok := parseMessengerUserEventSubject(msg)
 	if !ok {
 		return
@@ -178,7 +205,6 @@ func (b *Bridge) handleMessengerUserEvent(msg *nats.Msg) {
 		Payload: payload,
 	})
 }
-
 // handleCallEvent маршрутизирует NATS-события звонков в соответствующую WS-комнату канала.
 // Формат subject: calls.channel.{channelID}.{event} (started/ended/joined/left)
 // Формат room: channel:{channelID} (те же WS-комнаты что у мессенджера)

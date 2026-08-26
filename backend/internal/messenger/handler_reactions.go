@@ -231,7 +231,7 @@ func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
 		return err
 	}
 
-	counts, err := h.service.GetUnreadCounts(c.Context(), userID.String())
+	counts, err := h.service.GetUnreadResponse(c.Context(), userID.String())
 	if err != nil {
 		return err
 	}

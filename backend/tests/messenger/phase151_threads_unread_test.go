@@ -2,7 +2,9 @@ package messenger_test
 
 import (
 	"context"
+	"errors"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,6 +18,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/messenger"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/platform/middleware"
 )
 
 // The Phase 151 thread reader is allowed to inspect a member follow record
@@ -119,6 +122,25 @@ type phase151ThreadAccessResolver struct {
 	calls  []phase151ThreadAccessKey
 }
 
+var _ messenger.AuthorizedUnreadScopeResolver = (*phase151UnreadScopeFixture)(nil)
+
+type phase151UnreadScopeFixture struct {
+	scope messenger.AuthorizedUnreadScope
+	err   error
+	calls []uuid.UUID
+}
+
+func (f *phase151UnreadScopeFixture) ResolveAuthorizedUnreadScope(
+	_ context.Context,
+	userID uuid.UUID,
+) (messenger.AuthorizedUnreadScope, error) {
+	f.calls = append(f.calls, userID)
+	if f.err != nil {
+		return messenger.AuthorizedUnreadScope{}, f.err
+	}
+	return f.scope, nil
+}
+
 func (r *phase151ThreadAccessResolver) AuthorizeChannelAccess(
 	_ context.Context,
 	actorID uuid.UUID,
@@ -147,13 +169,14 @@ func phase151GrantThreadAccess(
 		TenantID:  uuid.New(),
 		Channel:   channel,
 		IsMember:  isMember,
-		CanRead:   true,
-		CanFollow: isMember,
+		CanRead:       true,
+		CanFollow:     isMember,
+		CanViewUnread: isMember,
 	}
 }
 
 func phase151ThreadRouteApp(service *messenger.MessengerService, userID uuid.UUID) *fiber.App {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
 	api := app.Group("/api")
 	auth := func(c fiber.Ctx) error {
 		c.Locals("userID", userID.String())
@@ -440,9 +463,18 @@ func TestPhase151DeletedFollowRootIsOmittedFromUnreadThreadMap(t *testing.T) {
 	repo.messages[deletedRoot.ID] = deletedRoot
 	repo.persistedThreadFollowRootIDs = []string{deletedRoot.ID}
 
-	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(
+	channelAccess := &phase151ThreadAccessResolver{grants: make(map[phase151ThreadAccessKey]messenger.ChannelAccess)}
+	unreadScope := &phase151UnreadScopeFixture{scope: messenger.AuthorizedUnreadScope{
+		TenantID: uuid.New(),
+		UserID:   memberID,
+		Targets: []messenger.AuthorizedUnreadTarget{
+			{ChannelID: channelID, Kind: "channel"},
+		},
+	}}
+	service := messenger.ExportNewMessengerServiceWithChannelAccessAndUnreadScopeTest(
 		repo,
-		&phase151ThreadAccessResolver{grants: make(map[phase151ThreadAccessKey]messenger.ChannelAccess)},
+		channelAccess,
+		unreadScope,
 	)
 	app := phase151ThreadRouteApp(service, memberID)
 	request := httptest.NewRequest(http.MethodGet, "/api/messenger/unread", http.NoBody)
@@ -464,7 +496,9 @@ func TestPhase151DeletedFollowRootIsOmittedFromUnreadThreadMap(t *testing.T) {
 	assert.NotNil(t, unread.Mentions)
 	assert.NotNil(t, unread.Threads)
 	assert.NotContains(t, unread.Threads, deletedRoot.ID)
-	assert.Equal(t, 1, repo.threadFollowRootListCalls, "unread must enumerate persisted follows before it can omit a root deleted externally")
+	assert.Equal(t, []uuid.UUID{memberID}, unreadScope.calls, "fresh PG unread scope must precede followed-root Mongo enumeration")
+	assert.Empty(t, channelAccess.calls, "ordinary ChannelAccess must not substitute for AuthorizedUnreadScope")
+	assert.Equal(t, 1, repo.threadFollowRootListCalls, "authorized unread must enumerate persisted follows before it can omit a root deleted externally")
 	assert.NotContains(t, string(body), deletedRoot.ID)
 }
 
@@ -475,4 +509,79 @@ func decodePhase151ThreadJSON(t *testing.T, response *http.Response) map[string]
 	var payload map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(body, &payload))
 	return payload
+}
+
+type phase151MessengerEraseRepository struct {
+	steps      []string
+	pullErrors []error
+}
+
+func (r *phase151MessengerEraseRepository) DeleteMessagesBySender(
+	_ context.Context, tenantID, userID uuid.UUID,
+) (int64, error) {
+	r.steps = append(r.steps, "messages:"+tenantID.String()+":"+userID.String())
+	return 3, nil
+}
+
+func (r *phase151MessengerEraseRepository) DeleteReadStatesByUser(
+	_ context.Context, tenantID, userID uuid.UUID,
+) (int64, error) {
+	r.steps = append(r.steps, "read_states:"+tenantID.String()+":"+userID.String())
+	return 4, nil
+}
+
+func (r *phase151MessengerEraseRepository) DeleteThreadFollowsByUser(
+	_ context.Context, tenantID, userID uuid.UUID,
+) (int64, error) {
+	r.steps = append(r.steps, "thread_follows:"+tenantID.String()+":"+userID.String())
+	return 5, nil
+}
+
+func (r *phase151MessengerEraseRepository) PullResolvedMentionUserID(
+	_ context.Context, tenantID, userID uuid.UUID,
+) (int64, error) {
+	r.steps = append(r.steps, "resolved_mentions:"+tenantID.String()+":"+userID.String())
+	if len(r.pullErrors) == 0 {
+		return 6, nil
+	}
+	err := r.pullErrors[0]
+	r.pullErrors = r.pullErrors[1:]
+	return 0, err
+}
+
+func TestPhase151MessengerDataErase_DeletesAllDurableUserStateAndResolvedMentions(t *testing.T) {
+	tenantID, userID := uuid.New(), uuid.New()
+	repo := &phase151MessengerEraseRepository{}
+
+	result, err := messenger.ExportPhase151EraseMessengerUserData(context.Background(), tenantID, userID, repo)
+
+	require.NoError(t, err)
+	assert.Equal(t, messenger.MessengerDataEraseResult{
+		DeletedMessages: 3, DeletedReadStates: 4, DeletedThreadFollows: 5, PulledResolvedMentions: 6,
+	}, result)
+	assert.Equal(t, []string{
+		"messages:" + tenantID.String() + ":" + userID.String(),
+		"read_states:" + tenantID.String() + ":" + userID.String(),
+		"thread_follows:" + tenantID.String() + ":" + userID.String(),
+		"resolved_mentions:" + tenantID.String() + ":" + userID.String(),
+	}, repo.steps)
+}
+
+func TestPhase151MessengerDataErase_PartialFailureIsSafeToRetryIdempotently(t *testing.T) {
+	tenantID, userID := uuid.New(), uuid.New()
+	repo := &phase151MessengerEraseRepository{pullErrors: []error{errors.New("mention cleanup unavailable")}}
+
+	_, err := messenger.ExportPhase151EraseMessengerUserData(context.Background(), tenantID, userID, repo)
+	require.Error(t, err)
+	result, err := messenger.ExportPhase151EraseMessengerUserData(context.Background(), tenantID, userID, repo)
+
+	require.NoError(t, err)
+	assert.Equal(t, int64(6), result.PulledResolvedMentions)
+	wantOneAttempt := []string{
+		"messages:" + tenantID.String() + ":" + userID.String(),
+		"read_states:" + tenantID.String() + ":" + userID.String(),
+		"thread_follows:" + tenantID.String() + ":" + userID.String(),
+		"resolved_mentions:" + tenantID.String() + ":" + userID.String(),
+	}
+	assert.Equal(t, append(append([]string{}, wantOneAttempt...), wantOneAttempt...), repo.steps)
 }

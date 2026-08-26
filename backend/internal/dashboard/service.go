@@ -30,6 +30,7 @@ type DashboardService struct {
 	repo    Repository
 	rdb     *redis.Client
 	mongoDB *mongo.Database
+	unreadSummaryProvider MessengerUnreadSummaryProvider
 }
 
 // NewDashboardService создаёт новый сервис дашбордов.
@@ -89,18 +90,12 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 		data.MyTasks = append(data.MyTasks, ts)
 	}
 
-	// Непрочитанные сообщения: Redis HGETALL (мягкая деградация — виджет не critical).
-	unreadMap, err := s.rdb.HGetAll(ctx, fmt.Sprintf("unread:%s", userID.String())).Result()
-	if err != nil && !errors.Is(err, redis.Nil) {
-		slog.Error("ошибка загрузки непрочитанных", "error", err)
+	// Непрочитанные сообщения: только durable provider с category dedup.
+	unreadSummary, err := s.MessengerUnreadSummary(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("load durable messenger unread summary: %w", err)
 	}
-	total := 0
-	for _, v := range unreadMap {
-		var n int
-		fmt.Sscanf(v, "%d", &n)
-		total += n
-	}
-	data.UnreadCount = total
+	data.UnreadCount = int(unreadSummary.UniqueMessageCount)
 
 	// Предстоящие звонки: последние активные звонки, в которых участвует
 	// текущий пользователь (creator или participant).

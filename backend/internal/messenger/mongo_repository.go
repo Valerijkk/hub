@@ -81,6 +81,11 @@ func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	if err := r.ensurePhase151DurableIndexes(ctx); err != nil {
+	slog.Error("не удалось создать Phase 151 MongoDB индексы", "error", err)
+		return err
+	}
+
 	slog.Info("MongoDB индексы для сообщений созданы")
 	return nil
 }
@@ -110,7 +115,7 @@ func (r *MongoRepository) CreateMessageIdempotent(ctx context.Context, doc *Mess
 		if _, err := r.messages().InsertOne(ctx, doc); err != nil {
 			return nil, err
 		}
-		return &CreateMessageResult{Message: doc, Created: true}, nil
+		return newCreateMessageResult(doc, true), nil
 	}
 
 	filter := bson.M{
@@ -131,7 +136,7 @@ func (r *MongoRepository) CreateMessageIdempotent(ctx context.Context, doc *Mess
 		if canonical == nil {
 			return nil, errors.New("canonical message missing after idempotent create")
 		}
-		return &CreateMessageResult{Message: canonical, Created: false}, nil
+		return newCreateMessageResult(canonical, false), nil
 	}
 
 	canonical, err := r.FindMessageByClientNonce(ctx, doc.SenderID, doc.ClientNonce)
@@ -141,7 +146,7 @@ func (r *MongoRepository) CreateMessageIdempotent(ctx context.Context, doc *Mess
 	if canonical == nil {
 		return nil, errors.New("canonical message missing after idempotent create")
 	}
-	return &CreateMessageResult{Message: canonical, Created: result.UpsertedCount == 1}, nil
+	return newCreateMessageResult(canonical, result.UpsertedCount == 1), nil
 }
 // FindMessageByClientNonce intentionally includes soft-deleted messages because the nonce remains reserved.
 func (r *MongoRepository) FindMessageByClientNonce(ctx context.Context, senderID uuid.UUID, clientNonce string) (*MessageDocument, error) {
@@ -181,7 +186,11 @@ func (r *MongoRepository) ListMessages(ctx context.Context, channelID uuid.UUID,
 
 	filter := bson.M{
 		"channel_id": channelID,
-		"thread_id":  bson.M{"$exists": false},
+		"$or": bson.A{
+			bson.M{"thread_id": bson.M{"$exists": false}},
+			bson.M{"thread_id": ""},
+			bson.M{"also_send_to_channel": true},
+		},
 		"deleted_at": nil,
 	}
 	if before != nil {

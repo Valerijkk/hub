@@ -28,7 +28,7 @@ func TestMessageClientNonceDTOPropagation(t *testing.T) {
 
 	responseJSON, err := json.Marshal(messenger.MessageResponse{ClientNonce: nonce})
 	require.NoError(t, err)
-	assert.JSONEq(t, `{"id":"","channel_id":"","sender_id":"","content_json":null,"reply_count":0,"client_nonce":"client-nonce-149","created_at":"0001-01-01T00:00:00Z"}`, string(responseJSON))
+	assert.JSONEq(t, `{"id":"","channel_id":"","sender_id":"","content_json":null,"also_send_to_channel":false,"reply_count":0,"client_nonce":"client-nonce-149","created_at":"0001-01-01T00:00:00Z"}`, string(responseJSON))
 
 	persisted, err := bson.Marshal(messenger.MessageDocument{ClientNonce: nonce})
 	require.NoError(t, err)

@@ -135,7 +135,7 @@ func (h *Handler) EditMessage(c fiber.Ctx) error {
 
 // DeleteMessage — Удалить сообщение
 // @Summary Удалить сообщение
-// @Description Удаляет сообщение из канала. Доступно автору или администратору канала.
+// @Description Удаляет сообщение из канала. Доступно автору либо owner/admin/moderator канала.
 // @Tags Мессенджер
 // @Param channelId path string true "ID канала"
 // @Param messageId path string true "ID сообщения"
@@ -222,8 +222,12 @@ func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Failure 404 {object} fiber.Error "Сообщение не найдено"
 // @Security BearerAuth
-// @Router /messages/{messageId}/promote-to-issue [post]
+// @Router /messenger/channels/{channelId}/messages/{messageId}/promote-to-issue [post]
 func (h *Handler) PromoteToIssue(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
 	messageID := parseMessageID(c)
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
@@ -238,7 +242,7 @@ func (h *Handler) PromoteToIssue(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.PromoteToIssue(c.Context(), messageID, userID, req)
+	resp, err := h.service.PromoteToIssue(c.Context(), channelID, messageID, userID, req)
 	if err != nil {
 		return err
 	}
@@ -261,6 +265,10 @@ func (h *Handler) PromoteToIssue(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /messenger/channels/{channelId}/messages/{messageId}/replies [get]
 func (h *Handler) ListThreadReplies(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
 	messageID := parseMessageID(c)
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
@@ -282,7 +290,7 @@ func (h *Handler) ListThreadReplies(c fiber.Ctx) error {
 
 	limit := queryInt(c, "limit", 50)
 
-	resp, err := h.service.ListThreadReplies(c.Context(), messageID, userID, before, limit)
+	resp, err := h.service.ListThreadReplies(c.Context(), channelID, messageID, userID, before, limit)
 	if err != nil {
 		return err
 	}

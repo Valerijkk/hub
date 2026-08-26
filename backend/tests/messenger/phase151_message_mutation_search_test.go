@@ -13,6 +13,7 @@ import (
 )
 
 var _ messenger.AuthorizedMessageSearchScopeResolver = (*phase151MessageSearchScopeFixture)(nil)
+var _ messenger.AuthorizedUnreadScopeResolver = (*phase151MessageSearchScopeFixture)(nil)
 
 type phase151MutationRepository struct {
 	*mockRepository
@@ -77,9 +78,10 @@ func (r *phase151MessageSearchRepository) SearchMessages(
 }
 
 type phase151MessageSearchScopeFixture struct {
-	scope messenger.AuthorizedMessageSearchScope
-	err   error
-	calls []uuid.UUID
+	scope            messenger.AuthorizedMessageSearchScope
+	err              error
+	calls            []uuid.UUID
+	unreadScopeCalls int
 }
 
 func (f *phase151MessageSearchScopeFixture) ResolveAuthorizedMessageSearchScope(
@@ -93,13 +95,21 @@ func (f *phase151MessageSearchScopeFixture) ResolveAuthorizedMessageSearchScope(
 	return f.scope, nil
 }
 
+func (f *phase151MessageSearchScopeFixture) ResolveAuthorizedUnreadScope(
+	_ context.Context,
+	_ uuid.UUID,
+) (messenger.AuthorizedUnreadScope, error) {
+	f.unreadScopeCalls++
+	return messenger.AuthorizedUnreadScope{}, errors.New("message search must not resolve AuthorizedUnreadScope")
+}
+
 func TestPhase151EditMessageRequiresFreshAccessBeforeMongoLookupOrMutation(t *testing.T) {
 	ctx := context.Background()
 	actorID := uuid.New()
 	channelID := uuid.New()
 	messageID := "phase151-edit-fresh-proof"
 	repo := newPhase151MutationRepository()
-	channel := &ent.Channel{ID: channelID, Type: "private"}
+	channel := &ent.Channel{ID: channelID, ChannelType: "private"}
 	repo.channels[channelID] = channel
 	repo.members[channelID] = map[uuid.UUID]*ent.ChannelMember{
 		actorID: {UserID: actorID, ChannelID: channelID},
@@ -114,12 +124,14 @@ func TestPhase151EditMessageRequiresFreshAccessBeforeMongoLookupOrMutation(t *te
 	resolver.onAuthorize = func(key phase151ChannelAccessKey) {
 		repo.operations = append(repo.operations, "pg:authorize:"+key.channelID.String())
 	}
+	editAccess := phase151ReadableAccess(channel, true)
+	editAccess.CanEdit = true
 	phase151Grant(
 		resolver,
 		actorID,
 		channel,
 		messenger.ChannelActionEditMessage,
-		phase151ReadableAccess(channel, true),
+		editAccess,
 	)
 	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repo, resolver)
 
@@ -171,8 +183,8 @@ func TestPhase151ForwardRequiresFreshSourceAndTargetProofBeforeMongo(t *testing.
 	targetChannelID := uuid.New()
 	sourceMessageID := "phase151-forward-source"
 	repo := newPhase151MutationRepository()
-	sourceChannel := &ent.Channel{ID: sourceChannelID, Type: "private"}
-	targetChannel := &ent.Channel{ID: targetChannelID, Type: "private"}
+	sourceChannel := &ent.Channel{ID: sourceChannelID, ChannelType: "private"}
+	targetChannel := &ent.Channel{ID: targetChannelID, ChannelType: "private"}
 	repo.channels[sourceChannelID] = sourceChannel
 	repo.channels[targetChannelID] = targetChannel
 	repo.members[sourceChannelID] = map[uuid.UUID]*ent.ChannelMember{actorID: {UserID: actorID, ChannelID: sourceChannelID}}
@@ -188,7 +200,9 @@ func TestPhase151ForwardRequiresFreshSourceAndTargetProofBeforeMongo(t *testing.
 	resolver.onAuthorize = func(key phase151ChannelAccessKey) {
 		repo.operations = append(repo.operations, "pg:authorize:"+key.channelID.String())
 	}
-	phase151Grant(resolver, actorID, sourceChannel, messenger.ChannelActionForwardSource, phase151ReadableAccess(sourceChannel, true))
+	sourceAccess := phase151ReadableAccess(sourceChannel, true)
+	sourceAccess.CanForward = true
+	phase151Grant(resolver, actorID, sourceChannel, messenger.ChannelActionForwardSource, sourceAccess)
 	targetAccess := phase151ReadableAccess(targetChannel, true)
 	targetAccess.CanPost = true
 	phase151Grant(resolver, actorID, targetChannel, messenger.ChannelActionForwardTarget, targetAccess)
@@ -219,14 +233,16 @@ func TestPhase151DeniedForwardTargetStopsBeforeSourceMongoLookup(t *testing.T) {
 	targetChannelID := uuid.New()
 	sourceMessageID := "phase151-denied-forward-target"
 	repo := newPhase151MutationRepository()
-	sourceChannel := &ent.Channel{ID: sourceChannelID, Type: "private"}
-	targetChannel := &ent.Channel{ID: targetChannelID, Type: "private"}
+	sourceChannel := &ent.Channel{ID: sourceChannelID, ChannelType: "private"}
+	targetChannel := &ent.Channel{ID: targetChannelID, ChannelType: "private"}
 	repo.channels[sourceChannelID] = sourceChannel
 	repo.channels[targetChannelID] = targetChannel
 	repo.messages[sourceMessageID] = &messenger.MessageDocument{ID: sourceMessageID, ChannelID: sourceChannelID, SenderID: uuid.New()}
 
 	resolver := &phase151ChannelAccessResolver{grants: make(map[phase151ChannelAccessKey]messenger.ChannelAccess)}
-	phase151Grant(resolver, actorID, sourceChannel, messenger.ChannelActionForwardSource, phase151ReadableAccess(sourceChannel, true))
+	sourceAccess := phase151ReadableAccess(sourceChannel, true)
+	sourceAccess.CanForward = true
+	phase151Grant(resolver, actorID, sourceChannel, messenger.ChannelActionForwardSource, sourceAccess)
 	service := messenger.ExportNewMessengerServiceWithChannelAccessTest(repo, resolver)
 
 	forwarded, err := service.ForwardMessage(ctx, sourceChannelID, actorID, sourceMessageID, targetChannelID.String())
@@ -247,7 +263,7 @@ func TestPhase151MessengerSearchUsesAuthorizedMessageSearchScopeOnly(t *testing.
 	userID := uuid.New()
 	publicChannelID := uuid.New()
 	memberChannelID := uuid.New()
-	projectChannelID := uuid.New()
+	activeProjectChannelID := uuid.New()
 	tenantID := uuid.New()
 	repo := newPhase151MessageSearchRepository()
 	scopeResolver := &phase151MessageSearchScopeFixture{scope: messenger.AuthorizedMessageSearchScope{
@@ -256,7 +272,8 @@ func TestPhase151MessengerSearchUsesAuthorizedMessageSearchScopeOnly(t *testing.
 		Targets: []messenger.AuthorizedMessageSearchTarget{
 			{ChannelID: publicChannelID, Kind: "channel"},
 			{ChannelID: memberChannelID, Kind: "channel"},
-			{ChannelID: projectChannelID, Kind: "channel", IsProjectChannel: true},
+			// The resolver returns this target only after fresh active ProjectMember authorization.
+			{ChannelID: activeProjectChannelID, Kind: "channel", IsProjectChannel: true},
 		},
 	}}
 	service := messenger.ExportNewMessengerServiceWithChannelAccessAndSearchScopeTest(
@@ -270,8 +287,9 @@ func TestPhase151MessengerSearchUsesAuthorizedMessageSearchScopeOnly(t *testing.
 	require.NoError(t, err)
 	assert.Empty(t, results)
 	assert.Equal(t, []uuid.UUID{userID}, scopeResolver.calls)
+	assert.Zero(t, scopeResolver.unreadScopeCalls, "message search must not derive candidates from AuthorizedUnreadScope")
 	require.Equal(t, 1, repo.searchCalls)
-	assert.Equal(t, [][]uuid.UUID{{publicChannelID, memberChannelID, projectChannelID}}, repo.searchScopes)
+	assert.Equal(t, [][]uuid.UUID{{publicChannelID, memberChannelID, activeProjectChannelID}}, repo.searchScopes)
 }
 
 func TestPhase151MessengerSearchEmptyOrDeniedScopeNeverReachesMongo(t *testing.T) {
@@ -294,6 +312,12 @@ func TestPhase151MessengerSearchEmptyOrDeniedScopeNeverReachesMongo(t *testing.T
 		"cross-tenant": {
 			err: errors.New("cross-tenant scope denied"),
 		},
+		"private-nonmember": {
+			err: errors.New("private non-member scope denied"),
+		},
+		"project-ineligible": {
+			err: errors.New("project-ineligible scope denied"),
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			repo := newPhase151MessageSearchRepository()
@@ -307,8 +331,25 @@ func TestPhase151MessengerSearchEmptyOrDeniedScopeNeverReachesMongo(t *testing.T
 
 			assert.Empty(t, results)
 			assert.Equal(t, []uuid.UUID{userID}, fixture.calls)
+			assert.Zero(t, fixture.unreadScopeCalls, "message search must not fall back to AuthorizedUnreadScope")
 			assert.Zero(t, repo.searchCalls, "empty or denied scope must not discover message candidates in Mongo")
 			assert.Empty(t, repo.searchScopes)
 		})
 	}
+}
+func TestPhase151MessengerSearchNilScopeResolverFailsClosedBeforeMongo(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	repo := newPhase151MessageSearchRepository()
+	service := messenger.ExportNewMessengerServiceWithChannelAccessAndSearchScopeTest(
+		repo,
+		phase151Deny(messenger.ChannelActionReadTimeline),
+		nil,
+	)
+
+	results, _ := service.SearchMessages(ctx, userID, "must not query Mongo", "", 20)
+
+	assert.Empty(t, results)
+	assert.Zero(t, repo.searchCalls, "a nil message-search scope resolver must fail closed before Mongo")
+	assert.Empty(t, repo.searchScopes)
 }

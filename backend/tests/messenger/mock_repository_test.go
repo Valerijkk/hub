@@ -373,7 +373,7 @@ func (m *mockRepository) ListMessages(_ context.Context, channelID uuid.UUID, _ 
 
 	var result []*messenger.MessageDocument
 	for _, doc := range m.messages {
-		if doc.ChannelID == channelID && doc.ThreadID == "" && doc.DeletedAt == nil {
+		if doc.ChannelID == channelID && (doc.ThreadID == "" || doc.AlsoSendToChannel) && doc.DeletedAt == nil {
 			result = append(result, doc)
 		}
 	}

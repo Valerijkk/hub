@@ -27,6 +27,7 @@ type SendMessageRequest struct {
 	ContentJSON     map[string]interface{} `json:"content_json" validate:"required"`
 	ContentText     string                 `json:"content_text,omitempty"`
 	ThreadID        string                 `json:"thread_id,omitempty"`
+	AlsoSendToChannel bool                   `json:"also_send_to_channel,omitempty"`
 	ClientNonce     string                 `json:"client_nonce,omitempty" validate:"omitempty,min=8,max=128"`
 	Attachments     []AttachmentRef        `json:"attachments,omitempty"`
 	Mentions        []string               `json:"mentions,omitempty"`
@@ -78,7 +79,29 @@ type CreateDMRequest struct {
 // DTO ответов
 // ---------------------------------------------------------------------------
 
-// ChannelResponse — ответ с данными канала.
+// ChannelCapabilitiesResponse carries only recipient-safe channel permissions.
+type ChannelCapabilitiesResponse struct {
+	IsMember                   bool `json:"is_member"`
+	HasActiveProjectMembership bool `json:"has_active_project_membership"`
+	CanRead                    bool `json:"can_read"`
+	CanPost                    bool `json:"can_post"`
+	CanReply                   bool `json:"can_reply"`
+	CanJoin                    bool `json:"can_join"`
+	CanFollow                  bool `json:"can_follow"`
+	CanUnfollow                bool `json:"can_unfollow"`
+	CanViewUnread              bool `json:"can_view_unread"`
+	CanType                    bool `json:"can_type"`
+	CanEdit                    bool `json:"can_edit"`
+	CanForward                 bool `json:"can_forward"`
+	CanReact                   bool `json:"can_react"`
+	CanDeleteMessage           bool `json:"can_delete_message"`
+	CanPin                     bool `json:"can_pin"`
+	CanListPins                bool `json:"can_list_pins"`
+	CanBookmark                bool `json:"can_bookmark"`
+	CanPromote                 bool `json:"can_promote"`
+}
+
+// ChannelResponse is the recipient-facing channel metadata.
 type ChannelResponse struct {
 	ID          string     `json:"id"`
 	ChannelType string     `json:"channel_type"`
@@ -91,7 +114,8 @@ type ChannelResponse struct {
 	MutedUntil  *time.Time `json:"muted_until,omitempty"`
 	Version     int        `json:"version"`
 	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	UpdatedAt    time.Time                    `json:"updated_at"`
+	Capabilities *ChannelCapabilitiesResponse `json:"capabilities,omitempty"`
 }
 
 // ChannelMemberResponse — ответ с данными участника канала.
@@ -113,6 +137,7 @@ type MessageResponse struct {
 	ContentJSON     map[string]interface{} `json:"content_json"`
 	ContentText     string                 `json:"content_text,omitempty"`
 	ThreadID        string                 `json:"thread_id,omitempty"`
+	AlsoSendToChannel bool                   `json:"also_send_to_channel"`
 	ClientNonce     string                 `json:"client_nonce,omitempty"`
 	ReplyCount      int                    `json:"reply_count"`
 	ForwardedFromID string                 `json:"forwarded_from_id,omitempty"`
@@ -169,7 +194,11 @@ type MessageDocument struct {
 	Attachments     []AttachmentRef        `bson:"attachments,omitempty"`
 	Reactions       []ReactionEntry        `bson:"reactions,omitempty"`
 	Mentions        []string               `bson:"mentions,omitempty"`
-	MentionGroups   []string               `bson:"mention_groups,omitempty"`
+	MentionGroups                   []string               `bson:"mention_groups,omitempty"`
+	AlsoSendToChannel             bool                   `bson:"also_send_to_channel"`
+	ResolvedMentionUserIDs        []uuid.UUID            `bson:"resolved_mention_user_ids,omitempty"`
+	PostCreateEffectsState        PostCreateEffectsState `bson:"post_create_effects_state,omitempty"`
+	PostCreateEffectsCompletedAt *time.Time              `bson:"post_create_effects_completed_at,omitempty"`
 	EditedAt        *time.Time             `bson:"edited_at,omitempty"`
 	DeletedAt       *time.Time             `bson:"deleted_at,omitempty"`
 	CreatedAt       time.Time              `bson:"created_at"`
@@ -244,6 +273,7 @@ func toMessageResponse(doc *MessageDocument) *MessageResponse {
 		ContentJSON:     doc.ContentJSON,
 		ContentText:     doc.ContentText,
 		ThreadID:        doc.ThreadID,
+		AlsoSendToChannel: doc.AlsoSendToChannel,
 		ClientNonce:     doc.ClientNonce,
 		ReplyCount:      doc.ReplyCount,
 		ForwardedFromID: doc.ForwardedFromID,

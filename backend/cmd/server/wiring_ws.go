@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	aimod "github.com/valerii/hub/backend/internal/ai"
+	messengermod "github.com/valerii/hub/backend/internal/messenger"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
 )
 
@@ -22,9 +23,20 @@ func wireWebSocket(d *serverDeps) {
 	go wsHub.Run(d.rootCtx)
 	d.wsHub = wsHub
 
-	wsBridge := wsmod.NewBridge(wsHub, d.nc, wsmod.ChannelMembersResolver(func(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
-		return d.messengerEntRepo.GetChannelMemberIDs(ctx, channelID)
-	}), wsmod.CallChatAudienceResolver(d.callsRepo.ListCallChatAudienceUserIDs))
+	channelAuthority := messengermod.NewWSChannelAuthority(
+		messengermod.NewPGChannelAccessResolver(d.messengerEntRepo),
+		d.messengerEntRepo,
+	)
+	channelAudience := wsmod.ChannelMembersResolver(func(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+		return channelAuthority.ResolveChannelEventAudience(ctx, channelID, "channel_event")
+	})
+	wsBridge := wsmod.NewBridgeWithMessengerUserEventGates(
+		wsHub,
+		d.nc,
+		channelAudience,
+		wsmod.CallChatAudienceResolver(d.callsRepo.ListCallChatAudienceUserIDs),
+		channelAuthority, 		channelAuthority,
+	)
 	if err := wsBridge.Start(); err != nil {
 		slog.Error("failed to start ws bridge", "error", err)
 		os.Exit(1)
@@ -38,7 +50,7 @@ func wireWebSocket(d *serverDeps) {
 	// разрешённые комнаты (членство в канале/проекте/звонке).
 	wsAuthz := wsmod.NewAuthorizer(wsmod.AuthorizerConfig{
 		IsChannelMember: func(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
-			return d.messengerEntRepo.IsMember(ctx, channelID, userID)
+			return channelAuthority.AuthorizeChannelRoom(ctx, userID, channelID)
 		},
 		// A2-007: instant (ChannelID==nil) — IsActiveParticipant; channel — member OR participant.
 		IsCallParticipantOrChannelMember: d.callsRepo.IsCallParticipantOrChannelMember,

@@ -136,7 +136,7 @@ func (c *MongoEraseRetryConsumer) processMsg(ctx context.Context, msg jetstream.
 		return
 	}
 
-	n, err := c.eraser.DeleteMessagesBySender(ctx, evt.SenderID)
+	n, err := ExportPhase151DispatchLegacyMongoEraseRetry(ctx, evt, c.eraser)
 	if err != nil {
 		slog.Error("gdpr mongo erase retry failed",
 			"error", err, "sender_id", evt.SenderID, "actor_id", evt.ActorID)

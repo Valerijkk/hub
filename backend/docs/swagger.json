@@ -4408,7 +4408,7 @@
                 }
             }
         },
-        "/messages/{messageId}/promote-to-issue": {
+        "/messenger/channels/{channelId}/messages/{messageId}/promote-to-issue": {
             "post": {
                 "security": [
                     {
@@ -4427,6 +4427,13 @@
                 ],
                 "summary": "Промоутнуть сообщение в задачу трекера",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID канала",
+                        "name": "channelId",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "ID сообщения",
@@ -4671,6 +4678,52 @@
                     },
                     "401": {
                         "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/messenger/channels/discover": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a non-paginated browse seed of up to 100 same-tenant public channels, including active project-scoped public channels.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Мессенджер"
+                ],
+                "summary": "Browse public channels",
+                "responses": {
+                    "200": {
+                        "description": "Discoverable channels",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_messenger.ChannelResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Discovery denied",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Discovery unavailable",
                         "schema": {
                             "$ref": "#/definitions/fiber.Error"
                         }
@@ -5372,7 +5425,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Удаляет сообщение из канала. Доступно автору или администратору канала.",
+                "description": "Удаляет сообщение из канала. Доступно автору либо owner/admin/moderator канала.",
                 "tags": [
                     "Мессенджер"
                 ],
@@ -6498,7 +6551,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает количество непрочитанных сообщений по каналам для текущего пользователя.",
+                "description": "Возвращает количество непрочитанных сообщений по каналам, личным сообщениям, упоминаниям и тредам для текущего пользователя.",
                 "produces": [
                     "application/json"
                 ],
@@ -6508,12 +6561,9 @@
                 "summary": "Счётчики непрочитанных",
                 "responses": {
                     "200": {
-                        "description": "Счётчики непрочитанных по каналам",
+                        "description": "Счётчики непрочитанных по каналам, личным сообщениям, упоминаниям и тредам",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "integer"
-                            }
+                            "$ref": "#/definitions/internal_messenger.UnreadResponse"
                         }
                     },
                     "401": {
@@ -19098,6 +19148,42 @@
                 "emoji": {
                     "type": "string",
                     "maxLength": 32
+                }
+            }
+        },
+        "internal_messenger.UnreadResponse": {
+            "type": "object",
+            "properties": {
+                "channels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "dms": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "mentions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "threads": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "any_unread": {
+                    "type": "boolean"
                 }
             }
         },

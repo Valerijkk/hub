@@ -5,306 +5,215 @@ package ws_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/valerii/hub/backend/internal/ws"
 )
 
-func TestBridge_HandleMessengerUserEvent_RoutesOnlyToExactUserRoom(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	hub := ws.NewHub()
-	runDone := make(chan struct{})
-	go func() {
-		hub.Run(ctx)
-		close(runDone)
-	}()
-	t.Cleanup(func() {
-		cancel()
-		select {
-		case <-runDone:
-		case <-time.After(time.Second):
-			t.Error("hub did not stop")
-		}
-	})
+type phase151UserEventAuthCall struct {
+	UserID, ChannelID uuid.UUID
+	Event             string
+}
 
-	userID := uuid.NewString()
-	foreignUserID := uuid.NewString()
-	client := ws.NewClient(userID, "session-owner")
-	foreignClient := ws.NewClient(foreignUserID, "session-foreign")
-	hub.Register(client)
-	hub.Register(foreignClient)
+type phase151UserEventAuthorizer struct {
+	allowed bool
+	err     error
+	calls   []phase151UserEventAuthCall
+}
 
-	require.Eventually(t, func() bool {
-		return ws.ExportConnectionsForUser(hub, userID) == 1 &&
-			ws.ExportConnectionsForUser(hub, foreignUserID) == 1
-	}, time.Second, time.Millisecond)
+func (r *phase151UserEventAuthorizer) AuthorizeUserChannelEvent(
+	_ context.Context, userID, channelID uuid.UUID, event string,
+) (bool, error) {
+	r.calls = append(r.calls, phase151UserEventAuthCall{userID, channelID, event})
+	return r.allowed, r.err
+}
 
-	ownerRoom := "user:" + userID
-	foreignRoom := "user:" + foreignUserID
-	hub.Subscribe(client, ownerRoom)
-	hub.Subscribe(foreignClient, foreignRoom)
-	require.Eventually(t, func() bool {
-		return ws.ExportClientInRoom(client, ownerRoom) &&
-			ws.ExportClientInRoom(foreignClient, foreignRoom)
-	}, time.Second, time.Millisecond)
+type phase151AudienceCall struct {
+	ChannelID uuid.UUID
+	Event     string
+}
 
-	channelID := uuid.NewString()
-	messageID := uuid.NewString()
-	bridge := ws.NewBridge(hub, nil, nil, nil)
-	for _, tt := range []struct {
-		name    string
-		event   string
-		data    []byte
-		payload map[string]any
-	}{
-		{
-			name:    "channel created",
-			event:   "channel_created",
-			data:    []byte(`{"channel_id":"` + channelID + `"}`),
-			payload: map[string]any{"channel_id": channelID},
-		},
-		{
-			name:    "channel updated",
-			event:   "channel_updated",
-			data:    []byte(`{"channel_id":"` + channelID + `"}`),
-			payload: map[string]any{"channel_id": channelID},
-		},
-		{
-			name:    "channel removed",
-			event:   "channel_removed",
-			data:    []byte(`{"channel_id":"` + channelID + `"}`),
-			payload: map[string]any{"channel_id": channelID},
-		},
-		{
-			name:    "new message notification",
-			event:   "new_message_notification",
-			data:    []byte(`{"channel_id":"` + channelID + `","message_id":"` + messageID + `"}`),
-			payload: map[string]any{"channel_id": channelID, "message_id": messageID},
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			ws.ExportBridgeHandleMessengerUserEvent(bridge, &nats.Msg{
-				Subject: "messenger.user." + userID + "." + tt.event,
-				Data:    tt.data,
-			})
+type phase151AudienceResolver struct {
+	recipients []uuid.UUID
+	err        error
+	calls      []phase151AudienceCall
+}
 
-			ownerMessage := receiveBridgeUserServerMessage(t, ws.ExportClientSendCh(client))
-			assert.Equal(t, ws.TypeEvent, ownerMessage.Type)
-			assert.Equal(t, tt.event, ownerMessage.Event)
-			assert.Equal(t, ownerRoom, ownerMessage.Room)
-			assert.Equal(t, tt.payload, ownerMessage.Payload)
-			assertNoBridgeUserServerMessage(t, ws.ExportClientSendCh(foreignClient))
+func (r *phase151AudienceResolver) ResolveChannelEventAudience(
+	_ context.Context, channelID uuid.UUID, event string,
+) ([]uuid.UUID, error) {
+	r.calls = append(r.calls, phase151AudienceCall{channelID, event})
+	return append([]uuid.UUID(nil), r.recipients...), r.err
+}
+
+func TestPhase151MessengerUserEvent_FreshGateTargetsOnlyCanonicalUserRoom(t *testing.T) {
+	ctx := context.Background()
+	userID, foreignID, channelID := uuid.New(), uuid.New(), uuid.New()
+	messageID, rootID := uuid.New(), uuid.New()
+	tests := []struct{ event, payload string }{
+		{"channel_created", `{"channel_id":"` + channelID.String() + `"}`},
+		{"channel_updated", `{"channel_id":"` + channelID.String() + `"}`},
+		{"new_message_notification", `{"channel_id":"` + channelID.String() + `","message_id":"` + messageID.String() + `"}`},
+		{"unread_changed", `{"channel_id":"` + channelID.String() + `","target_kind":"thread","category":"followed_thread","root_message_id":"` + rootID.String() + `"}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.event, func(t *testing.T) {
+			auth := &phase151UserEventAuthorizer{allowed: true}
+			audience := &phase151AudienceResolver{recipients: []uuid.UUID{foreignID, userID}}
+			delivery, ok := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(
+				ctx, "messenger.user."+userID.String()+"."+tt.event, []byte(tt.payload), auth, audience,
+			)
+			require.True(t, ok)
+			assert.Equal(t, userID, delivery.RecipientUserID)
+			assert.Equal(t, "user:"+userID.String(), delivery.Room)
+			assert.NotEqual(t, "user:"+userID.String()+":channels", delivery.Room)
+			assert.Equal(t, tt.event, delivery.Event)
+			assert.Equal(t, []phase151UserEventAuthCall{{userID, channelID, tt.event}}, auth.calls)
+			assert.Equal(t, []phase151AudienceCall{{channelID, tt.event}}, audience.calls)
 		})
 	}
 }
 
-func TestBridge_HandleMessengerUserEvent_DropsMalformedOrUnknownSubjectsAndPayloads(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	hub := ws.NewHub()
-	runDone := make(chan struct{})
-	go func() {
-		hub.Run(ctx)
-		close(runDone)
-	}()
-	t.Cleanup(func() {
-		cancel()
-		select {
-		case <-runDone:
-		case <-time.After(time.Second):
-			t.Error("hub did not stop")
-		}
-	})
+func TestPhase151MessengerUserEvent_ReauthorizesAfterEnqueueAndFailsClosed(t *testing.T) {
+	ctx := context.Background()
+	userID, channelID := uuid.New(), uuid.New()
+	subject := "messenger.user." + userID.String() + ".unread_changed"
+	payload := []byte(`{"channel_id":"` + channelID.String() + `","target_kind":"channel","category":"channel"}`)
+	auth := &phase151UserEventAuthorizer{allowed: true}
+	audience := &phase151AudienceResolver{recipients: []uuid.UUID{userID}}
 
-	userID := uuid.NewString()
-	client := ws.NewClient(userID, "session-owner")
-	hub.Register(client)
-	require.Eventually(t, func() bool {
-		return ws.ExportConnectionsForUser(hub, userID) == 1
-	}, time.Second, time.Millisecond)
+	_, ok := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, payload, auth, audience)
+	require.True(t, ok)
+	auth.allowed = false
+	_, ok = ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, payload, auth, audience)
+	assert.False(t, ok)
+	assert.Len(t, auth.calls, 2)
+	assert.Len(t, audience.calls, 1, "authorization denial stops before audience lookup")
+	auth.allowed, audience.recipients = true, nil
+	_, ok = ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, payload, auth, audience)
+	assert.False(t, ok)
+	assert.Len(t, auth.calls, 3)
+	assert.Len(t, audience.calls, 2, "recipient audience is resolved fresh at delivery")
+}
 
-	room := "user:" + userID
-	hub.Subscribe(client, room)
-	require.Eventually(t, func() bool {
-		return ws.ExportClientInRoom(client, room)
-	}, time.Second, time.Millisecond)
+func TestPhase151MessengerUserEvent_DependencyErrorsFailClosed(t *testing.T) {
+	ctx := context.Background()
+	userID, channelID := uuid.New(), uuid.New()
+	subject := "messenger.user." + userID.String() + ".channel_updated"
+	payload := []byte(`{"channel_id":"` + channelID.String() + `"}`)
+	auth := &phase151UserEventAuthorizer{allowed: true, err: errors.New("authority unavailable")}
+	audience := &phase151AudienceResolver{recipients: []uuid.UUID{userID}}
+	_, ok := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, payload, auth, audience)
+	assert.False(t, ok)
+	assert.Empty(t, audience.calls)
 
-	channelID := uuid.NewString()
-	messageID := uuid.NewString()
-	validLifecyclePayload := []byte(`{"channel_id":"` + channelID + `"}`)
-	validNotificationPayload := []byte(`{"channel_id":"` + channelID + `","message_id":"` + messageID + `"}`)
-	bridge := ws.NewBridge(hub, nil, nil, nil)
-	for _, tt := range []struct {
-		name    string
-		subject string
-		data    []byte
-	}{
-		{
-			name:    "wrong segment count",
-			subject: "messenger.user." + userID,
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "overlong subject",
-			subject: "messenger.user." + userID + ".channel_created.extra",
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "wrong namespace",
-			subject: "chat.user." + userID + ".channel_created",
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "wrong second segment",
-			subject: "messenger.account." + userID + ".channel_created",
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "malformed user id",
-			subject: "messenger.user.not-a-uuid.channel_created",
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "nil user id",
-			subject: "messenger.user." + uuid.Nil.String() + ".channel_created",
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "unknown suffix",
-			subject: "messenger.user." + userID + ".unknown",
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "malformed JSON",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`{"channel_id":`),
-		},
-		{
-			name:    "empty payload",
-			subject: "messenger.user." + userID + ".channel_created",
-		},
-		{
-			name:    "null payload",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`null`),
-		},
-		{
-			name:    "array payload",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`[]`),
-		},
-		{
-			name:    "lifecycle extra field",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`{"channel_id":"` + channelID + `","extra":true}`),
-		},
-		{
-			name:    "malformed channel id",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`{"channel_id":"not-a-uuid"}`),
-		},
-		{
-			name:    "nil channel id",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`{"channel_id":"` + uuid.Nil.String() + `"}`),
-		},
-		{
-			name:    "null channel id",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`{"channel_id":null}`),
-		},
-		{
-			name:    "missing channel id",
-			subject: "messenger.user." + userID + ".channel_created",
-			data:    []byte(`{}`),
-		},
-		{
-			name:    "notification extra field",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"channel_id":"` + channelID + `","message_id":"` + messageID + `","extra":true}`),
-		},
-		{
-			name:    "notification missing channel id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"message_id":"` + messageID + `"}`),
-		},
-		{
-			name:    "notification malformed channel id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"channel_id":"not-a-uuid","message_id":"` + messageID + `"}`),
-		},
-		{
-			name:    "notification nil channel id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"channel_id":"` + uuid.Nil.String() + `","message_id":"` + messageID + `"}`),
-		},
-		{
-			name:    "notification null channel id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"channel_id":null,"message_id":"` + messageID + `"}`),
-		},
-		{
-			name:    "notification missing message id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    validLifecyclePayload,
-		},
-		{
-			name:    "notification malformed message id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"channel_id":"` + channelID + `","message_id":"not-a-uuid"}`),
-		},
-		{
-			name:    "notification nil message id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"channel_id":"` + channelID + `","message_id":"` + uuid.Nil.String() + `"}`),
-		},
-		{
-			name:    "notification null message id",
-			subject: "messenger.user." + userID + ".new_message_notification",
-			data:    []byte(`{"channel_id":"` + channelID + `","message_id":null}`),
-		},
-		{
-			name:    "overlong notification subject",
-			subject: "messenger.user." + userID + ".new_message_notification.extra",
-			data:    validNotificationPayload,
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			ws.ExportBridgeHandleMessengerUserEvent(bridge, &nats.Msg{
-				Subject: tt.subject,
-				Data:    tt.data,
-			})
-			assertNoBridgeUserServerMessage(t, ws.ExportClientSendCh(client))
-		})
+	auth = &phase151UserEventAuthorizer{allowed: true}
+	audience = &phase151AudienceResolver{recipients: []uuid.UUID{userID}, err: errors.New("audience unavailable")}
+	_, ok = ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, payload, auth, audience)
+	assert.False(t, ok)
+}
+
+func TestPhase151MessengerUserEvent_ChannelRemovedIsContentFreePostRevokeException(t *testing.T) {
+	ctx := context.Background()
+	userID, channelID := uuid.New(), uuid.New()
+	auth := &phase151UserEventAuthorizer{err: errors.New("revoked")}
+	audience := &phase151AudienceResolver{err: errors.New("removed")}
+	delivery, ok := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(
+		ctx, "messenger.user."+userID.String()+".channel_removed",
+		[]byte(`{"channel_id":"`+channelID.String()+`"}`), auth, audience,
+	)
+	require.True(t, ok)
+	assert.Equal(t, userID, delivery.RecipientUserID)
+	assert.Equal(t, "user:"+userID.String(), delivery.Room)
+	assert.Equal(t, "channel_removed", delivery.Event)
+	assert.Equal(t, map[string]string{"channel_id": channelID.String()}, delivery.Identifiers)
+	assert.Empty(t, auth.calls, "removal does not imply renewed access")
+	assert.Empty(t, audience.calls, "former member is absent from current audience")
+
+	for _, extra := range []string{`"content":"secret"`, `"count":1`, `"message_id":"` + uuid.NewString() + `"`} {
+		payload := []byte(`{"channel_id":"` + channelID.String() + `",` + extra + `}`)
+		_, accepted := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(
+			ctx, "messenger.user."+userID.String()+".channel_removed", payload, auth, audience,
+		)
+		assert.False(t, accepted)
 	}
 }
 
-func TestBridge_Subjects_IncludeExactMessengerUserSubscriptionOnce(t *testing.T) {
-	bridge := ws.NewBridge(ws.NewHub(), nil, nil, nil)
-	subjects := ws.ExportBridgeSubjects(bridge)
+func TestPhase151MessengerUserEvent_UnreadChangedParserIsIdentifierOnly(t *testing.T) {
+	ctx := context.Background()
+	userID, channelID, rootID := uuid.New(), uuid.New(), uuid.New()
+	subject := "messenger.user." + userID.String() + ".unread_changed"
+	valid := []string{
+		`{"channel_id":"` + channelID.String() + `","target_kind":"channel","category":"channel"}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"thread","category":"followed_thread","root_message_id":"` + rootID.String() + `"}`,
+	}
+	for _, payload := range valid {
+		auth := &phase151UserEventAuthorizer{allowed: true}
+		audience := &phase151AudienceResolver{recipients: []uuid.UUID{userID}}
+		_, ok := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, []byte(payload), auth, audience)
+		assert.True(t, ok, payload)
+	}
 
-	assert.ElementsMatch(t, []string{
-		"project.>",
-		"auth.session.>",
-		"messenger.channel.>",
-		"messenger.user.>",
-		"calls.channel.>",
-		"calls.chat.>",
-		"notification.user.>",
-	}, subjects)
+	invalid := []string{
+		``, `null`, `[]`,
+		`{"channel_id":"` + channelID.String() + `","channel_id":"` + channelID.String() + `","target_kind":"channel","category":"channel"}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"channel","category":"channel","unknown":true}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"channel","category":"channel","content":"secret"}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"channel","category":"channel","count":1}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"thread","category":"followed_thread","root_message_id":1}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"thread","category":"followed_thread","root_message_id":null}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"thread","category":"followed_thread","root_message_id":"bad"}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"channel","category":"channel","root_message_id":"` + rootID.String() + `"}`,
+		`{"channel_id":"not-a-uuid","target_kind":"channel","category":"channel"}`,
+		`{"channel_id":"` + uuid.Nil.String() + `","target_kind":"channel","category":"channel"}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"unknown","category":"channel"}`,
+		`{"channel_id":"` + channelID.String() + `","target_kind":"channel","category":"unknown"}`,
+	}
+	for _, payload := range invalid {
+		auth := &phase151UserEventAuthorizer{allowed: true}
+		audience := &phase151AudienceResolver{recipients: []uuid.UUID{userID}}
+		_, ok := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, []byte(payload), auth, audience)
+		assert.False(t, ok, payload)
+		assert.Empty(t, auth.calls)
+		assert.Empty(t, audience.calls)
+	}
+}
 
-	messengerUserSubscriptions := 0
+func TestPhase151MessengerUserEvent_MalformedSubjectFailsBeforeDependencies(t *testing.T) {
+	ctx := context.Background()
+	userID, channelID := uuid.New(), uuid.New()
+	payload := []byte(`{"channel_id":"` + channelID.String() + `"}`)
+	subjects := []string{
+		"", "messenger.user." + userID.String(),
+		"messenger.user." + userID.String() + ".channel_updated.extra",
+		"chat.user." + userID.String() + ".channel_updated",
+		"messenger.account." + userID.String() + ".channel_updated",
+		"messenger.user.not-a-uuid.channel_updated",
+		"messenger.user." + uuid.Nil.String() + ".channel_updated",
+		"messenger.user." + userID.String() + ".unknown",
+	}
 	for _, subject := range subjects {
-		if subject == "messenger.user.>" {
-			messengerUserSubscriptions++
-		}
+		auth := &phase151UserEventAuthorizer{allowed: true}
+		audience := &phase151AudienceResolver{recipients: []uuid.UUID{userID}}
+		_, ok := ws.ExportPhase151AuthorizeAndPlanMessengerUserEventDelivery(ctx, subject, payload, auth, audience)
+		assert.False(t, ok, subject)
+		assert.Empty(t, auth.calls)
+		assert.Empty(t, audience.calls)
 	}
-	assert.Equal(t, 1, messengerUserSubscriptions)
+}
+
+func TestPhase151BridgeConstructorRequiresUserEventGates(t *testing.T) {
+	auth := &phase151UserEventAuthorizer{allowed: true}
+	audience := &phase151AudienceResolver{}
+	assert.NotPanics(t, func() { ws.ExportNewBridgeWithMessengerUserEventGatesTest(auth, audience) })
+	assert.Panics(t, func() { ws.ExportNewBridgeWithMessengerUserEventGatesTest(nil, audience) })
+	assert.Panics(t, func() { ws.ExportNewBridgeWithMessengerUserEventGatesTest(auth, nil) })
 }
 
 func receiveBridgeUserServerMessage(t *testing.T, send <-chan []byte) ws.ServerMessage {

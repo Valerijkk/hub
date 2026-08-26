@@ -101,6 +101,10 @@ func (h *Handler) ListThreadIssueLinks(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	actorID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
+	}
 	channelStr := c.Query("channel_id")
 	messageID := c.Query("message_id")
 	if channelStr == "" || messageID == "" {
@@ -110,7 +114,7 @@ func (h *Handler) ListThreadIssueLinks(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный channel_id")
 	}
-	resp, err := h.service.ListThreadIssueLinks(c.Context(), projectID, channelID, messageID)
+	resp, err := h.service.ListThreadIssueLinks(c.Context(), projectID, channelID, actorID, messageID)
 	if err != nil {
 		return err
 	}

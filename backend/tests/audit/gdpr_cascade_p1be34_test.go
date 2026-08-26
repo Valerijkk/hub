@@ -148,3 +148,64 @@ func TestDeleteUserGDPR_FilesFailAbortsHardDelete_P1BE34(t *testing.T) {
 	require.Error(t, err)
 	assert.Empty(t, repo.hardDeleted)
 }
+
+type phase151GDPRCommitOrderRepo struct {
+	gdprFullCascadeRepo
+	steps *[]string
+}
+
+func (r *phase151GDPRCommitOrderRepo) HardDeleteUser(_ context.Context, id uuid.UUID) error {
+	r.hardDeleted = append(r.hardDeleted, id)
+	*r.steps = append(*r.steps, "ent_commit:"+id.String())
+	return nil
+}
+
+func (r *phase151GDPRCommitOrderRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(r)
+}
+
+type phase151GDPRMessengerDataEraser struct {
+	steps *[]string
+	calls []uuid.UUID
+	err   error
+}
+
+func (e *phase151GDPRMessengerDataEraser) EraseMessengerUserData(
+	_ context.Context, userID uuid.UUID,
+) (audit.MessengerDataEraseResult, error) {
+	e.calls = append(e.calls, userID)
+	*e.steps = append(*e.steps, "messenger_erase:"+userID.String())
+	return audit.MessengerDataEraseResult{
+		DeletedMessages: 3, DeletedReadStates: 4, DeletedThreadFollows: 5, PulledResolvedMentions: 6,
+	}, e.err
+}
+
+func TestPhase151DeleteUserGDPR_InvokesOneFullMessengerEraseAfterEntCommit(t *testing.T) {
+	steps := []string{}
+	repo := &phase151GDPRCommitOrderRepo{steps: &steps}
+	eraser := &phase151GDPRMessengerDataEraser{steps: &steps}
+	service := audit.NewAuditService(repo, nil)
+	service.SetMessengerDataEraser(eraser)
+	targetID := uuid.New()
+
+	err := service.DeleteUserGDPR(context.Background(), uuid.New(), targetID, nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, []uuid.UUID{targetID}, eraser.calls)
+	assert.Equal(t, []string{"ent_commit:" + targetID.String(), "messenger_erase:" + targetID.String()}, steps)
+}
+
+func TestPhase151DeleteUserGDPR_MessengerEraseFailureRemainsAfterCommittedEntDelete(t *testing.T) {
+	steps := []string{}
+	repo := &phase151GDPRCommitOrderRepo{steps: &steps}
+	eraser := &phase151GDPRMessengerDataEraser{steps: &steps, err: errors.New("partial messenger erase")}
+	service := audit.NewAuditService(repo, nil)
+	service.SetMessengerDataEraser(eraser)
+	targetID := uuid.New()
+
+	err := service.DeleteUserGDPR(context.Background(), uuid.New(), targetID, nil)
+
+	require.Error(t, err)
+	assert.Equal(t, []string{"ent_commit:" + targetID.String(), "messenger_erase:" + targetID.String()}, steps)
+	assert.Equal(t, []uuid.UUID{targetID}, eraser.calls, "same full erase operation is the retry boundary")
+}

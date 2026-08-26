@@ -9,8 +9,70 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/channel"
+	"github.com/valerii/hub/backend/ent/organization"
+	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
+	"github.com/valerii/hub/backend/ent/user"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
+
+const phase151ChannelDiscoveryLimit = 100
+
+type phase151ChannelDiscoveryRepository interface {
+	ListDiscoverableChannels(context.Context, uuid.UUID, int) ([]*ent.Channel, error)
+}
+
+// ListDiscoverableChannels returns a bounded PostgreSQL-only candidate list.
+// The service applies a second fresh ChannelAccess proof before projection.
+func (r *EntRepository) ListDiscoverableChannels(
+	ctx context.Context,
+	actorID uuid.UUID,
+	limit int,
+) ([]*ent.Channel, error) {
+	if r == nil || r.client == nil || actorID == uuid.Nil || limit < 1 || limit > phase151ChannelDiscoveryLimit {
+		return nil, ErrChannelAccessDenied
+	}
+
+	tenantID, err := ExportPhase151ResolveInstanceOrganizationID(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	actorActive, err := r.client.User.Query().Where(
+		user.IDEQ(actorID),
+		user.StatusEQ(user.StatusActive),
+		user.HasOrganizationWith(organization.IDEQ(tenantID)),
+	).Exist(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("resolve active discovery actor: %w", err)
+	}
+	if !actorActive {
+		return nil, ErrChannelAccessDenied
+	}
+
+	return r.client.Channel.Query().Where(
+		channel.DeletedAtIsNil(),
+		channel.ChannelTypeEQ(channel.ChannelTypePublic),
+		channel.Or(
+			channel.And(
+				channel.ProjectIDIsNil(),
+				channel.HasCreatorWith(user.HasOrganizationWith(organization.IDEQ(tenantID))),
+			),
+			channel.And(
+				channel.ProjectIDNotNil(),
+				channel.HasProjectWith(
+					project.StatusEQ(project.StatusActive),
+					project.DeletedAtIsNil(),
+					project.HasOrganizationWith(organization.IDEQ(tenantID)),
+					project.HasMembersWith(projectmember.HasUserWith(user.IDEQ(actorID))),
+				),
+			),
+		),
+	).Order(
+		ent.Desc(channel.FieldCreatedAt),
+		ent.Desc(channel.FieldID),
+	).Limit(limit).All(ctx)
+}
 
 // CreateChannel создаёт канал и добавляет создателя как owner.
 func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, req CreateChannelRequest) (*ChannelResponse, error) {
@@ -83,12 +145,25 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 		s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, ch.ID, memberIDs)
 	}
 
-	return toChannelResponse(ch), nil
+	return s.recipientChannelResponse(ctx, userID, ch)
 }
 
 // GetChannel возвращает канал по ID.
 // HI-01: данные канала (включая DM/private) читают только участники.
 func (s *MessengerService) GetChannel(ctx context.Context, channelID, userID uuid.UUID) (*ChannelResponse, error) {
+	access, scoped, authErr := s.resolveChannelAction(
+		ctx,
+		userID,
+		channelID,
+		ChannelActionReadTimeline,
+	)
+	if authErr != nil {
+		return nil, authErr
+	}
+	if scoped {
+		return toRecipientChannelResponse(access)
+	}
+
 	isMember, err := s.repo.IsMember(ctx, channelID, userID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка проверки участия")
@@ -125,15 +200,86 @@ func (s *MessengerService) ListMyChannels(ctx context.Context, userID uuid.UUID)
 	}
 
 	result := make([]ChannelResponse, 0, len(channels))
-	for _, ch := range channels {
-		resp := toChannelResponse(ch)
-		if m, ok := membershipMap[ch.ID.String()]; ok {
+	for _, candidate := range channels {
+		access, scoped, accessErr := s.resolveChannelAction(
+			ctx,
+			userID,
+			candidate.ID,
+			ChannelActionReadTimeline,
+		)
+		if accessErr != nil {
+			continue
+		}
+
+		resp := toChannelResponse(candidate)
+		if scoped {
+			resp, accessErr = toRecipientChannelResponse(access)
+			if accessErr != nil {
+				continue
+			}
+		}
+		if m, ok := membershipMap[candidate.ID.String()]; ok {
 			resp.IsStarred = m.IsStarred
 			if m.MutedUntil != nil && m.MutedUntil.After(time.Now().UTC()) {
 				resp.MutedUntil = m.MutedUntil
 			}
 		}
 		result = append(result, *resp)
+	}
+	return result, nil
+}
+
+// DiscoverChannels returns only fresh recipient projections for public channels.
+func (s *MessengerService) DiscoverChannels(
+	ctx context.Context,
+	actorID uuid.UUID,
+) ([]ChannelResponse, error) {
+	if s == nil || s.repo == nil || actorID == uuid.Nil || s.channelAccess == nil {
+		return nil, apperrors.NewForbidden("messenger channel discovery denied")
+	}
+	discovery, ok := s.repo.(phase151ChannelDiscoveryRepository)
+	if !ok {
+		return nil, apperrors.NewInternal("messenger PostgreSQL discovery dependency is required")
+	}
+
+	candidates, err := discovery.ListDiscoverableChannels(ctx, actorID, phase151ChannelDiscoveryLimit)
+	if err != nil {
+		if errors.Is(err, ErrChannelAccessDenied) {
+			return nil, apperrors.NewForbidden("messenger channel discovery denied")
+		}
+		return nil, apperrors.NewInternal("channel discovery failed")
+	}
+
+	result := make([]ChannelResponse, 0, len(candidates))
+	for _, candidate := range candidates {
+		if candidate == nil || candidate.ID == uuid.Nil || string(candidate.ChannelType) != "public" {
+			continue
+		}
+		access, accessErr := s.channelAccess.AuthorizeChannelAccess(
+			ctx,
+			actorID,
+			candidate.ID,
+			ChannelActionReadTimeline,
+		)
+		if accessErr != nil {
+			if errors.Is(accessErr, ErrChannelAccessDenied) {
+				continue
+			}
+			return nil, apperrors.NewInternal("channel discovery authorization failed")
+		}
+		if access.TenantID == uuid.Nil ||
+			access.Channel == nil ||
+			access.Channel.ID != candidate.ID ||
+			string(access.Channel.ChannelType) != "public" ||
+			!access.CanRead ||
+			(access.Channel.ProjectID != nil && !access.HasActiveProjectMembership) {
+			continue
+		}
+		response, responseErr := toRecipientChannelResponse(access)
+		if responseErr != nil {
+			return nil, apperrors.NewInternal("channel discovery projection failed")
+		}
+		result = append(result, *response)
 	}
 	return result, nil
 }
@@ -174,7 +320,7 @@ func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID 
 	} else {
 		s.publishUserChannelLifecycleEvent(SubjectUserChannelUpdated, channelID, memberIDs)
 	}
-	return toChannelResponse(ch), nil
+	return s.recipientChannelResponse(ctx, userID, ch)
 }
 
 // DeleteChannel удаляет канал (только owner).
@@ -189,19 +335,7 @@ func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID 
 	}
 	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
 	if err != nil {
-		slog.Error("channel lifecycle member snapshot failed before delete", "error", err, "channel_id", channelID)
 		return apperrors.NewInternal("ошибка получения участников канала")
-	}
-	if s.unread != nil {
-		if len(memberIDs) > 0 {
-			strs := make([]string, len(memberIDs))
-			for i, id := range memberIDs {
-				strs[i] = id.String()
-			}
-			if cErr := s.unread.ClearChannelForUsers(ctx, channelID.String(), strs); cErr != nil {
-				slog.Error("не удалось очистить unread при удалении канала", "error", cErr, "channel_id", channelID)
-			}
-		}
 	}
 	// A3W3-2-006: сырой repo/Ent err не утекает — только AppError.
 	if err := s.repo.DeleteChannel(ctx, channelID); err != nil {
@@ -288,12 +422,6 @@ func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID u
 		return apperrors.NewInternal("ошибка выхода из канала")
 	}
 
-	// A2W3-3-003: убрать orphan unread field при leave.
-	if s.unread != nil {
-		if mErr := s.unread.MarkRead(ctx, userID.String(), channelID.String()); mErr != nil {
-			slog.Error("не удалось очистить unread при leave", "error", mErr, "channel_id", channelID)
-		}
-	}
 
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMemberLeft, channelID.String()), map[string]interface{}{
 		"channel_id": channelID,

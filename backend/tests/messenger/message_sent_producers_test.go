@@ -295,7 +295,7 @@ func TestMessageSentProducerPromotionBacklinkPublishesCanonicalNestedMessage(t *
 	service.SetIssuePromoter(fixedIssuePromoter{issueKey: "HUB-149", issueID: uuid.NewString()})
 	service.SetPromotePermissionChecker(allowPromotionChecker{})
 
-	response, err := service.PromoteToIssue(ctx, source.ID, userID, messenger.PromoteToIssueRequest{
+	response, err := service.PromoteToIssue(ctx, source.ChannelID, source.ID, userID, messenger.PromoteToIssueRequest{
 		ProjectID: uuid.NewString(),
 		Title:     "Canonical publication",
 	})
@@ -369,7 +369,7 @@ func TestMessageSentProducerUserNotificationsRemainBestEffortAndPostPersistence(
 		service.SetIssuePromoter(fixedIssuePromoter{issueKey: "HUB-149", issueID: uuid.NewString()})
 		service.SetPromotePermissionChecker(allowPromotionChecker{})
 
-		response, err := service.PromoteToIssue(ctx, source.ID, userID, messenger.PromoteToIssueRequest{
+		response, err := service.PromoteToIssue(ctx, source.ChannelID, source.ID, userID, messenger.PromoteToIssueRequest{
 			ProjectID: uuid.NewString(),
 			Title:     "Notification failure",
 		})
@@ -476,7 +476,7 @@ func TestMessageSentProducerUserNotificationsRemainBestEffortAndPostPersistence(
 		service.SetIssuePromoter(fixedIssuePromoter{issueKey: "HUB-149", issueID: uuid.NewString()})
 		service.SetPromotePermissionChecker(allowPromotionChecker{})
 
-		response, err := service.PromoteToIssue(ctx, source.ID, userID, messenger.PromoteToIssueRequest{
+		response, err := service.PromoteToIssue(ctx, source.ChannelID, source.ID, userID, messenger.PromoteToIssueRequest{
 			ProjectID: uuid.NewString(),
 			Title:     "Lookup failure promotion",
 		})
@@ -687,4 +687,28 @@ func (r *messageNotificationFailureRepository) GetChannelMemberIDs(ctx context.C
 		return append([]uuid.UUID(nil), r.getChannelMemberIDsOverride...), nil
 	}
 	return r.mockRepository.GetChannelMemberIDs(ctx, channelID)
+}
+
+func TestPhase151ExistingProducerSuiteUsesClosedPipelineAllowlist(t *testing.T) {
+	assert.ElementsMatch(t, []messenger.TrustedMessageProducer{
+		messenger.TrustedMessageProducerUser,
+		messenger.TrustedMessageProducerForward,
+		messenger.TrustedMessageProducerSystemBot,
+		messenger.TrustedMessageProducerPoll,
+		messenger.TrustedMessageProducerPromotionBacklink,
+	}, messenger.ExportPhase151TrustedMessageProducers())
+	assert.NotContains(t, messenger.ExportPhase151TrustedMessageProducers(), messenger.TrustedMessageProducer("generic"))
+}
+func TestPhase151SystemBotProducerRequiresAuthorizedBotScope(t *testing.T) {
+	command := phase151BotMongoCommand(messenger.BotMongoPathSend)
+	scope := phase151AuthorizedBotScope(command)
+	producer, ok := messenger.ExportPhase151TrustedProducerForBotScope(scope)
+	require.True(t, ok)
+	assert.Equal(t, messenger.TrustedMessageProducerSystemBot, producer)
+
+	scope.BotEnabled = false
+	_, ok = messenger.ExportPhase151TrustedProducerForBotScope(scope)
+	assert.False(t, ok)
+	_, ok = messenger.ExportPhase151TrustedProducerForBotScope(nil)
+	assert.False(t, ok)
 }

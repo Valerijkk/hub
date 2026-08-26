@@ -15,12 +15,18 @@ const bookmarkPreviewMaxRunes = 120
 // Требуется membership в канале (P1-BE-16).
 // A3W3-2-003: сообщение должно принадлежать channelID (как TogglePin).
 func (s *MessengerService) AddBookmark(ctx context.Context, userID uuid.UUID, messageID string, channelID uuid.UUID) error {
-	isMember, err := s.repo.IsMember(ctx, channelID, userID)
-	if err != nil {
-		return apperrors.NewInternal("ошибка проверки участия")
+	_, scoped, accessErr := s.resolveChannelAction(ctx, userID, channelID, ChannelActionBookmark)
+	if accessErr != nil {
+		return accessErr
 	}
-	if !isMember {
-		return apperrors.NewForbidden("вы не являетесь участником канала")
+	if !scoped {
+		isMember, membershipErr := s.repo.IsMember(ctx, channelID, userID)
+		if membershipErr != nil {
+			return apperrors.NewInternal("ошибка проверки участия")
+		}
+		if !isMember {
+			return apperrors.NewForbidden("вы не являетесь участником канала")
+		}
 	}
 
 	msg, err := s.repo.FindMessageByID(ctx, messageID)
@@ -57,10 +63,36 @@ func (s *MessengerService) ListBookmarks(ctx context.Context, userID uuid.UUID) 
 		return nil, apperrors.NewInternal("ошибка получения закладок")
 	}
 
+	// Complete fresh PG access proof for every distinct channel before any bookmark enrichment.
+	allowedChannels := make(map[uuid.UUID]bool, len(bookmarks))
+	for _, b := range bookmarks {
+		if _, checked := allowedChannels[b.ChannelID]; checked {
+			continue
+		}
+
+		_, scoped, accessErr := s.resolveChannelAction(ctx, userID, b.ChannelID, ChannelActionReadTimeline)
+		if accessErr != nil {
+			allowedChannels[b.ChannelID] = false
+			continue
+		}
+		if !scoped {
+			isMember, membershipErr := s.repo.IsMember(ctx, b.ChannelID, userID)
+			if membershipErr != nil || !isMember {
+				allowedChannels[b.ChannelID] = false
+				continue
+			}
+		}
+		allowedChannels[b.ChannelID] = true
+	}
+
 	// Кеш имён каналов — один GetChannel на уникальный channel_id.
 	channelNames := make(map[uuid.UUID]string, len(bookmarks))
 	result := make([]BookmarkResponse, 0, len(bookmarks))
 	for _, b := range bookmarks {
+		if !allowedChannels[b.ChannelID] {
+			continue
+		}
+
 		resp := BookmarkResponse{
 			ID:        b.ID.String(),
 			MessageID: b.MessageID,
@@ -80,7 +112,7 @@ func (s *MessengerService) ListBookmarks(ctx context.Context, userID uuid.UUID) 
 			}
 		}
 
-		if msg, msgErr := s.repo.FindMessageByID(ctx, b.MessageID); msgErr == nil && msg != nil {
+		if msg, msgErr := s.repo.FindMessageByID(ctx, b.MessageID); msgErr == nil && msg != nil && msg.ChannelID == b.ChannelID {
 			resp.ContentPreview = truncateRunes(msg.ContentText, bookmarkPreviewMaxRunes)
 		}
 

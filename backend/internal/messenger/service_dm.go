@@ -26,7 +26,7 @@ func (s *MessengerService) CreateOrGetDM(ctx context.Context, userID, targetUser
 	existing, err := s.repo.FindDMChannel(ctx, dmKey)
 	if err == nil {
 		if existing != nil {
-			return toChannelResponse(existing), nil
+			return s.recipientChannelResponse(ctx, userID, existing)
 		}
 	} else if !ent.IsNotFound(err) {
 		return nil, apperrors.NewInternal("ошибка поиска DM канала")
@@ -53,5 +53,5 @@ func (s *MessengerService) CreateOrGetDM(ctx context.Context, userID, targetUser
 	}
 
 	s.publishUserChannelLifecycleEvent(SubjectUserChannelCreated, ch.ID, []uuid.UUID{userID, targetUserID})
-	return toChannelResponse(ch), nil
+	return s.recipientChannelResponse(ctx, userID, ch)
 }
