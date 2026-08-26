@@ -358,7 +358,7 @@ func wireCalendarMail(d *serverDeps) {
 	if err := mailboxOAuthHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	mailboxMessageService, err := mailmod.NewMailboxMessageService(mailboxSvc, mailboxRepo, mailboxEngine)
+	mailboxMessageService, err := mailmod.NewMailboxMessageService(mailboxSvc, mailboxRepo, mailboxEngine, mailboxRepo)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}

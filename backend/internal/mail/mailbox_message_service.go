@@ -17,17 +17,18 @@ var _ MailboxMessageReadEngine = (*StalwartEngine)(nil)
 
 // MailboxMessageService owner-gates one bounded engine body read against a sealed local projection.
 type MailboxMessageService struct {
-	owners     mailboxOwnerResolver
-	repository MailboxMessageRepository
-	engine     MailboxMessageReadEngine
+	owners      mailboxOwnerResolver
+	repository  MailboxMessageRepository
+	engine      MailboxMessageReadEngine
+	correlation MailboxCalendarCorrelationResolver
 }
 
 // NewMailboxMessageService creates the safe public message-detail service.
-func NewMailboxMessageService(owners mailboxOwnerResolver, repository MailboxMessageRepository, engine MailboxMessageReadEngine) (*MailboxMessageService, error) {
-	if mailboxFolderProjectionDependencyNil(owners) || mailboxFolderProjectionDependencyNil(repository) || mailboxFolderProjectionDependencyNil(engine) {
+func NewMailboxMessageService(owners mailboxOwnerResolver, repository MailboxMessageRepository, engine MailboxMessageReadEngine, correlation MailboxCalendarCorrelationResolver) (*MailboxMessageService, error) {
+	if mailboxFolderProjectionDependencyNil(owners) || mailboxFolderProjectionDependencyNil(repository) || mailboxFolderProjectionDependencyNil(engine) || mailboxCalendarCorrelationResolverNil(correlation) {
 		return nil, mailboxMessageReadError(MailboxMessageReadErrorInvalid)
 	}
-	return &MailboxMessageService{owners: owners, repository: repository, engine: engine}, nil
+	return &MailboxMessageService{owners: owners, repository: repository, engine: engine, correlation: correlation}, nil
 }
 
 // GetMailboxMessage returns local safe metadata plus one normalized, owner-bound engine body.
@@ -78,6 +79,27 @@ func (service *MailboxMessageService) GetMailboxMessage(ctx context.Context, act
 	if err != nil {
 		return MailboxMessageDetail{}, err
 	}
+	correlationRequest, err := NewMailboxCalendarCorrelationRequest(scope.ActorID, scope.OrganizationID, scope.AccountID, snapshot.summary.ID)
+	if err != nil {
+		return MailboxMessageDetail{}, mailboxMessageReadError(MailboxMessageReadErrorUnavailable)
+	}
+	correlation, err := ResolveMailboxCalendarCorrelation(ctx, service.correlation, correlationRequest)
+	if err != nil {
+		if kind, ok := MailboxCalendarCorrelationErrorKindOf(err); ok {
+			switch kind {
+			case MailboxCalendarCorrelationErrorKindNotFound,
+				MailboxCalendarCorrelationErrorKindStale,
+				MailboxCalendarCorrelationErrorKindAmbiguous:
+				return mailboxMessageDetailCopy(detail), nil
+			}
+		}
+		return MailboxMessageDetail{}, mailboxMessageReadError(MailboxMessageReadErrorUnavailable)
+	}
+	if !correlation.valid() || !correlation.Matches(correlationRequest) {
+		return MailboxMessageDetail{}, mailboxMessageReadError(MailboxMessageReadErrorUnavailable)
+	}
+	calendarEventID := correlation.CalendarEventID()
+	detail.CalendarEventID = &calendarEventID
 	return mailboxMessageDetailCopy(detail), nil
 }
 
@@ -164,7 +186,7 @@ func mailboxMessageDetailFromSnapshot(snapshot MailboxMessageSnapshot, content M
 		Priority: summary.Priority, SizeBytes: summary.SizeBytes, HasAttachments: summary.HasAttachments,
 		IsDraft: summary.IsDraft, FolderIDs: summary.FolderIDs, Seen: summary.Seen, Flagged: summary.Flagged,
 		Answered: summary.Answered, Junk: summary.Junk, CalendarMethod: summary.CalendarMethod,
-		CalendarEventID: summary.CalendarEventID, PlainBody: content.PlainBody, SanitizedHTML: sanitizedHTML,
+		CalendarEventID: nil, PlainBody: content.PlainBody, SanitizedHTML: sanitizedHTML,
 		RemoteImagesBlocked: true, Attachments: make([]MailboxMessageAttachment, len(snapshot.attachments)), Calendar: nil,
 	}
 	for index, attachment := range snapshot.attachments {
