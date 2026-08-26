@@ -1,4 +1,11 @@
 ---
+mail_calendar_inbound_invite_02b3_2026_08_26: >-
+  SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+  The decomposed 147-02B optional transaction port now binds the server
+  authorization to the already-locked inbound-message receipt and the same
+  live EventTransaction. Resolve and persist each execute once, clone every
+  boundary value, reject typed-nil capabilities and require outcome/outbox
+  echo without opening a transaction or completing a receipt.
 mail_calendar_inbound_invite_02b2b_2026_08_26: >-
   SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
   The decomposed 147-02B persistence result now proves outcome echo, persisted

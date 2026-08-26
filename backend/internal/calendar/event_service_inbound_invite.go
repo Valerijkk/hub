@@ -1,6 +1,9 @@
 package calendar
 
 import (
+	"context"
+	"reflect"
+
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/ical"
 )
@@ -349,4 +352,179 @@ func (result CalendarInboundInvitePersistenceResult) clone() (
 		result.materialChanged,
 		result.outboxPersisted,
 	)
+}
+
+type CalendarInboundInviteTransactionBackend interface {
+	ResolveCalendarInboundInvite(
+		context.Context,
+		CalendarInboundMessageScope,
+		ITIPIdentity,
+	) (CalendarInboundInviteAuthorization, error)
+
+	PersistCalendarInboundInvite(
+		context.Context,
+		CalendarInboundInviteScope,
+		CalendarInboundInvitePersistenceCommand,
+	) (CalendarInboundInvitePersistenceResult, error)
+}
+
+type CalendarInboundInviteScope struct {
+	messageScope  CalendarInboundMessageScope
+	authorization CalendarInboundInviteAuthorization
+	transaction   *EventTransaction
+}
+
+func (scope CalendarInboundInviteScope) isBoundTo(
+	transaction *EventTransaction,
+) bool {
+	return transaction != nil &&
+		scope.transaction == transaction &&
+		scope.messageScope.isBoundTo(transaction) &&
+		scope.authorization.valid()
+}
+
+func (transaction *EventTransaction) ResolveCalendarInboundInvite(
+	ctx context.Context,
+	messageScope CalendarInboundMessageScope,
+	identity ITIPIdentity,
+) (CalendarInboundInviteScope, error) {
+	if transaction == nil {
+		return CalendarInboundInviteScope{}, ErrEventTransactionClosed
+	}
+	if ctx == nil ||
+		!messageScope.isBoundTo(transaction) ||
+		!validCalendarInboundInviteIdentity(identity) {
+		return CalendarInboundInviteScope{}, ErrEventInvalid
+	}
+
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+
+	if !transaction.active {
+		return CalendarInboundInviteScope{}, ErrEventTransactionClosed
+	}
+
+	backend, ok := transaction.backend.(CalendarInboundInviteTransactionBackend)
+	if !ok || calendarInboundInviteTransactionBackendTypedNil(backend) {
+		return CalendarInboundInviteScope{}, ErrEventInvalid
+	}
+
+	authorization, err := backend.ResolveCalendarInboundInvite(
+		ctx,
+		messageScope,
+		identity,
+	)
+	if err != nil {
+		return CalendarInboundInviteScope{}, err
+	}
+	if !authorization.valid() {
+		return CalendarInboundInviteScope{}, ErrEventInvalid
+	}
+
+	authorization, err = authorization.clone()
+	if err != nil {
+		return CalendarInboundInviteScope{}, ErrEventInvalid
+	}
+
+	return CalendarInboundInviteScope{
+		messageScope:  messageScope,
+		authorization: authorization,
+		transaction:   transaction,
+	}, nil
+}
+
+func (transaction *EventTransaction) PersistCalendarInboundInvite(
+	ctx context.Context,
+	scope CalendarInboundInviteScope,
+	command CalendarInboundInvitePersistenceCommand,
+) (CalendarInboundInvitePersistenceResult, error) {
+	if transaction == nil {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventTransactionClosed
+	}
+	if ctx == nil || !scope.isBoundTo(transaction) || !command.valid() {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+
+	if !transaction.active {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventTransactionClosed
+	}
+
+	backend, ok := transaction.backend.(CalendarInboundInviteTransactionBackend)
+	if !ok || calendarInboundInviteTransactionBackendTypedNil(backend) {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+
+	clonedCommand, err := command.clone()
+	if err != nil {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+
+	clonedAuthorization, err := scope.authorization.clone()
+	if err != nil {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+
+	clonedScope := CalendarInboundInviteScope{
+		messageScope:  scope.messageScope,
+		authorization: clonedAuthorization,
+		transaction:   transaction,
+	}
+
+	result, err := backend.PersistCalendarInboundInvite(
+		ctx,
+		clonedScope,
+		clonedCommand,
+	)
+	if err != nil {
+		return CalendarInboundInvitePersistenceResult{}, err
+	}
+	if !result.valid() ||
+		result.Outcome() != command.Outcome() ||
+		(result.MaterialChanged() && command.OutboxEnvelopeID() == uuid.Nil) {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+
+	clonedResult, err := result.clone()
+	if err != nil {
+		return CalendarInboundInvitePersistenceResult{}, ErrEventInvalid
+	}
+	return clonedResult, nil
+}
+
+func validCalendarInboundInviteIdentity(identity ITIPIdentity) bool {
+	if identity.CanonicalVersion != ical.CanonicalITIPVersion ||
+		(identity.Method != ITIPMethodRequest &&
+			identity.Method != ITIPMethodCancel) ||
+		identity.Sequence < 0 ||
+		identity.Sequence > ical.MaxITIPSequence {
+		return false
+	}
+	if err := ical.ValidateITIPUID(identity.UID); err != nil {
+		return false
+	}
+	if !identity.HasRecurrenceID {
+		return identity.RecurrenceID == ""
+	}
+	return identity.RecurrenceID != "" &&
+		validCalendarInboundRecurrenceID(identity.RecurrenceID)
+}
+
+func calendarInboundInviteTransactionBackendTypedNil(
+	backend CalendarInboundInviteTransactionBackend,
+) bool {
+	if backend == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(backend)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
+		reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }

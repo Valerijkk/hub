@@ -1,5 +1,16 @@
 # Hub Mail contract changelog
 
+## 2026-08-26 - Inbound invite transaction capability
+
+SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
+
+The decomposed 147-02B optional transaction capability now resolves Calendar
+authorization only from the already-bound message receipt and persists only
+inside the same live EventTransaction. Typed-nil backends fail closed; command,
+authorization and result boundaries are cloned, and outcome/material outbox
+echo is validated. The capability neither opens a transaction nor completes
+the inbound receipt.
+
 ## 2026-08-26 - Inbound invite persistence result
 
 SOURCE_AUTHORED / INDEPENDENT_REVIEW_PASS_C_I_M_0_0_0 / RUNTIME_NOT_RUN.
