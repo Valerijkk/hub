@@ -1,4 +1,22 @@
 ---
+mail_reply_all_http_boundary_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN for
+  `backend/internal/mail/mailbox_reply_all_draft_handler.go` blob
+  `76ad80d3444beb749b660df2c1f9952b84f92c8f`. The isolated authenticated
+  `POST /api/mail/messages/:messageId/reply-all-draft` boundary reuses the
+  existing strict Reply JSON, canonical UUID, query rejection, safe error,
+  active linked-draft response and 201 contracts. It accepts no client
+  recipients, mode, threading headers or body content and invokes only the
+  owner-authorizing Reply All service once. Existing Reply and Forward routes
+  are unchanged. Independent exact-source lifecycle review used the frozen
+  gofmt source supplied in-message; runtime remained separate. OpenAPI, server
+  composition and frontend action/locales remain pending. Tests/build/lint/
+  Docker/runtime are NOT_RUN; this is not product, Docker or merge readiness.
+  `provenance_source: dispatcher-enforced`; implementation Terra/xhigh;
+  reviews Contract/high, Security/xhigh and Lifecycle/high; no fallback;
+  telemetry UNKNOWN.
 mail_reply_all_ent_identity_proof_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
