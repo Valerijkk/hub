@@ -618,10 +618,18 @@ export async function getAllMailIdentities(
 	throw new Error("Mail identity pagination exceeded bounds");
 }
 
-export type MailLinkedDraftKind = "reply" | "forward";
+export type MailLinkedDraftKind = "reply" | "reply_all" | "forward";
 
 export interface MailReplyDraftIntent {
 	readonly kind: "reply";
+	readonly sourceMessageID: string;
+	readonly draftClientID: string;
+	readonly fromIdentityID: string;
+	readonly idempotencyKey: string;
+}
+
+export interface MailReplyAllDraftIntent {
+	readonly kind: "reply_all";
 	readonly sourceMessageID: string;
 	readonly draftClientID: string;
 	readonly fromIdentityID: string;
@@ -661,6 +669,23 @@ export function createMailReplyDraftIntent(
 	});
 }
 
+export function createMailReplyAllDraftIntent(
+	sourceMessageID: string,
+	fromIdentityID: string,
+): MailReplyAllDraftIntent {
+	const normalizedFromIdentityID = normalizeMailUUID(fromIdentityID);
+	if (normalizedFromIdentityID === null) {
+		throw new Error("Invalid mail identity ID");
+	}
+	return Object.freeze({
+		kind: "reply_all" as const,
+		sourceMessageID: normalizeMailMessageID(sourceMessageID),
+		draftClientID: createMailLinkedDraftUUID(),
+		fromIdentityID: normalizedFromIdentityID,
+		idempotencyKey: createMailLinkedDraftUUID(),
+	});
+}
+
 function mailReplyDraftString(value: unknown): value is string {
 	return typeof value === "string" && value.length <= 8_388_608;
 }
@@ -691,7 +716,7 @@ function mailReplyDraftAddressesEmpty(value: unknown): boolean {
 
 function mailReplyDraftResponseMatches(
 	value: unknown,
-	intent: MailReplyDraftIntent,
+	intent: MailReplyDraftIntent | MailReplyAllDraftIntent,
 ): value is MailDraft {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
 		return false;
@@ -746,6 +771,29 @@ export async function createMailReplyDraft(
 		!mailReplyDraftResponseMatches(response.data, intent)
 	) {
 		throw new Error("Invalid mail reply draft response");
+	}
+	return response.data;
+}
+
+export async function createMailReplyAllDraft(
+	intent: MailReplyAllDraftIntent,
+): Promise<MailDraft> {
+	if (intent.kind !== "reply_all") {
+		throw new Error("Invalid mail reply all draft intent");
+	}
+	const response = await api.postWithResponse<unknown>(
+		`/mail/messages/${encodeURIComponent(intent.sourceMessageID)}/reply-all-draft`,
+		{
+			draft_client_id: intent.draftClientID,
+			from_identity_id: intent.fromIdentityID,
+		},
+		{ idempotencyKey: intent.idempotencyKey },
+	);
+	if (
+		response.status !== 201 ||
+		!mailReplyDraftResponseMatches(response.data, intent)
+	) {
+		throw new Error("Invalid mail reply all draft response");
 	}
 	return response.data;
 }

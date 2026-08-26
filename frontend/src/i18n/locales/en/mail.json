@@ -215,13 +215,15 @@
 			"retryWait": "Retry in {{seconds}} s"
 		},
 		"draftActions": {
-			"label": "Reply or forward",
+			"label": "Reply, reply all, or forward",
 			"identity": "From",
 			"identityLoading": "Loading sender…",
 			"identityUnavailable": "No sending address is available.",
 			"reply": "Reply",
+			"replyAll": "Reply all",
 			"forward": "Forward",
 			"creatingReply": "Creating reply…",
+			"creatingReplyAll": "Creating reply all…",
 			"creatingForward": "Creating forward…",
 			"busy": "Mail is temporarily busy. Retry {{action}} in {{seconds}} s.",
 			"conflict": "{{action}} cannot be repeated safely. Start it again.",

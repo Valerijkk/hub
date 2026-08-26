@@ -1,4 +1,26 @@
 ---
+mail_reply_all_frontend_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_ACCESSIBILITY_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Exact blobs: frontend API
+  `7d327a49c0ab9ca170bdd09e9a6d4a03a927ed83`, action component
+  `91ab6c6717ad79c723dcefed46b5d447c5e27970`, EN locale
+  `6cec66f994f6f059b16d62844c6cbfda651345c6`, and RU locale
+  `8e532d488bc8b935f77696e983e0aa3dfe72ee95`. Frontend adds a
+  discriminated Reply All intent/client for authenticated
+  `POST /api/mail/messages/:messageId/reply-all-draft`, sends only
+  `draft_client_id` and `from_identity_id`, and strictly validates the
+  reply-linked 201 response. It preserves the same intent IDs across bounded
+  busy retry and never auto-retries conflict or unknown outcomes. Reader
+  buttons remain ordered Reply / Reply All / Forward with localized EN/RU
+  copy in a named `role=group`; existing Reply and Forward are unchanged.
+  Recipients remain server-derived and the client never sends To/CC/BCC.
+  This supersedes older adjacent frontend API/action/locales-pending clauses
+  only for Reply All frontend. Tests/build/lint/validators/Docker/runtime are
+  NOT_RUN; this is not product, Docker or merge readiness.
+  `provenance_source: dispatcher-enforced`; implementation Terra/xhigh;
+  reviews Contract/high, Security/high and Accessibility/high; no fallback;
+  telemetry UNKNOWN.
 mail_reply_all_production_composition_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /

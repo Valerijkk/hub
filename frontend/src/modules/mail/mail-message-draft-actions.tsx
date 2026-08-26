@@ -5,11 +5,14 @@ import type { ApiError } from "@/api/client";
 import {
 	createMailForwardDraft,
 	createMailForwardDraftIntent,
+	createMailReplyAllDraft,
+	createMailReplyAllDraftIntent,
 	createMailReplyDraft,
 	createMailReplyDraftIntent,
 	getAllMailIdentities,
 	type MailForwardDraftIntent,
 	type MailLinkedDraftKind,
+	type MailReplyAllDraftIntent,
 	type MailReplyDraftIntent,
 } from "@/api/mail";
 import { Button } from "@/components/ui/button";
@@ -22,7 +25,10 @@ import {
 } from "@/components/ui/select";
 import { useMailComposerContext } from "./mail-composer-context";
 
-type MailLinkedDraftIntent = MailReplyDraftIntent | MailForwardDraftIntent;
+type MailLinkedDraftIntent =
+	| MailReplyDraftIntent
+	| MailReplyAllDraftIntent
+	| MailForwardDraftIntent;
 type MailDraftActionNoticeKind = "busy" | "conflict" | "unavailable" | "unknown";
 
 interface MailDraftActionNotice {
@@ -48,15 +54,25 @@ function mailDraftActionRetryAfterSeconds(error: unknown): number {
 }
 
 function draftActionLabelKey(kind: MailLinkedDraftKind): string {
-	return kind === "reply"
-		? "reader.draftActions.reply"
-		: "reader.draftActions.forward";
+	switch (kind) {
+		case "reply":
+			return "reader.draftActions.reply";
+		case "reply_all":
+			return "reader.draftActions.replyAll";
+		case "forward":
+			return "reader.draftActions.forward";
+	}
 }
 
 function draftActionCreatingKey(kind: MailLinkedDraftKind): string {
-	return kind === "reply"
-		? "reader.draftActions.creatingReply"
-		: "reader.draftActions.creatingForward";
+	switch (kind) {
+		case "reply":
+			return "reader.draftActions.creatingReply";
+		case "reply_all":
+			return "reader.draftActions.creatingReplyAll";
+		case "forward":
+			return "reader.draftActions.creatingForward";
+	}
 }
 
 export function MailMessageDraftActions({
@@ -126,10 +142,16 @@ export function MailMessageDraftActions({
 		setCreatingKind(nextIntent.kind);
 		setNotice(null);
 		try {
-			const draft =
-				nextIntent.kind === "reply"
-					? await createMailReplyDraft(nextIntent)
-					: await createMailForwardDraft(nextIntent);
+			const draft = await (async () => {
+				switch (nextIntent.kind) {
+					case "reply":
+						return createMailReplyDraft(nextIntent);
+					case "reply_all":
+						return createMailReplyAllDraft(nextIntent);
+					case "forward":
+						return createMailForwardDraft(nextIntent);
+				}
+			})();
 			setIntent(null);
 			setRetryAvailableAt(null);
 			openLinkedDraft(draft);
@@ -165,10 +187,19 @@ export function MailMessageDraftActions({
 			return;
 		}
 		try {
-			const nextIntent =
-				kind === "reply"
-					? createMailReplyDraftIntent(messageID, selectedIdentity.id)
-					: createMailForwardDraftIntent(messageID, selectedIdentity.id);
+			const nextIntent = (() => {
+				switch (kind) {
+					case "reply":
+						return createMailReplyDraftIntent(messageID, selectedIdentity.id);
+					case "reply_all":
+						return createMailReplyAllDraftIntent(
+							messageID,
+							selectedIdentity.id,
+						);
+					case "forward":
+						return createMailForwardDraftIntent(messageID, selectedIdentity.id);
+				}
+			})();
 			void execute(nextIntent);
 		} catch {
 			setNotice({ kind: "unavailable", intentKind: kind });
@@ -193,6 +224,7 @@ export function MailMessageDraftActions({
 	return (
 		<div
 			className="mt-3 flex flex-wrap items-center gap-2"
+			role="group"
 			aria-label={t("reader.draftActions.label")}
 		>
 			{sendableIdentities.length > 1 ? (
@@ -220,7 +252,7 @@ export function MailMessageDraftActions({
 					</SelectContent>
 				</Select>
 			) : null}
-			{(["reply", "forward"] as const).map((kind) => (
+			{(["reply", "reply_all", "forward"] as const).map((kind) => (
 				<Button
 					key={kind}
 					variant="outline"
