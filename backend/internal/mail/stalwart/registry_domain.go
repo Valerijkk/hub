@@ -196,12 +196,13 @@ func parseRegistryDomainQuery(response JMAPResponse) ([]string, error) {
 		return nil, err
 	}
 	var payload struct {
+		AccountID           string   `json:"accountId"`
 		QueryState          string   `json:"queryState"`
 		CanCalculateChanges *bool    `json:"canCalculateChanges"`
 		Position            *int     `json:"position"`
 		IDs                 []string `json:"ids"`
 	}
-	if !decodeRegistryDomainArguments(arguments, &payload) || !validOpaque(payload.QueryState) || payload.CanCalculateChanges == nil || payload.Position == nil || *payload.Position != 0 || payload.IDs == nil || len(payload.IDs) > 2 {
+	if !decodeRegistryDomainArguments(arguments, &payload) || !validOpaque(payload.AccountID) || !validOpaque(payload.QueryState) || payload.CanCalculateChanges == nil || payload.Position == nil || *payload.Position != 0 || payload.IDs == nil || len(payload.IDs) > 2 {
 		return nil, ErrProtocol
 	}
 	seen := make(map[string]struct{}, len(payload.IDs))
@@ -223,12 +224,13 @@ func parseRegistryDomainCreate(response JMAPResponse) (string, error) {
 		return "", err
 	}
 	var payload struct {
+		AccountID  string                     `json:"accountId"`
 		OldState   string                     `json:"oldState"`
 		NewState   string                     `json:"newState"`
 		Created    map[string]struct{ ID string `json:"id"` } `json:"created"`
 		NotCreated map[string]json.RawMessage `json:"notCreated"`
 	}
-	if !decodeRegistryDomainArguments(arguments, &payload) {
+	if !decodeRegistryDomainArguments(arguments, &payload) || !validOpaque(payload.AccountID) {
 		return "", ErrProtocol
 	}
 	if !validOpaque(payload.OldState) || !validOpaque(payload.NewState) || payload.OldState == payload.NewState {
@@ -253,8 +255,9 @@ func parseRegistryLocalDomain(response JMAPResponse, id, name string) (string, e
 		return "", err
 	}
 	var payload struct {
-		State string `json:"state"`
-		List []struct {
+		AccountID string `json:"accountId"`
+		State     string `json:"state"`
+		List      []struct {
 			ID            string `json:"id"`
 			Name          string `json:"name"`
 			IsEnabled     *bool  `json:"isEnabled"`
@@ -262,7 +265,7 @@ func parseRegistryLocalDomain(response JMAPResponse, id, name string) (string, e
 		} `json:"list"`
 		NotFound []string `json:"notFound"`
 	}
-	if !decodeRegistryDomainArguments(arguments, &payload) || !validOpaque(payload.State) || payload.List == nil || len(payload.List) != 1 || len(payload.NotFound) != 0 {
+	if !decodeRegistryDomainArguments(arguments, &payload) || !validOpaque(payload.AccountID) || !validOpaque(payload.State) || payload.List == nil || len(payload.List) != 1 || len(payload.NotFound) != 0 {
 		return "", ErrProtocol
 	}
 	domain := payload.List[0]

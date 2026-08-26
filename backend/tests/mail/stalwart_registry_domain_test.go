@@ -83,6 +83,26 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 			wantCalls: 1,
 		},
 		{
+			name:   "empty registry response account id is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{{
+				want: registryDomainQueryRequest(localRegistryDomain),
+				response: `{"methodResponses":[["x:Domain/query",{"accountId":"","queryState":"query-state","canCalculateChanges":false,"position":0,"ids":[]},"domain-query"]]}`,
+			}},
+			wantErr:   stalwart.ErrProtocol,
+			wantCalls: 1,
+		},
+		{
+			name:   "oversize registry response account id is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{{
+				want: registryDomainQueryRequest(localRegistryDomain),
+				response: registryDomainOversizeAccountIDQueryResponse(),
+			}},
+			wantErr:   stalwart.ErrProtocol,
+			wantCalls: 1,
+		},
+		{
 			name:   "duplicate domain query is rejected",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{
@@ -199,6 +219,7 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 func registryDomainQueryReply(ids []string) registryDomainReply {
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/query", map[string]any{
+			"accountId":           "0",
 			"queryState":          "query-state",
 			"canCalculateChanges": false,
 			"position":            0,
@@ -211,6 +232,7 @@ func registryDomainQueryReply(ids []string) registryDomainReply {
 func registryDomainGetReply(id, name string, isEnabled, allowRelaying bool) registryDomainReply {
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/get", map[string]any{
+			"accountId": "0",
 			"state": "get-state",
 			"list": []any{map[string]any{
 				"id":            id,
@@ -227,6 +249,7 @@ func registryDomainGetReply(id, name string, isEnabled, allowRelaying bool) regi
 func registryDomainCreateReply(id string) registryDomainReply {
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/set", map[string]any{
+			"accountId": "0",
 			"oldState": "set-state-before",
 			"newState": "set-state-after",
 			"created":  map[string]any{"create-local-domain": map[string]any{"id": id}},
@@ -238,14 +261,28 @@ func registryDomainCreateReply(id string) registryDomainReply {
 func registryDomainNotCreatedReply() registryDomainReply {
 	return registryDomainReply{
 		want: registryDomainCreateRequest(localRegistryDomain),
-		response: `{"methodResponses":[["x:Domain/set",{"oldState":"set-state-before","newState":"set-state-after","notCreated":{"create-local-domain":{"type":"invalidProperties","detail":"must never surface"}}},"domain-set"]]}`,
+		response: `{"methodResponses":[["x:Domain/set",{"accountId":"0","oldState":"set-state-before","newState":"set-state-after","notCreated":{"create-local-domain":{"type":"invalidProperties","detail":"must never surface"}}},"domain-set"]]}`,
 	}
 }
 
 func registryDomainOversizeQueryResponse() string {
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/query", map[string]any{
+			"accountId":           "0",
 			"queryState":          strings.Repeat("q", 17<<10),
+			"canCalculateChanges": false,
+			"position":            0,
+			"ids":                 []string{},
+		}, "domain-query"}},
+	})
+	return string(payload)
+}
+
+func registryDomainOversizeAccountIDQueryResponse() string {
+	payload, _ := json.Marshal(map[string]any{
+		"methodResponses": []any{[]any{"x:Domain/query", map[string]any{
+			"accountId":           strings.Repeat("a", 1025),
+			"queryState":          "query-state",
 			"canCalculateChanges": false,
 			"position":            0,
 			"ids":                 []string{},
