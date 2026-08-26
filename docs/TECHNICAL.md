@@ -1291,6 +1291,13 @@ backend/internal/
 - The frontend channel hook is a pure cache observer; `useMessengerChannelsRealtime` in `MessengerLayout` is the sole subscription owner. It subscribes before exact `CHANNELS_QUERY_KEY` invalidation on reconnect, while first connect only subscribes. Session boundaries reset in order WebSocket -> shared QueryClient -> Messenger store before local auth removal/broadcast; token refresh does not reset state.
 - The NATS producer remains best-effort and has no transactional outbox. Current-audience lookup and fanout have a bounded in-flight TOCTOU window. Snapshot-to-insert membership races and durable unread/projection recovery remain Phase 151 work.
 
+#### Messenger GDPR full retry (Phase 151 Task 62)
+
+- After the authoritative Ent deletion commits, `MessengerDataEraser` performs one complete idempotent cleanup: messages, read states, thread follows, and resolved mention references. A synchronous failure is returned and enqueues only the same full operation; it never falls back to sender-only deletion.
+- Full retries use dedicated subject `audit.gdpr.messenger_erase_v1`, event pair `version=1` / `operation=messenger_full_v1`, required `subject_id`, and durable `gdpr-messenger-erase-v1`. The consumer resolves the locked singleton Organization authority through the injected adapter on every attempt.
+- Legacy `audit.gdpr.mongo_erase` records remain on their exact old subject and sender-only consumer for rolling compatibility. The separated subjects prevent an old consumer from silently downgrading a new full cleanup. Both consumers are startup prerequisites because EVENTS uses `InterestPolicy`.
+- Unit acceptance covers exact full dispatch, invalid selector rejection, post-commit enqueue ordering, enqueue failure visibility, no legacy downgrade, and the legacy v0 payload seam. Live JetStream delivery, MaxDeliver exhaustion handling, and real Mongo replay remain `NOT_RUN`.
+
 ### TMS (47 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
