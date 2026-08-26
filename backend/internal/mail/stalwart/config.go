@@ -10,7 +10,7 @@ import (
 
 const (
 	// Version is the selected upstream protocol source, not a runtime approval.
-	Version = "v0.16.17"
+	Version = "v0.16.18"
 
 	maxOriginBytes          = 2048
 	maxOpaqueIDBytes        = 1024

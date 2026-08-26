@@ -72,7 +72,7 @@ func GenerateOAuthPKCE(random io.Reader) (OAuthPKCE, error) {
 	return OAuthPKCE{Verifier: verifier, Challenge: challenge}, nil
 }
 
-// Discover validates the pinned Stalwart v0.16.17 OAuth metadata. It performs
+// Discover validates the pinned Stalwart v0.16.18 OAuth metadata. It performs
 // one bounded request and never follows redirects or caches the result.
 func (client *OAuthClient) Discover(ctx context.Context) (OAuthDiscovery, error) {
 	if err := client.validateOperation(ctx); err != nil {

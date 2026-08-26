@@ -1,4 +1,4 @@
-// Package stalwart contains the deliberately narrow Stalwart v0.16.17 JMAP
+// Package stalwart contains the deliberately narrow Stalwart v0.16.18 JMAP
 // transport. Provider response data never becomes part of an error value.
 package stalwart
 
