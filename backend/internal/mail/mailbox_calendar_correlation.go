@@ -209,6 +209,179 @@ func ResolveMailboxCalendarCorrelation(
 	return result, nil
 }
 
+// CalendarMailboxCorrelationRequest identifies one visible calendar event
+// inside the actor's authenticated organization scope.
+type CalendarMailboxCorrelationRequest struct {
+	actorID         uuid.UUID
+	organizationID  uuid.UUID
+	calendarEventID uuid.UUID
+}
+
+// NewCalendarMailboxCorrelationRequest creates a validated immutable reverse
+// resolver request.
+func NewCalendarMailboxCorrelationRequest(
+	actorID uuid.UUID,
+	organizationID uuid.UUID,
+	calendarEventID uuid.UUID,
+) (CalendarMailboxCorrelationRequest, error) {
+	request := CalendarMailboxCorrelationRequest{
+		actorID:         actorID,
+		organizationID:  organizationID,
+		calendarEventID: calendarEventID,
+	}
+	if !request.valid() {
+		return CalendarMailboxCorrelationRequest{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindInvalid)
+	}
+	return request, nil
+}
+
+// ActorID returns the authenticated actor scope.
+func (request CalendarMailboxCorrelationRequest) ActorID() uuid.UUID {
+	return request.actorID
+}
+
+// OrganizationID returns the organization scope.
+func (request CalendarMailboxCorrelationRequest) OrganizationID() uuid.UUID {
+	return request.organizationID
+}
+
+// CalendarEventID returns the calendar event scope.
+func (request CalendarMailboxCorrelationRequest) CalendarEventID() uuid.UUID {
+	return request.calendarEventID
+}
+
+func (request CalendarMailboxCorrelationRequest) valid() bool {
+	return request.actorID != uuid.Nil &&
+		request.organizationID != uuid.Nil &&
+		request.calendarEventID != uuid.Nil
+}
+
+// CalendarMailboxCorrelationResult is a validated, immutable association
+// between a fully scoped calendar event and one live mailbox message.
+type CalendarMailboxCorrelationResult struct {
+	actorID         uuid.UUID
+	organizationID  uuid.UUID
+	calendarEventID uuid.UUID
+	accountID       uuid.UUID
+	messageID       uuid.UUID
+	path            MailboxCalendarCorrelationPath
+}
+
+// NewCalendarMailboxCorrelationResult creates a result bound to request's
+// exact actor, organization, and calendar event scopes.
+func NewCalendarMailboxCorrelationResult(
+	request CalendarMailboxCorrelationRequest,
+	accountID uuid.UUID,
+	messageID uuid.UUID,
+	path MailboxCalendarCorrelationPath,
+) (CalendarMailboxCorrelationResult, error) {
+	result := CalendarMailboxCorrelationResult{
+		actorID:         request.actorID,
+		organizationID:  request.organizationID,
+		calendarEventID: request.calendarEventID,
+		accountID:       accountID,
+		messageID:       messageID,
+		path:            path,
+	}
+	if !request.valid() || !result.valid() {
+		return CalendarMailboxCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindInvalid)
+	}
+	return result, nil
+}
+
+// ActorID returns the authenticated actor scope.
+func (result CalendarMailboxCorrelationResult) ActorID() uuid.UUID {
+	return result.actorID
+}
+
+// OrganizationID returns the organization scope.
+func (result CalendarMailboxCorrelationResult) OrganizationID() uuid.UUID {
+	return result.organizationID
+}
+
+// CalendarEventID returns the resolved calendar event identifier.
+func (result CalendarMailboxCorrelationResult) CalendarEventID() uuid.UUID {
+	return result.calendarEventID
+}
+
+// AccountID returns the owner mailbox account identifier.
+func (result CalendarMailboxCorrelationResult) AccountID() uuid.UUID {
+	return result.accountID
+}
+
+// MessageID returns the live mailbox message identifier.
+func (result CalendarMailboxCorrelationResult) MessageID() uuid.UUID {
+	return result.messageID
+}
+
+// Path returns the authoritative projection path that produced the result.
+func (result CalendarMailboxCorrelationResult) Path() MailboxCalendarCorrelationPath {
+	return result.path
+}
+
+// Matches reports whether result is valid and was resolved for the exact
+// validated calendar event scope in request.
+func (result CalendarMailboxCorrelationResult) Matches(request CalendarMailboxCorrelationRequest) bool {
+	return result.valid() && request.valid() &&
+		result.actorID == request.actorID &&
+		result.organizationID == request.organizationID &&
+		result.calendarEventID == request.calendarEventID
+}
+
+func (result CalendarMailboxCorrelationResult) valid() bool {
+	return result.actorID != uuid.Nil &&
+		result.organizationID != uuid.Nil &&
+		result.calendarEventID != uuid.Nil &&
+		result.accountID != uuid.Nil &&
+		result.messageID != uuid.Nil &&
+		result.path.valid()
+}
+
+// CalendarMailboxCorrelationResolver resolves the authoritative live mailbox
+// message for one scoped calendar event. Consumers MUST call
+// ResolveCalendarMailboxCorrelation rather than invoking implementations
+// directly. Concrete reverse adapters MAY use only exact terminal inbound
+// CalendarInboundMessageReceipt rows or exact sent CalendarInviteDelivery rows
+// followed by sent MailSubmission result messages. They must find the actor's
+// exact active, ready, enabled mailbox and recheck calendar event visibility.
+// Implementations MUST NOT use provider IDs, Internet Message-ID, folders, or
+// raw MailMessage.calendar_event_id as correlation evidence. Conflicting
+// messages are ambiguous; nonterminal rows are stale.
+type CalendarMailboxCorrelationResolver interface {
+	ResolveMailMessageForCalendarEvent(context.Context, CalendarMailboxCorrelationRequest) (CalendarMailboxCorrelationResult, error)
+}
+
+// ResolveCalendarMailboxCorrelation is the mandatory safe consumer entry for
+// CalendarMailboxCorrelationResolver. It validates the boundary and
+// normalizes adapter failures without replacing authoritative adapter fences.
+func ResolveCalendarMailboxCorrelation(
+	ctx context.Context,
+	resolver CalendarMailboxCorrelationResolver,
+	request CalendarMailboxCorrelationRequest,
+) (CalendarMailboxCorrelationResult, error) {
+	if ctx == nil || !request.valid() || calendarMailboxCorrelationResolverNil(resolver) {
+		return CalendarMailboxCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindInvalid)
+	}
+	if err := ctx.Err(); err != nil {
+		return CalendarMailboxCorrelationResult{}, err
+	}
+
+	result, err := resolver.ResolveMailMessageForCalendarEvent(ctx, request)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return CalendarMailboxCorrelationResult{}, contextErr
+	}
+	if err != nil {
+		if kind, ok := MailboxCalendarCorrelationErrorKindOf(err); ok {
+			return CalendarMailboxCorrelationResult{}, newMailboxCalendarCorrelationError(kind)
+		}
+		return CalendarMailboxCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	if !result.valid() || !result.Matches(request) {
+		return CalendarMailboxCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	return result, nil
+}
+
 // MailboxCalendarCorrelationErrorKind classifies safe resolver outcomes.
 type MailboxCalendarCorrelationErrorKind string
 
@@ -264,6 +437,20 @@ func MailboxCalendarCorrelationErrorKindOf(err error) (MailboxCalendarCorrelatio
 }
 
 func mailboxCalendarCorrelationResolverNil(resolver MailboxCalendarCorrelationResolver) bool {
+	if resolver == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(resolver)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
+}
+
+func calendarMailboxCorrelationResolverNil(resolver CalendarMailboxCorrelationResolver) bool {
 	if resolver == nil {
 		return true
 	}
