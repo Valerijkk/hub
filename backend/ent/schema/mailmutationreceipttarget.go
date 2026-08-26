@@ -45,7 +45,7 @@ func (MailMutationReceiptTarget) Annotations() []schema.Annotation {
 
 func (MailMutationReceiptTarget) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("receipt", MailMutationReceipt.Type).Ref("targets").Field("receipt_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("receipt", MailMutationReceipt.Type).Ref("targets").Field("receipt_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("members", MailMutationReceiptMember.Type),
 	}
 }

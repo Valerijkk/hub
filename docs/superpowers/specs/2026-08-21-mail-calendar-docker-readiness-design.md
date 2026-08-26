@@ -1,5 +1,14 @@
 # Mail + Calendar Docker readiness design
 
+> **Schema-maintenance runtime update (2026-08-26; supersedes earlier generation/migration `NOT_RUN`
+> statements only):** the pinned Docker pipeline passed double offline Ent generation with 837
+> image-local files and identical manifest SHA-256 `9baabd28f85b00e3c8a808f11773e24e5b56ae37b4d599f68efdcdb9c63e8b83`;
+> Atlas lint accepted 2 versions/259 changes, fresh apply executed 2 migrations/554 SQL statements,
+> lineage status is 2 executed/0 pending at `20260823000001`, snapshot status is 1 executed/0 pending,
+> and both forward/reverse semantic diffs are empty. Independent Terra/high review is PASS. Dependent
+> backend compile, product tests, full-stack runtime, shared/production apply, merge, push and deploy
+> remain pending or `NOT_RUN`.
+
 > **P3-D0 static acceptance (2026-08-23):** immutable source `47faf3a705e5641f4ceb7ee365c3dfeeeace725d` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/ent/schema/calendarinboundmessagereceipt.go`. It adds required immutable `organization_id`/`mailbox_id` UUID scalars and database nonzero checks, with no Ent edges or raw data; existing uniqueness, state-shape, and due behavior are unchanged. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. The D0-next route is `CONSUMED/HISTORICAL`. P3-C remains blocked on Mail Ent generation; 147-02B/147-02C and D1/D2 remain blocked on active Calendar generation/dependencies; P3-E is conjunction-blocked. No next unblocked P3 source is selected. Generation, migration, SQL, build, tests, Docker, and runtime are `NOT_RUN`; no readiness, merge, or product claim.
 
 **Date:** 2026-08-21

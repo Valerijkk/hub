@@ -138,18 +138,6 @@ type EngineDNSRecord struct {
 	TTL   int
 }
 
-// EngineDNSRecordType — тип публичной DNS-записи.
-type EngineDNSRecordType string
-
-const (
-	// EngineDNSRecordTXT обозначает TXT-запись.
-	EngineDNSRecordTXT EngineDNSRecordType = "TXT"
-	// EngineDNSRecordMX обозначает MX-запись.
-	EngineDNSRecordMX EngineDNSRecordType = "MX"
-	// EngineDNSRecordCNAME обозначает CNAME-запись.
-	EngineDNSRecordCNAME EngineDNSRecordType = "CNAME"
-)
-
 // AccountSpec — неизменяемое желаемое состояние учётной записи для provisioning.
 type AccountSpec struct {
 	ProvisioningKey   string

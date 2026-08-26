@@ -38,8 +38,8 @@ func (MailMessageFolder) Annotations() []schema.Annotation {
 
 func (MailMessageFolder) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("message", MailMessage.Type).Ref("folders").Field("mail_message_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.From("folder", MailFolder.Type).Ref("message_folders").Field("mail_folder_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("message", MailMessage.Type).Ref("folders").Field("mail_message_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("folder", MailFolder.Type).Ref("message_folders").Field("mail_folder_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

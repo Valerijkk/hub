@@ -70,8 +70,8 @@ func (MailMutationReceipt) Annotations() []schema.Annotation {
 
 func (MailMutationReceipt) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("organization", Organization.Type).Ref("mail_mutation_receipts").Field("organization_id").Unique().Required().Annotations(entsql.OnDelete(entsql.NoAction)),
-		edge.From("account", MailAccount.Type).Ref("mutation_receipts").Field("mail_account_id").Unique().Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.From("organization", Organization.Type).Ref("mail_mutation_receipts").Field("organization_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.From("account", MailAccount.Type).Ref("mutation_receipts").Field("mail_account_id").Unique().Immutable().Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("targets", MailMutationReceiptTarget.Type),
 		edge.To("members", MailMutationReceiptMember.Type),
 		edge.To("folders", MailFolder.Type),

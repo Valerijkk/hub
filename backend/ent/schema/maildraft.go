@@ -85,7 +85,7 @@ func (MailDraft) Annotations() []schema.Annotation {
 
 func (MailDraft) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("account", MailAccount.Type).Ref("drafts").Field("mail_account_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("account", MailAccount.Type).Ref("drafts").Field("mail_account_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("from_identity", MailIdentity.Type).Ref("drafts").Field("from_identity_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.From("reply_to_message", MailMessage.Type).Ref("reply_drafts").Field("reply_to_message_id").Unique().Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.From("forward_message", MailMessage.Type).Ref("forward_drafts").Field("forward_message_id").Unique().Annotations(entsql.OnDelete(entsql.SetNull)),

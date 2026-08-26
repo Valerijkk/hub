@@ -70,7 +70,7 @@ func (MailSubmission) Annotations() []schema.Annotation {
 
 func (MailSubmission) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("account", MailAccount.Type).Ref("submissions").Field("mail_account_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("account", MailAccount.Type).Ref("submissions").Field("mail_account_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("draft", MailDraft.Type).Ref("submissions").Field("mail_draft_id").Unique().Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }

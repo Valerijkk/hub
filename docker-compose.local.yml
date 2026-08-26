@@ -58,9 +58,23 @@ x-schema-maintenance-common: &schema-maintenance-common
 
 x-schema-maintenance-tool: &schema-maintenance-tool
   <<: *schema-maintenance-common
+  mem_limit: 4g
+  tmpfs:
+    - "/work:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
+    - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"
+    - "/run/go-run-exec:rw,exec,nosuid,nodev,size=256m,uid=10001,gid=10001,mode=0700"
+    - "/opt/hub/backend/.entc:rw,noexec,nosuid,nodev,size=8m,uid=10001,gid=10001,mode=0700"
+    - "/opt/hub/prefeature/backend/.entc:rw,noexec,nosuid,nodev,size=8m,uid=10001,gid=10001,mode=0700"
   environment:
     DATABASE_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public"
-    ATLAS_DEV_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=atlas_dev"
+    PREFEATURE_SCHEMA_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar"
+    CURRENT_SCHEMA_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar"
+    VERIFICATION_SCHEMA_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_verification?sslmode=disable&search_path=hub_mail_calendar"
+    ATLAS_DIFF_DEV_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_diff_dev?sslmode=disable&search_path=hub_mail_calendar"
+    ATLAS_VALIDATE_DEV_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_validate_dev?sslmode=disable&search_path=hub_mail_calendar"
+    ATLAS_LINT_DEV_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_lint_dev?sslmode=disable&search_path=hub_mail_calendar"
+    ATLAS_COMPARE_DEV_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_compare_dev?sslmode=disable&search_path=hub_mail_calendar"
+    ATLAS_REVISIONS_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema_verification?sslmode=disable&search_path=atlas_revisions"
   depends_on:
     schema-maintenance-postgres:
       condition: service_healthy
@@ -262,6 +276,7 @@ services:
     <<: *schema-maintenance-common
     command: ["generate"]
     network_mode: none
+    mem_limit: 4g
     tmpfs:
       - "/work:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
       - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"

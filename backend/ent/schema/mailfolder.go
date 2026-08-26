@@ -66,7 +66,7 @@ func (MailFolder) Annotations() []schema.Annotation {
 
 func (MailFolder) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("account", MailAccount.Type).Ref("folders").Field("mail_account_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("account", MailAccount.Type).Ref("folders").Field("mail_account_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("parent", MailFolder.Type).Ref("children").Field("parent_id").Unique().Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.To("children", MailFolder.Type),
 		edge.From("control_receipt", MailMutationReceipt.Type).Ref("folders").Field("control_receipt_id").Unique().Annotations(entsql.OnDelete(entsql.Restrict)),

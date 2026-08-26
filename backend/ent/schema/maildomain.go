@@ -154,6 +154,7 @@ func (MailDomain) Edges() []ent.Edge {
 			Field("organization_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("accounts", MailAccount.Type),
 	}

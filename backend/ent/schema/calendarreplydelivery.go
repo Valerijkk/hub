@@ -95,16 +95,19 @@ func (CalendarReplyDelivery) Edges() []ent.Edge {
 			Field("organization_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("event", CalendarEvent.Type).
 			Field("calendar_event_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("attendee", CalendarAttendee.Type).
 			Field("calendar_attendee_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("mail_submission", MailSubmission.Type).
 			Field("mail_submission_id").

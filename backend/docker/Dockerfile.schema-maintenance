@@ -1,4 +1,6 @@
-FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS atlas-builder
+FROM --platform=linux/amd64 docker.io/arigaio/atlas@sha256:ca911e2db73ab32a9b85953a70484ab70cda9f9fadc8b5c7c594910c5dc87478 AS atlas-cli
+
+FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS module-cache
 
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -6,6 +8,24 @@ COPY docker/schema-tool.lock.json ./schema-tool.lock.json
 ENV GOTOOLCHAIN=local \
     GOWORK=off
 RUN set -eu; \
+    normalized_file_has_exact_line() { \
+      tr -d '\r' < "$2" | grep -Fqx -- "$1"; \
+    }; \
+    download_modules() { \
+      attempt=1; \
+      while [ "$attempt" -le 3 ]; do \
+        if go mod download && go list -mod=readonly -deps entgo.io/ent/cmd/ent >/dev/null; then \
+          return 0; \
+        fi; \
+        if [ "$attempt" -eq 3 ]; then \
+          printf '%s\n' 'go module cache materialization failed after 3 attempts' >&2; \
+          return 1; \
+        fi; \
+        attempt=$((attempt + 1)); \
+        printf 'go module cache materialization failed; retrying (attempt %s of 3)\n' "$attempt" >&2; \
+      done; \
+      return 1; \
+    }; \
     verify_source_module_lock() { \
       grep -Fqx '    "module": "ariga.io/atlas",' schema-tool.lock.json; \
       grep -Fqx '    "version": "v0.19.1-0.20240203083654-5948b60a8e43",' schema-tool.lock.json; \
@@ -28,15 +48,21 @@ RUN set -eu; \
     if grep -Eq '^[[:space:]]*(replace|exclude)([[:space:]]|$)' go.mod; then \
       echo 'schema-maintenance: go.mod replace/exclude directives are forbidden' >&2; exit 1; \
     fi; \
-    grep -Fqx 'ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43 h1:GwdJbXydHCYPedeeLt4x/lrlIISQ4JTH1mRWuE5ZZ14=' go.sum; \
-    grep -Fqx 'ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43/go.mod h1:uj3pm+hUTVN/X5yfdBexHlZv+1Xu5u5ZbZx7+CDavNU=' go.sum; \
-    grep -Fqx 'entgo.io/ent v0.14.1 h1:fUERL506Pqr92EPHJqr8EYxbPioflJo6PudkrEA8a/s=' go.sum; \
-    grep -Fqx 'entgo.io/ent v0.14.1/go.mod h1:MH6XLG0KXpkcDQhKiHfANZSzR55TJyPL5IGNpI8wpco=' go.sum; \
+    normalized_file_has_exact_line 'ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43 h1:GwdJbXydHCYPedeeLt4x/lrlIISQ4JTH1mRWuE5ZZ14=' go.sum; \
+    normalized_file_has_exact_line 'ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43/go.mod h1:uj3pm+hUTVN/X5yfdBexHlZv+1Xu5u5ZbZx7+CDavNU=' go.sum; \
+    normalized_file_has_exact_line 'entgo.io/ent v0.14.1 h1:fUERL506Pqr92EPHJqr8EYxbPioflJo6PudkrEA8a/s=' go.sum; \
+    normalized_file_has_exact_line 'entgo.io/ent v0.14.1/go.mod h1:MH6XLG0KXpkcDQhKiHfANZSzR55TJyPL5IGNpI8wpco=' go.sum; \
     verify_source_module_lock; \
-    go mod download; \
+    download_modules; \
     verify_source_module_lock
-RUN test "$(go list -m -f '{{.Version}}' ariga.io/atlas)" = 'v0.19.1-0.20240203083654-5948b60a8e43' && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -o /out/atlas ariga.io/atlas/cmd/atlas
+
+COPY docker/schema-maintenance/materializer/main.go ./docker/schema-maintenance/materializer/main.go
+RUN GOTOOLCHAIN=local \
+    GOWORK=off \
+    GOPROXY=off \
+    GOSUMDB=off \
+    GOMODCACHE=/go/pkg/mod \
+    go list -mod=readonly -deps ./docker/schema-maintenance/materializer >/dev/null
 
 FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS prefeature-source
 
@@ -65,19 +91,38 @@ FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995
 RUN groupadd --gid 10001 hubschema && useradd --uid 10001 --gid 10001 --create-home --home-dir /home/hubschema hubschema
 
 WORKDIR /opt/hub/backend
-COPY --from=atlas-builder /out/atlas /usr/local/bin/atlas
+COPY --from=atlas-cli /atlas /usr/local/bin/atlas
+COPY --from=module-cache --chown=10001:10001 /go/pkg/mod/ /opt/hub/go/pkg/mod/
+RUN chmod -R a-w /opt/hub/go/pkg/mod
+
 COPY --chown=10001:10001 go.mod go.sum atlas.hcl ./
 COPY --chown=10001:10001 ent/generate.go ./ent/generate.go
 COPY --chown=10001:10001 ent/schema/ ./ent/schema/
+COPY --chown=10001:10001 docker/schema-maintenance/materializer/main.go ./docker/schema-maintenance/materializer/main.go
+COPY --chown=10001:10001 internal/mail/dns_types.go ./internal/mail/dns_types.go
 COPY --chown=10001:10001 migrations/ ./migrations/
+RUN mkdir -p /opt/hub/backend/migrations/atlas/mail-calendar-v1 && \
+    chown 10001:10001 /opt/hub/backend/migrations/atlas/mail-calendar-v1
 COPY --chown=10001:10001 docker/schema-tool.lock.json ./docker/schema-tool.lock.json
-COPY --chown=10001:10001 docker/entrypoints/mail-calendar-schema.sh /usr/local/bin/mail-calendar-schema
+COPY --chown=10001:10001 docker/schema-materializer.lock.json ./docker/schema-materializer.lock.json
 COPY --from=prefeature-source --chown=10001:10001 /opt/hub/prefeature/backend/ /opt/hub/prefeature/backend/
-COPY --from=atlas-builder --chown=10001:10001 /go/pkg/mod/ /opt/hub/go/pkg/mod/
-RUN chmod 0555 /usr/local/bin/atlas /usr/local/bin/mail-calendar-schema && \
-    chmod -R a-w /opt/hub/go/pkg/mod && \
-    mkdir -p /opt/hub/backend/migrations/atlas/mail-calendar-v1 && \
-    chown -R 10001:10001 /opt/hub/backend
+COPY docker/entrypoints/mail-calendar-schema.sh /usr/local/bin/mail-calendar-schema
+RUN sed -i 's/\r$//' /usr/local/bin/mail-calendar-schema && \
+    ! grep -q "$(printf '\r')" /usr/local/bin/mail-calendar-schema && \
+    chmod 0555 /usr/local/bin/atlas /usr/local/bin/mail-calendar-schema && \
+    test "$(stat -c '%U:%G:%a' /usr/local/bin/mail-calendar-schema)" = 'root:root:555' && \
+    test "$(sed -n '1p' /usr/local/bin/mail-calendar-schema)" = '#!/bin/sh' && \
+    test "$(/usr/local/bin/atlas version 2>&1 | sed -n '1p')" = 'atlas community version v1.3.2' && \
+    test "$(sha256sum /usr/local/bin/atlas | awk '{print $1}')" = 'bdae7d2b6b903fdc4c40313fedfdf87f8a08ce1f2a4fd5c62fea2308419d526e' && \
+    test "$(stat -c '%U:%G:%a' /usr/local/bin/atlas)" = 'root:root:555' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '  "lock_version": 2,' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '    "atlas_cli": {' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '      "reference": "docker.io/arigaio/atlas@sha256:ca911e2db73ab32a9b85953a70484ab70cda9f9fadc8b5c7c594910c5dc87478",' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '      "platform": "linux/amd64",' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '      "expected_runtime_arch": "x86_64",' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '      "source_binary": "/atlas",' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '      "expected_version_output_first_line": "atlas community version v1.3.2",' && \
+    tr -d '\r' < /opt/hub/backend/docker/schema-tool.lock.json | grep -Fqx -- '      "binary_sha256": "bdae7d2b6b903fdc4c40313fedfdf87f8a08ce1f2a4fd5c62fea2308419d526e"'
 
 ENV GOTOOLCHAIN=local \
     GOWORK=off \

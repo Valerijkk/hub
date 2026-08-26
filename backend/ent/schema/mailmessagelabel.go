@@ -36,8 +36,8 @@ func (MailMessageLabel) Annotations() []schema.Annotation {
 
 func (MailMessageLabel) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("message", MailMessage.Type).Ref("labels").Field("mail_message_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.From("label", MailLabel.Type).Ref("message_labels").Field("mail_label_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("message", MailMessage.Type).Ref("labels").Field("mail_message_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("label", MailLabel.Type).Ref("message_labels").Field("mail_label_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

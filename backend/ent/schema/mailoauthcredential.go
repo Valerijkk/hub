@@ -144,6 +144,7 @@ func (MailOAuthCredential) Edges() []ent.Edge {
 			Field("mail_account_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

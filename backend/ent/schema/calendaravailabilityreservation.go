@@ -51,18 +51,15 @@ func (CalendarAvailabilityReservation) Fields() []ent.Field {
 			Immutable().
 			Validate(validateCalendarAvailabilityReservationOccurrenceKey),
 		field.Time("starts_at").
-			Immutable().
-			Validate(validateCalendarAvailabilityReservationUTC),
+			Immutable(),
 		field.Time("ends_at").
-			Immutable().
-			Validate(validateCalendarAvailabilityReservationUTC),
+			Immutable(),
 		field.Enum("state").
 			Values("active", "released").
 			Default("active"),
 		field.Time("released_at").
 			Optional().
-			Nillable().
-			Validate(validateCalendarAvailabilityReservationUTC),
+			Nillable(),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -102,16 +99,19 @@ func (CalendarAvailabilityReservation) Edges() []ent.Edge {
 			Field("organization_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("user", User.Type).
 			Field("user_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("calendar_event", CalendarEvent.Type).
 			Field("calendar_event_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
@@ -130,13 +130,6 @@ func validateCalendarAvailabilityReservationOccurrenceKey(value string) error {
 	occurrence, err := time.Parse(time.RFC3339Nano, value)
 	if err != nil || occurrence.Location() != time.UTC || occurrence.Format(time.RFC3339Nano) != value {
 		return errors.New("occurrence key must be a canonical RFC3339Nano UTC instant")
-	}
-	return nil
-}
-
-func validateCalendarAvailabilityReservationUTC(value time.Time) error {
-	if value.Location() != time.UTC {
-		return errors.New("reservation timestamp must use UTC")
 	}
 	return nil
 }

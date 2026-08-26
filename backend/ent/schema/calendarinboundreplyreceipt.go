@@ -67,7 +67,8 @@ func (CalendarInboundReplyReceipt) Edges() []ent.Edge {
 			Ref("inbound_reply_receipts").
 			Field("calendar_attendee_id").
 			Unique().
-			Required(),
+			Required().
+			Immutable(),
 	}
 }
 

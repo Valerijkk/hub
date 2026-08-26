@@ -1,0 +1,6 @@
+backend/docker/Dockerfile.schema-maintenance text eol=lf
+backend/docker/entrypoints/mail-calendar-schema.sh text eol=lf
+backend/docker/schema-tool.lock.json text eol=lf
+backend/docker/schema-maintenance/materializer/main.go text eol=lf
+backend/atlas.hcl text eol=lf
+backend/docker/schema-materializer.lock.json text eol=lf

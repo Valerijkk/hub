@@ -32,12 +32,12 @@ func (MailMessage) Fields() []ent.Field {
 		field.String("engine_version").Validate(validateMailMessageOpaqueID),
 		field.String("internet_message_id").Optional().Nillable().Validate(validateMailMessageID).Annotations(entsql.Annotation{Collation: "C"}),
 		field.String("in_reply_to").Optional().Nillable().Validate(validateMailMessageID),
-		field.JSON("references", MailMessageReferences{}).Default(MailMessageReferences{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}).Validate(func(value MailMessageReferences) error { return value.Validate() }),
-		field.JSON("from", MailStoredAddress{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}).Validate(func(value MailStoredAddress) error { return value.Validate() }),
-		field.JSON("to", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}).Validate(func(value MailStoredAddresses) error { return value.Validate() }),
-		field.JSON("cc", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}).Validate(func(value MailStoredAddresses) error { return value.Validate() }),
-		field.JSON("bcc", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}).Validate(func(value MailStoredAddresses) error { return value.Validate() }),
-		field.JSON("reply_to", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}).Validate(func(value MailStoredAddresses) error { return value.Validate() }),
+		field.JSON("references", MailMessageReferences{}).Default(MailMessageReferences{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.JSON("from", MailStoredAddress{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.JSON("to", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.JSON("cc", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.JSON("bcc", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.JSON("reply_to", MailStoredAddresses{}).Default(MailStoredAddresses{}).SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
 		field.String("subject").Validate(validateMailMessageSubject),
 		field.String("snippet").Validate(validateMailProjectionSnippet),
 		field.Time("sent_at").Optional().Nillable(),
@@ -70,7 +70,7 @@ func (MailMessage) Annotations() []schema.Annotation {
 		entsql.Checks(map[string]string{
 			"mail_messages_engine_ids":        "COALESCE(octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_version) BETWEEN 1 AND 1024, FALSE)",
 			"mail_messages_message_ids":       "COALESCE((internet_message_id IS NULL OR octet_length(internet_message_id) BETWEEN 1 AND 998) AND (in_reply_to IS NULL OR octet_length(in_reply_to) BETWEEN 1 AND 998), FALSE)",
-			"mail_messages_references":        "CASE WHEN jsonb_typeof(references) = 'array' THEN COALESCE(jsonb_array_length(references) <= 100 AND NOT jsonb_path_exists(references, '$[*] ? (@.type() != \"string\")'), FALSE) ELSE FALSE END",
+			"mail_messages_references":        "CASE WHEN jsonb_typeof(\"references\") = 'array' THEN COALESCE(jsonb_array_length(\"references\") <= 100 AND NOT jsonb_path_exists(\"references\", '$[*] ? (@.type() != \"string\")'), FALSE) ELSE FALSE END",
 			"mail_messages_from_shape":        "COALESCE(jsonb_typeof(\"from\") = 'object' AND jsonb_typeof(\"from\"->'email') = 'string' AND jsonb_typeof(\"from\"->'name') = 'string', FALSE)",
 			"mail_messages_address_arrays":    "CASE WHEN jsonb_typeof(\"to\") = 'array' AND jsonb_typeof(cc) = 'array' AND jsonb_typeof(bcc) = 'array' AND jsonb_typeof(reply_to) = 'array' THEN COALESCE(jsonb_array_length(\"to\") <= 200 AND jsonb_array_length(cc) <= 200 AND jsonb_array_length(bcc) <= 200 AND jsonb_array_length(reply_to) <= 200 AND NOT jsonb_path_exists(\"to\", '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")') AND NOT jsonb_path_exists(cc, '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")') AND NOT jsonb_path_exists(bcc, '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")') AND NOT jsonb_path_exists(reply_to, '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")'), FALSE) ELSE FALSE END",
 			"mail_messages_text":              "COALESCE(octet_length(subject) <= 998 AND char_length(snippet) <= 1200 AND octet_length(snippet) <= 4096 AND (engine_state IS NULL OR octet_length(engine_state) <= 4096), FALSE)",
@@ -87,7 +87,7 @@ func (MailMessage) Annotations() []schema.Annotation {
 
 func (MailMessage) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("account", MailAccount.Type).Ref("messages").Field("mail_account_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("account", MailAccount.Type).Ref("messages").Field("mail_account_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("thread", MailThread.Type).Ref("messages").Field("mail_thread_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("calendar_event", CalendarEvent.Type).Ref("mail_messages").Field("calendar_event_id").Unique().Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("folders", MailMessageFolder.Type),

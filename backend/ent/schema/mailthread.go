@@ -32,7 +32,6 @@ func (MailThread) Fields() []ent.Field {
 		field.Bytes("thread_key").MinLen(32).MaxLen(32).Immutable(),
 		field.String("normalized_subject").Validate(validateMailThreadSubject),
 		field.JSON("participant_addresses", MailThreadParticipants{}).
-			Validate(func(value MailThreadParticipants) error { return value.Validate() }).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
 		field.Time("last_message_at"),
 		field.Int32("message_count").Min(1),
@@ -62,7 +61,7 @@ func (MailThread) Annotations() []schema.Annotation {
 
 func (MailThread) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("account", MailAccount.Type).Ref("threads").Field("mail_account_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("account", MailAccount.Type).Ref("threads").Field("mail_account_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("messages", MailMessage.Type),
 	}
 }
@@ -98,6 +97,13 @@ func (participants MailThreadParticipants) Validate() error {
 		return errors.New("mail thread participants exceed 1048576 bytes")
 	}
 	return nil
+}
+
+func (participants MailThreadParticipants) MarshalJSON() ([]byte, error) {
+	if err := participants.Validate(); err != nil {
+		return nil, err
+	}
+	return json.Marshal([]string(participants))
 }
 
 func (participants *MailThreadParticipants) UnmarshalJSON(data []byte) error {

@@ -1,4 +1,20 @@
 ---
+mail_calendar_schema_gate_2026_08_26: >-
+  DOCKER_SCHEMA_GATE_PASS / INDEPENDENT_REVIEW_PASS. The bounded
+  schema-maintenance pipeline uses pinned Atlas v1.3.2 and PostgreSQL 17 in
+  disposable, internal-only containers with tmpfs data. Offline Ent generation
+  completed twice with 837 generated files and identical manifest SHA-256
+  9baabd28f85b00e3c8a808f11773e24e5b56ae37b4d599f68efdcdb9c63e8b83;
+  generated files remain image-local and uncommitted. Atlas lint accepted two
+  versions and 259 changes; fresh lineage apply executed two migrations and
+  554 SQL statements. Verification is at version 20260823000001 with two
+  executed and zero pending files; the independent current-schema snapshot is
+  one executed and zero pending file. Forward and reverse semantic schema
+  diffs are both empty after round-trip materialization. This accepts only the
+  Ent/Atlas schema-maintenance and bounded migration lineage; dependent backend
+  compile, repository/runtime composition, product tests, full Docker stack,
+  shared/production apply, merge, push and deploy remain NOT_RUN or pending.
+  Independent Terra/high review: PASS.
 mail_direct_message_route_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_RACE_REVIEW_PASS_C_I_M_0_0_0 /

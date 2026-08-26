@@ -8,17 +8,6 @@ import (
 
 const maxRequiredDNSRecordsJSONBytes = 65536
 
-// RequiredDNSRecord хранит публичную DNS-запись, нужную для домена.
-type RequiredDNSRecord struct {
-	Type  EngineDNSRecordType `json:"type"`
-	Name  string              `json:"name"`
-	Value string              `json:"value"`
-	TTL   int                 `json:"ttl"`
-}
-
-// RequiredDNSRecords хранит упорядоченный набор публичных DNS-записей домена.
-type RequiredDNSRecords []RequiredDNSRecord
-
 type requiredDNSRecordsValidationError struct{}
 
 func (requiredDNSRecordsValidationError) Error() string {

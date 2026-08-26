@@ -241,18 +241,21 @@ func (MailAccount) Edges() []ent.Edge {
 			Field("organization_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.From("user", User.Type).
 			Ref("mail_account").
 			Field("user_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.From("domain", MailDomain.Type).
 			Ref("accounts").
 			Field("mail_domain_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("identities", MailIdentity.Type),
 		edge.To("user_settings", MailUserSettings.Type).

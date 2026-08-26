@@ -26,8 +26,8 @@ func (MailMutationReceiptMember) Fields() []ent.Field {
 
 func (MailMutationReceiptMember) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("receipt", MailMutationReceipt.Type).Ref("members").Field("receipt_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.From("target", MailMutationReceiptTarget.Type).Ref("members").Field("target_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("receipt", MailMutationReceipt.Type).Ref("members").Field("receipt_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("target", MailMutationReceiptTarget.Type).Ref("members").Field("target_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

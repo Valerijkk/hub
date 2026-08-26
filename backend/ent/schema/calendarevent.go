@@ -64,13 +64,7 @@ func (CalendarEvent) Fields() []ent.Field {
 			Nillable().
 			MaxLen(1000),
 		field.JSON("exdates", []string{}).
-			Default([]string{}).
-			Validate(func(exdates []string) error {
-				if len(exdates) > 1000 {
-					return errors.New("число исключённых дат превышает 1000")
-				}
-				return nil
-			}),
+			Default([]string{}),
 		field.Int("sequence").
 			Default(0).
 			NonNegative(),
@@ -134,6 +128,7 @@ func (CalendarEvent) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
 			"calendar_events_payload_hash_pair": "(payload_hash_version IS NULL) = (payload_hash IS NULL)",
+			"calendar_events_exdates_shape":      "CASE WHEN jsonb_typeof(exdates) = 'array' THEN COALESCE(jsonb_array_length(exdates) <= 1000 AND NOT jsonb_path_exists(exdates, '$[*] ? (@.type() != \"string\")'), FALSE) ELSE FALSE END",
 		}),
 	}
 }
@@ -152,12 +147,12 @@ func (CalendarEvent) Edges() []ent.Edge {
 		edge.To("organizer", User.Type).
 			Field("organizer_id").
 			Unique(),
-		edge.To("scheduled_call", ScheduledCall.Type).
+		edge.From("scheduled_call", ScheduledCall.Type).
+			Ref("calendar_event").
 			Field("scheduled_call_id").
 			Unique().
 			Immutable(),
-		edge.From("scheduled_call_reference", ScheduledCall.Type).
-			Ref("calendar_event_reference").
+		edge.To("scheduled_call_reference", ScheduledCall.Type).
 			Unique(),
 		edge.To("attendees", CalendarAttendee.Type),
 		edge.To("exceptions", CalendarEventException.Type),

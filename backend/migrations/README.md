@@ -92,6 +92,20 @@ independent database review and direct founder approval. Recovery after apply is
 forward-only and never deletes user data automatically.
 
 Direct host Atlas, Ent, database, build, validator and test commands are forbidden.
-SB-A/SB-B/SB-C are statically implemented, but no Docker image build, offline Ent generation,
-dependent compile, Atlas inspect, diff, lint, checksum or apply, generated SQL, database replay,
-build, tests or runtime validation has run. All executable and SQL evidence remains `NOT_RUN`.
+
+## Docker evidence (2026-08-26)
+
+The bounded schema-maintenance operation is accepted for this feature lineage only:
+
+- double offline Ent generation produced 837 image-local files with identical manifest
+  SHA-256 `9baabd28f85b00e3c8a808f11773e24e5b56ae37b4d599f68efdcdb9c63e8b83`;
+- Atlas lint accepted 2 versions and 259 schema changes;
+- fresh apply executed 2 migrations and 554 SQL statements;
+- lineage status is version `20260823000001`, 2 executed, 0 pending;
+- current-schema snapshot status is 1 executed, 0 pending;
+- forward and reverse semantic diffs between the applied lineage and the independent
+  round-trip snapshot are both empty.
+
+This is not dependent backend compile, product-test, full-stack runtime, shared/production
+apply, merge, push, deploy, or cutover evidence. Generated Ent remains uncommitted and is
+still produced only inside the accepted Docker build/generation boundary.

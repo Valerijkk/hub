@@ -64,9 +64,9 @@ func (MailObject) Annotations() []schema.Annotation {
 
 func (MailObject) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("organization", Organization.Type).Ref("mail_objects").Field("organization_id").Unique().Required().Annotations(entsql.OnDelete(entsql.NoAction)),
-		edge.From("account", MailAccount.Type).Ref("objects").Field("mail_account_id").Unique().Required().Annotations(entsql.OnDelete(entsql.NoAction)),
-		edge.From("uploader", User.Type).Ref("mail_objects").Field("uploader_user_id").Unique().Required().Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.From("organization", Organization.Type).Ref("mail_objects").Field("organization_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.From("account", MailAccount.Type).Ref("objects").Field("mail_account_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.From("uploader", User.Type).Ref("mail_objects").Field("uploader_user_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("attachment", MailAttachment.Type).Unique(),
 	}
 }

@@ -49,7 +49,7 @@ func (MailLabel) Annotations() []schema.Annotation {
 
 func (MailLabel) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("account", MailAccount.Type).Ref("labels").Field("mail_account_id").Unique().Required().Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("account", MailAccount.Type).Ref("labels").Field("mail_account_id").Unique().Required().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("message_labels", MailMessageLabel.Type),
 	}
 }

@@ -90,11 +90,13 @@ func (CalendarInboundObjectState) Edges() []ent.Edge {
 			Field("organization_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("calendar_owner", User.Type).
 			Field("calendar_owner_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("event", CalendarEvent.Type).
 			Field("calendar_event_id").

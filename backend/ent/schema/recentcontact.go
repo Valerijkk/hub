@@ -66,6 +66,7 @@ func (RecentContact) Edges() []ent.Edge {
 			Field("mail_account_id").
 			Unique().
 			Required().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("user", User.Type).
 			Ref("recent_contacts").

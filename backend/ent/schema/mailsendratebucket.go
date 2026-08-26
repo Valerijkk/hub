@@ -44,8 +44,8 @@ func (MailSendRateBucket) Annotations() []schema.Annotation {
 
 func (MailSendRateBucket) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("organization", Organization.Type).Ref("mail_send_rate_buckets").Field("organization_id").Unique().Annotations(entsql.OnDelete(entsql.NoAction)),
-		edge.From("user", User.Type).Ref("mail_send_rate_buckets").Field("user_id").Unique().Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.From("organization", Organization.Type).Ref("mail_send_rate_buckets").Field("organization_id").Unique().Immutable().Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.From("user", User.Type).Ref("mail_send_rate_buckets").Field("user_id").Unique().Immutable().Annotations(entsql.OnDelete(entsql.NoAction)),
 	}
 }
 

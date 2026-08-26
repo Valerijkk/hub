@@ -1,0 +1,134 @@
+{
+  "lock_version": 1,
+  "purpose": "Mail/Calendar offline Ent DB materializer identity",
+  "supersedes": [
+    "schema-tool.lock.json:source_boundary.schema_source",
+    "schema-tool.lock.json:operation_contract baseline/diff/verify Ent loader semantics"
+  ],
+  "inherited_dependency_and_image_pins": "schema-tool.lock.json",
+  "source": {
+    "path": "docker/schema-maintenance/materializer/main.go",
+    "normalized_sha256": "e9158d05c2795216fbd7d60ffb179b46946bb38167585d80be669ecc3a3e7ae3"
+  },
+  "build": {
+    "command": "go build -o /run/go-run-exec/schema-materializer /opt/hub/backend/docker/schema-maintenance/materializer/main.go",
+    "hermetic_environment": {
+      "GOTOOLCHAIN": "local",
+      "GOWORK": "off",
+      "GOPROXY": "off",
+      "GOSUMDB": "off",
+      "GOMODCACHE": "/opt/hub/go/pkg/mod",
+      "GOFLAGS": "-mod=readonly -p=2"
+    }
+  },
+  "database_urls": {
+    "control": {
+      "database": "hub_schema",
+      "schema": "public",
+      "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public",
+      "control_only": true
+    },
+    "targets": [
+      {
+        "role": "prefeature",
+        "database": "hub_schema_prefeature",
+        "schema": "hub_mail_calendar",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar",
+        "non_public": true
+      },
+      {
+        "role": "current",
+        "database": "hub_schema_current",
+        "schema": "hub_mail_calendar",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar",
+        "non_public": true
+      },
+      {
+        "role": "verification",
+        "database": "hub_schema_verification",
+        "schema": "hub_mail_calendar",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_verification?sslmode=disable&search_path=hub_mail_calendar",
+        "non_public": true
+      },
+      {
+        "role": "atlas_diff_dev",
+        "database": "hub_schema_atlas_diff_dev",
+        "schema": "hub_mail_calendar",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_diff_dev?sslmode=disable&search_path=hub_mail_calendar",
+        "non_public": true
+      },
+      {
+        "role": "atlas_validate_dev",
+        "database": "hub_schema_atlas_validate_dev",
+        "schema": "hub_mail_calendar",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_validate_dev?sslmode=disable&search_path=hub_mail_calendar",
+        "non_public": true
+      },
+      {
+        "role": "atlas_lint_dev",
+        "database": "hub_schema_atlas_lint_dev",
+        "schema": "hub_mail_calendar",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_lint_dev?sslmode=disable&search_path=hub_mail_calendar",
+        "non_public": true
+      },
+      {
+        "role": "atlas_compare_dev",
+        "database": "hub_schema_atlas_compare_dev",
+        "schema": "hub_mail_calendar",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_compare_dev?sslmode=disable&search_path=hub_mail_calendar",
+        "non_public": true
+      }
+    ],
+    "revision_schemas": [
+      {
+        "role": "lineage",
+        "database": "hub_schema_verification",
+        "schema": "atlas_revisions",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_verification?sslmode=disable&search_path=atlas_revisions",
+        "non_public": true
+      },
+      {
+        "role": "current_snapshot",
+        "database": "hub_schema_atlas_compare_dev",
+        "schema": "atlas_revisions",
+        "url": "postgres://schema@schema-maintenance-postgres:5432/hub_schema_atlas_compare_dev?sslmode=disable&search_path=atlas_revisions",
+        "non_public": true
+      }
+    ]
+  },
+  "inputs": {
+    "current": [
+      "go.mod",
+      "go.sum",
+      "ent/schema",
+      "internal/mail/dns_types.go",
+      "docker/schema-maintenance/materializer/main.go"
+    ],
+    "prefeature": [
+      "/opt/hub/prefeature/backend/go.mod",
+      "/opt/hub/prefeature/backend/go.sum",
+      "/opt/hub/prefeature/backend/ent/schema"
+    ]
+  },
+  "source_manifest": {
+    "path": "/work/mail-calendar-schema/materializer.sources.manifest",
+    "per_file": {"hash": "sha256", "bytes": true},
+    "maximum_file_bytes": 33554432,
+    "emitted_to": "stdout"
+  },
+  "runtime_source_mounts": [],
+  "network": "schema-maintenance-internal only",
+  "lifecycle": {
+    "destructive_operations": false,
+    "database_initialization": "create-once",
+    "existing_database": "fail-existing",
+    "schema_initialization": "create-once",
+    "drop_database": false,
+    "drop_schema": false
+  },
+  "advisory_lock": {
+    "scope": "PostgreSQL session",
+    "ready_file": "/work/mail-calendar-schema/materializer.lock.ready",
+    "ready_file_mode": "0600"
+  }
+}
