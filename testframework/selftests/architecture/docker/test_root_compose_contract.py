@@ -48,7 +48,7 @@ _QA_INFRASTRUCTURE = (
     "qa-nats",
     "qa-seaweedfs",
 )
-_QA_PRIVATE_APPLICATIONS = ("qa-backend",)
+_QA_PRIVATE_APPLICATIONS = ("qa-backend", "qa-frontend")
 _RETAINED_DOCKER_PATHS = (
     "testframework/docker/Dockerfile.qa",
     "testframework/docker/README.md",
@@ -142,6 +142,7 @@ _INFRASTRUCTURE_DEPENDENTS = frozenset(
 _QA_BACKEND_DEPENDENTS = frozenset(
     {"python-api", "python-integration", "python-e2e-smoke", "python-e2e-full"}
 )
+_QA_FRONTEND_DEPENDENTS = frozenset({"python-e2e-smoke", "python-e2e-full"})
 _QA_NETWORK = "qa-internal"
 _MAINTENANCE_SERVICE = "qa-lock"
 _MAINTENANCE_PROFILE = "qa-maintenance"
@@ -221,6 +222,9 @@ def test_root_compose_exposes_exact_fixed_qa_services() -> None:
     assert tuple(name for name in services if name in _PUBLIC_SERVICES) == (
         _PUBLIC_SERVICES
     )
+    assert tuple(
+        name for name in services if name in _QA_PRIVATE_APPLICATIONS
+    ) == _QA_PRIVATE_APPLICATIONS
     assert _qa_service_profiles_are_closed(services)
     assert _qa_private_application_services_are_closed(services)
     assert _maintenance_service_profiles_are_closed(services)
@@ -268,13 +272,17 @@ def test_private_qa_application_is_closed_and_unpublished() -> None:
     for name in _QA_PRIVATE_APPLICATIONS:
         service = _mapping_value(services, name)
         assert service["profiles"] == ("qa",)
-        assert service["networks"] == MappingProxyType(
-            {
-                _QA_NETWORK: MappingProxyType(
-                    {"aliases": ("backend",)}
-                )
-            }
-        )
+        if name == "qa-backend":
+            assert service["networks"] == MappingProxyType(
+                {
+                    _QA_NETWORK: MappingProxyType(
+                        {"aliases": ("backend",)}
+                    )
+                }
+            )
+        else:
+            assert name == "qa-frontend"
+            assert service["networks"] == (_QA_NETWORK,)
         assert "ports" not in service
         assert "privileged" not in service
         assert not _contains_token(service, "docker.sock")
@@ -653,6 +661,28 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
             {"depends_on": MappingProxyType(api_dependencies)},
         )
     )
+    e2e_smoke = _mapping_value(services, "python-e2e-smoke")
+    smoke_dependencies = dict(_mapping_value(e2e_smoke, "depends_on"))
+    smoke_dependencies.pop("qa-frontend")
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-e2e-smoke",
+            {"depends_on": MappingProxyType(smoke_dependencies)},
+        )
+    )
+    e2e_full = _mapping_value(services, "python-e2e-full")
+    full_dependencies = dict(_mapping_value(e2e_full, "depends_on"))
+    full_dependencies["qa-frontend"] = MappingProxyType(
+        {"condition": "service_started"}
+    )
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-e2e-full",
+            {"depends_on": MappingProxyType(full_dependencies)},
+        )
+    )
     qa_backend = _mapping_value(services, "qa-backend")
     backend_dependencies = dict(_mapping_value(qa_backend, "depends_on"))
     backend_dependencies.pop("qa-nats")
@@ -668,6 +698,41 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
     )
     assert not _qa_private_application_services_are_closed(
         _mutate_service(services, "qa-backend", {"privileged": True})
+    )
+    qa_frontend = _mapping_value(services, "qa-frontend")
+    frontend_dependencies = dict(_mapping_value(qa_frontend, "depends_on"))
+    frontend_dependencies.pop("qa-backend")
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(
+            services,
+            "qa-frontend",
+            {"depends_on": MappingProxyType(frontend_dependencies)},
+        )
+    )
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(services, "qa-frontend", {"ports": ("8080:8080",)})
+    )
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(services, "qa-frontend", {"privileged": True})
+    )
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(services, "qa-frontend", {"user": "10001:10001"})
+    )
+    assert not _qa_private_application_services_are_closed(
+        _mutate_nested_mapping(
+            services,
+            "qa-frontend",
+            "build",
+            "target",
+            "hostile-target",
+        )
+    )
+    assert not _qa_private_application_services_are_closed(
+        _mutate_service(
+            services,
+            "qa-frontend",
+            {"networks": ("hostile-network",)},
+        )
     )
     assert not _qa_public_services_are_closed(
         _mutate_service(services, "frontend-unit", {"privileged": True})
@@ -757,6 +822,7 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
             "qa-nats": MappingProxyType({"profiles": ("qa",)}),
             "qa-seaweedfs": MappingProxyType({"profiles": ("qa",)}),
             "qa-backend": MappingProxyType({"profiles": ("qa",)}),
+            "qa-frontend": MappingProxyType({"profiles": ("qa",)}),
         }
     )
     assert _qa_service_profiles_are_closed(admitted_qa_services)
@@ -1430,6 +1496,43 @@ def _qa_private_application_services_are_closed(services: object) -> bool:
 
 
 def _expected_private_application_service(name: str) -> Mapping[str, object]:
+    if name == "qa-frontend":
+        expected = dict(_qa_common_service_fields())
+        expected.update(
+            {
+                "build": MappingProxyType(
+                    {
+                        "context": "./frontend",
+                        "dockerfile": "Dockerfile",
+                        "target": "qa-runtime",
+                    }
+                ),
+                "user": "101:101",
+                "restart": "no",
+                "depends_on": MappingProxyType(
+                    {
+                        "qa-backend": MappingProxyType(
+                            {"condition": "service_healthy"}
+                        )
+                    }
+                ),
+                "healthcheck": MappingProxyType(
+                    {
+                        "test": (
+                            "CMD",
+                            "wget",
+                            "-qO-",
+                            "http://127.0.0.1:8080/api/health",
+                        ),
+                        "interval": "5s",
+                        "timeout": "3s",
+                        "retries": 30,
+                        "start_period": "15s",
+                    }
+                ),
+            }
+        )
+        return MappingProxyType(expected)
     if name != "qa-backend":
         raise ValueError("unknown private QA application")
     expected = dict(_qa_common_service_fields())
@@ -1553,6 +1656,10 @@ def _healthy_public_dependencies(name: str) -> Mapping[str, object]:
         dependencies.update(_healthy_infrastructure_dependencies())
     if name in _QA_BACKEND_DEPENDENTS:
         dependencies["qa-backend"] = MappingProxyType(
+            {"condition": "service_healthy"}
+        )
+    if name in _QA_FRONTEND_DEPENDENTS:
+        dependencies["qa-frontend"] = MappingProxyType(
             {"condition": "service_healthy"}
         )
     return MappingProxyType(dependencies)

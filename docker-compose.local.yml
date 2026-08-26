@@ -391,6 +391,8 @@ services:
         condition: service_healthy
       qa-backend:
         condition: service_healthy
+      qa-frontend:
+        condition: service_healthy
 
   python-e2e-full:
     <<: [*qa-common, *qa-python]
@@ -411,6 +413,8 @@ services:
       qa-seaweedfs:
         condition: service_healthy
       qa-backend:
+        condition: service_healthy
+      qa-frontend:
         condition: service_healthy
 
   python-load:
@@ -469,6 +473,24 @@ services:
       timeout: 3s
       retries: 30
       start_period: 30s
+
+  qa-frontend:
+    <<: *qa-common
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: qa-runtime
+    user: "101:101"
+    restart: "no"
+    depends_on:
+      qa-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
 
   qa-lock:
     profiles: [qa-maintenance]
