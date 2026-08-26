@@ -4,6 +4,7 @@ package qamailcalendar
 
 import (
 	"crypto/subtle"
+	"encoding/binary"
 	"errors"
 )
 
@@ -47,11 +48,17 @@ func ParseConfig(lookup LookupEnv) (Config, error) {
 func (c Config) Authorized(candidate string) bool {
 	var configured [64]byte
 	var presented [64]byte
+	var configuredLength [8]byte
+	var presentedLength [8]byte
+	var expectedLength [8]byte
 	copy(configured[:], c.token)
 	copy(presented[:], candidate)
 
-	configuredLengthOK := subtle.ConstantTimeEq(int32(len(c.token)), int32(len(configured)))
-	presentedLengthOK := subtle.ConstantTimeEq(int32(len(candidate)), int32(len(presented)))
+	binary.LittleEndian.PutUint64(configuredLength[:], uint64(len(c.token)))
+	binary.LittleEndian.PutUint64(presentedLength[:], uint64(len(candidate)))
+	binary.LittleEndian.PutUint64(expectedLength[:], uint64(len(configured)))
+	configuredLengthOK := subtle.ConstantTimeCompare(configuredLength[:], expectedLength[:])
+	presentedLengthOK := subtle.ConstantTimeCompare(presentedLength[:], expectedLength[:])
 	equal := subtle.ConstantTimeCompare(configured[:], presented[:])
 
 	return configuredLengthOK&presentedLengthOK&equal == 1
