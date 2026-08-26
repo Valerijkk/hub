@@ -123,7 +123,8 @@ paths:
     operations: [listMailFolders, createMailFolder, updateMailFolder, deleteMailFolder,
       listMailLabels, createMailLabel, updateMailLabel, deleteMailLabel, listMailThreads,
       getMailThread, getMailMessage, downloadMailMessageAttachment, proxyMailRemoteImage, bulkMutateMailMessages,
-      createMailDraft, getMailDraft, getMailSubmission, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
+      createMailDraft, getMailDraft, createMailReplyDraft, createMailReplyAllDraft, createMailForwardDraft,
+      getMailSubmission, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
       deleteMailAttachment, searchMail, suggestMailContacts, getMailUserSettings,
       updateMailUserSettings, listMailIdentities, listMailSignatures, createMailSignature,
       updateMailSignature, deleteMailSignature, listMailRules, createMailRule, updateMailRule,
@@ -469,6 +470,46 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "409":
           description: Idempotency key reuse for a different reply intent, or a deleting mailbox account
+          headers:
+            X-Hub-Error-Code:
+              required: true
+              schema: {type: string, enum: [IDEMPOTENCY_KEY_REUSED, MAIL_ACCOUNT_DELETING]}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+        "413": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
+        "503": {$ref: "#/components/responses/Error"}
+  /mail/messages/{messageId}/reply-all-draft:
+    post:
+      tags: [MailDrafts]
+      operationId: createMailReplyAllDraft
+      x-hub-authz: mailbox-owner
+      description: >-
+        Creates exactly one durable active Reply All draft from the owned source message. The
+        server derives To and CC from the sealed source plus the complete bounded owner identity
+        proof, never accepts client recipients, and never copies source BCC. The source message id
+        is accepted only from the canonical path parameter; the request accepts no query parameters,
+        is one JSON object of at most 20 MiB raw bytes, and never returns 202.
+      parameters:
+        - {$ref: "#/components/parameters/MessageId"}
+        - {$ref: "#/components/parameters/MailDraftCreateIdempotencyKey"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CreateMailReplyDraftRequest"}
+      responses:
+        "201":
+          description: Durable active Reply All draft only, including a verified idempotent replay
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailDraft"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409":
+          description: Idempotency key reuse for a different Reply All intent, or a deleting mailbox account
           headers:
             X-Hub-Error-Code:
               required: true

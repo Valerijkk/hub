@@ -1,4 +1,23 @@
 ---
+mail_reply_all_production_composition_2026_08_26: >-
+  SOURCE_PATCH_AUTHORED /
+  INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
+  RUNTIME_NOT_RUN. Exact blobs: server wiring
+  `579fcaa941be2b7ac2e1af772239165034a0ff13`, Mail OpenAPI
+  `85f000a7448ac9a59fabe31e35b6832febf742c8`. The engine-enabled production
+  branch now constructs the Reply All core with the existing owner, Mail Ent,
+  engine, generic draft and complete identity-proof dependencies, registers its
+  authenticated handler between Reply and Forward, and keeps every constructor
+  or route failure fatal. The engine-disabled early return remains before all
+  linked-draft wiring. OpenAPI now exposes the exact server-derived Reply All
+  operation, reuses the strict Reply request contract, documents no client
+  recipients or BCC propagation, and adds all three linked-draft operations to
+  the account-deletion oracle. No NATS, worker, config or goroutine surface was
+  added. Frontend API/action/locales remain pending. Tests/build/lint/Docker/
+  runtime are NOT_RUN; this is not product, Docker or merge readiness.
+  `provenance_source: dispatcher-enforced`; implementation Terra/xhigh;
+  reviews Contract/high, Security/xhigh and Lifecycle/high; no fallback;
+  telemetry UNKNOWN.
 mail_reply_all_http_boundary_2026_08_26: >-
   SOURCE_PATCH_AUTHORED /
   INDEPENDENT_CONTRACT_SECURITY_LIFECYCLE_REVIEW_PASS_C_I_M_0_0_0 /
