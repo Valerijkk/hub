@@ -15,8 +15,8 @@ const (
 const ScenarioInboundRequestV1 Scenario = "inbound-request-v1"
 
 var (
-	errNilLookup     = errors.New("qa mail calendar environment lookup is nil")
-	errInvalidToken  = errors.New("qa mail calendar control token is missing or invalid")
+	errNilLookup       = errors.New("qa mail calendar environment lookup is nil")
+	errInvalidToken    = errors.New("qa mail calendar control token is missing or invalid")
 	errInvalidScenario = errors.New("qa mail calendar scenario is invalid")
 )
 
@@ -45,11 +45,16 @@ func ParseConfig(lookup LookupEnv) (Config, error) {
 }
 
 func (c Config) Authorized(candidate string) bool {
-	if len(c.token) != 64 {
-		return false
-	}
+	var configured [64]byte
+	var presented [64]byte
+	copy(configured[:], c.token)
+	copy(presented[:], candidate)
 
-	return subtle.ConstantTimeCompare(c.token, []byte(candidate)) == 1
+	configuredLengthOK := subtle.ConstantTimeEq(int32(len(c.token)), int32(len(configured)))
+	presentedLengthOK := subtle.ConstantTimeEq(int32(len(candidate)), int32(len(presented)))
+	equal := subtle.ConstantTimeCompare(configured[:], presented[:])
+
+	return configuredLengthOK&presentedLengthOK&equal == 1
 }
 
 func ParseScenario(value string) (Scenario, error) {
