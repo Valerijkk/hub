@@ -3,6 +3,7 @@ package messenger_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -293,6 +294,132 @@ func TestPhase151PromoteToIssueReplyUsesExactScopedRootAndRepliesInRepositoryOrd
 	phase151AssertPromoteThreadIntegritySuccessfulEffects(t, response, target, promoter, repository, linker, projectID, actorID, channelID, source.ThreadID)
 }
 
+func TestPhase151PromoteToIssueRetainsSelectedReplyOutsideNewestHundred(t *testing.T) {
+	ctx := context.Background()
+	order := make([]string, 0, 9)
+	repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
+	newestAt := time.Date(2026, time.August, 26, 12, 0, 0, 0, time.UTC)
+	repository.replies = make([]*messenger.MessageDocument, 0, 100)
+	expectedLines := []string{"- @user: root source"}
+	for index := 0; index < 100; index++ {
+		content := fmt.Sprintf("page reply %03d", index)
+		repository.replies = append(repository.replies, phase151PromoteThreadIntegrityReply(
+			fmt.Sprintf("phase151-page-reply-%03d", index),
+			channelID,
+			source.ThreadID,
+			content,
+			newestAt.Add(-time.Duration(index)*time.Minute),
+		))
+		if index < 99 {
+			expectedLines = append(expectedLines, "- @user: "+content)
+		}
+	}
+	source.CreatedAt = newestAt.Add(-101 * time.Minute)
+	expectedLines = append(expectedLines, "- @user: promoted reply")
+	originalReplies := append([]*messenger.MessageDocument(nil), repository.replies...)
+	service, target, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
+
+	response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteThreadIntegrityRequest(projectID))
+
+	require.NoError(t, err)
+	require.NotNil(t, response)
+	require.Len(t, repository.replies, len(originalReplies))
+	for index, originalReply := range originalReplies {
+		assert.Same(t, originalReply, repository.replies[index])
+	}
+	require.NotNil(t, repository.replies[99])
+	assert.Equal(t, "phase151-page-reply-099", repository.replies[99].ID)
+	lines := phase151PromoteThreadIntegrityLines(t, promoter.description)
+	assert.Equal(t, expectedLines, lines)
+	assert.Len(t, lines, 101, "description must contain one root and at most 100 replies")
+	assert.Equal(t, 1, strings.Count(strings.Join(lines, "\n"), "- @user: promoted reply"))
+	assert.NotContains(t, lines, "- @user: page reply 099")
+	assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ThreadID, limit: 100}}, repository.repliesCalls)
+	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
+	phase151AssertPromoteThreadIntegritySuccessfulEffects(t, response, target, promoter, repository, linker, projectID, actorID, channelID, source.ThreadID)
+}
+
+func TestPhase151PromoteToIssueAppendsSelectedReplyToShortPage(t *testing.T) {
+	ctx := context.Background()
+	order := make([]string, 0, 9)
+	repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
+	repository.replies = []*messenger.MessageDocument{
+		phase151PromoteThreadIntegrityReply("reply-later", channelID, source.ThreadID, "later reply", time.Date(2026, time.August, 26, 10, 3, 0, 0, time.UTC)),
+		phase151PromoteThreadIntegrityReply("reply-earlier", channelID, source.ThreadID, "earlier reply", time.Date(2026, time.August, 26, 10, 2, 0, 0, time.UTC)),
+	}
+	service, target, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
+
+	response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteThreadIntegrityRequest(projectID))
+
+	require.NoError(t, err)
+	require.NotNil(t, response)
+	lines := phase151PromoteThreadIntegrityLines(t, promoter.description)
+	assert.Equal(t, []string{
+		"- @user: root source",
+		"- @user: later reply",
+		"- @user: earlier reply",
+		"- @user: promoted reply",
+	}, lines)
+	assert.Equal(t, 1, strings.Count(strings.Join(lines, "\n"), "- @user: promoted reply"))
+	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
+	phase151AssertPromoteThreadIntegritySuccessfulEffects(t, response, target, promoter, repository, linker, projectID, actorID, channelID, source.ThreadID)
+}
+
+func TestPhase151PromoteToIssueRejectsDuplicateAndOversizedReplyPagesBeforeEffects(t *testing.T) {
+	ctx := context.Background()
+	for _, scenario := range []struct {
+		name      string
+		configure func(*phase151PromoteThreadIntegrityRepository, uuid.UUID, string, *messenger.MessageDocument) string
+	}{
+		{
+			name: "duplicate reply ID",
+			configure: func(repository *phase151PromoteThreadIntegrityRepository, channelID uuid.UUID, rootID string, _ *messenger.MessageDocument) string {
+				duplicateID := "phase151-duplicate-reply"
+				repository.replies = []*messenger.MessageDocument{
+					phase151PromoteThreadIntegrityReply(duplicateID, channelID, rootID, "first duplicate", time.Date(2026, time.August, 26, 10, 3, 0, 0, time.UTC)),
+					phase151PromoteThreadIntegrityReply(duplicateID, channelID, rootID, "second duplicate", time.Date(2026, time.August, 26, 10, 2, 0, 0, time.UTC)),
+				}
+				return duplicateID
+			},
+		},
+		{
+			name: "more than one hundred replies",
+			configure: func(repository *phase151PromoteThreadIntegrityRepository, channelID uuid.UUID, rootID string, _ *messenger.MessageDocument) string {
+				newestAt := time.Date(2026, time.August, 26, 12, 0, 0, 0, time.UTC)
+				repository.replies = make([]*messenger.MessageDocument, 0, 101)
+				for index := 0; index < 101; index++ {
+					repository.replies = append(repository.replies, phase151PromoteThreadIntegrityReply(
+						fmt.Sprintf("phase151-oversized-reply-%03d", index),
+						channelID,
+						rootID,
+						fmt.Sprintf("oversized reply %03d", index),
+						newestAt.Add(-time.Duration(index)*time.Minute),
+					))
+				}
+				return "phase151-oversized-reply-100"
+			},
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			order := make([]string, 0, 6)
+			repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
+			raw := scenario.configure(repository, channelID, source.ThreadID, source)
+			service, _, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
+
+			response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteThreadIntegrityRequest(projectID))
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, 500)
+			phase151AssertPromoteThreadIntegrityRedactedError(t, err, raw)
+			assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{channelID: channelID, rootID: source.ThreadID, limit: 100}}, repository.repliesCalls)
+			phase151AssertPromoteThreadIntegrityNoEffects(t, repository, promoter, linker)
+			phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
+			assert.Equal(t, []string{"source-action", "scoped-source", "target-authority", "scoped-parent", "scoped-replies"}, order)
+		})
+	}
+}
 func TestPhase151PromoteToIssueRejectsMalformedFoundRootSourceIdentityBeforeEffects(t *testing.T) {
 	ctx := context.Background()
 	for _, scenario := range []struct {

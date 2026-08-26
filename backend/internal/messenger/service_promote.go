@@ -208,10 +208,31 @@ func (s *MessengerService) PromoteToIssue(
 	if repliesErr != nil {
 		return nil, apperrors.NewInternal("ошибка проверки треда")
 	}
+	if len(replies) > 100 {
+		return nil, apperrors.NewInternal("ошибка проверки треда")
+	}
+	replyIDs := make(map[string]struct{}, len(replies))
+	sourceReplyCount := 0
 	for _, reply := range replies {
 		if reply == nil || reply.ID == "" || reply.ChannelID != source.ChannelID || reply.DeletedAt != nil || reply.ThreadID != parentID || reply.ID == parentID {
 			return nil, apperrors.NewInternal("ошибка проверки треда")
 		}
+		if _, exists := replyIDs[reply.ID]; exists {
+			return nil, apperrors.NewInternal("ошибка проверки треда")
+		}
+		replyIDs[reply.ID] = struct{}{}
+		if reply.ID == source.ID {
+			sourceReplyCount++
+		}
+	}
+	if source.ThreadID != "" && sourceReplyCount == 0 {
+		retained := len(replies)
+		if retained == 100 {
+			retained = 99
+		}
+		repliesWithSource := make([]*MessageDocument, 0, retained+1)
+		repliesWithSource = append(repliesWithSource, replies[:retained]...)
+		replies = append(repliesWithSource, source)
 	}
 
 	// 5. Канал — для имени в описании.

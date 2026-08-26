@@ -190,6 +190,9 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | Repository | `*/repository.go` | Testability, layering |
 | Cron helper | `platform/cron` | ME-10 graceful shutdown для tickers |
 
+## Phase 151 — bounded selected-reply retention (2026-08-26)
+
+Within `MessengerService.PromoteToIssue`, the private bounded reply page remains repository-owned input. If the promoted source is a reply absent from that newest-100 page, the service constructs a fresh effective page: append for a short page, or first 99 rows plus the selected reply for a full page. A separately resolved parent is not counted as a reply; an already-present source remains unchanged. Duplicate reply IDs and pages above 100 are rejected as redacted 500 before GetChannel and all promoter/backlink/linker effects. The contract is unit-only: live Mongo/Ent-PostgreSQL/NATS/WS, delete/revoke TOCTOU, chronology policy, mutation-time target recheck, and canonical backlink/post-create lifecycle remain `NOT_RUN` or `OPEN/UNBOUND` as applicable.
 ## Top-5 архитектурных нарушений (2026-06-17)
 
 | # | Нарушение | Файл:строка |
@@ -276,8 +279,8 @@ This is unit-verified architecture and production-wiring evidence only. Real Pos
 
 ## Promotion parent/reply authority boundary (2026-08-26)
 
-After fresh route/source and target proofs, promotion resolves parent and replies only through private channel-bound live Mongo predicates: parent is channel-scoped; replies require `channel_id + thread_id(rootID) + deleted_at:nil`. The adapter validates every returned row, forbids generic fallback, and selects at most 100 rows in `created_at DESC, _id DESC` order before GetChannel/promoter/backlink/linker. This is a bounded unit-level authority seam, not a lifecycle claim: live stores/events are `NOT_RUN`; cross-store delete/revoke TOCTOU, omission of a source reply outside the newest 100, chronology, mutation-time target recheck, and canonical backlink/post-create lifecycle remain `OPEN/UNBOUND`.
+After fresh route/source and target proofs, promotion resolves parent and replies only through private channel-bound live Mongo predicates: parent is channel-scoped; replies require `channel_id + thread_id(rootID) + deleted_at:nil`. The adapter validates every returned row, forbids generic fallback, and selects at most 100 rows in `created_at DESC, _id DESC` order before GetChannel/promoter/backlink/linker. This is a bounded unit-level authority seam, not a lifecycle claim: live stores/events are `NOT_RUN`; cross-store delete/revoke TOCTOU, chronology, mutation-time target recheck, and canonical backlink/post-create lifecycle remain `OPEN/UNBOUND`.
 
 ## Promotion source-ID defensive boundary (2026-08-26)
 
-The scoped source adapter rejects a `found=true` result unless it is nonnil, live, bound to the route channel, and has a nonempty ID exactly equal to route `messageId`. It returns fixed/redacted 500 before target/thread/channel/effects for malformed found data; `found=false` remains a concealed 404. This is unit-level only: live Mongo/Ent-PostgreSQL/NATS/WS are `NOT_RUN`; cross-store delete/revoke TOCTOU, source reply outside newest 100, chronology, mutation-time target recheck, and canonical backlink/post-create lifecycle remain `OPEN/UNBOUND`.
+The scoped source adapter rejects a `found=true` result unless it is nonnil, live, bound to the route channel, and has a nonempty ID exactly equal to route `messageId`. It returns fixed/redacted 500 before target/thread/channel/effects for malformed found data; `found=false` remains a concealed 404. This is unit-level only: live Mongo/Ent-PostgreSQL/NATS/WS are `NOT_RUN`; cross-store delete/revoke TOCTOU, chronology, mutation-time target recheck, and canonical backlink/post-create lifecycle remain `OPEN/UNBOUND`.
