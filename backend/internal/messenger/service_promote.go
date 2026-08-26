@@ -62,19 +62,33 @@ type IssueThreadLinker interface {
 
 // SetIssueThreadLinker подключает tracker для автосвязи при promote.
 func (s *MessengerService) SetIssueThreadLinker(l IssueThreadLinker) {
+	s.promotionConfigMu.Lock()
+	defer s.promotionConfigMu.Unlock()
 	s.issueThreadLinker = l
 }
 
 // SetIssuePromoter подключает реализацию IssuePromoter к сервису.
 // Допускается nil — в этом случае /promote-to-issue вернёт 500.
 func (s *MessengerService) SetIssuePromoter(p IssuePromoter) {
+	s.promotionConfigMu.Lock()
+	defer s.promotionConfigMu.Unlock()
 	s.issuePromoter = p
 }
 
 // SetPromotePermissionChecker подключает RBAC-проверку target-проекта для
 // /promote-to-issue. Nil недопустим в prod: PromoteToIssue fail-closed (500).
 func (s *MessengerService) SetPromotePermissionChecker(c PromotePermissionChecker) {
+	s.promotionConfigMu.Lock()
+	defer s.promotionConfigMu.Unlock()
 	s.promoteCheck = c
+}
+
+// promotionDependencies returns one request-scoped configuration snapshot and
+// releases the lock before any external dependency is called.
+func (s *MessengerService) promotionDependencies() (IssuePromoter, PromotePermissionChecker, IssueThreadLinker) {
+	s.promotionConfigMu.RLock()
+	defer s.promotionConfigMu.RUnlock()
+	return s.issuePromoter, s.promoteCheck, s.issueThreadLinker
 }
 
 // PromoteToIssueRequest — параметры промоушена сообщения в задачу.
@@ -136,7 +150,8 @@ func (s *MessengerService) PromoteToIssue(
 	userID uuid.UUID,
 	req PromoteToIssueRequest,
 ) (*PromoteToIssueResponse, error) {
-	if s.issuePromoter == nil {
+	issuePromoter, promoteChecker, issueThreadLinker := s.promotionDependencies()
+	if issuePromoter == nil {
 		return nil, apperrors.NewInternal("промоушен задач не сконфигурирован")
 	}
 
@@ -188,7 +203,6 @@ func (s *MessengerService) PromoteToIssue(
 
 
 	// 2b. Снимок проверки цели используется для обеих проверок этого промоушена.
-	promoteChecker := s.promoteCheck
 	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
 		return nil, checkErr
 	}
@@ -271,7 +285,7 @@ func (s *MessengerService) PromoteToIssue(
 	if checkErr := checkPromotionTarget(promoteChecker, ctx, userID, projectID); checkErr != nil {
 		return nil, checkErr
 	}
-	issueKey, issueID, err := s.issuePromoter.CreateIssueFromPromotion(ctx, projectID, userID, title, issueType, description)
+	issueKey, issueID, err := issuePromoter.CreateIssueFromPromotion(ctx, projectID, userID, title, issueType, description)
 	if err != nil {
 		return nil, err
 	}
@@ -281,10 +295,10 @@ func (s *MessengerService) PromoteToIssue(
 		slog.Warn("promote-to-issue: failed to post backlink message", "error", postErr, "issue_key", issueKey)
 	}
 
-	if s.issueThreadLinker != nil {
+	if issueThreadLinker != nil {
 		issueUUID, parseErr := uuid.Parse(issueID)
 		if parseErr == nil {
-			if linkErr := s.issueThreadLinker.LinkThreadToIssue(ctx, projectID, issueUUID, userID, source.ChannelID, parentID); linkErr != nil {
+			if linkErr := issueThreadLinker.LinkThreadToIssue(ctx, projectID, issueUUID, userID, source.ChannelID, parentID); linkErr != nil {
 				slog.Warn("promote-to-issue: failed to link thread", "error", linkErr, "issue_key", issueKey)
 			}
 		}

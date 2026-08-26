@@ -144,12 +144,14 @@ func ExportMessengerServiceEmitMessageSent(s *MessengerService, ctx context.Cont
 
 // ExportMessengerServiceIssueThreadLinker возвращает issueThreadLinker для hubtest.
 func ExportMessengerServiceIssueThreadLinker(s *MessengerService) IssueThreadLinker {
-	return s.issueThreadLinker
+	_, _, linker := s.promotionDependencies()
+	return linker
 }
 
 // ExportMessengerServicePromoteCheck возвращает promoteCheck для hubtest.
 func ExportMessengerServicePromoteCheck(s *MessengerService) PromotePermissionChecker {
-	return s.promoteCheck
+	_, checker, _ := s.promotionDependencies()
+	return checker
 }
 
 // ExportGenerateInviteToken генерирует токен приглашения для hubtest.

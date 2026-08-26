@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -27,6 +28,7 @@ type MessengerService struct {
 	channelAccess     ChannelAccessResolver
 	unreadScope       AuthorizedUnreadScopeResolver
 	messageSearchScope AuthorizedMessageSearchScopeResolver
+	promotionConfigMu sync.RWMutex
 	issuePromoter     IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
 	promoteCheck      PromotePermissionChecker // опционально: RBAC-проверка целевого проекта при /promote-to-issue
 	issueThreadLinker IssueThreadLinker        // опционально: auto-link после promote (PROD-03)

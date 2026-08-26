@@ -3,6 +3,7 @@ package messenger_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -519,7 +520,7 @@ func TestPhase151PromoteToIssueAllowsAuthorizedRootSourceAfterTargetAuthority(t 
 	}, order)
 }
 
-func TestPhase151PromoteToIssueUsesSameTargetAuthorityCheckerForRecheck(t *testing.T) {
+func TestPhase151PromoteToIssueSnapshotsPromotionDependenciesForRequest(t *testing.T) {
 	ctx := context.Background()
 	order := make([]string, 0, 10)
 	repository, actorID, channelID, channel, source, projectID := phase151PromoteTargetAuthorityFixture(&order)
@@ -529,6 +530,8 @@ func TestPhase151PromoteToIssueUsesSameTargetAuthorityCheckerForRecheck(t *testi
 	replacementChecker := &phase151PromoteTargetAuthorityChecker{
 		order: &order, found: true, canCreate: false,
 	}
+	replacementPromoter := &phase151PromoteTargetAuthorityPromoter{order: &order}
+	replacementLinker := &phase151PromoteTargetAuthorityLinker{order: &order}
 	service, resolver, promoter, linker := phase151PromoteTargetAuthorityService(
 		repository,
 		actorID,
@@ -538,6 +541,8 @@ func TestPhase151PromoteToIssueUsesSameTargetAuthorityCheckerForRecheck(t *testi
 	)
 	originalChecker.onFirstCall = func() {
 		service.SetPromotePermissionChecker(replacementChecker)
+		service.SetIssuePromoter(replacementPromoter)
+		service.SetIssueThreadLinker(replacementLinker)
 	}
 
 	response, err := service.PromoteToIssue(ctx, channelID, source.ID, actorID, phase151PromoteTargetAuthorityRequest(projectID))
@@ -561,6 +566,8 @@ func TestPhase151PromoteToIssueUsesSameTargetAuthorityCheckerForRecheck(t *testi
 	}}, repository.scopedRepliesCalls)
 	assert.Equal(t, 1, promoter.calls)
 	assert.Equal(t, 1, linker.calls)
+	assert.Zero(t, replacementPromoter.calls)
+	assert.Zero(t, replacementLinker.calls)
 	assert.Equal(t, 1, repository.backlinkCalls)
 	assert.Equal(t, []string{
 		"source-action",
@@ -574,6 +581,51 @@ func TestPhase151PromoteToIssueUsesSameTargetAuthorityCheckerForRecheck(t *testi
 		"backlink",
 		"linker",
 	}, order)
+}
+
+func TestPhase151PromotionDependencySettersAndExportsAreRaceSafe(t *testing.T) {
+	service := messenger.ExportNewMessengerServiceTest(newPhase151PromoteSourceBindingRepositoryBase())
+	checkerA := &phase151PromoteTargetAuthorityChecker{}
+	checkerB := &phase151PromoteTargetAuthorityChecker{}
+	linkerA := &phase151PromoteTargetAuthorityLinker{}
+	linkerB := &phase151PromoteTargetAuthorityLinker{}
+	service.SetPromotePermissionChecker(checkerA)
+	service.SetIssueThreadLinker(linkerA)
+
+	start := make(chan struct{})
+	observed := make(chan int, 1)
+	var workers sync.WaitGroup
+	workers.Add(2)
+	go func() {
+		defer workers.Done()
+		<-start
+		for index := 0; index < 10000; index++ {
+			if index%2 == 0 {
+				service.SetPromotePermissionChecker(checkerA)
+				service.SetIssueThreadLinker(linkerA)
+				continue
+			}
+			service.SetPromotePermissionChecker(checkerB)
+			service.SetIssueThreadLinker(linkerB)
+		}
+	}()
+	go func() {
+		defer workers.Done()
+		<-start
+		count := 0
+		for index := 0; index < 10000; index++ {
+			if messenger.ExportMessengerServicePromoteCheck(service) != nil {
+				count++
+			}
+			if messenger.ExportMessengerServiceIssueThreadLinker(service) != nil {
+				count++
+			}
+		}
+		observed <- count
+	}()
+	close(start)
+	workers.Wait()
+	assert.Equal(t, 20000, <-observed)
 }
 
 func phase151PromoteTargetAuthorityFixture(
