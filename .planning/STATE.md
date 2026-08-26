@@ -1,4 +1,19 @@
 ---
+phase_147_p3d_source_checkpoint: >-
+  P3-D SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0. The immutable
+  receipt port is 8a7478dd and shared transaction database clock is 4befb938;
+  Ent registration/due claim is 2455a123, fenced transaction lock/completion
+  is 4c030bd6, the private REPLY completion bridge is 8a238fcd, the sealed
+  Mail-to-Calendar orchestration service is e1db48ce, and bounded recovery
+  worker is 690f77e5. Terra/xhigh implementation and Terra/high independent
+  review used dispatcher-enforced provenance without fallback for every atom,
+  each with C/I/M 0/0/0. P3-D owns one database-clock 60-second lease,
+  token+generation+live-lease final CAS, bounded retry/defer/expiry policy, one
+  Mail read outside one Event transaction, lock-mutate-complete atomicity and
+  30s/50/4/45s due recovery with bounded finalized cleanup. Generated Ent ABI,
+  compile, formatting, tests, Docker and runtime remain NOT_RUN. P3-E NATS and
+  production composition, authoritative HTTP/UI correlation, bounded Docker
+  verification and merge remain pending; this is not product readiness.
 phase_147_p3d1_receipt_port_clock_checkpoint: >-
   P3-D1 SOURCE_AUTHORED / INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0 at
   8a7478dd for backend/internal/calendar/mail_inbound_repository.go. The

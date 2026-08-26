@@ -1,4 +1,13 @@
 # Phase 147 — exact Terra dispatch index
+> **P3-D source acceptance (2026-08-26):** `8a7478dd`, `4befb938`, `2455a123`,
+> `4c030bd6`, `8a238fcd`, `e1db48ce`, and `690f77e5` are `SOURCE_AUTHORED /
+> INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0 / RUNTIME_NOT_RUN` for the receipt
+> port, shared DB clock, Ent claim/completion, private REPLY bridge,
+> orchestration and due worker chain. Every atom used Terra/xhigh and
+> independent Terra/high with dispatcher-enforced/no-fallback provenance.
+> Older P3-D2/D3/D4 pending routes are `CONSUMED/HISTORICAL`. Generated Ent
+> ABI, compile, formatting, tests, Docker and runtime remain `NOT_RUN`; P3-E,
+> authoritative API/UI correlation, full-stack Docker and merge remain pending.
 > **P3-D1/clock static acceptance (2026-08-26):** `8a7478dd` freezes the
 > Calendar-owned content-free receipt repository port and `4befb938` freezes
 > one transaction-local defensive UTC whole-second database-clock sample for

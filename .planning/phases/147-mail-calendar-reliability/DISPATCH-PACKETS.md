@@ -1,4 +1,13 @@
 # Phase 147 — executable packet contracts
+> **2026-08-26 checkpoint - P3-D source complete and independently accepted.**
+> `8a7478dd`, `4befb938`, `2455a123`, `4c030bd6`, `8a238fcd`, `e1db48ce`, and
+> `690f77e5` form the accepted port, shared-clock, Ent claim/completion, private
+> REPLY bridge, orchestration and due-recovery chain. Every atom used
+> Terra/xhigh with dispatcher-enforced/no-fallback provenance and independent
+> Terra/high final `ACCEPT C/I/M 0/0/0`. Earlier P3-D2/D3/D4 pending clauses
+> are `CONSUMED/HISTORICAL` in this exact scope. Generated Ent ABI, compile,
+> formatting, tests, Docker and runtime remain `NOT_RUN`; P3-E, authoritative
+> API/UI correlation, full-stack Docker and merge remain pending.
 > **2026-08-26 checkpoint - P3-D1 port and transaction clock accepted.**
 > `8a7478dd` adds the immutable Calendar-owned receipt repository ABI for
 > content-free registration, claimed-or-durable-noop ingress, bounded due work

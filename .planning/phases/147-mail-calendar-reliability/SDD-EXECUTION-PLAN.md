@@ -79,10 +79,12 @@ Task 6 so the disk is not churned repeatedly.
 
 ## Task 2: Implement P3-D receipt repository, service, and due worker
 
-Status: `P3-D1` is source-authored and independently accepted at `8a7478dd`.
-The required transaction-local shared database clock is independently accepted
-at `4befb938`. Ent claim/completion, orchestration service and due worker remain
-pending. Docker compile/runtime is deferred to Task 6.
+Status: completed and independently accepted. `P3-D1` port is `8a7478dd`, the
+shared transaction database clock is `4befb938`, Ent claim is `2455a123`, Ent
+lock/completion is `4c030bd6`, the REPLY completion bridge is `8a238fcd`, the
+orchestration service is `e1db48ce`, and the bounded due worker is `690f77e5`.
+Every atom has independent Terra/high `ACCEPT C/I/M 0/0/0`; Docker compile and
+runtime remain deferred to Task 6.
 
 Execute Task 2 as four separately reviewed production atoms:
 

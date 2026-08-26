@@ -14,6 +14,19 @@
 > Mail churn. P3-D repository/service/worker, 147-02B/02C, D1/D2 and full
 > application Docker readiness remain pending.
 
+> **P3-D source checkpoint (2026-08-26):** `SOURCE_AUTHORED /
+> INDEPENDENT_REVIEW_ACCEPT_C_I_M_0_0_0 / RUNTIME_NOT_RUN`. The accepted chain
+> is receipt port `8a7478dd`, shared DB clock `4befb938`, Ent registration/due
+> claim `2455a123`, fenced lock/completion `4c030bd6`, private REPLY bridge
+> `8a238fcd`, orchestration service `e1db48ce`, and recovery worker `690f77e5`.
+> Every production atom was Terra/xhigh with dispatcher-enforced/no-fallback
+> provenance and received an independent Terra/high `ACCEPT C/I/M 0/0/0`.
+> Older P3-D repository/service/worker-pending clauses are
+> `CONSUMED/HISTORICAL` in this exact scope. Generated Ent ABI, compile,
+> formatting, executable tests, Docker and runtime remain `NOT_RUN`; P3-E,
+> authoritative HTTP/UI correlation, full-stack Docker and merge remain
+> pending. This is source acceptance only, not product readiness.
+
 ## Outcome
 
 Close deterministic incoming invitation ordering and outward REPLY recovery, private
