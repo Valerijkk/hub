@@ -37,10 +37,11 @@ func (backend *eventEntTransactionBackend) ReserveMutationReceipt(ctx context.Co
 		if !bytes.Equal(receipt.RequestHash, requestHash[:]) ||
 			receipt.State != calendarmutationreceipt.StateCompleted ||
 			receipt.ResponseStatus == nil ||
+			receipt.ResponseJSON == nil ||
 			!receipt.ExpiresAt.After(now) {
 			return MutationReceiptReservationResult{}, newCalendarEventCreateConflict(CalendarEventCreateConflictIdempotencyKeyReused)
 		}
-		response, err := NewMutationReceiptResponse(*receipt.ResponseStatus, receipt.ResponseJSON)
+		response, err := NewMutationReceiptResponse(*receipt.ResponseStatus, *receipt.ResponseJSON)
 		if err != nil {
 			return MutationReceiptReservationResult{}, ErrEventInvalid
 		}
