@@ -434,6 +434,9 @@ func (service *EventService) UpdateCalendarEvent(ctx context.Context, actorID uu
 			cancelledNotificationID = service.ids.NewEventID()
 			if cancelledNotificationID == uuid.Nil { return ErrEventInvalid }
 		}
+		if updatedNotificationID != uuid.Nil && cancelledNotificationID != uuid.Nil && updatedNotificationID == cancelledNotificationID {
+			return ErrEventInvalid
+		}
 		outbox, err := calendarEventUpdateOutbox(updatedNotificationID, cancelledNotificationID, service.clock, scope, updated, activeAttendeeIDs, removedAttendeeIDs, policy, fields)
 		if err != nil { return err }
 		persistence, err := NewCalendarEventUpdatePersistenceCommand(event, command.input.ExpectedVersion, mutations, outbox)

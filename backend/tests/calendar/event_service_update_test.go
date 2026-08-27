@@ -186,6 +186,33 @@ func TestEventServiceUpdateCalendarEvent_PersistsOneAtomicSafeIntentAndTombstone
 	assertCalendarEventV2Envelope(t, outboxes[1].Envelope(), calendar.CalendarInviteCancelledSubjectV2, cancelApplicationID, updateEventID, updateActorID, 8, []uuid.UUID{updateAttendeeID})
 }
 
+func TestEventServiceUpdateCalendarEvent_RejectsCollidingNotificationIDsBeforePersistence(t *testing.T) {
+	backend := newUpdateBackendFake()
+	backend.authorization.ResolvedAttendees = []calendar.CalendarEventCreateResolvedAttendee{{
+		Email: "new@example.test", DisplayName: stringPointer("New attendee"), Role: calendar.CalendarEventAttendeeRoleOptional,
+	}}
+	attendeeID := uuid.MustParse("57575757-5757-4575-8575-575757575757")
+	collidingID := uuid.MustParse("58585858-5858-4585-8585-585858585858")
+	service := calendar.NewEventService(
+		&updateRepositoryFake{backend: backend},
+		&createClockFake{now: time.Date(2031, time.January, 11, 12, 13, 14, 0, time.UTC)},
+		&createIDGeneratorFake{ids: []uuid.UUID{attendeeID, collidingID, collidingID}},
+		createSerializerUnused{},
+	)
+	_, err := service.UpdateCalendarEvent(context.Background(), updateActorID, mustUpdateCommand(t, calendar.CalendarEventUpdateInput{
+		EventID: updateEventID, ExpectedVersion: 3, NotifyAttendees: true,
+		Attendees: calendar.CalendarEventUpdateAttendees{Present: true, Value: []calendar.CalendarEventCreateAttendeeCandidate{{
+			Email: "new@example.test", DisplayName: stringPointer("New attendee"), Role: calendar.CalendarEventAttendeeRoleOptional,
+		}}},
+	}))
+	if !errors.Is(err, calendar.ErrEventInvalid) || strings.Contains(err.Error(), collidingID.String()) {
+		t.Fatalf("notification collision error = %v, want content-free invalid", err)
+	}
+	if backend.persistCalls != 0 || len(backend.persisted) != 0 {
+		t.Fatalf("notification collision persisted calls/commands = %d/%d, want 0/0", backend.persistCalls, len(backend.persisted))
+	}
+}
+
 func TestEventServiceUpdateCalendarEvent_NonDisclosureRecurrenceNoopAndConflictOrdering(t *testing.T) {
 	sameRRULE := "FREQ=DAILY;COUNT=2"
 	sameExdate := "2031-01-21T09:00:00Z"
