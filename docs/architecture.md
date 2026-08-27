@@ -360,3 +360,11 @@ The bounded post-create architecture now has a concrete recipient-only invalidat
 The event carries identifiers only. A root carries `channel_id` with `target_kind=channel/category=channel`; a direct reply additionally carries its UUID `root_message_id` with `target_kind=thread/category=followed_thread`. It never contains content, unread counts, or recipient-local state.
 
 The coordinator calls this effect only after a successful complete CAS. NATS publication is not transactional and has no acknowledgement through the current publisher interface, so CAS-to-publish failure can lose an invalidation. Reconnect/subscription followed by authoritative refetch is the convergence design; no outbox or exactly-once claim exists. This adapter remains standalone until eligible-mention resolution and full repository composition are complete, and production message writers remain on legacy paths.
+
+## Phase 151 eligible mention resolver adapter (2026-08-27)
+
+Mention resolution now has a standalone pre-persist adapter. The actor is rechecked through the PostgreSQL `ChannelAccessResolver` for exact tenant/channel/project access. Candidate discovery comes from the same current `WSChannelAuthority` audience used for recipient events, never Mongo message data. Project-role results from Ent and online IDs from Presence/Redis are only filters feeding that authorized audience.
+
+Individual UUIDs, `@all`, `@online`, and `owner/developer/tester/viewer` groups form a union. The sender, invalid IDs, users outside the current audience, and duplicates are removed, and UUID sorting freezes a deterministic persisted `resolved_mention_user_ids` snapshot. Empty input avoids dependency reads; infrastructure failures prevent canonical Mongo persistence.
+
+The adapter is not yet composed with the Mongo/CombinedRepository effects and no production writer calls it. `WSChannelAuthority` treats one candidate authorization error as an omission, so the boundary is fail-closed for disclosure but live completeness can undercount a non-sender until a future strict-audience policy is chosen. PostgreSQL/Redis integration and recovery behavior remain unverified.
