@@ -76,6 +76,7 @@ func (handler *MailboxSetupHandler) password(ctx fiber.Ctx) error {
 		return mailboxSetupHTTPFixedError(ctx, fiber.StatusUnsupportedMediaType, "MAIL_SETUP_INVALID_CONTENT_TYPE", "invalid mailbox setup content type")
 	}
 	body := ctx.BodyRaw()
+	defer clear(body)
 	if len(body) > handler.config.MaximumPasswordBytes {
 		return mailboxSetupHTTPFixedError(ctx, fiber.StatusRequestEntityTooLarge, "MAIL_SETUP_PASSWORD_TOO_LARGE", "invalid mailbox setup password")
 	}
@@ -85,6 +86,13 @@ func (handler *MailboxSetupHandler) password(ctx fiber.Ctx) error {
 	actorID, err := mailboxActorID(ctx)
 	if err != nil {
 		return mailboxSetupHTTPFixedError(ctx, fiber.StatusUnauthorized, "MAIL_SETUP_UNAUTHORIZED", "unauthorized")
+	}
+	scope, err := handler.resolveBootstrapScope(ctx)
+	if err != nil {
+		return err
+	}
+	if scope.ActorID != actorID {
+		return mailboxSetupHTTPFixedError(ctx, fiber.StatusConflict, "MAIL_SETUP_NOT_READY", "mailbox setup not ready")
 	}
 	password := append([]byte(nil), body...)
 	defer clear(password)

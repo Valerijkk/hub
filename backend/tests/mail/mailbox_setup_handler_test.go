@@ -115,6 +115,35 @@ func TestMailboxSetupHandler_PasswordCopiesClearsAndReturnsClosedOutcome(t *test
 	}
 }
 
+func TestMailboxSetupHandler_PasswordRequiresBootstrapOwner(t *testing.T) {
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*mailboxSetupHTTPFixture)
+	}{
+		{name: "projection ready", mutate: func(fixture *mailboxSetupHTTPFixture) {
+			fixture.ownerRecord.ProjectionState = mail.MailboxProjectionReady
+		}},
+		{name: "recovery code", mutate: func(fixture *mailboxSetupHTTPFixture) {
+			code := mail.MailboxOwnerRecoveryCode("MAILBOX_PROVISIONING_RETRY")
+			fixture.ownerRecord.RecoveryCode = &code
+		}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newMailboxSetupHTTPFixture(t)
+			testCase.mutate(fixture)
+			fixture.owners = mailboxSetupOwnerService(t, fixture.ownerRecord)
+			fixture.replaceHandler(t)
+			request := httptest.NewRequest(http.MethodPost, "/api/mail/setup/password", bytes.NewReader([]byte("twelve-bytes")))
+			request.Header.Set("Content-Type", "application/octet-stream")
+			request.Header.Set("X-Test-Auth", "yes")
+			response := mailboxSetupHTTPResponse(t, fixture.app, request)
+			if response.StatusCode != http.StatusConflict || response.Header.Get("X-Hub-Error-Code") != "MAIL_SETUP_NOT_READY" || fixture.password.calls != 0 {
+				t.Fatalf("password owner gate status/code/calls = %d/%q/%d, want 409/%q/0", response.StatusCode, response.Header.Get("X-Hub-Error-Code"), fixture.password.calls, "MAIL_SETUP_NOT_READY")
+			}
+		})
+	}
+}
+
 func TestMailboxSetupHandler_AuthorizeRequiresBootstrapOwnerAndSetsScopedCookie(t *testing.T) {
 	fixture := newMailboxSetupHTTPFixture(t)
 	request := httptest.NewRequest(http.MethodPost, "/api/mail/setup/oauth/authorize", nil)
