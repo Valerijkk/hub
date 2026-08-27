@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through typed nonce handling plus two concrete post-create effects. Reply-count reconciliation is Mongo-scoped and auto-follow is a real CombinedRepository Ent+Mongo adapter with fresh per-user authority; live writers and recipient invalidation remain unbound.
-**Resume:** reply-count and automatic thread-follow ports are closed at bounded unit/compile level. Freeze recipient-only unread invalidation with exact fresh-audience, payload, retry, and CAS-before-publish semantics before any live writer binding; recovery fencing, outbox ownership, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
+**Stopped at:** bounded Phase 151 units are green through typed nonce handling plus three concrete post-create effects. Reply-count reconciliation, automatic thread follows, and recipient-only unread invalidation now have concrete adapters; live writers, full repository composition, and recovery remain unbound.
+**Resume:** reply-count, automatic thread-follow, and recipient-only unread invalidation ports are closed at bounded unit/compile level. Next freeze the concrete `ResolveEligibleMentionUserIDs` authority adapter, then compose the full post-create repository without routing live writers; recovery fencing, outbox ownership, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1310,3 +1310,12 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Existing Mongo transition semantics preserve `manual_unfollow`, `manual_follow`, and an existing `auto` record; retry/partial progress cannot overwrite explicit intent. Canonical/producer validation happens before authority or Mongo.
 - Compile RED kept production build `PASS` and failed vet/unit/race only on absent adapter/coordinator symbols. Final Docker overall/build/vet/unit/race is `PASS`; seven top-level groups pass in unit and race with zero fail, panic, or data-race markers. Root security/mutation review is `PASS` after adding trusted-producer and tenant-integrity regressions. Independent Terra/high review is `UNKNOWN` because thread capacity rejected dispatch.
 - No live writer, PostgreSQL, Mongo, recovery, or event runtime was exercised. Recipient invalidation, full repository composition, recovery fencing, and cutover remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Session note - 2026-08-27 (Phase 151 recipient unread invalidation effect atom)
+
+- `Phase151UnreadInvalidationEffect` now implements the pipeline `PublishUnreadInvalidation` port over the existing fresh `WSChannelAuthority` audience resolver and best-effort `EventPublisher`. The event and subject are recipient-scoped `messenger.user.{userID}.unread_changed`.
+- The strict identifier-only payload is `{channel_id,target_kind:channel,category:channel}` for a root and `{channel_id,target_kind:thread,category:followed_thread,root_message_id}` for a direct reply. Canonical/producer validation happens before audience resolution; sender, nil IDs, and duplicates are omitted.
+- Audience failure publishes zero events and returns an error. Publication occurs only after the coordinator's successful completion CAS. Because the publisher has no error result and there is no outbox, a crash or failure between CAS and delivery can lose the invalidation; reconnect/authoritative refetch is the recovery contract.
+- Test-only RED kept the production build `PASS` and failed vet/unit/race only on the missing effect/payload/plan symbols. After implementation and mutation-focused additions for exact thread JSON, missing `created_at`, and cancelled context, final Docker `backend-unit` records overall/build/vet/unit/race `PASS`; five top-level groups pass in unit and race with zero fail, panic, or data-race markers.
+- Root authority/payload/failure review is `PASS`. Independent `Terra/high` review is `UNKNOWN` because the runtime rejected dispatch at the exhausted agent-thread limit.
+- This is a standalone effect adapter, not live writer or full repository binding. `ResolveEligibleMentionUserIDs`, repository composition, recovery ownership/fencing, live Mongo/Ent-PostgreSQL/NATS/WS/browser, `qa-build`, Swagger, and integration remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

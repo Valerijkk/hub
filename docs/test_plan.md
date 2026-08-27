@@ -369,3 +369,11 @@ The focused suite freezes author-first unique mentions, root/reply identity, aut
 Compile RED recorded overall `FAIL`, production build `PASS`, and vet/unit/race failures only on the missing method/coordinator/plan. Initial GREEN led root mutation review to add explicit untrusted-producer, malformed bot, foreign-tenant, and nil-context coverage. Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`; seven top-level groups pass in both unit and race and critical markers are zero. Root review is `PASS`; independent Terra/high is `UNKNOWN` because thread capacity rejected dispatch.
 
 No live PostgreSQL/Mongo, handler/writer, recovery, NATS/WS, qa-build, or Swagger evidence is claimed. Multi-user partial writes converge by insert-only retry but are not a cross-store transaction.
+
+## Phase 151 recipient unread invalidation evidence (2026-08-27)
+
+The focused tests freeze root and reply identifier payloads, exact strict JSON shape, `unread_changed` audience selection, stable recipient order, sender/nil/duplicate filtering, zero-publish audience failure, trusted-producer and canonical pending-state validation before authority, non-UUID/self-root rejection, mandatory dependencies, nil/cancelled context, and compile compatibility with the pipeline port and `WSChannelAuthority`.
+
+Test-only Docker RED kept production build `PASS` and failed vet/unit/race only on the missing event/payload/plan/effect symbols. An initial GREEN was mutation-reviewed, then exact reply JSON, zero `created_at`, and cancelled-context assertions were added. The final sequential `backend-unit` receipt records overall/build/vet/unit/race `PASS`. All five top-level unread-invalidation groups pass once in unit and once under race; searches found no `FAIL`, `panic:`, or `DATA RACE` marker. Root review is `PASS`; independent Terra/high review is `UNKNOWN` because the runtime rejected dispatch at the agent-thread limit.
+
+No `qa-build`, Swagger, live PostgreSQL/Mongo/NATS/WS/browser, or integration evidence is claimed. The tests prove a standalone adapter only. They do not prove full repository composition, production writer routing, publish acknowledgement, outbox delivery, or recovery-worker fencing.

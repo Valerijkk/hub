@@ -36,6 +36,10 @@ const (
 	// channel members other than the canonical message sender.
 	UserNewMessageNotificationEvent = "new_message_notification"
 
+	// UserUnreadChangedEvent is an identifier-only prompt to refetch durable
+	// unread state from the authoritative API.
+	UserUnreadChangedEvent = "unread_changed"
+
 	// SubjectUserChannelCreated is the per-user NATS subject for a channel that
 	// has just become visible. Format: messenger.user.{userID}.channel_created.
 	SubjectUserChannelCreated = "messenger.user.%s." + UserChannelCreatedEvent
@@ -52,6 +56,10 @@ const (
 	// channel message notification. Format:
 	// messenger.user.{userID}.new_message_notification.
 	SubjectUserNewMessageNotification = "messenger.user.%s." + UserNewMessageNotificationEvent
+
+	// SubjectUserUnreadChanged is the per-user durable-unread invalidation.
+	// Format: messenger.user.{userID}.unread_changed.
+	SubjectUserUnreadChanged = "messenger.user.%s." + UserUnreadChangedEvent
 	// SubjectMessageSent — тема NATS для события отправки сообщения.
 	// Формат: messenger.channel.{channelID}.message_sent
 	SubjectMessageSent = "messenger.channel.%s.message_sent"
@@ -105,6 +113,15 @@ type NewMessageNotificationEvent struct {
 	MessageID string `json:"message_id"`
 }
 
+// UnreadChangedEvent contains only routing identifiers. It never carries
+// content, a counter, or recipient-local unread state.
+type UnreadChangedEvent struct {
+	ChannelID     uuid.UUID  `json:"channel_id"`
+	TargetKind    string     `json:"target_kind"`
+	Category      string     `json:"category"`
+	RootMessageID *uuid.UUID `json:"root_message_id,omitempty"`
+}
+
 // publishUserChannelLifecycleEvent best-effort publishes a single
 // invalidation payload to each explicit, valid user ID exactly once.
 func (s *MessengerService) publishUserChannelLifecycleEvent(subjectFormat string, channelID uuid.UUID, userIDs []uuid.UUID) {
@@ -156,6 +173,7 @@ func (s *MessengerService) publishUserNewMessageNotifications(ctx context.Contex
 		s.nats.PublishJSON(fmt.Sprintf(SubjectUserNewMessageNotification, userID.String()), payload)
 	}
 }
+
 // MessageSentEvent — данные события отправки сообщения.
 // MentionedUserIDs содержит уже разрешённые ID пользователей
 // из @all, @online, @role и индивидуальных упоминаний.
