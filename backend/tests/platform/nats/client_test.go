@@ -15,7 +15,7 @@ func TestStreamNameConstant(t *testing.T) {
 
 func TestStreamSubjects(t *testing.T) {
 	// A2W4-2-003: unit assert = канон EnsureStreams, не локальный устаревший слайс.
-	require.Equal(t, natsclient.StreamSubjects, []string{
+	require.Equal(t, []string{
 		"project.>",
 		"tracker.>",
 		"messenger.channel.>",
@@ -26,9 +26,25 @@ func TestStreamSubjects(t *testing.T) {
 		"sprint.>",
 		"notification.>",
 		"audit.>",
-	})
-	assert.Equal(t, 10, len(natsclient.StreamSubjects),
-		"EVENTS stream must keep ME-07 subjects + audit.> (GDPR mongo erase retry)")
+		"calendar.>",
+		"mail.>",
+	}, natsclient.StreamSubjects)
+	require.Len(t, natsclient.StreamSubjects, 12,
+		"EVENTS stream must keep the canonical 12 subjects")
+
+	calendarSubjects := 0
+	mailSubjects := 0
+	for _, subject := range natsclient.StreamSubjects {
+		if subject == "calendar.>" {
+			calendarSubjects++
+		}
+		if subject == "mail.>" {
+			mailSubjects++
+		}
+	}
+	require.Equal(t, 1, calendarSubjects, "calendar.> must occur exactly once")
+	require.Equal(t, 1, mailSubjects, "mail.> must occur exactly once")
+
 	assert.Contains(t, natsclient.StreamSubjects, "notification.>")
 	assert.Contains(t, natsclient.StreamSubjects, "calls.recording.>")
 	assert.Contains(t, natsclient.StreamSubjects, "audit.>")

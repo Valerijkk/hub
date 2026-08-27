@@ -8,7 +8,7 @@ import (
 	platformnats "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-func TestStreamSubjects_AdmitsCalendarExactlyOnce(t *testing.T) {
+func TestStreamSubjects_AdmitsCalendarAndMailExactlyOnce(t *testing.T) {
 	want := []string{
 		"project.>",
 		"tracker.>",
@@ -21,6 +21,7 @@ func TestStreamSubjects_AdmitsCalendarExactlyOnce(t *testing.T) {
 		"notification.>",
 		"audit.>",
 		"calendar.>",
+		"mail.>",
 	}
 
 	if !reflect.DeepEqual(platformnats.StreamSubjects, want) {
@@ -28,9 +29,13 @@ func TestStreamSubjects_AdmitsCalendarExactlyOnce(t *testing.T) {
 	}
 
 	calendarSubjects := 0
+	mailSubjects := 0
 	for _, subject := range platformnats.StreamSubjects {
 		if subject == "calendar.>" {
 			calendarSubjects++
+		}
+		if subject == "mail.>" {
+			mailSubjects++
 		}
 		if subject == ">" || strings.HasPrefix(subject, "*.") {
 			t.Fatalf("StreamSubjects contains broader wildcard %q", subject)
@@ -39,9 +44,12 @@ func TestStreamSubjects_AdmitsCalendarExactlyOnce(t *testing.T) {
 	if calendarSubjects != 1 {
 		t.Fatalf("calendar.> occurs %d times, want 1", calendarSubjects)
 	}
+	if mailSubjects != 1 {
+		t.Fatalf("mail.> occurs %d times, want 1", mailSubjects)
+	}
 }
 
-func TestStreamSubjects_CalendarSubjectsAreAdmittedWithoutMailOrLinkedCallExpansion(t *testing.T) {
+func TestStreamSubjects_CalendarSubjectsAreAdmittedWithoutLinkedCallExpansion(t *testing.T) {
 	calendarSubjects := []string{
 		"calendar.invite.created.v1",
 		"calendar.invite.updated.v1",
@@ -57,13 +65,13 @@ func TestStreamSubjects_CalendarSubjectsAreAdmittedWithoutMailOrLinkedCallExpans
 	}
 
 	for _, subject := range platformnats.StreamSubjects {
-		if subject == "mail.>" || (strings.HasPrefix(subject, "calls.channel.") && strings.HasSuffix(subject, ".scheduled_due.v1")) {
-			t.Fatalf("StreamSubjects contains subject outside 143-04G admission: %q", subject)
+		if strings.HasPrefix(subject, "calls.channel.") && strings.HasSuffix(subject, ".scheduled_due.v1") {
+			t.Fatalf("StreamSubjects contains subject outside calendar/mail admission: %q", subject)
 		}
 	}
 }
 
-func TestWebhookFilterSubjects_StayExactAndExcludeCalendar(t *testing.T) {
+func TestWebhookFilterSubjects_StayExactAndExcludeCalendarAndMail(t *testing.T) {
 	want := []string{
 		"project.*.issue.>",
 		"tracker.*.issue.>",
@@ -77,8 +85,8 @@ func TestWebhookFilterSubjects_StayExactAndExcludeCalendar(t *testing.T) {
 		t.Fatalf("WebhookFilterSubjects = %#v, want %#v", platformnats.WebhookFilterSubjects, want)
 	}
 	for _, subject := range platformnats.WebhookFilterSubjects {
-		if strings.HasPrefix(subject, "calendar.") {
-			t.Fatalf("WebhookFilterSubjects exposes calendar subject %q", subject)
+		if strings.HasPrefix(subject, "calendar.") || strings.HasPrefix(subject, "mail.") {
+			t.Fatalf("WebhookFilterSubjects exposes calendar or mail subject %q", subject)
 		}
 	}
 }
