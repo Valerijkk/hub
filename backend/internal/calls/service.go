@@ -86,9 +86,18 @@ func NewCallServiceWithProvider(provider ConferenceProvider, repo *EntRepository
 	}
 }
 
-// GenerateToken возвращает credential token для подключения к комнате конференции.
-func (s *CallService) GenerateToken(roomName, userID, userName string) (string, error) {
+// GenerateJoinCredential returns a provider-neutral credential for joining a conference room.
+func (s *CallService) GenerateJoinCredential(roomName, userID, userName string) (JoinCredential, error) {
 	credential, err := s.provider.IssueJoinCredential(roomName, userID, userName)
+	if err != nil {
+		return JoinCredential{}, err
+	}
+	return credential, nil
+}
+
+// GenerateToken returns a credential token for joining a conference room.
+func (s *CallService) GenerateToken(roomName, userID, userName string) (string, error) {
+	credential, err := s.GenerateJoinCredential(roomName, userID, userName)
 	if err != nil {
 		return "", err
 	}

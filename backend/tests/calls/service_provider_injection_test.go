@@ -134,6 +134,76 @@ func TestCallServiceGenerateTokenUsesInjectedProviderJoinCredential(t *testing.T
 	}, provider.operations)
 }
 
+func TestCallServiceGenerateJoinCredentialDelegatesExactTypedCredential(t *testing.T) {
+	userID := uuid.New()
+	want := calls.JoinCredential{
+		Provider:   "jitsi",
+		RoomName:   "hub-call-room-42",
+		ServiceURL: "https://meet.hub.test",
+		Token:      "signed-jitsi-jwt",
+	}
+	provider := &providerInjectionFake{joinCredential: want}
+	service := calls.ExportNewCallServiceWithProviderForTest(nil, provider, nil, nil)
+
+	credential, err := service.GenerateJoinCredential(want.RoomName, userID.String(), "Grace Hopper")
+
+	require.NoError(t, err)
+	assert.Equal(t, want, credential, "CallService must preserve every provider-issued join credential field")
+	require.Equal(t, []providerInjectionOperation{
+		{
+			name:     "issue_join_credential",
+			roomName: want.RoomName,
+			identity: userID.String(),
+			userName: "Grace Hopper",
+		},
+	}, provider.operations)
+}
+
+func TestCallServiceGenerateJoinCredentialReturnsZeroValueAndProviderError(t *testing.T) {
+	providerErr := errors.New("provider unavailable")
+	provider := &providerInjectionFake{
+		joinCredential: calls.JoinCredential{
+			Provider:   "jitsi",
+			RoomName:   "must-not-leak",
+			ServiceURL: "https://meet.hub.test",
+			Token:      "must-not-leak",
+		},
+		joinErr: providerErr,
+	}
+	service := calls.ExportNewCallServiceWithProviderForTest(nil, provider, nil, nil)
+
+	credential, err := service.GenerateJoinCredential("hub-call-room-error", "user-42", "Linus Torvalds")
+
+	require.ErrorIs(t, err, providerErr)
+	assert.Equal(t, calls.JoinCredential{}, credential, "a failed provider call must not expose a partial credential")
+	require.Equal(t, []providerInjectionOperation{
+		{
+			name:     "issue_join_credential",
+			roomName: "hub-call-room-error",
+			identity: "user-42",
+			userName: "Linus Torvalds",
+		},
+	}, provider.operations)
+}
+
+func TestCallServiceGenerateTokenPreservesProviderErrorIdentity(t *testing.T) {
+	providerErr := errors.New("token issuer unavailable")
+	provider := &providerInjectionFake{joinErr: providerErr}
+	service := calls.ExportNewCallServiceWithProviderForTest(nil, provider, nil, nil)
+
+	token, err := service.GenerateToken("hub-call-token-error", "user-7", "Margaret Hamilton")
+
+	require.ErrorIs(t, err, providerErr)
+	assert.Empty(t, token, "the legacy token boundary must remain empty when credential issuance fails")
+	require.Equal(t, []providerInjectionOperation{
+		{
+			name:     "issue_join_credential",
+			roomName: "hub-call-token-error",
+			identity: "user-7",
+			userName: "Margaret Hamilton",
+		},
+	}, provider.operations)
+}
 func TestCallServiceCreateInstantCallRollsBackInjectedProviderAfterPersistenceFailure(t *testing.T) {
 	provider := &providerInjectionFake{}
 	service := calls.ExportNewCallServiceWithProviderForTest(nil, provider, nil, nil)
