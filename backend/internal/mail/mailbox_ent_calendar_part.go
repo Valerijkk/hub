@@ -173,7 +173,8 @@ func (source *MailboxEntCalendarPartSource) readCalendarPartSnapshot(ctx context
 			return newCalendarPartSourceError(CalendarPartSourceErrorMessageUnavailable)
 		}
 		if message.CalendarMethod == nil ||
-			len(message.CalendarPartLocatorHash) != sha256.Size {
+			message.CalendarPartLocatorHash == nil ||
+			len(*message.CalendarPartLocatorHash) != sha256.Size {
 			return newCalendarPartSourceError(CalendarPartSourceErrorPartUnavailable)
 		}
 
@@ -191,7 +192,7 @@ func (source *MailboxEntCalendarPartSource) readCalendarPartSnapshot(ctx context
 		}
 
 		var locatorHash [sha256.Size]byte
-		copy(locatorHash[:], message.CalendarPartLocatorHash)
+		copy(locatorHash[:], *message.CalendarPartLocatorHash)
 		if calendarPartLocatorHashZero(locatorHash) || locatorHash != request.locatorHash {
 			return newCalendarPartSourceError(CalendarPartSourceErrorPartUnavailable)
 		}

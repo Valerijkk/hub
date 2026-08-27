@@ -346,7 +346,7 @@ func mailboxEntDraftReservationLockLinkedSource(ctx context.Context, transaction
 		}
 		return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 	}
-	if source == nil || !mailboxEntApplyMessageRowValid(source, accountID) || source.ID != proof.MessageID || source.MailAccountID != accountID || source.DeletedAt != nil || source.EngineMessageID != proof.EngineMessageID || source.EngineVersion != proof.EngineVersion || source.IsDraft || source.ProjectionOrigin != mailmessage.ProjectionOrigin(EngineProjectionOriginInboundOrUnknown) || source.CalendarMethod != nil || source.CalendarEventID != nil || len(source.CalendarPartLocatorHash) != 0 {
+	if source == nil || !mailboxEntApplyMessageRowValid(source, accountID) || source.ID != proof.MessageID || source.MailAccountID != accountID || source.DeletedAt != nil || source.EngineMessageID != proof.EngineMessageID || source.EngineVersion != proof.EngineVersion || source.IsDraft || source.ProjectionOrigin != mailmessage.ProjectionOrigin(EngineProjectionOriginInboundOrUnknown) || source.CalendarMethod != nil || source.CalendarEventID != nil || source.CalendarPartLocatorHash != nil {
 		return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorStateConflict)
 	}
 	return nil

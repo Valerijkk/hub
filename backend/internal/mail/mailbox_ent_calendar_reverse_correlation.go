@@ -220,8 +220,9 @@ func mailboxEntCalendarReverseInboundMessageValid(message *ent.MailMessage, acco
 		message.DeletedAt == nil &&
 		message.CalendarMethod != nil &&
 		mailboxEntCalendarCorrelationMethodValid(*message.CalendarMethod) &&
-		len(message.CalendarPartLocatorHash) == 32 &&
-		bytes.Equal(message.CalendarPartLocatorHash, receipt.PartLocatorHash)
+		message.CalendarPartLocatorHash != nil &&
+		len(*message.CalendarPartLocatorHash) == 32 &&
+		bytes.Equal(*message.CalendarPartLocatorHash, receipt.PartLocatorHash)
 }
 
 func mailboxEntCalendarReverseOutboundCandidates(ctx context.Context, transaction *ent.Tx, request CalendarMailboxCorrelationRequest, accountID uuid.UUID, outboundEligible bool, candidates *mailboxEntCalendarReverseCorrelationCandidates) error {
