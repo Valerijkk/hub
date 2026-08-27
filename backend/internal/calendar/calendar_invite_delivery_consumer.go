@@ -43,6 +43,17 @@ var (
 	errCalendarInviteDeliveryConsumerUnavailable = errors.New("calendar invite delivery consumer unavailable")
 )
 
+// CalendarInviteDeliveryConsumerDisposition is the one safe JetStream action
+// determined by canonical admission processing. NATS acknowledgement stays in
+// the private consumer wrapper.
+type CalendarInviteDeliveryConsumerDisposition uint8
+
+const (
+	CalendarInviteDeliveryConsumerDispositionAck CalendarInviteDeliveryConsumerDisposition = iota + 1
+	CalendarInviteDeliveryConsumerDispositionTerm
+	CalendarInviteDeliveryConsumerDispositionNak
+)
+
 // CalendarInviteDeliveryConsumer admits canonical v2 Calendar invite intents into Mail.
 type CalendarInviteDeliveryConsumer struct {
 	client     *natsclient.Client
@@ -233,35 +244,54 @@ func (consumer *CalendarInviteDeliveryConsumer) handleMessageSafely(ctx context.
 }
 
 func (consumer *CalendarInviteDeliveryConsumer) handleMessage(ctx context.Context, message jetstream.Msg) {
-	admissions, err := calendarInviteDeliveryConsumerAdmissions(message.Subject(), message.Data())
-	if err != nil {
-		calendarInviteDeliveryConsumerTerm(message)
-		return
-	}
-	if len(admissions) == 0 {
+	deliveryContext := natsclient.ExtractTraceContext(ctx, message.Headers())
+	switch ProcessCalendarInviteDeliveryAdmissions(deliveryContext, consumer.repository, message.Subject(), message.Data()) {
+	case CalendarInviteDeliveryConsumerDispositionAck:
 		calendarInviteDeliveryConsumerAck(message)
-		return
+	case CalendarInviteDeliveryConsumerDispositionTerm:
+		calendarInviteDeliveryConsumerTerm(message)
+	default:
+		calendarInviteDeliveryConsumerNak(message)
+	}
+}
+
+// ProcessCalendarInviteDeliveryAdmissions strictly decodes one v2 envelope,
+// admits canonical batches, and returns the required acknowledgement action.
+// It is also the production handler's NATS-independent admission boundary.
+func ProcessCalendarInviteDeliveryAdmissions(ctx context.Context, repository mail.CalendarMailDeliveryRepository, subject string, encoded []byte) (disposition CalendarInviteDeliveryConsumerDisposition) {
+	disposition = CalendarInviteDeliveryConsumerDispositionNak
+	defer func() {
+		if recover() != nil {
+			disposition = CalendarInviteDeliveryConsumerDispositionNak
+		}
+	}()
+	if ctx == nil || calendarInviteDeliveryConsumerDependencyNil(repository) {
+		return disposition
 	}
 
-	deliveryContext := natsclient.ExtractTraceContext(ctx, message.Headers())
-	deliveryContext, cancel := context.WithTimeout(deliveryContext, calendarInviteDeliveryConsumerDeliveryTimeout)
+	admissions, err := calendarInviteDeliveryConsumerAdmissions(subject, encoded)
+	if err != nil {
+		return CalendarInviteDeliveryConsumerDispositionTerm
+	}
+	if len(admissions) == 0 {
+		return CalendarInviteDeliveryConsumerDispositionAck
+	}
+
+	deliveryContext, cancel := context.WithTimeout(ctx, calendarInviteDeliveryConsumerDeliveryTimeout)
 	defer cancel()
 	for start := 0; start < len(admissions); start += calendarInviteDeliveryConsumerAdmissionBatchSize {
 		end := min(start+calendarInviteDeliveryConsumerAdmissionBatchSize, len(admissions))
-		if err := consumer.repository.AdmitCalendarInviteDeliveries(deliveryContext, mail.CalendarInviteDeliveryAdmissionRequest{Invites: admissions[start:end]}); err != nil {
+		if err := repository.AdmitCalendarInviteDeliveries(deliveryContext, mail.CalendarInviteDeliveryAdmissionRequest{Invites: admissions[start:end]}); err != nil {
 			if calendarInviteDeliveryConsumerRepositoryTerminal(err) {
-				calendarInviteDeliveryConsumerTerm(message)
-				return
+				return CalendarInviteDeliveryConsumerDispositionTerm
 			}
-			calendarInviteDeliveryConsumerNak(message)
-			return
+			return CalendarInviteDeliveryConsumerDispositionNak
 		}
 		if deliveryContext.Err() != nil {
-			calendarInviteDeliveryConsumerNak(message)
-			return
+			return CalendarInviteDeliveryConsumerDispositionNak
 		}
 	}
-	calendarInviteDeliveryConsumerAck(message)
+	return CalendarInviteDeliveryConsumerDispositionAck
 }
 
 func calendarInviteDeliveryConsumerAdmissions(subject string, encoded []byte) ([]mail.CalendarInviteDeliveryAdmission, error) {
