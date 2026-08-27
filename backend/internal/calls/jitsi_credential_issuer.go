@@ -64,6 +64,9 @@ func (i *jitsiCredentialIssuer) Issue(call *ent.Call, authenticatedUserID uuid.U
 	if call.Status != entcall.StatusActive {
 		return "", errors.New("cannot issue Jitsi credential for an inactive call")
 	}
+	if strings.TrimSpace(call.RoomName) == "" || call.RoomName != strings.TrimSpace(call.RoomName) {
+		return "", errors.New("cannot issue Jitsi credential without a canonical server room name")
+	}
 	if authenticatedUserID == uuid.Nil {
 		return "", errors.New("cannot issue Jitsi credential without an authenticated user")
 	}
@@ -86,7 +89,7 @@ func (i *jitsiCredentialIssuer) Issue(call *ent.Call, authenticatedUserID uuid.U
 				Name: serverKnownUserName,
 			},
 		},
-		Room: call.ID.String(),
+		Room: call.RoomName,
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(i.appSecret)

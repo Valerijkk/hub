@@ -42,9 +42,9 @@ type jitsiUserClaims struct {
 
 func TestJitsiCredentialIssuerConstructorRejectsUnsafeOrIncompleteConfig(t *testing.T) {
 	tests := []struct {
-		name      string
-		errorKey  string
-		mutate    func(*config.JitsiConfig)
+		name     string
+		errorKey string
+		mutate   func(*config.JitsiConfig)
 	}{
 		{
 			name:     "disabled",
@@ -181,6 +181,36 @@ func TestJitsiCredentialIssuerRejectsInvalidServerInputsWithoutReturningToken(t 
 			userID:   validUserID,
 			userName: "Ada Lovelace",
 		},
+		{
+			name: "blank server room name",
+			call: &ent.Call{
+				ID:       validCall.ID,
+				RoomName: "",
+				Status:   entcall.StatusActive,
+			},
+			userID:   validUserID,
+			userName: "Ada Lovelace",
+		},
+		{
+			name: "whitespace-only server room name",
+			call: &ent.Call{
+				ID:       validCall.ID,
+				RoomName: " \t\r\n ",
+				Status:   entcall.StatusActive,
+			},
+			userID:   validUserID,
+			userName: "Ada Lovelace",
+		},
+		{
+			name: "padded server room name",
+			call: &ent.Call{
+				ID:       validCall.ID,
+				RoomName: " hub-room-42 ",
+				Status:   entcall.StatusActive,
+			},
+			userID:   validUserID,
+			userName: "Ada Lovelace",
+		},
 		{name: "zero authenticated user", call: validCall, userID: uuid.Nil, userName: "Ada Lovelace"},
 		{name: "blank server-known name", call: validCall, userID: validUserID, userName: " \t\r\n "},
 	}
@@ -201,7 +231,7 @@ func TestJitsiCredentialIssuerBindsClaimsToExactCallAndAuthenticatedUser(t *test
 	cfg := validJitsiIssuerConfig()
 	issuer := newJitsiCredentialIssuer(t, cfg)
 	callEntity := activeJitsiCall()
-	callEntity.RoomName = "client-room-must-not-become-jitsi-room"
+	callEntity.RoomName = "hub-call-room-42"
 	callEntity.CreatedBy = uuid.MustParse("33333333-3333-4333-8333-333333333333")
 	authenticatedUserID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
 
@@ -216,7 +246,7 @@ func TestJitsiCredentialIssuerBindsClaimsToExactCallAndAuthenticatedUser(t *test
 		cfg.AppSecret,
 		fixedJitsiIssueTime.Add(time.Minute),
 		cfg,
-		callEntity.ID.String(),
+		callEntity.RoomName,
 		authenticatedUserID,
 		"Ada Lovelace",
 	)
@@ -226,8 +256,9 @@ func TestJitsiCredentialIssuerBindsClaimsToExactCallAndAuthenticatedUser(t *test
 	assert.Equal(t, "hub-jitsi", claims.Issuer)
 	assert.Equal(t, jwt.ClaimStrings{"jitsi"}, claims.Audience)
 	assert.Equal(t, "xmpp.hub.internal", claims.Subject)
-	assert.Equal(t, "11111111-1111-4111-8111-111111111111", claims.Room)
-	assert.NotEqual(t, callEntity.RoomName, claims.Room)
+	assert.Equal(t, "hub-call-room-42", claims.Room)
+	assert.Equal(t, callEntity.RoomName, claims.Room)
+	assert.NotEqual(t, callEntity.ID.String(), claims.Room)
 	assert.Equal(t, authenticatedUserID.String(), claims.Context.User.ID)
 	assert.NotEqual(t, callEntity.CreatedBy.String(), claims.Context.User.ID)
 	assert.Equal(t, "Ada Lovelace", claims.Context.User.Name)
@@ -259,7 +290,7 @@ func TestJitsiCredentialIssuerOmitsPrivilegeGuestWildcardAndCredentialClaims(t *
 	audience, ok := claims["aud"].([]interface{})
 	require.True(t, ok, "aud must be a JSON array")
 	assert.Equal(t, []interface{}{"jitsi"}, audience)
-	assert.Equal(t, activeJitsiCall().ID.String(), claims["room"])
+	assert.Equal(t, activeJitsiCall().RoomName, claims["room"])
 	assert.NotEqual(t, "*", claims["room"])
 
 	for _, forbiddenClaim := range []string{"moderator", "features", "guest", "wildcard", "token", "secret", "*"} {
@@ -355,7 +386,7 @@ func TestJitsiIssuerInspectionRejectsWrongSecretAlgorithmExpiryAndLifetime(t *te
 				testCase.secret,
 				testCase.now,
 				cfg,
-				activeJitsiCall().ID.String(),
+				activeJitsiCall().RoomName,
 				uuid.MustParse("22222222-2222-4222-8222-222222222222"),
 				"Ada Lovelace",
 			)
@@ -368,7 +399,7 @@ func TestJitsiIssuerInspectionRejectsWrongSecretAlgorithmExpiryAndLifetime(t *te
 // product code does not accept or verify incoming Jitsi JWTs.
 func TestJitsiIssuerInspectionRejectsWrongOrMissingRequiredClaims(t *testing.T) {
 	cfg := validJitsiIssuerConfig()
-	expectedRoom := activeJitsiCall().ID.String()
+	expectedRoom := activeJitsiCall().RoomName
 	expectedUserID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
 	expectedUserName := "Ada Lovelace"
 	tests := []struct {
@@ -655,7 +686,7 @@ func jitsiMapClaims(cfg config.JitsiConfig, issuedAt time.Time, lifetime time.Du
 		"sub":  cfg.XMPPDomain,
 		"iat":  issuedAt.Unix(),
 		"exp":  issuedAt.Add(lifetime).Unix(),
-		"room": "11111111-1111-4111-8111-111111111111",
+		"room": activeJitsiCall().RoomName,
 		"context": map[string]interface{}{
 			"user": map[string]interface{}{
 				"id":   "22222222-2222-4222-8222-222222222222",
