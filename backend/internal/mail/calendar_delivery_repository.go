@@ -529,12 +529,16 @@ func validCalendarMailDeliveryClaimResult(result CalendarMailDeliveryClaimResult
 		CalendarMailDeliveryClaimOutcomeBusy,
 		CalendarMailDeliveryClaimOutcomeSuperseded,
 		CalendarMailDeliveryClaimOutcomeObserved:
-		return result.claim == (CalendarMailDeliveryClaim{})
+		return calendarMailDeliveryClaimZero(result.claim)
 	case CalendarMailDeliveryClaimOutcomeClaimed:
 		return validCalendarMailDeliveryClaim(result.claim)
 	default:
 		return false
 	}
+}
+
+func calendarMailDeliveryClaimZero(claim CalendarMailDeliveryClaim) bool {
+	return reflect.DeepEqual(claim, CalendarMailDeliveryClaim{})
 }
 
 func validCalendarMailDeliveryClaim(claim CalendarMailDeliveryClaim) bool {
