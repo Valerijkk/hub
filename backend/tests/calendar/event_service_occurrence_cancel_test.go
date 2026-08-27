@@ -119,6 +119,21 @@ func TestCalendarEventOccurrenceCancelCommand_ValidatesAndFreezesInput(t *testin
 	}
 }
 
+func TestCalendarEventOccurrenceCancelResult_RequiresCanonicalUTCSecondRecurrenceKey(t *testing.T) {
+	if _, err := calendar.NewCalendarEventOccurrenceCancelResult(occurrenceEventID, occurrenceRecurrenceID, calendar.CalendarEventStatusCancelled, 1, 1); err != nil {
+		t.Fatalf("NewCalendarEventOccurrenceCancelResult(canonical) error = %v", err)
+	}
+	for _, recurrenceID := range []string{
+		"2031-01-21T09:00:00+00:00",
+		"2031-01-21T09:00:00.000Z",
+		"2031-01-21T09:00:00z",
+	} {
+		if _, err := calendar.NewCalendarEventOccurrenceCancelResult(occurrenceEventID, recurrenceID, calendar.CalendarEventStatusCancelled, 1, 1); !errors.Is(err, calendar.ErrEventInvalid) {
+			t.Fatalf("NewCalendarEventOccurrenceCancelResult(%q) error = %v, want invalid", recurrenceID, err)
+		}
+	}
+}
+
 func TestEventTransactionOccurrenceCancel_RequiresOptionalCapabilityBeforeBackend(t *testing.T) {
 	base := &occurrenceBaseOnlyBackend{}
 	err := calendar.RunEventTransaction(base, func(transaction *calendar.EventTransaction) error {

@@ -247,6 +247,15 @@ func validCalendarEventOccurrenceCancelIngress(value string) bool {
 	return true
 }
 
+func calendarEventOccurrenceCancelParseTimedKey(value string) (time.Time, bool) {
+	if len(value) != len("2006-01-02T15:04:05Z") { return time.Time{}, false }
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil || parsed.Location() != time.UTC || parsed.Year() < 0 || parsed.Year() > 9999 || parsed.Nanosecond() != 0 || parsed.Format("2006-01-02T15:04:05Z") != value {
+		return time.Time{}, false
+	}
+	return parsed, true
+}
+
 func validCalendarEventOccurrenceCancelCanonicalKey(value string) bool {
 	if !validCalendarEventOccurrenceCancelIngress(value) { return false }
 	if len(value) == len(time.DateOnly) {
