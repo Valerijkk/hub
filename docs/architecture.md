@@ -417,3 +417,9 @@ Concrete composition cannot safely choose fresh recovery authority yet. `Phase15
 
 The next Calls decisions are browser-reachable LiveKit public URL semantics, the contradiction between canonical `call.RoomName` and issuer identity, a call-aware issuer, expiry/refresh, and guest policy. Separately, the Messenger completion CAS matches the exact trusted producer scope and pending live document before setting only completion state/time. Its recovery scanner/scheduler/authority and direct-writer cutover remain unbound.
 The production Messenger graph now constructs and stores the complete Phase 151 post-create repository behind an additive service constructor. A shared PostgreSQL-backed audience projection feeds eligible mentions and unread invalidation; storage ports remain on CombinedRepository. No writer consumes the dependency yet, so this is composition reachability rather than behavior cutover.
+
+## Calls and Messenger bounded hardening (2026-08-28)
+
+Jitsi issuance now treats server-owned `Call.RoomName` as provider room identity and exposes an internal typed expiry equal to the JWT expiry (`343d1d0d`, `366bb825`). These are provider-adapter seams only: LiveKit remains active and self-hosted Jitsi deployment, public routing/DTO, browser embedding, media runtime, and browser E2E are `UNBOUND/NOT_RUN`.
+
+Messenger pending recovery scans now use a pure exact Mongo plan (`44b3a95e`) for live, incomplete, provenance-v1 candidates in one authorized channel, with stable ordering and bounded limit. Lease eligibility remains the atomic claim boundary. `SendMessage` cutover and production recovery still require an explicit server-owned principal plus concrete pager, reauthorization, and scheduler composition.

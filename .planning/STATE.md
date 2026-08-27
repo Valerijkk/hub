@@ -1394,3 +1394,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 
 - Commit `c90e75d5` constructs the concrete post-create repository from the existing CombinedRepository, fresh PostgreSQL-backed audience/mention dependencies, Presence, and NATS invalidation publisher, then stores it through an additive production constructor. The existing constructor and every message writer remain unchanged.
 - Docker `backend-unit` final build/vet/unit/race is `PASS` (exit `0`). Independent review found no findings. This is dependency-injection evidence only: `SendMessage` does not consume the composition, no live store/effect ran, and recovery scanner/scheduler plus nonce compatibility still block writer cutover.
+
+## Session note - 2026-08-28 (Jitsi room/expiry and Messenger pending scan)
+
+- Calls commit `343d1d0d` binds Jitsi credential issuance to the canonical server-owned `Call.RoomName`; `Call.ID` remains audit/correlation identity and blank, whitespace-only, or padded room names fail closed.
+- Calls commit `366bb825` adds an internal Jitsi issued-credential result whose `ExpiresAt` is the exact UTC expiry encoded into the JWT. The legacy token-only issuer remains compatible.
+- Messenger commit `44b3a95e` narrows pending recovery scans to the exact channel, live/incomplete pending rows, and durable producer-provenance version 1, preserving `created_at ASC, _id ASC`, the 500-row cap, and claim-owned lease decisions.
+- One combined isolated Docker `backend-unit` run completed with exit `0`; build, vet, unit, and race all passed without Mail overlap.
+- Both Jitsi atoms remain `UNBOUND`; LiveKit is still active. Self-hosted Jitsi deployment, public route/DTO, browser surface, media runtime, and browser E2E are `NOT_RUN`. Messenger `SendMessage` cutover remains blocked by the recovery principal, concrete scanner/scheduler composition, and retry semantics.

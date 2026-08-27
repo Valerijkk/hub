@@ -444,3 +444,9 @@ Jitsi backend commit `63a3e8bf` preserves the complete typed `JoinCredential` wh
 
 No browser or live provider test ran. LiveKit remains active; Jitsi public join DTO/route/iframe/deployment/media/cutover/recording/runtime are `NOT_RUN`/absent. Future coverage needs browser-reachable LiveKit URL semantics, call-aware issuer and room identity, expiry/refresh, and guest-policy tests.
 Messenger commit `c90e75d5` adds constructor/wiring regressions for exact concrete post-create identity, nil and typed-nil rejection, legacy-constructor compatibility, and zero effect calls during construction. Final Docker `backend-unit` passed build/vet/unit/race (exit `0`); independent review found no findings. No writer or live store path ran; recovery and nonce compatibility remain required before cutover tests can be valid.
+
+## Calls canonical-room/expiry and Messenger pending-scan evidence (2026-08-28)
+
+Focused backend units cover exact Jitsi `Call.RoomName` binding and invalid canonical-room forms (`343d1d0d`), exact equality between internal credential expiry and JWT expiry with legacy token compatibility (`366bb825`), and the exact bounded Messenger recovery-scan filter/order/limit plus fail-closed authority drift and absence of lease predicates (`44b3a95e`).
+
+One combined isolated Docker `backend-unit` run exited `0`; build, vet, unit, and race all passed without Mail overlap. Self-hosted Jitsi deployment/route/browser/media E2E, live provider runtime, live Mongo recovery, production scheduler/principal, and `SendMessage` cutover are `NOT_RUN/UNBOUND`; LiveKit remains active.

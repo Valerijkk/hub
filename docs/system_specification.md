@@ -880,3 +880,9 @@ The internal Calls service now exposes a complete typed `JoinCredential` for pro
 
 Post-create Messenger completion is an internal Mongo CAS: exact trusted producer provenance, message/channel/sender identity, live pending state, absent completion, and compatible recovery fence are preconditions; the update changes only state to `complete` and UTC completion time. It does not bind production writers. Recovery scanner/scheduler/authority and client-nonce compatibility are still required before direct-writer cutover.
 Production Messenger construction now requires the complete post-create composition through an additive constructor while retaining the legacy constructor for unchanged call sites and tests. The server builds one shared fresh audience authority, eligible-mention resolver, unread invalidator, and concrete repository. Construction performs no effects; user, forward, bot, poll, and promotion writers remain on their current paths.
+
+## Calls room/expiry and Messenger recovery-scan contract (2026-08-28)
+
+For Jitsi, `Call.RoomName` is the canonical provider room claim; blank, whitespace-only, and padded values are invalid, while `Call.ID` remains audit/correlation identity. The internal issued credential reports the exact UTC expiry encoded into its JWT. Commits: `343d1d0d`, `366bb825`.
+
+Messenger pending recovery candidates must match the authorized target channel, `deleted_at:nil`, pending effects state, `completed_at:nil`, and `post_create_producer_provenance.version=1`; results are ordered `created_at ASC, _id ASC` and capped at 500. The scan has no lease predicate because atomic claim acquisition decides lease eligibility (`44b3a95e`). `SendMessage`, recovery principal/scheduler, Jitsi public API/runtime, and provider cutover remain `UNBOUND`; LiveKit remains active.

@@ -247,3 +247,9 @@ This is bounded unit evidence only. The recovery scanner and its authority decis
 Commit `c90e75d5` adds an additive fail-closed production constructor and server wiring for the already implemented seven-port post-create composition. Tests freeze exact stored identity, nil/typed-nil rejection, legacy-constructor compatibility, and zero effect calls during construction. Final sequential Docker `backend-unit` reported build, vet, unit, and race `PASS` (exit `0`); independent review found no findings.
 
 No writer invokes the dependency and no live Mongo/PostgreSQL/NATS path ran. Recovery scanner/scheduler authority and nonce compatibility remain prerequisites for a safe direct-user writer cutover.
+
+## Pending recovery scan evidence (2026-08-28)
+
+Commit `44b3a95e` is covered by an exact plan test for the Mongo candidate filter, deterministic ordering, 500-row cap, absence of lease/fence predicates, and fail-closed invalid actor/producer/target or tenant/channel drift. `ListPendingPostCreateDocuments` consumes that plan directly.
+
+A combined isolated Docker `backend-unit` run exited `0`; build, vet, unit, and race passed with no Mail overlap. This is unit/compile evidence only. Live Mongo recovery execution, a production scheduler/principal, `SendMessage` cutover, integration, and browser behavior remain `UNBOUND/NOT_RUN`.
