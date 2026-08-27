@@ -15,13 +15,57 @@ type mailboxDraftGetScope struct {
 	engineAccountID string
 }
 
+// mailboxDraftOwnerBoundReader keeps the existing owner, durable-record, and
+// engine-message recheck sequence private for narrow internal consumers.
+type mailboxDraftOwnerBoundReader struct {
+	owners     mailboxOwnerResolver
+	repository MailboxDraftRepository
+	engine     MailboxDraftEngine
+}
+
+func newMailboxDraftOwnerBoundReader(
+	owners mailboxOwnerResolver,
+	repository MailboxDraftRepository,
+	engine MailboxDraftEngine,
+) (*mailboxDraftOwnerBoundReader, error) {
+	if mailboxDraftServiceDependencyNil(owners) ||
+		mailboxDraftServiceDependencyNil(repository) ||
+		mailboxDraftServiceDependencyNil(engine) {
+		return nil, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+	return &mailboxDraftOwnerBoundReader{
+		owners:     owners,
+		repository: repository,
+		engine:     engine,
+	}, nil
+}
+
+func (reader *mailboxDraftOwnerBoundReader) GetMailboxDraft(ctx context.Context, actorID, draftID uuid.UUID) (MailboxDraftView, error) {
+	if reader == nil {
+		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+	return mailboxDraftGetOwnerBound(ctx, reader.owners, reader.repository, reader.engine, actorID, draftID)
+}
+
 // GetMailboxDraft returns the current owner-bound draft after rechecking the
 // durable revision and engine message/version pair around engine I/O.
 func (service *MailboxDraftService) GetMailboxDraft(ctx context.Context, actorID, draftID uuid.UUID) (MailboxDraftView, error) {
-	if service == nil ||
-		mailboxDraftServiceDependencyNil(service.owners) ||
-		mailboxDraftServiceDependencyNil(service.repository) ||
-		mailboxDraftServiceDependencyNil(service.engine) ||
+	if service == nil {
+		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+	return mailboxDraftGetOwnerBound(ctx, service.owners, service.repository, service.engine, actorID, draftID)
+}
+
+func mailboxDraftGetOwnerBound(
+	ctx context.Context,
+	owners mailboxOwnerResolver,
+	repository MailboxDraftRepository,
+	engine MailboxDraftEngine,
+	actorID, draftID uuid.UUID,
+) (MailboxDraftView, error) {
+	if mailboxDraftServiceDependencyNil(owners) ||
+		mailboxDraftServiceDependencyNil(repository) ||
+		mailboxDraftServiceDependencyNil(engine) ||
 		ctx == nil || actorID == uuid.Nil || draftID == uuid.Nil {
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
 	}
@@ -29,7 +73,7 @@ func (service *MailboxDraftService) GetMailboxDraft(ctx context.Context, actorID
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorUnavailable)
 	}
 
-	owner, err := service.owners.ResolveOwner(ctx, actorID)
+	owner, err := owners.ResolveOwner(ctx, actorID)
 	if err != nil {
 		return MailboxDraftView{}, mailboxDraftGetOwnerError(err)
 	}
@@ -38,7 +82,7 @@ func (service *MailboxDraftService) GetMailboxDraft(ctx context.Context, actorID
 		return MailboxDraftView{}, err
 	}
 
-	result, err := service.repository.GetMailboxDraft(ctx, MailboxDraftGetRequest{
+	result, err := repository.GetMailboxDraft(ctx, MailboxDraftGetRequest{
 		AccountID: scope.accountID,
 		DraftID:   draftID,
 	})
@@ -65,7 +109,7 @@ func (service *MailboxDraftService) GetMailboxDraft(ctx context.Context, actorID
 	}
 	draft := mailboxDraftGetRecordCopy(*result.Draft)
 
-	message, err := service.engine.GetDraft(ctx, EngineDraftReadRequest{
+	message, err := engine.GetDraft(ctx, EngineDraftReadRequest{
 		AccountID:       scope.engineAccountID,
 		DraftKey:        draft.EngineDraftKey,
 		MessageID:       *draft.EngineMessageID,
@@ -90,7 +134,7 @@ func (service *MailboxDraftService) GetMailboxDraft(ctx context.Context, actorID
 		return MailboxDraftView{}, err
 	}
 
-	rechecked, err := service.repository.RecheckMailboxDraftRead(ctx, MailboxDraftReadRecheckRequest{
+	rechecked, err := repository.RecheckMailboxDraftRead(ctx, MailboxDraftReadRecheckRequest{
 		AccountID:       scope.accountID,
 		DraftID:         draft.ID,
 		Revision:        draft.Revision,

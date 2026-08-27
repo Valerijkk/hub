@@ -65,6 +65,34 @@ func newMailboxCalendarDeliveryDraftCreator(
 	}, nil
 }
 
+// NewCalendarMailDeliveryDraftCreator exposes only the Calendar delivery
+// creation capability. It reuses the production Mail owner resolver and Ent
+// repository without constructing a broader MailboxDraftService.
+func NewCalendarMailDeliveryDraftCreator(
+	owners *MailboxService,
+	repository *MailboxEntRepository,
+	engine MailboxDraftEngine,
+) (CalendarMailDeliveryDraftCreator, error) {
+	if owners == nil || mailboxOwnerRepositoryNil(owners.repository) ||
+		repository == nil || repository.client == nil || mailboxEntNil(repository.clock) ||
+		mailboxDraftServiceDependencyNil(engine) {
+		return nil, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+	calendarEngine, ok := engine.(mailboxDraftCalendarCreateEngine)
+	if !ok || mailboxDraftServiceDependencyNil(calendarEngine) {
+		return nil, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
+	}
+	reader, err := newMailboxDraftOwnerBoundReader(owners, repository, engine)
+	if err != nil {
+		return nil, err
+	}
+	creator, err := newMailboxCalendarDeliveryDraftCreator(owners, repository, repository, repository, calendarEngine, reader)
+	if err != nil {
+		return nil, err
+	}
+	return creator, nil
+}
+
 // CreateMailboxDraft implements the intentionally narrow Calendar delivery
 // draft capability. The unexported calendar field makes a sealed
 // calendarMIMEPart the only MIME input that can reach the Calendar engine.
