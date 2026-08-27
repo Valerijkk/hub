@@ -18,6 +18,7 @@ var _ messenger.Phase151ClaimedPostCreateRecoveryRepository = (*phase151ClaimedR
 
 type phase151ClaimedRecoveryCoordinatorScanner struct {
 	target       messenger.Phase151PendingRecoveryTarget
+	page         *messenger.Phase151PendingRecoveryTargetPage
 	scope        messenger.AuthorizedMessageProducerScope
 	documents    []messenger.MessageDocument
 	calls        []string
@@ -49,6 +50,9 @@ func (s *phase151ClaimedRecoveryCoordinatorScanner) ListPendingRecoveryTargets(
 	s.calls = append(s.calls, "targets")
 	s.lastCursor = after
 	s.lastLimit = limit
+	if s.page != nil {
+		return *s.page, s.pageErr
+	}
 	if s.pageErr != nil {
 		return messenger.Phase151PendingRecoveryTargetPage{}, s.pageErr
 	}
@@ -376,7 +380,9 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterForwardsScannerAndFailsClosed(
 	}
 	_, err = adapter.ListPendingRecoveryTargets(context.Background(), cursor, 7)
 	require.ErrorIs(t, err, scanErr)
-	assert.Same(t, cursor, scanner.lastCursor)
+	require.NotNil(t, scanner.lastCursor)
+	assert.Equal(t, *cursor, *scanner.lastCursor)
+	assert.NotSame(t, cursor, scanner.lastCursor)
 	assert.Equal(t, 7, scanner.lastLimit)
 	scanner.pageErr = nil
 
@@ -406,4 +412,131 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterForwardsScannerAndFailsClosed(
 
 	_, err = adapter.TryAcquirePendingRecoveryInterval(nil, time.Minute)
 	require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+}
+func TestPhase151ClaimedRecoveryCoordinatorAdapterOwnsValidatedOrderedTargetPage(t *testing.T) {
+	target, scope, _, ownerID, claimNow, completedAt, lease := phase151ClaimedRecoveryCoordinatorFixture()
+	tenantID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
+	firstChannelID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+	secondChannelID := uuid.MustParse("33333333-3333-4333-8333-333333333333")
+	after := &messenger.Phase151RecoveryTargetCursor{TenantID: tenantID, ChannelID: firstChannelID, Kind: "alpha"}
+	first := messenger.Phase151PendingRecoveryTarget{TenantID: tenantID, ChannelID: firstChannelID, Kind: "beta"}
+	second := messenger.Phase151PendingRecoveryTarget{TenantID: tenantID, ChannelID: secondChannelID, Kind: "future_kind"}
+	next := &messenger.Phase151RecoveryTargetCursor{TenantID: second.TenantID, ChannelID: second.ChannelID, Kind: second.Kind}
+	scannerTargets := []messenger.Phase151PendingRecoveryTarget{first, second}
+	scanner := &phase151ClaimedRecoveryCoordinatorScanner{
+		target: target, scope: scope,
+		page: &messenger.Phase151PendingRecoveryTargetPage{Targets: scannerTargets, Next: next},
+	}
+	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
+	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
+	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+
+	page, err := adapter.ListPendingRecoveryTargets(context.Background(), after, 2)
+
+	require.NoError(t, err)
+	assert.Equal(t, []messenger.Phase151PendingRecoveryTarget{first, second}, page.Targets)
+	require.NotNil(t, page.Next)
+	assert.Equal(t, *next, *page.Next)
+	require.NotNil(t, scanner.lastCursor)
+	assert.NotSame(t, after, scanner.lastCursor)
+	assert.NotSame(t, next, page.Next)
+
+	after.Kind = "mutated-after"
+	scannerTargets[0].Kind = "mutated-target"
+	next.Kind = "mutated-next"
+	assert.Equal(t, "alpha", scanner.lastCursor.Kind)
+	assert.Equal(t, "beta", page.Targets[0].Kind)
+	assert.Equal(t, "future_kind", page.Next.Kind)
+}
+
+func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsInvalidTargetPageInputsBeforeScanner(t *testing.T) {
+	target, scope, _, ownerID, claimNow, completedAt, lease := phase151ClaimedRecoveryCoordinatorFixture()
+	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
+	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
+
+	for _, scenario := range []struct {
+		name  string
+		after *messenger.Phase151RecoveryTargetCursor
+		limit int
+	}{
+		{name: "zero limit", limit: 0},
+		{name: "negative limit", limit: -1},
+		{name: "cursor without tenant", limit: 1, after: &messenger.Phase151RecoveryTargetCursor{ChannelID: target.ChannelID, Kind: target.Kind}},
+		{name: "cursor without channel", limit: 1, after: &messenger.Phase151RecoveryTargetCursor{TenantID: target.TenantID, Kind: target.Kind}},
+		{name: "cursor without kind", limit: 1, after: &messenger.Phase151RecoveryTargetCursor{TenantID: target.TenantID, ChannelID: target.ChannelID}},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, scope: scope}
+			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+
+			page, err := adapter.ListPendingRecoveryTargets(context.Background(), scenario.after, scenario.limit)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.Equal(t, messenger.Phase151PendingRecoveryTargetPage{}, page)
+			assert.Empty(t, scanner.calls)
+		})
+	}
+}
+
+func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsMalformedOrNonAdvancingTargetPages(t *testing.T) {
+	target, scope, _, ownerID, claimNow, completedAt, lease := phase151ClaimedRecoveryCoordinatorFixture()
+	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
+	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
+	tenantID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
+	firstChannelID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+	secondChannelID := uuid.MustParse("33333333-3333-4333-8333-333333333333")
+	first := messenger.Phase151PendingRecoveryTarget{TenantID: tenantID, ChannelID: firstChannelID, Kind: "channel"}
+	second := messenger.Phase151PendingRecoveryTarget{TenantID: tenantID, ChannelID: secondChannelID, Kind: "channel"}
+	afterFirst := &messenger.Phase151RecoveryTargetCursor{TenantID: first.TenantID, ChannelID: first.ChannelID, Kind: first.Kind}
+
+	for _, scenario := range []struct {
+		name  string
+		after *messenger.Phase151RecoveryTargetCursor
+		limit int
+		page  messenger.Phase151PendingRecoveryTargetPage
+	}{
+		{name: "oversized", limit: 1, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{first, second}}},
+		{name: "malformed target", limit: 1, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{{ChannelID: first.ChannelID, Kind: first.Kind}}}},
+		{name: "duplicate tuple", limit: 2, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{first, first}}},
+		{name: "reversed tuples", limit: 2, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{second, first}}},
+		{name: "reversed tenant tuple", limit: 2, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{{TenantID: uuid.MustParse("44444444-4444-4444-8444-444444444444"), ChannelID: firstChannelID, Kind: "channel"}, first}}},
+		{name: "reversed kind tuple", limit: 2, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{{TenantID: tenantID, ChannelID: firstChannelID, Kind: "beta"}, {TenantID: tenantID, ChannelID: firstChannelID, Kind: "alpha"}}}},
+		{name: "first tuple equals after", after: afterFirst, limit: 1, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{first}}},
+		{name: "first tuple before after", after: &messenger.Phase151RecoveryTargetCursor{TenantID: second.TenantID, ChannelID: second.ChannelID, Kind: second.Kind}, limit: 1, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{first}}},
+		{name: "empty page advances", limit: 1, page: messenger.Phase151PendingRecoveryTargetPage{Next: &messenger.Phase151RecoveryTargetCursor{TenantID: first.TenantID, ChannelID: first.ChannelID, Kind: first.Kind}}},
+		{name: "invalid next", limit: 2, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{first, second}, Next: &messenger.Phase151RecoveryTargetCursor{TenantID: second.TenantID, ChannelID: second.ChannelID}}},
+		{name: "next is not last", limit: 2, page: messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{first, second}, Next: &messenger.Phase151RecoveryTargetCursor{TenantID: first.TenantID, ChannelID: first.ChannelID, Kind: first.Kind}}},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			scannerPage := scenario.page
+			scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, scope: scope, page: &scannerPage}
+			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+
+			page, err := adapter.ListPendingRecoveryTargets(context.Background(), scenario.after, scenario.limit)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.Equal(t, messenger.Phase151PendingRecoveryTargetPage{}, page)
+			assert.Equal(t, []string{"targets"}, scanner.calls)
+		})
+	}
+}
+
+func TestPhase151ClaimedRecoveryCoordinatorAdapterPreservesTargetPageScannerErrorWithoutPartialResult(t *testing.T) {
+	target, scope, _, ownerID, claimNow, completedAt, lease := phase151ClaimedRecoveryCoordinatorFixture()
+	scanErr := errors.New("phase151 target page scan failed")
+	partial := messenger.Phase151PendingRecoveryTargetPage{Targets: []messenger.Phase151PendingRecoveryTarget{target}}
+	scanner := &phase151ClaimedRecoveryCoordinatorScanner{
+		target: target, scope: scope, page: &partial, pageErr: scanErr,
+	}
+	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
+	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
+	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+
+	page, err := adapter.ListPendingRecoveryTargets(context.Background(), nil, 1)
+
+	require.ErrorIs(t, err, scanErr)
+	assert.Equal(t, messenger.Phase151PendingRecoveryTargetPage{}, page)
+	assert.Equal(t, []string{"targets"}, scanner.calls)
 }

@@ -1,7 +1,9 @@
 package messenger
 
 import (
+	"bytes"
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,7 +79,92 @@ func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ListPendingRecoveryTargets(
 		}
 		return Phase151PendingRecoveryTargetPage{}, ErrPostCreatePipelineInvalid
 	}
-	return a.scanner.ListPendingRecoveryTargets(ctx, after, limit)
+	afterCopy, err := copyPhase151RecoveryTargetCursor(after)
+	if err != nil {
+		return Phase151PendingRecoveryTargetPage{}, err
+	}
+	page, err := a.scanner.ListPendingRecoveryTargets(ctx, afterCopy, limit)
+	if err != nil {
+		return Phase151PendingRecoveryTargetPage{}, err
+	}
+	return validatePhase151PendingRecoveryTargetPage(afterCopy, limit, page)
+}
+
+func validatePhase151PendingRecoveryTargetPage(
+	after *Phase151RecoveryTargetCursor,
+	limit int,
+	page Phase151PendingRecoveryTargetPage,
+) (Phase151PendingRecoveryTargetPage, error) {
+	if limit <= 0 || len(page.Targets) > limit {
+		return Phase151PendingRecoveryTargetPage{}, ErrPostCreatePipelineInvalid
+	}
+	afterCopy, err := copyPhase151RecoveryTargetCursor(after)
+	if err != nil {
+		return Phase151PendingRecoveryTargetPage{}, err
+	}
+
+	ownedTargets := append([]Phase151PendingRecoveryTarget(nil), page.Targets...)
+	for index, target := range ownedTargets {
+		if err := validatePhase151PendingRecoveryTarget(target); err != nil {
+			return Phase151PendingRecoveryTargetPage{}, err
+		}
+		if afterCopy != nil && comparePhase151PendingRecoveryTargetToCursor(target, *afterCopy) <= 0 {
+			return Phase151PendingRecoveryTargetPage{}, ErrPostCreatePipelineInvalid
+		}
+		if index > 0 && comparePhase151PendingRecoveryTargets(ownedTargets[index-1], target) >= 0 {
+			return Phase151PendingRecoveryTargetPage{}, ErrPostCreatePipelineInvalid
+		}
+	}
+
+	var nextCopy *Phase151RecoveryTargetCursor
+	if page.Next != nil {
+		if len(ownedTargets) == 0 {
+			return Phase151PendingRecoveryTargetPage{}, ErrPostCreatePipelineInvalid
+		}
+		nextCopy, err = copyPhase151RecoveryTargetCursor(page.Next)
+		if err != nil {
+			return Phase151PendingRecoveryTargetPage{}, err
+		}
+		if comparePhase151PendingRecoveryTargetToCursor(ownedTargets[len(ownedTargets)-1], *nextCopy) != 0 {
+			return Phase151PendingRecoveryTargetPage{}, ErrPostCreatePipelineInvalid
+		}
+	}
+
+	return Phase151PendingRecoveryTargetPage{Targets: ownedTargets, Next: nextCopy}, nil
+}
+
+func copyPhase151RecoveryTargetCursor(
+	cursor *Phase151RecoveryTargetCursor,
+) (*Phase151RecoveryTargetCursor, error) {
+	if cursor == nil {
+		return nil, nil
+	}
+	if err := validatePhase151PendingRecoveryTarget(Phase151PendingRecoveryTarget{
+		TenantID: cursor.TenantID, ChannelID: cursor.ChannelID, Kind: cursor.Kind,
+	}); err != nil {
+		return nil, err
+	}
+	copy := *cursor
+	return &copy, nil
+}
+
+func comparePhase151PendingRecoveryTargetToCursor(
+	target Phase151PendingRecoveryTarget,
+	cursor Phase151RecoveryTargetCursor,
+) int {
+	return comparePhase151PendingRecoveryTargets(target, Phase151PendingRecoveryTarget{
+		TenantID: cursor.TenantID, ChannelID: cursor.ChannelID, Kind: cursor.Kind,
+	})
+}
+
+func comparePhase151PendingRecoveryTargets(left, right Phase151PendingRecoveryTarget) int {
+	if comparison := bytes.Compare(left.TenantID[:], right.TenantID[:]); comparison != 0 {
+		return comparison
+	}
+	if comparison := bytes.Compare(left.ChannelID[:], right.ChannelID[:]); comparison != 0 {
+		return comparison
+	}
+	return strings.Compare(left.Kind, right.Kind)
 }
 
 func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ReauthorizePendingRecoveryTarget(
