@@ -109,6 +109,11 @@ func (repository *MailboxEntRepository) ResolveMailboxMessage(ctx context.Contex
 			return err
 		}
 
+		calendarPartLocatorHash := []byte(nil)
+		if row.CalendarPartLocatorHash != nil {
+			calendarPartLocatorHash = append([]byte{}, (*row.CalendarPartLocatorHash)...)
+		}
+
 		snapshot = MailboxMessageSnapshot{
 			summary:                 messages[0],
 			attachments:             attachments,
@@ -125,7 +130,7 @@ func (repository *MailboxEntRepository) ResolveMailboxMessage(ctx context.Contex
 			replyTo:                 mailboxEntMessageEngineAddresses(row.ReplyTo),
 			projectionOrigin:        EngineProjectionOrigin(row.ProjectionOrigin),
 			authenticationClass:     MailAuthenticationClass(row.AuthenticationClass),
-			calendarPartLocatorHash: append([]byte(nil), row.CalendarPartLocatorHash...),
+			calendarPartLocatorHash: calendarPartLocatorHash,
 			engineFolderIDs:         engineFolderIDs,
 			projectionState:         MailboxProjectionState(account.ProjectionState),
 			projectionAsOf:          mailboxFolderProjectionTimePointer(account.LastSyncedAt),
