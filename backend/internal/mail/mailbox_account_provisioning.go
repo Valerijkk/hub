@@ -99,7 +99,7 @@ type MailboxAccountProvisioningFence struct {
 	LeaseDeadline      time.Time
 	LeaseDuration      time.Duration
 	ControlGeneration  int64
-	ControlHashVersion int64
+	ControlHashVersion int32
 	ControlHash        string
 	ProvisioningKey    string
 	LocalPart          string
@@ -120,8 +120,8 @@ func (fence MailboxAccountProvisioningFence) Valid() bool {
 	if len(fence.LocalPart) == 0 || len(fence.LocalPart) > 64 || len(fence.Domain) == 0 || len(fence.Domain) > 253 {
 		return false
 	}
-	address, err := NormalizeAddress(EngineAddress{Email: fence.LocalPart + "@" + fence.Domain})
-	return err == nil && address.Email == fence.LocalPart+"@"+fence.Domain
+	local := validCanonicalRegistryLocalPart(fence.LocalPart)
+	return local && validCanonicalRegistryDomain(fence.Domain)
 }
 
 func mailboxAccountProvisioningCanonicalSecond(value time.Time) bool {

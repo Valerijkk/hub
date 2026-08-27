@@ -80,6 +80,18 @@ func TestMailboxAccountProvisioningScanRequest_NormalizationPreventsUnboundedDue
 }
 
 func TestMailboxAccountProvisioningClaim_SealsACompleteProviderCallFence(t *testing.T) {
+	for _, local := range []string{"ada+ops", "_ada"} {
+		candidate := validMailboxAccountProvisioningFence()
+		candidate.LocalPart = local
+		if _, ok := mail.NewMailboxAccountProvisioningClaim(candidate); ok {
+			t.Fatal("bad local")
+		}
+	}
+	candidate := validMailboxAccountProvisioningFence()
+	candidate.Domain = "localhost"
+	if _, ok := mail.NewMailboxAccountProvisioningClaim(candidate); ok {
+		t.Fatal("bad domain")
+	}
 	fence := validMailboxAccountProvisioningFence()
 	claim, ok := mail.NewMailboxAccountProvisioningClaim(fence)
 	if !ok {
@@ -446,7 +458,7 @@ func validMailboxAccountProvisioningFence() mail.MailboxAccountProvisioningFence
 		LeaseDeadline:      time.Date(2030, time.January, 2, 3, 4, 5, 0, time.UTC),
 		LeaseDuration:      60 * time.Second,
 		ControlGeneration:  41,
-		ControlHashVersion: 1,
+		ControlHashVersion: int32(1),
 		ControlHash:        "sha256:account-control-41",
 		ProvisioningKey:    "mailbox-account-41",
 		LocalPart:          "ada",
