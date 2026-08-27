@@ -799,3 +799,11 @@ A deleted fully unversioned record remains `ErrPostCreatePipelineNonceDeleted`. 
 The count predicate is exactly the authorized channel, `thread_id == root ID`, and `deleted_at:nil`. The update predicate is exactly the root ID and same channel with `deleted_at:nil`, plus root shape expressed as missing or empty `thread_id`. The update is `$max: {reply_count: observedCount}` and requires `observedCount > 0`. Mongo error, impossible zero count, or unmatched root fails the effect so the pipeline cannot mark effects complete; a matched root with no modification is an idempotent success.
 
 This contract is currently a concrete repository adapter only. It is not invoked by live producers or recovery, has no live Mongo/integration evidence, does not repair an already excessive counter, and does not make a concurrent create/delete sequence transactional.
+
+## Phase 151 automatic thread-follow effect contract (2026-08-27)
+
+`ExportPhase151BuildAutoThreadFollowPlan` accepts only a trusted-producer, live pending canonical message with exact scope actor/channel, nonempty ID and server `created_at`, no completion timestamp, and no self-root reply. It returns user IDs as author/replier followed by unique nonnil persisted resolved mentions, channel ID, root ID (`message.ID` for root; `thread_id` for reply), and an `auto` transition at the triggering UTC message position.
+
+`ExportPhase151EnsureAutoThreadFollows` requires nonnil context, fresh scope resolver, and transition writer. For each planned user it calls `ResolveAuthorizedUnreadScope`. Direct/wrapped `ErrAuthorizedUnreadScopeDenied` and a valid scope without the exact channel target skip only that user. Any other resolver error, returned tenant/user mismatch, or writer error stops the effect. Only a valid same-tenant/same-user scope containing `{channel_id, kind:channel}` reaches `ApplyAuthorizedThreadFollowTransition`.
+
+`CombinedRepository.EnsureAutoThreadFollows` binds the coordinator to the production Ent resolver and Mongo repository. The existing Mongo operation revalidates the live root and uses an insert-only auto upsert, so explicit manual intent and existing auto state are not advanced or overwritten. Earlier successful candidates may remain after a later error; retry is the convergence mechanism. Live writers/recovery do not invoke this adapter yet.

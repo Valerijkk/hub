@@ -361,3 +361,11 @@ The focused unit contract asserts exact BSON for the live direct-reply count, sa
 Test-only Docker RED: overall `FAIL`, production build `PASS`; vet/unit/race fail only on the absent repository method and plan/update symbols, with no panic or data-race marker. Final sequential Docker `backend-unit`: overall/build/vet/unit/race `PASS`; all three top-level reconciliation groups pass in unit and race, with zero fail/panic/data-race markers. Root review is `PASS`; independent Terra/high is `UNKNOWN` because dispatch was rejected at the thread limit.
 
 No live Mongo/integration/handler/writer/recovery/qa-build/swagger evidence is claimed. The tests freeze create-side retry and concurrent-create monotonicity; historical overcount repair and concurrent deletion remain explicit uncovered lifecycle boundaries.
+
+## Phase 151 automatic thread-follow effect evidence (2026-08-27)
+
+The focused suite freezes author-first unique mentions, root/reply identity, auto mode and UTC cursor, one fresh PG scope call before every Mongo write, candidate-local typed denial/target loss, infrastructure stop after safe partial progress, malformed user/tenant rejection, trusted producer and system-bot proof, canonical state validation before authority, and mandatory context/resolver/writer dependencies. A compile assertion requires `CombinedRepository.EnsureAutoThreadFollows`; existing Mongo follow tests prove automatic insert-only behavior preserves manual intent.
+
+Compile RED recorded overall `FAIL`, production build `PASS`, and vet/unit/race failures only on the missing method/coordinator/plan. Initial GREEN led root mutation review to add explicit untrusted-producer, malformed bot, foreign-tenant, and nil-context coverage. Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`; seven top-level groups pass in both unit and race and critical markers are zero. Root review is `PASS`; independent Terra/high is `UNKNOWN` because thread capacity rejected dispatch.
+
+No live PostgreSQL/Mongo, handler/writer, recovery, NATS/WS, qa-build, or Swagger evidence is claimed. Multi-user partial writes converge by insert-only retry but are not a cross-store transaction.

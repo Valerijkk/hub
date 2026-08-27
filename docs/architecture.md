@@ -344,3 +344,11 @@ The first concrete canonical post-create effect adapter is `MongoRepository.Reco
 The write uses `$max` with the observed live direct-reply count. This makes crash replay a no-op and prevents a lower concurrent create observation from lowering a higher count; `MatchedCount==1` is success even when Mongo reports no modification. Zero observations and missing/deleted/foreign/nested roots fail closed.
 
 This is not an exact cross-lifecycle counter transaction. It cannot lower a historically inflated counter, and a concurrent legacy delete/decrement can race between count and raise. No handler or writer calls the coordinator, no live Mongo test ran, and automatic follow, unread invalidation, event/outbox ownership, recovery fencing, and cutover remain separate boundaries.
+
+## Phase 151 automatic thread-follow effect boundary (2026-08-27)
+
+Automatic follow is deliberately a cross-store adapter on `CombinedRepository`, not a Mongo-only method. `EnsureAutoThreadFollows` constructs a fresh `PGAuthorizedUnreadScopeResolver` from the embedded Ent client and delegates to a pure coordinator plus the existing Mongo transition writer. This preserves PostgreSQL as active tenant/account/channel/project-membership authority immediately before every follow mutation.
+
+The immutable plan orders the canonical author/replier first, then first-occurrence unique `resolved_mention_user_ids`; a root follows its own ID and a reply follows its `thread_id`. Every candidate uses `ThreadFollowModeAuto` and the triggering UTC `(created_at,message_id)` position. Typed current denial or absence of the exact channel target omits that candidate. Mismatched tenant/user facts and infrastructure errors fail pending; successful earlier candidates remain safe because Mongo auto transition is insert-only and never overwrites `manual_follow`, `manual_unfollow`, or existing `auto`.
+
+The adapter uses real production dependency types but is not wired into any live canonical writer. The per-user PG-read/Mongo-write sequence is not atomic, and authorization may change after proof; later reads still require fresh PostgreSQL authority. No live Ent/Mongo evidence or recipient event ownership follows from this unit atom.

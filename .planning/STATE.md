@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through typed `client_nonce` outcomes, redacted mapping, fail-closed legacy reservation, and the first concrete Mongo post-create effect port. `ReconcileReplyCount` is retry-safe and channel/root/live scoped; live writers and the remaining effects remain unbound.
-**Resume:** the Mongo reply-count port is closed at bounded unit/compile level. Freeze the next missing effect port, preferably automatic thread-follow persistence, with exact authority/idempotency/retry semantics before any live send/forward binding; recovery fencing, events, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
+**Stopped at:** bounded Phase 151 units are green through typed nonce handling plus two concrete post-create effects. Reply-count reconciliation is Mongo-scoped and auto-follow is a real CombinedRepository Ent+Mongo adapter with fresh per-user authority; live writers and recipient invalidation remain unbound.
+**Resume:** reply-count and automatic thread-follow ports are closed at bounded unit/compile level. Freeze recipient-only unread invalidation with exact fresh-audience, payload, retry, and CAS-before-publish semantics before any live writer binding; recovery fencing, outbox ownership, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1302,3 +1302,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Test-only Docker RED kept production build `PASS` and failed vet/unit/race only on the missing port/builders. Final fresh `backend-unit` overall/build/vet/unit/race is `PASS`; all three new top-level groups pass in unit and race, with zero fail, panic, or data-race markers.
 - Root authority/concurrency/mutation review is `PASS`. Independent Terra/high review is `UNKNOWN` because the runtime agent-thread limit rejected dispatch.
 - This is one concrete adapter, not live cutover or Mongo integration evidence. It does not correct historical overcounts, make create/delete races transactional, bind writers, or implement auto-follow/unread/event/recovery ownership. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Session note - 2026-08-27 (Phase 151 automatic thread-follow effect atom)
+
+- A new CombinedRepository adapter binds `EnsureAutoThreadFollows` to the real Ent-backed `PGAuthorizedUnreadScopeResolver` and existing Mongo insert-only `ApplyAuthorizedThreadFollowTransition`; pure Mongo never fabricates PostgreSQL authority.
+- The frozen plan follows the author/replier first, then unique persisted resolved mentions, using the root ID for a root or `thread_id` for a reply and the triggering `(created_at UTC, message_id)` cursor. Each candidate gets a fresh scope; typed denial or missing exact channel target skips only that candidate, while malformed authority and PostgreSQL/Mongo infrastructure errors leave the canonical message pending for retry.
+- Existing Mongo transition semantics preserve `manual_unfollow`, `manual_follow`, and an existing `auto` record; retry/partial progress cannot overwrite explicit intent. Canonical/producer validation happens before authority or Mongo.
+- Compile RED kept production build `PASS` and failed vet/unit/race only on absent adapter/coordinator symbols. Final Docker overall/build/vet/unit/race is `PASS`; seven top-level groups pass in unit and race with zero fail, panic, or data-race markers. Root security/mutation review is `PASS` after adding trusted-producer and tenant-integrity regressions. Independent Terra/high review is `UNKNOWN` because thread capacity rejected dispatch.
+- No live writer, PostgreSQL, Mongo, recovery, or event runtime was exercised. Recipient invalidation, full repository composition, recovery fencing, and cutover remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
