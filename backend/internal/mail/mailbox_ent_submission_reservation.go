@@ -191,7 +191,7 @@ func mailboxEntSubmissionLockIdempotencyReceipt(ctx context.Context, transaction
 	row, err := transaction.MailSubmission.Query().
 		Where(
 			mailsubmission.MailAccountIDEQ(request.AccountID),
-			mailsubmission.IdempotencyKeyHashEQ(request.IdempotencyKeyHash[:]...),
+			mailsubmission.IdempotencyKeyHashEQ(request.IdempotencyKeyHash[:]),
 		).
 		ForUpdate().
 		Only(ctx)

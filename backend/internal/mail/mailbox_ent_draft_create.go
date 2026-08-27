@@ -31,7 +31,7 @@ func (repository *MailboxEntRepository) LookupMailboxDraftCreatePreHashLocator(c
 			return err
 		}
 		rows, err := transaction.MailDraft.Query().
-			Where(maildraft.MailAccountIDEQ(request.AccountID), maildraft.Or(maildraft.DraftClientIDEQ(request.DraftClientID), maildraft.CreateIdempotencyKeyHashEQ(request.CreateIdempotencyKeyHash[:]...))).
+			Where(maildraft.MailAccountIDEQ(request.AccountID), maildraft.Or(maildraft.DraftClientIDEQ(request.DraftClientID), maildraft.CreateIdempotencyKeyHashEQ(request.CreateIdempotencyKeyHash[:]))).
 			Order(ent.Asc(maildraft.FieldID)).
 			ForUpdate().
 			All(ctx)
@@ -152,7 +152,7 @@ func (repository *MailboxEntRepository) LookupMailboxDraftCreateReplay(ctx conte
 			return err
 		}
 		rows, err := transaction.MailDraft.Query().
-			Where(maildraft.MailAccountIDEQ(request.AccountID), maildraft.Or(maildraft.DraftClientIDEQ(request.DraftClientID), maildraft.CreateIdempotencyKeyHashEQ(request.CreateIdempotencyKeyHash[:]...))).
+			Where(maildraft.MailAccountIDEQ(request.AccountID), maildraft.Or(maildraft.DraftClientIDEQ(request.DraftClientID), maildraft.CreateIdempotencyKeyHashEQ(request.CreateIdempotencyKeyHash[:]))).
 			Order(ent.Asc(maildraft.FieldID)).
 			ForUpdate().
 			All(ctx)

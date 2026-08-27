@@ -52,7 +52,7 @@ func mailboxEntDraftRecoveryReceiptLock(ctx context.Context, transaction *ent.Tx
 			mailmutationreceipt.OrganizationIDEQ(account.OrganizationID),
 			mailmutationreceipt.ActorUserIDEQ(account.UserID),
 			mailmutationreceipt.OperationEQ(mailmutationreceipt.Operation(input.Operation)),
-			mailmutationreceipt.IdempotencyKeyHashEQ(input.IdempotencyKeyHash[:]...),
+			mailmutationreceipt.IdempotencyKeyHashEQ(input.IdempotencyKeyHash[:]),
 		).
 		ForUpdate().
 		All(ctx)

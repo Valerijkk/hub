@@ -44,7 +44,7 @@ func (repository *MailboxEntRepository) CreateMailDomain(ctx context.Context, re
 				mailmutationreceipt.OrganizationIDEQ(organizationID),
 				mailmutationreceipt.ActorUserIDEQ(request.ActorID),
 				mailmutationreceipt.OperationEQ(mailmutationreceipt.Operation(mailDomainControlOperation)),
-				mailmutationreceipt.IdempotencyKeyHashEQ(request.IdempotencyKeyHash[:]...),
+				mailmutationreceipt.IdempotencyKeyHashEQ(request.IdempotencyKeyHash[:]),
 			).
 			ForUpdate().
 			All(ctx)

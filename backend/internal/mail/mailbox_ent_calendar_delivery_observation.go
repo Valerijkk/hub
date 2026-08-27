@@ -91,7 +91,7 @@ func mailboxEntCalendarDeliveryBoundSubmissionForObservation(ctx context.Context
 	submission, err := transaction.MailSubmission.Query().
 		Where(
 			mailsubmission.IDEQ(submissionID),
-			mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:]...),
+			mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:]),
 		).
 		ForUpdate().
 		Only(ctx)

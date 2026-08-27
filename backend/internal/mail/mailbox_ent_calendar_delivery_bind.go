@@ -56,7 +56,7 @@ func mailboxEntCalendarDeliverySubmissionForBind(ctx context.Context, transactio
 		Where(
 			mailsubmission.IDEQ(submissionID),
 			mailsubmission.MailAccountIDEQ(claim.accountID),
-			mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:]...),
+			mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:]),
 		).
 		ForUpdate().
 		Only(ctx)

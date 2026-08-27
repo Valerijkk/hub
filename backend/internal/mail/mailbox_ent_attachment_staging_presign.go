@@ -49,7 +49,7 @@ func (repository *MailboxEntRepository) ReserveMailboxAttachmentPresign(ctx cont
 				mailmutationreceipt.OrganizationIDEQ(request.OrganizationID),
 				mailmutationreceipt.ActorUserIDEQ(request.ActorID),
 				mailmutationreceipt.OperationEQ(mailmutationreceipt.Operation(mailboxAttachmentPresignOperation)),
-				mailmutationreceipt.IdempotencyKeyHashEQ(request.IdempotencyKeyHash[:]...),
+				mailmutationreceipt.IdempotencyKeyHashEQ(request.IdempotencyKeyHash[:]),
 			).
 			ForUpdate().
 			All(ctx)
