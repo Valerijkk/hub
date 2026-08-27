@@ -1,0 +1,116 @@
+# Internal Stalwart foundation overlay. Apply after docker-compose.prod.yml.
+# Public ingress, external delivery, and OAuth activation require separate gates.
+services:
+  stalwart:
+    image: stalwartlabs/stalwart:v0.16.18@sha256:0df5900cab389a8ec47b7521ef0681ec93598caf72a09097685845211861f6c2
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    read_only: true
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    expose:
+      - "8080"
+    volumes:
+      - ./stalwart/config.json:/etc/stalwart/config.json:ro
+      - stalwart_data:/var/lib/stalwart
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+  clamav:
+    image: clamav/clamav:1.5.4@sha256:0e85467cb0d6e7d860a45035707741cd5ffc032ffefc6002a3510c75b6d07027
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    security_opt:
+      - "no-new-privileges:true"
+    expose:
+      - "3310"
+    volumes:
+      - clamav_signatures:/var/lib/clamav
+    healthcheck:
+      # Image-provided command, with explicit bounded Compose timings.
+      test: ["CMD-SHELL", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 6m
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+  backend:
+    environment:
+      # Disabled by default. An explicit true still requires every value below.
+      MAILBOX_ENGINE_ENABLED: "${MAILBOX_ENGINE_ENABLED:-false}"
+      MAILBOX_ENGINE_ORIGIN: "${MAILBOX_ENGINE_ORIGIN:?set MAILBOX_ENGINE_ORIGIN to the trusted internal Stalwart origin}"
+      STALWART_PUBLIC_URL: "${STALWART_PUBLIC_URL:?set STALWART_PUBLIC_URL to the approved HTTPS mail origin}"
+      MAILBOX_EXTERNAL_ENABLED: "false"
+      MAILBOX_EXCLUSIVE_FOLDER_WRITER: "true"
+      MAILBOX_INSTANCE_DOMAIN: "${MAILBOX_INSTANCE_DOMAIN:?set MAILBOX_INSTANCE_DOMAIN to the approved mail domain}"
+      MAILBOX_ENGINE_MAIL_AUTH_MODE: "oauth_authorization_code_pkce"
+      MAILBOX_ENGINE_OAUTH_CLIENT_ID: "${MAILBOX_ENGINE_OAUTH_CLIENT_ID:?set MAILBOX_ENGINE_OAUTH_CLIENT_ID}"
+      MAILBOX_ENGINE_OAUTH_CLIENT_SECRET: "${MAILBOX_ENGINE_OAUTH_CLIENT_SECRET:?set MAILBOX_ENGINE_OAUTH_CLIENT_SECRET from the secret store}"
+      MAILBOX_ENGINE_OAUTH_REDIRECT_URI: "${MAILBOX_ENGINE_OAUTH_REDIRECT_URI:?set MAILBOX_ENGINE_OAUTH_REDIRECT_URI to the approved HTTPS callback}"
+      MAILBOX_S3_PRESIGN_ORIGIN: "${MAILBOX_S3_PRESIGN_ORIGIN:?set MAILBOX_S3_PRESIGN_ORIGIN to the approved HTTPS origin}"
+      MAILBOX_CLAMAV_INSTREAM_ADDRESS: "clamav:3310"
+      MAILBOX_ENGINE_REGISTRY_API_KEY: "${MAILBOX_ENGINE_REGISTRY_API_KEY:?set MAILBOX_ENGINE_REGISTRY_API_KEY from the secret store}"
+    depends_on:
+      stalwart:
+        condition: service_started
+      clamav:
+        condition: service_healthy
+
+  # Operator-only recovery profile. Start only this service while steady
+  # Stalwart is stopped: both services use the same RocksDB volume.
+  stalwart-bootstrap:
+    profiles: ["bootstrap"]
+    image: stalwartlabs/stalwart:v0.16.18@sha256:0df5900cab389a8ec47b7521ef0681ec93598caf72a09097685845211861f6c2
+    restart: "no"
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    read_only: true
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    environment:
+      STALWART_RECOVERY_MODE: "1"
+      STALWART_RECOVERY_ADMIN: "${STALWART_BOOTSTRAP_USER:?set STALWART_BOOTSTRAP_USER only for bootstrap}:${STALWART_BOOTSTRAP_PASSWORD:?set STALWART_BOOTSTRAP_PASSWORD only for bootstrap}"
+    volumes:
+      - ./stalwart/config.json:/etc/stalwart/config.json:ro
+      - stalwart_data:/var/lib/stalwart
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+volumes:
+  stalwart_data:
+  clamav_signatures:
