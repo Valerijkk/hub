@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { rememberMailOAuthFlow } from "./mail-oauth-flow";
 import { mailKeys } from "./mail-query-keys";
 
 const PASSWORD_MIN_BYTES = 12;
@@ -201,6 +202,16 @@ export function MailSetupPanel({ onReady }: MailSetupPanelProps) {
 			const response = await beginMailSetupOAuth();
 			if (!isSafeAuthorizationURL(response.authorization_url)) {
 				throw new Error("Unsafe mail setup authorization URL");
+			}
+			if (
+				!rememberMailOAuthFlow(
+					response.authorization_url,
+					"setup",
+					window.sessionStorage,
+					Date.now(),
+				)
+			) {
+				throw new Error("Unable to remember mail OAuth flow");
 			}
 			window.location.assign(response.authorization_url);
 		} catch {
