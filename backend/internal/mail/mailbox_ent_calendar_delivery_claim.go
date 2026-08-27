@@ -77,7 +77,10 @@ func mailboxEntClaimCalendarInviteDelivery(ctx context.Context, transaction *ent
 		if !mailboxEntCalendarInviteDeliveryUnknownBoundValid(delivery) {
 			return CalendarMailDeliveryClaimResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
-		return CalendarMailDeliveryClaimResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+		if delivery.NextAttemptAt.After(databaseNow) {
+			return CalendarMailDeliveryClaimResult{outcome: CalendarMailDeliveryClaimOutcomeNoop}, nil
+		}
+		return mailboxEntObserveCalendarInviteDeliveryBoundSubmission(ctx, transaction, delivery, deliveryID, databaseNow)
 	case CalendarMailDeliveryStateSent, CalendarMailDeliveryStateFailedPermanent:
 		if !mailboxEntCalendarInviteDeliveryTerminalValid(delivery) {
 			return CalendarMailDeliveryClaimResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
@@ -135,7 +138,10 @@ func mailboxEntClaimCalendarReplyDelivery(ctx context.Context, transaction *ent.
 		if !mailboxEntCalendarReplyDeliveryUnknownBoundValid(delivery) {
 			return CalendarMailDeliveryClaimResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
-		return CalendarMailDeliveryClaimResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+		if delivery.NextAttemptAt.After(databaseNow) {
+			return CalendarMailDeliveryClaimResult{outcome: CalendarMailDeliveryClaimOutcomeNoop}, nil
+		}
+		return mailboxEntObserveCalendarReplyDeliveryBoundSubmission(ctx, transaction, delivery, deliveryID, databaseNow)
 	case CalendarMailDeliveryStateSent, CalendarMailDeliveryStateFailedPermanent:
 		if !mailboxEntCalendarReplyDeliveryTerminalValid(delivery) {
 			return CalendarMailDeliveryClaimResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)

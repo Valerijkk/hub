@@ -26,6 +26,9 @@ func TestCalendarDeliveryEntClaimSourceContract(t *testing.T) {
 		"SetLeaseToken(uuid.UUID(token))",
 		"SetLeaseUntil(leaseUntil)",
 		"SetAttempts(delivery.Attempts + 1)",
+		"mailboxEntObserveCalendarInviteDeliveryBoundSubmission",
+		"mailboxEntObserveCalendarReplyDeliveryBoundSubmission",
+		"delivery.NextAttemptAt.After(databaseNow)",
 	} {
 		if !strings.Contains(source, term) {
 			t.Fatalf("missing %q", term)
@@ -40,10 +43,100 @@ func TestCalendarDeliveryEntClaimSourceContract(t *testing.T) {
 		"Publish(",
 		"BindCalendarMailDeliverySubmission",
 		"ResolveCalendarMailDelivery",
-		"CalendarMailDeliveryClaimOutcomeObserved",
 	} {
 		if strings.Contains(source, forbidden) {
 			t.Fatalf("forbidden %q", forbidden)
 		}
+	}
+}
+
+func TestCalendarDeliveryEntBoundObservationSourceContract(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_calendar_delivery_observation.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(sourceBytes)
+	for _, term := range []string{
+		"mailboxEntObserveCalendarInviteDeliveryBoundSubmission",
+		"mailboxEntObserveCalendarReplyDeliveryBoundSubmission",
+		"mailboxEntCalendarDeliveryBoundSubmissionForObservation",
+		"sha256.Sum256([]byte(calendarMailDeliverySubmissionKey(deliveryID)))",
+		"mailsubmission.IDEQ(submissionID)",
+		"mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:]...)",
+		"transaction.MailSubmission.Query()",
+		"ForUpdate()",
+		"mailboxEntSubmissionRowValid(submission, submission.MailAccountID)",
+		"MailboxSubmissionStatusQueued",
+		"MailboxSubmissionStatusAuthorizing",
+		"MailboxSubmissionStatusSubmitting",
+		"MailboxSubmissionStatusAccepted",
+		"MailboxSubmissionStatusUnknown",
+		"MailboxSubmissionStatusSent",
+		"MailboxSubmissionStatusFailed",
+		"MailboxSubmissionErrorCodeOutcomeUnknown",
+		"MailboxSubmissionErrorCodeReconciliationRequired",
+		"MailboxSubmissionErrorCodeRejected",
+		"MailboxSubmissionErrorCodeSizeLimit",
+		"MailboxSubmissionErrorCodePolicy",
+		"MailboxSubmissionErrorCodeAttachmentNotClean",
+		"MailboxSubmissionErrorCodeIdentityUnavailable",
+		"MailboxSubmissionErrorCodeRecipientLimit",
+		"MailboxSubmissionErrorCodeRetryExhausted",
+		"MailboxSubmissionErrorCodeReconciliationExhausted",
+		"MailboxSubmissionErrorCodeMailboxUnavailable",
+		"submission_rejected",
+		"policy_denied",
+		"materialization_invalid",
+		"retry_exhausted",
+		"mailboxEntCheckedTimeAdd(databaseNow, mailboxEntCalendarDeliveryObservationDelay)",
+		"calendarinvitedelivery.StateEQ(calendarinvitedelivery.State(CalendarMailDeliveryStateUnknown))",
+		"calendarreplydelivery.StateEQ(calendarreplydelivery.State(CalendarMailDeliveryStateUnknown))",
+		"MailSubmissionIDEQ(submission.ID)",
+		"NextAttemptAtLTE(databaseNow)",
+		"ClearNextAttemptAt()",
+		"ClearLastErrorCode()",
+		"SetTerminalAt(databaseNow)",
+		"CalendarMailDeliveryClaimOutcomeObserved",
+		"if updated != 1",
+	} {
+		if !strings.Contains(source, term) {
+			t.Fatalf("missing observation term %q", term)
+		}
+	}
+	for _, forbidden := range []string{
+		"time.Now",
+		"net/http",
+		"http.",
+		"github.com/nats-io/nats.go",
+		"stalwart.",
+		"Publish(",
+		"ClaimCalendarMailDelivery(",
+		"BindCalendarMailDeliverySubmission(",
+		"ResolveCalendarMailDelivery(",
+		"SetAttempts(",
+		"var _ CalendarMailDeliveryRepository",
+	} {
+		if strings.Contains(source, forbidden) {
+			t.Fatalf("forbidden observation term %q", forbidden)
+		}
+	}
+}
+
+func TestCalendarDeliveryEntBoundObservationTerminalShapes(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_calendar_delivery_observation.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(sourceBytes)
+	inviteStart := strings.Index(source, "func mailboxEntCASCalendarInviteDeliveryObservation")
+	replyStart := strings.Index(source, "func mailboxEntCASCalendarReplyDeliveryObservation")
+	if inviteStart < 0 || replyStart < 0 || replyStart <= inviteStart {
+		t.Fatal("missing ordered invite/reply observation CAS functions")
+	}
+	if !strings.Contains(source[inviteStart:replyStart], "SetTerminalAt(databaseNow)") {
+		t.Fatal("invite observation must terminalize durable sent and permanent outcomes")
+	}
+	if strings.Contains(source[replyStart:], "SetTerminalAt(") {
+		t.Fatal("reply observation must not write an invite-only terminal timestamp")
 	}
 }
