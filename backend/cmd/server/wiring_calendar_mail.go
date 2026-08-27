@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	calendarmod "github.com/valerii/hub/backend/internal/calendar"
 	mailmod "github.com/valerii/hub/backend/internal/mail"
@@ -60,6 +61,19 @@ func wireCalendarMail(d *serverDeps) {
 
 	mailboxRepo, err := mailmod.NewMailboxEntRepository(d.db, serverUTCClock{})
 	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailDomainControl, err := mailmod.NewMailDomainControl(mailboxRepo)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailDomainControlHandler, err := mailmod.NewMailDomainControlHandler(mailDomainControl, func(ctx fiber.Ctx, userID uuid.UUID) (bool, error) {
+		return d.auditSvc.IsSystemAdmin(ctx.Context(), userID)
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailDomainControlHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	eventReadSvc := calendarmod.NewEventReadService(eventRepo, mailboxRepo)
