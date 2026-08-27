@@ -119,10 +119,14 @@ func wireCalendarMail(d *serverDeps) {
 	oauthRedirectURI, redirectURIPresent := os.LookupEnv("MAILBOX_ENGINE_OAUTH_REDIRECT_URI")
 	stalwartPublicURL, publicURLPresent := os.LookupEnv("STALWART_PUBLIC_URL")
 	if !clientIDPresent || oauthClientID == "" || !redirectURIPresent || oauthRedirectURI == "" ||
-		!publicURLPresent || stalwartPublicURL != mailboxEngineConfig.Origin {
+		!publicURLPresent || stalwartPublicURL == "" {
 		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
 	}
 	if oauthClientSecret, clientSecretPresent := os.LookupEnv("MAILBOX_ENGINE_OAUTH_CLIENT_SECRET"); !clientSecretPresent || oauthClientSecret == "" {
+		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
+	}
+	registryAPIKey, registryAPIKeyPresent := os.LookupEnv("MAILBOX_ENGINE_REGISTRY_API_KEY")
+	if !registryAPIKeyPresent || registryAPIKey == "" {
 		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
 	}
 
@@ -167,6 +171,34 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	d.addCleanup(mailboxHTTPClient.CloseIdleConnections)
+	managementRegistryAuthorizer, err := mailmod.NewStalwartRegistryAPIKeyAuthorizer(mailboxEngineConfig.Origin, func(ctx context.Context) ([]byte, error) {
+		if ctx == nil {
+			return nil, mailmod.ErrMailboxEngineConfigInvalid
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, mailmod.ErrMailboxEngineConfigInvalid
+		}
+		registryAPIKey, registryAPIKeyPresent := os.LookupEnv("MAILBOX_ENGINE_REGISTRY_API_KEY")
+		if !registryAPIKeyPresent || registryAPIKey == "" {
+			return nil, mailmod.ErrMailboxEngineConfigInvalid
+		}
+		return append([]byte(nil), registryAPIKey...), nil
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	managementRegistryClient, err := mailmod.NewStalwartRegistryClient(mailboxEngineConfig.Origin, mailboxHTTPClient, managementRegistryAuthorizer)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	managementPasswordClient, err := stalwartmod.NewRegistryPasswordClient(managementRegistryClient)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	managementPasswordService, err := mailmod.NewMailboxPasswordEnrollmentService(mailboxRepo, managementPasswordClient)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 
 	oauthClientSecretProvider, err := mailmod.NewStalwartOAuthClientSecretProvider(oauthClientID, func(_ context.Context, _ string) ([]byte, error) {
 		clientSecret, present := os.LookupEnv("MAILBOX_ENGINE_OAUTH_CLIENT_SECRET")
@@ -185,8 +217,8 @@ func wireCalendarMail(d *serverDeps) {
 	clear(oauthClientSecret)
 
 	oauthClient, err := stalwartmod.NewOAuthClient(stalwartmod.OAuthConfig{
-		IssuerOrigin:         mailboxEngineConfig.Origin,
-		ResourceOrigin:       mailboxEngineConfig.Origin,
+		IssuerOrigin:         stalwartPublicURL,
+		ResourceOrigin:       stalwartPublicURL,
 		ClientID:             oauthClientID,
 		ClientSecretProvider: oauthClientSecretProvider,
 		RedirectURI:          oauthRedirectURI,
@@ -200,21 +232,47 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	registryAuthorizer := mailmod.NewStalwartMailboxRegistryAuthorizer()
-	oauthAccountProof, err := mailmod.NewStalwartMailboxOAuthAccountProof(mailboxEngineConfig.Origin, mailboxHTTPClient, registryAuthorizer)
+	mailboxRegistryAuthorizer := mailmod.NewStalwartMailboxRegistryAuthorizer()
+	oauthAccountProof, err := mailmod.NewStalwartMailboxOAuthAccountProof(mailboxEngineConfig.Origin, mailboxHTTPClient, mailboxRegistryAuthorizer)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	mailboxOAuthService, err := mailmod.NewMailboxOAuthService(mailboxRepo, oauthStates, oauthClient, oauthAccountProof, d.integrationCipher, serverUTCClock{}, mailboxEngineConfig.Origin)
+	mailboxOAuthService, err := mailmod.NewMailboxOAuthService(mailboxRepo, oauthStates, oauthClient, oauthAccountProof, d.integrationCipher, serverUTCClock{}, stalwartPublicURL)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	mailboxAuthorizers, err := mailmod.NewStalwartMailboxAuthorizerSource(mailboxEngineConfig.Origin, mailboxRepo, mailboxOAuthService, d.integrationCipher, serverUTCClock{})
+	mailboxAuthorizers, err := mailmod.NewStalwartMailboxAuthorizerSource(stalwartPublicURL, mailboxRepo, mailboxOAuthService, d.integrationCipher, serverUTCClock{})
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	mailboxClientFactory, err := mailmod.NewStalwartMailboxClientFactory(mailboxEngineConfig.Origin, mailboxHTTPClient, registryAuthorizer, mailboxAuthorizers)
+	mailboxClientFactory, err := mailmod.NewStalwartMailboxClientFactory(mailboxEngineConfig.Origin, mailboxHTTPClient, mailboxRegistryAuthorizer, mailboxAuthorizers)
 	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	bootstrapOAuthStates, err := mailmod.NewMailboxBootstrapOAuthRedisStateStore(d.rdb)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	bootstrapIdentityProof, err := mailmod.NewStalwartMailboxBootstrapIdentityProof(mailboxEngineConfig.Origin, mailboxHTTPClient, mailboxRegistryAuthorizer)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxBootstrapOAuthService, err := mailmod.NewMailboxBootstrapOAuthService(mailboxRepo, bootstrapOAuthStates, oauthClient, bootstrapIdentityProof, d.integrationCipher, serverUTCClock{}, stalwartPublicURL)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxSetupHandler, err := mailmod.NewMailboxSetupHandler(managementPasswordService, mailboxBootstrapOAuthService, mailboxSvc, mailmod.MailboxSetupHandlerConfig{
+		BindingCookieName:      "hub_mail_setup_oauth_binding",
+		BindingCookieSecure:    !d.cfg.Server.DevMode,
+		BindingCookieMaxAgeSec: 600,
+		MaximumJSONBytes:       9216,
+		MaximumQueryBytes:      2048,
+		MaximumPasswordBytes:   256,
+	})
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxSetupHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	mailboxEngine, err := mailmod.NewStalwartEngine(mailboxClientFactory)
