@@ -57,6 +57,8 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		"mailmod.NewMailboxBootstrapOAuthRedisStateStore(d.rdb)",
 		"mailmod.NewStalwartMailboxBootstrapIdentityProof(mailboxEngineConfig.Origin, mailboxHTTPClient, mailboxRegistryAuthorizer)",
 		"mailmod.NewMailboxBootstrapOAuthService(mailboxRepo, bootstrapOAuthStates, oauthClient, bootstrapIdentityProof, d.integrationCipher, serverUTCClock{}, stalwartPublicURL)",
+		"mailmod.NewMailboxSetupStatusHandler(mailboxRepo)",
+		"mailboxSetupStatusHandler.RegisterRoutes(d.api, d.requireAuth)",
 		"mailmod.NewMailboxSetupHandler(managementPasswordService, mailboxBootstrapOAuthService, mailboxSvc, mailmod.MailboxSetupHandlerConfig{",
 		"BindingCookieName:      \"hub_mail_setup_oauth_binding\"",
 		"BindingCookieSecure:    !d.cfg.Server.DevMode",
@@ -80,6 +82,13 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		}
 	}
 
+	requireMailboxCalendarMailWiringOrdered(t, source,
+		"mailboxSvc, err := mailmod.NewMailboxService(mailboxRepo)",
+		"mailboxSetupStatusHandler, err := mailmod.NewMailboxSetupStatusHandler(mailboxRepo)",
+		"mailboxSetupStatusHandler.RegisterRoutes(d.api, d.requireAuth)",
+		"mailboxEngineConfig, err := mailmod.ParseMailboxEngineConfig(os.LookupEnv)",
+		"if !mailboxEngineConfig.Enabled {",
+	)
 	requireMailboxCalendarMailWiringOrdered(t, source,
 		"managementRegistryAuthorizer, err := mailmod.NewStalwartRegistryAPIKeyAuthorizer",
 		"managementRegistryClient, err := mailmod.NewStalwartRegistryClient",
