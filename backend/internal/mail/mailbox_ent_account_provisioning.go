@@ -146,7 +146,7 @@ func mailboxEntAccountProvisioningMaterializeIntents(ctx context.Context, transa
 				maildomain.EnabledEQ(true),
 				maildomain.StateEQ(maildomain.State("verified")),
 				maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
-		maildomain.DkimStatusEQ(maildomain.DkimStatus("valid")),
+				maildomain.DkimStatusEQ(maildomain.DkimStatus("valid")),
 				maildomain.EngineDomainIDNotNil(),
 				maildomain.DeletedAtIsNil(),
 			).
@@ -308,7 +308,7 @@ func mailboxEntAccountProvisioningAddressAvailable(ctx context.Context, transact
 }
 
 func mailboxEntAccountProvisioningDomainLive(domain *ent.MailDomain, organizationID uuid.UUID) bool {
-		if domain == nil || domain.ID == uuid.Nil || organizationID == uuid.Nil || domain.OrganizationID != organizationID || !domain.IsDefault || !domain.DesiredPresent || !domain.Enabled || domain.DeletedAt != nil || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DkimStatus != maildomain.DkimStatus("valid") || domain.EngineDomainID == nil || !mailboxAccountProvisioningSafeText(*domain.EngineDomainID) || !validCanonicalRegistryDomain(domain.Domain) {
+	if domain == nil || domain.ID == uuid.Nil || organizationID == uuid.Nil || domain.OrganizationID != organizationID || !domain.IsDefault || !domain.DesiredPresent || !domain.Enabled || domain.DeletedAt != nil || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DkimStatus != maildomain.DkimStatus("valid") || domain.EngineDomainID == nil || !mailboxAccountProvisioningSafeText(*domain.EngineDomainID) || !validCanonicalRegistryDomain(domain.Domain) {
 		return false
 	}
 	return domain.DesiredGeneration >= 1 && domain.DesiredHashVersion >= 1 && len(domain.DesiredHash) == sha256.Size && domain.DeployedGeneration != nil && domain.DeployedHashVersion != nil && domain.DeployedHash != nil && *domain.DeployedGeneration == domain.DesiredGeneration && *domain.DeployedHashVersion == domain.DesiredHashVersion && len(domain.DeployedHash) == sha256.Size && subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) == 1
