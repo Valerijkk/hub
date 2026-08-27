@@ -232,3 +232,18 @@ Initial RED kept build/vet `PASS` and failed unit/race only in `TestPhase151Prom
 Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`. Root chronological rendering, reply chronological rendering, selected-reply retention, and non-descending-page rejection all pass in unit and race; the final logs contain no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because retained agents exhaust runtime capacity. Live Mongo/Ent-PostgreSQL/NATS/WS/browser, integration, Swagger, and `qa-build` remain `NOT_RUN`; cross-store TOCTOU remains open.
 
 Recovery-scanner mapping is decision-blocked rather than code-complete: no production interval gate, PG pager, or recovery reauthorizer exists, and `Phase151PendingRecoveryTarget` has no actor/service-principal identity. A server-owned recovery principal or redesigned authority-facts contract must be frozen before concrete scanner implementation; arbitrary-member substitution is forbidden.
+
+
+## 2026-08-27 post-create completion CAS hardening
+
+Commit `7d248b9829e6419284d8a5e27b306b9962b001c6` freezes the trusted post-create completion transition as one exact Mongo CAS plan. Its predicate requires the exact message, channel, sender, and producer provenance; a live pending and still-uncompleted document; and an absent-or-zero recovery fence. Its update changes only the completion state and a UTC completion timestamp.
+
+A controlled mutation removing the `sender_id` predicate failed as expected (Docker exit `1`); production was restored to SHA-256 `17BA4811635B48E094057B0DBC56A5127CF8858D73A0C33A2784C6CA8D6E027C`. The final sequential Docker `backend-unit` run reported build, vet, unit, and race `PASS` (exit `0`). Independent re-review returned `Ready: yes` with no findings.
+
+This is bounded unit evidence only. The recovery scanner and its authority decision remain unresolved; no phase, module, scheduler, live writer, or runtime-complete claim follows.
+
+## 2026-08-27 production post-create composition wiring
+
+Commit `c90e75d5` adds an additive fail-closed production constructor and server wiring for the already implemented seven-port post-create composition. Tests freeze exact stored identity, nil/typed-nil rejection, legacy-constructor compatibility, and zero effect calls during construction. Final sequential Docker `backend-unit` reported build, vet, unit, and race `PASS` (exit `0`); independent review found no findings.
+
+No writer invokes the dependency and no live Mongo/PostgreSQL/NATS path ran. Recovery scanner/scheduler authority and nonce compatibility remain prerequisites for a safe direct-user writer cutover.

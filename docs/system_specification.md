@@ -873,3 +873,10 @@ Completion time must be nonzero, at/after message creation, and strictly before 
 ## Phase 151 recovery scanner authority decision (2026-08-27)
 
 `Phase151PendingRecoveryTarget` currently carries tenant, channel, and kind only. Because it has no actor or service-principal identity and production has no interval gate, PostgreSQL target pager, or recovery reauthorizer, a concrete scanner must not invent member authority. Before implementation, freeze either an explicit server-owned recovery principal with auditable authorization semantics or a redesigned target-authority facts contract. The concrete scanner, scheduler, and live writer cutover remain `UNBOUND` until that decision.
+
+## Calls credentials and Messenger completion CAS (2026-08-27)
+
+The internal Calls service now exposes a complete typed `JoinCredential` for provider-neutral consumption; the existing token-only method remains backward compatible. The Jitsi frontend contract is an internal pure validation/projection boundary: it accepts only a self-hosted configured origin, provider `jitsi`, canonical room name, and JWT. It does not add a public join response, HTTP route, iframe, deployment, media session, recording, or provider cutover. LiveKit remains active.
+
+Post-create Messenger completion is an internal Mongo CAS: exact trusted producer provenance, message/channel/sender identity, live pending state, absent completion, and compatible recovery fence are preconditions; the update changes only state to `complete` and UTC completion time. It does not bind production writers. Recovery scanner/scheduler/authority and client-nonce compatibility are still required before direct-writer cutover.
+Production Messenger construction now requires the complete post-create composition through an additive constructor while retaining the legacy constructor for unchanged call sites and tests. The server builds one shared fresh audience authority, eligible-mention resolver, unread invalidator, and concrete repository. Construction performs no effects; user, forward, bot, poll, and promotion writers remain on their current paths.
