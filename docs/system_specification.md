@@ -836,7 +836,7 @@ Explicit delegate errors are returned without reclassification. Successful menti
 
 The claim plan requires a valid trusted producer scope and an exact live pending canonical message with nonempty ID, matching channel/sender, nonzero creation time, no deletion, and no completion. Worker ID, time, and positive duration are mandatory. Time is normalized to UTC and cannot precede message creation. The predicate admits only an absent lease or a deadline `<= now`; the update sets owner/deadline and increments fence.
 
-The completion plan additionally requires exact tenant/message/channel plus nonnil owner, positive fence, and nonzero lease. Completion is valid only at/after creation and strictly before lease expiry. Its predicate repeats exact owner/fence/deadline and requires the stored deadline both equal the claim and greater than completion time. It sets state/completion timestamp and unsets owner/deadline. `ErrPostCreateRecoveryLeaseLost` classifies local expiry only; mapping a Mongo no-match to that error belongs to the unimplemented adapter.
+The completion plan additionally requires exact tenant/message/channel plus nonnil owner, positive fence, and nonzero lease. Completion is valid only at/after creation and strictly before lease expiry. Its predicate repeats exact owner/fence/deadline and requires the stored deadline both equal the claim and greater than completion time. It sets state/completion timestamp and unsets owner/deadline. `ErrPostCreateRecoveryLeaseLost` classifies local expiry and the concrete Mongo adapter also maps a completion no-match to it.
 
 ## Phase 151 Mongo post-create recovery adapter contract (2026-08-27)
 
@@ -844,7 +844,7 @@ The completion plan additionally requires exact tenant/message/channel plus nonn
 
 `Phase151PostCreateRecoveryAcquisition` contains the claim token and post-update canonical message. The adapter copies `resolved_mention_user_ids` and the lease timestamp so recovery-critical effect input cannot be changed through the store result after return. `CompleteClaimedPostCreateRecovery` applies the frozen completion plan; a store miss is `ErrPostCreateRecoveryLeaseLost`, while a store error retains identity.
 
-The concrete Mongo store uses return-after `FindOneAndUpdate`, treats `mongo.ErrNoDocuments` as a miss, and accepts completion only when `MatchedCount == 1`. This specifies no retry loop, lease renewal, live producer-scope reconstruction, or effect execution.
+The concrete Mongo store uses return-after `FindOneAndUpdate`, treats `mongo.ErrNoDocuments` as a miss, and accepts completion only when `MatchedCount == 1`. Producer-scope reconstruction and claimed effect execution are specified by separate standalone contracts below; retry-loop binding and lease renewal remain unspecified.
 
 ## Phase 151 durable producer provenance contract (2026-08-27)
 
@@ -852,4 +852,12 @@ New pending canonical messages have `post_create_producer_provenance` with this 
 
 Preparation copies the exact already-authorized producer proof into the document. Canonical lookup/persist results and concrete Mongo pending persistence require version 1 and exact equality with the request scope. Recovery reconstruction requires fresh valid target authority, a nonempty live pending message in the same channel, a nonnil canonical sender, and valid durable provenance. Its output preserves target tenant/channel, replaces the target actor with the canonical sender, and copies producer/bot/integration fields before rerunning closed producer validation. Claim and completion filters repeat exact subdocument equality; a successful return-after claim must still match the scope, and its returned provenance is defensively copied.
 
-Legacy messages may lack the optional BSON subdocument. The reconstruction helper and provenance-fenced claim plans reject them, so a future claimed runner must skip them or route an explicit migration; it may not guess provenance. No content, message type, client nonce fingerprint, sender naming convention, or bot-looking payload may be used to infer provenance.
+Legacy messages may lack the optional BSON subdocument. The reconstruction helper, provenance-fenced claim plans, and claimed runner reject them, so an outer recovery loop must skip them or route an explicit migration; it may not guess provenance. No content, message type, client nonce fingerprint, sender naming convention, or bot-looking payload may be used to infer provenance.
+
+## Phase 151 claimed post-create recovery runner contract (2026-08-27)
+
+`ExportPhase151ExecuteClaimedPostCreateRecovery(ctx, targetAuthority, scanned, owner, leaseDuration, clock, repository)` requires nonnil dependencies, a live context, fresh valid target tenant/channel authority, a pending canonical scanned message with durable v1 provenance, a nonnil owner UUID, and a positive lease. It reconstructs the original sender/producer scope and expected claim plan before calling `ClaimPendingPostCreateRecovery`.
+
+A clean claim miss returns `(false, nil)` and performs no effects. An acquired result must exactly match the expected message identity/state/provenance, owner, positive fence, and UTC lease, and a second reconstruction must equal the first scope. Any error from that point returns `acquired=true`. The effect order is automatic follows, reply-count reconciliation only when `thread_id` is nonempty, completion-plan validation using a fresh clock value, fenced completion, and unread invalidation. Wrapped repository-stage errors retain identity.
+
+Completion time must be nonzero, at/after message creation, and strictly before the acquired lease. This contract supplies no scan/paging loop, target-authority adapter, scheduler, lease renewal, outbox, or live-writer routing. Completion precedes best-effort unread publication, so delivery loss remains recoverable only through authoritative unread refetch.
