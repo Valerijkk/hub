@@ -7,6 +7,7 @@ from time import monotonic, sleep
 from typing import Final
 
 from hub_testkit.domains.mail_calendar_qa import (
+    AccountMaterializationFixtureSnapshot,
     DevSession,
     MailCalendarQAClient,
     MailCalendarQAConfig,
@@ -64,6 +65,23 @@ def wait_for_mail_calendar_correlation(
         correlation = client.mail_message_detail(session, message_id)
         if correlation.calendar_event_id is not None:
             return correlation
+
+        remaining_seconds = deadline - monotonic()
+        if remaining_seconds <= 0:
+            raise MailCalendarQAError(_CORRELATION_TIMEOUT_FAILURE)
+        sleep(min(_CORRELATION_POLL_INTERVAL_SECONDS, remaining_seconds))
+
+
+def wait_for_mail_account_materialization(
+    client: MailCalendarQAClient,
+    nonce: str,
+) -> AccountMaterializationFixtureSnapshot:
+    """Boundedly wait until one account-materialization fixture finalizes."""
+    deadline = monotonic() + _CORRELATION_TIMEOUT_SECONDS
+    while True:
+        fixture = client.get_account_materialization_fixture(nonce)
+        if fixture.materialization_state == "finalized":
+            return fixture
 
         remaining_seconds = deadline - monotonic()
         if remaining_seconds <= 0:
