@@ -62,7 +62,7 @@ func TestCalendarDeliveryEntBoundObservationSourceContract(t *testing.T) {
 		"mailboxEntCalendarDeliveryBoundSubmissionForObservation",
 		"sha256.Sum256([]byte(calendarMailDeliverySubmissionKey(deliveryID)))",
 		"mailsubmission.IDEQ(submissionID)",
-		"mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:]...)",
+		"mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:])",
 		"transaction.MailSubmission.Query()",
 		"ForUpdate()",
 		"mailboxEntSubmissionRowValid(submission, submission.MailAccountID)",

@@ -40,7 +40,7 @@ func TestCalendarDeliveryEntBindSourceContract(t *testing.T) {
 		"sha256.Sum256([]byte(calendarMailDeliverySubmissionKey(claim.deliveryID)))",
 		"mailsubmission.IDEQ(submissionID)",
 		"mailsubmission.MailAccountIDEQ(claim.accountID)",
-		"mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:]...)",
+		"mailsubmission.IdempotencyKeyHashEQ(idempotencyKeyHash[:])",
 		"transaction.MailDraft.Query()",
 		"maildraft.DraftClientIDEQ(calendarMailDeliveryDraftClientID(claim.deliveryID))",
 		"mailboxEntCalendarInviteDeliveryFreshBindMatches",
