@@ -416,7 +416,7 @@ describe("api.postBytes", () => {
 		const callerBytes = new Uint8Array([7, 8, 9]);
 		let byteCalls = 0;
 		let refreshCalls = 0;
-		const sentBodies: number[][] = [];
+		const attemptBodies: Uint8Array[] = [];
 		const authorizations: string[] = [];
 
 		vi.stubGlobal(
@@ -437,7 +437,12 @@ describe("api.postBytes", () => {
 				byteCalls += 1;
 				const headers = init?.headers as Record<string, string> | undefined;
 				authorizations.push(headers?.Authorization ?? "");
-				sentBodies.push([...((init?.body as Uint8Array) ?? [])]);
+				const attemptBody = init?.body;
+				expect(attemptBody).toBeInstanceOf(Uint8Array);
+				const attemptBytes = attemptBody as Uint8Array;
+				expect(attemptBytes).not.toBe(callerBytes);
+				expect([...attemptBytes]).toEqual([7, 8, 9]);
+				attemptBodies.push(attemptBytes);
 				if (byteCalls === 1) return new Response(null, { status: 401 });
 				return new Response(JSON.stringify({ retried: true }), {
 					status: 200,
@@ -455,10 +460,16 @@ describe("api.postBytes", () => {
 			"Bearer binary-access",
 			"Bearer binary-access-refreshed",
 		]);
-		expect(sentBodies).toEqual([
-			[7, 8, 9],
-			[7, 8, 9],
-		]);
+		expect(attemptBodies).toHaveLength(2);
+		const [firstAttemptBody, secondAttemptBody] = attemptBodies;
+		if (!firstAttemptBody || !secondAttemptBody) {
+			throw new Error("Expected two byte attempts");
+		}
+		expect(firstAttemptBody).not.toBe(secondAttemptBody);
+		expect(firstAttemptBody).not.toBe(callerBytes);
+		expect(secondAttemptBody).not.toBe(callerBytes);
+		expect([...firstAttemptBody]).toEqual([0, 0, 0]);
+		expect([...secondAttemptBody]).toEqual([0, 0, 0]);
 		expect([...callerBytes]).toEqual([7, 8, 9]);
 	});
 
