@@ -233,14 +233,14 @@ func mailboxSetupStatusAccountTupleIntegrityValid(account *ent.MailAccount) bool
 	return account.ProvisionErrorCode == nil || validMailboxOwnerRecoveryCode(MailboxOwnerRecoveryCode(*account.ProvisionErrorCode))
 }
 
-func mailboxSetupStatusControlTupleValid(generation *int64, version *int32, hash []byte, maximumGeneration int64) bool {
+func mailboxSetupStatusControlTupleValid(generation *int64, version *int32, hash *[]byte, maximumGeneration int64) bool {
 	hasGeneration := generation != nil
 	hasVersion := version != nil
 	hasHash := hash != nil
 	if hasGeneration != hasVersion || hasGeneration != hasHash {
 		return false
 	}
-	return !hasGeneration || *generation >= 1 && *generation <= maximumGeneration && *version >= 1 && len(hash) == sha256.Size
+	return !hasGeneration || *generation >= 1 && *generation <= maximumGeneration && *version >= 1 && len(*hash) == sha256.Size
 }
 
 func mailboxSetupStatusProvisionLeaseValid(account *ent.MailAccount) bool {
@@ -386,7 +386,7 @@ func mailboxSetupStatusDomainVerificationValid(status maildomain.VerificationSta
 	return status == maildomain.VerificationStatus("pending") || status == maildomain.VerificationStatus("verified") || status == maildomain.VerificationStatus("failed")
 }
 
-func mailboxSetupStatusDomainTupleValid(generation *int64, version *int32, hash []byte, maximumGeneration int64) bool {
+func mailboxSetupStatusDomainTupleValid(generation *int64, version *int32, hash *[]byte, maximumGeneration int64) bool {
 	return mailboxSetupStatusControlTupleValid(generation, version, hash, maximumGeneration)
 }
 

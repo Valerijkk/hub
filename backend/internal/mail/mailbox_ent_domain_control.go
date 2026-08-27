@@ -415,11 +415,11 @@ func mailDomainControlEntRowValid(domain *appent.MailDomain, organizationID uuid
 	return domain.LastErrorCode == nil || mailboxSetupStatusDomainErrorCodeValid(*domain.LastErrorCode)
 }
 
-func mailDomainControlTupleValid(generation *int64, version *int32, hash []byte, maximumGeneration int64) bool {
+func mailDomainControlTupleValid(generation *int64, version *int32, hash *[]byte, maximumGeneration int64) bool {
 	if (generation == nil) != (version == nil) || (generation == nil) != (hash == nil) {
 		return false
 	}
-	return generation == nil || *generation >= 1 && *generation <= maximumGeneration && *version >= 1 && validMailDomainControlDigest(hash)
+	return generation == nil || *generation >= 1 && *generation <= maximumGeneration && *version >= 1 && validMailDomainControlDigest(*hash)
 }
 
 func mailDomainControlViewFromEnt(domain *appent.MailDomain, organizationID uuid.UUID) (MailDomainControlView, bool) {

@@ -346,18 +346,18 @@ func accountMaterializationFixtureHashEqual(actual, expected []byte) bool {
 func accountMaterializationFixtureOptionalTupleValid(
 	generation *int64,
 	hashVersion *int32,
-	hash []byte,
+	hash *[]byte,
 ) bool {
 	if generation == nil || hashVersion == nil || hash == nil {
 		return generation == nil && hashVersion == nil && hash == nil
 	}
-	return *generation >= 1 && *hashVersion >= 1 && len(hash) == sha256.Size
+	return *generation >= 1 && *hashVersion >= 1 && len(*hash) == sha256.Size
 }
 
 func accountMaterializationFixtureOptionalTupleMatches(
 	generation *int64,
 	hashVersion *int32,
-	hash []byte,
+	hash *[]byte,
 	expectedGeneration int64,
 	expectedHashVersion int32,
 	expectedHash []byte,
@@ -366,7 +366,7 @@ func accountMaterializationFixtureOptionalTupleMatches(
 		generation != nil &&
 		*generation == expectedGeneration &&
 		*hashVersion == expectedHashVersion &&
-		accountMaterializationFixtureHashEqual(hash, expectedHash)
+		accountMaterializationFixtureHashEqual(*hash, expectedHash)
 }
 
 func accountMaterializationFixtureExactRootsValid(
@@ -609,7 +609,7 @@ func accountMaterializationFixtureClassifyAccountState(
 func accountMaterializationFixtureOptionalTupleAbsent(
 	generation *int64,
 	hashVersion *int32,
-	hash []byte,
+	hash *[]byte,
 ) bool {
 	return generation == nil && hashVersion == nil && hash == nil
 }
