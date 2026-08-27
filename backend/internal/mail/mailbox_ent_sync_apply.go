@@ -237,7 +237,7 @@ func mailboxEntSyncApplyProofFromAccount(account *ent.MailAccount, fence Mailbox
 	if !hasVersion && !hasHash && !hasPhase && !hasNext && !hasApplied {
 		return mailboxEntSyncApplyProof{}, false, nil
 	}
-	if !hasVersion || !hasHash || !hasPhase || !hasNext || !hasApplied || account.SyncLeaseUntil == nil || (*account.SyncLeaseResultHashVersion != mailboxSyncCanonicalApplyVersion && *account.SyncLeaseResultHashVersion != int32(MailboxSyncCanonicalVersionV3)) || len(account.SyncLeaseResultHash) != sha256.Size || !mailboxEntValidTime(*account.SyncLeaseAppliedNextAt) || !mailboxEntValidTime(*account.SyncLeaseAppliedAt) {
+	if !hasVersion || !hasHash || !hasPhase || !hasNext || !hasApplied || account.SyncLeaseUntil == nil || (*account.SyncLeaseResultHashVersion != mailboxSyncCanonicalApplyVersion && *account.SyncLeaseResultHashVersion != int32(MailboxSyncCanonicalVersionV3)) || len(*account.SyncLeaseResultHash) != sha256.Size || !mailboxEntValidTime(*account.SyncLeaseAppliedNextAt) || !mailboxEntValidTime(*account.SyncLeaseAppliedAt) {
 		return mailboxEntSyncApplyProof{}, false, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	phase, ok := mailboxEntSyncLeaseAppliedPhaseFromStored(*account.SyncLeaseAppliedPhase)
@@ -266,7 +266,7 @@ func mailboxEntSyncApplyProofFromAccount(account *ent.MailAccount, fence Mailbox
 		nextAt:      *account.SyncLeaseAppliedNextAt,
 		appliedAt:   *account.SyncLeaseAppliedAt,
 	}
-	copy(proof.hash[:], account.SyncLeaseResultHash)
+	copy(proof.hash[:], *account.SyncLeaseResultHash)
 	return proof, true, nil
 }
 
