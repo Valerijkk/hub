@@ -304,7 +304,7 @@ func calendarMailDeliveryFakeClaimToken(deliveryID CalendarMailDeliveryID, gener
 	}
 	return CalendarMailDeliveryClaimToken(uuid.NewSHA1(
 		uuid.NameSpaceURL,
-		[]byte("hub.calendar.delivery.claim.v1/"+deliveryID.UUID().String()+"/"+strconv.FormatInt(int64(generation), 10)),
+		[]byte("hub.calendar.delivery.claim.v1/"+string(deliveryID.Kind())+"/"+deliveryID.UUID().String()+"/"+strconv.FormatInt(int64(generation), 10)),
 	))
 }
 

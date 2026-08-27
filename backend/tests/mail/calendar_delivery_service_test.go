@@ -216,6 +216,58 @@ func TestCalendarMailDeliveryFakeRejectsInvalidSealedClaim(t *testing.T) {
 	}
 }
 
+func TestCalendarMailDeliveryIDNamespacesKindAndRejectsMismatchedClaim(t *testing.T) {
+	for _, invalid := range []struct {
+		kind  mail.CalendarMailDeliveryKind
+		value uuid.UUID
+	}{
+		{kind: "", value: uuid.New()},
+		{kind: mail.CalendarMailDeliveryKindInvite, value: uuid.Nil},
+	} {
+		if _, err := mail.NewCalendarMailDeliveryID(invalid.kind, invalid.value); err == nil {
+			t.Fatalf("NewCalendarMailDeliveryID(%q, %s) error = nil, want invalid identity error", invalid.kind, invalid.value)
+		}
+	}
+	var invalidDeliveryID mail.CalendarMailDeliveryID
+	if invalidDeliveryID.Kind() != "" || invalidDeliveryID.UUID() != uuid.Nil {
+		t.Fatalf("invalid delivery ID = kind %q, UUID %s, want zero values", invalidDeliveryID.Kind(), invalidDeliveryID.UUID())
+	}
+
+	value := uuid.New()
+	inviteDeliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindInvite, value)
+	if err != nil {
+		t.Fatalf("NewCalendarMailDeliveryID(invite) error = %v", err)
+	}
+	replyDeliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindReply, value)
+	if err != nil {
+		t.Fatalf("NewCalendarMailDeliveryID(reply) error = %v", err)
+	}
+	if inviteDeliveryID == replyDeliveryID {
+		t.Fatal("invite and reply delivery IDs with the same UUID compare equal")
+	}
+	if inviteDeliveryID.Kind() != mail.CalendarMailDeliveryKindInvite || replyDeliveryID.Kind() != mail.CalendarMailDeliveryKindReply {
+		t.Fatalf("delivery ID kinds = %q, %q, want invite and reply", inviteDeliveryID.Kind(), replyDeliveryID.Kind())
+	}
+	if inviteDeliveryID.UUID() != value || replyDeliveryID.UUID() != value {
+		t.Fatalf("delivery ID UUIDs = %s, %s, want %s", inviteDeliveryID.UUID(), replyDeliveryID.UUID(), value)
+	}
+
+	replyID, err := mail.NewCalendarReplyDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarReplyDeliveryID() error = %v", err)
+	}
+	claim := mail.CalendarMailDeliveryFakeClaim{
+		DeliveryID: inviteDeliveryID, ReplyID: replyID, Kind: mail.CalendarMailDeliveryKindReply, Method: mail.CalendarMailDeliveryMethodReply,
+		EventID: uuid.New(), AttendeeID: uuid.New(), OrganizerID: uuid.Nil, OrganizationID: uuid.New(), AccountID: uuid.New(),
+		SenderActorID: uuid.New(), FromIdentityID: uuid.New(), Recipient: mail.EngineAddress{Email: "external-organizer@example.com"},
+		EventSequence: 1, AttendeeVersion: 1, Message: calendarDeliveryTimedReplyMessage(), ClaimGeneration: 1, LeaseUntil: time.Now().UTC().Add(time.Minute),
+	}
+	repository := mail.NewCalendarMailDeliveryRepositoryFake()
+	if got := calendarDeliveryRepositoryErrorKind(t, repository.SetClaim(claim)); got != mail.CalendarMailDeliveryRepositoryErrorInvalid {
+		t.Fatalf("SetClaim() mismatched delivery kind error kind = %q, want %q", got, mail.CalendarMailDeliveryRepositoryErrorInvalid)
+	}
+}
+
 func TestCalendarInviteDeliveryAdmissionRequiresKindSourceEnvelopeAndCopies(t *testing.T) {
 	repository := mail.NewCalendarMailDeliveryRepositoryFake()
 	inviteID, err := mail.NewCalendarInviteDeliveryID(uuid.New())
@@ -302,7 +354,7 @@ func TestCalendarInviteDeliveryAdmissionRequiresKindSourceEnvelopeAndCopies(t *t
 }
 
 func TestCalendarMailDeliveryReplyAllowsExternalOrganizerOnly(t *testing.T) {
-	deliveryID, err := mail.NewCalendarMailDeliveryID(uuid.New())
+	deliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindReply, uuid.New())
 	if err != nil {
 		t.Fatalf("NewCalendarMailDeliveryID() error = %v", err)
 	}
@@ -358,7 +410,7 @@ func TestCalendarMailDeliveryNoopSkipsMailIO(t *testing.T) {
 	mailIO := &calendarDeliveryMailProbe{}
 	materializer := &calendarDeliveryMaterializerProbe{}
 	service := calendarDeliveryService(t, repository, mailIO, mailIO, materializer)
-	deliveryID, err := mail.NewCalendarMailDeliveryID(uuid.New())
+	deliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindInvite, uuid.New())
 	if err != nil {
 		t.Fatalf("NewCalendarMailDeliveryID() error = %v", err)
 	}
@@ -661,7 +713,7 @@ func calendarDeliveryFixture(t *testing.T) (mail.CalendarMailDeliveryID, *mail.C
 
 func calendarDeliveryFixtureWithLease(t *testing.T, now, leaseUntil time.Time) (mail.CalendarMailDeliveryID, *mail.CalendarMailDeliveryRepositoryFake) {
 	t.Helper()
-	deliveryID, err := mail.NewCalendarMailDeliveryID(uuid.New())
+	deliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindInvite, uuid.New())
 	if err != nil {
 		t.Fatalf("NewCalendarMailDeliveryID() error = %v", err)
 	}

@@ -23,16 +23,28 @@ const (
 	calendarMailDeliveryMaximumRecurrenceID = 255
 )
 
-// CalendarMailDeliveryID is the opaque durable identity shared by invite and
-// reply delivery rows.
-type CalendarMailDeliveryID uuid.UUID
+// CalendarMailDeliveryID is the opaque durable identity of one typed calendar
+// delivery row. Its kind namespaces invite and reply UUID spaces.
+type CalendarMailDeliveryID struct {
+	kind  CalendarMailDeliveryKind
+	value uuid.UUID
+}
 
-// NewCalendarMailDeliveryID validates one durable delivery identity.
-func NewCalendarMailDeliveryID(value uuid.UUID) (CalendarMailDeliveryID, error) {
-	if value == uuid.Nil {
+// NewCalendarMailDeliveryID validates one typed durable delivery identity.
+func NewCalendarMailDeliveryID(kind CalendarMailDeliveryKind, value uuid.UUID) (CalendarMailDeliveryID, error) {
+	if !validCalendarMailDeliveryKind(kind) || value == uuid.Nil {
 		return CalendarMailDeliveryID{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
 	}
-	return CalendarMailDeliveryID(value), nil
+	return CalendarMailDeliveryID{kind: kind, value: value}, nil
+}
+
+// Kind returns the typed delivery kind, or the zero value for an invalid
+// identity.
+func (id CalendarMailDeliveryID) Kind() CalendarMailDeliveryKind {
+	if !validCalendarMailDeliveryID(id) {
+		return ""
+	}
+	return id.kind
 }
 
 // UUID returns the opaque UUID value, or uuid.Nil for an invalid identity.
@@ -40,7 +52,7 @@ func (id CalendarMailDeliveryID) UUID() uuid.UUID {
 	if !validCalendarMailDeliveryID(id) {
 		return uuid.Nil
 	}
-	return uuid.UUID(id)
+	return id.value
 }
 
 // CalendarInviteDeliveryID is the immutable identity of one authoritative
@@ -371,7 +383,7 @@ func newCalendarMailDeliveryRepositoryError(kind CalendarMailDeliveryRepositoryE
 }
 
 func validCalendarMailDeliveryID(value CalendarMailDeliveryID) bool {
-	return uuid.UUID(value) != uuid.Nil
+	return validCalendarMailDeliveryKind(value.kind) && value.value != uuid.Nil
 }
 
 func validCalendarInviteDeliveryID(value CalendarInviteDeliveryID) bool {
@@ -526,7 +538,7 @@ func validCalendarMailDeliveryClaimResult(result CalendarMailDeliveryClaimResult
 }
 
 func validCalendarMailDeliveryClaim(claim CalendarMailDeliveryClaim) bool {
-	if !validCalendarMailDeliveryID(claim.deliveryID) || !validCalendarMailDeliveryKind(claim.kind) || !validCalendarMailDeliveryMethod(claim.method) ||
+	if !validCalendarMailDeliveryID(claim.deliveryID) || !validCalendarMailDeliveryKind(claim.kind) || claim.deliveryID.Kind() != claim.kind || !validCalendarMailDeliveryMethod(claim.method) ||
 		claim.state != CalendarMailDeliveryStateSubmitting || uuid.UUID(claim.claimToken) == uuid.Nil || claim.claimGeneration < 1 ||
 		claim.organizationID == uuid.Nil || !validCalendarMailDeliveryLeaseUntil(claim.leaseUntil) ||
 		claim.eventID == uuid.Nil || claim.attendeeID == uuid.Nil || claim.accountID == uuid.Nil ||
@@ -563,7 +575,7 @@ func validCalendarMailDeliveryClaim(claim CalendarMailDeliveryClaim) bool {
 }
 
 func validCalendarMailDeliveryMaterializationInput(input CalendarMailDeliveryMaterializationInput) bool {
-	if !validCalendarMailDeliveryID(input.deliveryID) || !validCalendarMailDeliveryKind(input.kind) || !validCalendarMailDeliveryMethod(input.method) ||
+	if !validCalendarMailDeliveryID(input.deliveryID) || !validCalendarMailDeliveryKind(input.kind) || input.deliveryID.Kind() != input.kind || !validCalendarMailDeliveryMethod(input.method) ||
 		input.eventID == uuid.Nil || input.attendeeID == uuid.Nil || !validCalendarMailDeliveryRecurrenceID(input.recurrenceID) {
 		return false
 	}
