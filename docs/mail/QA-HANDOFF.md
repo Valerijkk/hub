@@ -38,6 +38,25 @@
 > repository/service/worker, 147-02B/02C, D1/D2, API/UI integration and the
 > full application Docker run remain pending/NOT_RUN.
 
+## Mail QA materialization source/static acceptance (2026-08-27)
+
+`SOURCE_STATIC_ACCEPTANCE_ONLY / RUNTIME_NOT_RUN`: exact mapping is P1 typed
+client/models/exports `b99465c6` (models blob `263c459c...`, client blob
+`83018e4f...`, init blob `8e1fddf7...`); P2 poller `fbc4ca1e` plus
+observation-deadline fix `23e1173b` (harness blob `3dfb1171...`); P3 API
+`TC-0001` `17ca2d0c` plus cleanup fix `f7522e95` (test blob `3807006f...`,
+case blob `4fcfdafb...`); and P4 integration `TC-0004` `1682a3fa` (test blob
+`775f7af6...`, case blob `4a4a59b8...`). P2 evidence-relay review is clean
+`C/I/M 0/0/0`; P3's one Important cleanup finding was addressed in fix round 1
+with no new breakage; P4 review is clean `C/I/M 0/0/0`.
+
+Intended Docker services are `python-api` and `python-integration`; Docker,
+pytest, build, and runtime are `NOT_RUN`. This grants no product, merge,
+readiness, or external Stalwart claim. Private `/_qa` routes remain out of
+public `docs/mail/openapi.yaml`. Existing P3 cleanup wording needs no change:
+it truthfully describes ordered attempts, and an independently attempted delete
+covers completed-server/lost-response uncertainty.
+
 ## Inbound Mail-to-Calendar P0-P2 prerequisite acceptance (2026-08-23)
 
 `STATIC_SOURCE_ONLY / RUNTIME_NOT_RUN`: P0 contract `0d4fa053d569631234c5a7f902341bb6a73a7d46`
