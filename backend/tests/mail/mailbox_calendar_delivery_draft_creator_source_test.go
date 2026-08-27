@@ -140,7 +140,7 @@ func TestMailboxCalendarDeliveryDraftCreatorUnknownAndRestartOrder(t *testing.T)
 		t.Fatal(err)
 	}
 	source := string(sourceBytes)
-	createBody := mailboxCalendarDeliveryDraftCreatorMethodBody(t, source, "CreateMailboxDraft")
+	createBody := mailboxCalendarDeliveryDraftCreatorMethodBody(t, source, "create")
 	uploadStart := strings.Index(createBody, "creator.engine.uploadCalendarDraftCreateMIME")
 	advanceStart := strings.Index(createBody, "creator.calendar.AdvanceMailboxDraftCalendarCreateToImport")
 	importStart := strings.Index(createBody, "creator.engine.importCalendarDraftCreateMIME")
