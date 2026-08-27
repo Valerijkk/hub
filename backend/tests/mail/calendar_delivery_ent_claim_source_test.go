@@ -140,3 +140,49 @@ func TestCalendarDeliveryEntBoundObservationTerminalShapes(t *testing.T) {
 		t.Fatal("reply observation must not write an invite-only terminal timestamp")
 	}
 }
+
+func TestCalendarDeliveryEntRemovedAttendeeMasterCancelSourceContract(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_calendar_delivery_claim.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(sourceBytes)
+	for _, term := range []string{
+		"func mailboxEntCalendarInviteDeliveryFactsMatch",
+		"event.Status == calendarevent.StatusCancelled && attendee.RemovedAt == nil",
+		"attendee.RemovedAt != nil && (event.Status == calendarevent.StatusConfirmed || event.Status == calendarevent.StatusTentative)",
+		"var targetParticipant ical.ITIPParticipant",
+		"targetParticipantOK = true",
+		"if delivery.Kind == calendarinvitedelivery.KindCancelled && target.RemovedAt != nil",
+		"mailboxEntCalendarDeliveryRemovedAttendeeMasterCancelITIPMessage",
+		"targetParticipant.RSVP",
+		"func mailboxEntCalendarDeliveryRemovedAttendeeMasterCancelITIPMessage",
+		"Method:      ical.ITIPMethodCancel",
+		"Status:      ical.ITIPStatusCancelled",
+		"Attendees:   []ical.ITIPParticipant{targetParticipant}",
+		"RRULE:       mailboxEntCalendarEventRRULE(event)",
+		"EXDates:     exdates",
+		"ical.NormalizeITIPMessage(message)",
+		"ical.CanonicalITIPIdentity(normalized)",
+		"identity.HasRecurrenceID || identity.RecurrenceID !=",
+		"len(normalized.Attendees) != 1",
+	} {
+		if !strings.Contains(source, term) {
+			t.Fatalf("missing removed-attendee CANCEL term %q", term)
+		}
+	}
+	factsStart := strings.Index(source, "func mailboxEntCalendarInviteDeliveryFactsMatch")
+	methodStart := strings.Index(source, "func mailboxEntCalendarInviteDeliveryMethod")
+	if factsStart < 0 || methodStart <= factsStart {
+		t.Fatal("missing ordered invite fact matcher")
+	}
+	facts := source[factsStart:methodStart]
+	for _, forbidden := range []string{
+		"event.Status == calendarevent.StatusConfirmed && attendee.RemovedAt == nil",
+		"event.Status == calendarevent.StatusTentative && attendee.RemovedAt == nil",
+	} {
+		if strings.Contains(facts, forbidden) {
+			t.Fatalf("active attendee must not receive a partial-event CANCEL: %q", forbidden)
+		}
+	}
+}

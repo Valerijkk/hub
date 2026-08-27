@@ -292,6 +292,8 @@ func mailboxEntCalendarInviteDeliveryClaimSnapshot(ctx context.Context, transact
 	}
 
 	var target *ent.CalendarAttendee
+	var targetParticipant ical.ITIPParticipant
+	targetParticipantOK := false
 	participants := make([]ical.ITIPParticipant, 0, len(attendees))
 	for _, attendee := range attendees {
 		if attendee == nil || attendee.ID == uuid.Nil || attendee.CalendarEventID != event.ID || attendee.RecurrenceID != nil {
@@ -306,6 +308,10 @@ func mailboxEntCalendarInviteDeliveryClaimSnapshot(ctx context.Context, transact
 		participant, ok := mailboxEntCalendarDeliveryITIPParticipant(attendee, attendee.ID == delivery.CalendarAttendeeID && delivery.Kind != calendarinvitedelivery.KindCancelled)
 		if !ok {
 			return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+		}
+		if attendee.ID == delivery.CalendarAttendeeID {
+			targetParticipant = participant
+			targetParticipantOK = true
 		}
 		participants = append(participants, participant)
 	}
@@ -326,7 +332,21 @@ func mailboxEntCalendarInviteDeliveryClaimSnapshot(ctx context.Context, transact
 	if !ok {
 		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
-	message, ok := mailboxEntCalendarDeliveryMasterITIPMessage(event, method, mailboxEntCalendarUserDisplayName(sourceUser), event.OrganizerEmail, participants, databaseNow)
+	var message ical.ITIPMessage
+	if delivery.Kind == calendarinvitedelivery.KindCancelled && target.RemovedAt != nil {
+		if !targetParticipantOK || targetParticipant.RSVP {
+			return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+		}
+		message, ok = mailboxEntCalendarDeliveryRemovedAttendeeMasterCancelITIPMessage(
+			event,
+			mailboxEntCalendarUserDisplayName(sourceUser),
+			event.OrganizerEmail,
+			targetParticipant,
+			databaseNow,
+		)
+	} else {
+		message, ok = mailboxEntCalendarDeliveryMasterITIPMessage(event, method, mailboxEntCalendarUserDisplayName(sourceUser), event.OrganizerEmail, participants, databaseNow)
+	}
 	if !ok || !calendarMailDeliveryMessageHasAttendee(message, recipient.Email) {
 		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
@@ -475,7 +495,8 @@ func mailboxEntCalendarInviteDeliveryFactsMatch(delivery *ent.CalendarInviteDeli
 	case calendarinvitedelivery.KindCreated, calendarinvitedelivery.KindUpdated:
 		return attendee.RemovedAt == nil && (event.Status == calendarevent.StatusConfirmed || event.Status == calendarevent.StatusTentative)
 	case calendarinvitedelivery.KindCancelled:
-		return event.Status == calendarevent.StatusCancelled
+		return (event.Status == calendarevent.StatusCancelled && attendee.RemovedAt == nil) ||
+			(attendee.RemovedAt != nil && (event.Status == calendarevent.StatusConfirmed || event.Status == calendarevent.StatusTentative))
 	default:
 		return false
 	}
@@ -571,6 +592,44 @@ func mailboxEntCalendarDeliveryMasterITIPMessage(event *ent.CalendarEvent, metho
 	identity, err := ical.CanonicalITIPIdentity(normalized)
 	if err != nil || identity.Method != itipMethod || identity.UID != normalized.UID || identity.Sequence != event.Sequence ||
 		identity.HasRecurrenceID || identity.RecurrenceID != "" {
+		return ical.ITIPMessage{}, false
+	}
+	return calendarMailDeliveryITIPMessageCopy(normalized), true
+}
+
+func mailboxEntCalendarDeliveryRemovedAttendeeMasterCancelITIPMessage(event *ent.CalendarEvent, organizerDisplayName, organizerEmail string, targetParticipant ical.ITIPParticipant, databaseNow time.Time) (ical.ITIPMessage, bool) {
+	if event == nil || event.ID == uuid.Nil || event.OrganizationID == uuid.Nil || event.DeletedAt != nil || !mailboxEntValidTime(databaseNow) ||
+		targetParticipant.Email == "" || targetParticipant.RSVP ||
+		(event.Status != calendarevent.StatusConfirmed && event.Status != calendarevent.StatusTentative) {
+		return ical.ITIPMessage{}, false
+	}
+	temporal, exdates, ok := mailboxEntCalendarDeliveryMasterTemporal(event)
+	if !ok {
+		return ical.ITIPMessage{}, false
+	}
+	message := ical.ITIPMessage{
+		Method:      ical.ITIPMethodCancel,
+		UID:         event.UID,
+		Stamp:       databaseNow,
+		Sequence:    event.Sequence,
+		Status:      ical.ITIPStatusCancelled,
+		Summary:     event.Title,
+		Description: event.Description,
+		Location:    event.Location,
+		Temporal:    temporal,
+		Organizer:   ical.ITIPOrganizer{Email: organizerEmail, DisplayName: organizerDisplayName},
+		Attendees:   []ical.ITIPParticipant{targetParticipant},
+		RRULE:       mailboxEntCalendarEventRRULE(event),
+		EXDates:     exdates,
+	}
+	normalized, err := ical.NormalizeITIPMessage(message)
+	if err != nil {
+		return ical.ITIPMessage{}, false
+	}
+	identity, err := ical.CanonicalITIPIdentity(normalized)
+	if err != nil || identity.Method != ical.ITIPMethodCancel || identity.UID != normalized.UID || identity.Sequence != event.Sequence ||
+		identity.HasRecurrenceID || identity.RecurrenceID != "" || normalized.Status != ical.ITIPStatusCancelled ||
+		len(normalized.Attendees) != 1 || normalized.Attendees[0].Email != targetParticipant.Email || normalized.Attendees[0].RSVP {
 		return ical.ITIPMessage{}, false
 	}
 	return calendarMailDeliveryITIPMessageCopy(normalized), true
