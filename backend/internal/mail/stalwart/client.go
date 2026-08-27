@@ -231,7 +231,16 @@ func (c *Client) authorizeRegistry(ctx context.Context, request *http.Request) e
 		return newError(ErrorUnauthorized)
 	}
 	if err := c.registryAuthorizer.AuthorizeRegistry(ctx, request); err != nil {
-		return newError(ErrorUnauthorized)
+		switch {
+		case errors.Is(err, ErrCancelled), errors.Is(err, context.Canceled):
+			return newError(ErrorCancelled)
+		case errors.Is(err, ErrUnauthorized):
+			return newError(ErrorUnauthorized)
+		case errors.Is(err, ErrUnavailable):
+			return newError(ErrorUnavailable)
+		default:
+			return newError(ErrorUnavailable)
+		}
 	}
 	return nil
 }

@@ -24,6 +24,67 @@ func (stalwartProviderErrorAuthorizer) AuthorizeMailbox(context.Context, *http.R
 	return nil
 }
 
+type stalwartProviderErrorRegistryAuthorizer struct {
+	err error
+}
+
+func (authorizer stalwartProviderErrorRegistryAuthorizer) AuthorizeRegistry(context.Context, *http.Request) error {
+	return authorizer.err
+}
+
+func TestStalwartClient_CallRegistryAuthorizationFailureMappingSkipsHTTP(t *testing.T) {
+	for _, testCase := range []struct {
+		name          string
+		authorizerErr error
+		wantKind      stalwart.ErrorKind
+		wantSentinel  error
+	}{
+		{name: `cancelled sentinel`, authorizerErr: stalwart.ErrCancelled, wantKind: stalwart.ErrorCancelled, wantSentinel: stalwart.ErrCancelled},
+		{name: `context cancellation`, authorizerErr: context.Canceled, wantKind: stalwart.ErrorCancelled, wantSentinel: stalwart.ErrCancelled},
+		{name: `unauthorized`, authorizerErr: stalwart.ErrUnauthorized, wantKind: stalwart.ErrorUnauthorized, wantSentinel: stalwart.ErrUnauthorized},
+		{name: `unavailable`, authorizerErr: stalwart.ErrUnavailable, wantKind: stalwart.ErrorUnavailable, wantSentinel: stalwart.ErrUnavailable},
+		{name: `deadline`, authorizerErr: context.DeadlineExceeded, wantKind: stalwart.ErrorUnavailable, wantSentinel: stalwart.ErrUnavailable},
+		{name: `unknown`, authorizerErr: errors.New(`provider-auth-secret`), wantKind: stalwart.ErrorUnavailable, wantSentinel: stalwart.ErrUnavailable},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+				calls++
+			}))
+			defer server.Close()
+
+			client, err := stalwart.NewClient(stalwart.Config{
+				Origin:             server.URL,
+				HTTPClient:         server.Client(),
+				RegistryAuthorizer: stalwartProviderErrorRegistryAuthorizer{err: testCase.authorizerErr},
+				MailboxAuthorizer:  stalwartProviderErrorAuthorizer{},
+			})
+			if err != nil {
+				t.Fatalf(`NewClient() error = %v`, err)
+			}
+
+			_, err = client.CallRegistry(context.Background(), stalwart.JMAPRequest{
+				Using: []string{`urn:ietf:params:jmap:core`, `urn:stalwart:jmap`},
+				MethodCalls: []stalwart.JMAPMethodCall{{
+					Name:      `x:Account/get`,
+					Arguments: json.RawMessage(`{}`),
+					CallID:    `auth-map-1`,
+				}},
+			})
+			kind, known := stalwart.KindOf(err)
+			if !known || kind != testCase.wantKind || !errors.Is(err, testCase.wantSentinel) {
+				t.Fatalf(`CallRegistry() error = %v, kind = %q, known = %t; want %q`, err, kind, known, testCase.wantKind)
+			}
+			if calls != 0 {
+				t.Fatalf(`CallRegistry() made %d HTTP requests; want 0`, calls)
+			}
+			if strings.Contains(err.Error(), `provider-auth-secret`) || strings.Contains(err.Error(), server.URL) {
+				t.Fatalf(`CallRegistry() exposed authorization detail in %q`, err)
+			}
+		})
+	}
+}
+
 func TestStalwartClient_RateLimitKeepsReadsRetryableAndMakesMutationsIndeterminate(t *testing.T) {
 	for _, testCase := range []struct {
 		name         string
