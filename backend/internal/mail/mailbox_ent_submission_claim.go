@@ -737,7 +737,7 @@ func mailboxEntSubmissionLockCleanAttachments(ctx context.Context, transaction *
 			return nil, false, nil
 		}
 		var digest [sha256.Size]byte
-		copy(digest[:], attachment.Sha256)
+		copy(digest[:], *attachment.Sha256)
 		proof = append(proof, MailboxSubmissionCleanAttachment{ID: attachment.ID, SHA256: digest})
 	}
 	return proof, true, nil
@@ -748,9 +748,9 @@ func mailboxEntSubmissionCleanAttachmentRow(attachment *ent.MailAttachment, draf
 		*attachment.MailDraftID == draft.ID && attachment.PendingMailDraftID == nil && attachment.DraftClientID != nil &&
 		*attachment.DraftClientID == draft.DraftClientID && attachment.StorageObjectID != nil && *attachment.StorageObjectID != uuid.Nil &&
 		attachment.EngineBlobID == nil && attachment.SizeBytes >= 1 && attachment.SizeBytes <= MaxEngineAttachmentBytes &&
-		attachment.ScanStatus == mailattachment.ScanStatus("clean") && len(attachment.Sha256) == sha256.Size &&
+		attachment.ScanStatus == mailattachment.ScanStatus("clean") && attachment.Sha256 != nil && len(*attachment.Sha256) == sha256.Size &&
 		attachment.ScanLeaseToken == nil && attachment.ScanLeaseUntil == nil && attachment.ScanTerminalAt != nil &&
-		mailboxEntDraftAttachmentProofSHA256Valid(attachment.Sha256) && mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) &&
+		mailboxEntDraftAttachmentProofSHA256Valid(*attachment.Sha256) && mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) &&
 		mailboxEntApplyAttachmentTextValid(attachment.Filename, false) && mailboxEntApplyAttachmentTextValid(attachment.MediaType, false) &&
 		mailboxEntApplyAttachmentDispositionValid(attachment.Disposition) &&
 		(attachment.Disposition != mailattachment.Disposition(EngineAttachmentDispositionInline) || attachment.ContentID != nil)
@@ -761,7 +761,7 @@ func mailboxEntSubmissionCleanObjectRow(object *ent.MailObject, account *ent.Mai
 		object.DeletionID != uuid.Nil && object.OrganizationID == account.OrganizationID && object.MailAccountID == account.ID &&
 		object.UploaderUserID == account.UserID && object.DraftClientID == draft.DraftClientID && object.UploadState == mailobject.UploadState("confirmed") &&
 		object.ExpectedSizeBytes == attachment.SizeBytes && object.ActualSizeBytes != nil && *object.ActualSizeBytes == object.ExpectedSizeBytes &&
-		len(object.Sha256) == sha256.Size && subtle.ConstantTimeCompare(object.Sha256, attachment.Sha256) == 1 &&
+		object.Sha256 != nil && attachment.Sha256 != nil && len(*object.Sha256) == sha256.Size && subtle.ConstantTimeCompare(*object.Sha256, *attachment.Sha256) == 1 &&
 		object.NextDeleteAt == nil && object.DeleteLeaseToken == nil && object.DeleteLeaseUntil == nil && object.DeleteTerminalAt == nil
 }
 

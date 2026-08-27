@@ -99,7 +99,7 @@ func (repository *MailboxEntRepository) ResolveMailboxDraftAttachmentProof(ctx c
 				return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorAttachmentConflict)
 			}
 			var digest [sha256.Size]byte
-			copy(digest[:], attachment.Sha256)
+			copy(digest[:], *attachment.Sha256)
 			proof[index] = MailboxDraftRequestHashAttachment{AttachmentID: attachmentID, SHA256: digest}
 		}
 
@@ -136,7 +136,7 @@ func mailboxEntDraftAttachmentProofRequestKind(attachmentIDs []uuid.UUID) Mailbo
 }
 
 func mailboxEntDraftAttachmentProofAttachmentValid(attachment *ent.MailAttachment, request mailboxDraftAttachmentProofRequest, draftFound bool) bool {
-	if attachment == nil || attachment.ID == uuid.Nil || attachment.MailMessageID != nil || attachment.EngineBlobID != nil || attachment.DraftClientID == nil || *attachment.DraftClientID != request.DraftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || attachment.ScanStatus != mailattachment.ScanStatus("clean") || !mailboxEntDraftAttachmentProofSHA256Valid(attachment.Sha256) || !mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) || !mailboxEntApplyAttachmentTextValid(attachment.Filename, false) || !mailboxEntApplyAttachmentTextValid(attachment.MediaType, false) || !mailboxEntApplyAttachmentDispositionValid(attachment.Disposition) {
+	if attachment == nil || attachment.ID == uuid.Nil || attachment.MailMessageID != nil || attachment.EngineBlobID != nil || attachment.DraftClientID == nil || *attachment.DraftClientID != request.DraftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || attachment.ScanStatus != mailattachment.ScanStatus("clean") || attachment.Sha256 == nil || !mailboxEntDraftAttachmentProofSHA256Valid(*attachment.Sha256) || !mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) || !mailboxEntApplyAttachmentTextValid(attachment.Filename, false) || !mailboxEntApplyAttachmentTextValid(attachment.MediaType, false) || !mailboxEntApplyAttachmentDispositionValid(attachment.Disposition) {
 		return false
 	}
 	if attachment.Disposition == mailattachment.Disposition(EngineAttachmentDispositionInline) && attachment.ContentID == nil {

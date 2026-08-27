@@ -679,7 +679,7 @@ func mailboxEntSubmissionFinalizationLockExpectedAttachments(ctx context.Context
 	result := make([]MailboxSubmissionFinalizationExpectedAttachment, len(attachments))
 	for index, attachment := range attachments {
 		result[index] = MailboxSubmissionFinalizationExpectedAttachment{
-			AttachmentID: attachment.attachment.ID, ObjectID: attachment.object.ID, SHA256: append([]byte(nil), attachment.attachment.Sha256...),
+			AttachmentID: attachment.attachment.ID, ObjectID: attachment.object.ID, SHA256: append([]byte(nil), (*attachment.attachment.Sha256)...),
 			SizeBytes: attachment.attachment.SizeBytes, ContentID: mailboxEntMessageOptionalString(attachment.attachment.ContentID),
 			Filename: attachment.attachment.Filename, MediaType: attachment.attachment.MediaType, Disposition: EngineAttachmentDisposition(attachment.attachment.Disposition),
 		}
@@ -758,7 +758,7 @@ func mailboxEntSubmissionFinalizationAttachmentsMatch(actual []mailboxEntSubmiss
 	for index, value := range actual {
 		want := expected[index]
 		if value.attachment == nil || value.object == nil || value.attachment.ID != want.attachmentID || value.object.ID != want.objectID ||
-			len(value.attachment.Sha256) != sha256.Size || subtle.ConstantTimeCompare(value.attachment.Sha256, want.sha256[:]) != 1 ||
+			value.attachment.Sha256 == nil || len(*value.attachment.Sha256) != sha256.Size || subtle.ConstantTimeCompare(*value.attachment.Sha256, want.sha256[:]) != 1 ||
 			value.attachment.SizeBytes != want.sizeBytes || mailboxEntMessageOptionalString(value.attachment.ContentID) != want.contentID ||
 			value.attachment.Filename != want.filename || value.attachment.MediaType != want.mediaType || EngineAttachmentDisposition(value.attachment.Disposition) != want.disposition ||
 			value.attachment.EngineBlobID != nil || value.attachment.StorageObjectID == nil || *value.attachment.StorageObjectID != value.object.ID {

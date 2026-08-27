@@ -241,7 +241,7 @@ func mailboxEntDraftAttachmentMaterializerSpecs(locked mailboxEntDraftAttachment
 			return nil, MailboxDraftRepositoryErrorAttachmentConflict
 		}
 		var digest [sha256.Size]byte
-		copy(digest[:], attachment.Sha256)
+		copy(digest[:], *attachment.Sha256)
 		contentID := ""
 		if attachment.ContentID != nil {
 			contentID = *attachment.ContentID
@@ -266,7 +266,7 @@ func mailboxEntDraftAttachmentMaterializerSpecs(locked mailboxEntDraftAttachment
 }
 
 func mailboxEntDraftAttachmentMaterializerAttachmentMatches(attachment *ent.MailAttachment, request mailboxDraftAttachmentMaterializationRequest) bool {
-	if attachment == nil || attachment.ID == uuid.Nil || attachment.DraftClientID == nil || *attachment.DraftClientID != request.DraftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil || attachment.MailMessageID != nil || attachment.EngineBlobID != nil || attachment.ScanStatus != mailattachment.ScanStatus("clean") || len(attachment.Sha256) != sha256.Size || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || !mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) || !mailboxEntApplyAttachmentTextValid(attachment.Filename, false) || !mailboxEntApplyAttachmentTextValid(attachment.MediaType, false) || !mailboxEntApplyAttachmentDispositionValid(attachment.Disposition) {
+	if attachment == nil || attachment.ID == uuid.Nil || attachment.DraftClientID == nil || *attachment.DraftClientID != request.DraftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil || attachment.MailMessageID != nil || attachment.EngineBlobID != nil || attachment.ScanStatus != mailattachment.ScanStatus("clean") || attachment.Sha256 == nil || len(*attachment.Sha256) != sha256.Size || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || !mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) || !mailboxEntApplyAttachmentTextValid(attachment.Filename, false) || !mailboxEntApplyAttachmentTextValid(attachment.MediaType, false) || !mailboxEntApplyAttachmentDispositionValid(attachment.Disposition) {
 		return false
 	}
 	if attachment.Disposition == mailattachment.Disposition(EngineAttachmentDispositionInline) && attachment.ContentID == nil {
@@ -283,7 +283,7 @@ func mailboxEntDraftAttachmentMaterializerAttachmentMatches(attachment *ent.Mail
 }
 
 func mailboxEntDraftAttachmentMaterializerObjectMatches(object *ent.MailObject, attachment *ent.MailAttachment, request mailboxDraftAttachmentMaterializationRequest, databaseNow time.Time) bool {
-	return object != nil && attachment != nil && attachment.StorageObjectID != nil && object.ID == *attachment.StorageObjectID && object.OrganizationID == request.OrganizationID && object.MailAccountID == request.AccountID && object.UploaderUserID == request.ActorID && object.DraftClientID == request.DraftClientID && object.UploadState == mailobject.UploadState("confirmed") && object.ExpectedSizeBytes == attachment.SizeBytes && object.ActualSizeBytes != nil && *object.ActualSizeBytes == object.ExpectedSizeBytes && object.Filename == attachment.Filename && object.MediaType == attachment.MediaType && len(object.Sha256) == sha256.Size && bytes.Equal(object.Sha256, attachment.Sha256) && object.NextDeleteAt == nil && object.DeleteLeaseToken == nil && object.DeleteLeaseUntil == nil && mailboxEntValidTime(object.ExpiresAt) && mailboxEntValidTime(object.UploadDrainUntil) && object.UploadDrainUntil.Equal(object.ExpiresAt.Add(mailboxAttachmentPresignObjectDrainLifetime)) && !databaseNow.Before(object.UploadDrainUntil) && object.ObjectKey == mailboxAttachmentPresignObjectKey(request.OrganizationID, request.AccountID, object.ID) && validMailboxObjectLocator(MailboxObjectLocator{Bucket: object.Bucket, Key: object.ObjectKey})
+	return object != nil && attachment != nil && attachment.StorageObjectID != nil && object.ID == *attachment.StorageObjectID && object.OrganizationID == request.OrganizationID && object.MailAccountID == request.AccountID && object.UploaderUserID == request.ActorID && object.DraftClientID == request.DraftClientID && object.UploadState == mailobject.UploadState("confirmed") && object.ExpectedSizeBytes == attachment.SizeBytes && object.ActualSizeBytes != nil && *object.ActualSizeBytes == object.ExpectedSizeBytes && object.Filename == attachment.Filename && object.MediaType == attachment.MediaType && object.Sha256 != nil && attachment.Sha256 != nil && len(*object.Sha256) == sha256.Size && bytes.Equal(*object.Sha256, *attachment.Sha256) && object.NextDeleteAt == nil && object.DeleteLeaseToken == nil && object.DeleteLeaseUntil == nil && mailboxEntValidTime(object.ExpiresAt) && mailboxEntValidTime(object.UploadDrainUntil) && object.UploadDrainUntil.Equal(object.ExpiresAt.Add(mailboxAttachmentPresignObjectDrainLifetime)) && !databaseNow.Before(object.UploadDrainUntil) && object.ObjectKey == mailboxAttachmentPresignObjectKey(request.OrganizationID, request.AccountID, object.ID) && validMailboxObjectLocator(MailboxObjectLocator{Bucket: object.Bucket, Key: object.ObjectKey})
 }
 
 func mailboxEntDraftAttachmentMaterializerOpen(objectStore MailboxObjectStore, locator MailboxObjectLocator, expectedSizeBytes int64) mailboxDraftAttachmentOpen {
