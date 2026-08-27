@@ -216,6 +216,136 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 	}
 }
 
+func TestRegistryDomainController_ReadLocalDomainDNSZoneFile(t *testing.T) {
+	for _, testCase := range []struct {
+		name      string
+		domain    string
+		replies   []registryDomainReply
+		wantID    string
+		wantName  string
+		wantErr   error
+		wantCalls int
+	}{
+		{
+			name:   "reads exact enabled non-relaying domain zone",
+			domain: " Example.TEST ",
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReply("domain-1", localRegistryDomain, true, false, "$ORIGIN example.test.\n@ IN MX 10 mx.example.test.\n"),
+			},
+			wantID:    "domain-1",
+			wantName:  localRegistryDomain,
+			wantCalls: 2,
+		},
+		{
+			name:   "missing zone is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileMissingReply("domain-1", localRegistryDomain, true, false),
+			},
+			wantErr:   stalwart.ErrProtocol,
+			wantCalls: 2,
+		},
+		{
+			name:   "empty zone is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReply("domain-1", localRegistryDomain, true, false, ""),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "non string zone is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReply("domain-1", localRegistryDomain, true, false, true),
+			},
+			wantErr:   stalwart.ErrProtocol,
+			wantCalls: 2,
+		},
+		{
+			name:   "control zone is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReply("domain-1", localRegistryDomain, true, false, "example.test.\x00"),
+			},
+			wantErr:   stalwart.ErrProtocol,
+			wantCalls: 2,
+		},
+		{
+			name:   "oversize zone response is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReply("domain-1", localRegistryDomain, true, false, strings.Repeat("z", 64<<10)),
+			},
+			wantErr:   stalwart.ErrProtocol,
+			wantCalls: 2,
+		},
+		{
+			name:   "mismatched domain read-back is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReply("domain-other", localRegistryDomain, true, false, "example.test."),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			var (
+				mu    sync.Mutex
+				calls int
+			)
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
+				calls++
+				if request.Method != http.MethodPost || request.URL.Path != "/jmap" || request.URL.RawQuery != "" || request.Header.Get("Authorization") != "Bearer registry-domain-test-key" || calls > len(testCase.replies) {
+					writer.WriteHeader(http.StatusForbidden)
+					return
+				}
+				var got stalwart.JMAPRequest
+				if err := json.NewDecoder(request.Body).Decode(&got); err != nil || !registryDomainRequestEqual(got, testCase.replies[calls-1].want) {
+					writer.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				writer.Header().Set("Content-Type", "application/json")
+				_, _ = writer.Write([]byte(testCase.replies[calls-1].response))
+			}))
+			defer server.Close()
+
+			client, err := stalwart.NewClient(stalwart.Config{Origin: server.URL, HTTPClient: server.Client(), RegistryAuthorizer: registryDomainTestAuthorizer{}, MailboxAuthorizer: registryDomainTestAuthorizer{}})
+			if err != nil {
+				t.Fatalf("NewClient() error = %v", err)
+			}
+			controller, err := stalwart.NewRegistryDomainController(client)
+			if err != nil {
+				t.Fatalf("NewRegistryDomainController() error = %v", err)
+			}
+
+			result, err := controller.ReadLocalDomainDNSZoneFile(context.Background(), testCase.domain)
+			if !errors.Is(err, testCase.wantErr) {
+				t.Fatalf("ReadLocalDomainDNSZoneFile() error = %v; want %v", err, testCase.wantErr)
+			}
+			if err == nil && (result.DomainID() != testCase.wantID || result.DomainName() != testCase.wantName) {
+				t.Fatalf("ReadLocalDomainDNSZoneFile() identity = %q/%q; want %q/%q", result.DomainID(), result.DomainName(), testCase.wantID, testCase.wantName)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if calls != testCase.wantCalls {
+				t.Fatalf("requests = %d; want %d", calls, testCase.wantCalls)
+			}
+		})
+	}
+}
+
 func registryDomainQueryReply(ids []string) registryDomainReply {
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/query", map[string]any{
@@ -244,6 +374,41 @@ func registryDomainGetReply(id, name string, isEnabled, allowRelaying bool) regi
 		}, "domain-get"}},
 	})
 	return registryDomainReply{want: registryDomainGetRequest(id), response: string(payload)}
+}
+
+func registryDomainDNSZoneFileReply(id, name string, isEnabled, allowRelaying bool, zone any) registryDomainReply {
+	payload, _ := json.Marshal(map[string]any{
+		"methodResponses": []any{[]any{"x:Domain/get", map[string]any{
+			"accountId": "0",
+			"state":     "domain-zone-get-state",
+			"list": []any{map[string]any{
+				"id":            id,
+				"name":          name,
+				"isEnabled":     isEnabled,
+				"allowRelaying": allowRelaying,
+				"dnsZoneFile":   zone,
+			}},
+			"notFound": []any{},
+		}, "domain-zone-get"}},
+	})
+	return registryDomainReply{want: registryDomainDNSZoneFileGetRequest(id), response: string(payload)}
+}
+
+func registryDomainDNSZoneFileMissingReply(id, name string, isEnabled, allowRelaying bool) registryDomainReply {
+	payload, _ := json.Marshal(map[string]any{
+		"methodResponses": []any{[]any{"x:Domain/get", map[string]any{
+			"accountId": "0",
+			"state":     "domain-zone-get-state",
+			"list": []any{map[string]any{
+				"id":            id,
+				"name":          name,
+				"isEnabled":     isEnabled,
+				"allowRelaying": allowRelaying,
+			}},
+			"notFound": []any{},
+		}, "domain-zone-get"}},
+	})
+	return registryDomainReply{want: registryDomainDNSZoneFileGetRequest(id), response: string(payload)}
 }
 
 func registryDomainCreateReply(id string) registryDomainReply {
@@ -297,6 +462,10 @@ func registryDomainQueryRequest(name string) stalwart.JMAPRequest {
 
 func registryDomainGetRequest(id string) stalwart.JMAPRequest {
 	return registryDomainRequest("x:Domain/get", json.RawMessage(`{"ids":["`+id+`"],"properties":["name","isEnabled","allowRelaying"]}`), "domain-get")
+}
+
+func registryDomainDNSZoneFileGetRequest(id string) stalwart.JMAPRequest {
+	return registryDomainRequest("x:Domain/get", json.RawMessage(`{"ids":["`+id+`"],"properties":["name","isEnabled","allowRelaying","dnsZoneFile"]}`), "domain-zone-get")
 }
 
 func registryDomainCreateRequest(name string) stalwart.JMAPRequest {

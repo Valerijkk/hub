@@ -7,15 +7,20 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 const (
-	registryDomainMaximumBytes          = 253
-	registryDomainMaximumResponseBytes  = 16 << 10
-	registryDomainQueryCallID           = "domain-query"
-	registryDomainGetCallID             = "domain-get"
-	registryDomainSetCallID             = "domain-set"
-	registryDomainCreationID            = "create-local-domain"
+	registryDomainMaximumBytes                     = 253
+	registryDomainMaximumResponseBytes             = 16 << 10
+	registryDomainMaximumDNSZoneFileResponseBytes  = 64 << 10
+	registryDomainMaximumDNSZoneFileBytes          = 64 << 10
+	registryDomainQueryCallID                      = "domain-query"
+	registryDomainGetCallID                        = "domain-get"
+	registryDomainDNSZoneFileGetCallID             = "domain-zone-get"
+	registryDomainSetCallID                        = "domain-set"
+	registryDomainCreationID                       = "create-local-domain"
 )
 
 // RegistryDomainController owns the narrow Registry-only domain admission
@@ -25,6 +30,21 @@ const (
 type RegistryDomainController struct {
 	client *Client
 }
+
+// LocalDomainDNSZoneFile is one bounded Registry read result. Its raw zone
+// remains private to the Stalwart adapter: callers may use the stable domain
+// identity but cannot log, persist, or otherwise project the provider value.
+type LocalDomainDNSZoneFile struct {
+	domainID   string
+	domainName string
+	zoneFile   string
+}
+
+// DomainID returns the validated opaque Registry domain identifier.
+func (result LocalDomainDNSZoneFile) DomainID() string { return result.domainID }
+
+// DomainName returns the canonical validated local domain name.
+func (result LocalDomainDNSZoneFile) DomainName() string { return result.domainName }
 
 // NewRegistryDomainController binds an already constructed management Client
 // without performing I/O or obtaining credentials.
@@ -68,6 +88,35 @@ func (controller *RegistryDomainController) EnsureLocalDomain(ctx context.Contex
 	}
 }
 
+// ReadLocalDomainDNSZoneFile reads only the provider's expected manual-DNS
+// zone for one already-present enabled non-relaying local domain. It neither
+// parses nor verifies DNS and never promotes any local state.
+func (controller *RegistryDomainController) ReadLocalDomainDNSZoneFile(ctx context.Context, name string) (LocalDomainDNSZoneFile, error) {
+	if controller == nil || controller.client == nil {
+		return LocalDomainDNSZoneFile{}, ErrInvalidConfiguration
+	}
+	if err := registryDomainContextError(ctx); err != nil {
+		return LocalDomainDNSZoneFile{}, err
+	}
+	domainName, ok := canonicalRegistryDomainName(name)
+	if !ok {
+		return LocalDomainDNSZoneFile{}, ErrInvalidRequest
+	}
+
+	response, err := controller.client.CallRegistry(ctx, registryDomainQueryRequest(domainName))
+	if err != nil {
+		return LocalDomainDNSZoneFile{}, err
+	}
+	ids, err := parseRegistryDomainQuery(response)
+	if err != nil {
+		return LocalDomainDNSZoneFile{}, err
+	}
+	if len(ids) != 1 {
+		return LocalDomainDNSZoneFile{}, ErrStateMismatch
+	}
+	return controller.getAndReadLocalDomainDNSZoneFile(ctx, ids[0], domainName)
+}
+
 func (controller *RegistryDomainController) createAndVerifyLocalDomain(ctx context.Context, name string) (string, error) {
 	if err := registryDomainContextError(ctx); err != nil {
 		return "", err
@@ -95,6 +144,20 @@ func (controller *RegistryDomainController) getAndValidateLocalDomain(ctx contex
 		return "", err
 	}
 	return parseRegistryLocalDomain(response, id, name)
+}
+
+func (controller *RegistryDomainController) getAndReadLocalDomainDNSZoneFile(ctx context.Context, id, name string) (LocalDomainDNSZoneFile, error) {
+	if !validOpaque(id) {
+		return LocalDomainDNSZoneFile{}, ErrProtocol
+	}
+	if err := registryDomainContextError(ctx); err != nil {
+		return LocalDomainDNSZoneFile{}, err
+	}
+	response, err := controller.client.CallRegistry(ctx, registryDomainDNSZoneFileGetRequest(id))
+	if err != nil {
+		return LocalDomainDNSZoneFile{}, err
+	}
+	return parseRegistryLocalDomainDNSZoneFile(response, id, name)
 }
 
 func registryDomainQueryRequest(name string) JMAPRequest {
@@ -131,6 +194,23 @@ func registryDomainGetRequest(id string) JMAPRequest {
 				Properties: []string{"name", "isEnabled", "allowRelaying"},
 			}),
 			CallID: registryDomainGetCallID,
+		}},
+	}
+}
+
+func registryDomainDNSZoneFileGetRequest(id string) JMAPRequest {
+	return JMAPRequest{
+		Using: []string{capabilityCore, capabilityRegistry},
+		MethodCalls: []JMAPMethodCall{{
+			Name: "x:Domain/get",
+			Arguments: mustRegistryDomainJSON(struct {
+				IDs        []string `json:"ids"`
+				Properties []string `json:"properties"`
+			}{
+				IDs:        []string{id},
+				Properties: []string{"name", "isEnabled", "allowRelaying", "dnsZoneFile"},
+			}),
+			CallID: registryDomainDNSZoneFileGetCallID,
 		}},
 	}
 }
@@ -279,12 +359,58 @@ func parseRegistryLocalDomain(response JMAPResponse, id, name string) (string, e
 	return id, nil
 }
 
+func parseRegistryLocalDomainDNSZoneFile(response JMAPResponse, id, name string) (LocalDomainDNSZoneFile, error) {
+	arguments, err := registryDomainDNSZoneFileResponseArguments(response, "x:Domain/get", registryDomainDNSZoneFileGetCallID)
+	if err != nil {
+		return LocalDomainDNSZoneFile{}, err
+	}
+	var payload struct {
+		AccountID string `json:"accountId"`
+		State     string `json:"state"`
+		List      []struct {
+			ID            string           `json:"id"`
+			Name          string           `json:"name"`
+			IsEnabled     *bool            `json:"isEnabled"`
+			AllowRelaying *bool            `json:"allowRelaying"`
+			DNSZoneFile   *json.RawMessage `json:"dnsZoneFile"`
+		} `json:"list"`
+		NotFound []string `json:"notFound"`
+	}
+	if !decodeRegistryDomainDNSZoneFileArguments(arguments, &payload) || !validOpaque(payload.AccountID) || !validOpaque(payload.State) || payload.List == nil || len(payload.List) != 1 || len(payload.NotFound) != 0 {
+		return LocalDomainDNSZoneFile{}, ErrProtocol
+	}
+	domain := payload.List[0]
+	canonicalName, validName := canonicalRegistryDomainName(domain.Name)
+	if !validName || !validOpaque(domain.ID) || domain.DNSZoneFile == nil {
+		return LocalDomainDNSZoneFile{}, ErrProtocol
+	}
+	if domain.ID != id || canonicalName != name || domain.IsEnabled == nil || !*domain.IsEnabled || domain.AllowRelaying == nil || *domain.AllowRelaying {
+		return LocalDomainDNSZoneFile{}, ErrStateMismatch
+	}
+	zoneFile, err := parseRegistryDomainDNSZoneFile(*domain.DNSZoneFile)
+	if err != nil {
+		return LocalDomainDNSZoneFile{}, err
+	}
+	return LocalDomainDNSZoneFile{domainID: domain.ID, domainName: canonicalName, zoneFile: zoneFile}, nil
+}
+
 func registryDomainResponseArguments(response JMAPResponse, name, callID string) (json.RawMessage, error) {
 	if len(response.MethodResponses) != 1 {
 		return nil, ErrProtocol
 	}
 	method := response.MethodResponses[0]
 	if method.Name != name || method.CallID != callID || len(method.Arguments) == 0 || len(method.Arguments) > registryDomainMaximumResponseBytes {
+		return nil, ErrProtocol
+	}
+	return method.Arguments, nil
+}
+
+func registryDomainDNSZoneFileResponseArguments(response JMAPResponse, name, callID string) (json.RawMessage, error) {
+	if len(response.MethodResponses) != 1 {
+		return nil, ErrProtocol
+	}
+	method := response.MethodResponses[0]
+	if method.Name != name || method.CallID != callID || len(method.Arguments) == 0 || len(method.Arguments) > registryDomainMaximumDNSZoneFileResponseBytes {
 		return nil, ErrProtocol
 	}
 	return method.Arguments, nil
@@ -301,6 +427,58 @@ func decodeRegistryDomainArguments(arguments json.RawMessage, target any) bool {
 	}
 	var extra any
 	return errors.Is(decoder.Decode(&extra), io.EOF)
+}
+
+func decodeRegistryDomainDNSZoneFileArguments(arguments json.RawMessage, target any) bool {
+	if len(arguments) == 0 || len(arguments) > registryDomainMaximumDNSZoneFileResponseBytes || target == nil {
+		return false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(arguments))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return false
+	}
+	var extra any
+	return errors.Is(decoder.Decode(&extra), io.EOF)
+}
+
+func parseRegistryDomainDNSZoneFile(raw json.RawMessage) (string, error) {
+	if len(raw) == 0 || len(raw) > registryDomainMaximumDNSZoneFileResponseBytes || !utf8.Valid(raw) {
+		return "", ErrProtocol
+	}
+	var zoneFile string
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	if err := decoder.Decode(&zoneFile); err != nil {
+		return "", ErrProtocol
+	}
+	var extra any
+	if !errors.Is(decoder.Decode(&extra), io.EOF) {
+		return "", ErrProtocol
+	}
+	if zoneFile == "" {
+		return "", ErrStateMismatch
+	}
+	if !validRegistryDomainDNSZoneFile(zoneFile) {
+		return "", ErrProtocol
+	}
+	return strings.Clone(zoneFile), nil
+}
+
+func validRegistryDomainDNSZoneFile(value string) bool {
+	if len(value) == 0 || len(value) > registryDomainMaximumDNSZoneFileBytes || !utf8.ValidString(value) {
+		return false
+	}
+	for _, character := range value {
+		switch character {
+		case '\t', '\n', '\r':
+			continue
+		default:
+			if unicode.IsControl(character) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func canonicalRegistryDomainName(value string) (string, bool) {
