@@ -379,3 +379,184 @@ func accountMaterializationFixtureCommonAccountIdentityValid(
 	}
 	return true
 }
+
+func accountMaterializationFixtureClassifyRows(
+	record accountMaterializationFixtureRecord,
+	organization *ent.Organization,
+	owner *ent.User,
+	domain *ent.MailDomain,
+	accounts []*ent.MailAccount,
+	identities []*ent.MailIdentity,
+) (accountMaterializationFixtureSnapshot, bool) {
+	if !accountMaterializationFixtureExactRootsValid(record, organization, owner, domain) {
+		return accountMaterializationFixtureSnapshot{}, false
+	}
+	if len(accounts) == 0 {
+		if len(identities) != 0 {
+			return accountMaterializationFixtureSnapshot{}, false
+		}
+		return accountMaterializationFixtureSnapshot{
+			nonce:                 record.nonce,
+			scenario:              accountMaterializationFixtureScenario,
+			state:                 record.state,
+			ownerEmail:            record.plan.ownerAddress,
+			organizationID:        record.persisted.organizationID,
+			ownerUserID:           record.persisted.ownerUserID,
+			mailDomainID:          record.persisted.mailDomainID,
+			expectedMailAccountID: record.plan.expectedAccountIntentID,
+			materializationState:  accountMaterializationStateNotMaterialized,
+		}, true
+	}
+	if len(accounts) != 1 || len(identities) != 1 {
+		return accountMaterializationFixtureSnapshot{}, false
+	}
+
+	account := accounts[0]
+	identity := identities[0]
+	if !accountMaterializationFixtureCommonAccountIdentityValid(record.plan, account, identity) {
+		return accountMaterializationFixtureSnapshot{}, false
+	}
+	materializationState, valid := accountMaterializationFixtureClassifyAccountState(record.plan, account)
+	if !valid {
+		return accountMaterializationFixtureSnapshot{}, false
+	}
+
+	mailAccountID := account.ID
+	primaryIdentityID := identity.ID
+	primaryIdentityStatus := string(identity.Status)
+	return accountMaterializationFixtureSnapshot{
+		nonce:                 record.nonce,
+		scenario:              accountMaterializationFixtureScenario,
+		state:                 record.state,
+		ownerEmail:            record.plan.ownerAddress,
+		organizationID:        record.persisted.organizationID,
+		ownerUserID:           record.persisted.ownerUserID,
+		mailDomainID:          record.persisted.mailDomainID,
+		expectedMailAccountID: record.plan.expectedAccountIntentID,
+		materializationState:  materializationState,
+		mailAccountID:         &mailAccountID,
+		primaryIdentityID:     &primaryIdentityID,
+		primaryIdentityStatus: &primaryIdentityStatus,
+	}, true
+}
+
+func accountMaterializationFixtureClassifyAccountState(
+	plan accountMaterializationFixturePlan,
+	account *ent.MailAccount,
+) (accountMaterializationState, bool) {
+	if account == nil {
+		return "", false
+	}
+	if account.EngineAccountID == nil &&
+		accountMaterializationFixtureOptionalTupleAbsent(
+			account.DeployedGeneration,
+			account.DeployedHashVersion,
+			account.DeployedHash,
+		) {
+		switch {
+		case accountMaterializationFixtureFreshAccountState(account):
+			return accountMaterializationStateMaterializedPending, true
+		case accountMaterializationFixtureClaimedAccountState(plan, account):
+			return accountMaterializationStateMaterializedPending, true
+		case accountMaterializationFixtureRetryAccountState(plan, account):
+			return accountMaterializationStateMaterializedPending, true
+		}
+	}
+	if account.EngineAccountID != nil &&
+		*account.EngineAccountID == plan.expectedEngineAccountID &&
+		accountMaterializationFixtureOptionalTupleMatches(
+			account.DeployedGeneration,
+			account.DeployedHashVersion,
+			account.DeployedHash,
+			account.ControlGeneration,
+			account.ControlHashVersion,
+			account.ControlHash,
+		) &&
+		accountMaterializationFixtureOptionalTupleAbsent(
+			account.AttemptedControlGeneration,
+			account.AttemptedControlHashVersion,
+			account.AttemptedControlHash,
+		) &&
+		account.ProvisionLeaseToken == nil &&
+		account.ProvisionLeaseUntil == nil &&
+		account.NextProvisionAt == nil &&
+		account.ProvisionErrorCode == nil &&
+		account.ProvisionAttempts >= 1 {
+		return accountMaterializationStateFinalized, true
+	}
+	return "", false
+}
+
+func accountMaterializationFixtureOptionalTupleAbsent(
+	generation *int64,
+	hashVersion *int32,
+	hash []byte,
+) bool {
+	return generation == nil && hashVersion == nil && hash == nil
+}
+
+func accountMaterializationFixtureFreshAccountState(account *ent.MailAccount) bool {
+	return accountMaterializationFixtureOptionalTupleAbsent(
+		account.AttemptedControlGeneration,
+		account.AttemptedControlHashVersion,
+		account.AttemptedControlHash,
+	) &&
+		account.ProvisionLeaseToken == nil &&
+		account.ProvisionLeaseUntil == nil &&
+		account.NextProvisionAt != nil &&
+		accountMaterializationFixtureValidTime(*account.NextProvisionAt) &&
+		account.ProvisionErrorCode == nil &&
+		account.ProvisionAttempts == 0
+}
+
+func accountMaterializationFixtureClaimedAccountState(
+	plan accountMaterializationFixturePlan,
+	account *ent.MailAccount,
+) bool {
+	return accountMaterializationFixtureOptionalTupleMatches(
+		account.AttemptedControlGeneration,
+		account.AttemptedControlHashVersion,
+		account.AttemptedControlHash,
+		account.ControlGeneration,
+		account.ControlHashVersion,
+		account.ControlHash,
+	) &&
+		account.ProvisionLeaseToken != nil &&
+		*account.ProvisionLeaseToken != uuid.Nil &&
+		account.ProvisionLeaseUntil != nil &&
+		accountMaterializationFixtureValidTime(*account.ProvisionLeaseUntil) &&
+		account.NextProvisionAt == nil &&
+		account.ProvisionErrorCode == nil &&
+		account.ProvisionAttempts >= 1 &&
+		accountMaterializationFixturePlanMatchesCanonical(plan)
+}
+
+func accountMaterializationFixtureRetryAccountState(
+	plan accountMaterializationFixturePlan,
+	account *ent.MailAccount,
+) bool {
+	if !accountMaterializationFixtureOptionalTupleMatches(
+		account.AttemptedControlGeneration,
+		account.AttemptedControlHashVersion,
+		account.AttemptedControlHash,
+		account.ControlGeneration,
+		account.ControlHashVersion,
+		account.ControlHash,
+	) ||
+		account.ProvisionLeaseToken != nil ||
+		account.ProvisionLeaseUntil != nil ||
+		account.NextProvisionAt == nil ||
+		!accountMaterializationFixtureValidTime(*account.NextProvisionAt) ||
+		account.ProvisionErrorCode == nil ||
+		account.ProvisionAttempts < 1 ||
+		!accountMaterializationFixturePlanMatchesCanonical(plan) {
+		return false
+	}
+	switch *account.ProvisionErrorCode {
+	case mailaccount.ProvisionErrorCode("MAILBOX_PROVISIONING_RETRY"),
+		mailaccount.ProvisionErrorCode("MAILBOX_UNAVAILABLE"):
+		return true
+	default:
+		return false
+	}
+}
