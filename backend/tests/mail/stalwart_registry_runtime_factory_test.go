@@ -100,6 +100,7 @@ func TestNewStalwartRegistryClient_RejectsNilDependencies(t *testing.T) {
 		{name: "nil HTTP client", origin: stalwartRegistryRuntimeFactoryOrigin, registryAuthorizer: validAuthorizer},
 		{name: "nil registry authorizer", origin: stalwartRegistryRuntimeFactoryOrigin, httpClient: validHTTPClient},
 		{name: "typed nil registry authorizer", origin: stalwartRegistryRuntimeFactoryOrigin, httpClient: validHTTPClient, registryAuthorizer: typedNilAuthorizer},
+		{name: "origin with path", origin: stalwartRegistryRuntimeFactoryOrigin + "/forbidden", httpClient: validHTTPClient, registryAuthorizer: validAuthorizer},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			client, err := mail.NewStalwartRegistryClient(testCase.origin, testCase.httpClient, testCase.registryAuthorizer)
