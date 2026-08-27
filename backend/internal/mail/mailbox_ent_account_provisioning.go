@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
@@ -145,9 +144,9 @@ func mailboxEntAccountProvisioningMaterializeIntents(ctx context.Context, transa
 				maildomain.IsDefaultEQ(true),
 				maildomain.DesiredPresentEQ(true),
 				maildomain.EnabledEQ(true),
-				maildomain.StateEQ(maildomain.State(verified)),
-				maildomain.VerificationStatusEQ(maildomain.VerificationStatus(verified)),
-				maildomain.DKIMStatusEQ(maildomain.DKIMStatus(valid)),
+				maildomain.StateEQ(maildomain.State("verified")),
+				maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
+				maildomain.DKIMStatusEQ(maildomain.DKIMStatus("valid")),
 				maildomain.EngineDomainIDNotNil(),
 				maildomain.DeletedAtIsNil(),
 			).
@@ -837,10 +836,4 @@ func mailboxEntAccountProvisioningFinalizeFenceMatches(account *ent.MailAccount,
 		return false
 	}
 	return mailboxEntAccountProvisioningExactPendingPrimary(identity, account, &ent.MailDomain{ID: fence.DomainID, Domain: fence.Domain})
-}
-
-func mailboxEntAccountProvisioningSkipLocked() predicate.MailAccount {
-	return func(selector *sql.Selector) {
-		selector.ForUpdate(sql.WithLockAction(sql.SkipLocked))
-	}
 }
