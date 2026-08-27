@@ -54,7 +54,7 @@ readonly ENT_MODULE='entgo.io/ent'
 readonly ENT_VERSION='v0.14.1'
 readonly ENT_MODULE_SUM='h1:fUERL506Pqr92EPHJqr8EYxbPioflJo6PudkrEA8a/s='
 readonly ENT_MODULE_GO_MOD_SUM='h1:MH6XLG0KXpkcDQhKiHfANZSzR55TJyPL5IGNpI8wpco='
-readonly ENT_GENERATE_DIRECTIVE_NORMALIZED_SHA256='8138e39380b362cbad50f0646805f2e950973b5460fb9c4e404f03f8834979a5'
+readonly ENT_GENERATE_DIRECTIVE_NORMALIZED_SHA256='9342a9f687de2a67c517afc060884b16655e88191bccae67de52f4a7e1a9a918'
 readonly SOURCE_GO_MOD_NORMALIZED_SHA256='3f7ff699a420ecf0501693c47ee18108a02a8827a547578bb6b800f83bcc2be6'
 readonly SOURCE_GO_MOD_NORMALIZED_BYTES=9763
 readonly SOURCE_GO_SUM_NORMALIZED_SHA256='9a03c4db3f998434e3e9058a67b7d2143fda8c5a7ccee6895e9093d6e77d2510'
@@ -220,9 +220,9 @@ require_exact_atlas_cli() {
 
 require_ent_generate_directive_alignment() {
   lock_file="$SCHEMA_TOOL_LOCK"
-  grep -Fqx '    "generate_go_normalized_sha256": "8138e39380b362cbad50f0646805f2e950973b5460fb9c4e404f03f8834979a5",' "$lock_file" ||
+  grep -Fqx '    "generate_go_normalized_sha256": "9342a9f687de2a67c517afc060884b16655e88191bccae67de52f4a7e1a9a918",' "$lock_file" ||
     fail 'schema-maintenance: schema tool lock does not carry the reviewed Ent directive hash' "$EX_CONFIG"
-  grep -Fqx '    "generate_command": "go run -mod=readonly entgo.io/ent/cmd/ent generate ./ent/schema",' "$lock_file" ||
+  grep -Fqx '    "generate_command": "go run -mod=readonly entgo.io/ent/cmd/ent generate --feature sql/lock ./ent/schema",' "$lock_file" ||
     fail 'schema-maintenance: schema tool lock does not carry the fixed Ent command' "$EX_CONFIG"
   directive_hash="$(tr -d '\r' < "$SOURCE_ROOT/ent/generate.go" | sha256sum | cut -d ' ' -f1)"
   [ "$directive_hash" = "$ENT_GENERATE_DIRECTIVE_NORMALIZED_SHA256" ] ||
@@ -368,7 +368,7 @@ run_generate_module_root() {
   if ! (
     ulimit -f 65536
     cd "$module_root"
-    HOME="$module_home" XDG_CACHE_HOME="$module_xdg_cache" TMPDIR="$module_exec_tmp" GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off GOPATH=/opt/hub/go GOMODCACHE=/opt/hub/go/pkg/mod GOFLAGS='-mod=readonly -p=2' GOCACHE="$module_cache" GOTMPDIR="$module_exec_tmp" go run -mod=readonly entgo.io/ent/cmd/ent generate ./ent/schema
+    HOME="$module_home" XDG_CACHE_HOME="$module_xdg_cache" TMPDIR="$module_exec_tmp" GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off GOPATH=/opt/hub/go GOMODCACHE=/opt/hub/go/pkg/mod GOFLAGS='-mod=readonly -p=2' GOCACHE="$module_cache" GOTMPDIR="$module_exec_tmp" go run -mod=readonly entgo.io/ent/cmd/ent generate --feature sql/lock ./ent/schema
   ) >"$diagnostic_file" 2>&1; then
     require_non_symlink "$diagnostic_file"
     [ -f "$diagnostic_file" ] || fail 'schema-maintenance: Ent generation diagnostic is absent or non-regular' "$EX_CONFIG"

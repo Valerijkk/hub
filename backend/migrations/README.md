@@ -32,7 +32,7 @@ The static `schema-maintenance-generate` operation first verifies the LF-normali
 `go.mod`/`go.sum` lock and exact Atlas/Ent pins, requires `GOWORK=off`, and rejects
 `replace`, `exclude`, symlinks and nonregular inputs. It copies only `go.mod`, `go.sum`,
 `ent/generate.go` and `ent/schema` into two fresh isolated writable module roots and runs the
-fixed offline `go run -mod=readonly entgo.io/ent/cmd/ent generate ./ent/schema`; repository
+fixed offline `go run -mod=readonly entgo.io/ent/cmd/ent generate --feature sql/lock ./ent/schema`; repository
 `go:generate` directives are never executed. Both all-source pre/post manifests and both
 generated-output manifests must match before one bounded SHA-labelled manifest is emitted. It
 permits no generated-source egress or staging and is a prerequisite proof, not the dependent

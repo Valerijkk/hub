@@ -35,8 +35,8 @@
     "module_go_mod_sum": "h1:MH6XLG0KXpkcDQhKiHfANZSzR55TJyPL5IGNpI8wpco=",
     "module_cache": "GOTOOLCHAIN=local and GOWORK=off module-cache rejects go.mod replace/exclude directives, verifies the full normalized source module lock and exact Atlas/Ent go.sum records before and after go mod download, preloads the exact entgo.io/ent/cmd/ent dependency closure with readonly package loading, then copies the cache image-locally to /opt/hub/go/pkg/mod read-only at runtime; the Atlas root module is a source module graph dependency only and does not provide the Atlas CLI artifact",
     "generate_source_inputs": ["go.mod", "go.sum", "ent/generate.go", "internal/mailvalue/dns.go", "internal/mail/dns_types.go", "ent/schema"],
-    "generate_go_normalized_sha256": "8138e39380b362cbad50f0646805f2e950973b5460fb9c4e404f03f8834979a5",
-    "generate_command": "go run -mod=readonly entgo.io/ent/cmd/ent generate ./ent/schema",
+    "generate_go_normalized_sha256": "9342a9f687de2a67c517afc060884b16655e88191bccae67de52f4a7e1a9a918",
+    "generate_command": "go run -mod=readonly entgo.io/ent/cmd/ent generate --feature sql/lock ./ent/schema",
     "generate_directive_alignment": "the LF-normalized ent/generate.go SHA-256 must equal generate_go_normalized_sha256; the directive is audited but never executed",
     "runtime_evidence": {
       "first_manifest": "NOT_RUN",
