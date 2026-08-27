@@ -43,6 +43,8 @@ const (
 	FakeMailOperationChanges              FakeMailOperation = "changes"
 	FakeMailOperationEnumerateProjection  FakeMailOperation = "enumerate_projection"
 	FakeMailOperationSaveDraft            FakeMailOperation = "save_draft"
+	FakeMailOperationUploadCalendarDraftCreateMIME FakeMailOperation = "upload_calendar_draft_create_mime"
+	FakeMailOperationImportCalendarDraftCreateMIME FakeMailOperation = "import_calendar_draft_create_mime"
 	FakeMailOperationReconcileDraft       FakeMailOperation = "reconcile_draft"
 	FakeMailOperationDeleteDraft          FakeMailOperation = "delete_draft"
 	FakeMailOperationReconcileDraftDeletion FakeMailOperation = "reconcile_draft_deletion"
@@ -116,6 +118,24 @@ type fakeDraftIdentity struct {
 	mutationID      string
 }
 
+type fakeCalendarDraftCreateKey struct {
+	accountID  string
+	draftKey   string
+	mutationID string
+}
+
+// fakeCalendarDraftCreateStage retains only the proof and draft metadata
+// required by the later import. The calendar part's serialized bytes are not
+// retained after the bounded MIME plan has been hashed.
+type fakeCalendarDraftCreateStage struct {
+	draft                 EngineDraft
+	blobID                string
+	sizeBytes             int64
+	bindingDigest         [sha256.Size]byte
+	calendarContentDigest [sha256.Size]byte
+	contentDigest         [sha256.Size]byte
+}
+
 type fakeSubmission struct {
 	accepted        EngineSubmissionAccepted
 	draftKey        string
@@ -169,6 +189,7 @@ type FakeMailEngine struct {
 	blobs        map[string]map[string]EngineBlob
 	calendarParts map[fakeCalendarPartKey]fakeCalendarPart
 	drafts       map[string]map[string]fakeDraft
+	calendarDraftCreates map[fakeCalendarDraftCreateKey]fakeCalendarDraftCreateStage
 	submissions  map[string]map[string]fakeSubmission
 	sieves       map[string]EngineSieveState
 	spamResults  map[fakeAccountCursorKey]EngineSpamTrainingResult
@@ -181,6 +202,8 @@ type FakeMailEngine struct {
 	checkpoints  map[fakeEnumerationKey]fakeCheckpoint
 	issuedIDs    map[string]struct{}
 }
+
+var _ mailboxDraftCalendarCreateEngine = (*FakeMailEngine)(nil)
 
 // NewFakeMailEngine constructs a deterministic fake without global clocks or randomness.
 func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
@@ -208,6 +231,7 @@ func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
 		blobs:        make(map[string]map[string]EngineBlob),
 		calendarParts: make(map[fakeCalendarPartKey]fakeCalendarPart),
 		drafts:       make(map[string]map[string]fakeDraft),
+		calendarDraftCreates: make(map[fakeCalendarDraftCreateKey]fakeCalendarDraftCreateStage),
 		submissions:  make(map[string]map[string]fakeSubmission),
 		sieves:       make(map[string]EngineSieveState),
 		spamResults:  make(map[fakeAccountCursorKey]EngineSpamTrainingResult),
@@ -273,6 +297,12 @@ func (f *FakeMailEngine) DeleteAccount(accountID string) bool {
 	for key := range f.calendarParts {
 		if key.accountID == accountID {
 			delete(f.calendarParts, key)
+			removed = true
+		}
+	}
+	for key := range f.calendarDraftCreates {
+		if key.accountID == accountID {
+			delete(f.calendarDraftCreates, key)
 			removed = true
 		}
 	}
@@ -1037,6 +1067,266 @@ func (f *FakeMailEngine) SaveDraft(ctx context.Context, draft EngineDraft) (Engi
 		return EngineMessage{}, fakeEngineError(fault.Kind)
 	}
 	return cloneMessage(message), nil
+}
+
+func (f *FakeMailEngine) uploadCalendarDraftCreateMIME(
+	ctx context.Context,
+	draft EngineDraft,
+	calendar *calendarMIMEPart,
+) (mailboxDraftCalendarCreateUpload, error) {
+	if f == nil ||
+		ctx == nil ||
+		calendar == nil ||
+		!calendar.valid() ||
+		draft.MessageID != "" ||
+		draft.PreviousVersion != "" ||
+		len(draft.Message.Attachments) != 0 ||
+		!mailboxDraftMIMECalendarRecipientValid(draft, *calendar) {
+		return mailboxDraftCalendarCreateUpload{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+
+	plan, err := mailboxDraftMIMEPlanForDraftWithCalendar(ctx, draft, nil, calendar)
+	if err != nil {
+		return mailboxDraftCalendarCreateUpload{}, err
+	}
+	if !mailboxDraftMIMEPlanValid(plan) ||
+		!plan.calendarPresent ||
+		plan.size < 1 ||
+		plan.size > MaxEngineMessageBytes ||
+		plan.calendarBindingDigest != calendar.bindingDigest() {
+		return mailboxDraftCalendarCreateUpload{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+
+	digest := sha256.New()
+	if err := plan.writeTo(ctx, digest); err != nil {
+		return mailboxDraftCalendarCreateUpload{}, err
+	}
+	var contentDigest [sha256.Size]byte
+	copy(contentDigest[:], digest.Sum(nil))
+	bindingDigest := calendar.bindingDigest()
+	calendarContentDigest := calendar.contentDigest()
+	key := fakeCalendarDraftCreateKey{
+		accountID:  draft.AccountID,
+		draftKey:   draft.DraftKey,
+		mutationID: draft.MutationID,
+	}
+
+	f.mu.Lock()
+	fault, faulted := f.takeFaultLocked(FakeMailOperationUploadCalendarDraftCreateMIME)
+	if faulted && !fault.AfterDispatch {
+		f.mu.Unlock()
+		return mailboxDraftCalendarCreateUpload{}, fakeEngineError(fault.Kind)
+	}
+	if stage, exists := f.calendarDraftCreates[key]; exists {
+		if !fakeCalendarDraftCreateStageMatches(stage, bindingDigest, calendarContentDigest, contentDigest) {
+			f.mu.Unlock()
+			return mailboxDraftCalendarCreateUpload{}, fakeEngineError(EngineErrorConflict)
+		}
+		upload := mailboxDraftCalendarCreateUpload{blobID: stage.blobID, sizeBytes: stage.sizeBytes}
+		f.mu.Unlock()
+		if faulted && fault.AfterDispatch {
+			return mailboxDraftCalendarCreateUpload{}, fakeEngineError(fault.Kind)
+		}
+		return upload, nil
+	}
+	f.mu.Unlock()
+
+	candidateBlobID, err := f.nextOpaqueID()
+	if err != nil {
+		return mailboxDraftCalendarCreateUpload{}, err
+	}
+	stage := fakeCalendarDraftCreateStage{
+		draft:                 fakeCalendarDraftCreateDraftCopy(draft),
+		blobID:                candidateBlobID,
+		sizeBytes:             plan.size,
+		bindingDigest:         bindingDigest,
+		calendarContentDigest: calendarContentDigest,
+		contentDigest:         contentDigest,
+	}
+	if !fakeCalendarDraftCreateStageValid(stage) {
+		return mailboxDraftCalendarCreateUpload{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if existing, exists := f.calendarDraftCreates[key]; exists {
+		if !fakeCalendarDraftCreateStageMatches(existing, bindingDigest, calendarContentDigest, contentDigest) {
+			return mailboxDraftCalendarCreateUpload{}, fakeEngineError(EngineErrorConflict)
+		}
+		if faulted && fault.AfterDispatch {
+			return mailboxDraftCalendarCreateUpload{}, fakeEngineError(fault.Kind)
+		}
+		return mailboxDraftCalendarCreateUpload{blobID: existing.blobID, sizeBytes: existing.sizeBytes}, nil
+	}
+	if err := f.reserveOpaqueIDsLocked(candidateBlobID); err != nil {
+		return mailboxDraftCalendarCreateUpload{}, err
+	}
+	if f.calendarDraftCreates == nil {
+		f.calendarDraftCreates = make(map[fakeCalendarDraftCreateKey]fakeCalendarDraftCreateStage)
+	}
+	f.calendarDraftCreates[key] = stage
+	if faulted && fault.AfterDispatch {
+		return mailboxDraftCalendarCreateUpload{}, fakeEngineError(fault.Kind)
+	}
+	return mailboxDraftCalendarCreateUpload{blobID: stage.blobID, sizeBytes: stage.sizeBytes}, nil
+}
+
+func (f *FakeMailEngine) importCalendarDraftCreateMIME(
+	ctx context.Context,
+	request mailboxDraftCalendarCreateImport,
+) (EngineMessage, error) {
+	if f == nil || ctx == nil || !validMailboxDraftCalendarCreateImport(request) {
+		return EngineMessage{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+	key := fakeCalendarDraftCreateKey{
+		accountID:  request.accountID,
+		draftKey:   request.draftKey,
+		mutationID: request.mutationID,
+	}
+
+	f.mu.Lock()
+	fault, faulted := f.takeFaultLocked(FakeMailOperationImportCalendarDraftCreateMIME)
+	if faulted && !fault.AfterDispatch {
+		f.mu.Unlock()
+		return EngineMessage{}, fakeEngineError(fault.Kind)
+	}
+	stage, found := f.calendarDraftCreates[key]
+	if !found {
+		f.mu.Unlock()
+		return EngineMessage{}, errMailboxDraftCalendarCreatePersistedBlobNotFound
+	}
+	if !fakeCalendarDraftCreateImportMatches(stage, request) {
+		f.mu.Unlock()
+		return EngineMessage{}, fakeEngineError(EngineErrorConflict)
+	}
+	if existing, exists := f.drafts[request.accountID][request.draftKey]; exists {
+		if !fakeCalendarDraftCreateImportedMessageMatches(existing, stage, request) {
+			f.mu.Unlock()
+			return EngineMessage{}, fakeEngineError(EngineErrorConflict)
+		}
+		message := cloneMessage(existing.message)
+		f.mu.Unlock()
+		if faulted && fault.AfterDispatch {
+			return EngineMessage{}, fakeEngineError(fault.Kind)
+		}
+		return message, nil
+	}
+	f.mu.Unlock()
+
+	candidateMessageID, err := f.nextOpaqueID()
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	candidateVersion, err := f.nextOpaqueID()
+	if err != nil {
+		return EngineMessage{}, err
+	}
+	messageID := candidateMessageID
+	message := messageFromDraft(stage.draft, messageID, candidateVersion, request.receivedAt)
+	message.Projection.SizeBytes = stage.sizeBytes
+	if message.Projection.Origin != EngineProjectionOriginConfirmedOwnerDraft ||
+		!message.Projection.Flags.Draft ||
+		validateEngineMessage(message) != nil {
+		return EngineMessage{}, fakeEngineError(EngineErrorRejectedPolicy)
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	stage, found = f.calendarDraftCreates[key]
+	if !found {
+		return EngineMessage{}, errMailboxDraftCalendarCreatePersistedBlobNotFound
+	}
+	if !fakeCalendarDraftCreateImportMatches(stage, request) {
+		return EngineMessage{}, fakeEngineError(EngineErrorConflict)
+	}
+	if existing, exists := f.drafts[request.accountID][request.draftKey]; exists {
+		if !fakeCalendarDraftCreateImportedMessageMatches(existing, stage, request) {
+			return EngineMessage{}, fakeEngineError(EngineErrorConflict)
+		}
+		if faulted && fault.AfterDispatch {
+			return EngineMessage{}, fakeEngineError(fault.Kind)
+		}
+		return cloneMessage(existing.message), nil
+	}
+	if err := f.reserveOpaqueIDsLocked(candidateMessageID, candidateVersion); err != nil {
+		return EngineMessage{}, err
+	}
+	if f.drafts[request.accountID] == nil {
+		f.drafts[request.accountID] = make(map[string]fakeDraft)
+	}
+	f.drafts[request.accountID][request.draftKey] = fakeDraft{
+		message: message,
+		identity: fakeDraftIdentity{mutationID: request.mutationID},
+	}
+	f.putMessageLocked(message, true)
+	if faulted && fault.AfterDispatch {
+		return EngineMessage{}, fakeEngineError(fault.Kind)
+	}
+	return cloneMessage(message), nil
+}
+
+func fakeCalendarDraftCreateStageValid(stage fakeCalendarDraftCreateStage) bool {
+	var zeroDigest [sha256.Size]byte
+	return validateDraftRequest(stage.draft) == nil &&
+		stage.draft.MessageID == "" &&
+		stage.draft.PreviousVersion == "" &&
+		len(stage.draft.Message.Attachments) == 0 &&
+		validMailboxDraftCalendarCreateUpload(mailboxDraftCalendarCreateUpload{blobID: stage.blobID, sizeBytes: stage.sizeBytes}) &&
+		stage.bindingDigest != zeroDigest &&
+		stage.calendarContentDigest != zeroDigest &&
+		stage.contentDigest != zeroDigest
+}
+
+func fakeCalendarDraftCreateStageMatches(
+	stage fakeCalendarDraftCreateStage,
+	bindingDigest, calendarContentDigest, contentDigest [sha256.Size]byte,
+) bool {
+	return fakeCalendarDraftCreateStageValid(stage) &&
+		stage.bindingDigest == bindingDigest &&
+		stage.calendarContentDigest == calendarContentDigest &&
+		stage.contentDigest == contentDigest
+}
+
+func fakeCalendarDraftCreateImportMatches(stage fakeCalendarDraftCreateStage, request mailboxDraftCalendarCreateImport) bool {
+	return fakeCalendarDraftCreateStageValid(stage) &&
+		stage.draft.AccountID == request.accountID &&
+		stage.draft.DraftKey == request.draftKey &&
+		stage.draft.MutationID == request.mutationID &&
+		stage.blobID == request.blobID &&
+		stage.sizeBytes == request.sizeBytes
+}
+
+func fakeCalendarDraftCreateImportedMessageMatches(
+	stored fakeDraft,
+	stage fakeCalendarDraftCreateStage,
+	request mailboxDraftCalendarCreateImport,
+) bool {
+	message := stored.message
+	if !fakeCalendarDraftCreateImportMatches(stage, request) ||
+		stored.identity.messageID != "" ||
+		stored.identity.previousVersion != "" ||
+		stored.identity.mutationID != request.mutationID ||
+		validateEngineMessage(message) != nil ||
+		message.Projection.AccountID != request.accountID ||
+		message.Projection.Origin != EngineProjectionOriginConfirmedOwnerDraft ||
+		!message.Projection.Flags.Draft ||
+		message.Projection.ReceivedAt == nil ||
+		!message.Projection.ReceivedAt.Equal(request.receivedAt) {
+		return false
+	}
+	expected := messageFromDraft(stage.draft, message.Projection.MessageID, message.Projection.Version, request.receivedAt)
+	expected.Projection.SizeBytes = stage.sizeBytes
+	return reflect.DeepEqual(cloneMessage(message), cloneMessage(expected))
+}
+
+func fakeCalendarDraftCreateDraftCopy(draft EngineDraft) EngineDraft {
+	draft.Message.To = cloneAddresses(draft.Message.To)
+	draft.Message.CC = cloneAddresses(draft.Message.CC)
+	draft.Message.BCC = cloneAddresses(draft.Message.BCC)
+	draft.Message.ReplyTo = cloneAddresses(draft.Message.ReplyTo)
+	draft.Message.References = cloneStrings(draft.Message.References)
+	draft.Message.Attachments = nil
+	return draft
 }
 
 func (f *FakeMailEngine) ReconcileDraft(_ context.Context, request EngineDraftReconciliation) (EngineDraftResult, error) {
