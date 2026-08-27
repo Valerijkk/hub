@@ -190,10 +190,10 @@ func TestMailboxPasswordEnrollmentEntSourceContract(t *testing.T) {
 	)
 	for _, required := range []string{
 		"DeployedGeneration  int64",
-		"DeployedHashVersion int64",
+		"DeployedHashVersion int32",
 		"DeployedHash        [sha256.Size]byte",
 		"deployedGeneration  int64",
-		"deployedHashVersion int64",
+		"deployedHashVersion int32",
 		"deployedHash        [sha256.Size]byte",
 		"deployedGeneration:  input.DeployedGeneration",
 		"deployedHashVersion: input.DeployedHashVersion",

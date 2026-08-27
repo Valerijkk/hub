@@ -54,7 +54,7 @@ type MailboxPasswordEnrollmentClaimedInput struct {
 	OrganizationID      uuid.UUID
 	EngineAccountID     string
 	DeployedGeneration  int64
-	DeployedHashVersion int64
+	DeployedHashVersion int32
 	DeployedHash        [sha256.Size]byte
 	Generation          int64
 	LeaseToken          uuid.UUID
@@ -69,7 +69,7 @@ type MailboxPasswordEnrollmentClaim struct {
 	organizationID      uuid.UUID
 	engineAccountID     string
 	deployedGeneration  int64
-	deployedHashVersion int64
+	deployedHashVersion int32
 	deployedHash        [sha256.Size]byte
 	generation          int64
 	leaseToken          uuid.UUID

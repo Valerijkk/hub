@@ -300,7 +300,7 @@ func mailboxPasswordEnrollmentCurrentTupleMatches(account *ent.MailAccount, clai
 	return !requireLiveLease || account.PasswordEnrollmentLeaseUntil.After(databaseWallClock)
 }
 
-func mailboxPasswordEnrollmentClaimDeployedTuple(account *ent.MailAccount) (int64, int64, [sha256.Size]byte, bool) {
+func mailboxPasswordEnrollmentClaimDeployedTuple(account *ent.MailAccount) (int64, int32, [sha256.Size]byte, bool) {
 	if !mailboxPasswordEnrollmentEligible(account) {
 		return 0, 0, [sha256.Size]byte{}, false
 	}
