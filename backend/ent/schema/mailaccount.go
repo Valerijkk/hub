@@ -43,6 +43,23 @@ func (MailAccount) Fields() []ent.Field {
 			Nillable().
 			MinLen(1).
 			MaxLen(1024),
+		field.Int64("password_enrollment_generation").
+			Default(0).
+			NonNegative(),
+		field.String("password_enrolled_engine_account_id").
+			Optional().
+			Nillable().
+			MinLen(1).
+			MaxLen(1024),
+		field.Time("password_enrolled_at").
+			Optional().
+			Nillable(),
+		field.UUID("password_enrollment_lease_token", uuid.UUID{}).
+			Optional().
+			Nillable(),
+		field.Time("password_enrollment_lease_until").
+			Optional().
+			Nillable(),
 		field.Bool("desired_enabled").
 			Default(true),
 		field.Enum("status").
@@ -216,6 +233,12 @@ func (MailAccount) Annotations() []schema.Annotation {
 			"mail_accounts_control_hash":                   "control_generation >= 1 AND control_hash_version >= 1 AND length(control_hash) = 32",
 			"mail_accounts_attempted_control_tuple":        "((attempted_control_generation IS NULL) = (attempted_control_hash_version IS NULL)) AND ((attempted_control_generation IS NULL) = (attempted_control_hash IS NULL)) AND (attempted_control_generation IS NULL OR (attempted_control_generation >= 1 AND attempted_control_hash_version >= 1 AND length(attempted_control_hash) = 32 AND attempted_control_generation <= control_generation))",
 			"mail_accounts_deployed_control_tuple":         "((deployed_generation IS NULL) = (deployed_hash_version IS NULL)) AND ((deployed_generation IS NULL) = (deployed_hash IS NULL)) AND (deployed_generation IS NULL OR (deployed_generation >= 1 AND deployed_hash_version >= 1 AND length(deployed_hash) = 32 AND deployed_generation <= control_generation))",
+			"mail_accounts_password_enrollment_marker_pair": "(password_enrolled_engine_account_id IS NULL) = (password_enrolled_at IS NULL)",
+			"mail_accounts_password_enrollment_marker_generation": "password_enrolled_engine_account_id IS NULL OR password_enrollment_generation >= 1",
+			"mail_accounts_password_enrollment_marker_engine_account": "password_enrolled_engine_account_id IS NULL OR (engine_account_id IS NOT NULL AND password_enrolled_engine_account_id = engine_account_id)",
+			"mail_accounts_password_enrollment_lease_pair": "(password_enrollment_lease_token IS NULL) = (password_enrollment_lease_until IS NULL)",
+			"mail_accounts_password_enrollment_live_lease": "password_enrollment_lease_token IS NULL OR (status = 'provisioning' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL)",
+			"mail_accounts_password_enrollment_generation_non_negative": "password_enrollment_generation >= 0",
 			"mail_accounts_provision_lease_pair":           "(provision_lease_token IS NULL) = (provision_lease_until IS NULL)",
 			"mail_accounts_sync_lease_pair":                "(sync_lease_token IS NULL) = (sync_lease_until IS NULL)",
 			"mail_accounts_sync_lease_snapshot":            "COALESCE((sync_lease_token IS NULL AND sync_lease_sync_epoch IS NULL AND sync_lease_mutation_epoch IS NULL AND sync_lease_phase IS NULL AND sync_lease_cursor IS NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_sync_epoch >= 0 AND sync_lease_mutation_epoch >= 0 AND ((sync_lease_phase IN ('incremental', 'catch_up') AND sync_lease_cursor IS NOT NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_phase = 'enumeration' AND sync_lease_cursor IS NULL AND ((sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_base_cursor IS NOT NULL AND sync_lease_checkpoint IS NOT NULL))))), FALSE)",
@@ -224,7 +247,7 @@ func (MailAccount) Annotations() []schema.Annotation {
 			"mail_accounts_sync_schedule_updated_at_second_precision": "COALESCE(date_trunc('second', sync_schedule_updated_at) = sync_schedule_updated_at, FALSE)",
 			"mail_accounts_non_negative":                   "sync_epoch >= 0 AND sync_lease_epoch >= 1 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
 			"mail_accounts_status_state":                   "status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR status = 'deleting'",
-			"mail_accounts_deleting_blocked_pending_shape": "status <> 'deleting' OR (desired_enabled = FALSE AND sync_lease_token IS NULL AND sync_lease_until IS NULL AND mutation_lease_token IS NULL AND mutation_lease_until IS NULL AND provision_lease_token IS NULL AND provision_lease_until IS NULL AND attempted_control_generation IS NULL AND attempted_control_hash_version IS NULL AND attempted_control_hash IS NULL AND provision_error_code IS NULL AND next_provision_at IS NOT NULL)",
+			"mail_accounts_deleting_blocked_pending_shape": "status <> 'deleting' OR (desired_enabled = FALSE AND password_enrollment_lease_token IS NULL AND password_enrollment_lease_until IS NULL AND sync_lease_token IS NULL AND sync_lease_until IS NULL AND mutation_lease_token IS NULL AND mutation_lease_until IS NULL AND provision_lease_token IS NULL AND provision_lease_until IS NULL AND attempted_control_generation IS NULL AND attempted_control_hash_version IS NULL AND attempted_control_hash IS NULL AND provision_error_code IS NULL AND next_provision_at IS NOT NULL)",
 			"mail_accounts_ready_projection":               "projection_state <> 'ready' OR (sync_cursor IS NOT NULL AND last_synced_at IS NOT NULL AND rebuild_checkpoint IS NULL AND rebuild_base_cursor IS NULL AND sync_error_code IS NULL)",
 			"mail_accounts_rebuilding_projection":          "projection_state <> 'rebuilding' OR rebuild_base_cursor IS NOT NULL",
 			"mail_accounts_live_provision_attempt":         "provision_lease_token IS NULL OR attempted_control_generation IS NOT NULL",
