@@ -224,6 +224,12 @@ func qaFixtureHTTPAccountMaterializationSnapshot(snapshot accountMaterialization
 		primaryIdentityID = &value
 	}
 
+	var primaryIdentityStatus *string
+	if snapshot.primaryIdentityStatus != nil {
+		value := *snapshot.primaryIdentityStatus
+		primaryIdentityStatus = &value
+	}
+
 	return qaFixtureHTTPAccountMaterializationResponse{
 		Nonce:                 snapshot.nonce,
 		Scenario:              string(snapshot.scenario),
@@ -236,7 +242,7 @@ func qaFixtureHTTPAccountMaterializationSnapshot(snapshot accountMaterialization
 		MaterializationState:  string(snapshot.materializationState),
 		MailAccountID:         mailAccountID,
 		PrimaryIdentityID:     primaryIdentityID,
-		PrimaryIdentityStatus: snapshot.primaryIdentityStatus,
+		PrimaryIdentityStatus: primaryIdentityStatus,
 	}
 }
 
