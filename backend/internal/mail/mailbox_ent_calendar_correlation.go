@@ -176,7 +176,7 @@ func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transac
 			calendarinboundmessagereceipt.OrganizationIDEQ(request.organizationID),
 			calendarinboundmessagereceipt.MailboxIDEQ(request.accountID),
 			calendarinboundmessagereceipt.MailMessageIDEQ(request.messageID),
-		calendarinboundmessagereceipt.PartLocatorHashEQ(*message.CalendarPartLocatorHash),
+			calendarinboundmessagereceipt.PartLocatorHashEQ(*message.CalendarPartLocatorHash),
 		).
 		Order(ent.Asc(calendarinboundmessagereceipt.FieldID)).
 		Limit(mailboxEntCalendarCorrelationCandidateLimit + 1).
