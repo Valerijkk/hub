@@ -7,7 +7,6 @@ import (
 	"errors"
 	"time"
 
-	"entgo.io/ent"
 	"github.com/google/uuid"
 
 	appent "github.com/valerii/hub/backend/ent"
@@ -246,7 +245,7 @@ func mailDomainControlResolveActorOrganizationForUpdate(ctx context.Context, tra
 		ForUpdate().
 		Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
+		if appent.IsNotFound(err) {
 			return uuid.Nil, mailDomainControlError(MailDomainControlErrorNotFound)
 		}
 		return uuid.Nil, mailDomainControlError(MailDomainControlErrorUnavailable)
@@ -345,7 +344,7 @@ func mailDomainControlCreateFresh(ctx context.Context, transaction *appent.Tx, d
 		SetUpdatedAt(databaseNow).
 		Save(ctx)
 	if err != nil || !mailDomainControlPendingReplayRowValid(domain, organizationID, request) {
-		if ent.IsConstraintError(err) {
+		if appent.IsConstraintError(err) {
 			return mailDomainControlError(MailDomainControlErrorConflict)
 		}
 		return mailDomainControlError(MailDomainControlErrorUnavailable)

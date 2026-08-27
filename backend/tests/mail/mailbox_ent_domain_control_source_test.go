@@ -43,6 +43,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 	create := mailboxEntDomainControlSourceSlice(t, source, "func (repository *MailboxEntRepository) CreateMailDomain", "// ListMailDomains")
 	list := mailboxEntDomainControlSourceSlice(t, source, "func (repository *MailboxEntRepository) ListMailDomains", "// SetDefaultMailDomain")
 	setDefault := mailboxEntDomainControlSourceSlice(t, source, "func (repository *MailboxEntRepository) SetDefaultMailDomain", "func mailDomainControlResolveActorOrganizationForUpdate")
+	actorOrganization := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlResolveActorOrganizationForUpdate", "func mailDomainControlReplayCreate")
 	fresh := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlCreateFresh", "func mailDomainControlReceiptReplayKind")
 	replay := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlReplayCreate", "func mailDomainControlCreateFresh")
 	replayTarget := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlReplayTargetValid", "func mailDomainControlVerifiedEntRowValid")
@@ -54,6 +55,12 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 				t.Fatalf("transactional method is missing %q", required)
 			}
 		}
+	}
+	if !strings.Contains(actorOrganization, "appent.IsNotFound(err)") {
+		t.Fatal("actor organization lookup must classify generated Ent not-found errors")
+	}
+	if !strings.Contains(fresh, "appent.IsConstraintError(err)") {
+		t.Fatal("fresh domain create must classify generated Ent constraint errors")
 	}
 	for _, required := range []string{
 		"mailmutationreceipt.Operation(mailDomainControlOperation)",
@@ -130,6 +137,11 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 		}
 	}
 	mailboxEntDomainControlRequireOrdered(t, setDefault, "SetIsDefault(false)", "SetIsDefault(true)")
+	for _, forbidden := range []string{"\"entgo.io/ent\"", "\t\tif ent.IsNotFound(err)", "\t\tif ent.IsConstraintError(err)"} {
+		if strings.Contains(source, forbidden) {
+			t.Fatalf("repository must not use stale Ent helper %q", forbidden)
+		}
+	}
 	for _, forbidden := range []string{"time.Now", "net/http", "http.", "stalwart.", "EnsureDomain(", "ReadLocalDomainDNSZoneFile", "Publish("} {
 		if strings.Contains(source, forbidden) {
 			t.Fatalf("repository must not contain %q", forbidden)
