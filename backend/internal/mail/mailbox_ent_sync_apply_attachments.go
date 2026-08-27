@@ -209,7 +209,7 @@ func mailboxEntApplyAttachmentImmutableMatch(row *ent.MailAttachment, messageID 
 		row.MediaType == intent.mediaType &&
 		row.SizeBytes == intent.sizeBytes &&
 		row.Disposition == intent.disposition &&
-		row.Sha256 != nil && bytes.Equal(*row.Sha256, intent.sha256)
+		((row.Sha256 == nil && len(intent.sha256) == 0) || (row.Sha256 != nil && bytes.Equal(*row.Sha256, intent.sha256)))
 }
 
 func mailboxEntApplyAttachmentOptionalText(value string) (*string, error) {
