@@ -3,8 +3,11 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
+	"sync"
+	"time"
 
 	calendarmod "github.com/valerii/hub/backend/internal/calendar"
 	mailmod "github.com/valerii/hub/backend/internal/mail"
@@ -95,6 +98,34 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 		d.fatal("failed to wire calendar and mail routes", err)
 		return true
 	}
+	mailboxAccountProvisioner := mailmod.NewQAMailboxAccountProvisioner()
+	mailboxAccountProvisioningWorkerOptions := mailmod.DefaultMailboxAccountProvisioningWorkerOptions()
+	mailboxAccountProvisioningWorkerOptions.ScanInterval = time.Second
+	mailboxAccountProvisioningWorker, err := mailmod.NewMailboxAccountProvisioningWorker(
+		mailboxRepo,
+		mailboxAccountProvisioner,
+		mailmod.NewMailboxAccountProvisioningWorkerTimer(),
+		mailboxAccountProvisioningWorkerOptions,
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+		return true
+	}
+	mailboxAccountProvisioningCtx, cancelMailboxAccountProvisioning := context.WithCancel(d.rootCtx)
+	mailboxAccountProvisioningDone := make(chan struct{})
+	var mailboxAccountProvisioningCleanup sync.Once
+	d.addCleanup(func() {
+		mailboxAccountProvisioningCleanup.Do(func() {
+			cancelMailboxAccountProvisioning()
+			<-mailboxAccountProvisioningDone
+		})
+	})
+	go func() {
+		defer close(mailboxAccountProvisioningDone)
+		if err := mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningCtx); err != nil && mailboxAccountProvisioningCtx.Err() == nil {
+			slog.Error("background worker stopped")
+		}
+	}()
 	go func() {
 		if err := mailboxSubmissionWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
 			slog.Error("background worker stopped", "error", err)
