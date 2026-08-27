@@ -178,8 +178,8 @@ func (repository *MailboxEntRepository) LoadMailboxOAuthBearerSnapshot(ctx conte
 			AccountID: account.ID, OrganizationID: account.OrganizationID, ActorID: account.UserID,
 			EngineAccountID: *account.EngineAccountID, IssuerOrigin: credential.IssuerOrigin,
 			CredentialGeneration: credential.CredentialGeneration, Version: credential.Version,
-			AccessTokenCiphertext: copyMailboxOAuthBytes(credential.AccessTokenCiphertext),
-			RefreshTokenCiphertext: copyMailboxOAuthBytes(credential.RefreshTokenCiphertext),
+			AccessTokenCiphertext: copyMailboxOAuthBytes(*credential.AccessTokenCiphertext),
+			RefreshTokenCiphertext: copyMailboxOAuthBytes(*credential.RefreshTokenCiphertext),
 			AccessTokenExpiresAt: *credential.AccessTokenExpiresAt, RefreshTokenExpiresAt: &refreshExpiresAt,
 		}
 		if !validMailboxOAuthSnapshot(snapshot, scope) || snapshot.EngineAccountID != engineAccountID {

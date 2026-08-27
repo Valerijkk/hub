@@ -153,7 +153,7 @@ func (repository *MailboxEntRepository) LoadMailboxOAuthActive(ctx context.Conte
 			AccountID: account.ID, OrganizationID: account.OrganizationID, ActorID: account.UserID,
 			EngineAccountID: *account.EngineAccountID, IssuerOrigin: credential.IssuerOrigin,
 			CredentialGeneration: credential.CredentialGeneration, Version: credential.Version,
-			AccessTokenCiphertext: copyMailboxOAuthBytes(credential.AccessTokenCiphertext), RefreshTokenCiphertext: copyMailboxOAuthBytes(credential.RefreshTokenCiphertext),
+			AccessTokenCiphertext: copyMailboxOAuthBytes(*credential.AccessTokenCiphertext), RefreshTokenCiphertext: copyMailboxOAuthBytes(*credential.RefreshTokenCiphertext),
 			AccessTokenExpiresAt: *credential.AccessTokenExpiresAt, RefreshTokenExpiresAt: &refreshExpiresAt,
 		}
 		return nil
@@ -407,7 +407,7 @@ func mailboxEntOAuthCredentialIdentityValid(row *ent.MailOAuthCredential, accoun
 }
 
 func mailboxEntOAuthActiveRowValid(row *ent.MailOAuthCredential, accountID uuid.UUID) bool {
-	return mailboxEntOAuthCredentialIdentityValid(row, accountID) && row.Status == mailoauthcredential.Status("active") && len(row.AccessTokenCiphertext) >= mailboxOAuthCiphertextMinimum && len(row.AccessTokenCiphertext) <= mailboxOAuthCiphertextMaximum && len(row.RefreshTokenCiphertext) >= mailboxOAuthCiphertextMinimum && len(row.RefreshTokenCiphertext) <= mailboxOAuthCiphertextMaximum && row.TokenType != nil && *row.TokenType == mailoauthcredential.TokenType("bearer") && row.GrantedScope != nil && *row.GrantedScope == mailboxOAuthCanonicalScope && row.AccessTokenExpiresAt != nil && mailboxEntValidTime(*row.AccessTokenExpiresAt) && row.RefreshTokenExpiresAt != nil && mailboxEntValidTime(*row.RefreshTokenExpiresAt) && row.RefreshTokenExpiresAt.After(*row.AccessTokenExpiresAt) && row.DisconnectedAt == nil && row.LastErrorCode == nil && (row.RefreshedAt == nil || mailboxEntValidTime(*row.RefreshedAt))
+	return mailboxEntOAuthCredentialIdentityValid(row, accountID) && row.Status == mailoauthcredential.Status("active") && row.AccessTokenCiphertext != nil && row.RefreshTokenCiphertext != nil && len(*row.AccessTokenCiphertext) >= mailboxOAuthCiphertextMinimum && len(*row.AccessTokenCiphertext) <= mailboxOAuthCiphertextMaximum && len(*row.RefreshTokenCiphertext) >= mailboxOAuthCiphertextMinimum && len(*row.RefreshTokenCiphertext) <= mailboxOAuthCiphertextMaximum && row.TokenType != nil && *row.TokenType == mailoauthcredential.TokenType("bearer") && row.GrantedScope != nil && *row.GrantedScope == mailboxOAuthCanonicalScope && row.AccessTokenExpiresAt != nil && mailboxEntValidTime(*row.AccessTokenExpiresAt) && row.RefreshTokenExpiresAt != nil && mailboxEntValidTime(*row.RefreshTokenExpiresAt) && row.RefreshTokenExpiresAt.After(*row.AccessTokenExpiresAt) && row.DisconnectedAt == nil && row.LastErrorCode == nil && (row.RefreshedAt == nil || mailboxEntValidTime(*row.RefreshedAt))
 }
 
 func mailboxEntOAuthStoreRequestValid(request MailboxOAuthStoreActiveRequest) bool {
