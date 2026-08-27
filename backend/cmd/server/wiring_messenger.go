@@ -94,8 +94,14 @@ func wireMessenger(d *serverDeps) {
 	channelAccess := messengermod.NewPGChannelAccessResolver(messengerEntRepo)
 	unreadScope := messengermod.NewPGAuthorizedUnreadScopeResolver(d.db)
 	messageSearchScope := messengermod.NewPGMessageSearchScopeResolver(messengerEntRepo)
-	messengerSvc := messengermod.NewMessengerServiceWithAuthority(
-		messengerRepo, d.nc, presenceSvc, channelAccess, unreadScope, messageSearchScope,
+	postCreateAudience := messengermod.NewWSChannelAuthority(channelAccess, messengerEntRepo)
+	mentions := messengermod.NewPhase151EligibleMentionResolver(
+		channelAccess, postCreateAudience, presenceSvc, messengerEntRepo,
+	)
+	invalidation := messengermod.NewPhase151UnreadInvalidationEffect(postCreateAudience, d.nc)
+	postCreateRepo := messengermod.NewPhase151PostCreateRepository(messengerRepo, mentions, invalidation)
+	messengerSvc := messengermod.NewMessengerServiceWithAuthorityAndPostCreate(
+		messengerRepo, d.nc, presenceSvc, channelAccess, unreadScope, messageSearchScope, postCreateRepo,
 	)
 	// Feature #58 (Thread → Issue): MessengerService.PromoteToIssue делегирует в trackerSvc.
 	messengerSvc.SetIssuePromoter(trackerSvc)

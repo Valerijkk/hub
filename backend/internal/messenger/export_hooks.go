@@ -107,6 +107,15 @@ func ExportMessengerServiceUnread(_ *MessengerService) *UnreadService {
 	return nil
 }
 
+// ExportMessengerServicePostCreate exposes the bound Phase 151 composition
+// for hubtest constructor assertions.
+func ExportMessengerServicePostCreate(s *MessengerService) Phase151PostCreatePipelineRepository {
+	if s == nil {
+		return nil
+	}
+	return s.postCreate
+}
+
 // ExportMessengerServiceResolveGroupMentions вызывает resolveGroupMentions для hubtest.
 func ExportMessengerServiceResolveGroupMentions(s *MessengerService, ctx context.Context, channelID uuid.UUID, projectID *uuid.UUID, groups []string, individualMentions []string, senderID uuid.UUID) []string {
 	return s.resolveGroupMentions(ctx, channelID, projectID, groups, individualMentions, senderID)

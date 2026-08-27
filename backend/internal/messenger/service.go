@@ -21,19 +21,20 @@ import (
 // Repository интерфейс. Это устраняет утечку Ent ORM в бизнес-логику и
 // позволяет подменять backend в тестах через mock-репозиторий.
 type MessengerService struct {
-	repo              Repository
-	nats              EventPublisher
-	presence          *PresenceService
-	durableUnread     Phase151DurableUnreadRuntime
-	channelAccess     ChannelAccessResolver
-	unreadScope       AuthorizedUnreadScopeResolver
+	repo               Repository
+	nats               EventPublisher
+	presence           *PresenceService
+	durableUnread      Phase151DurableUnreadRuntime
+	channelAccess      ChannelAccessResolver
+	unreadScope        AuthorizedUnreadScopeResolver
 	messageSearchScope AuthorizedMessageSearchScopeResolver
-	promotionConfigMu sync.RWMutex
-	issuePromoter     IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
-	promoteCheck      PromotePermissionChecker // опционально: RBAC-проверка целевого проекта при /promote-to-issue
-	issueThreadLinker IssueThreadLinker        // опционально: auto-link после promote (PROD-03)
-	messageSentHook   MessageSentHook          // опционально: @hub-ai bot (Phase 17 W2)
-	systemBotID       uuid.UUID                // системный бот @hub-ai
+	postCreate         Phase151PostCreatePipelineRepository
+	promotionConfigMu  sync.RWMutex
+	issuePromoter      IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
+	promoteCheck       PromotePermissionChecker // опционально: RBAC-проверка целевого проекта при /promote-to-issue
+	issueThreadLinker  IssueThreadLinker        // опционально: auto-link после promote (PROD-03)
+	messageSentHook    MessageSentHook          // опционально: @hub-ai bot (Phase 17 W2)
+	systemBotID        uuid.UUID                // системный бот @hub-ai
 }
 
 // NewMessengerService создаёт новый сервис мессенджера.
@@ -63,6 +64,34 @@ func NewMessengerServiceWithAuthority(
 	service.messageSearchScope = messageSearchScope
 	return service
 }
+
+// NewMessengerServiceWithAuthorityAndPostCreate binds the complete canonical
+// post-create composition to the production service. Writers remain unchanged
+// until a later Phase 151 atom explicitly consumes this dependency.
+func NewMessengerServiceWithAuthorityAndPostCreate(
+	repo Repository,
+	nats *natsclient.Client,
+	presence *PresenceService,
+	channelAccess ChannelAccessResolver,
+	unreadScope AuthorizedUnreadScopeResolver,
+	messageSearchScope AuthorizedMessageSearchScopeResolver,
+	postCreate Phase151PostCreatePipelineRepository,
+) *MessengerService {
+	if phase151PostCreateDependencyNil(postCreate) {
+		panic("messenger production post-create dependency is required")
+	}
+	service := NewMessengerServiceWithAuthority(
+		repo,
+		nats,
+		presence,
+		channelAccess,
+		unreadScope,
+		messageSearchScope,
+	)
+	service.postCreate = postCreate
+	return service
+}
+
 type noopEventPublisher struct{}
 
 func (noopEventPublisher) PublishJSON(string, any) {}
