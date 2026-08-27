@@ -3,6 +3,7 @@ package mail_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"strings"
 	"sync"
@@ -274,12 +275,15 @@ func mailboxPasswordEnrollmentService(t *testing.T, repository mail.MailboxPassw
 func mailboxPasswordEnrollmentClaim(t *testing.T, leaseUntil time.Time) mail.MailboxPasswordEnrollmentClaimResult {
 	t.Helper()
 	result, err := mail.NewMailboxPasswordEnrollmentClaimedResult(mail.MailboxPasswordEnrollmentClaimedInput{
-		AccountID:       uuid.New(),
-		OrganizationID:  uuid.New(),
-		EngineAccountID: "registry-account-1",
-		Generation:      1,
-		LeaseToken:      uuid.New(),
-		LeaseUntil:      leaseUntil,
+		AccountID:           uuid.New(),
+		OrganizationID:      uuid.New(),
+		EngineAccountID:     "registry-account-1",
+		DeployedGeneration:  1,
+		DeployedHashVersion: 1,
+		DeployedHash:        [sha256.Size]byte{1},
+		Generation:          1,
+		LeaseToken:          uuid.New(),
+		LeaseUntil:          leaseUntil,
 	})
 	if err != nil {
 		t.Fatalf("NewMailboxPasswordEnrollmentClaimedResult() error = %v", err)

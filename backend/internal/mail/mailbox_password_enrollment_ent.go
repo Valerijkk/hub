@@ -56,6 +56,10 @@ func (repository *MailboxEntRepository) Claim(ctx context.Context, actorID, requ
 		if account.PasswordEnrollmentGeneration == math.MaxInt64 {
 			return mailboxPasswordEnrollmentEntUnavailable()
 		}
+		deployedGeneration, deployedHashVersion, deployedHash, valid := mailboxPasswordEnrollmentClaimDeployedTuple(account)
+		if !valid {
+			return mailboxPasswordEnrollmentEntUnavailable()
+		}
 
 		leaseUntil, valid := mailboxEntCheckedTimeAdd(databaseWallClock, mailboxPasswordEnrollmentEntLeaseDuration)
 		if !valid {
@@ -75,12 +79,15 @@ func (repository *MailboxEntRepository) Claim(ctx context.Context, actorID, requ
 		}
 
 		claimed, err := NewMailboxPasswordEnrollmentClaimedResult(MailboxPasswordEnrollmentClaimedInput{
-			AccountID:       account.ID,
-			OrganizationID:  account.OrganizationID,
-			EngineAccountID: *account.EngineAccountID,
-			Generation:      nextGeneration,
-			LeaseToken:      requestedLease,
-			LeaseUntil:      leaseUntil,
+			AccountID:           account.ID,
+			OrganizationID:      account.OrganizationID,
+			EngineAccountID:     *account.EngineAccountID,
+			DeployedGeneration:  deployedGeneration,
+			DeployedHashVersion: deployedHashVersion,
+			DeployedHash:        deployedHash,
+			Generation:          nextGeneration,
+			LeaseToken:          requestedLease,
+			LeaseUntil:          leaseUntil,
 		})
 		if err != nil {
 			return mailboxPasswordEnrollmentEntUnavailable()
@@ -287,10 +294,30 @@ func mailboxPasswordEnrollmentEligible(account *ent.MailAccount) bool {
 }
 
 func mailboxPasswordEnrollmentCurrentTupleMatches(account *ent.MailAccount, claim MailboxPasswordEnrollmentClaim, databaseWallClock time.Time, requireLiveLease bool) bool {
-	if !mailboxPasswordEnrollmentClaimValid(claim) || !mailboxEntValidTime(databaseWallClock) || !mailboxPasswordEnrollmentEligible(account) || account.ID != claim.accountID || account.OrganizationID != claim.organizationID || *account.EngineAccountID != claim.engineAccountID || account.PasswordEnrollmentGeneration != claim.generation || account.PasswordEnrolledEngineAccountID != nil || account.PasswordEnrolledAt != nil || account.PasswordEnrollmentLeaseToken == nil || account.PasswordEnrollmentLeaseUntil == nil || *account.PasswordEnrollmentLeaseToken != claim.leaseToken || !account.PasswordEnrollmentLeaseUntil.Equal(claim.leaseUntil) {
+	if !mailboxPasswordEnrollmentClaimValid(claim) || !mailboxEntValidTime(databaseWallClock) || !mailboxPasswordEnrollmentEligible(account) || !mailboxPasswordEnrollmentClaimDeployedTupleMatches(account, claim) || account.ID != claim.accountID || account.OrganizationID != claim.organizationID || *account.EngineAccountID != claim.engineAccountID || account.PasswordEnrollmentGeneration != claim.generation || account.PasswordEnrolledEngineAccountID != nil || account.PasswordEnrolledAt != nil || account.PasswordEnrollmentLeaseToken == nil || account.PasswordEnrollmentLeaseUntil == nil || *account.PasswordEnrollmentLeaseToken != claim.leaseToken || !account.PasswordEnrollmentLeaseUntil.Equal(claim.leaseUntil) {
 		return false
 	}
 	return !requireLiveLease || account.PasswordEnrollmentLeaseUntil.After(databaseWallClock)
+}
+
+func mailboxPasswordEnrollmentClaimDeployedTuple(account *ent.MailAccount) (int64, int64, [sha256.Size]byte, bool) {
+	if !mailboxPasswordEnrollmentEligible(account) {
+		return 0, 0, [sha256.Size]byte{}, false
+	}
+	var deployedHash [sha256.Size]byte
+	copy(deployedHash[:], account.DeployedHash)
+	return *account.DeployedGeneration, *account.DeployedHashVersion, deployedHash, true
+}
+
+func mailboxPasswordEnrollmentClaimDeployedTupleMatches(account *ent.MailAccount, claim MailboxPasswordEnrollmentClaim) bool {
+	if account == nil || !mailboxPasswordEnrollmentClaimValid(claim) || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || len(account.DeployedHash) != sha256.Size {
+		return false
+	}
+	var deployedHash [sha256.Size]byte
+	copy(deployedHash[:], account.DeployedHash)
+	return *account.DeployedGeneration == claim.deployedGeneration &&
+		*account.DeployedHashVersion == claim.deployedHashVersion &&
+		deployedHash == claim.deployedHash
 }
 
 func mailboxPasswordEnrollmentEntUnavailable() error {

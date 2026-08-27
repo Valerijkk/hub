@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"time"
 	"unicode"
@@ -49,24 +50,30 @@ const (
 // factory at the repository boundary. The service never accepts these values
 // from a caller and the sealed claim exposes none of them.
 type MailboxPasswordEnrollmentClaimedInput struct {
-	AccountID       uuid.UUID
-	OrganizationID  uuid.UUID
-	EngineAccountID string
-	Generation      int64
-	LeaseToken      uuid.UUID
-	LeaseUntil      time.Time
+	AccountID           uuid.UUID
+	OrganizationID      uuid.UUID
+	EngineAccountID     string
+	DeployedGeneration  int64
+	DeployedHashVersion int64
+	DeployedHash        [sha256.Size]byte
+	Generation          int64
+	LeaseToken          uuid.UUID
+	LeaseUntil          time.Time
 }
 
 // MailboxPasswordEnrollmentClaim is a sealed lease capability. Account and
-// engine identifiers stay private so they cannot escape in public results or
-// errors.
+// deployment identifiers stay private so they cannot escape in public results
+// or errors.
 type MailboxPasswordEnrollmentClaim struct {
-	accountID       uuid.UUID
-	organizationID  uuid.UUID
-	engineAccountID string
-	generation      int64
-	leaseToken      uuid.UUID
-	leaseUntil      time.Time
+	accountID           uuid.UUID
+	organizationID      uuid.UUID
+	engineAccountID     string
+	deployedGeneration  int64
+	deployedHashVersion int64
+	deployedHash        [sha256.Size]byte
+	generation          int64
+	leaseToken          uuid.UUID
+	leaseUntil          time.Time
 }
 
 // MailboxPasswordEnrollmentClaimResult carries exactly one noop, busy, or
@@ -89,7 +96,8 @@ func NewMailboxPasswordEnrollmentBusyResult() MailboxPasswordEnrollmentClaimResu
 }
 
 // NewMailboxPasswordEnrollmentClaimedResult validates and seals the exact
-// account, organization, Registry identity, generation, and lease tuple.
+// account, organization, Registry identity, deployed configuration,
+// generation, and lease tuple.
 func NewMailboxPasswordEnrollmentClaimedResult(input MailboxPasswordEnrollmentClaimedInput) (MailboxPasswordEnrollmentClaimResult, error) {
 	claim := mailboxPasswordEnrollmentClaimFromInput(input)
 	if !mailboxPasswordEnrollmentClaimValid(claim) {
@@ -350,17 +358,27 @@ func mailboxPasswordEnrollmentExternalContext(ctx context.Context, leaseUntil ti
 
 func mailboxPasswordEnrollmentClaimFromInput(input MailboxPasswordEnrollmentClaimedInput) MailboxPasswordEnrollmentClaim {
 	return MailboxPasswordEnrollmentClaim{
-		accountID:       input.AccountID,
-		organizationID:  input.OrganizationID,
-		engineAccountID: input.EngineAccountID,
-		generation:      input.Generation,
-		leaseToken:      input.LeaseToken,
-		leaseUntil:      input.LeaseUntil.Round(0).UTC(),
+		accountID:           input.AccountID,
+		organizationID:      input.OrganizationID,
+		engineAccountID:     input.EngineAccountID,
+		deployedGeneration:  input.DeployedGeneration,
+		deployedHashVersion: input.DeployedHashVersion,
+		deployedHash:        input.DeployedHash,
+		generation:          input.Generation,
+		leaseToken:          input.LeaseToken,
+		leaseUntil:          input.LeaseUntil.Round(0).UTC(),
 	}
 }
 
 func mailboxPasswordEnrollmentClaimValid(claim MailboxPasswordEnrollmentClaim) bool {
-	return claim.accountID != uuid.Nil && claim.organizationID != uuid.Nil && validOpaqueID(claim.engineAccountID) && claim.generation >= 1 && claim.leaseToken != uuid.Nil && mailboxEntValidTime(claim.leaseUntil)
+	return claim.accountID != uuid.Nil &&
+		claim.organizationID != uuid.Nil &&
+		validOpaqueID(claim.engineAccountID) &&
+		claim.deployedGeneration >= 1 &&
+		claim.deployedHashVersion >= 1 &&
+		claim.generation >= 1 &&
+		claim.leaseToken != uuid.Nil &&
+		mailboxEntValidTime(claim.leaseUntil)
 }
 
 func mailboxPasswordEnrollmentClaimCopy(claim MailboxPasswordEnrollmentClaim) MailboxPasswordEnrollmentClaim {
@@ -369,7 +387,15 @@ func mailboxPasswordEnrollmentClaimCopy(claim MailboxPasswordEnrollmentClaim) Ma
 }
 
 func mailboxPasswordEnrollmentClaimZero(claim MailboxPasswordEnrollmentClaim) bool {
-	return claim.accountID == uuid.Nil && claim.organizationID == uuid.Nil && claim.engineAccountID == "" && claim.generation == 0 && claim.leaseToken == uuid.Nil && claim.leaseUntil.IsZero()
+	return claim.accountID == uuid.Nil &&
+		claim.organizationID == uuid.Nil &&
+		claim.engineAccountID == "" &&
+		claim.deployedGeneration == 0 &&
+		claim.deployedHashVersion == 0 &&
+		claim.deployedHash == ([sha256.Size]byte{}) &&
+		claim.generation == 0 &&
+		claim.leaseToken == uuid.Nil &&
+		claim.leaseUntil.IsZero()
 }
 
 func mailboxPasswordEnrollmentClaimResultValid(result MailboxPasswordEnrollmentClaimResult) bool {

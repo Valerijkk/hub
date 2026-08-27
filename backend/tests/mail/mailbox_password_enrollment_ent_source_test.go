@@ -53,9 +53,18 @@ func TestMailboxPasswordEnrollmentEntSourceContract(t *testing.T) {
 		t.Fatalf("read password enrollment Ent source: %v", err)
 	}
 	source := string(sourceBytes)
+	capabilityBytes, err := os.ReadFile("../../internal/mail/mailbox_password_enrollment.go")
+	if err != nil {
+		t.Fatalf("read password enrollment capability source: %v", err)
+	}
+	capability := string(capabilityBytes)
 	claim := mailboxPasswordEnrollmentEntSourceSlice(t, source,
 		"func (repository *MailboxEntRepository) Claim",
 		"func (repository *MailboxEntRepository) Complete",
+	)
+	markerNoop := mailboxPasswordEnrollmentEntSourceSlice(t, claim,
+		"if account.PasswordEnrolledEngineAccountID != nil",
+		"if account.PasswordEnrollmentLeaseUntil != nil",
 	)
 	complete := mailboxPasswordEnrollmentEntSourceSlice(t, source,
 		"func (repository *MailboxEntRepository) Complete",
@@ -73,6 +82,26 @@ func TestMailboxPasswordEnrollmentEntSourceContract(t *testing.T) {
 		"func mailboxPasswordEnrollmentEligible",
 		"func mailboxPasswordEnrollmentCurrentTupleMatches",
 	)
+	currentTuple := mailboxPasswordEnrollmentEntSourceSlice(t, source,
+		"func mailboxPasswordEnrollmentCurrentTupleMatches",
+		"func mailboxPasswordEnrollmentEntUnavailable",
+	)
+	claimedInput := mailboxPasswordEnrollmentEntSourceSlice(t, capability,
+		"type MailboxPasswordEnrollmentClaimedInput struct",
+		"type MailboxPasswordEnrollmentClaim struct",
+	)
+	sealedClaim := mailboxPasswordEnrollmentEntSourceSlice(t, capability,
+		"type MailboxPasswordEnrollmentClaim struct",
+		"type MailboxPasswordEnrollmentClaimResult struct",
+	)
+	claimFromInput := mailboxPasswordEnrollmentEntSourceSlice(t, capability,
+		"func mailboxPasswordEnrollmentClaimFromInput",
+		"func mailboxPasswordEnrollmentClaimValid",
+	)
+	claimValid := mailboxPasswordEnrollmentEntSourceSlice(t, capability,
+		"func mailboxPasswordEnrollmentClaimValid",
+		"func mailboxPasswordEnrollmentClaimCopy",
+	)
 
 	requireMailboxPasswordEnrollmentEntOrdered(t, claim,
 		"repository.withMailboxEntTransaction",
@@ -86,6 +115,26 @@ func TestMailboxPasswordEnrollmentEntSourceContract(t *testing.T) {
 		"SetPasswordEnrollmentLeaseToken(requestedLease)",
 		"SetPasswordEnrollmentLeaseUntil(leaseUntil)",
 		"SetUpdatedAt(databaseWallClock)",
+	)
+	requireMailboxPasswordEnrollmentEntOrdered(t, claim,
+		"if account.PasswordEnrolledEngineAccountID != nil",
+		"if account.PasswordEnrollmentLeaseToken != nil",
+		"NewMailboxPasswordEnrollmentNoopResult()",
+		"if account.PasswordEnrollmentLeaseUntil != nil && account.PasswordEnrollmentLeaseUntil.After(databaseWallClock)",
+		"NewMailboxPasswordEnrollmentBusyResult()",
+		"if account.PasswordEnrollmentGeneration == math.MaxInt64",
+		"nextGeneration := account.PasswordEnrollmentGeneration + 1",
+		"SetPasswordEnrollmentGeneration(nextGeneration)",
+	)
+	if strings.Contains(markerNoop, "PasswordEnrollmentLeaseUntil") {
+		t.Fatal("an enrolled account without a lease must remain a noop")
+	}
+	requireMailboxPasswordEnrollmentEntOrdered(t, claim,
+		"mailboxPasswordEnrollmentClaimDeployedTuple(account)",
+		"NewMailboxPasswordEnrollmentClaimedResult(MailboxPasswordEnrollmentClaimedInput{",
+		"DeployedGeneration:  deployedGeneration",
+		"DeployedHashVersion: deployedHashVersion",
+		"DeployedHash:        deployedHash",
 	)
 	requireMailboxPasswordEnrollmentEntOrdered(t, lockOwner,
 		"transaction.Organization.Query()",
@@ -122,6 +171,9 @@ func TestMailboxPasswordEnrollmentEntSourceContract(t *testing.T) {
 		"ClearPasswordEnrollmentLeaseToken()",
 		"ClearPasswordEnrollmentLeaseUntil()",
 	)
+	if !strings.Contains(complete, "return mailboxPasswordEnrollmentEntRetryable()") {
+		t.Fatal("Complete must reject a deployed-tuple mismatch before enrollment mutation")
+	}
 	requireMailboxPasswordEnrollmentEntOrdered(t, release,
 		"transaction.MailAccount.Query()",
 		"ForUpdate()",
@@ -130,8 +182,32 @@ func TestMailboxPasswordEnrollmentEntSourceContract(t *testing.T) {
 		"ClearPasswordEnrollmentLeaseToken()",
 		"ClearPasswordEnrollmentLeaseUntil()",
 	)
-	if !strings.Contains(release, "return nil") {
-		t.Fatal("stale Release must be a safe no-op")
+	requireMailboxPasswordEnrollmentEntOrdered(t, release,
+		"if !mailboxPasswordEnrollmentCurrentTupleMatches(account, claim, databaseWallClock, false)",
+		"return nil",
+		"account.Update()",
+		"ClearPasswordEnrollmentLeaseToken()",
+	)
+	for _, required := range []string{
+		"DeployedGeneration  int64",
+		"DeployedHashVersion int64",
+		"DeployedHash        [sha256.Size]byte",
+		"deployedGeneration  int64",
+		"deployedHashVersion int64",
+		"deployedHash        [sha256.Size]byte",
+		"deployedGeneration:  input.DeployedGeneration",
+		"deployedHashVersion: input.DeployedHashVersion",
+		"deployedHash:        input.DeployedHash",
+		"claim.deployedGeneration >= 1",
+		"claim.deployedHashVersion >= 1",
+		"mailboxPasswordEnrollmentClaimDeployedTupleMatches(account, claim)",
+		"return *account.DeployedGeneration == claim.deployedGeneration",
+		"*account.DeployedHashVersion == claim.deployedHashVersion",
+		"deployedHash == claim.deployedHash",
+	} {
+		if !strings.Contains(claimedInput, required) && !strings.Contains(sealedClaim, required) && !strings.Contains(claimFromInput, required) && !strings.Contains(claimValid, required) && !strings.Contains(currentTuple, required) {
+			t.Fatalf("source is missing deployed tuple capability contract %q", required)
+		}
 	}
 	if strings.Contains(eligibility, "time.Now") || strings.Contains(source, "time.Now") {
 		t.Fatal("durable enrollment state must use the database wall clock")
