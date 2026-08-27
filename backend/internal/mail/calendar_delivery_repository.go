@@ -479,7 +479,7 @@ func validCalendarInviteDeliveryAdmissionRequest(request CalendarInviteDeliveryA
 
 func validCalendarInviteDeliveryAdmission(value CalendarInviteDeliveryAdmission) bool {
 	if !validCalendarInviteDeliveryID(value.InviteID) || value.SourceEnvelopeID == uuid.Nil || !validCalendarInviteDeliveryKind(value.Kind) ||
-		value.EventID == uuid.Nil || value.AttendeeID == uuid.Nil || value.OrganizerID == uuid.Nil || value.EventSequence < 1 ||
+		value.EventID == uuid.Nil || value.AttendeeID == uuid.Nil || value.OrganizerID == uuid.Nil || value.EventSequence < 0 ||
 		!validCalendarMailDeliveryRecurrenceID(value.RecurrenceID) {
 		return false
 	}
@@ -586,7 +586,7 @@ func validCalendarMailDeliveryMaterializationInput(input CalendarMailDeliveryMat
 	}
 	if input.kind == CalendarMailDeliveryKindInvite {
 		return input.organizerID != uuid.Nil && (input.method == CalendarMailDeliveryMethodRequest || input.method == CalendarMailDeliveryMethodCancel) &&
-			input.eventSequence >= 1 && input.attendeeVersion == 0
+			input.eventSequence >= 0 && input.attendeeVersion == 0
 	}
 	return input.kind == CalendarMailDeliveryKindReply && input.organizerID == uuid.Nil && input.method == CalendarMailDeliveryMethodReply &&
 		input.eventSequence >= 0 && input.attendeeVersion >= 1 && len(message.Attendees) == 1

@@ -33,7 +33,7 @@ func (CalendarInviteDelivery) Fields() []ent.Field {
 			Values("created", "updated", "cancelled").
 			Immutable(),
 		field.Int("event_sequence").
-			Min(1).
+			NonNegative().
 			Immutable(),
 		field.String("recurrence_id").
 			Optional().
@@ -82,7 +82,7 @@ func (CalendarInviteDelivery) Fields() []ent.Field {
 func (CalendarInviteDelivery) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
-			"calendar_invite_deliveries_event_sequence_positive": "event_sequence >= 1",
+			"calendar_invite_deliveries_event_sequence_non_negative": "event_sequence >= 0",
 			"calendar_invite_deliveries_attempts_bounds":        "attempts >= 0 AND attempts <= 8",
 			"calendar_invite_deliveries_lease_pair":              "COALESCE((lease_token IS NULL) = (lease_until IS NULL), FALSE)",
 			"calendar_invite_deliveries_claim_generation_bounds": "claim_generation >= 0 AND claim_generation <= 2147483647",

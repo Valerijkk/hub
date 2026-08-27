@@ -359,6 +359,49 @@ func TestCalendarInviteDeliveryAdmissionRequiresKindSourceEnvelopeAndCopies(t *t
 	}
 }
 
+func TestCalendarInviteDeliveryInitialSequenceZeroAdmissionAndMaterialization(t *testing.T) {
+	repository := mail.NewCalendarMailDeliveryRepositoryFake()
+	inviteID, err := mail.NewCalendarInviteDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarInviteDeliveryID() error = %v", err)
+	}
+	admission := mail.CalendarInviteDeliveryAdmissionRequest{Invites: []mail.CalendarInviteDeliveryAdmission{{
+		InviteID: inviteID, SourceEnvelopeID: uuid.New(), Kind: mail.CalendarInviteDeliveryKindCreated,
+		EventID: uuid.New(), AttendeeID: uuid.New(), OrganizerID: uuid.New(), Method: mail.CalendarMailDeliveryMethodRequest,
+		EventSequence: 0,
+	}}}
+	if err := repository.AdmitCalendarInviteDeliveries(context.Background(), admission); err != nil {
+		t.Fatalf("AdmitCalendarInviteDeliveries(initial SEQUENCE:0) error = %v", err)
+	}
+	negativeAdmission := admission
+	negativeAdmission.Invites = append([]mail.CalendarInviteDeliveryAdmission(nil), admission.Invites...)
+	negativeAdmission.Invites[0].EventSequence = -1
+	if got := calendarDeliveryRepositoryErrorKind(t, repository.AdmitCalendarInviteDeliveries(context.Background(), negativeAdmission)); got != mail.CalendarMailDeliveryRepositoryErrorInvalid {
+		t.Fatalf("AdmitCalendarInviteDeliveries(negative sequence) error kind = %q, want %q", got, mail.CalendarMailDeliveryRepositoryErrorInvalid)
+	}
+
+	deliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindInvite, uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarMailDeliveryID() error = %v", err)
+	}
+	message := calendarDeliveryInitialTimedRequestMessage()
+	if message.Sequence != 0 {
+		t.Fatalf("initial iTIP sequence = %d, want 0", message.Sequence)
+	}
+	claim := calendarDeliveryFakeClaimFixture(t, deliveryID, inviteID, time.Now().UTC().Add(time.Minute))
+	claim.EventSequence = 0
+	claim.Message = message
+	if err := repository.SetClaim(claim); err != nil {
+		t.Fatalf("SetClaim(initial SEQUENCE:0) error = %v", err)
+	}
+	negativeClaim := claim
+	negativeClaim.EventSequence = -1
+	negativeClaim.Message.Sequence = -1
+	if got := calendarDeliveryRepositoryErrorKind(t, repository.SetClaim(negativeClaim)); got != mail.CalendarMailDeliveryRepositoryErrorInvalid {
+		t.Fatalf("SetClaim(negative sequence) error kind = %q, want %q", got, mail.CalendarMailDeliveryRepositoryErrorInvalid)
+	}
+}
+
 func TestCalendarMailDeliveryReplyAllowsExternalOrganizerOnly(t *testing.T) {
 	deliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindReply, uuid.New())
 	if err != nil {
@@ -866,6 +909,12 @@ func calendarDeliveryTimedRequestMessage() ical.ITIPMessage {
 			RSVP:   true,
 		}},
 	}
+}
+
+func calendarDeliveryInitialTimedRequestMessage() ical.ITIPMessage {
+	message := calendarDeliveryTimedRequestMessage()
+	message.Sequence = 0
+	return message
 }
 
 func calendarDeliveryTimedReplyMessage() ical.ITIPMessage {

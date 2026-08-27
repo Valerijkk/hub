@@ -26,7 +26,7 @@ func TestCalendarInviteDeliverySchemaContract(t *testing.T) {
 	for _, name := range []string{"kind", "event_sequence", "recurrence_id"} {
 		mailBridgeAssertImmutable(t, name, fields[name])
 	}
-	mailBridgeAssertIntMinimum(t, "event_sequence", fields["event_sequence"], 1)
+	mailBridgeAssertIntMinimum(t, "event_sequence", fields["event_sequence"], 0)
 	calendarInviteAssertIntBounds(t, "attempts", fields["attempts"], 0, 8)
 	calendarInviteAssertInt64Bounds(t, "claim_generation", fields["claim_generation"], 0, 2147483647)
 	mailBridgeAssertStringMax(t, "recurrence_id", fields["recurrence_id"], 255, true)
@@ -41,7 +41,7 @@ func TestCalendarInviteDeliverySchemaContract(t *testing.T) {
 	mailBridgeAssertImmutable(t, "created_at", fields["created_at"])
 
 	mailBridgeAssertChecks(t, (entschema.CalendarInviteDelivery{}).Annotations(), map[string]string{
-		"calendar_invite_deliveries_event_sequence_positive": "event_sequence >= 1",
+		"calendar_invite_deliveries_event_sequence_non_negative": "event_sequence >= 0",
 		"calendar_invite_deliveries_attempts_bounds":        "attempts >= 0 AND attempts <= 8",
 		"calendar_invite_deliveries_lease_pair":              "COALESCE((lease_token IS NULL) = (lease_until IS NULL), FALSE)",
 		"calendar_invite_deliveries_claim_generation_bounds": "claim_generation >= 0 AND claim_generation <= 2147483647",
