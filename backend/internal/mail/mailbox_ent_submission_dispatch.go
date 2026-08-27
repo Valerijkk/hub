@@ -135,8 +135,8 @@ func mailboxEntSubmissionDispatchFenceMatches(account *ent.MailAccount, submissi
 		account.MutationEpoch != authorization.fence.MutationEpoch || submission.CommandFence != authorization.fence.MutationEpoch ||
 		!account.MutationLeaseUntil.After(databaseNow) || !submission.CommandLeaseExpiresAt.After(databaseNow) ||
 		submission.DispatchAuthorizedAt == nil || !submission.DispatchAuthorizedAt.Equal(authorization.authorizedAt) ||
-		len(submission.DispatchAuthorizationHash) != sha256.Size ||
-		subtle.ConstantTimeCompare(submission.DispatchAuthorizationHash, authorization.authorizationHash[:]) != 1 ||
+		len(*submission.DispatchAuthorizationHash) != sha256.Size ||
+		subtle.ConstantTimeCompare(*submission.DispatchAuthorizationHash, authorization.authorizationHash[:]) != 1 ||
 		submission.ProviderSubmissionID != nil || submission.ProviderMessageID != nil || submission.ResultMailMessageID != nil ||
 		submission.LastErrorCode != nil || submission.NextAttemptAt != nil || submission.ReconcileAttempts != 0 || submission.NextReconcileAt != nil {
 		return false

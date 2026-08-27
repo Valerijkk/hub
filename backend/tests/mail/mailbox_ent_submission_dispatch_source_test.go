@@ -92,7 +92,7 @@ func TestMailboxEntSubmissionDispatchSourceContract(t *testing.T) {
 			t.Fatalf("dispatch resolution path contains forbidden %q", forbidden)
 		}
 	}
-	if !strings.Contains(string(sourceBytes), `subtle.ConstantTimeCompare(submission.DispatchAuthorizationHash, authorization.authorizationHash[:]) != 1`) {
+	if !strings.Contains(string(sourceBytes), `subtle.ConstantTimeCompare(*submission.DispatchAuthorizationHash, authorization.authorizationHash[:]) != 1`) {
 		t.Fatal(`dispatch resolution must bind the stored authorization hash to the sealed capability`)
 	}
 }

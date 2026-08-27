@@ -205,7 +205,7 @@ func (repository *MailboxEntRepository) ClaimAcceptedMailboxSubmission(ctx conte
 			EngineMessageID:           submission.EngineMessageID,
 			EngineMaxBytes:            submission.EngineMaxMessageBytes,
 			EngineBindingHash:         append([]byte(nil), submission.EngineBindingHash...),
-			DispatchAuthorizationHash: append([]byte(nil), submission.DispatchAuthorizationHash...),
+			DispatchAuthorizationHash: append([]byte(nil), (*submission.DispatchAuthorizationHash)...),
 			DispatchAuthorizedAt:      *submission.DispatchAuthorizedAt,
 			ExpectedAttachments:       expected,
 		})
@@ -491,7 +491,7 @@ func mailboxEntSubmissionFinalizationTerminalClaimMatches(account *ent.MailAccou
 		submission.CommandFence != claim.fence.MutationEpoch || submission.LastErrorCode != nil || submission.NextAttemptAt != nil || submission.NextReconcileAt != nil ||
 		submission.DispatchAuthorizedAt == nil || !submission.DispatchAuthorizedAt.Equal(claim.dispatchAuthorizedAt) ||
 		len(submission.EngineBindingHash) != sha256.Size || subtle.ConstantTimeCompare(submission.EngineBindingHash, claim.engineBindingHash[:]) != 1 ||
-		len(submission.DispatchAuthorizationHash) != sha256.Size || subtle.ConstantTimeCompare(submission.DispatchAuthorizationHash, claim.dispatchAuthorizationHash[:]) != 1 ||
+		len(*submission.DispatchAuthorizationHash) != sha256.Size || subtle.ConstantTimeCompare(*submission.DispatchAuthorizationHash, claim.dispatchAuthorizationHash[:]) != 1 ||
 		submission.ProviderSubmissionID == nil || subtle.ConstantTimeCompare([]byte(*submission.ProviderSubmissionID), []byte(claim.providerSubmissionID)) != 1 ||
 		submission.ProviderMessageID == nil || subtle.ConstantTimeCompare([]byte(*submission.ProviderMessageID), []byte(claim.providerMessageID)) != 1 ||
 		submission.EngineMessageID != claim.engineMessageID || submission.EngineMaxMessageBytes != claim.engineMaxBytes {
@@ -632,7 +632,7 @@ func mailboxEntSubmissionFinalizationScanRowValid(submission *ent.MailSubmission
 		!submission.UpdatedAt.After(databaseNow) &&
 		MailboxSubmissionStatus(submission.Status) == MailboxSubmissionStatusAccepted && submission.MailDraftID != nil && *submission.MailDraftID != uuid.Nil &&
 		submission.CommandLeaseToken == nil && submission.CommandLeaseExpiresAt == nil && submission.DispatchAuthorizedAt != nil &&
-		mailboxSubmissionClaimExactTimeValid(*submission.DispatchAuthorizedAt) && len(submission.DispatchAuthorizationHash) == sha256.Size &&
+		mailboxSubmissionClaimExactTimeValid(*submission.DispatchAuthorizedAt) && len(*submission.DispatchAuthorizationHash) == sha256.Size &&
 		submission.ProviderSubmissionID != nil && syncValidOpaque(*submission.ProviderSubmissionID, MaxEngineOpaqueIDBytes) &&
 		submission.ProviderMessageID != nil && syncValidOpaque(*submission.ProviderMessageID, MaxEngineOpaqueIDBytes) &&
 		submission.ResultMailMessageID == nil && submission.LastErrorCode == nil && submission.NextAttemptAt == nil &&
@@ -660,7 +660,7 @@ func mailboxEntSubmissionFinalizationClaimFenceMatches(account *ent.MailAccount,
 		!account.MutationLeaseUntil.After(databaseNow) || !submission.CommandLeaseExpiresAt.After(databaseNow) ||
 		submission.DispatchAuthorizedAt == nil || !submission.DispatchAuthorizedAt.Equal(claim.dispatchAuthorizedAt) ||
 		len(submission.EngineBindingHash) != sha256.Size || subtle.ConstantTimeCompare(submission.EngineBindingHash, claim.engineBindingHash[:]) != 1 ||
-		len(submission.DispatchAuthorizationHash) != sha256.Size || subtle.ConstantTimeCompare(submission.DispatchAuthorizationHash, claim.dispatchAuthorizationHash[:]) != 1 ||
+		len(*submission.DispatchAuthorizationHash) != sha256.Size || subtle.ConstantTimeCompare(*submission.DispatchAuthorizationHash, claim.dispatchAuthorizationHash[:]) != 1 ||
 		submission.ProviderSubmissionID == nil || subtle.ConstantTimeCompare([]byte(*submission.ProviderSubmissionID), []byte(claim.providerSubmissionID)) != 1 ||
 		submission.ProviderMessageID == nil || subtle.ConstantTimeCompare([]byte(*submission.ProviderMessageID), []byte(claim.providerMessageID)) != 1 ||
 		submission.EngineMessageID != claim.engineMessageID || submission.EngineMaxMessageBytes != claim.engineMaxBytes ||

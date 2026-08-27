@@ -484,7 +484,7 @@ func mailboxEntSubmissionDispatchAuthorizationValid(row *ent.MailSubmission) boo
 	if row == nil || (row.DispatchAuthorizedAt == nil) != (row.DispatchAuthorizationHash == nil) {
 		return false
 	}
-	return row.DispatchAuthorizedAt == nil || (mailboxEntValidTime(*row.DispatchAuthorizedAt) && len(row.DispatchAuthorizationHash) == sha256.Size)
+	return row.DispatchAuthorizedAt == nil || (mailboxEntValidTime(*row.DispatchAuthorizedAt) && len(*row.DispatchAuthorizationHash) == sha256.Size)
 }
 
 func mailboxEntSubmissionProviderPairValid(row *ent.MailSubmission) bool {
