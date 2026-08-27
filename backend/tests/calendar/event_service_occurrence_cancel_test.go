@@ -247,7 +247,7 @@ func TestEventServiceCancelCalendarEventOccurrence_PersistsOneSafeAtomicCancella
 		t.Fatalf("persistence command = %#v", persisted)
 	}
 	envelope := persisted.Outbox().Envelope()
-	if envelope.Subject() != "calendar.invite.cancelled.v1" || envelope.EventID() != occurrenceEnvelopeID {
+	if envelope.Subject() != calendar.CalendarInviteCancelledSubjectV2 || envelope.EventID() != occurrenceEnvelopeID {
 		t.Fatalf("outbox envelope = subject:%q event:%s", envelope.Subject(), envelope.EventID())
 	}
 	encoded, err := json.Marshal(envelope)
@@ -257,19 +257,17 @@ func TestEventServiceCancelCalendarEventOccurrence_PersistsOneSafeAtomicCancella
 	var decoded struct {
 		Subject       string `json:"subject"`
 		CorrelationID string `json:"correlation_id"`
-		Payload       struct {
-			EventID      string   `json:"event_id"`
-			UID          string   `json:"uid"`
-			Sequence     uint     `json:"sequence"`
-			RecurrenceID string   `json:"recurrence_id"`
-			AttendeeIDs  []string `json:"attendee_ids"`
-		} `json:"payload"`
+		Payload calendar.CalendarInviteDeliveryV2Payload `json:"payload"`
 	}
 	if err := json.Unmarshal(encoded, &decoded); err != nil {
 		t.Fatalf("json.Unmarshal(envelope) error = %v", err)
 	}
-	if decoded.Subject != "calendar.invite.cancelled.v1" || decoded.CorrelationID != occurrenceEventID.String() || decoded.Payload.EventID != occurrenceEventID.String() || decoded.Payload.UID != "hub-"+occurrenceEventID.String() || decoded.Payload.Sequence != 8 || decoded.Payload.RecurrenceID != occurrenceRecurrenceID || !reflect.DeepEqual(decoded.Payload.AttendeeIDs, []string{occurrenceAttendeeID.String(), occurrenceExternalID.String()}) {
+	if decoded.Subject != calendar.CalendarInviteCancelledSubjectV2 || decoded.CorrelationID != occurrenceEventID.String() || decoded.Payload.EventID != occurrenceEventID || decoded.Payload.EventSequence != 8 || decoded.Payload.OrganizerID != occurrenceActorID || decoded.Payload.RecurrenceID == nil || *decoded.Payload.RecurrenceID != occurrenceRecurrenceID || len(decoded.Payload.Deliveries) != 2 {
 		t.Fatalf("safe occurrence payload = %#v", decoded)
+	}
+	decodedPayload, err := calendar.DecodeCalendarInviteDeliveryEnvelopeV2(envelope)
+	if err != nil || !reflect.DeepEqual(decoded.Payload, decodedPayload) || decodedPayload.Deliveries[0].InviteID == uuid.Nil || decodedPayload.Deliveries[1].InviteID == uuid.Nil || decodedPayload.Deliveries[0].InviteID == decodedPayload.Deliveries[1].InviteID {
+		t.Fatalf("canonical deterministic v2 payload = %#v err=%v", decodedPayload, err)
 	}
 	if strings.Contains(string(encoded), "Original title") || strings.Contains(string(encoded), "owner@example.test") || strings.Contains(string(encoded), "BEGIN:VCALENDAR") {
 		t.Fatalf("occurrence cancellation envelope leaked content: %s", encoded)
@@ -458,9 +456,9 @@ func TestEventServiceCancelCalendarEventOccurrence_RecipientProjectionAndFractio
 	if _, err := newOccurrenceService(backend).CancelCalendarEventOccurrence(context.Background(), occurrenceActorID, mustOccurrenceCommand(t, 3)); err != nil { t.Fatalf("recipient projection error = %v", err) }
 	encoded, err := backend.persisted[0].Outbox().Envelope().MarshalJSON()
 	if err != nil { t.Fatalf("MarshalJSON() error = %v", err) }
-	var payload struct { Payload struct { AttendeeIDs []string `json:"attendee_ids"` } `json:"payload"` }
+	var payload struct { Payload calendar.CalendarInviteDeliveryV2Payload `json:"payload"` }
 	if err := json.Unmarshal(encoded, &payload); err != nil { t.Fatalf("json.Unmarshal() error = %v", err) }
-	if !reflect.DeepEqual(payload.Payload.AttendeeIDs, []string{occurrenceAttendeeID.String(), occurrenceExternalID.String()}) || strings.Contains(string(encoded), removedID.String()) {
+	if len(payload.Payload.Deliveries) != 2 || strings.Contains(string(encoded), removedID.String()) {
 		t.Fatalf("recipient projection = %s", encoded)
 	}
 

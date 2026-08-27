@@ -222,8 +222,22 @@ func (service *EventService) CancelCalendarEventOccurrence(ctx context.Context, 
 		attendeeIDs, err := calendarEventOccurrenceCancelAttendeeIDs(authorization.Attendees, current.EventID, scope.ActorID())
 		if err != nil { return err }
 		occurredAt := service.clock.Now()
+		if !validCalendarEventOccurrenceCancelUTC(occurredAt) {
+			return ErrEventInvalid
+		}
+		eventSnapshot := event.Snapshot()
+		if eventSnapshot.EventID != current.EventID || eventSnapshot.OrganizerID == nil || *eventSnapshot.OrganizerID == uuid.Nil || eventSnapshot.Sequence != updated.Sequence {
+			return ErrEventInvalid
+		}
 		actor := scope.ActorID()
-		envelope, err := NewCalendarInviteOccurrenceCancelledEnvelopeV1(applicationEventID, occurredAt, scope.OrganizationID(), &actor, current.EventID.String(), CalendarInviteOccurrenceCancelledPayload{EventID: current.EventID, UID: current.UID, Sequence: updated.Sequence, RecurrenceID: command.RecurrenceID(), AttendeeIDs: attendeeIDs})
+		recurrenceID := command.RecurrenceID()
+		envelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+			CalendarInviteCancelledSubjectV2, applicationEventID, occurredAt, scope.OrganizationID(), &actor, current.EventID.String(),
+			CalendarInviteDeliveryEnvelopeV2Input{
+				EventID: eventSnapshot.EventID, EventSequence: eventSnapshot.Sequence, OrganizerID: *eventSnapshot.OrganizerID,
+				RecurrenceID: &recurrenceID, AttendeeIDs: attendeeIDs,
+			},
+		)
 		if err != nil { return err }
 		descriptor, err := NewEventOutboxDescriptor(envelope)
 		if err != nil { return err }
@@ -351,28 +365,15 @@ func validCalendarEventOccurrenceCancelPersistence(event CalendarEventCommand, e
 func validCalendarEventOccurrenceCancelPersistenceOutbox(descriptor EventOutboxDescriptor, event CalendarEventCommandInput, exception CalendarEventExceptionCommandInput) bool {
 	encoded, err := descriptor.Envelope().MarshalJSON()
 	if err != nil { return false }
-	if !validCalendarEventOccurrenceCancelStrictEnvelopeJSON(encoded) { return false }
-	var value struct {
-		Subject        string    `json:"subject"`
-		SchemaVersion  int       `json:"schema_version"`
-		EventID        uuid.UUID `json:"event_id"`
-		OccurredAt     time.Time `json:"occurred_at"`
-		OrganizationID uuid.UUID `json:"organization_id"`
-		ActorID        *uuid.UUID `json:"actor_id"`
-		CorrelationID  string    `json:"correlation_id"`
-		Payload        CalendarInviteOccurrenceCancelledPayload `json:"payload"`
-	}
+	var value calendarInviteDeliveryV2EnvelopeJSON
 	decoder := json.NewDecoder(bytes.NewReader(encoded))
 	decoder.DisallowUnknownFields()
-	if decoder.Decode(&value) != nil || decoder.Decode(&struct{}{}) != io.EOF || value.Subject != "calendar.invite.cancelled.v1" || value.SchemaVersion != 1 || value.EventID == uuid.Nil || value.EventID == event.EventID || value.EventID == exception.ExceptionID || !validCalendarEventOccurrenceCancelUTC(value.OccurredAt) || value.OrganizationID != event.OrganizationID || value.ActorID == nil || *value.ActorID != event.OwnerID || value.CorrelationID != event.EventID.String() {
+	if decoder.Decode(&value) != nil || decoder.Decode(&struct{}{}) != io.EOF || value.Subject != CalendarInviteCancelledSubjectV2 || value.SchemaVersion != 1 || value.EventID == uuid.Nil || value.EventID == event.EventID || value.EventID == exception.ExceptionID || !validCalendarEventOccurrenceCancelUTC(value.OccurredAt) || value.OrganizationID != event.OrganizationID || value.ActorID == nil || *value.ActorID != event.OwnerID || value.CorrelationID != event.EventID.String() {
 		return false
 	}
-	payload := value.Payload
-	if payload.EventID != event.EventID || payload.UID != "hub-"+event.EventID.String() || payload.Sequence != event.Sequence || payload.RecurrenceID != exception.RecurrenceID || payload.AttendeeIDs == nil || len(payload.AttendeeIDs) > calendarCreateMaxAttendees {
+	payload, err := DecodeCalendarInviteDeliveryEnvelopeV2(descriptor.Envelope())
+	if err != nil || !reflect.DeepEqual(value.Payload, payload) || payload.EventID != event.EventID || payload.EventSequence != event.Sequence || event.OrganizerID == nil || payload.OrganizerID != *event.OrganizerID || payload.RecurrenceID == nil || *payload.RecurrenceID != exception.RecurrenceID || payload.Deliveries == nil || len(payload.Deliveries) > calendarCreateMaxAttendees {
 		return false
-	}
-	for index, attendeeID := range payload.AttendeeIDs {
-		if attendeeID == uuid.Nil || index > 0 && bytes.Compare(payload.AttendeeIDs[index-1][:], attendeeID[:]) >= 0 { return false }
 	}
 	return true
 }
