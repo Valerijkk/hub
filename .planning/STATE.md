@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through typed `client_nonce` outcomes, their redacted service mapper, and a fail-closed legacy reservation policy. Existing fully unversioned records reserve nonce without replay/backfill; partial metadata and new unversioned results remain invalid. Live writers and post-create effects remain unbound.
-**Resume:** typed nonce outcomes, mapper, and legacy no-replay reservation policy are closed at unit level. Freeze one missing post-create effect port and its idempotency/authority contract before any live send/forward binding; recovery ownership/fencing, outbox/event ownership, membership lifecycle, and cross-store TOCTOU remain separate.
+**Stopped at:** bounded Phase 151 units are green through typed `client_nonce` outcomes, redacted mapping, fail-closed legacy reservation, and the first concrete Mongo post-create effect port. `ReconcileReplyCount` is retry-safe and channel/root/live scoped; live writers and the remaining effects remain unbound.
+**Resume:** the Mongo reply-count port is closed at bounded unit/compile level. Freeze the next missing effect port, preferably automatic thread-follow persistence, with exact authority/idempotency/retry semantics before any live send/forward binding; recovery fencing, events, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1294,3 +1294,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Compile RED kept production build `PASS` and failed vet/unit/race only on the missing legacy sentinel, with zero panic/data-race warnings. Final Docker `backend-unit` overall/build/vet/unit/race is `PASS`; three mapper, eight previous nonce/fingerprint, and two legacy lifecycle groups each pass once in unit and race, with zero fail records, panics, or data-race warnings.
 - Root static/security/mutation review is `PASS`. Independent Terra/high review is `UNKNOWN` because agent dispatch was rejected at the runtime thread limit.
 - This is fail-closed compatibility, not migration. No legacy payload is reconstructed, no live writer invokes the pipeline, and effect/recovery/outbox plus live Mongo/NATS/WS remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Session note - 2026-08-27 (Phase 151 Mongo reply-count reconciliation atom)
+
+- `MongoRepository` now implements the pipeline's `ReconcileReplyCount` port for a newly persisted pending reply. It revalidates trusted producer shape plus exact actor/channel/pending/live reply identity before touching Mongo.
+- The frozen BSON plan counts only live direct replies with exact `channel_id + thread_id + deleted_at:nil` and updates only the exact live root in the same channel whose `thread_id` is absent or empty. `$max(reply_count, observed_live_count)` makes retries no-ops and prevents an older concurrent create observation from lowering a newer count; zero count and unmatched root fail closed.
+- Test-only Docker RED kept production build `PASS` and failed vet/unit/race only on the missing port/builders. Final fresh `backend-unit` overall/build/vet/unit/race is `PASS`; all three new top-level groups pass in unit and race, with zero fail, panic, or data-race markers.
+- Root authority/concurrency/mutation review is `PASS`. Independent Terra/high review is `UNKNOWN` because the runtime agent-thread limit rejected dispatch.
+- This is one concrete adapter, not live cutover or Mongo integration evidence. It does not correct historical overcounts, make create/delete races transactional, bind writers, or implement auto-follow/unread/event/recovery ownership. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

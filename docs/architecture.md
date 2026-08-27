@@ -336,3 +336,11 @@ The adapter is compiled and unit/race verified but remains unreferenced by produ
 Legacy compatibility is deliberately non-migratory. Once exact canonical identity and durable state are valid, a nondeleted existing document whose fingerprint and version are both zero-state becomes a typed legacy reservation. The coordinator returns no canonical success and runs no effects. Deleted reservation remains earlier in precedence; partial metadata and all `Created=true` zero-state results remain internal invariant failures.
 
 This prevents mutable current content from being treated as historical create intent and avoids a bulk/backfill requirement. The mapper deliberately collapses the legacy sentinel into the generic conflict 409, so clients cannot infer record age. This closes pure classification only; live writer invocation, effect ports, recovery fencing, stores, and events remain unbound.
+
+## Phase 151 Mongo reply-count reconciliation boundary (2026-08-27)
+
+The first concrete canonical post-create effect adapter is `MongoRepository.ReconcileReplyCount`. A pure exported plan freezes the persistence boundary: count `channel_id + thread_id + deleted_at:nil`, then update the exact `_id + channel_id + deleted_at:nil` root only when its `thread_id` is missing or empty. The adapter also revalidates trusted producer shape, actor/channel identity, live pending state, and reply/root distinction before I/O.
+
+The write uses `$max` with the observed live direct-reply count. This makes crash replay a no-op and prevents a lower concurrent create observation from lowering a higher count; `MatchedCount==1` is success even when Mongo reports no modification. Zero observations and missing/deleted/foreign/nested roots fail closed.
+
+This is not an exact cross-lifecycle counter transaction. It cannot lower a historically inflated counter, and a concurrent legacy delete/decrement can race between count and raise. No handler or writer calls the coordinator, no live Mongo test ran, and automatic follow, unread invalidation, event/outbox ownership, recovery fencing, and cutover remain separate boundaries.

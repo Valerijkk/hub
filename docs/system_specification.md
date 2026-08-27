@@ -791,3 +791,11 @@ Every other value, including `ErrPostCreatePipelineInvalid`, trusted-producer de
 After identity/state validation and deleted precedence, an existing canonical record is fully unversioned only when `client_nonce_fingerprint_version == 0` and the fingerprint is empty. Such a lookup hit or `Created=false` persist race returns `ErrPostCreatePipelineNonceLegacyReserved`, the zero public result, and no derived effect. It is not accepted as an idempotent replay because original producer and pre-edit create payload cannot be reconstructed.
 
 A deleted fully unversioned record remains `ErrPostCreatePipelineNonceDeleted`. A `Created=true` fully unversioned result is an invalid repository invariant. Partial metadata, unknown version, malformed form, and uppercase fingerprint remain invalid. The service mapper translates direct or wrapped legacy reservation to the same generic different-message 409 used for an ordinary fingerprint conflict, avoiding disclosure of storage version. No migration or fingerprint backfill is performed.
+
+## Phase 151 Mongo reply-count reconciliation contract (2026-08-27)
+
+`ReconcileReplyCount(ctx, scope, message)` accepts only a nonnil persisted reply with nonempty distinct message/root IDs, `ChannelID == scope.ChannelID`, `SenderID == scope.ActorID`, no deletion timestamp, pending post-create state, and no completion timestamp. The scope must be a valid trusted producer scope. Any structural or state mismatch returns the typed pipeline validation/authority error before Mongo.
+
+The count predicate is exactly the authorized channel, `thread_id == root ID`, and `deleted_at:nil`. The update predicate is exactly the root ID and same channel with `deleted_at:nil`, plus root shape expressed as missing or empty `thread_id`. The update is `$max: {reply_count: observedCount}` and requires `observedCount > 0`. Mongo error, impossible zero count, or unmatched root fails the effect so the pipeline cannot mark effects complete; a matched root with no modification is an idempotent success.
+
+This contract is currently a concrete repository adapter only. It is not invoked by live producers or recovery, has no live Mongo/integration evidence, does not repair an already excessive counter, and does not make a concurrent create/delete sequence transactional.

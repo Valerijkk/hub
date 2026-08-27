@@ -52,6 +52,83 @@ func (r *MongoRepository) PersistPendingCanonicalMessage(
 	return *result, nil
 }
 
+type Phase151ReplyCountReconciliationPlan struct {
+	ReplyFilter bson.D
+	RootFilter  bson.D
+}
+
+func ExportPhase151BuildReplyCountReconciliationPlan(
+	scope AuthorizedMessageProducerScope,
+	message *MessageDocument,
+) (Phase151ReplyCountReconciliationPlan, error) {
+	if err := ExportPhase151ValidateTrustedMessageProducer(scope, scope.Producer); err != nil {
+		return Phase151ReplyCountReconciliationPlan{}, err
+	}
+	if message == nil || message.ID == "" || message.ThreadID == "" || message.ThreadID == message.ID ||
+		message.ChannelID != scope.ChannelID || message.SenderID != scope.ActorID ||
+		message.DeletedAt != nil || message.PostCreateEffectsState != PostCreateEffectsStatePending ||
+		message.PostCreateEffectsCompletedAt != nil {
+		return Phase151ReplyCountReconciliationPlan{}, ErrPostCreatePipelineInvalid
+	}
+
+	return Phase151ReplyCountReconciliationPlan{
+		ReplyFilter: bson.D{
+			{Key: "channel_id", Value: scope.ChannelID},
+			{Key: "thread_id", Value: message.ThreadID},
+			{Key: "deleted_at", Value: nil},
+		},
+		RootFilter: bson.D{
+			{Key: "_id", Value: message.ThreadID},
+			{Key: "channel_id", Value: scope.ChannelID},
+			{Key: "deleted_at", Value: nil},
+			{Key: "$or", Value: bson.A{
+				bson.D{{Key: "thread_id", Value: bson.D{{Key: "$exists", Value: false}}}},
+				bson.D{{Key: "thread_id", Value: ""}},
+			}},
+		},
+	}, nil
+}
+
+func ExportPhase151BuildReplyCountRaiseUpdate(replyCount int64) (bson.D, error) {
+	if replyCount <= 0 {
+		return nil, ErrPostCreatePipelineInvalid
+	}
+	return bson.D{{Key: "$max", Value: bson.D{{Key: "reply_count", Value: replyCount}}}}, nil
+}
+
+// ReconcileReplyCount raises the live root counter to the observed count of
+// live direct replies. $max makes a retry a no-op and prevents an older
+// concurrent observation from overwriting a newer, larger count.
+func (r *MongoRepository) ReconcileReplyCount(
+	ctx context.Context,
+	scope AuthorizedMessageProducerScope,
+	message *MessageDocument,
+) error {
+	if r == nil || r.db == nil {
+		return ErrPostCreatePipelineInvalid
+	}
+	plan, err := ExportPhase151BuildReplyCountReconciliationPlan(scope, message)
+	if err != nil {
+		return err
+	}
+	replyCount, err := r.messages().CountDocuments(ctx, plan.ReplyFilter)
+	if err != nil {
+		return err
+	}
+	update, err := ExportPhase151BuildReplyCountRaiseUpdate(replyCount)
+	if err != nil {
+		return err
+	}
+	result, err := r.messages().UpdateOne(ctx, plan.RootFilter, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount != 1 {
+		return errors.New("live thread root missing during reply-count reconciliation")
+	}
+	return nil
+}
+
 // CompletePostCreateEffects is the durable pending-to-complete CAS. Binding
 // channel_id prevents an authorized producer scope from claiming a document
 // in another channel; missing legacy state is intentionally not claimable.
