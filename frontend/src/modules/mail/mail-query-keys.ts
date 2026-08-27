@@ -8,6 +8,7 @@ import {
 } from "@/api/mail";
 
 export const mailKeys = {
+	setup: () => ["mail", "setup"] as const,
 	mailbox: () => ["mail", "mailbox"] as const,
 	folders: () => ["mail", "folders"] as const,
 	threads: (params: MailThreadListParams = {}) =>

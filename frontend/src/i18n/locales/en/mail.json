@@ -2,6 +2,48 @@
 	"title": "Mail",
 	"loading": "Checking mailbox status?",
 	"retry": "Refresh status",
+	"setup": {
+		"title": "Connect mail",
+		"address": "Mail address",
+		"preparing": {
+			"title": "Preparing your connection",
+			"description": "We are checking which mail setup step is needed next."
+		},
+		"password": {
+			"title": "Set a mail password",
+			"description": "This password is used only to connect mail securely.",
+			"passwordLabel": "New password",
+			"confirmLabel": "Confirm password",
+			"submit": "Save password",
+			"submitting": "Saving…",
+			"validation": "Use a matching password between 12 and 256 bytes long.",
+			"accepted": "Password accepted. Continuing the connection."
+		},
+		"oauth": {
+			"title": "Confirm the connection",
+			"description": "A secure confirmation page will open to continue.",
+			"submit": "Continue",
+			"submitting": "Opening page…"
+		},
+		"syncing": {
+			"title": "Synchronizing mail",
+			"description": "This usually takes a moment. The status updates automatically."
+		},
+		"ready": {
+			"title": "Mail is connected",
+			"description": "Everything is ready for mail."
+		},
+		"actionRequired": {
+			"title": "Continue the connection",
+			"description": "The last step could not be completed. Try again.",
+			"retry": "Try again"
+		},
+		"unavailable": {
+			"title": "Connection is temporarily unavailable",
+			"description": "We could not get the connection status. Please try again later."
+		},
+		"error": "The action could not be completed. Please try again."
+	},
 	"unavailable": {
 		"title": "Mailbox status is unavailable",
 		"description": "We could not check your mailbox right now. Try again when you are ready."

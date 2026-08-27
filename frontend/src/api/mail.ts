@@ -47,6 +47,53 @@ export function getMailAccountStatus(): Promise<MailAccountStatus> {
 	return api.get<MailAccountStatus>("/mail/account");
 }
 
+export type MailSetupStage =
+	| "preparing"
+	| "password_required"
+	| "oauth_required"
+	| "syncing"
+	| "ready"
+	| "action_required";
+
+export interface MailSetupStatus {
+	stage: MailSetupStage;
+	primary_address: string | null;
+}
+
+export interface MailSetupPasswordResponse {
+	status: "enrolled" | "already_enrolled";
+}
+
+export interface MailSetupOAuthAuthorization {
+	authorization_url: string;
+	expires_at: string;
+}
+
+export function getMailSetupStatus(): Promise<MailSetupStatus> {
+	return api.get<MailSetupStatus>("/mail/setup/status");
+}
+
+export function enrollMailSetupPassword(
+	password: Uint8Array,
+	options?: ApiRequestOptions,
+): Promise<MailSetupPasswordResponse> {
+	return api.postBytes<MailSetupPasswordResponse>(
+		"/mail/setup/password",
+		password,
+		options,
+	);
+}
+
+export function beginMailSetupOAuth(
+	options?: ApiRequestOptions,
+): Promise<MailSetupOAuthAuthorization> {
+	return api.post<MailSetupOAuthAuthorization>(
+		"/mail/setup/oauth/authorize",
+		undefined,
+		options,
+	);
+}
+
 export type MailProjectionState =
 	| "bootstrapping"
 	| "ready"
