@@ -187,6 +187,63 @@ func TestCalendarDeliveryEntRemovedAttendeeMasterCancelSourceContract(t *testing
 	}
 }
 
+func TestCalendarDeliveryEntOccurrenceCancelSourceContract(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_calendar_delivery_claim.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(sourceBytes)
+	start := strings.Index(source, "func mailboxEntCalendarInviteOccurrenceCancelDeliveryClaimSnapshot")
+	replyStart := strings.Index(source, "func mailboxEntCalendarReplyDeliveryClaimSnapshot")
+	messageStart := strings.Index(source, "func mailboxEntCalendarDeliveryOccurrenceCancelITIPMessage")
+	methodStart := strings.Index(source, "func mailboxEntCalendarDeliveryITIPMethod")
+	if start < 0 || replyStart <= start || messageStart < 0 || methodStart <= messageStart {
+		t.Fatal("missing ordered occurrence CANCEL materialization")
+	}
+	occurrence := source[start:replyStart] + source[messageStart:methodStart]
+	for _, term := range []string{
+		"delivery.RecurrenceID == nil",
+		"delivery.Kind != calendarinvitedelivery.KindCancelled",
+		"transaction.CalendarEventException.Query()",
+		"calendareventexception.CalendarEventIDEQ(event.ID)",
+		"calendareventexception.RecurrenceIDEQ(recurrenceID)",
+		"ForUpdate()",
+		"exception.Sequence != delivery.EventSequence",
+		"*exception.Status != calendareventexception.StatusCancelled",
+		"exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil || exception.Timezone != nil",
+		"event.Status != calendarevent.StatusConfirmed && event.Status != calendarevent.StatusTentative",
+		"calendarattendee.RecurrenceIDIsNil()",
+		"if attendee.RemovedAt != nil",
+		"mailboxEntCalendarDeliveryITIPParticipant(attendee, false)",
+		"mailboxEntCalendarInviteOccurrenceCancelDeliveryFactsMatch",
+		"mailboxEntCalendarDeliveryOccurrenceCancelITIPMessage",
+		"ical.ResolveNominalOccurrence",
+		"mailboxEntCalendarDeliveryRecurrenceExcluded",
+		"Method:       ical.ITIPMethodCancel",
+		"Status:       ical.ITIPStatusCancelled",
+		`RRULE:        ""`,
+		"EXDates:      nil",
+		"RecurrenceID: &recurrence",
+		"!identity.HasRecurrenceID || identity.RecurrenceID != recurrenceID",
+		"len(normalized.Attendees) != len(attendees)",
+		"mailboxEntCalendarDeliveryOccurrenceTemporalMatches",
+	} {
+		if !strings.Contains(occurrence, term) {
+			t.Fatalf("missing occurrence CANCEL term %q", term)
+		}
+	}
+	for _, forbidden := range []string{
+		"ical.ITIPMethodRequest",
+		"CalendarMailDeliveryMethodRequest",
+		"time.Now",
+		"net/http",
+		"Publish(",
+	} {
+		if strings.Contains(occurrence, forbidden) {
+			t.Fatalf("forbidden occurrence CANCEL term %q", forbidden)
+		}
+	}
+}
 func TestCalendarDeliveryEntObservationUnknownMailboxUnavailableReschedules(t *testing.T) {
 	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_calendar_delivery_observation.go")
 	if err != nil {

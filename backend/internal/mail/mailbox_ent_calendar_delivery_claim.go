@@ -10,6 +10,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/calendarattendee"
 	"github.com/valerii/hub/backend/ent/calendarevent"
+	"github.com/valerii/hub/backend/ent/calendareventexception"
 	"github.com/valerii/hub/backend/ent/calendarinvitedelivery"
 	"github.com/valerii/hub/backend/ent/calendarreplydelivery"
 	"github.com/valerii/hub/backend/ent/mailaccount"
@@ -63,7 +64,7 @@ func mailboxEntClaimCalendarInviteDelivery(ctx context.Context, transaction *ent
 	if ent.IsNotFound(err) {
 		return CalendarMailDeliveryClaimResult{outcome: CalendarMailDeliveryClaimOutcomeNoop}, nil
 	}
-	if err != nil || delivery == nil || delivery.ID != deliveryID.UUID() || delivery.RecurrenceID != nil {
+	if err != nil || delivery == nil || delivery.ID != deliveryID.UUID() {
 		return CalendarMailDeliveryClaimResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
 
@@ -188,6 +189,7 @@ type mailboxEntCalendarDeliveryClaimSnapshot struct {
 	method          CalendarMailDeliveryMethod
 	eventSequence   int
 	attendeeVersion int
+	recurrenceID    string
 	message         ical.ITIPMessage
 }
 
@@ -263,7 +265,7 @@ func mailboxEntCalendarDeliveryClaimLease(generation int64, databaseNow time.Tim
 }
 
 func mailboxEntCalendarInviteDeliveryClaimSnapshot(ctx context.Context, transaction *ent.Tx, delivery *ent.CalendarInviteDelivery, databaseNow time.Time) (mailboxEntCalendarDeliveryClaimSnapshot, error) {
-	if ctx == nil || transaction == nil || delivery == nil || delivery.RecurrenceID != nil || !mailboxEntValidTime(databaseNow) {
+	if ctx == nil || transaction == nil || delivery == nil || !mailboxEntValidTime(databaseNow) {
 		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
 
@@ -277,6 +279,9 @@ func mailboxEntCalendarInviteDeliveryClaimSnapshot(ctx context.Context, transact
 	if err != nil || event == nil || event.DeletedAt != nil || event.OrganizerID == nil || *event.OrganizerID == uuid.Nil ||
 		event.Sequence != delivery.EventSequence || event.ID != delivery.CalendarEventID || event.OrganizationID != delivery.OrganizationID {
 		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	if delivery.RecurrenceID != nil {
+		return mailboxEntCalendarInviteOccurrenceCancelDeliveryClaimSnapshot(ctx, transaction, delivery, event, databaseNow)
 	}
 
 	attendees, err := transaction.CalendarAttendee.Query().
@@ -363,6 +368,111 @@ func mailboxEntCalendarInviteDeliveryClaimSnapshot(ctx context.Context, transact
 		eventSequence:  delivery.EventSequence,
 		message:        message,
 	}, nil
+}
+
+// mailboxEntCalendarInviteOccurrenceCancelDeliveryClaimSnapshot materializes
+// only an authoritative cancelled recurrence exception. It intentionally does
+// not reuse the master matcher: an active master and a cancelled exception is
+// the distinct, valid occurrence-CANCEL shape.
+func mailboxEntCalendarInviteOccurrenceCancelDeliveryClaimSnapshot(ctx context.Context, transaction *ent.Tx, delivery *ent.CalendarInviteDelivery, event *ent.CalendarEvent, databaseNow time.Time) (mailboxEntCalendarDeliveryClaimSnapshot, error) {
+	if ctx == nil || transaction == nil || delivery == nil || event == nil || delivery.RecurrenceID == nil ||
+		delivery.Kind != calendarinvitedelivery.KindCancelled || !mailboxEntValidTime(databaseNow) {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	recurrenceID := *delivery.RecurrenceID
+	exception, err := transaction.CalendarEventException.Query().
+		Where(
+			calendareventexception.CalendarEventIDEQ(event.ID),
+			calendareventexception.RecurrenceIDEQ(recurrenceID),
+		).
+		ForUpdate().
+		Only(ctx)
+	if err != nil || exception == nil || exception.CalendarEventID != event.ID || exception.RecurrenceID != recurrenceID ||
+		exception.Sequence != delivery.EventSequence || exception.Status == nil || *exception.Status != calendareventexception.StatusCancelled ||
+		exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil || exception.Timezone != nil {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	if event.DeletedAt != nil || event.OrganizerID == nil || *event.OrganizerID == uuid.Nil || event.Sequence != delivery.EventSequence ||
+		(event.Status != calendarevent.StatusConfirmed && event.Status != calendarevent.StatusTentative) {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+
+	attendees, err := transaction.CalendarAttendee.Query().
+		Where(
+			calendarattendee.CalendarEventIDEQ(event.ID),
+			calendarattendee.RecurrenceIDIsNil(),
+		).
+		Order(ent.Asc(calendarattendee.FieldID)).
+		ForUpdate().
+		All(ctx)
+	if err != nil || len(attendees) == 0 {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+
+	var target *ent.CalendarAttendee
+	participants := make([]ical.ITIPParticipant, 0, len(attendees))
+	for _, attendee := range attendees {
+		if attendee == nil || attendee.ID == uuid.Nil || attendee.CalendarEventID != event.ID || attendee.RecurrenceID != nil {
+			return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+		}
+		if attendee.ID == delivery.CalendarAttendeeID {
+			target = attendee
+		}
+		if attendee.RemovedAt != nil {
+			continue
+		}
+		participant, ok := mailboxEntCalendarDeliveryITIPParticipant(attendee, false)
+		if !ok || participant.RSVP {
+			return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+		}
+		participants = append(participants, participant)
+	}
+	if target == nil || !mailboxEntCalendarInviteOccurrenceCancelDeliveryFactsMatch(delivery, event, target) || len(participants) == 0 {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+
+	sourceUser, account, identity, err := mailboxEntCalendarDeliverySourceIdentity(ctx, transaction, event.OrganizationID, *event.OrganizerID)
+	if err != nil {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, err
+	}
+	recipient, err := NormalizeAddress(EngineAddress{Email: target.NormalizedEmail, Name: mailboxEntCalendarAttendeeDisplayName(target)})
+	if err != nil {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	message, ok := mailboxEntCalendarDeliveryOccurrenceCancelITIPMessage(
+		event,
+		recurrenceID,
+		mailboxEntCalendarUserDisplayName(sourceUser),
+		event.OrganizerEmail,
+		participants,
+		databaseNow,
+	)
+	if !ok || len(message.Attendees) != len(participants) || !calendarMailDeliveryMessageHasAttendee(message, recipient.Email) {
+		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	return mailboxEntCalendarDeliveryClaimSnapshot{
+		organizationID: event.OrganizationID,
+		eventID:        event.ID,
+		attendeeID:     target.ID,
+		organizerID:    *event.OrganizerID,
+		accountID:      account.ID,
+		senderActorID:  sourceUser.ID,
+		fromIdentityID: identity.ID,
+		recipient:      recipient,
+		method:         CalendarMailDeliveryMethodCancel,
+		eventSequence:  delivery.EventSequence,
+		recurrenceID:   recurrenceID,
+		message:        message,
+	}, nil
+}
+
+func mailboxEntCalendarInviteOccurrenceCancelDeliveryFactsMatch(delivery *ent.CalendarInviteDelivery, event *ent.CalendarEvent, attendee *ent.CalendarAttendee) bool {
+	return delivery != nil && event != nil && attendee != nil && delivery.ID != uuid.Nil && delivery.OrganizationID != uuid.Nil &&
+		delivery.Kind == calendarinvitedelivery.KindCancelled && delivery.RecurrenceID != nil && *delivery.RecurrenceID != "" &&
+		delivery.CalendarEventID == event.ID && delivery.CalendarAttendeeID == attendee.ID && event.OrganizationID == delivery.OrganizationID &&
+		attendee.CalendarEventID == event.ID && attendee.RecurrenceID == nil && attendee.RemovedAt == nil && event.DeletedAt == nil &&
+		event.OrganizerID != nil && *event.OrganizerID != uuid.Nil && event.Sequence == delivery.EventSequence &&
+		(event.Status == calendarevent.StatusConfirmed || event.Status == calendarevent.StatusTentative)
 }
 
 func mailboxEntCalendarReplyDeliveryClaimSnapshot(ctx context.Context, transaction *ent.Tx, delivery *ent.CalendarReplyDelivery, databaseNow time.Time) (mailboxEntCalendarDeliveryClaimSnapshot, error) {
@@ -635,6 +745,129 @@ func mailboxEntCalendarDeliveryRemovedAttendeeMasterCancelITIPMessage(event *ent
 	return calendarMailDeliveryITIPMessageCopy(normalized), true
 }
 
+func mailboxEntCalendarDeliveryOccurrenceCancelITIPMessage(event *ent.CalendarEvent, recurrenceID, organizerDisplayName, organizerEmail string, attendees []ical.ITIPParticipant, databaseNow time.Time) (ical.ITIPMessage, bool) {
+	if event == nil || event.ID == uuid.Nil || event.OrganizationID == uuid.Nil || event.DeletedAt != nil || recurrenceID == "" ||
+		!mailboxEntValidTime(databaseNow) || (event.Status != calendarevent.StatusConfirmed && event.Status != calendarevent.StatusTentative) || len(attendees) == 0 {
+		return ical.ITIPMessage{}, false
+	}
+	master, exdates, ok := mailboxEntCalendarDeliveryRecurrenceMaster(event)
+	if !ok || mailboxEntCalendarDeliveryRecurrenceExcluded(master.AllDay, exdates, recurrenceID) {
+		return ical.ITIPMessage{}, false
+	}
+	nominal, ok := ical.ResolveNominalOccurrence(master, mailboxEntCalendarEventRRULE(event), recurrenceID)
+	if !ok || nominal.RecurrenceID != recurrenceID || nominal.Temporal.AllDay != master.AllDay {
+		return ical.ITIPMessage{}, false
+	}
+	temporal, recurrence, ok := mailboxEntCalendarDeliveryOccurrenceITIPTemporal(nominal)
+	if !ok {
+		return ical.ITIPMessage{}, false
+	}
+	message := ical.ITIPMessage{
+		Method:       ical.ITIPMethodCancel,
+		UID:          event.UID,
+		Stamp:        databaseNow,
+		Sequence:     event.Sequence,
+		Status:       ical.ITIPStatusCancelled,
+		Summary:      event.Title,
+		Description:  event.Description,
+		Location:     event.Location,
+		Temporal:     temporal,
+		Organizer:    ical.ITIPOrganizer{Email: organizerEmail, DisplayName: organizerDisplayName},
+		Attendees:    append([]ical.ITIPParticipant(nil), attendees...),
+		RRULE:        "",
+		EXDates:      nil,
+		RecurrenceID: &recurrence,
+	}
+	normalized, err := ical.NormalizeITIPMessage(message)
+	if err != nil {
+		return ical.ITIPMessage{}, false
+	}
+	identity, err := ical.CanonicalITIPIdentity(normalized)
+	if err != nil || identity.Method != ical.ITIPMethodCancel || identity.UID != normalized.UID || identity.Sequence != event.Sequence ||
+		!identity.HasRecurrenceID || identity.RecurrenceID != recurrenceID || normalized.Status != ical.ITIPStatusCancelled ||
+		normalized.RRULE != "" || len(normalized.EXDates) != 0 || normalized.RecurrenceID == nil || !mailboxEntCalendarDeliveryRecurrenceIDMatches(*normalized.RecurrenceID, recurrence) ||
+		len(normalized.Attendees) != len(attendees) || !mailboxEntCalendarDeliveryOccurrenceTemporalMatches(normalized.Temporal, temporal) {
+		return ical.ITIPMessage{}, false
+	}
+	for _, attendee := range normalized.Attendees {
+		if attendee.RSVP {
+			return ical.ITIPMessage{}, false
+		}
+	}
+	return calendarMailDeliveryITIPMessageCopy(normalized), true
+}
+
+func mailboxEntCalendarDeliveryRecurrenceMaster(event *ent.CalendarEvent) (ical.CalendarEvent, []ical.ITIPRecurrenceID, bool) {
+	temporal, exdates, ok := mailboxEntCalendarDeliveryMasterTemporal(event)
+	if !ok {
+		return ical.CalendarEvent{}, nil, false
+	}
+	if temporal.AllDay != nil && temporal.Timed == nil {
+		master := ical.CalendarEvent{
+			AllDay:           true,
+			StartDate:        temporal.AllDay.StartDate,
+			EndDateExclusive: temporal.AllDay.EndDateExclusive,
+			Timezone:         temporal.AllDay.Timezone,
+		}
+		return master, exdates, master.Validate() == nil
+	}
+	if temporal.Timed != nil && temporal.AllDay == nil {
+		master := ical.CalendarEvent{
+			StartsAt: temporal.Timed.StartsAt,
+			EndsAt:   temporal.Timed.EndsAt,
+			Timezone: temporal.Timed.Timezone,
+		}
+		return master, exdates, master.Validate() == nil
+	}
+	return ical.CalendarEvent{}, nil, false
+}
+
+func mailboxEntCalendarDeliveryRecurrenceExcluded(allDay bool, exdates []ical.ITIPRecurrenceID, recurrenceID string) bool {
+	for _, exdate := range exdates {
+		if allDay && exdate.Date == recurrenceID {
+			return true
+		}
+		if !allDay && exdate.Time.Format("2006-01-02T15:04:05Z") == recurrenceID {
+			return true
+		}
+	}
+	return false
+}
+
+func mailboxEntCalendarDeliveryOccurrenceITIPTemporal(nominal ical.NominalOccurrence) (ical.ITIPTemporal, ical.ITIPRecurrenceID, bool) {
+	if nominal.RecurrenceID == "" || nominal.Temporal.Validate() != nil {
+		return ical.ITIPTemporal{}, ical.ITIPRecurrenceID{}, false
+	}
+	if nominal.Temporal.AllDay {
+		return ical.ITIPTemporal{AllDay: &ical.ITIPAllDay{
+			StartDate:        nominal.Temporal.StartDate,
+			EndDateExclusive: nominal.Temporal.EndDateExclusive,
+			Timezone:         nominal.Temporal.Timezone,
+		}}, ical.ITIPRecurrenceID{Date: nominal.RecurrenceID}, true
+	}
+	return ical.ITIPTemporal{Timed: &ical.ITIPTimed{
+		StartsAt: nominal.Temporal.StartsAt,
+		EndsAt:   nominal.Temporal.EndsAt,
+		Timezone: nominal.Temporal.Timezone,
+	}}, ical.ITIPRecurrenceID{Time: nominal.Temporal.StartsAt}, true
+}
+
+func mailboxEntCalendarDeliveryRecurrenceIDMatches(actual, expected ical.ITIPRecurrenceID) bool {
+	if actual.Date != "" || expected.Date != "" {
+		return actual.Date == expected.Date && actual.Time.IsZero() && expected.Time.IsZero()
+	}
+	return actual.Time.Equal(expected.Time) && actual.Time.Location() == time.UTC && expected.Time.Location() == time.UTC
+}
+
+func mailboxEntCalendarDeliveryOccurrenceTemporalMatches(actual, expected ical.ITIPTemporal) bool {
+	if actual.AllDay != nil || expected.AllDay != nil {
+		return actual.Timed == nil && expected.Timed == nil && actual.AllDay != nil && expected.AllDay != nil &&
+			actual.AllDay.StartDate == expected.AllDay.StartDate && actual.AllDay.EndDateExclusive == expected.AllDay.EndDateExclusive && actual.AllDay.Timezone == expected.AllDay.Timezone
+	}
+	return actual.AllDay == nil && expected.AllDay == nil && actual.Timed != nil && expected.Timed != nil &&
+		actual.Timed.StartsAt.Equal(expected.Timed.StartsAt) && actual.Timed.EndsAt.Equal(expected.Timed.EndsAt) && actual.Timed.Timezone == expected.Timed.Timezone
+}
+
 func mailboxEntCalendarDeliveryITIPMethod(method CalendarMailDeliveryMethod) (ical.ITIPMethod, bool) {
 	switch method {
 	case CalendarMailDeliveryMethodRequest:
@@ -731,7 +964,8 @@ func mailboxEntCalendarUserDisplayName(sourceUser *ent.User) string {
 
 func mailboxEntCalendarInviteDeliveryClaim(delivery *ent.CalendarInviteDelivery, deliveryID CalendarMailDeliveryID, snapshot mailboxEntCalendarDeliveryClaimSnapshot, token CalendarMailDeliveryClaimToken, generation CalendarMailDeliveryClaimGeneration, leaseUntil time.Time) (CalendarMailDeliveryClaim, error) {
 	inviteID, err := NewCalendarInviteDeliveryID(delivery.ID)
-	if err != nil || deliveryID.Kind() != CalendarMailDeliveryKindInvite || snapshot.organizerID == uuid.Nil || snapshot.attendeeVersion != 0 {
+	if err != nil || deliveryID.Kind() != CalendarMailDeliveryKindInvite || snapshot.organizerID == uuid.Nil || snapshot.attendeeVersion != 0 ||
+		(delivery.RecurrenceID == nil && snapshot.recurrenceID != "") || (delivery.RecurrenceID != nil && snapshot.recurrenceID != *delivery.RecurrenceID) {
 		return CalendarMailDeliveryClaim{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
 	claim := CalendarMailDeliveryClaim{
@@ -759,6 +993,7 @@ func mailboxEntCalendarInviteDeliveryClaim(delivery *ent.CalendarInviteDelivery,
 			attendeeID:    snapshot.attendeeID,
 			organizerID:   snapshot.organizerID,
 			eventSequence: snapshot.eventSequence,
+			recurrenceID:   snapshot.recurrenceID,
 			message:       snapshot.message,
 		},
 	}
