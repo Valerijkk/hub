@@ -63,7 +63,8 @@ type Controller struct {
 	config  Config
 	random  io.Reader
 	mu      sync.Mutex
-	fixtures map[string]inboundRequestFixtureRecord
+	fixtures                       map[string]inboundRequestFixtureRecord
+	accountMaterializationFixtures map[string]accountMaterializationFixtureRecord
 }
 
 func NewController(client *ent.Client, engine *mail.FakeMailEngine, config Config) (*Controller, error) {
@@ -81,7 +82,8 @@ func NewController(client *ent.Client, engine *mail.FakeMailEngine, config Confi
 		engine:   engine,
 		config:   Config{token: token},
 		random:   cryptorand.Reader,
-		fixtures: make(map[string]inboundRequestFixtureRecord),
+		fixtures:                       make(map[string]inboundRequestFixtureRecord),
+		accountMaterializationFixtures: make(map[string]accountMaterializationFixtureRecord),
 	}, nil
 }
 
@@ -94,6 +96,7 @@ func (c *Controller) createInboundRequestFixture(
 		c.engine == nil ||
 		c.random == nil ||
 		c.fixtures == nil ||
+		c.accountMaterializationFixtures == nil ||
 		!validToken(string(c.config.token)) {
 		return inboundRequestFixtureSnapshot{}, errInboundRequestFixtureControllerInput
 	}
@@ -162,8 +165,9 @@ func (c *Controller) reserveInboundRequestFixture() (string, bool) {
 		nonce := hex.EncodeToString(randomBytes[:])
 
 		c.mu.Lock()
-		_, exists := c.fixtures[nonce]
-		if !exists {
+		_, inboundExists := c.fixtures[nonce]
+		_, accountMaterializationExists := c.accountMaterializationFixtures[nonce]
+		if !inboundExists && !accountMaterializationExists {
 			c.fixtures[nonce] = inboundRequestFixtureRecord{
 				nonce: nonce,
 				state: inboundRequestFixtureStateCreating,
