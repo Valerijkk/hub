@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/organization"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -85,7 +86,13 @@ func (c *Controller) quiesceAccountMaterializationFixture(ctx context.Context, n
 	if err != nil {
 		return rollbackAndRestore()
 	}
-	if !accountMaterializationFixtureQuiesceRootsValid(record, ownerRow) {
+	organizationRow, err := tx.Organization.Query().
+		Where(
+			organization.IDEQ(record.persisted.organizationID),
+			organization.HasUsersWith(user.IDEQ(record.persisted.ownerUserID)),
+		).
+		Only(ctx)
+	if err != nil || !accountMaterializationFixtureQuiesceRootsValid(record, organizationRow, ownerRow) {
 		return rollbackAndRestore()
 	}
 
@@ -116,6 +123,7 @@ func (c *Controller) quiesceAccountMaterializationFixture(ctx context.Context, n
 
 func accountMaterializationFixtureQuiesceRootsValid(
 	record accountMaterializationFixtureRecord,
+	organizationRow *ent.Organization,
 	ownerRow *ent.User,
 ) bool {
 	plan := record.plan
@@ -124,10 +132,19 @@ func accountMaterializationFixtureQuiesceRootsValid(
 		record.cleanupOrigin == accountMaterializationFixtureCleanupOriginNone &&
 		accountMaterializationFixturePlanMatchesCanonical(plan) &&
 		accountMaterializationFixturePersistedMatchesPlan(record.persisted, plan) &&
+		organizationRow != nil &&
+		organizationRow.ID == plan.organizationID &&
+		organizationRow.Slug == plan.organizationSlug &&
+		organizationRow.Name == "QA Mail Materialization "+plan.nonce &&
+		organizationRow.InviteToken == "qa-mail-materialization-invite-"+plan.nonce &&
+		accountMaterializationFixtureValidTime(organizationRow.CreatedAt) &&
+		accountMaterializationFixtureValidTime(organizationRow.UpdatedAt) &&
+		organizationRow.CreatedAt.Equal(plan.fixedAt) &&
+		organizationRow.UpdatedAt.Equal(plan.fixedAt) &&
 		ownerRow != nil &&
 		ownerRow.ID == plan.ownerUserID &&
 		ownerRow.Email == plan.ownerAddress &&
-		ownerRow.OrganizationID == plan.organizationID &&
+		ownerRow.OrganizationID == organizationRow.ID &&
 		ownerRow.SystemRole == user.SystemRoleMember &&
 		ownerRow.Status == user.StatusActive &&
 		ownerRow.Timezone == "UTC" &&
