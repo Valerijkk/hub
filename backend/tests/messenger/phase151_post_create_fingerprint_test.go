@@ -88,9 +88,7 @@ func TestPhase151RejectsInvalidCanonicalNonceFingerprintMetadataBeforeEffects(t 
 		{name: "missing fingerprint", overrides: map[string]interface{}{"client_nonce_fingerprint": nil}},
 		{name: "missing version", overrides: map[string]interface{}{"client_nonce_fingerprint_version": nil}},
 		{name: "unknown version", overrides: map[string]interface{}{"client_nonce_fingerprint_version": int32(2)}},
-		{name: "different fingerprint", overrides: map[string]interface{}{
-			"client_nonce_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
-		}},
+		{name: "uppercase fingerprint", overrides: map[string]interface{}{"client_nonce_fingerprint": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}},
 		{name: "malformed fingerprint", overrides: map[string]interface{}{"client_nonce_fingerprint": "not-sha256"}},
 	} {
 		scenario := scenario
@@ -191,7 +189,8 @@ func TestPhase151RejectsNonceReuseForDifferentCreateIntentBeforeEffects(t *testi
 				context.Background(), retryScope, retry, recorder,
 			)
 
-			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineNonceConflict)
+			assert.NotErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
 			assert.Equal(t, messenger.CreateMessageResult{}, result)
 			assert.Equal(t, []string{"idempotency:" + retry.Message.ClientNonce}, recorder.calls)
 			phase151AssertPostCreateNoEffects(t, recorder.phase151PostCreateRecorder)

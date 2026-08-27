@@ -68,6 +68,20 @@ func buildPostCreateClientNonceFingerprint(request PostCreatePipelineRequest) (s
 	return hex.EncodeToString(digest[:]), nil
 }
 
+func isCanonicalPostCreateClientNonceFingerprintV1(value string) bool {
+	if len(value) != sha256.Size*2 {
+		return false
+	}
+	for index := range value {
+		character := value[index]
+		if (character < '0' || character > '9') && (character < 'a' || character > 'f') {
+			return false
+		}
+	}
+	decoded, err := hex.DecodeString(value)
+	return err == nil && len(decoded) == sha256.Size
+}
+
 func validateCanonicalMessage(requested, canonical *MessageDocument) error {
 	if canonical == nil {
 		return apperrors.NewInternal("ошибка сохранения сообщения")

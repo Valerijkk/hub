@@ -21,8 +21,10 @@ const (
 )
 
 var (
-	ErrTrustedMessageProducerDenied = errors.New("trusted message producer denied")
-	ErrPostCreatePipelineInvalid    = errors.New("post-create pipeline request invalid")
+	ErrTrustedMessageProducerDenied     = errors.New("trusted message producer denied")
+	ErrPostCreatePipelineInvalid        = errors.New("post-create pipeline request invalid")
+	ErrPostCreatePipelineNonceConflict  = errors.New("post-create client nonce conflict")
+	ErrPostCreatePipelineNonceDeleted   = errors.New("post-create client nonce reserved by deleted message")
 )
 
 type AuthorizedMessageProducerScope struct {
@@ -178,13 +180,6 @@ func validatePostCreateCanonicalResult(
 		return ErrPostCreatePipelineInvalid
 	}
 
-	expectedFingerprint, err := buildPostCreateClientNonceFingerprint(request)
-	if err != nil ||
-		result.Message.ClientNonceFingerprintVersion != clientNonceFingerprintVersionV1 ||
-		result.Message.ClientNonceFingerprint != expectedFingerprint {
-		return ErrPostCreatePipelineInvalid
-	}
-
 	messageState := result.Message.PostCreateEffectsState
 	if messageState == "" {
 		messageState = PostCreateEffectsStateComplete
@@ -193,6 +188,28 @@ func validatePostCreateCanonicalResult(
 		return ErrPostCreatePipelineInvalid
 	}
 	if result.PostCreateEffectsState != messageState {
+		return ErrPostCreatePipelineInvalid
+	}
+
+	existingCanonical := foundByLookup || !result.Created
+	if result.Message.DeletedAt != nil {
+		if existingCanonical {
+			return ErrPostCreatePipelineNonceDeleted
+		}
+		return ErrPostCreatePipelineInvalid
+	}
+	if result.Message.ClientNonceFingerprintVersion != clientNonceFingerprintVersionV1 ||
+		!isCanonicalPostCreateClientNonceFingerprintV1(result.Message.ClientNonceFingerprint) {
+		return ErrPostCreatePipelineInvalid
+	}
+	expectedFingerprint, err := buildPostCreateClientNonceFingerprint(request)
+	if err != nil {
+		return ErrPostCreatePipelineInvalid
+	}
+	if result.Message.ClientNonceFingerprint != expectedFingerprint {
+		if existingCanonical {
+			return ErrPostCreatePipelineNonceConflict
+		}
 		return ErrPostCreatePipelineInvalid
 	}
 	return nil
