@@ -421,7 +421,7 @@ func (worker *MailboxAccountProvisioningWorker) safeScan(ctx context.Context) (r
 
 func (worker *MailboxAccountProvisioningWorker) safeClaim(ctx context.Context, request MailboxAccountProvisioningClaimRequest) (result MailboxAccountProvisioningClaimResult, resultErr error, panicked bool) {
 	defer func() { if recover() != nil { result, resultErr, panicked = MailboxAccountProvisioningClaimResult{}, nil, true } }()
-	result, resultErr = worker.repository.Claim(ctx, request)
+	result, resultErr = worker.repository.ClaimMailboxAccountProvisioning(ctx, request)
 	return result, resultErr, false
 }
 

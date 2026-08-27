@@ -314,8 +314,8 @@ func mailboxEntAccountProvisioningDomainLive(domain *ent.MailDomain, organizatio
 	return domain.DesiredGeneration >= 1 && domain.DesiredHashVersion >= 1 && len(domain.DesiredHash) == sha256.Size && domain.DeployedGeneration != nil && domain.DeployedHashVersion != nil && domain.DeployedHash != nil && *domain.DeployedGeneration == domain.DesiredGeneration && *domain.DeployedHashVersion == domain.DesiredHashVersion && len(domain.DeployedHash) == sha256.Size && subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) == 1
 }
 
-// Claim seals one provider-free capability for exactly one due account.
-func (repository *MailboxEntRepository) Claim(ctx context.Context, request MailboxAccountProvisioningClaimRequest) (MailboxAccountProvisioningClaimResult, error) {
+// ClaimMailboxAccountProvisioning seals one provider-free capability for exactly one due account.
+func (repository *MailboxEntRepository) ClaimMailboxAccountProvisioning(ctx context.Context, request MailboxAccountProvisioningClaimRequest) (MailboxAccountProvisioningClaimResult, error) {
 	if repository == nil || repository.client == nil || ctx == nil || ctx.Err() != nil || !request.Valid() {
 		return MailboxAccountProvisioningClaimResult{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}

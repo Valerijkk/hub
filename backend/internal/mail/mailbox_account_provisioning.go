@@ -305,7 +305,7 @@ func validMailboxAccountProvisioningRetryCode(code MailboxAccountProvisioningCod
 // MailboxAccountProvisioningRepository is the bounded durable port consumed by a future worker.
 type MailboxAccountProvisioningRepository interface {
 	Scan(context.Context, MailboxAccountProvisioningScanRequest) (MailboxAccountProvisioningScanResult, error)
-	Claim(context.Context, MailboxAccountProvisioningClaimRequest) (MailboxAccountProvisioningClaimResult, error)
+	ClaimMailboxAccountProvisioning(context.Context, MailboxAccountProvisioningClaimRequest) (MailboxAccountProvisioningClaimResult, error)
 	Finalize(context.Context, MailboxAccountProvisioningFinalizeRequest) (MailboxAccountProvisioningFinalizeResult, error)
 }
 

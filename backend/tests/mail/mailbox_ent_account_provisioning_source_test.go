@@ -11,7 +11,7 @@ import (
 
 var _ mail.MailboxAccountProvisioningRepository = (*mail.MailboxEntRepository)(nil)
 var _ func(*mail.MailboxEntRepository, context.Context, mail.MailboxAccountProvisioningScanRequest) (mail.MailboxAccountProvisioningScanResult, error) = (*mail.MailboxEntRepository).Scan
-var _ func(*mail.MailboxEntRepository, context.Context, mail.MailboxAccountProvisioningClaimRequest) (mail.MailboxAccountProvisioningClaimResult, error) = (*mail.MailboxEntRepository).Claim
+var _ func(*mail.MailboxEntRepository, context.Context, mail.MailboxAccountProvisioningClaimRequest) (mail.MailboxAccountProvisioningClaimResult, error) = (*mail.MailboxEntRepository).ClaimMailboxAccountProvisioning
 var _ func(*mail.MailboxEntRepository, context.Context, mail.MailboxAccountProvisioningFinalizeRequest) (mail.MailboxAccountProvisioningFinalizeResult, error) = (*mail.MailboxEntRepository).Finalize
 
 func mailboxEntAccountProvisioningSourceSlice(t *testing.T, source, start, end string) string {
@@ -62,10 +62,10 @@ func TestMailboxEntAccountProvisioningSourceContract(t *testing.T) {
 	source := string(sourceBytes)
 	scan := mailboxEntAccountProvisioningSourceSlice(t, source,
 		"func (repository *MailboxEntRepository) Scan",
-		"func (repository *MailboxEntRepository) Claim",
+		"func (repository *MailboxEntRepository) ClaimMailboxAccountProvisioning",
 	)
 	claim := mailboxEntAccountProvisioningSourceSlice(t, source,
-		"func (repository *MailboxEntRepository) Claim",
+		"func (repository *MailboxEntRepository) ClaimMailboxAccountProvisioning",
 		"func (repository *MailboxEntRepository) Finalize",
 	)
 	finalize := mailboxEntAccountProvisioningSourceSlice(t, source,
