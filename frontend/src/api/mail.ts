@@ -69,6 +69,11 @@ export interface MailSetupOAuthAuthorization {
 	expires_at: string;
 }
 
+export interface MailOAuthCallbackRequest {
+	state: string;
+	code: string;
+}
+
 export function getMailSetupStatus(): Promise<MailSetupStatus> {
 	return api.get<MailSetupStatus>("/mail/setup/status");
 }
@@ -92,6 +97,30 @@ export function beginMailSetupOAuth(
 		undefined,
 		options,
 	);
+}
+
+export function beginMailOAuth(
+	options?: ApiRequestOptions,
+): Promise<MailSetupOAuthAuthorization> {
+	return api.post<MailSetupOAuthAuthorization>(
+		"/mail/oauth/authorize",
+		undefined,
+		options,
+	);
+}
+
+export function completeMailSetupOAuth(
+	request: MailOAuthCallbackRequest,
+	options?: ApiRequestOptions,
+): Promise<void> {
+	return api.post<void>("/mail/setup/oauth/callback", request, options);
+}
+
+export function completeMailOAuth(
+	request: MailOAuthCallbackRequest,
+	options?: ApiRequestOptions,
+): Promise<void> {
+	return api.post<void>("/mail/oauth/callback", request, options);
 }
 
 export type MailProjectionState =
