@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -209,6 +210,27 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	managementRegistryClient, err := mailmod.NewStalwartRegistryClient(mailboxEngineConfig.Origin, mailboxHTTPClient, managementRegistryAuthorizer)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	registryDomainController, err := stalwartmod.NewRegistryDomainController(managementRegistryClient)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	registryAccountClient, err := stalwartmod.NewRegistryAccountClient(managementRegistryClient)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	provisioningEngine, err := mailmod.NewMailboxRegistryProvisioningEngine(registryDomainController, registryAccountClient)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxAccountProvisioningWorker, err := mailmod.NewMailboxAccountProvisioningWorker(
+		mailboxRepo,
+		provisioningEngine,
+		mailmod.NewMailboxAccountProvisioningWorkerTimer(),
+		mailmod.DefaultMailboxAccountProvisioningWorkerOptions(),
+	)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
@@ -547,4 +569,19 @@ func wireCalendarMail(d *serverDeps) {
 			slog.Error("background worker stopped", "error", err)
 		}
 	}()
+	mailboxAccountProvisioningWorkerCtx, mailboxAccountProvisioningWorkerCancel := context.WithCancel(d.rootCtx)
+	mailboxAccountProvisioningWorkerDone := make(chan struct{})
+	go func() {
+		defer close(mailboxAccountProvisioningWorkerDone)
+		if err := mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningWorkerCtx); err != nil && mailboxAccountProvisioningWorkerCtx.Err() == nil {
+			slog.Error("background worker stopped")
+		}
+	}()
+	var mailboxAccountProvisioningWorkerCleanup sync.Once
+	d.addCleanup(func() {
+		mailboxAccountProvisioningWorkerCleanup.Do(func() {
+			mailboxAccountProvisioningWorkerCancel()
+			<-mailboxAccountProvisioningWorkerDone
+		})
+	})
 }
