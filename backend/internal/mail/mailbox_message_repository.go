@@ -180,10 +180,17 @@ func mailboxMessageSnapshotCopy(snapshot MailboxMessageSnapshot) MailboxMessageS
 	result.cc = append([]EngineAddress(nil), snapshot.cc...)
 	result.bcc = append([]EngineAddress(nil), snapshot.bcc...)
 	result.replyTo = append([]EngineAddress(nil), snapshot.replyTo...)
-	result.calendarPartLocatorHash = append([]byte(nil), snapshot.calendarPartLocatorHash...)
+	result.calendarPartLocatorHash = mailboxMessageOptionalBytesCopy(snapshot.calendarPartLocatorHash)
 	result.engineFolderIDs = append([]string(nil), snapshot.engineFolderIDs...)
 	result.projectionAsOf = mailboxFolderProjectionTimePointer(snapshot.projectionAsOf)
 	return result
+}
+
+func mailboxMessageOptionalBytesCopy(value []byte) []byte {
+	if value == nil {
+		return nil
+	}
+	return append([]byte{}, value...)
 }
 
 func mailboxMessageAttachmentCopy(attachment MailboxMessageAttachment) MailboxMessageAttachment {
@@ -234,7 +241,7 @@ func mailboxMessageSnapshotValid(snapshot MailboxMessageSnapshot) bool {
 	default:
 		return false
 	}
-	if (snapshot.summary.CalendarMethod == nil) != (len(snapshot.calendarPartLocatorHash) == 0) || len(snapshot.calendarPartLocatorHash) != 0 && len(snapshot.calendarPartLocatorHash) != 32 {
+	if (snapshot.summary.CalendarMethod == nil) != (snapshot.calendarPartLocatorHash == nil) || snapshot.calendarPartLocatorHash != nil && len(snapshot.calendarPartLocatorHash) != 32 {
 		return false
 	}
 	attachmentIDs := make(map[uuid.UUID]struct{}, len(snapshot.attachments))
@@ -310,7 +317,7 @@ func mailboxMessageProjectionMatches(snapshot MailboxMessageSnapshot, projection
 		projection.Flags.Answered != snapshot.summary.Answered || projection.Flags.Junk != snapshot.summary.Junk || projection.Flags.Draft != snapshot.summary.IsDraft ||
 		projection.Origin != snapshot.projectionOrigin || projection.AuthenticationClass != snapshot.authenticationClass ||
 		!mailboxMessageCalendarMethodEqual(projection.CalendarMethod, snapshot.summary.CalendarMethod) ||
-		!bytes.Equal(projection.CalendarPartLocatorHash, snapshot.calendarPartLocatorHash) ||
+		!mailboxMessageOptionalBytesEqual(projection.CalendarPartLocatorHash, snapshot.calendarPartLocatorHash) ||
 		!mailboxMessageOpaqueSetEqual(projection.FolderIDs, snapshot.engineFolderIDs) ||
 		!mailboxMessageProjectionAttachmentsMatch(projection.Attachments, snapshot.attachments) {
 		return false
@@ -355,6 +362,13 @@ func mailboxMessageOptionalStringEqual(value string, stored *string) bool {
 		return stored == nil
 	}
 	return stored != nil && value == *stored
+}
+
+func mailboxMessageOptionalBytesEqual(left, right []byte) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return bytes.Equal(left, right)
 }
 
 func mailboxMessageOpaqueSetEqual(left, sortedRight []string) bool {
