@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 	"unicode"
@@ -11,15 +12,27 @@ import (
 	"github.com/valerii/hub/backend/internal/mail/stalwart"
 )
 
-const mailboxOAuthRuntimeClientIDMaximum = 256
+const (
+	mailboxOAuthRuntimeClientIDMaximum       = 256
+	mailboxRegistryAPIKeyOriginMaximumBytes = 2048
+)
 
 // MailboxOAuthClientSecretLookup retrieves one secret for one fixed public
 // OAuth client ID. The returned bytes remain owned by the lookup.
 type MailboxOAuthClientSecretLookup func(context.Context, string) ([]byte, error)
 
+// MailboxRegistryAPIKeyLookup retrieves one scoped Registry API key for one
+// exact trusted Stalwart origin. The returned bytes remain owned by the lookup.
+type MailboxRegistryAPIKeyLookup func(context.Context) ([]byte, error)
+
 type mailboxSyncWorkerRuntimeTimer struct{}
 
 type stalwartMailboxRegistryAuthorizer struct{}
+
+type stalwartRegistryAPIKeyAuthorizer struct {
+	origin   *url.URL
+	delegate stalwart.RegistryAuthorizer
+}
 
 type stalwartOAuthClientSecretProvider struct {
 	fixedClientID string
@@ -68,6 +81,27 @@ func NewStalwartMailboxRegistryAuthorizer() stalwart.RegistryAuthorizer {
 
 func (stalwartMailboxRegistryAuthorizer) AuthorizeRegistry(context.Context, *http.Request) error {
 	return stalwart.ErrUnauthorized
+}
+
+// NewStalwartRegistryAPIKeyAuthorizer binds one scoped API-key lookup to one
+// canonical Stalwart Registry origin. Construction performs no lookup or I/O.
+func NewStalwartRegistryAPIKeyAuthorizer(origin string, lookup MailboxRegistryAPIKeyLookup) (stalwart.RegistryAuthorizer, error) {
+	trustedOrigin, ok := canonicalMailboxRegistryAPIKeyOrigin(origin)
+	if !ok || lookup == nil {
+		return nil, stalwart.ErrInvalidConfiguration
+	}
+	delegate, err := stalwart.NewRegistryAuthorizer(stalwart.RegistryManagementAPIKeyProvider(lookup))
+	if err != nil {
+		return nil, err
+	}
+	return &stalwartRegistryAPIKeyAuthorizer{origin: trustedOrigin, delegate: delegate}, nil
+}
+
+func (authorizer *stalwartRegistryAPIKeyAuthorizer) AuthorizeRegistry(ctx context.Context, request *http.Request) error {
+	if authorizer == nil || authorizer.origin == nil || authorizer.delegate == nil || !validMailboxRegistryAPIKeyRequest(request, authorizer.origin) {
+		return stalwart.ErrUnauthorized
+	}
+	return authorizer.delegate.AuthorizeRegistry(ctx, request)
 }
 
 // NewStalwartOAuthClientSecretProvider binds secret retrieval to one exact
@@ -160,6 +194,37 @@ func validMailboxOAuthRuntimeClientSecret(value []byte) bool {
 	return true
 }
 
+func canonicalMailboxRegistryAPIKeyOrigin(value string) (*url.URL, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > mailboxRegistryAPIKeyOriginMaximumBytes || !utf8.ValidString(value) {
+		return nil, false
+	}
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil || parsed == nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.Opaque != "" {
+		return nil, false
+	}
+	if !strings.EqualFold(parsed.Scheme, "http") && !strings.EqualFold(parsed.Scheme, "https") {
+		return nil, false
+	}
+	if parsed.Path != "" && parsed.Path != "/" || parsed.RawPath != "" && parsed.RawPath != "/" || parsed.Hostname() == "" {
+		return nil, false
+	}
+	return &url.URL{Scheme: strings.ToLower(parsed.Scheme), Host: strings.ToLower(parsed.Host)}, true
+}
+
+func validMailboxRegistryAPIKeyRequest(request *http.Request, origin *url.URL) bool {
+	if request == nil || request.Header == nil || request.URL == nil || origin == nil || request.Method != http.MethodPost || request.URL.Scheme == "" || request.URL.Host == "" || request.URL.Path != "/jmap" || !strings.EqualFold(request.URL.Scheme, origin.Scheme) || !strings.EqualFold(request.URL.Host, origin.Host) {
+		return false
+	}
+	for name := range request.Header {
+		if strings.EqualFold(name, "Authorization") {
+			return false
+		}
+	}
+	return request.URL.RawPath == "" && request.URL.RawQuery == "" && !request.URL.ForceQuery && request.URL.Fragment == "" && request.URL.RawFragment == "" && request.URL.User == nil && request.URL.Opaque == ""
+}
+
 var _ MailboxSyncWorkerTimer = mailboxSyncWorkerRuntimeTimer{}
 var _ stalwart.RegistryAuthorizer = stalwartMailboxRegistryAuthorizer{}
+var _ stalwart.RegistryAuthorizer = (*stalwartRegistryAPIKeyAuthorizer)(nil)
 var _ stalwart.OAuthClientSecretProvider = (*stalwartOAuthClientSecretProvider)(nil)
