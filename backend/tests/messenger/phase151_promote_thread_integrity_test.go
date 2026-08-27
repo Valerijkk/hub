@@ -350,8 +350,8 @@ func TestPhase151PromoteToIssueReplyRendersExactScopedThreadChronologically(t *t
 	repository, actorID, channelID, channel, source, projectID := phase151PromoteThreadIntegrityFixture(&order, true)
 	repository.replies = []*messenger.MessageDocument{
 		phase151PromoteThreadIntegrityReply("reply-later", channelID, source.ThreadID, "later reply", time.Date(2026, time.August, 26, 10, 3, 0, 0, time.UTC)),
-		source,
 		phase151PromoteThreadIntegrityReply("reply-earlier", channelID, source.ThreadID, "earlier reply", time.Date(2026, time.August, 26, 10, 2, 0, 0, time.UTC)),
+		source,
 	}
 	service, target, promoter, linker := phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
 
@@ -563,6 +563,69 @@ func TestPhase151PromoteToIssueAppendsSelectedReplyToShortPage(t *testing.T) {
 	assert.Equal(t, 1, strings.Count(strings.Join(lines, "\n"), "- @user: promoted reply"))
 	phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
 	phase151AssertPromoteThreadIntegritySuccessfulEffects(t, response, target, promoter, repository, linker, projectID, actorID, channelID, source.ThreadID)
+}
+
+func TestPhase151PromoteToIssueRejectsNonDescendingReplyPagesBeforeEffects(t *testing.T) {
+	ctx := context.Background()
+	for _, scenario := range []struct {
+		name      string
+		configure func(uuid.UUID, string) []*messenger.MessageDocument
+	}{
+		{
+			name: "created at inversion",
+			configure: func(channelID uuid.UUID, rootID string) []*messenger.MessageDocument {
+				return []*messenger.MessageDocument{
+					phase151PromoteThreadIntegrityReply("phase151-order-z", channelID, rootID, "newest", time.Date(2026, time.August, 26, 10, 3, 0, 0, time.UTC)),
+					phase151PromoteThreadIntegrityReply("phase151-order-b", channelID, rootID, "oldest", time.Date(2026, time.August, 26, 10, 1, 0, 0, time.UTC)),
+					phase151PromoteThreadIntegrityReply("phase151-order-a", channelID, rootID, "middle", time.Date(2026, time.August, 26, 10, 2, 0, 0, time.UTC)),
+				}
+			},
+		},
+		{
+			name: "id tie break inversion",
+			configure: func(channelID uuid.UUID, rootID string) []*messenger.MessageDocument {
+				tiedAt := time.Date(2026, time.August, 26, 10, 2, 0, 0, time.UTC)
+				return []*messenger.MessageDocument{
+					phase151PromoteThreadIntegrityReply("phase151-order-z", channelID, rootID, "newest", time.Date(2026, time.August, 26, 10, 3, 0, 0, time.UTC)),
+					phase151PromoteThreadIntegrityReply("phase151-order-a", channelID, rootID, "wrong tie first", tiedAt),
+					phase151PromoteThreadIntegrityReply("phase151-order-b", channelID, rootID, "wrong tie second", tiedAt),
+				}
+			},
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			order := make([]string, 0, 6)
+			repository, actorID, channelID, channel, source, projectID :=
+				phase151PromoteThreadIntegrityFixture(&order, false)
+			repository.replies = scenario.configure(channelID, source.ID)
+			service, _, promoter, linker :=
+				phase151PromoteThreadIntegrityService(repository, actorID, channel, &order)
+
+			response, err := service.PromoteToIssue(
+				ctx,
+				channelID,
+				source.ID,
+				actorID,
+				phase151PromoteThreadIntegrityRequest(projectID),
+			)
+
+			require.Nil(t, response)
+			require.Error(t, err)
+			requireAppErrorCode(t, err, 500)
+			phase151AssertPromoteThreadIntegrityRedactedError(t, err, repository.replies[1].ID)
+			assert.Equal(t, []phase151PromoteThreadIntegrityRepliesCall{{
+				channelID: channelID,
+				rootID:    source.ID,
+				limit:     100,
+			}}, repository.repliesCalls)
+			phase151AssertPromoteThreadIntegrityNoEffects(t, repository, promoter, linker)
+			phase151AssertPromoteThreadIntegrityNoGenericReads(t, repository)
+			assert.Equal(t, []string{
+				"source-action", "scoped-source", "target-authority", "scoped-replies",
+			}, order)
+		})
+	}
 }
 
 func TestPhase151PromoteToIssueRejectsDuplicateAndOversizedReplyPagesBeforeEffects(t *testing.T) {
@@ -1005,7 +1068,7 @@ func TestPhase151PromoteToIssueRejectsMissingScopedRepliesCapabilityAndError(t *
 					configure: func(_ *phase151PromoteThreadIntegrityRepository) {},
 				},
 				{
-					name: "scoped replies infrastructure error",
+					name:              "scoped replies infrastructure error",
 					serviceRepository: func(repository *phase151PromoteThreadIntegrityRepository) messenger.Repository { return repository },
 					configure: func(repository *phase151PromoteThreadIntegrityRepository) {
 						repository.repliesErr = errors.New("phase151 scoped replies failure")
@@ -1042,7 +1105,7 @@ func phase151PromoteThreadIntegrityFixture(
 ) (*phase151PromoteThreadIntegrityRepository, uuid.UUID, uuid.UUID, *ent.Channel, *messenger.MessageDocument, uuid.UUID) {
 	repository := &phase151PromoteThreadIntegrityRepository{
 		phase151PromoteSourceBindingRepositoryBase: newPhase151PromoteSourceBindingRepositoryBase(),
-		order:                                      order,
+		order: order,
 	}
 	actorID := uuid.New()
 	channelID := setupChannelWithMembers(repository.mockRepository, "private", false, actorID)

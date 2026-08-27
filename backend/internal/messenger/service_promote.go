@@ -299,6 +299,9 @@ func (s *MessengerService) PromoteToIssue(
 		repliesWithSource = append(repliesWithSource, replies[:retained]...)
 		replies = append(repliesWithSource, source)
 	}
+	if !isStrictDescendingPromotionReplyPage(replies) {
+		return nil, apperrors.NewInternal("ошибка проверки треда")
+	}
 	chronologicalReplies := append([]*MessageDocument(nil), replies...)
 	sort.Slice(chronologicalReplies, func(i, j int) bool {
 		if chronologicalReplies[i].CreatedAt.Equal(chronologicalReplies[j].CreatedAt) {
@@ -352,6 +355,23 @@ func (s *MessengerService) PromoteToIssue(
 	}
 
 	return &PromoteToIssueResponse{IssueID: issueID, IssueKey: issueKey}, nil
+}
+
+func isStrictDescendingPromotionReplyPage(replies []*MessageDocument) bool {
+	for index, reply := range replies {
+		if reply == nil || reply.ID == "" || reply.CreatedAt.IsZero() {
+			return false
+		}
+		if index == 0 {
+			continue
+		}
+		previous := replies[index-1]
+		if previous.CreatedAt.Before(reply.CreatedAt) ||
+			(previous.CreatedAt.Equal(reply.CreatedAt) && previous.ID <= reply.ID) {
+			return false
+		}
+	}
+	return true
 }
 
 // buildPromotionDescription собирает Plate-совместимое JSON-описание для задачи
