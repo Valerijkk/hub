@@ -47,7 +47,7 @@ func (engine *MailboxRegistryProvisioningEngine) EnsureDomain(ctx context.Contex
 		return EngineDomainState{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
 	if err := ctx.Err(); err != nil {
-		return EngineDomainState{}, mapStalwartEngineError(err, true)
+		return EngineDomainState{}, stalwartEngineError(EngineErrorUnavailable)
 	}
 
 	domainID, err := engine.domains.EnsureLocalDomain(ctx, spec.Domain)
@@ -75,7 +75,7 @@ func (engine *MailboxRegistryProvisioningEngine) EnsureAccount(ctx context.Conte
 		return EngineAccount{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
 	if err := ctx.Err(); err != nil {
-		return EngineAccount{}, mapStalwartEngineError(err, true)
+		return EngineAccount{}, stalwartEngineError(EngineErrorUnavailable)
 	}
 
 	domainID, err := engine.domains.EnsureLocalDomain(ctx, spec.Domain)
@@ -84,6 +84,9 @@ func (engine *MailboxRegistryProvisioningEngine) EnsureAccount(ctx context.Conte
 	}
 	if !validOpaqueID(domainID) {
 		return EngineAccount{}, stalwartEngineError(EngineErrorIndeterminate)
+	}
+	if err := ctx.Err(); err != nil {
+		return EngineAccount{}, stalwartEngineError(EngineErrorUnavailable)
 	}
 
 	confirmed, err := engine.accounts.EnsureLocalUserAccount(ctx, stalwart.LocalUserAccountSpec{
@@ -107,14 +110,14 @@ func (engine *MailboxRegistryProvisioningEngine) EnsureAccount(ctx context.Conte
 }
 
 func validRegistryProvisioningDomainSpec(spec DomainSpec) bool {
-	return spec.Present && spec.Enabled &&
+	return spec.Present && spec.Enabled && spec.DesiredGeneration >= 1 &&
 		validSafeText(spec.ProvisioningKey, MaxEngineOpaqueIDBytes, true) &&
 		validCanonicalRegistryDomain(spec.Domain) &&
 		validSafeText(spec.DesiredHash, MaxEngineOpaqueIDBytes, true)
 }
 
 func validRegistryProvisioningAccountSpec(spec AccountSpec) bool {
-	return spec.Enabled && len(spec.Aliases) == 0 &&
+	return spec.Enabled && spec.DesiredGeneration >= 1 && len(spec.Aliases) == 0 &&
 		validSafeText(spec.ProvisioningKey, MaxEngineOpaqueIDBytes, true) &&
 		validCanonicalRegistryLocalPart(spec.LocalPart) &&
 		validCanonicalRegistryDomain(spec.Domain) &&

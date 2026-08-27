@@ -1,218 +1,249 @@
-package mail
+package mail_test
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"strings"
-	"testing"
+	`context`
+	`encoding/json`
+	`errors`
+	`io`
+	`net/http`
+	`net/http/httptest`
+	`reflect`
+	`strings`
+	`sync`
+	`testing`
+	`time`
 
-	"github.com/valerii/hub/backend/internal/mail/stalwart"
+	`github.com/valerii/hub/backend/internal/mail`
+	`github.com/valerii/hub/backend/internal/mail/stalwart`
 )
 
-func TestMailboxRegistryProvisioningEngineEnsureDomainMapsDNSRequired(t *testing.T) {
-	domains := &recordingRegistryDomainController{id: "domain-1"}
-	accounts := &recordingRegistryAccountClient{}
-	engine, err := newMailboxRegistryProvisioningEngine(domains, accounts)
+func TestMailboxRegistryProvisioningEngineProjectsRegistryResponses(t *testing.T) {
+	fixture := newRegistryProvisioningFixture(t, registryProvisioningHappyReplies(), nil)
+	account, err := fixture.engine.EnsureAccount(context.Background(), registryAccountSpec())
 	if err != nil {
-		t.Fatalf("newMailboxRegistryProvisioningEngine() error = %v", err)
+		t.Fatalf(`EnsureAccount() error = %v`, err)
 	}
+	if account.AccountID != `account-1` || account.State != mail.EngineAccountProvisioning || account.AppliedGeneration != 9 || account.AppliedHash != `account-hash` {
+		t.Fatalf(`EnsureAccount() = %#v, want confirmed provisioning account`, account)
+	}
+	fixture.requireMethods(t, `x:Domain/query`, `x:Domain/get`, `x:Account/query`, `x:Account/get`)
+	fixture.requireAccountDomainID(t, `domain-1`)
+}
 
-	state, err := engine.EnsureDomain(context.Background(), DomainSpec{
-		ProvisioningKey:   "domain-key",
-		Domain:            "example.test",
-		DesiredGeneration: 3,
-		DesiredHash:       "domain-hash-3",
-		Present:           true,
-		Enabled:           true,
+func TestMailboxRegistryProvisioningEngineRejectsZeroGenerationBeforeIO(t *testing.T) {
+	fixture := newRegistryProvisioningFixture(t, nil, nil)
+	domain := registryDomainSpec()
+	domain.DesiredGeneration = 0
+	if _, err := fixture.engine.EnsureDomain(context.Background(), domain); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf(`zero-generation domain error = %v`, err)
+	}
+	account := registryAccountSpec()
+	account.DesiredGeneration = 0
+	if _, err := fixture.engine.EnsureAccount(context.Background(), account); !errors.Is(err, mail.ErrEngineRejectedPolicy) {
+		t.Fatalf(`zero-generation account error = %v`, err)
+	}
+	fixture.requireMethods(t)
+}
+
+func TestMailboxRegistryProvisioningEngineReturnsUnavailableBeforeIO(t *testing.T) {
+	fixture := newRegistryProvisioningFixture(t, nil, nil)
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := fixture.engine.EnsureDomain(cancelled, registryDomainSpec()); !errors.Is(err, mail.ErrEngineUnavailable) || err.Error() != mail.ErrEngineUnavailable.Error() {
+		t.Fatalf(`cancelled domain error = %v, want content-free unavailable`, err)
+	}
+	deadline, deadlineCancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer deadlineCancel()
+	if _, err := fixture.engine.EnsureAccount(deadline, registryAccountSpec()); !errors.Is(err, mail.ErrEngineUnavailable) || err.Error() != mail.ErrEngineUnavailable.Error() {
+		t.Fatalf(`expired account error = %v, want content-free unavailable`, err)
+	}
+	fixture.requireMethods(t)
+}
+
+func TestMailboxRegistryProvisioningEngineStopsBeforeAccountAfterDomainCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	fixture := newRegistryProvisioningFixture(t, registryProvisioningHappyReplies()[:2], func(client *http.Client) {
+		base := client.Transport
+		if base == nil {
+			base = http.DefaultTransport
+		}
+		client.Transport = &registryProvisioningCancelAfterTransport{base: base, cancel: cancel}
 	})
+	if _, err := fixture.engine.EnsureAccount(ctx, registryAccountSpec()); !errors.Is(err, mail.ErrEngineUnavailable) || errors.Is(err, mail.ErrEngineIndeterminate) {
+		t.Fatalf(`post-domain cancellation error = %v, want unavailable`, err)
+	}
+	fixture.requireMethods(t, `x:Domain/query`, `x:Domain/get`)
+}
+
+func TestMailboxRegistryProvisioningEngineKeepsStartedProviderFailureIndeterminateAndRedacted(t *testing.T) {
+	replies := append(registryProvisioningHappyReplies()[:2], registryProviderFailureResponse())
+	fixture := newRegistryProvisioningFixture(t, replies, nil)
+	if _, err := fixture.engine.EnsureAccount(context.Background(), registryAccountSpec()); !errors.Is(err, mail.ErrEngineIndeterminate) || strings.Contains(err.Error(), `provider-secret`) {
+		t.Fatalf(`provider failure error = %v, want redacted indeterminate`, err)
+	}
+	fixture.requireMethods(t, `x:Domain/query`, `x:Domain/get`, `x:Account/query`)
+}
+
+type registryProvisioningFixture struct {
+	engine        *mail.MailboxRegistryProvisioningEngine
+	responses     []string
+	requests      []stalwart.JMAPRequest
+	registryCalls int
+}
+
+func newRegistryProvisioningFixture(t *testing.T, responses []string, configure func(*http.Client)) *registryProvisioningFixture {
+	t.Helper()
+	fixture := &registryProvisioningFixture{responses: append([]string(nil), responses...)}
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost || request.URL.Path != `/jmap` || request.Header.Get(`Authorization`) != `Bearer registry-test` {
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		var payload stalwart.JMAPRequest
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		fixture.requests = append(fixture.requests, payload)
+		index := len(fixture.requests) - 1
+		if index >= len(fixture.responses) {
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		writer.Header().Set(`Content-Type`, `application/json`)
+		_, _ = io.WriteString(writer, fixture.responses[index])
+	}))
+	t.Cleanup(server.Close)
+	client := server.Client()
+	if configure != nil {
+		configure(client)
+	}
+	authorizer := registryProvisioningAuthorizer{calls: &fixture.registryCalls}
+	transport, err := stalwart.NewClient(stalwart.Config{Origin: server.URL, HTTPClient: client, RegistryAuthorizer: authorizer, MailboxAuthorizer: authorizer})
 	if err != nil {
-		t.Fatalf("EnsureDomain() error = %v", err)
+		t.Fatalf(`NewClient() error = %v`, err)
 	}
-	if domains.calls != 1 || domains.domain != "example.test" {
-		t.Fatalf("domain calls = %d for %q, want one call for example.test", domains.calls, domains.domain)
-	}
-	if accounts.calls != 0 {
-		t.Fatalf("account calls = %d, want 0", accounts.calls)
-	}
-	if state.DomainID != "domain-1" || state.State != EngineDomainDNSRequired || !state.Applied || state.Verification != EngineVerificationPending || state.DKIM != EngineVerificationPending {
-		t.Fatalf("EnsureDomain() state = %#v, want confirmed DNS-required pending state", state)
-	}
-	if state.DNSRecords == nil || len(state.DNSRecords) != 0 {
-		t.Fatalf("EnsureDomain() DNSRecords = %#v, want non-nil empty records", state.DNSRecords)
-	}
-}
-
-func TestMailboxRegistryProvisioningEngineEnsureDomainRejectsInvalidBeforeIO(t *testing.T) {
-	for _, spec := range []DomainSpec{
-		{ProvisioningKey: "domain-key", Domain: "example.test", DesiredHash: "domain-hash", Present: true},
-		{ProvisioningKey: "domain-key", Domain: "example.test", DesiredHash: "domain-hash", Enabled: true},
-		{ProvisioningKey: "domain-key", Domain: "Example.test", DesiredHash: "domain-hash", Present: true, Enabled: true},
-		{ProvisioningKey: "domain-key", Domain: "example.test", Present: true, Enabled: true},
-	} {
-		domains := &recordingRegistryDomainController{id: "domain-1"}
-		accounts := &recordingRegistryAccountClient{}
-		engine, err := newMailboxRegistryProvisioningEngine(domains, accounts)
-		if err != nil {
-			t.Fatalf("newMailboxRegistryProvisioningEngine() error = %v", err)
-		}
-
-		_, err = engine.EnsureDomain(context.Background(), spec)
-		if !errors.Is(err, ErrEngineRejectedPolicy) {
-			t.Fatalf("EnsureDomain(%#v) error = %v, want rejected policy", spec, err)
-		}
-		if domains.calls != 0 || accounts.calls != 0 {
-			t.Fatalf("invalid EnsureDomain() calls = domain %d account %d, want no I/O", domains.calls, accounts.calls)
-		}
-	}
-}
-
-func TestMailboxRegistryProvisioningEngineEnsureAccountUsesDomainIDBeforeAccount(t *testing.T) {
-	calls := make([]string, 0, 2)
-	domains := &recordingRegistryDomainController{id: "domain-1", callLog: &calls}
-	accounts := &recordingRegistryAccountClient{
-		account: stalwart.LocalUserAccount{AccountID: "account-1", EmailAddress: "ada@example.test"},
-		callLog:  &calls,
-	}
-	engine, err := newMailboxRegistryProvisioningEngine(domains, accounts)
+	domains, err := stalwart.NewRegistryDomainController(transport)
 	if err != nil {
-		t.Fatalf("newMailboxRegistryProvisioningEngine() error = %v", err)
+		t.Fatalf(`NewRegistryDomainController() error = %v`, err)
 	}
-
-	account, err := engine.EnsureAccount(context.Background(), AccountSpec{
-		ProvisioningKey:   "account-key",
-		LocalPart:         "ada",
-		Domain:            "example.test",
-		DesiredGeneration: 9,
-		DesiredHash:       "account-hash-9",
-		Enabled:           true,
-		Primary:           AccountIdentitySpec{LocalPart: "ada", Domain: "example.test", Enabled: true},
-		Aliases:           []AccountIdentitySpec{},
-	})
+	accounts, err := stalwart.NewRegistryAccountClient(transport)
 	if err != nil {
-		t.Fatalf("EnsureAccount() error = %v", err)
+		t.Fatalf(`NewRegistryAccountClient() error = %v`, err)
 	}
-	if len(calls) != 2 || calls[0] != "domain" || calls[1] != "account" {
-		t.Fatalf("call order = %#v, want domain then account", calls)
+	fixture.engine, err = mail.NewMailboxRegistryProvisioningEngine(domains, accounts)
+	if err != nil {
+		t.Fatalf(`NewMailboxRegistryProvisioningEngine() error = %v`, err)
 	}
-	wantRequest := stalwart.LocalUserAccountSpec{EmailLocalPart: "ada", DomainID: "domain-1", DomainName: "example.test"}
-	if accounts.request != wantRequest {
-		t.Fatalf("EnsureLocalUserAccount() request = %#v, want %#v", accounts.request, wantRequest)
+	return fixture
+}
+
+func (fixture *registryProvisioningFixture) requireMethods(t *testing.T, want ...string) {
+	t.Helper()
+	got := make([]string, 0, len(fixture.requests))
+	for _, request := range fixture.requests {
+		if len(request.MethodCalls) != 1 {
+			t.Fatalf(`JMAP method calls = %#v, want one call per request`, request.MethodCalls)
+		}
+		got = append(got, request.MethodCalls[0].Name)
 	}
-	if account.AccountID != "account-1" || account.State != EngineAccountProvisioning || account.AppliedGeneration != 9 || account.AppliedHash != "account-hash-9" || account.PrimaryIdentityID != "" {
-		t.Fatalf("EnsureAccount() = %#v, want credential-free provisioning account", account)
-	}
-	if account.AliasIdentityIDs == nil || len(account.AliasIdentityIDs) != 0 {
-		t.Fatalf("EnsureAccount() aliases = %#v, want non-nil empty identity IDs", account.AliasIdentityIDs)
+	if !reflect.DeepEqual(got, want) || fixture.registryCalls != len(want) {
+		t.Fatalf(`Registry methods = %#v with %d authorizations, want %#v`, got, fixture.registryCalls, want)
 	}
 }
 
-func TestMailboxRegistryProvisioningEngineEnsureAccountRejectsInvalidBeforeIO(t *testing.T) {
-	valid := AccountSpec{
-		ProvisioningKey: "account-key",
-		LocalPart:       "ada",
-		Domain:          "example.test",
-		DesiredHash:     "account-hash",
-		Enabled:         true,
-		Primary:         AccountIdentitySpec{LocalPart: "ada", Domain: "example.test", Enabled: true},
+func (fixture *registryProvisioningFixture) requireAccountDomainID(t *testing.T, want string) {
+	t.Helper()
+	if len(fixture.requests) < 3 || len(fixture.requests[2].MethodCalls) != 1 {
+		t.Fatalf(`account request is absent`)
 	}
-	for _, spec := range []AccountSpec{
-		func() AccountSpec { value := valid; value.Enabled = false; return value }(),
-		func() AccountSpec { value := valid; value.Primary.Enabled = false; return value }(),
-		func() AccountSpec { value := valid; value.Primary.LocalPart = "other"; return value }(),
-		func() AccountSpec { value := valid; value.Aliases = []AccountIdentitySpec{{LocalPart: "alias", Domain: "example.test", Enabled: true}}; return value }(),
-		func() AccountSpec { value := valid; value.LocalPart = "Ada"; value.Primary.LocalPart = "Ada"; return value }(),
-	} {
-		domains := &recordingRegistryDomainController{id: "domain-1"}
-		accounts := &recordingRegistryAccountClient{}
-		engine, err := newMailboxRegistryProvisioningEngine(domains, accounts)
-		if err != nil {
-			t.Fatalf("newMailboxRegistryProvisioningEngine() error = %v", err)
-		}
-
-		_, err = engine.EnsureAccount(context.Background(), spec)
-		if !errors.Is(err, ErrEngineRejectedPolicy) {
-			t.Fatalf("EnsureAccount(%#v) error = %v, want rejected policy", spec, err)
-		}
-		if domains.calls != 0 || accounts.calls != 0 {
-			t.Fatalf("invalid EnsureAccount() calls = domain %d account %d, want no I/O", domains.calls, accounts.calls)
-		}
+	var arguments map[string]any
+	if err := json.Unmarshal(fixture.requests[2].MethodCalls[0].Arguments, &arguments); err != nil {
+		t.Fatalf(`account query arguments error = %v`, err)
+	}
+	filter, validFilter := arguments[`filter`].(map[string]any)
+	conditions, validConditions := filter[`conditions`].([]any)
+	if !validFilter || !validConditions || len(conditions) != 2 {
+		t.Fatalf(`account query arguments = %#v`, arguments)
+	}
+	domain, validDomain := conditions[1].(map[string]any)[`domainId`].(string)
+	if !validDomain || domain != want {
+		t.Fatalf(`account query domain = %q, want %q`, domain, want)
 	}
 }
 
-func TestMailboxRegistryProvisioningEngineFailsClosedAndRedactsProviderDetails(t *testing.T) {
-	t.Run("provider error", func(t *testing.T) {
-		domains := &recordingRegistryDomainController{id: "domain-1"}
-		accounts := &recordingRegistryAccountClient{err: fmt.Errorf("provider-secret: %w", stalwart.ErrUnauthorized)}
-		engine, err := newMailboxRegistryProvisioningEngine(domains, accounts)
-		if err != nil {
-			t.Fatalf("newMailboxRegistryProvisioningEngine() error = %v", err)
-		}
-
-		_, err = engine.EnsureAccount(context.Background(), validRegistryProvisioningAccountInput())
-		if !errors.Is(err, ErrEngineUnauthorizedAccount) || strings.Contains(err.Error(), "provider-secret") {
-			t.Fatalf("EnsureAccount() error = %q, want redacted unauthorized account error", err)
-		}
-	})
-
-	t.Run("server email mismatch", func(t *testing.T) {
-		domains := &recordingRegistryDomainController{id: "domain-1"}
-		accounts := &recordingRegistryAccountClient{account: stalwart.LocalUserAccount{AccountID: "account-1", EmailAddress: "wrong@example.test"}}
-		engine, err := newMailboxRegistryProvisioningEngine(domains, accounts)
-		if err != nil {
-			t.Fatalf("newMailboxRegistryProvisioningEngine() error = %v", err)
-		}
-
-		_, err = engine.EnsureAccount(context.Background(), validRegistryProvisioningAccountInput())
-		if !errors.Is(err, ErrEngineIndeterminate) || strings.Contains(err.Error(), "wrong@example.test") {
-			t.Fatalf("EnsureAccount() error = %q, want redacted indeterminate mismatch", err)
-		}
-	})
+type registryProvisioningAuthorizer struct {
+	calls *int
 }
 
-func validRegistryProvisioningAccountInput() AccountSpec {
-	return AccountSpec{
-		ProvisioningKey:   "account-key",
-		LocalPart:         "ada",
-		Domain:            "example.test",
-		DesiredGeneration: 9,
-		DesiredHash:       "account-hash-9",
-		Enabled:           true,
-		Primary:           AccountIdentitySpec{LocalPart: "ada", Domain: "example.test", Enabled: true},
-		Aliases:           []AccountIdentitySpec{},
+func (authorizer registryProvisioningAuthorizer) AuthorizeRegistry(_ context.Context, request *http.Request) error {
+	(*authorizer.calls)++
+	request.Header.Set(`Authorization`, `Bearer registry-test`)
+	return nil
+}
+
+func (registryProvisioningAuthorizer) AuthorizeMailbox(context.Context, *http.Request) error {
+	return errors.New(`mailbox authorization must not be used`)
+}
+
+type registryProvisioningCancelAfterTransport struct {
+	base   http.RoundTripper
+	calls  int
+	cancel context.CancelFunc
+}
+
+func (transport *registryProvisioningCancelAfterTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	response, err := transport.base.RoundTrip(request)
+	if err != nil || response == nil || response.Body == nil {
+		return response, err
+	}
+	transport.calls++
+	if transport.calls == 2 {
+		response.Body = &registryProvisioningCancelOnEOF{ReadCloser: response.Body, cancel: transport.cancel}
+	}
+	return response, nil
+}
+
+type registryProvisioningCancelOnEOF struct {
+	io.ReadCloser
+	once   sync.Once
+	cancel context.CancelFunc
+}
+
+func (reader *registryProvisioningCancelOnEOF) Read(buffer []byte) (int, error) {
+	count, err := reader.ReadCloser.Read(buffer)
+	if errors.Is(err, io.EOF) {
+		reader.once.Do(reader.cancel)
+	}
+	return count, err
+}
+
+func registryProvisioningHappyReplies() []string {
+	return []string{
+		registryResponse(`x:Domain/query`, map[string]any{`accountId`: `0`, `queryState`: `domain-query-state`, `canCalculateChanges`: false, `position`: 0, `ids`: []string{`domain-1`}}, `domain-query`),
+		registryResponse(`x:Domain/get`, map[string]any{`accountId`: `0`, `state`: `domain-get-state`, `list`: []any{map[string]any{`id`: `domain-1`, `name`: `example.test`, `isEnabled`: true, `allowRelaying`: false}}, `notFound`: []any{}}, `domain-get`),
+		registryResponse(`x:Account/query`, map[string]any{`accountId`: `0`, `queryState`: `account-query-state`, `ids`: []string{`account-1`}}, `registry-account-query`),
+		registryResponse(`x:Account/get`, map[string]any{`accountId`: `0`, `list`: []any{map[string]any{`id`: `account-1`, `@type`: `User`, `name`: `ada`, `domainId`: `domain-1`, `emailAddress`: `ada@example.test`}}, `notFound`: []any{}}, `registry-account-get`),
 	}
 }
 
-type recordingRegistryDomainController struct {
-	calls   int
-	domain  string
-	id      string
-	err     error
-	callLog *[]string
+func registryProviderFailureResponse() string {
+	return registryResponse(`error`, map[string]any{`type`: `serverFail`, `description`: `provider-secret`}, `registry-account-query`)
 }
 
-func (controller *recordingRegistryDomainController) EnsureLocalDomain(_ context.Context, domain string) (string, error) {
-	controller.calls++
-	controller.domain = domain
-	if controller.callLog != nil {
-		*controller.callLog = append(*controller.callLog, "domain")
+func registryResponse(method string, arguments any, callID string) string {
+	payload, _ := json.Marshal(map[string]any{`methodResponses`: []any{[]any{method, arguments, callID}}})
+	return string(payload)
+}
+
+func registryDomainSpec() mail.DomainSpec {
+	return mail.DomainSpec{ProvisioningKey: `domain-key`, Domain: `example.test`, DesiredGeneration: 3, DesiredHash: `domain-hash`, Present: true, Enabled: true}
+}
+
+func registryAccountSpec() mail.AccountSpec {
+	return mail.AccountSpec{
+		ProvisioningKey: `account-key`, LocalPart: `ada`, Domain: `example.test`, DesiredGeneration: 9, DesiredHash: `account-hash`, Enabled: true,
+		Primary: mail.AccountIdentitySpec{LocalPart: `ada`, Domain: `example.test`, Enabled: true}, Aliases: []mail.AccountIdentitySpec{},
 	}
-	return controller.id, controller.err
-}
-
-type recordingRegistryAccountClient struct {
-	calls   int
-	request stalwart.LocalUserAccountSpec
-	account stalwart.LocalUserAccount
-	err     error
-	callLog *[]string
-}
-
-func (client *recordingRegistryAccountClient) EnsureLocalUserAccount(_ context.Context, request stalwart.LocalUserAccountSpec) (stalwart.LocalUserAccount, error) {
-	client.calls++
-	client.request = request
-	if client.callLog != nil {
-		*client.callLog = append(*client.callLog, "account")
-	}
-	return client.account, client.err
 }
