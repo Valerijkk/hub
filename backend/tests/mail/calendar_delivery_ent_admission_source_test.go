@@ -142,7 +142,8 @@ func TestCalendarDeliveryEntAdmissionSourceContract(t *testing.T) {
 		"CalendarMailDeliveryStateFailedPermanent",
 		"CalendarMailDeliveryStateUnknown",
 		"CalendarMailDeliveryStateSubmitting",
-		"calendarreplydelivery.NextAttemptAtGT(databaseNow)",
+		"mailboxEntCalendarReplyDeliveryScheduledPendingValid(delivery)",
+		"mailboxEntCalendarReplyDeliveryInitialPendingUnscheduledValid(delivery)",
 		"calendarreplydelivery.NextAttemptAtIsNil()",
 		"calendarreplydelivery.AttemptsEQ(0)",
 		"calendarreplydelivery.ClaimGenerationEQ(0)",
@@ -181,6 +182,7 @@ func TestCalendarDeliveryEntAdmissionSourceContract(t *testing.T) {
 		"ClaimCalendarMailDelivery",
 		"BindCalendarMailDeliverySubmission",
 		"ResolveCalendarMailDelivery",
+		"NextAttemptAtGT(",
 	} {
 		if strings.Contains(source, forbidden) {
 			t.Fatalf("source contains forbidden behavior or payload field %q", forbidden)

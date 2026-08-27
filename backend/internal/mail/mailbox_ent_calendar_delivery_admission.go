@@ -233,11 +233,11 @@ func mailboxEntWakeCalendarReplyDelivery(ctx context.Context, transaction *ent.T
 		}
 		return nil
 	case CalendarMailDeliveryStatePending:
-		if !mailboxEntCalendarReplyDeliveryInitialPendingValid(delivery) {
-			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
-		}
-		if delivery.NextAttemptAt != nil && !delivery.NextAttemptAt.After(databaseNow) {
+		if mailboxEntCalendarReplyDeliveryScheduledPendingValid(delivery) {
 			return nil
+		}
+		if !mailboxEntCalendarReplyDeliveryInitialPendingUnscheduledValid(delivery) {
+			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
 		}
 	default:
 		return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
@@ -256,10 +256,7 @@ func mailboxEntWakeCalendarReplyDelivery(ctx context.Context, transaction *ent.T
 			calendarreplydelivery.LeaseTokenIsNil(),
 			calendarreplydelivery.LeaseUntilIsNil(),
 			calendarreplydelivery.LastErrorCodeIsNil(),
-			calendarreplydelivery.Or(
-				calendarreplydelivery.NextAttemptAtIsNil(),
-				calendarreplydelivery.NextAttemptAtGT(databaseNow),
-			),
+			calendarreplydelivery.NextAttemptAtIsNil(),
 		).
 		SetNextAttemptAt(databaseNow).
 		SetUpdatedAt(databaseNow).
@@ -325,12 +322,34 @@ func mailboxEntCalendarReplyDeliveryCalendarFactsValid(delivery *ent.CalendarRep
 		attendee.CalendarEventID == event.ID && mailboxEntCalendarDeliveryRecurrencePointersEqual(delivery.RecurrenceID, attendee.RecurrenceID)
 }
 
-func mailboxEntCalendarReplyDeliveryInitialPendingValid(delivery *ent.CalendarReplyDelivery) bool {
+func mailboxEntCalendarReplyDeliveryInitialPendingUnscheduledValid(delivery *ent.CalendarReplyDelivery) bool {
 	if delivery == nil || CalendarMailDeliveryState(delivery.State) != CalendarMailDeliveryStatePending || delivery.Attempts != 0 || delivery.ClaimGeneration != 0 ||
 		delivery.MailSubmissionID != nil || delivery.LeaseToken != nil || delivery.LeaseUntil != nil || delivery.LastErrorCode != nil {
 		return false
 	}
-	return delivery.NextAttemptAt == nil || mailboxEntCalendarDeliveryTimestampValid(*delivery.NextAttemptAt)
+	return delivery.NextAttemptAt == nil
+}
+
+func mailboxEntCalendarReplyDeliveryScheduledPendingValid(delivery *ent.CalendarReplyDelivery) bool {
+	if delivery == nil || CalendarMailDeliveryState(delivery.State) != CalendarMailDeliveryStatePending || delivery.ClaimGeneration < 0 ||
+		delivery.MailSubmissionID != nil || delivery.LeaseToken != nil || delivery.LeaseUntil != nil || delivery.NextAttemptAt == nil ||
+		!mailboxEntCalendarDeliveryTimestampValid(*delivery.NextAttemptAt) {
+		return false
+	}
+	if delivery.Attempts == 0 {
+		return delivery.LastErrorCode == nil
+	}
+	return delivery.Attempts >= 1 && delivery.Attempts <= calendarMailDeliveryMaximumAttempts && delivery.LastErrorCode != nil &&
+		mailboxEntCalendarReplyDeliveryRetryCodeValid(string(*delivery.LastErrorCode))
+}
+
+func mailboxEntCalendarReplyDeliveryRetryCodeValid(code string) bool {
+	switch code {
+	case "mailbox_unavailable", "engine_unavailable", "internal_error":
+		return true
+	default:
+		return false
+	}
 }
 
 func mailboxEntCalendarReplyDeliverySubmittingValid(delivery *ent.CalendarReplyDelivery) bool {
