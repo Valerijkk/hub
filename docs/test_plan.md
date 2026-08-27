@@ -385,3 +385,9 @@ Six focused top-level groups cover individual/`all` intersection, `online` and u
 The test-only RED recorded overall `FAIL`, production build `PASS`, and vet/unit/race failures only on undefined resolver symbols. The first GREEN was mutation-reviewed; the final sequential `backend-unit` run records overall/build/vet/unit/race `PASS`. All six top-level groups pass once in unit and once under race; no `FAIL`, `panic:`, or `DATA RACE` marker is present. Root review is `PASS`; independent Terra/high review is `UNKNOWN` because the runtime rejected dispatch at the agent-thread limit.
 
 No `qa-build`, Swagger, live PostgreSQL/Redis/Mongo/NATS/WS/browser, writer, recovery, or integration evidence is claimed. Candidate-specific audience authorization errors remain an untested live completeness boundary even though unauthorized inclusion is prevented.
+
+## Phase 151 post-create repository composition evidence (2026-08-27)
+
+Four focused top-level groups freeze complete pipeline-interface satisfaction, exact eligible-mention and unread-invalidation delegation, defensive mention slice copying, delegate error identity, mandatory Combined/Ent/Mongo dependencies, ordinary and typed-nil delegate rejection, and fail-closed nil-receiver behavior for the explicit ports. Promoted storage methods are intentionally compile-checked but not called.
+
+RED preserved build and failed vet/unit/race only on missing composition symbols. After the first GREEN, mutation review added the typed-nil cases and production guard. Final sequential Docker evidence is overall/build/vet/unit/race `PASS`; all four groups pass in unit and race with no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because retained agents exhaust all subagent slots. No `qa-build`, Swagger, live store, integration, recovery, or writer-cutover evidence is claimed.

@@ -814,7 +814,7 @@ This contract is currently a concrete repository adapter only. It is not invoked
 
 After the post-create completion CAS succeeds, the effect resolves the current `unread_changed` audience through `WSChannelAuthority`. Audience failure publishes nothing and returns an error. Successful resolution publishes once per unique nonnil current recipient except the sender. Root payload is exactly `channel_id`, `target_kind=channel`, and `category=channel`. Reply payload is exactly `channel_id`, `target_kind=thread`, `category=followed_thread`, and `root_message_id`. Payloads contain no content or count.
 
-The event publisher is best effort and exposes no publish error. A failure or crash after CAS may therefore lose the invalidation; a later idempotent create retry does not repeat completed effects. The client recovers through subscribe/reconnect and authoritative unread refetch. No transactional outbox, lossless delivery, or exactly-once guarantee is specified. The adapter is not yet bound to production writers or a complete post-create repository.
+The event publisher is best effort and exposes no publish error. A failure or crash after CAS may therefore lose the invalidation; a later idempotent create retry does not repeat completed effects. The client recovers through subscribe/reconnect and authoritative unread refetch. No transactional outbox, lossless delivery, or exactly-once guarantee is specified. The adapter is composed by the standalone complete post-create repository but is not bound to production writers.
 
 ## Phase 151 eligible mention resolution contract (2026-08-27)
 
@@ -822,4 +822,10 @@ The event publisher is best effort and exposes no publish error. A failure or cr
 
 Individual mention strings must parse as UUIDs and belong to that audience. `all` selects the audience; `online` selects current Presence IDs intersected with it; and `owner`, `developer`, `tester`, or `viewer` select current project-role members intersected with it. Role groups do nothing for a non-project channel. Unknown groups, malformed/nil IDs, the sender, out-of-audience users, and duplicates are omitted. Output is sorted by UUID string before it is copied into `resolved_mention_user_ids`.
 
-Authority/audience/presence/role errors return no resolved set before Mongo persistence. The current audience implementation may suppress a candidate-specific authorization error, which can omit a non-sender but cannot authorize an extra user. The resolver is standalone and no live message producer invokes it through a full post-create repository yet.
+Authority/audience/presence/role errors return no resolved set before Mongo persistence. The current audience implementation may suppress a candidate-specific authorization error, which can omit a non-sender but cannot authorize an extra user. The resolver is composed by the full standalone post-create repository, but no live message producer invokes that repository yet.
+
+## Phase 151 post-create repository composition contract (2026-08-27)
+
+`NewPhase151PostCreateRepository(combined, mentions, invalidation)` requires a nonnil `CombinedRepository`, its nonnil Ent and Mongo members, and plain/typed-nonnil eligible-mention and unread-invalidation delegates. The resulting value must satisfy all seven `Phase151PostCreatePipelineRepository` ports: five promoted persistence/effect methods plus the two explicit delegated methods.
+
+Explicit delegate errors are returned without reclassification. Successful mention results are copied before return so callers cannot mutate delegate-owned state. A nil composition receiver returns `ErrPostCreatePipelineInvalid` from the two explicit methods. The contract supplies no live writer routing or recovery claim/lease/fence behavior.

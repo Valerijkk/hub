@@ -368,3 +368,9 @@ Mention resolution now has a standalone pre-persist adapter. The actor is rechec
 Individual UUIDs, `@all`, `@online`, and `owner/developer/tester/viewer` groups form a union. The sender, invalid IDs, users outside the current audience, and duplicates are removed, and UUID sorting freezes a deterministic persisted `resolved_mention_user_ids` snapshot. Empty input avoids dependency reads; infrastructure failures prevent canonical Mongo persistence.
 
 The adapter is not yet composed with the Mongo/CombinedRepository effects and no production writer calls it. `WSChannelAuthority` treats one candidate authorization error as an omission, so the boundary is fail-closed for disclosure but live completeness can undercount a non-sender until a future strict-audience policy is chosen. PostgreSQL/Redis integration and recovery behavior remain unverified.
+
+## Phase 151 post-create repository composition (2026-08-27)
+
+`Phase151PostCreateRepository` is the standalone composition root for all seven canonical post-create repository ports. It embeds a complete `CombinedRepository`, which promotes the bounded Mongo canonical persistence, reply-count, completion-CAS, and Combined automatic-follow methods, while eligible mentions and recipient unread invalidation remain explicit delegates. The constructor rejects missing Ent/Mongo members and plain or typed-nil delegates, so promoted methods cannot be reached from a partially built composition.
+
+This layer changes no live writer. Its unit contract proves interface satisfaction, explicit delegation/error ownership, defensive mention-result copying, and fail-closed nil behavior for the two explicit ports; promoted storage methods and live stores were not exercised. Recovery claim/lease/fencing, writer cutover, outbox loss, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate architecture boundaries.

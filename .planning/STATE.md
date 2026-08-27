@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through typed nonce handling plus four concrete post-create adapters. Eligible-mention resolution, reply-count reconciliation, automatic thread follows, and recipient-only unread invalidation are concrete; live writers, full repository composition, and recovery remain unbound.
-**Resume:** all per-create repository ports now have bounded concrete adapters. Next compose one `Phase151PostCreateRepository` from CombinedRepository, eligible mentions, and unread invalidation without routing live writers; then freeze recovery ownership/fencing. Outbox loss, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
+**Stopped at:** bounded Phase 151 units are green through typed nonce handling, four concrete post-create adapters, and one standalone `Phase151PostCreateRepository` composition satisfying all seven coordinator ports. Live writers and recovery remain unbound.
+**Resume:** freeze bounded recovery ownership/fencing for pending canonical creates without routing live writers. Outbox loss, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1328,3 +1328,10 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Test-only RED kept production build `PASS` and failed vet/unit/race only on the absent resolver type/constructor. After implementation, mutation review added exact event/channel/project arguments, production type assertions, sender-absence, and cancelled-context coverage. Final Docker `backend-unit` records overall/build/vet/unit/race `PASS`; six top-level groups pass in unit and race with zero fail, panic, or data-race markers.
 - Root authority/tenant/projection/mutation review is `PASS`. Independent `Terra/high` review is `UNKNOWN` because the runtime rejected dispatch at the exhausted agent-thread limit.
 - This is a standalone resolver, not full repository or live writer binding. `WSChannelAuthority` currently omits a recipient whose individual authorization call errors; sender omission fails the whole resolver, while another recipient's transient omission can under-populate the frozen snapshot. This is non-disclosive but completeness remains unverified. Live Ent/PostgreSQL/Redis/Mongo/NATS/WS/browser, `qa-build`, Swagger, integration, recovery fencing, and outbox behavior remain `UNBOUND/NOT_RUN`.
+
+## Session note - 2026-08-27 (Phase 151 post-create repository composition atom)
+
+- `Phase151PostCreateRepository` now composes the full seven-port pipeline interface from `CombinedRepository`, `Phase151EligibleMentionResolver`, and `Phase151UnreadInvalidationEffect`. Promoted storage methods remain the already bounded Mongo/Combined adapters; mentions and unread invalidation are explicit delegates.
+- The constructor requires nonnil `CombinedRepository`, Ent and Mongo members, and plain/typed-nonnil effect delegates. Delegate errors are preserved, mention results are defensively copied, and nil receivers fail the two explicit ports closed.
+- RED kept package build green and failed vet/unit/race only on missing composition symbols. After the first GREEN, mutation review found the typed-nil dependency hole; the final sequential Docker run is green for build, vet, unit, and race with four top-level composition groups in both unit and race and no `FAIL`, panic, or `DATA RACE` markers.
+- Root review is `PASS`; independent review is `UNKNOWN` because every subagent slot is retained/exhausted. This is compile/delegation evidence only: promoted storage methods were not executed, no live producer is routed, and recovery plus live Mongo/Ent-PostgreSQL/Redis/NATS/WS/browser remain `UNBOUND/NOT_RUN`.
