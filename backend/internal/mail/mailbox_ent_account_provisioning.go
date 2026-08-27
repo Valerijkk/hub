@@ -677,7 +677,7 @@ func mailboxEntAccountProvisioningPreProviderShape(account *ent.MailAccount) boo
 	if (account.AttemptedControlGeneration == nil) != (account.AttemptedControlHashVersion == nil) || (account.AttemptedControlGeneration == nil) != (account.AttemptedControlHash == nil) {
 		return false
 	}
-	if account.AttemptedControlGeneration != nil && (*account.AttemptedControlGeneration != account.ControlGeneration || *account.AttemptedControlHashVersion != account.ControlHashVersion || len(account.AttemptedControlHash) != sha256.Size || subtle.ConstantTimeCompare(account.AttemptedControlHash, account.ControlHash) != 1) {
+	if account.AttemptedControlGeneration != nil && (*account.AttemptedControlGeneration != account.ControlGeneration || *account.AttemptedControlHashVersion != account.ControlHashVersion || len(*account.AttemptedControlHash) != sha256.Size || subtle.ConstantTimeCompare(*account.AttemptedControlHash, account.ControlHash) != 1) {
 		return false
 	}
 	if (account.ProvisionLeaseToken == nil) != (account.ProvisionLeaseUntil == nil) || (account.ProvisionLeaseUntil != nil && (!mailboxEntValidTime(*account.ProvisionLeaseUntil) || account.AttemptedControlGeneration == nil)) {
@@ -770,7 +770,7 @@ func mailboxEntAccountProvisioningCASPredicates(account *ent.MailAccount) ([]pre
 		predicates = append(predicates,
 			mailaccount.AttemptedControlGenerationEQ(*account.AttemptedControlGeneration),
 			mailaccount.AttemptedControlHashVersionEQ(*account.AttemptedControlHashVersion),
-			mailaccount.AttemptedControlHashEQ(account.AttemptedControlHash),
+			mailaccount.AttemptedControlHashEQ(*account.AttemptedControlHash),
 		)
 	}
 	if account.ProvisionLeaseToken == nil {
@@ -832,7 +832,7 @@ func mailboxEntAccountProvisioningFenceHash(fence MailboxAccountProvisioningFenc
 }
 
 func mailboxEntAccountProvisioningFinalizeFenceMatches(account *ent.MailAccount, identity *ent.MailIdentity, fence MailboxAccountProvisioningFence, controlHash []byte, databaseNow time.Time) bool {
-	if account == nil || identity == nil || !fence.Valid() || len(controlHash) != sha256.Size || !mailboxEntValidTime(databaseNow) || account.ID != fence.AccountID || account.OrganizationID != fence.OrganizationID || account.UserID != fence.UserID || account.MailDomainID != fence.DomainID || !mailboxEntAccountProvisioningPreProviderShape(account) || account.ControlGeneration != fence.ControlGeneration || account.ControlHashVersion != fence.ControlHashVersion || subtle.ConstantTimeCompare(account.ControlHash, controlHash) != 1 || account.AttemptedControlGeneration == nil || account.AttemptedControlHashVersion == nil || account.AttemptedControlHash == nil || *account.AttemptedControlGeneration != fence.ControlGeneration || *account.AttemptedControlHashVersion != fence.ControlHashVersion || len(account.AttemptedControlHash) != sha256.Size || subtle.ConstantTimeCompare(account.AttemptedControlHash, controlHash) != 1 || account.ProvisionLeaseToken == nil || *account.ProvisionLeaseToken != fence.LeaseToken || account.ProvisionLeaseUntil == nil || !account.ProvisionLeaseUntil.Equal(fence.LeaseDeadline) || !account.ProvisionLeaseUntil.After(databaseNow) || account.EngineProvisioningKey != fence.ProvisioningKey || account.LocalPart != fence.LocalPart || account.ProvisionAttempts < 1 {
+	if account == nil || identity == nil || !fence.Valid() || len(controlHash) != sha256.Size || !mailboxEntValidTime(databaseNow) || account.ID != fence.AccountID || account.OrganizationID != fence.OrganizationID || account.UserID != fence.UserID || account.MailDomainID != fence.DomainID || !mailboxEntAccountProvisioningPreProviderShape(account) || account.ControlGeneration != fence.ControlGeneration || account.ControlHashVersion != fence.ControlHashVersion || subtle.ConstantTimeCompare(account.ControlHash, controlHash) != 1 || account.AttemptedControlGeneration == nil || account.AttemptedControlHashVersion == nil || account.AttemptedControlHash == nil || *account.AttemptedControlGeneration != fence.ControlGeneration || *account.AttemptedControlHashVersion != fence.ControlHashVersion || len(*account.AttemptedControlHash) != sha256.Size || subtle.ConstantTimeCompare(*account.AttemptedControlHash, controlHash) != 1 || account.ProvisionLeaseToken == nil || *account.ProvisionLeaseToken != fence.LeaseToken || account.ProvisionLeaseUntil == nil || !account.ProvisionLeaseUntil.Equal(fence.LeaseDeadline) || !account.ProvisionLeaseUntil.After(databaseNow) || account.EngineProvisioningKey != fence.ProvisioningKey || account.LocalPart != fence.LocalPart || account.ProvisionAttempts < 1 {
 		return false
 	}
 	return mailboxEntAccountProvisioningExactPendingPrimary(identity, account, &ent.MailDomain{ID: fence.DomainID, Domain: fence.Domain})

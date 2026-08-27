@@ -60,6 +60,12 @@ func TestMailboxEntAccountProvisioningSourceContract(t *testing.T) {
 		t.Fatalf("read mailbox account provisioning Ent source: %v", err)
 	}
 	source := string(sourceBytes)
+	requireMailboxEntAccountProvisioningSourceContains(t, source,
+		"len(*account.AttemptedControlHash) != sha256.Size",
+		"subtle.ConstantTimeCompare(*account.AttemptedControlHash, account.ControlHash) != 1",
+		"mailaccount.AttemptedControlHashEQ(*account.AttemptedControlHash)",
+		"subtle.ConstantTimeCompare(*account.AttemptedControlHash, controlHash) != 1",
+	)
 	scan := mailboxEntAccountProvisioningSourceSlice(t, source,
 		"func (repository *MailboxEntRepository) Scan",
 		"func (repository *MailboxEntRepository) ClaimMailboxAccountProvisioning",
