@@ -501,7 +501,7 @@ func mailboxEntCalendarReplyDeliveryClaimSnapshot(ctx context.Context, transacti
 		ForUpdate().
 		Only(ctx)
 	if err != nil || attendee == nil || attendee.RemovedAt != nil || attendee.UserID == nil || *attendee.UserID == uuid.Nil ||
-		attendee.CalendarEventID != event.ID || attendee.RecurrenceID != nil || attendee.RSVPStatus != calendarattendee.RSVPStatus(delivery.RSVPStatus) ||
+		attendee.CalendarEventID != event.ID || attendee.RecurrenceID != nil || attendee.RSVPStatus != calendarattendee.RsvpStatus(delivery.RSVPStatus) ||
 		delivery.AttendeeVersion < 1 {
 		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
@@ -648,15 +648,15 @@ func mailboxEntCalendarDeliveryITIPParticipant(attendee *ent.CalendarAttendee, r
 	}, true
 }
 
-func mailboxEntCalendarDeliveryRSVPStatus(status calendarattendee.RSVPStatus) (ical.RSVPStatus, bool) {
+func mailboxEntCalendarDeliveryRSVPStatus(status calendarattendee.RsvpStatus) (ical.RSVPStatus, bool) {
 	switch status {
-	case calendarattendee.RSVPStatusNeedsAction:
+	case calendarattendee.RsvpStatusNeedsAction:
 		return ical.RSVPNeedsAction, true
-	case calendarattendee.RSVPStatusAccepted:
+	case calendarattendee.RsvpStatusAccepted:
 		return ical.RSVPAccepted, true
-	case calendarattendee.RSVPStatusDeclined:
+	case calendarattendee.RsvpStatusDeclined:
 		return ical.RSVPDeclined, true
-	case calendarattendee.RSVPStatusTentative:
+	case calendarattendee.RsvpStatusTentative:
 		return ical.RSVPTentative, true
 	default:
 		return "", false
