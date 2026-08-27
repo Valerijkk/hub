@@ -61,6 +61,7 @@ func (c *Controller) RegisterRoutes(api fiber.Router) error {
 	api.Delete("/_qa/mail-calendar/fixtures/:nonce", c.delete)
 	api.Get("/_qa/mail-calendar/fixtures/:nonce/account-materialization", c.observeAccountMaterialization)
 	api.Post("/_qa/mail-calendar/fixtures/:nonce/account-materialization/quiesce", c.quiesceAccountMaterialization)
+	api.Delete("/_qa/mail-calendar/fixtures/:nonce/account-materialization", c.deleteAccountMaterialization)
 	return nil
 }
 
@@ -100,6 +101,27 @@ func (c *Controller) quiesceAccountMaterialization(ctx fiber.Ctx) error {
 		}
 		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
 	}
+	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
+func (c *Controller) deleteAccountMaterialization(ctx fiber.Ctx) error {
+	if !c.authorized(ctx) {
+		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
+	}
+
+	nonce, ok := qaFixtureMutationNonce(ctx)
+	if !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	if err := c.deleteAccountMaterializationFixture(ctx.Context(), nonce); err != nil {
+		if err == errAccountMaterializationFixtureLifecycle {
+			return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
+		}
+
+		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	}
+
 	return ctx.SendStatus(fiber.StatusNoContent)
 }
 
