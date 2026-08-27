@@ -230,13 +230,13 @@ func mailboxEntMessageAttachments(ctx context.Context, transaction *ent.Tx, mess
 		if row.ScanStatus != mailattachment.ScanStatus("clean") {
 			return nil, mailboxMessageReadError(MailboxMessageReadErrorUnprocessable)
 		}
-		if row.EngineBlobID == nil || len(row.SHA256) != 32 || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) {
+		if row.EngineBlobID == nil || len(row.Sha256) != 32 || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) {
 			return nil, mailboxMessageReadError(MailboxMessageReadErrorInvalid)
 		}
 		attachments[index] = MailboxMessageAttachment{
 			ID: row.ID, Filename: row.Filename, MediaType: row.MediaType, SizeBytes: row.SizeBytes,
 			Disposition: string(row.Disposition), ContentID: mailboxFolderProjectionStringPointer(row.ContentID),
-			ScanStatus: "clean", SHA256: hex.EncodeToString(row.SHA256), engineBlobID: *row.EngineBlobID,
+			ScanStatus: "clean", SHA256: hex.EncodeToString(row.Sha256), engineBlobID: *row.EngineBlobID,
 			createdAt: row.CreatedAt.UTC(), updatedAt: row.UpdatedAt.UTC(),
 		}
 	}

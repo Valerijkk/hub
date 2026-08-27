@@ -131,10 +131,10 @@ func mailboxAttachmentConfirmScanScheduleValid(attachment *ent.MailAttachment, u
 	if attachment == nil || attachment.ScanStatus != mailattachment.ScanStatus("pending") || !mailboxEntValidTime(uploadDrainUntil) || attachment.ScanLeaseGeneration < 0 || attachment.ScanAttempts < 0 || attachment.ScanAttempts > 10 || (attachment.ScanLeaseToken == nil) != (attachment.ScanLeaseUntil == nil) {
 		return false
 	}
-	if len(attachment.SHA256) == 0 {
+	if len(attachment.Sha256) == 0 {
 		return attachment.ScanLeaseToken == nil && attachment.ScanLeaseGeneration == 0 && attachment.ScanLeaseUntil == nil && attachment.ScanAttempts == 0 && attachment.NextScanAt == nil && attachment.ScanTerminalAt == nil
 	}
-	if len(attachment.SHA256) != sha256.Size || attachment.ScanTerminalAt != nil || attachment.NextScanAt == nil || !mailboxEntValidTime(*attachment.NextScanAt) || attachment.NextScanAt.Before(uploadDrainUntil) {
+	if len(attachment.Sha256) != sha256.Size || attachment.ScanTerminalAt != nil || attachment.NextScanAt == nil || !mailboxEntValidTime(*attachment.NextScanAt) || attachment.NextScanAt.Before(uploadDrainUntil) {
 		return false
 	}
 	if attachment.ScanLeaseToken != nil && (*attachment.ScanLeaseToken == uuid.Nil || attachment.ScanLeaseGeneration < 1 || !mailboxEntValidTime(*attachment.ScanLeaseUntil) || !attachment.ScanLeaseUntil.After(*attachment.NextScanAt)) {
@@ -195,7 +195,7 @@ func mailboxAttachmentConfirmPrepare(ctx context.Context, attachment *ent.MailAt
 	default:
 		return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorStateConflict)
 	}
-	if object.ActualSizeBytes != nil || len(object.SHA256) != 0 || len(attachment.SHA256) != 0 {
+	if object.ActualSizeBytes != nil || len(object.Sha256) != 0 || len(attachment.Sha256) != 0 {
 		return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorStateConflict)
 	}
 	if !object.ExpiresAt.After(databaseNow) {
@@ -248,7 +248,7 @@ func mailboxAttachmentConfirmComplete(ctx context.Context, transaction *ent.Tx, 
 	default:
 		return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorStateConflict)
 	}
-	if object.ActualSizeBytes != nil || len(object.SHA256) != 0 || len(attachment.SHA256) != 0 {
+	if object.ActualSizeBytes != nil || len(object.Sha256) != 0 || len(attachment.Sha256) != 0 {
 		return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorStateConflict)
 	}
 	if !object.ExpiresAt.After(databaseNow) {
@@ -272,14 +272,14 @@ func mailboxAttachmentConfirmComplete(ctx context.Context, transaction *ent.Tx, 
 			mailobject.UploadDrainUntilEQ(object.UploadDrainUntil),
 			mailobject.UploadStateEQ(mailobject.UploadState("pending")),
 			mailobject.ActualSizeBytesIsNil(),
-			mailobject.SHA256IsNil(),
+			mailobject.Sha256IsNil(),
 			mailobject.NextDeleteAtIsNil(),
 			mailobject.DeleteLeaseTokenIsNil(),
 			mailobject.DeleteLeaseUntilIsNil(),
 		).
 		SetUploadState(mailobject.UploadState("confirmed")).
 		SetActualSizeBytes(request.ActualSizeBytes).
-		SetSHA256(append([]byte(nil), request.ActualSHA256[:]...)).
+		SetSha256(append([]byte(nil), request.ActualSHA256[:]...)).
 		SetUpdatedAt(databaseNow).
 		Save(ctx)
 	if err != nil {
@@ -300,7 +300,7 @@ func mailboxAttachmentConfirmComplete(ctx context.Context, transaction *ent.Tx, 
 			mailattachment.EngineBlobIDIsNil(),
 			mailattachment.SizeBytesEQ(request.Fence.ExpectedSizeBytes),
 			mailattachment.ScanStatusEQ(mailattachment.ScanStatus("pending")),
-			mailattachment.SHA256IsNil(),
+			mailattachment.Sha256IsNil(),
 			mailattachment.ScanLeaseTokenIsNil(),
 			mailattachment.ScanLeaseGenerationEQ(0),
 			mailattachment.ScanLeaseUntilIsNil(),
@@ -308,7 +308,7 @@ func mailboxAttachmentConfirmComplete(ctx context.Context, transaction *ent.Tx, 
 			mailattachment.NextScanAtIsNil(),
 			mailattachment.ScanTerminalAtIsNil(),
 		).
-		SetSHA256(append([]byte(nil), request.ActualSHA256[:]...)).
+		SetSha256(append([]byte(nil), request.ActualSHA256[:]...)).
 		SetNextScanAt(object.UploadDrainUntil).
 		SetUpdatedAt(databaseNow).
 		Save(ctx)
@@ -332,11 +332,11 @@ func mailboxAttachmentConfirmFenceMatchesRows(fence *mailboxAttachmentConfirmFen
 }
 
 func mailboxAttachmentConfirmConfirmedView(attachment *ent.MailAttachment, object *ent.MailObject) (MailboxAttachmentView, bool) {
-	if !mailboxAttachmentConfirmStagedRowsValid(attachment, object) || object.UploadState != mailobject.UploadState("confirmed") || object.ActualSizeBytes == nil || *object.ActualSizeBytes != object.ExpectedSizeBytes || len(object.SHA256) != sha256.Size || len(attachment.SHA256) != sha256.Size || !bytes.Equal(object.SHA256, attachment.SHA256) {
+	if !mailboxAttachmentConfirmStagedRowsValid(attachment, object) || object.UploadState != mailobject.UploadState("confirmed") || object.ActualSizeBytes == nil || *object.ActualSizeBytes != object.ExpectedSizeBytes || len(object.Sha256) != sha256.Size || len(attachment.Sha256) != sha256.Size || !bytes.Equal(object.Sha256, attachment.Sha256) {
 		return MailboxAttachmentView{}, false
 	}
 	var digest [sha256.Size]byte
-	copy(digest[:], attachment.SHA256)
+	copy(digest[:], attachment.Sha256)
 	return mailboxAttachmentConfirmAttachmentView(attachment, digest)
 }
 

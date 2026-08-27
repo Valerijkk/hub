@@ -201,11 +201,11 @@ func mailboxAttachmentAbandonStorageRowsValid(attachment *ent.MailAttachment, ob
 	}
 	switch attachment.ScanStatus {
 	case mailattachment.ScanStatus("pending"):
-		if len(attachment.SHA256) != 0 && len(attachment.SHA256) != sha256.Size {
+		if len(attachment.Sha256) != 0 && len(attachment.Sha256) != sha256.Size {
 			return false
 		}
 	case mailattachment.ScanStatus("clean"), mailattachment.ScanStatus("rejected"), mailattachment.ScanStatus("error"):
-		if len(attachment.SHA256) != sha256.Size {
+		if len(attachment.Sha256) != sha256.Size {
 			return false
 		}
 	default:
@@ -213,9 +213,9 @@ func mailboxAttachmentAbandonStorageRowsValid(attachment *ent.MailAttachment, ob
 	}
 	switch object.UploadState {
 	case mailobject.UploadState("pending"):
-		return object.ActualSizeBytes == nil && len(object.SHA256) == 0 && len(attachment.SHA256) == 0
+		return object.ActualSizeBytes == nil && len(object.Sha256) == 0 && len(attachment.Sha256) == 0
 	case mailobject.UploadState("confirmed"):
-		return object.ActualSizeBytes != nil && *object.ActualSizeBytes == object.ExpectedSizeBytes && len(object.SHA256) == sha256.Size && len(attachment.SHA256) == sha256.Size && bytes.Equal(object.SHA256, attachment.SHA256)
+		return object.ActualSizeBytes != nil && *object.ActualSizeBytes == object.ExpectedSizeBytes && len(object.Sha256) == sha256.Size && len(attachment.Sha256) == sha256.Size && bytes.Equal(object.Sha256, attachment.Sha256)
 	default:
 		return false
 	}

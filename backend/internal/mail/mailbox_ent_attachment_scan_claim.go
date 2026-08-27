@@ -41,7 +41,7 @@ func (repository *MailboxEntRepository) claimMailboxAttachmentScans(ctx context.
 				mailboxEntAttachmentScanSkipLocked(),
 				mailattachment.StorageObjectIDNotNil(),
 				mailattachment.ScanStatusEQ(mailattachment.ScanStatus("pending")),
-				mailattachment.SHA256NotNil(),
+				mailattachment.Sha256NotNil(),
 				mailattachment.ScanTerminalAtIsNil(),
 				mailattachment.NextScanAtNotNil(),
 				mailattachment.NextScanAtLTE(selectedAt),
@@ -107,7 +107,7 @@ func (repository *MailboxEntRepository) finalizeMailboxAttachmentScan(ctx contex
 				mailattachment.EngineBlobIDIsNil(),
 				mailattachment.SizeBytesEQ(request.Item.ExpectedSizeBytes),
 				mailattachment.ScanStatusEQ(mailattachment.ScanStatus("pending")),
-				mailattachment.SHA256EQ(request.Item.ExpectedSHA256[:]),
+				mailattachment.Sha256EQ(request.Item.ExpectedSHA256[:]),
 				mailattachment.ScanTerminalAtIsNil(),
 				mailattachment.NextScanAtEQ(request.Item.DueAt),
 				mailattachment.ScanLeaseTokenEQ(request.Item.LeaseToken),
@@ -233,7 +233,7 @@ func mailboxEntAttachmentScanClaim(ctx context.Context, transaction *ent.Tx, att
 	}
 
 	var digest [sha256.Size]byte
-	copy(digest[:], attachment.SHA256)
+	copy(digest[:], attachment.Sha256)
 	item := mailboxAttachmentScanClaimedItem{
 		OrganizationID:      object.OrganizationID,
 		AccountID:           object.MailAccountID,
@@ -289,10 +289,10 @@ func mailboxEntAttachmentScanObjectAvailable(object *ent.MailObject) bool {
 }
 
 func mailboxEntAttachmentScanFinalizeRowsValid(attachment *ent.MailAttachment, object *ent.MailObject, item mailboxAttachmentScanClaimedItem, recordedAt time.Time) bool {
-	if !mailboxAttachmentScanClaimedItemValid(item) || !mailboxEntValidTime(recordedAt) || recordedAt.Before(item.AttachmentUpdatedAt) || attachment == nil || attachment.ID != item.AttachmentID || attachment.DraftClientID == nil || *attachment.DraftClientID != item.DraftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID != item.ObjectID || attachment.MailMessageID != nil || attachment.MailDraftID != nil || attachment.PendingMailDraftID != nil || attachment.EngineBlobID != nil || attachment.SizeBytes != item.ExpectedSizeBytes || attachment.ScanStatus != mailattachment.ScanStatus("pending") || !bytes.Equal(attachment.SHA256, item.ExpectedSHA256[:]) || attachment.ScanTerminalAt != nil || attachment.NextScanAt == nil || !attachment.NextScanAt.Equal(item.DueAt) || attachment.ScanLeaseToken == nil || *attachment.ScanLeaseToken != item.LeaseToken || attachment.ScanLeaseGeneration != item.LeaseGeneration || attachment.ScanLeaseUntil == nil || !attachment.ScanLeaseUntil.Equal(item.LeaseUntil) || attachment.ScanAttempts != item.Attempt || !attachment.UpdatedAt.Equal(item.AttachmentUpdatedAt) || !attachment.ScanLeaseUntil.After(recordedAt) {
+	if !mailboxAttachmentScanClaimedItemValid(item) || !mailboxEntValidTime(recordedAt) || recordedAt.Before(item.AttachmentUpdatedAt) || attachment == nil || attachment.ID != item.AttachmentID || attachment.DraftClientID == nil || *attachment.DraftClientID != item.DraftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID != item.ObjectID || attachment.MailMessageID != nil || attachment.MailDraftID != nil || attachment.PendingMailDraftID != nil || attachment.EngineBlobID != nil || attachment.SizeBytes != item.ExpectedSizeBytes || attachment.ScanStatus != mailattachment.ScanStatus("pending") || !bytes.Equal(attachment.Sha256, item.ExpectedSHA256[:]) || attachment.ScanTerminalAt != nil || attachment.NextScanAt == nil || !attachment.NextScanAt.Equal(item.DueAt) || attachment.ScanLeaseToken == nil || *attachment.ScanLeaseToken != item.LeaseToken || attachment.ScanLeaseGeneration != item.LeaseGeneration || attachment.ScanLeaseUntil == nil || !attachment.ScanLeaseUntil.Equal(item.LeaseUntil) || attachment.ScanAttempts != item.Attempt || !attachment.UpdatedAt.Equal(item.AttachmentUpdatedAt) || !attachment.ScanLeaseUntil.After(recordedAt) {
 		return false
 	}
-	if !mailboxAttachmentScanConfirmedRowsValid(attachment, object) || !mailboxEntAttachmentScanObjectAvailable(object) || object.ID != item.ObjectID || object.OrganizationID != item.OrganizationID || object.MailAccountID != item.AccountID || object.UploaderUserID != item.UploaderID || object.DraftClientID != item.DraftClientID || object.Bucket != item.Bucket || object.ObjectKey != item.ObjectKey || object.ExpectedSizeBytes != item.ExpectedSizeBytes || object.ActualSizeBytes == nil || *object.ActualSizeBytes != item.ExpectedSizeBytes || !bytes.Equal(object.SHA256, item.ExpectedSHA256[:]) || !object.ExpiresAt.Equal(item.ObjectExpiresAt) || !object.UploadDrainUntil.Equal(item.UploadDrainUntil) || !object.UpdatedAt.Equal(item.ObjectUpdatedAt) {
+	if !mailboxAttachmentScanConfirmedRowsValid(attachment, object) || !mailboxEntAttachmentScanObjectAvailable(object) || object.ID != item.ObjectID || object.OrganizationID != item.OrganizationID || object.MailAccountID != item.AccountID || object.UploaderUserID != item.UploaderID || object.DraftClientID != item.DraftClientID || object.Bucket != item.Bucket || object.ObjectKey != item.ObjectKey || object.ExpectedSizeBytes != item.ExpectedSizeBytes || object.ActualSizeBytes == nil || *object.ActualSizeBytes != item.ExpectedSizeBytes || !bytes.Equal(object.Sha256, item.ExpectedSHA256[:]) || !object.ExpiresAt.Equal(item.ObjectExpiresAt) || !object.UploadDrainUntil.Equal(item.UploadDrainUntil) || !object.UpdatedAt.Equal(item.ObjectUpdatedAt) {
 		return false
 	}
 	return attachment.CreatedAt.Before(attachment.UpdatedAt) || attachment.CreatedAt.Equal(attachment.UpdatedAt)

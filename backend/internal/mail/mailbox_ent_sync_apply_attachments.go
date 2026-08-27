@@ -122,7 +122,7 @@ func mailboxEntApplyMessageAttachments(ctx context.Context, tx *ent.Tx, accountI
 			create.SetContentID(*intent.contentID)
 		}
 		if len(intent.sha256) != 0 {
-			create.SetSHA256(append([]byte(nil), intent.sha256...))
+			create.SetSha256(append([]byte(nil), intent.sha256...))
 		}
 		if _, err := create.Save(ctx); err != nil {
 			return false, false, mailboxEntSafeError(err)
@@ -173,7 +173,7 @@ func mailboxEntApplyAttachmentIntents(desired []EngineProjectionAttachment) (map
 }
 
 func mailboxEntApplyAttachmentRowValid(row *ent.MailAttachment, messageID uuid.UUID) (bool, error) {
-	if row == nil || row.ID == uuid.Nil || row.MailMessageID == nil || *row.MailMessageID != messageID || row.MailDraftID != nil || row.CreatedAt.IsZero() || row.UpdatedAt.IsZero() || !mailboxEntApplyAttachmentOptionalTextValid(row.ContentID) || !mailboxEntApplyAttachmentTextValid(row.Filename, false) || !mailboxEntApplyAttachmentTextValid(row.MediaType, false) || row.SizeBytes < 0 || row.SizeBytes > MaxEngineAttachmentBytes || !mailboxEntApplyAttachmentDispositionValid(row.Disposition) || !mailboxEntApplyAttachmentScanStatusValid(row.ScanStatus) || (len(row.SHA256) != 0 && len(row.SHA256) != AttachmentSHA256Bytes) || ((row.ScanStatus == mailattachment.ScanStatus("clean") || row.ScanStatus == mailattachment.ScanStatus("rejected")) && len(row.SHA256) != AttachmentSHA256Bytes) {
+	if row == nil || row.ID == uuid.Nil || row.MailMessageID == nil || *row.MailMessageID != messageID || row.MailDraftID != nil || row.CreatedAt.IsZero() || row.UpdatedAt.IsZero() || !mailboxEntApplyAttachmentOptionalTextValid(row.ContentID) || !mailboxEntApplyAttachmentTextValid(row.Filename, false) || !mailboxEntApplyAttachmentTextValid(row.MediaType, false) || row.SizeBytes < 0 || row.SizeBytes > MaxEngineAttachmentBytes || !mailboxEntApplyAttachmentDispositionValid(row.Disposition) || !mailboxEntApplyAttachmentScanStatusValid(row.ScanStatus) || (len(row.Sha256) != 0 && len(row.Sha256) != AttachmentSHA256Bytes) || ((row.ScanStatus == mailattachment.ScanStatus("clean") || row.ScanStatus == mailattachment.ScanStatus("rejected")) && len(row.Sha256) != AttachmentSHA256Bytes) {
 		return false, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	if row.Disposition == mailattachment.Disposition(EngineAttachmentDispositionInline) && row.ContentID == nil {
@@ -209,7 +209,7 @@ func mailboxEntApplyAttachmentImmutableMatch(row *ent.MailAttachment, messageID 
 		row.MediaType == intent.mediaType &&
 		row.SizeBytes == intent.sizeBytes &&
 		row.Disposition == intent.disposition &&
-		bytes.Equal(row.SHA256, intent.sha256)
+		bytes.Equal(row.Sha256, intent.sha256)
 }
 
 func mailboxEntApplyAttachmentOptionalText(value string) (*string, error) {
