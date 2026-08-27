@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/mail"
+	`github.com/valerii/hub/backend/internal/mail/stalwart`
 )
 
 func TestMailboxPasswordEnrollmentService_EnrollsAndClearsOwnedPassword(t *testing.T) {
@@ -163,6 +164,49 @@ func TestMailboxPasswordEnrollmentService_MapsProviderFailuresToClosedReleaseCod
 				t.Fatalf("EnrollPassword() leaked provider/account detail: %q", err)
 			}
 		})
+	}
+}
+
+func TestMailboxPasswordEnrollmentService_MapsStalwartProviderFailuresToClosedReleaseCodes(t *testing.T) {
+	for _, testCase := range []struct {
+		kind stalwart.ErrorKind
+		code mail.MailboxPasswordEnrollmentReleaseCode
+	}{
+		{stalwart.ErrorInvalidConfiguration, mail.MailboxPasswordEnrollmentReleaseCodeRejected},
+		{stalwart.ErrorInvalidRequest, mail.MailboxPasswordEnrollmentReleaseCodeRejected},
+		{stalwart.ErrorUnauthorized, mail.MailboxPasswordEnrollmentReleaseCodeRejected},
+		{stalwart.ErrorNotFound, mail.MailboxPasswordEnrollmentReleaseCodeRejected},
+		{stalwart.ErrorPayloadTooLarge, mail.MailboxPasswordEnrollmentReleaseCodeRejected},
+		{stalwart.ErrorUnsupported, mail.MailboxPasswordEnrollmentReleaseCodeRejected},
+		{stalwart.ErrorRestartRequired, mail.MailboxPasswordEnrollmentReleaseCodeTransient},
+		{stalwart.ErrorRateLimited, mail.MailboxPasswordEnrollmentReleaseCodeTransient},
+		{stalwart.ErrorStateMismatch, mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate},
+		{stalwart.ErrorProtocol, mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate},
+		{stalwart.ErrorUnavailable, mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate},
+		{stalwart.ErrorIndeterminate, mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate},
+		{stalwart.ErrorCancelled, mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate},
+	} {
+		t.Run(string(testCase.kind), func(t *testing.T) {
+			claim := mailboxPasswordEnrollmentClaim(t, time.Now().UTC().Add(30*time.Second).Truncate(time.Second))
+			repository := &mailboxPasswordEnrollmentRepositorySpy{claimResult: claim}
+			passwords := &mailboxPasswordEnrollmentPasswordSpy{err: &stalwart.Error{Kind: testCase.kind}}
+			service := mailboxPasswordEnrollmentService(t, repository, passwords)
+			result, err := service.EnrollPassword(context.Background(), uuid.New(), []byte(`correct horse battery staple`))
+			if result != `` || !mailboxPasswordEnrollmentErrorIs(err, mail.MailboxPasswordEnrollmentErrorRetryable) || repository.releaseCalls != 1 || repository.releaseCode != testCase.code {
+				t.Fatalf(`EnrollPassword() = %q, %v, release/code = %d/%q`, result, err, repository.releaseCalls, repository.releaseCode)
+			}
+			if strings.Contains(err.Error(), string(testCase.kind)) || strings.Contains(err.Error(), `registry-account-1`) || strings.Contains(err.Error(), `correct horse battery staple`) {
+				t.Fatalf(`EnrollPassword() leaked provider, account, or password detail: %q`, err)
+			}
+		})
+	}
+	claim := mailboxPasswordEnrollmentClaim(t, time.Now().UTC().Add(30*time.Second).Truncate(time.Second))
+	repository := &mailboxPasswordEnrollmentRepositorySpy{claimResult: claim}
+	passwords := &mailboxPasswordEnrollmentPasswordSpy{err: errors.New(`future provider detail registry-account-1`)}
+	service := mailboxPasswordEnrollmentService(t, repository, passwords)
+	_, err := service.EnrollPassword(context.Background(), uuid.New(), []byte(`correct horse battery staple`))
+	if !mailboxPasswordEnrollmentErrorIs(err, mail.MailboxPasswordEnrollmentErrorRetryable) || repository.releaseCode != mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate || strings.Contains(err.Error(), `future provider detail`) {
+		t.Fatalf(`unknown provider error = %v, release=%q`, err, repository.releaseCode)
 	}
 }
 

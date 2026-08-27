@@ -8,6 +8,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+
+	`github.com/valerii/hub/backend/internal/mail/stalwart`
 )
 
 const (
@@ -397,24 +399,27 @@ func mailboxPasswordEnrollmentReleaseCode(err error) MailboxPasswordEnrollmentRe
 		return MailboxPasswordEnrollmentReleaseCodeTransient
 	}
 	var engineError *EngineError
-	if !errors.As(err, &engineError) || engineError == nil {
-		return MailboxPasswordEnrollmentReleaseCodeIndeterminate
+	if errors.As(err, &engineError) && engineError != nil {
+		switch engineError.Kind {
+		case EngineErrorRejectedPolicy, EngineErrorUnauthorizedAccount, EngineErrorNotFound, EngineErrorConflict, EngineErrorPayloadTooLarge, EngineErrorIdentityUnavailable:
+			return MailboxPasswordEnrollmentReleaseCodeRejected
+		case EngineErrorUnavailable, EngineErrorRestartRequired, EngineErrorRateLimited:
+			return MailboxPasswordEnrollmentReleaseCodeTransient
+		default:
+			return MailboxPasswordEnrollmentReleaseCodeIndeterminate
+		}
 	}
-	switch engineError.Kind {
-	case EngineErrorRejectedPolicy,
-		EngineErrorUnauthorizedAccount,
-		EngineErrorNotFound,
-		EngineErrorConflict,
-		EngineErrorPayloadTooLarge,
-		EngineErrorIdentityUnavailable:
-		return MailboxPasswordEnrollmentReleaseCodeRejected
-	case EngineErrorUnavailable,
-		EngineErrorRestartRequired,
-		EngineErrorRateLimited:
-		return MailboxPasswordEnrollmentReleaseCodeTransient
-	default:
-		return MailboxPasswordEnrollmentReleaseCodeIndeterminate
+	if providerKind, known := stalwartProviderErrorKind(err); known {
+		switch providerKind {
+		case stalwart.ErrorInvalidConfiguration, stalwart.ErrorInvalidRequest, stalwart.ErrorUnauthorized, stalwart.ErrorNotFound, stalwart.ErrorPayloadTooLarge, stalwart.ErrorUnsupported:
+			return MailboxPasswordEnrollmentReleaseCodeRejected
+		case stalwart.ErrorRestartRequired, stalwart.ErrorRateLimited:
+			return MailboxPasswordEnrollmentReleaseCodeTransient
+		default:
+			return MailboxPasswordEnrollmentReleaseCodeIndeterminate
+		}
 	}
+	return MailboxPasswordEnrollmentReleaseCodeIndeterminate
 }
 
 func validMailboxPasswordEnrollmentSecret(password []byte) bool {
