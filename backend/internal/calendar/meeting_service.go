@@ -127,7 +127,7 @@ func (service *MeetingService) CreateMeeting(ctx context.Context, actorID uuid.U
 		if persistedCall.CallID() != callID || persistedCall.Version() == 0 {
 			return ErrEventInternal
 		}
-		if err := service.appendMeetingCreateOutbox(ctx, transaction, scope, command.input, eventID, callID, attendeeRecordIDs); err != nil {
+		if err := service.appendMeetingCreateOutbox(ctx, transaction, scope, command.input, event, callID, attendeeRecordIDs); err != nil {
 			return err
 		}
 
@@ -254,65 +254,103 @@ func meetingCreateReservationOccurrences(input MeetingCreateInput, eventID uuid.
 	return occurrences, nil
 }
 
-func (service *MeetingService) appendMeetingCreateOutbox(ctx context.Context, transaction *EventTransaction, scope EventMutationScope, input MeetingCreateInput, eventID, callID uuid.UUID, attendeeRecordIDs []uuid.UUID) error {
+func (service *MeetingService) appendMeetingCreateOutbox(ctx context.Context, transaction *EventTransaction, scope EventMutationScope, input MeetingCreateInput, event CalendarEventCommand, callID uuid.UUID, attendeeRecordIDs []uuid.UUID) error {
 	occurredAt, ok := canonicalAvailabilityTime(service.clock.Now().UTC().Truncate(time.Second))
 	if !ok {
 		return ErrEventInternal
 	}
-	envelopeIDs := make([]uuid.UUID, 3)
-	seen := make(map[uuid.UUID]struct{}, len(envelopeIDs))
-	for index := range envelopeIDs {
-		envelopeIDs[index] = service.ids.NewEventID()
-		if envelopeIDs[index] == uuid.Nil {
-			return ErrEventInternal
+	eventID := event.EventID()
+	if eventID == uuid.Nil || callID == uuid.Nil {
+		return ErrEventInternal
+	}
+	seen := make(map[uuid.UUID]struct{}, 3)
+	nextEnvelopeID := func() (uuid.UUID, error) {
+		id := service.ids.NewEventID()
+		if id == uuid.Nil {
+			return uuid.Nil, ErrEventInternal
 		}
-		if _, duplicate := seen[envelopeIDs[index]]; duplicate {
-			return ErrEventInternal
+		if _, duplicate := seen[id]; duplicate {
+			return uuid.Nil, ErrEventInternal
 		}
-		seen[envelopeIDs[index]] = struct{}{}
+		seen[id] = struct{}{}
+		return id, nil
+	}
+	meetingEnvelopeID, err := nextEnvelopeID()
+	if err != nil {
+		return err
+	}
+	var sourceEnvelopeID uuid.UUID
+	if len(attendeeRecordIDs) != 0 {
+		sourceEnvelopeID, err = nextEnvelopeID()
+		if err != nil {
+			return err
+		}
+	}
+	callEnvelopeID, err := nextEnvelopeID()
+	if err != nil {
+		return err
 	}
 	actorID := scope.ActorID()
 	correlationID := eventID.String()
-	payloads := []struct {
-		subject string
-		id      uuid.UUID
-		payload any
-	}{
-		{
-			subject: "calendar.meeting.created.v1",
-			id:      envelopeIDs[0],
-			payload: meetingCalendarCreatedPayload{
-				EventID: eventID, ScheduledCallID: callID, ProjectID: input.ProjectID, ChannelID: input.ChannelID,
-				OrganizerID: actorID, AttendeeUserIDs: append([]uuid.UUID(nil), input.AttendeeUserIDs...),
-			},
+	meetingEnvelope, err := events.NewEnvelopeV1(
+		"calendar.meeting.created.v1", meetingEnvelopeID, occurredAt, scope.OrganizationID(), &actorID, correlationID,
+		meetingCalendarCreatedPayload{
+			EventID: eventID, ScheduledCallID: callID, ProjectID: input.ProjectID, ChannelID: input.ChannelID,
+			OrganizerID: actorID, AttendeeUserIDs: append([]uuid.UUID(nil), input.AttendeeUserIDs...),
 		},
-		{
-			subject: "calendar.invite.created.v1",
-			id:      envelopeIDs[1],
-			payload: calendarCreateInvitePayload{EventID: eventID, UID: "hub-" + eventID.String(), Sequence: 0, AttendeeIDs: append([]uuid.UUID(nil), attendeeRecordIDs...)},
-		},
-		{
-			subject: "calls.channel." + input.ChannelID.String() + ".scheduled_created.v1",
-			id:      envelopeIDs[2],
-			payload: meetingCallScheduledPayload{
-				ScheduledCallID: callID, CalendarEventID: eventID, ProjectID: input.ProjectID, ChannelID: input.ChannelID,
-				CreatorID: actorID, ParticipantIDs: append([]uuid.UUID(nil), input.AttendeeUserIDs...), Title: input.Title,
-				ScheduledAt: input.StartsAt, DurationMinutes: int(input.EndsAt.Sub(input.StartsAt) / time.Minute), RRULE: input.RRULE,
-			},
-		},
+	)
+	if err != nil {
+		return ErrEventInternal
 	}
-	for _, item := range payloads {
-		envelope, err := events.NewEnvelopeV1(item.subject, item.id, occurredAt, scope.OrganizationID(), &actorID, correlationID, item.payload)
+	meetingDescriptor, err := NewEventOutboxDescriptor(meetingEnvelope)
+	if err != nil {
+		return ErrEventInternal
+	}
+	if err := transaction.AppendOutbox(ctx, scope, meetingDescriptor); err != nil {
+		return err
+	}
+
+	if len(attendeeRecordIDs) != 0 {
+		eventSnapshot := event.Snapshot()
+		if eventSnapshot.EventID != eventID || eventSnapshot.OrganizerID == nil || *eventSnapshot.OrganizerID == uuid.Nil {
+			return ErrEventInternal
+		}
+		inviteEnvelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+			CalendarInviteCreatedSubjectV2, sourceEnvelopeID, occurredAt, scope.OrganizationID(), &actorID, correlationID,
+			CalendarInviteDeliveryEnvelopeV2Input{
+				EventID: eventID, EventSequence: eventSnapshot.Sequence, OrganizerID: *eventSnapshot.OrganizerID,
+				RecurrenceID: nil, AttendeeIDs: append([]uuid.UUID(nil), attendeeRecordIDs...),
+			},
+		)
 		if err != nil {
 			return ErrEventInternal
 		}
-		descriptor, err := NewEventOutboxDescriptor(envelope)
+		inviteDescriptor, err := NewEventOutboxDescriptor(inviteEnvelope)
 		if err != nil {
 			return ErrEventInternal
 		}
-		if err := transaction.AppendOutbox(ctx, scope, descriptor); err != nil {
+		if err := transaction.AppendOutbox(ctx, scope, inviteDescriptor); err != nil {
 			return err
 		}
+	}
+
+	callEnvelope, err := events.NewEnvelopeV1(
+		"calls.channel."+input.ChannelID.String()+".scheduled_created.v1", callEnvelopeID, occurredAt, scope.OrganizationID(), &actorID, correlationID,
+		meetingCallScheduledPayload{
+			ScheduledCallID: callID, CalendarEventID: eventID, ProjectID: input.ProjectID, ChannelID: input.ChannelID,
+			CreatorID: actorID, ParticipantIDs: append([]uuid.UUID(nil), input.AttendeeUserIDs...), Title: input.Title,
+			ScheduledAt: input.StartsAt, DurationMinutes: int(input.EndsAt.Sub(input.StartsAt) / time.Minute), RRULE: input.RRULE,
+		},
+	)
+	if err != nil {
+		return ErrEventInternal
+	}
+	callDescriptor, err := NewEventOutboxDescriptor(callEnvelope)
+	if err != nil {
+		return ErrEventInternal
+	}
+	if err := transaction.AppendOutbox(ctx, scope, callDescriptor); err != nil {
+		return err
 	}
 	return nil
 }
