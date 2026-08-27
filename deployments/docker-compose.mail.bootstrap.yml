@@ -1,0 +1,40 @@
+# OPERATOR-ONLY BREAK-GLASS BOOTSTRAP. This file has no network and no steady service.
+# PRECONDITION: stop the steady Stalwart service before starting this container.
+# INVOCATION: docker compose --project-name <same-project> -f deployments/docker-compose.mail.bootstrap.yml --profile bootstrap up stalwart-bootstrap
+# Use the same Compose project as production so `stalwart_data` resolves to the same
+# <project>_stalwart_data volume. Run only this file/service, never it with the prod overlay.
+# After bootstrap, stop/remove this container and remove or unset both bootstrap variables.
+# A RocksDB/database-lock failure is a failed bootstrap: never override or bypass that lock.
+services:
+  stalwart-bootstrap:
+    profiles: [bootstrap]
+    image: stalwartlabs/stalwart:v0.16.18@sha256:0df5900cab389a8ec47b7521ef0681ec93598caf72a09097685845211861f6c2
+    restart: 'no'
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    read_only: true
+    network_mode: none
+    security_opt:
+      - 'no-new-privileges:true'
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    environment:
+      STALWART_RECOVERY_MODE: '1'
+      STALWART_RECOVERY_ADMIN: '${STALWART_BOOTSTRAP_USER:?set STALWART_BOOTSTRAP_USER only for bootstrap}:${STALWART_BOOTSTRAP_PASSWORD:?set STALWART_BOOTSTRAP_PASSWORD only for bootstrap}'
+    volumes:
+      - ./stalwart/config.json:/etc/stalwart/config.json:ro
+      - stalwart_data:/var/lib/stalwart
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+volumes:
+  stalwart_data:

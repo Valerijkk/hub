@@ -1,4 +1,5 @@
-# Internal Stalwart foundation overlay. Apply after docker-compose.prod.yml.
+# Internal disabled Stalwart candidate. Apply after docker-compose.prod.yml.
+# It has no host ports and does not establish health or production acceptance.
 # Public ingress, external delivery, and OAuth activation require separate gates.
 services:
   stalwart:
@@ -12,6 +13,8 @@ services:
       - "no-new-privileges:true"
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    networks:
+      - mail_engine_internal
     expose:
       - "8080"
     volumes:
@@ -34,6 +37,8 @@ services:
     mem_limit: 1g
     cpus: 1.0
     pids_limit: 256
+    networks:
+      - mail_scan_private
     security_opt:
       - "no-new-privileges:true"
     expose:
@@ -60,56 +65,39 @@ services:
 
   backend:
     environment:
-      # Disabled by default. An explicit true still requires every value below.
+      # Disabled-only static candidate. Backend must fail closed if an explicitly
+      # enabled profile lacks required values; enabled health remains UNBOUND.
       MAILBOX_ENGINE_ENABLED: "${MAILBOX_ENGINE_ENABLED:-false}"
-      MAILBOX_ENGINE_ORIGIN: "${MAILBOX_ENGINE_ORIGIN:?set MAILBOX_ENGINE_ORIGIN to the trusted internal Stalwart origin}"
-      STALWART_PUBLIC_URL: "${STALWART_PUBLIC_URL:?set STALWART_PUBLIC_URL to the approved HTTPS mail origin}"
+      MAILBOX_ENGINE_ORIGIN: "${MAILBOX_ENGINE_ORIGIN:-}"
+      STALWART_PUBLIC_URL: "${STALWART_PUBLIC_URL:-}"
       MAILBOX_EXTERNAL_ENABLED: "false"
-      MAILBOX_EXCLUSIVE_FOLDER_WRITER: "true"
-      MAILBOX_INSTANCE_DOMAIN: "${MAILBOX_INSTANCE_DOMAIN:?set MAILBOX_INSTANCE_DOMAIN to the approved mail domain}"
-      MAILBOX_ENGINE_MAIL_AUTH_MODE: "oauth_authorization_code_pkce"
-      MAILBOX_ENGINE_OAUTH_CLIENT_ID: "${MAILBOX_ENGINE_OAUTH_CLIENT_ID:?set MAILBOX_ENGINE_OAUTH_CLIENT_ID}"
-      MAILBOX_ENGINE_OAUTH_CLIENT_SECRET: "${MAILBOX_ENGINE_OAUTH_CLIENT_SECRET:?set MAILBOX_ENGINE_OAUTH_CLIENT_SECRET from the secret store}"
-      MAILBOX_ENGINE_OAUTH_REDIRECT_URI: "${MAILBOX_ENGINE_OAUTH_REDIRECT_URI:?set MAILBOX_ENGINE_OAUTH_REDIRECT_URI to the approved HTTPS callback}"
-      MAILBOX_S3_PRESIGN_ORIGIN: "${MAILBOX_S3_PRESIGN_ORIGIN:?set MAILBOX_S3_PRESIGN_ORIGIN to the approved HTTPS origin}"
-      MAILBOX_CLAMAV_INSTREAM_ADDRESS: "clamav:3310"
-      MAILBOX_ENGINE_REGISTRY_API_KEY: "${MAILBOX_ENGINE_REGISTRY_API_KEY:?set MAILBOX_ENGINE_REGISTRY_API_KEY from the secret store}"
+      MAILBOX_EXCLUSIVE_FOLDER_WRITER: "false"
+      MAILBOX_INSTANCE_DOMAIN: "${MAILBOX_INSTANCE_DOMAIN:-}"
+      MAILBOX_ENGINE_MAIL_AUTH_MODE: "${MAILBOX_ENGINE_MAIL_AUTH_MODE:-}"
+      MAILBOX_ENGINE_OAUTH_CLIENT_ID: "${MAILBOX_ENGINE_OAUTH_CLIENT_ID:-}"
+      MAILBOX_ENGINE_OAUTH_CLIENT_SECRET: "${MAILBOX_ENGINE_OAUTH_CLIENT_SECRET:-}"
+      MAILBOX_ENGINE_OAUTH_REDIRECT_URI: "${MAILBOX_ENGINE_OAUTH_REDIRECT_URI:-}"
+      MAILBOX_S3_PRESIGN_ORIGIN: "${MAILBOX_S3_PRESIGN_ORIGIN:-}"
+      MAILBOX_CLAMAV_INSTREAM_ADDRESS: "${MAILBOX_CLAMAV_INSTREAM_ADDRESS:-clamav:3310}"
+      MAILBOX_ENGINE_REGISTRY_API_KEY: "${MAILBOX_ENGINE_REGISTRY_API_KEY:-}"
+    # Static disabled-candidate ordering only. An enabled profile remains UNBOUND
+    # until the image-specific Stalwart health contract is independently accepted.
     depends_on:
       stalwart:
         condition: service_started
       clamav:
         condition: service_healthy
+    networks:
+      - default
+      - mail_engine_internal
+      - mail_scan_private
 
-  # Operator-only recovery profile. Start only this service while steady
-  # Stalwart is stopped: both services use the same RocksDB volume.
-  stalwart-bootstrap:
-    profiles: ["bootstrap"]
-    image: stalwartlabs/stalwart:v0.16.18@sha256:0df5900cab389a8ec47b7521ef0681ec93598caf72a09097685845211861f6c2
-    restart: "no"
-    mem_limit: 512m
-    cpus: 0.5
-    pids_limit: 128
-    read_only: true
-    security_opt:
-      - "no-new-privileges:true"
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
-    environment:
-      STALWART_RECOVERY_MODE: "1"
-      STALWART_RECOVERY_ADMIN: "${STALWART_BOOTSTRAP_USER:?set STALWART_BOOTSTRAP_USER only for bootstrap}:${STALWART_BOOTSTRAP_PASSWORD:?set STALWART_BOOTSTRAP_PASSWORD only for bootstrap}"
-    volumes:
-      - ./stalwart/config.json:/etc/stalwart/config.json:ro
-      - stalwart_data:/var/lib/stalwart
-    logging:
-      driver: local
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "0.5"
+networks:
+  mail_engine_internal:
+    internal: true
+  # This ordinary private bridge is only for backend<->ClamAV and FreshClam
+  # signature-refresh egress; no other service in this overlay attaches to it.
+  mail_scan_private:
 
 volumes:
   stalwart_data:
