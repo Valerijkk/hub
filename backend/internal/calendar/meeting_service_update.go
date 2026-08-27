@@ -214,6 +214,7 @@ func meetingMutationReserveReceipt(ctx context.Context, transaction *EventTransa
 
 func (service *MeetingService) appendMeetingUpdateOutbox(ctx context.Context, transaction *EventTransaction, scope EventMutationScope, desired MeetingCreateInput, current MeetingMutationSnapshot, persisted MeetingMutationPersistenceResult, plan meetingUpdatePlan) error {
 	removedIDs := persisted.RemovedAttendeeIDs()
+	activeAttendeeIDs := persisted.ActiveAttendeeIDs()
 	sendCancel := plan.policy.CancelIntent == CancelIntentRemovedAttendees
 	if !plan.hasChanges() || (len(removedIDs) != 0) != sendCancel {
 		return ErrEventInternal
@@ -249,19 +250,21 @@ func (service *MeetingService) appendMeetingUpdateOutbox(ctx context.Context, tr
 	envelopes = append(envelopes, meetingEnvelope)
 	nextID := 1
 	if plan.policy.SendRequest {
-		inviteEnvelope, err := NewCalendarInviteUpdatedEnvelopeV1(
-			ids[nextID], occurredAt, scope.OrganizationID(), &actorID, correlationID,
-			CalendarInviteUpdatedPayload{
-				EventID: current.EventID, UID: current.UID, Sequence: persisted.Sequence(),
-				AttendeeIDs: persisted.ActiveAttendeeIDs(), ResetRSVP: plan.policy.RSVPReset != RSVPResetNone,
-				ChangedFields: append([]CalendarEventChangedField(nil), plan.changedFields...),
-			},
-		)
-		if err != nil {
-			return ErrEventInternal
-		}
-		envelopes = append(envelopes, inviteEnvelope)
+		sourceEnvelopeID := ids[nextID]
 		nextID++
+		if len(activeAttendeeIDs) != 0 {
+			inviteEnvelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+				CalendarInviteUpdatedSubjectV2, sourceEnvelopeID, occurredAt, scope.OrganizationID(), &actorID, correlationID,
+				CalendarInviteDeliveryEnvelopeV2Input{
+					EventID: current.EventID, EventSequence: persisted.Sequence(), OrganizerID: current.OwnerID,
+					RecurrenceID: nil, AttendeeIDs: activeAttendeeIDs,
+				},
+			)
+			if err != nil {
+				return ErrEventInternal
+			}
+			envelopes = append(envelopes, inviteEnvelope)
+		}
 	}
 	if plan.callChanged {
 		callEnvelope, err := events.NewEnvelopeV1(
@@ -279,16 +282,20 @@ func (service *MeetingService) appendMeetingUpdateOutbox(ctx context.Context, tr
 		nextID++
 	}
 	if sendCancel {
-		cancelled, err := NewCalendarInviteCancelledEnvelopeV1(
-			ids[nextID], occurredAt, scope.OrganizationID(), &actorID, correlationID,
-			CalendarInviteCancelledPayload{
-				EventID: current.EventID, UID: current.UID, Sequence: persisted.Sequence(), AttendeeIDs: removedIDs,
-			},
-		)
-		if err != nil {
-			return ErrEventInternal
+		sourceEnvelopeID := ids[nextID]
+		if len(removedIDs) != 0 {
+			cancelled, err := NewCalendarInviteDeliveryEnvelopeV2(
+				CalendarInviteCancelledSubjectV2, sourceEnvelopeID, occurredAt, scope.OrganizationID(), &actorID, correlationID,
+				CalendarInviteDeliveryEnvelopeV2Input{
+					EventID: current.EventID, EventSequence: persisted.Sequence(), OrganizerID: current.OwnerID,
+					RecurrenceID: nil, AttendeeIDs: removedIDs,
+				},
+			)
+			if err != nil {
+				return ErrEventInternal
+			}
+			envelopes = append(envelopes, cancelled)
 		}
-		envelopes = append(envelopes, cancelled)
 	}
 	return appendMeetingMutationOutbox(ctx, transaction, scope, envelopes)
 }
@@ -311,15 +318,22 @@ func (service *MeetingService) appendMeetingCancelOutbox(ctx context.Context, tr
 	if err != nil {
 		return ErrEventInternal
 	}
-	inviteEnvelope, err := NewCalendarInviteCancelledEnvelopeV1(
-		ids[1], occurredAt, scope.OrganizationID(), &actorID, correlationID,
-		CalendarInviteCancelledPayload{
-			EventID: current.EventID, UID: current.UID, Sequence: persisted.Sequence(),
-			AttendeeIDs: persisted.ActiveAttendeeIDs(),
-		},
-	)
-	if err != nil {
-		return ErrEventInternal
+	envelopes := make([]events.EnvelopeV1, 0, 3)
+	envelopes = append(envelopes, meetingEnvelope)
+	activeAttendeeIDs := persisted.ActiveAttendeeIDs()
+	sourceEnvelopeID := ids[1]
+	if len(activeAttendeeIDs) != 0 {
+		inviteEnvelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+			CalendarInviteCancelledSubjectV2, sourceEnvelopeID, occurredAt, scope.OrganizationID(), &actorID, correlationID,
+			CalendarInviteDeliveryEnvelopeV2Input{
+				EventID: current.EventID, EventSequence: persisted.Sequence(), OrganizerID: current.OwnerID,
+				RecurrenceID: nil, AttendeeIDs: activeAttendeeIDs,
+			},
+		)
+		if err != nil {
+			return ErrEventInternal
+		}
+		envelopes = append(envelopes, inviteEnvelope)
 	}
 	callEnvelope, err := events.NewEnvelopeV1(
 		"calls.channel."+current.ChannelID.String()+".scheduled_cancelled.v1", ids[2], occurredAt,
@@ -332,7 +346,8 @@ func (service *MeetingService) appendMeetingCancelOutbox(ctx context.Context, tr
 	if err != nil {
 		return ErrEventInternal
 	}
-	return appendMeetingMutationOutbox(ctx, transaction, scope, []events.EnvelopeV1{meetingEnvelope, inviteEnvelope, callEnvelope})
+	envelopes = append(envelopes, callEnvelope)
+	return appendMeetingMutationOutbox(ctx, transaction, scope, envelopes)
 }
 
 func (service *MeetingService) meetingMutationEnvelopeIDs(count int) ([]uuid.UUID, time.Time, error) {
