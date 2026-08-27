@@ -58,6 +58,45 @@ type Phase151ReplyCountReconciliationPlan struct {
 	RootFilter  bson.D
 }
 
+type Phase151PostCreateCompletionPlan struct {
+	Filter bson.D
+	Update bson.D
+}
+
+func ExportPhase151BuildPostCreateCompletionPlan(
+	scope AuthorizedMessageProducerScope,
+	messageID string,
+	completedAt time.Time,
+) (Phase151PostCreateCompletionPlan, error) {
+	if err := ExportPhase151ValidateTrustedMessageProducer(scope, scope.Producer); err != nil {
+		return Phase151PostCreateCompletionPlan{}, err
+	}
+	if messageID == "" || completedAt.IsZero() {
+		return Phase151PostCreateCompletionPlan{}, ErrPostCreatePipelineInvalid
+	}
+	completedAt = completedAt.UTC()
+
+	return Phase151PostCreateCompletionPlan{
+		Filter: bson.D{
+			{Key: "_id", Value: messageID},
+			{Key: "channel_id", Value: scope.ChannelID},
+			{Key: "sender_id", Value: scope.ActorID},
+			{Key: "post_create_producer_provenance", Value: newPostCreateProducerProvenance(scope)},
+			{Key: "deleted_at", Value: nil},
+			{Key: "post_create_effects_state", Value: PostCreateEffectsStatePending},
+			{Key: "post_create_effects_completed_at", Value: nil},
+			{Key: "$or", Value: bson.A{
+				bson.D{{Key: "post_create_recovery_fence", Value: bson.D{{Key: "$exists", Value: false}}}},
+				bson.D{{Key: "post_create_recovery_fence", Value: int64(0)}},
+			}},
+		},
+		Update: bson.D{{Key: "$set", Value: bson.D{
+			{Key: "post_create_effects_state", Value: PostCreateEffectsStateComplete},
+			{Key: "post_create_effects_completed_at", Value: completedAt},
+		}}},
+	}, nil
+}
+
 func ExportPhase151BuildReplyCountReconciliationPlan(
 	scope AuthorizedMessageProducerScope,
 	message *MessageDocument,
@@ -138,18 +177,14 @@ func (r *MongoRepository) CompletePostCreateEffects(
 	scope AuthorizedMessageProducerScope,
 	messageID string,
 ) (bool, error) {
-	if r == nil || r.db == nil || scope.ChannelID == uuid.Nil || messageID == "" {
+	if r == nil || r.db == nil {
 		return false, ErrPostCreatePipelineInvalid
 	}
-	completedAt := time.Now().UTC()
-	result, err := r.messages().UpdateOne(ctx, bson.D{
-		{Key: "_id", Value: messageID},
-		{Key: "channel_id", Value: scope.ChannelID},
-		{Key: "post_create_effects_state", Value: PostCreateEffectsStatePending},
-	}, bson.D{{Key: "$set", Value: bson.D{
-		{Key: "post_create_effects_state", Value: PostCreateEffectsStateComplete},
-		{Key: "post_create_effects_completed_at", Value: completedAt},
-	}}})
+	plan, err := ExportPhase151BuildPostCreateCompletionPlan(scope, messageID, time.Now())
+	if err != nil {
+		return false, err
+	}
+	result, err := r.messages().UpdateOne(ctx, plan.Filter, plan.Update)
 	if err != nil {
 		return false, err
 	}
