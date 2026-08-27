@@ -86,8 +86,8 @@ func TestMailboxBootstrapOAuthRedisStateStore_ExpiryAndConflict(t *testing.T) {
 		}
 		key := bootstrapOAuthRedisStateKey(state)
 		ttl := server.TTL(key)
-		if ttl <= 0 {
-			t.Fatalf(`SaveMailboxBootstrapOAuthState() TTL = %s; want positive`, ttl)
+		if ttl != 10*time.Minute {
+			t.Fatalf(`SaveMailboxBootstrapOAuthState() TTL = %s; want %s`, ttl, 10*time.Minute)
 		}
 		server.FastForward(ttl + time.Second)
 		_, err := store.ConsumeMailboxBootstrapOAuthState(context.Background(), state, pending.BrowserBindingHash)
@@ -117,6 +117,73 @@ func TestMailboxBootstrapOAuthRedisStateStore_ExpiryAndConflict(t *testing.T) {
 		}
 		assertMailboxBootstrapOAuthPendingEqual(t, got, first)
 	})
+}
+
+func TestMailboxBootstrapOAuthRedisStateStore_MalformedWrongBindingDeletesBeforeComparison(t *testing.T) {
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*testing.T, *miniredis.Miniredis, string)
+	}{
+		{name: `invalid UUID`, mutate: func(t *testing.T, server *miniredis.Miniredis, key string) {
+			t.Helper()
+			record := bootstrapOAuthRedisRecord(t, server, key)
+			record[`actor_id`] = `not-a-uuid`
+			setBootstrapOAuthRedisRecord(t, server, key, record)
+		}},
+		{name: `zero scope`, mutate: func(t *testing.T, server *miniredis.Miniredis, key string) {
+			t.Helper()
+			record := bootstrapOAuthRedisRecord(t, server, key)
+			record[`organization_id`] = `00000000-0000-0000-0000-000000000000`
+			setBootstrapOAuthRedisRecord(t, server, key, record)
+		}},
+		{name: `invalid opaque engine`, mutate: func(t *testing.T, server *miniredis.Miniredis, key string) {
+			t.Helper()
+			record := bootstrapOAuthRedisRecord(t, server, key)
+			record[`engine_account_id`] = `engine account`
+			setBootstrapOAuthRedisRecord(t, server, key, record)
+		}},
+		{name: `noncanonical verifier`, mutate: func(t *testing.T, server *miniredis.Miniredis, key string) {
+			t.Helper()
+			record := bootstrapOAuthRedisRecord(t, server, key)
+			record[`code_verifier`] = strings.Repeat(`B`, 86)
+			setBootstrapOAuthRedisRecord(t, server, key, record)
+		}},
+		{name: `invalid verifier`, mutate: func(t *testing.T, server *miniredis.Miniredis, key string) {
+			t.Helper()
+			record := bootstrapOAuthRedisRecord(t, server, key)
+			record[`code_verifier`] = strings.Repeat(`A`, 85)
+			setBootstrapOAuthRedisRecord(t, server, key, record)
+		}},
+		{name: `generation decimal`, mutate: func(t *testing.T, server *miniredis.Miniredis, key string) {
+			t.Helper()
+			replaceBootstrapOAuthRedisNumericField(t, server, key, `password_enrollment_generation`, `1.0`)
+		}},
+		{name: `generation exponent`, mutate: func(t *testing.T, server *miniredis.Miniredis, key string) {
+			t.Helper()
+			replaceBootstrapOAuthRedisNumericField(t, server, key, `password_enrollment_generation`, `1e0`)
+		}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			server, store := newMailboxBootstrapOAuthRedisStateStore(t)
+			state := bootstrapOAuthState()
+			pending := validMailboxBootstrapOAuthPending()
+			if err := store.SaveMailboxBootstrapOAuthState(context.Background(), state, pending); err != nil {
+				t.Fatalf(`SaveMailboxBootstrapOAuthState() error = %v`, err)
+			}
+			key := bootstrapOAuthRedisStateKey(state)
+			testCase.mutate(t, server, key)
+			wrongBinding := sha256.Sum256([]byte(`wrong-bootstrap-browser-binding`))
+
+			_, err := store.ConsumeMailboxBootstrapOAuthState(context.Background(), state, wrongBinding)
+			if !errors.Is(err, mail.ErrMailboxOAuthUnavailable) {
+				t.Fatalf(`ConsumeMailboxBootstrapOAuthState() error = %v; want unavailable`, err)
+			}
+			assertBootstrapOAuthStateErrorRedacted(t, err)
+			if server.Exists(key) {
+				t.Fatalf(`ConsumeMailboxBootstrapOAuthState() retained malformed key %q`, key)
+			}
+		})
+	}
 }
 
 func TestMailboxBootstrapOAuthRedisStateStore_DeletesMalformedVersionAndOversizePayloads(t *testing.T) {
@@ -302,6 +369,27 @@ func setBootstrapOAuthRedisRecord(t *testing.T, server *miniredis.Miniredis, key
 	if err := server.Set(key, string(payload)); err != nil {
 		t.Fatalf(`set bootstrap Redis record: %v`, err)
 	}
+}
+
+func replaceBootstrapOAuthRedisNumericField(t *testing.T, server *miniredis.Miniredis, key, field, value string) {
+	t.Helper()
+	payload, err := server.Get(key)
+	if err != nil {
+		t.Fatalf(`read bootstrap Redis record: %v`, err)
+	}
+	current := bootstrapOAuthJSONField(field, `1`)
+	replacement := bootstrapOAuthJSONField(field, value)
+	if strings.Count(payload, current) != 1 {
+		t.Fatalf(`bootstrap Redis record has %d instances of %q`, strings.Count(payload, current), current)
+	}
+	if err := server.Set(key, strings.Replace(payload, current, replacement, 1)); err != nil {
+		t.Fatalf(`set bootstrap Redis record: %v`, err)
+	}
+}
+
+func bootstrapOAuthJSONField(name, value string) string {
+	quote := string([]byte{34})
+	return quote + name + quote + `:` + value
 }
 
 func assertMailboxBootstrapOAuthPendingEqual(t *testing.T, got, want mail.MailboxBootstrapOAuthPending) {
