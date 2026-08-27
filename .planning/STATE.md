@@ -1402,3 +1402,10 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Messenger commit `44b3a95e` narrows pending recovery scans to the exact channel, live/incomplete pending rows, and durable producer-provenance version 1, preserving `created_at ASC, _id ASC`, the 500-row cap, and claim-owned lease decisions.
 - One combined isolated Docker `backend-unit` run completed with exit `0`; build, vet, unit, and race all passed without Mail overlap.
 - Both Jitsi atoms remain `UNBOUND`; LiveKit is still active. Self-hosted Jitsi deployment, public route/DTO, browser surface, media runtime, and browser E2E are `NOT_RUN`. Messenger `SendMessage` cutover remains blocked by the recovery principal, concrete scanner/scheduler composition, and retry semantics.
+
+## Session note - 2026-08-28 (typed Jitsi join projection)
+
+- Calls commit `0a332760` adds `IssueJoinCredential` on the internal Jitsi issuer. After the issuer's existing server-input/config validation, it delegates once to the private credential issuer and projects exact provider `jitsi`, canonical `Call.RoomName`, validated self-hosted public URL, and signed token into `JoinCredential`.
+- Any issuer error returns the zero typed result. The legacy token-only `Issue` behavior is unchanged.
+- The first test-only RED was invalid because of a test typo and is not counted. Its corrected replacement produced the valid missing-method RED; final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing while Mail was absent.
+- The projection remains `UNBOUND`: there is no provider factory binding, public route/DTO, frontend conference surface, self-hosted deployment, provider cutover, or live/browser runtime evidence. LiveKit remains active.

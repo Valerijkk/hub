@@ -450,3 +450,9 @@ Messenger commit `c90e75d5` adds constructor/wiring regressions for exact concre
 Focused backend units cover exact Jitsi `Call.RoomName` binding and invalid canonical-room forms (`343d1d0d`), exact equality between internal credential expiry and JWT expiry with legacy token compatibility (`366bb825`), and the exact bounded Messenger recovery-scan filter/order/limit plus fail-closed authority drift and absence of lease predicates (`44b3a95e`).
 
 One combined isolated Docker `backend-unit` run exited `0`; build, vet, unit, and race all passed without Mail overlap. Self-hosted Jitsi deployment/route/browser/media E2E, live provider runtime, live Mongo recovery, production scheduler/principal, and `SendMessage` cutover are `NOT_RUN/UNBOUND`; LiveKit remains active.
+
+## Typed Jitsi join projection evidence (2026-08-28)
+
+Commit `0a332760` is covered for exact provider/room/service-URL/token projection, a single private issuance clock call, token claim agreement, and zero-result failures for invalid server inputs. The first attempted RED contained a test typo and is not counted; the corrected replacement RED failed on the exact undefined method. Final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing while Mail was absent.
+
+No provider factory, public route/DTO, frontend, self-hosted deployment, cutover, live provider runtime, or browser E2E was exercised; these remain `UNBOUND/NOT_RUN`, and LiveKit remains active.

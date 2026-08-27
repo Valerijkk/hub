@@ -423,3 +423,7 @@ The production Messenger graph now constructs and stores the complete Phase 151 
 Jitsi issuance now treats server-owned `Call.RoomName` as provider room identity and exposes an internal typed expiry equal to the JWT expiry (`343d1d0d`, `366bb825`). These are provider-adapter seams only: LiveKit remains active and self-hosted Jitsi deployment, public routing/DTO, browser embedding, media runtime, and browser E2E are `UNBOUND/NOT_RUN`.
 
 Messenger pending recovery scans now use a pure exact Mongo plan (`44b3a95e`) for live, incomplete, provenance-v1 candidates in one authorized channel, with stable ordering and bounded limit. Lease eligibility remains the atomic claim boundary. `SendMessage` cutover and production recovery still require an explicit server-owned principal plus concrete pager, reauthorization, and scheduler composition.
+
+## Typed Jitsi join projection seam (2026-08-28)
+
+The internal Jitsi issuer now exposes `IssueJoinCredential` (`0a332760`): one private issuance call is projected into provider-neutral data containing exact provider `jitsi`, canonical `Call.RoomName`, validated self-hosted public URL, and token. Errors return a zero credential and the legacy token-only path remains unchanged. The seam is not connected to a provider factory, HTTP route/DTO, frontend, deployment, or cutover; LiveKit remains active.

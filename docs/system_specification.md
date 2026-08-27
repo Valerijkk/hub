@@ -886,3 +886,7 @@ Production Messenger construction now requires the complete post-create composit
 For Jitsi, `Call.RoomName` is the canonical provider room claim; blank, whitespace-only, and padded values are invalid, while `Call.ID` remains audit/correlation identity. The internal issued credential reports the exact UTC expiry encoded into its JWT. Commits: `343d1d0d`, `366bb825`.
 
 Messenger pending recovery candidates must match the authorized target channel, `deleted_at:nil`, pending effects state, `completed_at:nil`, and `post_create_producer_provenance.version=1`; results are ordered `created_at ASC, _id ASC` and capped at 500. The scan has no lease predicate because atomic claim acquisition decides lease eligibility (`44b3a95e`). `SendMessage`, recovery principal/scheduler, Jitsi public API/runtime, and provider cutover remain `UNBOUND`; LiveKit remains active.
+
+## Typed Jitsi join projection contract (2026-08-28)
+
+`jitsiCredentialIssuer.IssueJoinCredential` (`0a332760`) accepts only the issuer's already validated configuration and server-loaded call/user inputs, invokes private issuance once, and returns `JoinCredential{Provider:"jitsi", RoomName:call.RoomName, ServiceURL:validated self-hosted public URL, Token:signed token}`. Any failure returns the zero result; legacy token issuance is unchanged. Provider factory binding, public route/DTO, frontend/deployment integration, and cutover remain `UNBOUND`; LiveKit remains active.
