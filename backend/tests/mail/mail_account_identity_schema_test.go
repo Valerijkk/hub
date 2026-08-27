@@ -2,6 +2,7 @@ package mail_test
 
 import (
 	"crypto/sha256"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -233,6 +234,27 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		assertFieldType(t, name, fields[name], field.TypeTime)
 	}
 	assertTimestampsWithoutMixin(t, fields)
+}
+
+func TestMailAccountPasswordEnrollmentMigration_ReplacesDeletingPendingShape(t *testing.T) {
+	migrationBytes, err := os.ReadFile("../../migrations/atlas/mail-calendar-v1/20260827000000_mail_account_password_enrollment.sql")
+	if err != nil {
+		t.Fatalf("read password enrollment migration: %v", err)
+	}
+	migration := string(migrationBytes)
+	const constraintName = "mail_accounts_deleting_blocked_pending_shape"
+	drop := `DROP CONSTRAINT "mail_accounts_deleting_blocked_pending_shape"`
+	readded := `ADD CONSTRAINT "mail_accounts_deleting_blocked_pending_shape"
+    CHECK ("status" <> 'deleting' OR ("desired_enabled" = FALSE AND "password_enrollment_lease_token" IS NULL AND "password_enrollment_lease_until" IS NULL AND "sync_lease_token" IS NULL AND "sync_lease_until" IS NULL AND "mutation_lease_token" IS NULL AND "mutation_lease_until" IS NULL AND "provision_lease_token" IS NULL AND "provision_lease_until" IS NULL AND "attempted_control_generation" IS NULL AND "attempted_control_hash_version" IS NULL AND "attempted_control_hash" IS NULL AND "provision_error_code" IS NULL AND "next_provision_at" IS NOT NULL))`
+	if strings.Count(migration, drop) != 1 {
+		t.Fatalf("migration %s DROP occurrences = %d, want 1", constraintName, strings.Count(migration, drop))
+	}
+	if strings.Count(migration, readded) != 1 {
+		t.Fatalf("migration %s re-add occurrences = %d, want 1", constraintName, strings.Count(migration, readded))
+	}
+	if strings.Index(migration, drop) >= strings.Index(migration, readded) {
+		t.Fatalf("migration must DROP %s before its re-add", constraintName)
+	}
 }
 
 func TestMailIdentitySchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
