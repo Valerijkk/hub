@@ -20,6 +20,7 @@ import { MailSidebar } from "./mail-sidebar";
 import { MailComposer } from "./mail-composer";
 import { MailComposerContext } from "./mail-composer-context";
 import { mailKeys } from "./mail-query-keys";
+import { MailSetupPanel } from "./mail-setup-panel";
 
 type MailShellProps = PropsWithChildren;
 
@@ -194,6 +195,8 @@ export function MailShell({ children }: MailShellProps) {
 				</div>
 			</>
 		);
+	} else if (accountQuery.data.status === "provisioning") {
+		content = <MailSetupPanel onReady={() => void accountQuery.refetch()} />;
 	} else {
 		const state = accountStateCopy(accountQuery.data.status);
 		content = (
