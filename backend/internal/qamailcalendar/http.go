@@ -59,7 +59,30 @@ func (c *Controller) RegisterRoutes(api fiber.Router) error {
 	api.Post("/_qa/mail-calendar/fixtures", c.create)
 	api.Post("/_qa/mail-calendar/fixtures/:nonce/publish", c.publish)
 	api.Delete("/_qa/mail-calendar/fixtures/:nonce", c.delete)
+	api.Get("/_qa/mail-calendar/fixtures/:nonce/account-materialization", c.observeAccountMaterialization)
 	return nil
+}
+
+func (c *Controller) observeAccountMaterialization(ctx fiber.Ctx) error {
+	if !c.authorized(ctx) {
+		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
+	}
+
+	nonce, ok := qaFixtureMutationNonce(ctx)
+	if !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	snapshot, err := c.observeAccountMaterializationFixture(ctx.Context(), nonce)
+	if err != nil {
+		if err == errAccountMaterializationFixtureLifecycle {
+			return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
+		}
+
+		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(qaAccountMaterializationHTTPSnapshot(snapshot))
 }
 
 func (c *Controller) create(ctx fiber.Ctx) error {
