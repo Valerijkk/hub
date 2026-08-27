@@ -33,8 +33,18 @@ type accountMaterializationFixtureState string
 const (
 	accountMaterializationFixtureStateCreating      accountMaterializationFixtureState = "creating"
 	accountMaterializationFixtureStateCreated       accountMaterializationFixtureState = "created"
+	accountMaterializationFixtureStateQuiescing     accountMaterializationFixtureState = "quiescing"
+	accountMaterializationFixtureStateQuiesced      accountMaterializationFixtureState = "quiesced"
 	accountMaterializationFixtureStateDeleting      accountMaterializationFixtureState = "deleting"
 	accountMaterializationFixtureStateCleanupFailed accountMaterializationFixtureState = "cleanup_failed"
+)
+
+type accountMaterializationFixtureCleanupOrigin string
+
+const (
+	accountMaterializationFixtureCleanupOriginNone          accountMaterializationFixtureCleanupOrigin = ""
+	accountMaterializationFixtureCleanupOriginQuiesceCommit accountMaterializationFixtureCleanupOrigin = "quiesce_commit"
+	accountMaterializationFixtureCleanupOriginDeleteCommit  accountMaterializationFixtureCleanupOrigin = "delete_commit"
 )
 
 type accountMaterializationState string
@@ -50,6 +60,7 @@ type accountMaterializationFixtureRecord struct {
 	plan      accountMaterializationFixturePlan
 	persisted accountMaterializationFixturePersisted
 	state     accountMaterializationFixtureState
+	cleanupOrigin accountMaterializationFixtureCleanupOrigin
 }
 
 type accountMaterializationFixtureSnapshot struct {
