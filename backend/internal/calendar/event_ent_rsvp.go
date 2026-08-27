@@ -453,13 +453,18 @@ func (backend *eventEntTransactionBackend) persistCalendarReplyDelivery(ctx cont
 	if organizationID == uuid.Nil || !sequenceOK || !versionOK {
 		return ErrEventInvalid
 	}
+	databaseNow, err := backend.calendarInboundMessageDatabaseClock(ctx)
+	if err != nil {
+		return err
+	}
 	create := backend.tx.CalendarReplyDelivery.Create().
 		SetOrganizationID(organizationID).
 		SetCalendarEventID(eventID).
 		SetCalendarAttendeeID(attendeeID).
 		SetEventSequence(sequence).
 		SetAttendeeVersion(version).
-		SetRsvpStatus(calendarreplydelivery.RsvpStatus(status))
+		SetRsvpStatus(calendarreplydelivery.RsvpStatus(status)).
+		SetNextAttemptAt(databaseNow)
 	if recurrenceID != nil {
 		create.SetRecurrenceID(*recurrenceID)
 	}
