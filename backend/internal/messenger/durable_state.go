@@ -106,6 +106,9 @@ func ExportPhase151DurableMessageBSONFields() []string {
 	return []string{
 		"post_create_effects_state",
 		"post_create_effects_completed_at",
+		"post_create_recovery_owner_id",
+		"post_create_recovery_fence",
+		"post_create_recovery_lease_until",
 		"also_send_to_channel",
 		"resolved_mention_user_ids",
 		"client_nonce_fingerprint",

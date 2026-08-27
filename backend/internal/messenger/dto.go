@@ -201,6 +201,9 @@ type MessageDocument struct {
 	ResolvedMentionUserIDs        []uuid.UUID            `bson:"resolved_mention_user_ids,omitempty"`
 	PostCreateEffectsState        PostCreateEffectsState `bson:"post_create_effects_state,omitempty"`
 	PostCreateEffectsCompletedAt *time.Time              `bson:"post_create_effects_completed_at,omitempty"`
+	PostCreateRecoveryOwnerID uuid.UUID `bson:"post_create_recovery_owner_id,omitempty"`
+	PostCreateRecoveryFence int64 `bson:"post_create_recovery_fence,omitempty"`
+	PostCreateRecoveryLeaseUntil *time.Time `bson:"post_create_recovery_lease_until,omitempty"`
 	EditedAt        *time.Time             `bson:"edited_at,omitempty"`
 	DeletedAt       *time.Time             `bson:"deleted_at,omitempty"`
 	CreatedAt       time.Time              `bson:"created_at"`

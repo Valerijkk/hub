@@ -829,3 +829,11 @@ Authority/audience/presence/role errors return no resolved set before Mongo pers
 `NewPhase151PostCreateRepository(combined, mentions, invalidation)` requires a nonnil `CombinedRepository`, its nonnil Ent and Mongo members, and plain/typed-nonnil eligible-mention and unread-invalidation delegates. The resulting value must satisfy all seven `Phase151PostCreatePipelineRepository` ports: five promoted persistence/effect methods plus the two explicit delegated methods.
 
 Explicit delegate errors are returned without reclassification. Successful mention results are copied before return so callers cannot mutate delegate-owned state. A nil composition receiver returns `ErrPostCreatePipelineInvalid` from the two explicit methods. The contract supplies no live writer routing or recovery claim/lease/fence behavior.
+
+## Phase 151 post-create recovery claim/completion-fence contract (2026-08-27)
+
+`post_create_recovery_owner_id`, `post_create_recovery_fence`, and `post_create_recovery_lease_until` are server-owned BSON fields. A prepared create request containing any nonzero value is invalid before repository access. Fence zero means never claimed; each successful claim increments the durable `int64` value and completion does not erase it.
+
+The claim plan requires a valid trusted producer scope and an exact live pending canonical message with nonempty ID, matching channel/sender, nonzero creation time, no deletion, and no completion. Worker ID, time, and positive duration are mandatory. Time is normalized to UTC and cannot precede message creation. The predicate admits only an absent lease or a deadline `<= now`; the update sets owner/deadline and increments fence.
+
+The completion plan additionally requires exact tenant/message/channel plus nonnil owner, positive fence, and nonzero lease. Completion is valid only at/after creation and strictly before lease expiry. Its predicate repeats exact owner/fence/deadline and requires the stored deadline both equal the claim and greater than completion time. It sets state/completion timestamp and unsets owner/deadline. `ErrPostCreateRecoveryLeaseLost` classifies local expiry only; mapping a Mongo no-match to that error belongs to the unimplemented adapter.

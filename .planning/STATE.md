@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through typed nonce handling, four concrete post-create adapters, and one standalone `Phase151PostCreateRepository` composition satisfying all seven coordinator ports. Live writers and recovery remain unbound.
-**Resume:** freeze bounded recovery ownership/fencing for pending canonical creates without routing live writers. Outbox loss, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
+**Stopped at:** bounded Phase 151 units are green through the standalone seven-port post-create composition plus a durable recovery claim/completion-fence BSON plan. Live Mongo claim CAS, the claimed effect runner, producer-provenance reconstruction, and all live writers remain unbound.
+**Resume:** implement one exact Mongo claim and fenced-completion adapter over the frozen plans, returning the post-update owner/fence/lease token and mapping CAS misses without executing effects or routing live writers. Producer provenance, outbox loss, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1335,3 +1335,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - The constructor requires nonnil `CombinedRepository`, Ent and Mongo members, and plain/typed-nonnil effect delegates. Delegate errors are preserved, mention results are defensively copied, and nil receivers fail the two explicit ports closed.
 - RED kept package build green and failed vet/unit/race only on missing composition symbols. After the first GREEN, mutation review found the typed-nil dependency hole; the final sequential Docker run is green for build, vet, unit, and race with four top-level composition groups in both unit and race and no `FAIL`, panic, or `DATA RACE` markers.
 - Root review is `PASS`; independent review is `UNKNOWN` because every subagent slot is retained/exhausted. This is compile/delegation evidence only: promoted storage methods were not executed, no live producer is routed, and recovery plus live Mongo/Ent-PostgreSQL/Redis/NATS/WS/browser remain `UNBOUND/NOT_RUN`.
+
+## Session note - 2026-08-27 (Phase 151 recovery claim/completion-fence plan atom)
+
+- Canonical message documents now reserve server-owned `post_create_recovery_owner_id`, monotonic `post_create_recovery_fence`, and `post_create_recovery_lease_until` BSON fields. Client create requests carrying any of them fail before repository access.
+- `ExportPhase151BuildPostCreateRecoveryClaimPlan` accepts only an exact trusted live pending message and a nonnil worker UUID. It normalizes time to UTC, rejects a clock before `created_at`, matches an absent/expired lease, sets owner/lease, and increments the fence atomically.
+- `ExportPhase151BuildPostCreateRecoveryCompletionPlan` binds tenant/message/channel/sender plus the exact owner/fence/lease token. Completion must be at or after message creation and strictly before lease expiry; the Mongo predicate repeats the exact fence and live lease, then sets complete/completed-at and unsets owner/lease while retaining the fence.
+- Initial RED kept build green and failed vet/unit/race only on missing recovery symbols/fields. First GREEN passed. Mutation RED exposed the two chronology gaps; one separate fixed-zone assertion was correctly triaged as a test expectation bug. Final minimal-diff Docker evidence is overall/build/vet/unit/race `PASS`, with four top-level groups passing under unit and race and no `FAIL`, panic, or `DATA RACE` markers.
+- Root review is `PASS`; independent review is `UNKNOWN` because all retained subagent slots are exhausted. These are pure BSON plans only: no live `FindOneAndUpdate`, claimed effect execution, lease renewal, durable producer provenance, `qa-build`, Swagger, integration, or live store evidence exists.
