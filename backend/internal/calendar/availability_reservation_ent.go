@@ -761,7 +761,7 @@ func (backend *eventEntTransactionBackend) checkCalendarAvailabilityReservationC
 		Where(
 			scheduledcall.IsActive(true),
 			scheduledcall.DeletedAtIsNil(),
-			scheduledcall.Not(scheduledcall.HasCalendarEvent()),
+			scheduledcall.Not(scheduledcall.HasCalendarEventLink()),
 			scheduledcall.Not(scheduledcall.HasCalendarEventReference()),
 			scheduledcall.ScheduledAtLT(maximum),
 			scheduledcall.Or(

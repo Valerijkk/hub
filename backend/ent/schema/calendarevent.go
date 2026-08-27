@@ -147,12 +147,12 @@ func (CalendarEvent) Edges() []ent.Edge {
 		edge.To("organizer", User.Type).
 			Field("organizer_id").
 			Unique(),
-		edge.To("scheduled_call", ScheduledCall.Type).
+		edge.From("scheduled_call", ScheduledCall.Type).
+			Ref("calendar_event_link").
 			Field("scheduled_call_id").
 			Unique().
 			Immutable(),
-		edge.From("scheduled_call_reference", ScheduledCall.Type).
-			Ref("calendar_event_reference").
+		edge.To("scheduled_call_reference", ScheduledCall.Type).
 			Unique(),
 		edge.To("attendees", CalendarAttendee.Type),
 		edge.To("exceptions", CalendarEventException.Type),

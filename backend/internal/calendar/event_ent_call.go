@@ -79,7 +79,7 @@ func (backend *eventEntCallTransactionBackend) lockEventCall(ctx context.Context
 		return eventEntCallRows{}, calendarEntSafeError(err)
 	}
 	call, err := backend.tx.ScheduledCall.Query().
-		Where(scheduledcall.IDEQ(scheduledCallID), scheduledcall.HasCalendarEventWith(calendarevent.IDEQ(event.ID))).
+		Where(scheduledcall.IDEQ(scheduledCallID), scheduledcall.HasCalendarEventLinkWith(calendarevent.IDEQ(event.ID))).
 		ForUpdate().
 		Only(ctx)
 	if err != nil {

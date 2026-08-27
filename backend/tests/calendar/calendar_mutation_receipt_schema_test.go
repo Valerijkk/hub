@@ -154,7 +154,7 @@ func TestUserAndScheduledCall_PreserveExistingEdgesAndAddOnlyCalendarInverses(t 
 		"polls", "project_members", "project_templates", "push_subscriptions", "reactions", "recordings", "saved_filters",
 		"scheduled_calls", "sessions", "team_members", "test_case_versions", "time_logs", "mail_objects",
 	})
-	assertExactNames(t, "ScheduledCall edges", edgeNames((entschema.ScheduledCall{}).Edges()), []string{"calendar_event", "calendar_event_reference", "channel", "creator", "participants", "project"})
+	assertExactNames(t, "ScheduledCall edges", edgeNames((entschema.ScheduledCall{}).Edges()), []string{"calendar_event_link", "calendar_event_reference", "channel", "creator", "participants", "project"})
 
 	userEdges := edgeDescriptors((entschema.User{}).Edges())
 	for _, name := range []string{"calendar_events_owned", "organized_calendar_events", "calendar_attendances"} {
@@ -167,16 +167,19 @@ func TestUserAndScheduledCall_PreserveExistingEdgesAndAddOnlyCalendarInverses(t 
 	}
 
 	callEdges := edgeDescriptors((entschema.ScheduledCall{}).Edges())
-	callEdge := callEdges["calendar_event"]
-	if !callEdge.Inverse || !callEdge.Unique || callEdge.Required || callEdge.RefName != "scheduled_call" {
-		t.Fatalf("ScheduledCall.calendar_event = inverse:%t unique:%t required:%t ref:%q, want true/true/false/%q", callEdge.Inverse, callEdge.Unique, callEdge.Required, callEdge.RefName, "scheduled_call")
+	callEdge := callEdges["calendar_event_link"]
+	if callEdge == nil {
+		t.Fatal("missing ScheduledCall.calendar_event_link")
+	}
+	if callEdge.Inverse || !callEdge.Unique || callEdge.Required || callEdge.Field != "" || callEdge.RefName != "" {
+		t.Fatalf("ScheduledCall.calendar_event_link = inverse:%t unique:%t required:%t field:%q ref:%q, want false/true/false/empty/empty", callEdge.Inverse, callEdge.Unique, callEdge.Required, callEdge.Field, callEdge.RefName)
 	}
 	callReferenceEdge := callEdges["calendar_event_reference"]
 	if callReferenceEdge == nil {
 		t.Fatal("missing ScheduledCall.calendar_event_reference")
 	}
-	if callReferenceEdge.Inverse || !callReferenceEdge.Unique || callReferenceEdge.Required || !callReferenceEdge.Immutable || callReferenceEdge.Field != "calendar_event_id" {
-		t.Fatalf("ScheduledCall.calendar_event_reference = inverse:%t unique:%t required:%t immutable:%t field:%q, want false/true/false/true/%q", callReferenceEdge.Inverse, callReferenceEdge.Unique, callReferenceEdge.Required, callReferenceEdge.Immutable, callReferenceEdge.Field, "calendar_event_id")
+	if !callReferenceEdge.Inverse || !callReferenceEdge.Unique || callReferenceEdge.Required || !callReferenceEdge.Immutable || callReferenceEdge.Field != "calendar_event_id" || callReferenceEdge.RefName != "scheduled_call_reference" {
+		t.Fatalf("ScheduledCall.calendar_event_reference = inverse:%t unique:%t required:%t immutable:%t field:%q ref:%q, want true/true/false/true/%q/%q", callReferenceEdge.Inverse, callReferenceEdge.Unique, callReferenceEdge.Required, callReferenceEdge.Immutable, callReferenceEdge.Field, callReferenceEdge.RefName, "calendar_event_id", "scheduled_call_reference")
 	}
 	assertOnDelete(t, "calendar_event_reference", callReferenceEdge.Annotations, entsql.SetNull)
 
@@ -184,8 +187,8 @@ func TestUserAndScheduledCall_PreserveExistingEdgesAndAddOnlyCalendarInverses(t 
 	if referenceEdge == nil {
 		t.Fatal("missing CalendarEvent.scheduled_call_reference")
 	}
-	if !referenceEdge.Inverse || !referenceEdge.Unique || referenceEdge.Required || referenceEdge.RefName != "calendar_event_reference" {
-		t.Fatalf("CalendarEvent.scheduled_call_reference = inverse:%t unique:%t required:%t ref:%q, want true/true/false/%q", referenceEdge.Inverse, referenceEdge.Unique, referenceEdge.Required, referenceEdge.RefName, "calendar_event_reference")
+	if referenceEdge.Inverse || !referenceEdge.Unique || referenceEdge.Required || referenceEdge.Field != "" || referenceEdge.RefName != "" {
+		t.Fatalf("CalendarEvent.scheduled_call_reference = inverse:%t unique:%t required:%t field:%q ref:%q, want false/true/false/empty/empty", referenceEdge.Inverse, referenceEdge.Unique, referenceEdge.Required, referenceEdge.Field, referenceEdge.RefName)
 	}
 }
 
@@ -207,8 +210,8 @@ func TestCalendarEvent_ScheduledCallLinkRemainsOptionalImmutableOneToOne(t *test
 	if callEdge == nil {
 		t.Fatal("missing CalendarEvent.scheduled_call")
 	}
-	if callEdge.Inverse || !callEdge.Unique || !callEdge.Immutable || callEdge.Field != "scheduled_call_id" {
-		t.Fatalf("CalendarEvent.scheduled_call = inverse:%t unique:%t immutable:%t field:%q, want false/true/true/%q", callEdge.Inverse, callEdge.Unique, callEdge.Immutable, callEdge.Field, "scheduled_call_id")
+	if !callEdge.Inverse || !callEdge.Unique || !callEdge.Immutable || callEdge.Field != "scheduled_call_id" || callEdge.RefName != "calendar_event_link" {
+		t.Fatalf("CalendarEvent.scheduled_call = inverse:%t unique:%t immutable:%t field:%q ref:%q, want true/true/true/%q/%q", callEdge.Inverse, callEdge.Unique, callEdge.Immutable, callEdge.Field, callEdge.RefName, "scheduled_call_id", "calendar_event_link")
 	}
 }
 

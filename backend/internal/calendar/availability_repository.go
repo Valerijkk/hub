@@ -984,7 +984,7 @@ func availabilityLoadCallBusy(ctx context.Context, transaction *ent.Tx, preCutov
 		Where(
 			scheduledcall.IsActive(true),
 			scheduledcall.DeletedAtIsNil(),
-			scheduledcall.Not(scheduledcall.HasCalendarEvent()),
+			scheduledcall.Not(scheduledcall.HasCalendarEventLink()),
 			scheduledcall.ScheduledAtLT(query.To),
 			scheduledcall.Or(
 				scheduledcall.RruleNotNil(),
