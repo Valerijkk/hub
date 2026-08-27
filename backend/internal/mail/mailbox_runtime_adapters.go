@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 	"unicode"
@@ -28,6 +29,8 @@ type MailboxRegistryAPIKeyLookup func(context.Context) ([]byte, error)
 type mailboxSyncWorkerRuntimeTimer struct{}
 
 type stalwartMailboxRegistryAuthorizer struct{}
+
+type stalwartRegistryMailboxAuthorizer struct{}
 
 type stalwartRegistryAPIKeyAuthorizer struct {
 	origin   *url.URL
@@ -81,6 +84,38 @@ func NewStalwartMailboxRegistryAuthorizer() stalwart.RegistryAuthorizer {
 
 func (stalwartMailboxRegistryAuthorizer) AuthorizeRegistry(context.Context, *http.Request) error {
 	return stalwart.ErrUnauthorized
+}
+
+// NewStalwartRegistryClient constructs the fixed-origin Registry transport.
+// Mailbox traffic is deliberately denied because this composition has no
+// account-scoped mailbox credential boundary.
+func NewStalwartRegistryClient(origin string, httpClient *http.Client, registryAuthorizer stalwart.RegistryAuthorizer) (*stalwart.Client, error) {
+	if stalwartRegistryAuthorizerNil(registryAuthorizer) {
+		return nil, stalwart.ErrInvalidConfiguration
+	}
+	return stalwart.NewClient(stalwart.Config{
+		Origin:             origin,
+		HTTPClient:         httpClient,
+		RegistryAuthorizer: registryAuthorizer,
+		MailboxAuthorizer:  stalwartRegistryMailboxAuthorizer{},
+	})
+}
+
+func (stalwartRegistryMailboxAuthorizer) AuthorizeMailbox(context.Context, *http.Request) error {
+	return stalwart.ErrUnauthorized
+}
+
+func stalwartRegistryAuthorizerNil(authorizer stalwart.RegistryAuthorizer) bool {
+	if authorizer == nil {
+		return true
+	}
+	value := reflect.ValueOf(authorizer)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 // NewStalwartRegistryAPIKeyAuthorizer binds one scoped API-key lookup to one
@@ -226,5 +261,6 @@ func validMailboxRegistryAPIKeyRequest(request *http.Request, origin *url.URL) b
 
 var _ MailboxSyncWorkerTimer = mailboxSyncWorkerRuntimeTimer{}
 var _ stalwart.RegistryAuthorizer = stalwartMailboxRegistryAuthorizer{}
+var _ stalwart.MailboxAuthorizer = stalwartRegistryMailboxAuthorizer{}
 var _ stalwart.RegistryAuthorizer = (*stalwartRegistryAPIKeyAuthorizer)(nil)
 var _ stalwart.OAuthClientSecretProvider = (*stalwartOAuthClientSecretProvider)(nil)
