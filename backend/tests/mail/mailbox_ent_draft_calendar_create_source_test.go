@@ -110,6 +110,42 @@ func TestMailboxEntDraftCalendarCreateSourceContract(t *testing.T) {
 	}
 }
 
+func TestMailboxEntDraftCalendarCreateExistingReplayUsesPersistedMutation(t *testing.T) {
+	_, testFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller(0) failed")
+	}
+	sourcePath := filepath.Clean(filepath.Join(filepath.Dir(testFile), "..", "..", "internal", "mail", "mailbox_ent_draft_calendar_create.go"))
+	sourceBytes, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatalf("read calendar draft-create Ent source: %v", err)
+	}
+	section := mailboxEntDraftCalendarCreateClassifierSection(t, string(sourceBytes))
+
+	for _, required := range []string{
+		"mailboxEntDraftCreateSameRequest(record, request.Create, engineDraftKey)",
+		"record.ConfirmedMutationID == nil || *record.ConfirmedMutationID == uuid.Nil",
+		"record.LastMutationID == nil || *record.LastMutationID == uuid.Nil",
+		"state.BindingDigest != request.State.BindingDigest",
+		"mailboxEntDraftCreateWork(record, MailboxDraftWorkReconcileCreate)",
+		"MailboxDraftReservationReplay",
+		"MailboxDraftReservationReconcileRequired",
+		"MailboxDraftRepositoryErrorIdempotencyConflict",
+	} {
+		if !strings.Contains(section, required) {
+			t.Fatalf("existing replay classifier missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{
+		"*record.ConfirmedMutationID != request.Create.MutationID",
+		"*record.LastMutationID != request.Create.MutationID",
+	} {
+		if strings.Contains(section, forbidden) {
+			t.Fatalf("existing replay classifier compares ephemeral mutation %q", forbidden)
+		}
+	}
+}
+
 func mailboxEntDraftCalendarCreateSourceSection(t *testing.T, source, method string) string {
 	t.Helper()
 	needle := "func (repository *MailboxEntRepository) " + method
@@ -121,6 +157,21 @@ func mailboxEntDraftCalendarCreateSourceSection(t *testing.T, source, method str
 	next := strings.Index(rest, "\nfunc (repository *MailboxEntRepository) ")
 	if next < 0 {
 		return source[start:]
+	}
+	return source[start : start+len(needle)+next]
+}
+
+func mailboxEntDraftCalendarCreateClassifierSection(t *testing.T, source string) string {
+	t.Helper()
+	needle := "func mailboxEntDraftCalendarCreateClassifyExisting"
+	start := strings.Index(source, needle)
+	if start < 0 {
+		t.Fatal("calendar create existing-row classifier is absent")
+	}
+	rest := source[start+len(needle):]
+	next := strings.Index(rest, "\nfunc mailboxEntDraftCalendarCreateRecord")
+	if next < 0 {
+		t.Fatal("calendar create existing-row classifier end is absent")
 	}
 	return source[start : start+len(needle)+next]
 }

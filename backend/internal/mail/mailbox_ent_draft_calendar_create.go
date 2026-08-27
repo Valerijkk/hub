@@ -521,7 +521,7 @@ func mailboxEntDraftCalendarCreateClassifyExisting(ctx context.Context, transact
 	}
 	switch record.Status {
 	case MailboxDraftStatusActive:
-		if record.PendingCreateMIME != nil || record.ConfirmedMutationID == nil || *record.ConfirmedMutationID != request.Create.MutationID {
+		if record.PendingCreateMIME != nil || record.ConfirmedMutationID == nil || *record.ConfirmedMutationID == uuid.Nil {
 			return mailboxEntDraftCalendarCreateLogicalError(ctx, account, request.Create.Fence, databaseNow, MailboxDraftRepositoryErrorStateConflict, postCommitErr)
 		}
 		if err := mailboxEntDraftCreateRelease(ctx, account, request.Create.Fence, databaseNow); err != nil {
@@ -531,7 +531,7 @@ func mailboxEntDraftCalendarCreateClassifyExisting(ctx context.Context, transact
 		return nil
 	case MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
 		state := record.PendingCreateMIME
-		if state == nil || state.Kind != MailboxDraftCreateMIMEKindCalendar || state.BindingDigest != request.State.BindingDigest || record.LastMutationID == nil || *record.LastMutationID != request.Create.MutationID {
+		if state == nil || state.Kind != MailboxDraftCreateMIMEKindCalendar || state.BindingDigest != request.State.BindingDigest || record.LastMutationID == nil || *record.LastMutationID == uuid.Nil {
 			return mailboxEntDraftCalendarCreateLogicalError(ctx, account, request.Create.Fence, databaseNow, MailboxDraftRepositoryErrorStateConflict, postCommitErr)
 		}
 		work := mailboxEntDraftCreateWork(record, MailboxDraftWorkReconcileCreate)
