@@ -210,7 +210,7 @@ func TestCalendarDeliveryEntOccurrenceCancelSourceContract(t *testing.T) {
 		"ForUpdate()",
 		"exception.Sequence != delivery.EventSequence",
 		"*exception.Status != calendareventexception.StatusCancelled",
-		"exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil || exception.Timezone != nil",
+		"exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil || exception.Timezone != nil || exception.Location != nil",
 		"event.Status != calendarevent.StatusConfirmed && event.Status != calendarevent.StatusTentative",
 		"calendarattendee.RecurrenceIDIsNil()",
 		"if attendee.RemovedAt != nil",

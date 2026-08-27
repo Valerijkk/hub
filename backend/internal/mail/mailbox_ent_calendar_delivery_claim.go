@@ -389,7 +389,7 @@ func mailboxEntCalendarInviteOccurrenceCancelDeliveryClaimSnapshot(ctx context.C
 		Only(ctx)
 	if err != nil || exception == nil || exception.CalendarEventID != event.ID || exception.RecurrenceID != recurrenceID ||
 		exception.Sequence != delivery.EventSequence || exception.Status == nil || *exception.Status != calendareventexception.StatusCancelled ||
-		exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil || exception.Timezone != nil {
+		exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil || exception.Timezone != nil || exception.Location != nil {
 		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
 	if event.DeletedAt != nil || event.OrganizerID == nil || *event.OrganizerID == uuid.Nil || event.Sequence != delivery.EventSequence ||
