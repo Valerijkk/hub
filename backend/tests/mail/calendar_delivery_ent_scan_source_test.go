@@ -69,6 +69,7 @@ func TestCalendarDeliveryEntDueScanSourceContract(t *testing.T) {
 		"leftUUID < rightUUID",
 		"left.deliveryID.Kind() < right.deliveryID.Kind()",
 		"make([]CalendarMailDeliveryID, 0, request.Limit)",
+		"if _, duplicate := seen[candidate.deliveryID]; duplicate {\n\t\t\tcontinue\n\t\t}",
 		"mailboxEntCalendarDueScanResultCopy(result)",
 	)
 

@@ -134,7 +134,7 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 	seen := make(map[CalendarMailDeliveryID]struct{}, len(candidates))
 	for _, candidate := range candidates {
 		if _, duplicate := seen[candidate.deliveryID]; duplicate {
-			return CalendarMailDeliveryDueScanResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+			continue
 		}
 		seen[candidate.deliveryID] = struct{}{}
 		if len(result.DeliveryIDs) < request.Limit {
