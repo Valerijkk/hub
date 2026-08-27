@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/internal/calendar"
+	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
 var (
@@ -170,8 +171,8 @@ func TestEventServiceUpdateCalendarEvent_PersistsOneAtomicSafeIntentAndTombstone
 	}
 
 	outboxes := persisted.Outbox()
-	if len(outboxes) != 2 || outboxes[0].Envelope().Subject() != "calendar.invite.updated.v1" || outboxes[0].Envelope().EventID() != updateApplicationID ||
-		outboxes[1].Envelope().Subject() != "calendar.invite.cancelled.v1" || outboxes[1].Envelope().EventID() != cancelApplicationID {
+	if len(outboxes) != 2 || outboxes[0].Envelope().Subject() != calendar.CalendarInviteUpdatedSubjectV2 || outboxes[0].Envelope().EventID() != updateApplicationID ||
+		outboxes[1].Envelope().Subject() != calendar.CalendarInviteCancelledSubjectV2 || outboxes[1].Envelope().EventID() != cancelApplicationID {
 		t.Fatalf("update outbox = %#v", outboxes)
 	}
 	encoded, err := json.Marshal(outboxes[0].Envelope())
@@ -181,20 +182,8 @@ func TestEventServiceUpdateCalendarEvent_PersistsOneAtomicSafeIntentAndTombstone
 	if strings.Contains(string(encoded), "Replanned review") || strings.Contains(string(encoded), "SENSITIVE") || strings.Contains(string(encoded), "iTIP") {
 		t.Fatalf("safe update envelope leaked content: %s", encoded)
 	}
-	var envelope struct {
-		Payload struct {
-			EventID uuid.UUID `json:"event_id"`
-			Sequence uint `json:"sequence"`
-			ResetRSVP bool `json:"reset_rsvp"`
-			ChangedFields []calendar.CalendarEventChangedField `json:"changed_fields"`
-		} `json:"payload"`
-	}
-	if err := json.Unmarshal(encoded, &envelope); err != nil {
-		t.Fatalf("json.Unmarshal(update envelope) error = %v", err)
-	}
-	if envelope.Payload.EventID != updateEventID || envelope.Payload.Sequence != 8 || !envelope.Payload.ResetRSVP || len(envelope.Payload.ChangedFields) != 3 {
-		t.Fatalf("update envelope payload = %#v", envelope.Payload)
-	}
+	assertCalendarEventV2Envelope(t, outboxes[0].Envelope(), calendar.CalendarInviteUpdatedSubjectV2, updateApplicationID, updateEventID, updateActorID, 8, []uuid.UUID{mutations[1].AttendeeID})
+	assertCalendarEventV2Envelope(t, outboxes[1].Envelope(), calendar.CalendarInviteCancelledSubjectV2, cancelApplicationID, updateEventID, updateActorID, 8, []uuid.UUID{updateAttendeeID})
 }
 
 func TestEventServiceUpdateCalendarEvent_NonDisclosureRecurrenceNoopAndConflictOrdering(t *testing.T) {
@@ -558,7 +547,7 @@ func TestEventServiceCancelCalendarEvent_UsesSafeCancelledEnvelopeWithoutRecurre
 		t.Fatalf("cancel persist/outbox = %d/%d", len(backend.persisted), len(backend.persisted[0].Outbox()))
 	}
 	envelope := backend.persisted[0].Outbox()[0].Envelope()
-	if envelope.Subject() != "calendar.invite.cancelled.v1" || envelope.EventID() != cancelApplicationID {
+	if envelope.Subject() != calendar.CalendarInviteCancelledSubjectV2 || envelope.EventID() != cancelApplicationID {
 		t.Fatalf("cancel envelope subject/id = %q/%s", envelope.Subject(), envelope.EventID())
 	}
 	encoded, err := json.Marshal(envelope)
@@ -568,6 +557,7 @@ func TestEventServiceCancelCalendarEvent_UsesSafeCancelledEnvelopeWithoutRecurre
 	if strings.Contains(string(encoded), "Original title") || strings.Contains(string(encoded), "iTIP") {
 		t.Fatalf("safe cancel envelope leaked content: %s", encoded)
 	}
+	assertCalendarEventV2Envelope(t, envelope, calendar.CalendarInviteCancelledSubjectV2, cancelApplicationID, updateEventID, updateActorID, 8, []uuid.UUID{updateAttendeeID})
 }
 
 func TestCalendarInviteUpdateEnvelopeBuilders_ValidateCanonicalSafePayloads(t *testing.T) {
@@ -600,7 +590,18 @@ func TestCalendarInviteUpdateEnvelopeBuilders_ValidateCanonicalSafePayloads(t *t
 	}
 }
 
-func TestEventServiceUpdateCalendarEvent_RemovalWritesDistinctUpdatedAndCancelledIntents(t *testing.T) {
+func TestCalendarInviteDeliveryV2MasterProducerEnvelope_AcceptsSequenceZero(t *testing.T) {
+	envelope, err := calendar.NewCalendarInviteDeliveryEnvelopeV2(
+		calendar.CalendarInviteUpdatedSubjectV2, updateApplicationID, time.Date(2031, time.January, 13, 1, 2, 3, 0, time.UTC), updateOrganizationID, &updateActorID, updateEventID.String(),
+		calendar.CalendarInviteDeliveryEnvelopeV2Input{EventID: updateEventID, EventSequence: 0, OrganizerID: updateActorID, AttendeeIDs: []uuid.UUID{updateAttendeeID}},
+	)
+	if err != nil {
+		t.Fatalf("NewCalendarInviteDeliveryEnvelopeV2() error = %v", err)
+	}
+	assertCalendarEventV2Envelope(t, envelope, calendar.CalendarInviteUpdatedSubjectV2, updateApplicationID, updateEventID, updateActorID, 0, []uuid.UUID{updateAttendeeID})
+}
+
+func TestEventServiceUpdateCalendarEvent_RemovalOmitsEmptyUpdatedV2Intent(t *testing.T) {
 	for _, testCase := range []struct {
 		name string
 		input calendar.CalendarEventUpdateInput
@@ -643,51 +644,10 @@ func TestEventServiceUpdateCalendarEvent_RemovalWritesDistinctUpdatedAndCancelle
 				t.Fatalf("persisted updates = %d, want 1", len(backend.persisted))
 			}
 			outbox := backend.persisted[0].Outbox()
-			if len(outbox) != 2 || outbox[0].Envelope().Subject() != "calendar.invite.updated.v1" || outbox[0].Envelope().EventID() != updateApplicationID ||
-				outbox[1].Envelope().Subject() != "calendar.invite.cancelled.v1" || outbox[1].Envelope().EventID() != cancelApplicationID {
+			if len(outbox) != 1 || outbox[0].Envelope().Subject() != calendar.CalendarInviteCancelledSubjectV2 || outbox[0].Envelope().EventID() != cancelApplicationID {
 				t.Fatalf("removal outbox = %#v", outbox)
 			}
-			updatedJSON, err := json.Marshal(outbox[0].Envelope())
-			if err != nil { t.Fatalf("json.Marshal(updated removal envelope) error = %v", err) }
-			cancelledJSON, err := json.Marshal(outbox[1].Envelope())
-			if err != nil { t.Fatalf("json.Marshal(cancelled removal envelope) error = %v", err) }
-			var updated struct {
-				Subject string `json:"subject"`
-				Payload struct {
-					EventID uuid.UUID `json:"event_id"`
-					UID string `json:"uid"`
-					Sequence uint `json:"sequence"`
-					AttendeeIDs []uuid.UUID `json:"attendee_ids"`
-					ChangedFields []calendar.CalendarEventChangedField `json:"changed_fields"`
-				} `json:"payload"`
-			}
-			var cancelled struct {
-				Subject string `json:"subject"`
-				Payload struct {
-					EventID uuid.UUID `json:"event_id"`
-					UID string `json:"uid"`
-					Sequence uint `json:"sequence"`
-					AttendeeIDs []uuid.UUID `json:"attendee_ids"`
-				} `json:"payload"`
-			}
-			if err := json.Unmarshal(updatedJSON, &updated); err != nil { t.Fatalf("json.Unmarshal(updated removal envelope) error = %v", err) }
-			if err := json.Unmarshal(cancelledJSON, &cancelled); err != nil { t.Fatalf("json.Unmarshal(cancelled removal envelope) error = %v", err) }
-			if updated.Subject != "calendar.invite.updated.v1" || updated.Payload.EventID != updateEventID || updated.Payload.UID != "hub-"+updateEventID.String() || updated.Payload.Sequence != 8 || len(updated.Payload.AttendeeIDs) != 0 || !sameUpdateChangedFields(updated.Payload.ChangedFields, testCase.wantFields) {
-				t.Fatalf("updated removal JSON = %s", updatedJSON)
-			}
-			if cancelled.Subject != "calendar.invite.cancelled.v1" || cancelled.Payload.EventID != updateEventID || cancelled.Payload.UID != "hub-"+updateEventID.String() || cancelled.Payload.Sequence != 8 || len(cancelled.Payload.AttendeeIDs) != 1 || cancelled.Payload.AttendeeIDs[0] != updateAttendeeID {
-				t.Fatalf("cancelled removal JSON = %s", cancelledJSON)
-			}
-			fieldsJSON, err := json.Marshal(testCase.wantFields)
-			if err != nil { t.Fatalf("json.Marshal(changed fields) error = %v", err) }
-			wantUpdatedJSON := `{"subject":"calendar.invite.updated.v1","schema_version":1,"event_id":"` + updateApplicationID.String() + `","occurred_at":"2031-01-14T01:02:03Z","organization_id":"` + updateOrganizationID.String() + `","actor_id":"` + updateActorID.String() + `","correlation_id":"` + updateEventID.String() + `","payload":{"event_id":"` + updateEventID.String() + `","uid":"hub-` + updateEventID.String() + `","sequence":8,"attendee_ids":[],"reset_rsvp":false,"changed_fields":` + string(fieldsJSON) + `}}`
-			wantCancelledJSON := `{"subject":"calendar.invite.cancelled.v1","schema_version":1,"event_id":"` + cancelApplicationID.String() + `","occurred_at":"2031-01-14T01:02:03Z","organization_id":"` + updateOrganizationID.String() + `","actor_id":"` + updateActorID.String() + `","correlation_id":"` + updateEventID.String() + `","payload":{"event_id":"` + updateEventID.String() + `","uid":"hub-` + updateEventID.String() + `","sequence":8,"attendee_ids":["` + updateAttendeeID.String() + `"]}}`
-			if string(updatedJSON) != wantUpdatedJSON || string(cancelledJSON) != wantCancelledJSON {
-				t.Fatalf("exact removal envelope JSON = updated:%s cancelled:%s", updatedJSON, cancelledJSON)
-			}
-			if strings.Contains(string(updatedJSON), "Original title") || strings.Contains(string(cancelledJSON), "Original title") || strings.Contains(string(updatedJSON), "iTIP") || strings.Contains(string(cancelledJSON), "iTIP") {
-				t.Fatalf("removal intent leaked content: updated=%s cancelled=%s", updatedJSON, cancelledJSON)
-			}
+			assertCalendarEventV2Envelope(t, outbox[0].Envelope(), calendar.CalendarInviteCancelledSubjectV2, cancelApplicationID, updateEventID, updateActorID, 8, []uuid.UUID{updateAttendeeID})
 		})
 	}
 }
@@ -974,6 +934,30 @@ func TestEventServiceUpdateCalendarEvent_ReinviteReplacementAndWriteFailureRollb
 	}))
 	if !errors.Is(err, calendar.ErrEventInvalid) || strings.Contains(err.Error(), "SENSITIVE-UPDATE-WRITE-ERROR") || len(backend.persisted) != 0 {
 		t.Fatalf("write failure error/writes = %v/%d", err, len(backend.persisted))
+	}
+}
+
+func assertCalendarEventV2Envelope(t *testing.T, envelope events.EnvelopeV1, wantSubject string, wantSourceID, wantEventID, wantOrganizerID uuid.UUID, wantSequence uint, wantAttendeeIDs []uuid.UUID) {
+	t.Helper()
+	if envelope.Subject() != wantSubject || envelope.EventID() != wantSourceID {
+		t.Fatalf("V2 envelope subject/source = %q/%s, want %q/%s", envelope.Subject(), envelope.EventID(), wantSubject, wantSourceID)
+	}
+	payload, err := calendar.DecodeCalendarInviteDeliveryEnvelopeV2(envelope)
+	if err != nil {
+		t.Fatalf("DecodeCalendarInviteDeliveryEnvelopeV2() error = %v", err)
+	}
+	if payload.EventID != wantEventID || payload.EventSequence != wantSequence || payload.OrganizerID != wantOrganizerID || payload.RecurrenceID != nil || len(payload.Deliveries) != len(wantAttendeeIDs) {
+		t.Fatalf("V2 payload = %#v", payload)
+	}
+	namespace := uuid.NewSHA1(uuid.NameSpaceURL, []byte("hub.calendar.invite-delivery.id.v1"))
+	wantDeliveries := make(map[uuid.UUID]uuid.UUID, len(wantAttendeeIDs))
+	for _, attendeeID := range wantAttendeeIDs {
+		wantDeliveries[attendeeID] = uuid.NewSHA1(namespace, []byte(wantSourceID.String()+"/"+attendeeID.String()))
+	}
+	for _, delivery := range payload.Deliveries {
+		if inviteID, found := wantDeliveries[delivery.AttendeeID]; !found || delivery.InviteID != inviteID {
+			t.Fatalf("V2 deterministic delivery = %#v", delivery)
+		}
 	}
 }
 

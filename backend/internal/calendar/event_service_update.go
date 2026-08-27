@@ -480,13 +480,22 @@ func (service *EventService) CancelCalendarEvent(ctx context.Context, actorID, e
 		if applicationEventID == uuid.Nil { return ErrEventInvalid }
 		attendeeIDs := calendarEventUpdateActiveAttendeeIDs(authorization.Attendees, scope.ActorID())
 		actor := scope.ActorID()
-		envelope, err := NewCalendarInviteCancelledEnvelopeV1(applicationEventID, service.clock.Now().UTC(), scope.OrganizationID(), &actor, eventID.String(), CalendarInviteCancelledPayload{
-			EventID: eventID, UID: updated.UID, Sequence: updated.Sequence, AttendeeIDs: attendeeIDs,
-		})
-		if err != nil { return err }
-		descriptor, err := NewEventOutboxDescriptor(envelope)
-		if err != nil { return err }
-		persistence, err := NewCalendarEventUpdatePersistenceCommand(event, expectedVersion, nil, []EventOutboxDescriptor{descriptor})
+		outbox := make([]EventOutboxDescriptor, 0, 1)
+		if len(attendeeIDs) != 0 {
+			if updated.OrganizerID == nil || *updated.OrganizerID == uuid.Nil { return ErrEventInvalid }
+			envelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+				CalendarInviteCancelledSubjectV2, applicationEventID, service.clock.Now().UTC(), scope.OrganizationID(), &actor, eventID.String(),
+				CalendarInviteDeliveryEnvelopeV2Input{
+					EventID: eventID, EventSequence: updated.Sequence, OrganizerID: *updated.OrganizerID,
+					RecurrenceID: nil, AttendeeIDs: attendeeIDs,
+				},
+			)
+			if err != nil { return err }
+			descriptor, err := NewEventOutboxDescriptor(envelope)
+			if err != nil { return err }
+			outbox = append(outbox, descriptor)
+		}
+		persistence, err := NewCalendarEventUpdatePersistenceCommand(event, expectedVersion, nil, outbox)
 		if err != nil { return err }
 		persisted, err := transaction.PersistCalendarEventUpdate(ctx, scope, persistence)
 		if err != nil { return err }
@@ -838,19 +847,28 @@ func calendarEventUpdateOutbox(updatedEventID uuid.UUID, cancelledEventID uuid.U
 	if updatedEventID == uuid.Nil && cancelledEventID == uuid.Nil { return nil, nil }
 	actor := scope.ActorID()
 	descriptors := make([]EventOutboxDescriptor, 0, 2)
-	if updatedEventID != uuid.Nil {
-		envelope, err := NewCalendarInviteUpdatedEnvelopeV1(updatedEventID, clock.Now().UTC(), scope.OrganizationID(), &actor, updated.EventID.String(), CalendarInviteUpdatedPayload{
-			EventID: updated.EventID, UID: updated.UID, Sequence: updated.Sequence, AttendeeIDs: activeAttendeeIDs, ResetRSVP: policy.RSVPReset != RSVPResetNone, ChangedFields: fields,
-		})
+	if updated.OrganizerID == nil || *updated.OrganizerID == uuid.Nil { return nil, ErrEventInvalid }
+	if updatedEventID != uuid.Nil && len(activeAttendeeIDs) != 0 {
+		envelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+			CalendarInviteUpdatedSubjectV2, updatedEventID, clock.Now().UTC(), scope.OrganizationID(), &actor, updated.EventID.String(),
+			CalendarInviteDeliveryEnvelopeV2Input{
+				EventID: updated.EventID, EventSequence: updated.Sequence, OrganizerID: *updated.OrganizerID,
+				RecurrenceID: nil, AttendeeIDs: activeAttendeeIDs,
+			},
+		)
 		if err != nil { return nil, err }
 		descriptor, err := NewEventOutboxDescriptor(envelope)
 		if err != nil { return nil, err }
 		descriptors = append(descriptors, descriptor)
 	}
-	if cancelledEventID != uuid.Nil {
-		envelope, err := NewCalendarInviteCancelledEnvelopeV1(cancelledEventID, clock.Now().UTC(), scope.OrganizationID(), &actor, updated.EventID.String(), CalendarInviteCancelledPayload{
-			EventID: updated.EventID, UID: updated.UID, Sequence: updated.Sequence, AttendeeIDs: removedAttendeeIDs,
-		})
+	if cancelledEventID != uuid.Nil && len(removedAttendeeIDs) != 0 {
+		envelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+			CalendarInviteCancelledSubjectV2, cancelledEventID, clock.Now().UTC(), scope.OrganizationID(), &actor, updated.EventID.String(),
+			CalendarInviteDeliveryEnvelopeV2Input{
+				EventID: updated.EventID, EventSequence: updated.Sequence, OrganizerID: *updated.OrganizerID,
+				RecurrenceID: nil, AttendeeIDs: removedAttendeeIDs,
+			},
+		)
 		if err != nil { return nil, err }
 		descriptor, err := NewEventOutboxDescriptor(envelope)
 		if err != nil { return nil, err }
