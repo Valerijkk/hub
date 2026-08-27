@@ -112,7 +112,7 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 		"func mailboxEntSubmissionRecoveryDraftError",
 	)
 	leaseState := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
-		"func mailboxEntSubmissionRecoveryLeaseState",
+		"func mailboxEntSubmissionRecoveryClassifyLeaseState",
 		"func mailboxEntSubmissionRecoveryReleasedStateValid",
 	)
 	releasedState := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
@@ -168,7 +168,7 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 		"transaction.MailSubmission.Query()",
 		"transaction.MailDraft.Query()",
 		"mailboxEntDatabaseWallClock",
-		"mailboxEntSubmissionRecoveryLeaseState",
+		"mailboxEntSubmissionRecoveryClassifyLeaseState",
 		"mailboxEntSubmissionRecoveryReleasedStateValid",
 		"mailboxEntSubmissionRecoveryCurrentStateValid",
 		"mailboxEntSubmissionRecoveryDualFenceShapeMatches",

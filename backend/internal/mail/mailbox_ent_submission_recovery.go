@@ -139,7 +139,7 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 		}
-		switch mailboxEntSubmissionRecoveryLeaseState(account, submission) {
+		switch mailboxEntSubmissionRecoveryClassifyLeaseState(account, submission) {
 		case mailboxEntSubmissionRecoveryLeaseStateReleased:
 			if !mailboxEntSubmissionRecoveryReleasedStateValid(submission) {
 				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
@@ -270,7 +270,7 @@ const (
 	mailboxEntSubmissionRecoveryLeaseStateConflict
 )
 
-func mailboxEntSubmissionRecoveryLeaseState(account *ent.MailAccount, submission *ent.MailSubmission) mailboxEntSubmissionRecoveryLeaseState {
+func mailboxEntSubmissionRecoveryClassifyLeaseState(account *ent.MailAccount, submission *ent.MailSubmission) mailboxEntSubmissionRecoveryLeaseState {
 	if account == nil || submission == nil ||
 		(account.MutationLeaseToken == nil) != (account.MutationLeaseUntil == nil) ||
 		(submission.CommandLeaseToken == nil) != (submission.CommandLeaseExpiresAt == nil) {
