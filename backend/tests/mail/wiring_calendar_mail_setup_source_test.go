@@ -39,6 +39,7 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		"!publicURLPresent || stalwartPublicURL == \"\"",
 		"IssuerOrigin:         stalwartPublicURL",
 		"ResourceOrigin:       stalwartPublicURL",
+		"TransportOrigin:      mailboxEngineConfig.Origin",
 		"mailmod.NewMailboxOAuthService(mailboxRepo, oauthStates, oauthClient, oauthAccountProof, d.integrationCipher, serverUTCClock{}, stalwartPublicURL)",
 		"mailmod.NewStalwartMailboxAuthorizerSource(stalwartPublicURL, mailboxRepo, mailboxOAuthService, d.integrationCipher, serverUTCClock{})",
 		"MAILBOX_ENGINE_REGISTRY_API_KEY",
@@ -88,6 +89,7 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		"mailboxSetupStatusHandler.RegisterRoutes(d.api, d.requireAuth)",
 		"mailboxEngineConfig, err := mailmod.ParseMailboxEngineConfig(os.LookupEnv)",
 		"if !mailboxEngineConfig.Enabled {",
+		"oauthClient, err := stalwartmod.NewOAuthClient",
 	)
 	requireMailboxCalendarMailWiringOrdered(t, source,
 		"managementRegistryAuthorizer, err := mailmod.NewStalwartRegistryAPIKeyAuthorizer",

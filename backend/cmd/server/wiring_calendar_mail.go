@@ -226,6 +226,7 @@ func wireCalendarMail(d *serverDeps) {
 	oauthClient, err := stalwartmod.NewOAuthClient(stalwartmod.OAuthConfig{
 		IssuerOrigin:         stalwartPublicURL,
 		ResourceOrigin:       stalwartPublicURL,
+		TransportOrigin:      mailboxEngineConfig.Origin,
 		ClientID:             oauthClientID,
 		ClientSecretProvider: oauthClientSecretProvider,
 		RedirectURI:          oauthRedirectURI,
