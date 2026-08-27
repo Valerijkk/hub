@@ -19,6 +19,7 @@ type jitsiCredentialIssuer struct {
 	appID      string
 	appSecret  []byte
 	now        func() time.Time
+	publicURL  string
 	xmppDomain string
 }
 
@@ -54,6 +55,7 @@ func newJitsiCredentialIssuer(cfg config.JitsiConfig, now func() time.Time) (*ji
 		appID:      cfg.AppID,
 		appSecret:  append([]byte(nil), []byte(cfg.AppSecret)...),
 		now:        now,
+		publicURL:  cfg.PublicURL,
 		xmppDomain: cfg.XMPPDomain,
 	}, nil
 }
@@ -67,6 +69,19 @@ func (i *jitsiCredentialIssuer) Issue(call *ent.Call, authenticatedUserID uuid.U
 	return credential.Token, nil
 }
 
+// IssueJoinCredential creates provider-neutral Jitsi join data for a server-loaded active call.
+func (i *jitsiCredentialIssuer) IssueJoinCredential(call *ent.Call, authenticatedUserID uuid.UUID, serverKnownUserName string) (JoinCredential, error) {
+	issued, err := i.issueCredential(call, authenticatedUserID, serverKnownUserName)
+	if err != nil {
+		return JoinCredential{}, err
+	}
+	return JoinCredential{
+		Provider:   "jitsi",
+		RoomName:   call.RoomName,
+		ServiceURL: i.publicURL,
+		Token:      issued.Token,
+	}, nil
+}
 func (i *jitsiCredentialIssuer) issueCredential(call *ent.Call, authenticatedUserID uuid.UUID, serverKnownUserName string) (jitsiIssuedCredential, error) {
 	if call == nil {
 		return jitsiIssuedCredential{}, errors.New("cannot issue Jitsi credential without a call")

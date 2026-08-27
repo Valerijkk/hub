@@ -266,6 +266,82 @@ func TestJitsiCredentialIssuerCapturesExpiryOnceAndReturnsSameJWTInstant(t *test
 	assert.True(t, claims.ExpiresAt.Time.Equal(credential.ExpiresAt))
 }
 
+func TestJitsiCredentialIssuerIssuesProviderNeutralJoinCredential(t *testing.T) {
+	cfg := validJitsiIssuerConfig()
+	clockCalls := 0
+	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
+		clockCalls++
+		return fixedJitsiIssueTime
+	})
+	require.NoError(t, err)
+	callEntity := activeJitsiCall()
+	callEntity.RoomName = "hub-call-room-42"
+	authenticatedUserID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+
+	credential, err := issuer.IssueJoinCredential(callEntity, authenticatedUserID, "Ada Lovelace")
+
+	require.NoError(t, err)
+	assert.Equal(t, "jitsi", credential.Provider)
+	assert.Equal(t, callEntity.RoomName, credential.RoomName)
+	assert.NotEqual(t, callEntity.ID.String(), credential.RoomName)
+	assert.Equal(t, cfg.PublicURL, credential.ServiceURL)
+	require.NotEmpty(t, credential.Token)
+	assert.Equal(t, 1, clockCalls)
+
+	parsedToken, claims, err := inspectJitsiIssuerToken(
+		credential.Token,
+		cfg.AppSecret,
+		fixedJitsiIssueTime.Add(time.Minute),
+		cfg,
+		callEntity.RoomName,
+		authenticatedUserID,
+		"Ada Lovelace",
+	)
+	require.NoError(t, err)
+	require.True(t, parsedToken.Valid)
+	assert.Equal(t, credential.RoomName, claims.Room)
+}
+
+func TestJitsiCredentialIssuerJoinCredentialReturnsZeroResultForInvalidServerInputs(t *testing.T) {
+	cfg := validJitsiIssuerConfig()
+	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
+		return fixedJitsiIssueTime
+	})
+	require.NoError(t, err)
+	validCall := activeJitsiCall()
+	validUserID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+
+	tests := []struct {
+		name     string
+		call     *ent.Call
+		userID   uuid.UUID
+		userName string
+	}{
+		{name: "nil call", call: nil, userID: validUserID, userName: "Ada Lovelace"},
+		{
+			name: "inactive call",
+			call: &ent.Call{
+				ID:       validCall.ID,
+				RoomName: validCall.RoomName,
+				Status:   entcall.StatusEnded,
+			},
+			userID:   validUserID,
+			userName: "Ada Lovelace",
+		},
+		{name: "zero authenticated user", call: validCall, userID: uuid.Nil, userName: "Ada Lovelace"},
+		{name: "blank server-known name", call: validCall, userID: validUserID, userName: " \t\r\n "},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			credential, err := issuer.IssueJoinCredential(testCase.call, testCase.userID, testCase.userName)
+
+			requireCredentialSafeError(t, err, cfg.AppSecret)
+			assert.Equal(t, calls.JoinCredential{}, credential)
+		})
+	}
+}
+
 func TestJitsiCredentialIssuerBindsClaimsToExactCallAndAuthenticatedUser(t *testing.T) {
 	cfg := validJitsiIssuerConfig()
 	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
