@@ -268,6 +268,8 @@ func TestNewEnvelopeV1_SubjectContract(t *testing.T) {
 	validMultibyte255 := strings.Repeat("é", 124) + "😀.v1"
 	valid := []string{
 		"calendar.meeting.rsvp.changed.v1",
+		"calendar.invite.created.v2",
+		"calendar.invite.updated.v12",
 		"a.v1",
 		validASCII255,
 		validMultibyte255,
@@ -312,6 +314,10 @@ func TestNewEnvelopeV1_SubjectContract(t *testing.T) {
 		{name: "missing-version", subject: "calendar.meeting.changed"},
 		{name: "wrong-version-case", subject: "calendar.meeting.V1"},
 		{name: "version-not-token", subject: "calendar.meetingv1"},
+		{name: "zero-version", subject: "calendar.meeting.v0"},
+		{name: "leading-zero-version", subject: "calendar.meeting.v01"},
+		{name: "signed-version", subject: "calendar.meeting.v-1"},
+		{name: "version-suffix", subject: "calendar.meeting.v1x"},
 	}
 
 	for _, testCase := range invalid {

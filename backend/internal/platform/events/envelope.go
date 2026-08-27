@@ -131,16 +131,29 @@ func validSubject(subject string) bool {
 	if !utf8.ValidString(subject) || len(subject) == 0 || len(subject) > maxSubjectBytes {
 		return false
 	}
-	if !strings.HasSuffix(subject, ".v1") {
+	tokens := strings.Split(subject, ".")
+	if len(tokens) < 2 || !validSubjectVersionToken(tokens[len(tokens)-1]) {
 		return false
 	}
-	for _, token := range strings.Split(subject, ".") {
+	for _, token := range tokens {
 		if token == "" {
 			return false
 		}
 	}
 	for _, r := range subject {
 		if r == '*' || r == '>' || unicode.IsSpace(r) || unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func validSubjectVersionToken(token string) bool {
+	if len(token) < 2 || token[0] != 'v' || token[1] < '1' || token[1] > '9' {
+		return false
+	}
+	for _, character := range token[2:] {
+		if character < '0' || character > '9' {
 			return false
 		}
 	}
