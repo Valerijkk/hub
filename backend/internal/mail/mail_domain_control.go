@@ -293,7 +293,13 @@ func validMailDomainControlDigest(value []byte) bool {
 }
 
 func validMailDomainControlCreateResult(result MailDomainControlCreateResult, canonicalDomain string) bool {
-	return validMailDomainControlView(result.Domain) && result.Domain.Domain == canonicalDomain && result.Domain.State == "pending" && result.Domain.VerificationStatus == "pending" && result.Domain.DKIMStatus == "unknown" && !result.Domain.IsDefault && len(result.Domain.RequiredDNSRecords) == 0
+	if !validMailDomainControlView(result.Domain) || result.Domain.Domain != canonicalDomain {
+		return false
+	}
+	if result.Replayed {
+		return true
+	}
+	return result.Domain.State == "pending" && result.Domain.VerificationStatus == "pending" && result.Domain.DKIMStatus == "unknown" && !result.Domain.IsDefault && len(result.Domain.RequiredDNSRecords) == 0
 }
 
 func validMailDomainControlVerifiedView(view MailDomainControlView) bool {

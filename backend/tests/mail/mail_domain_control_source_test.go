@@ -75,4 +75,7 @@ func TestMailDomainControlCoreSourceContract(t *testing.T) {
 			t.Fatalf("safe view is missing %q", required)
 		}
 	}
+	if !strings.Contains(source, "if result.Replayed {\n\t\treturn true\n\t}") {
+		t.Fatal("replay result must accept a current safe post-advancement domain view")
+	}
 }

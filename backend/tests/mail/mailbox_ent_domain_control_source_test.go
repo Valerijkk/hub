@@ -45,6 +45,8 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 	setDefault := mailboxEntDomainControlSourceSlice(t, source, "func (repository *MailboxEntRepository) SetDefaultMailDomain", "func mailDomainControlResolveActorOrganizationForUpdate")
 	fresh := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlCreateFresh", "func mailDomainControlReceiptReplayKind")
 	replay := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlReplayCreate", "func mailDomainControlCreateFresh")
+	replayTarget := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlReplayTargetValid", "func mailDomainControlVerifiedEntRowValid")
+	verified := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlVerifiedEntRowValid", "func mailDomainControlEntRowValid")
 
 	for _, part := range []string{create, list, setDefault} {
 		for _, required := range []string{"repository.withMailboxEntTransaction", "mailboxEntDatabaseWallClock", "mailDomainControlResolveActorOrganizationForUpdate", "ForUpdate()"} {
@@ -77,7 +79,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 	for _, required := range []string{
 		"!bytes.Equal(receipt.RequestHash, request.RequestHash[:])",
 		"MailDomainControlErrorConflict",
-		"mailDomainControlPendingReplayRowValid",
+		"mailDomainControlReplayTargetValid",
 		"maildomain.IDEQ(*receipt.TargetID)",
 		"maildomain.OrganizationIDEQ(organizationID)",
 	} {
@@ -86,8 +88,25 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
+		"mailDomainControlEntRowValid(domain, organizationID)",
+		"domain.ID == request.DomainID",
+		"domain.Domain == request.CanonicalDomain",
+		"domain.EngineProvisioningKey == request.ProvisioningKey",
+		"domain.DeletedAt == nil",
+	} {
+		if !strings.Contains(replayTarget, required) {
+			t.Fatalf("advanced replay target validation is missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{"mailDomainControlPendingReplayRowValid", "domain.CreatedAt.Equal(domain.UpdatedAt)", "domain.State !="} {
+		if strings.Contains(replayTarget, forbidden) {
+			t.Fatalf("advanced replay target validation must not require %q", forbidden)
+		}
+	}
+	for _, required := range []string{
 		"maildomain.StateEQ(maildomain.State(" + "\x22verified\x22" + "))",
 		"maildomain.VerificationStatusEQ(maildomain.VerificationStatus(" + "\x22verified\x22" + "))",
+		"maildomain.DKIMStatusEQ(maildomain.DKIMStatus(" + "\x22valid\x22" + "))",
 		"maildomain.DesiredPresentEQ(true)",
 		"maildomain.EnabledEQ(true)",
 		"maildomain.DeletedAtIsNil()",
@@ -98,6 +117,16 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 	} {
 		if !strings.Contains(setDefault, required) {
 			t.Fatalf("set-default is missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"domain.DKIMStatus != maildomain.DKIMStatus(" + "\x22valid\x22" + ")",
+		"*domain.DeployedGeneration != domain.DesiredGeneration",
+		"*domain.DeployedHashVersion != domain.DesiredHashVersion",
+		"subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1",
+	} {
+		if !strings.Contains(verified, required) {
+			t.Fatalf("locked default validator is missing %q", required)
 		}
 	}
 	mailboxEntDomainControlRequireOrdered(t, setDefault, "SetIsDefault(false)", "SetIsDefault(true)")

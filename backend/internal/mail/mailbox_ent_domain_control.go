@@ -137,6 +137,7 @@ func (repository *MailboxEntRepository) SetDefaultMailDomain(ctx context.Context
 				maildomain.EnabledEQ(true),
 				maildomain.StateEQ(maildomain.State("verified")),
 				maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
+				maildomain.DKIMStatusEQ(maildomain.DKIMStatus("valid")),
 				maildomain.DeletedAtIsNil(),
 			).
 			ForUpdate().
@@ -187,6 +188,7 @@ func (repository *MailboxEntRepository) SetDefaultMailDomain(ctx context.Context
 					maildomain.EnabledEQ(true),
 					maildomain.StateEQ(maildomain.State("verified")),
 					maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
+					maildomain.DKIMStatusEQ(maildomain.DKIMStatus("valid")),
 					maildomain.DeletedAtIsNil(),
 				).
 				SetIsDefault(false).
@@ -209,6 +211,7 @@ func (repository *MailboxEntRepository) SetDefaultMailDomain(ctx context.Context
 				maildomain.EnabledEQ(true),
 				maildomain.StateEQ(maildomain.State("verified")),
 				maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
+				maildomain.DKIMStatusEQ(maildomain.DKIMStatus("valid")),
 				maildomain.DeletedAtIsNil(),
 			).
 			SetIsDefault(true).
@@ -273,7 +276,7 @@ func mailDomainControlReplayCreate(ctx context.Context, transaction *appent.Tx, 
 		Where(maildomain.IDEQ(*receipt.TargetID), maildomain.OrganizationIDEQ(organizationID), maildomain.DeletedAtIsNil()).
 		ForUpdate().
 		Only(ctx)
-	if err != nil || !mailDomainControlPendingReplayRowValid(domain, organizationID, request) {
+	if err != nil || !mailDomainControlReplayTargetValid(domain, organizationID, request) {
 		return mailDomainControlError(MailDomainControlErrorUnavailable)
 	}
 	view, ok := mailDomainControlViewFromEnt(domain, organizationID)
@@ -382,8 +385,14 @@ func mailDomainControlPendingReplayRowValid(domain *appent.MailDomain, organizat
 	return domain.CreatedAt.Equal(domain.UpdatedAt)
 }
 
+// mailDomainControlReplayTargetValid keeps receipt replay read-only while
+// allowing a legitimately advanced target row to be returned as its safe view.
+func mailDomainControlReplayTargetValid(domain *appent.MailDomain, organizationID uuid.UUID, request mailDomainControlCreateRepositoryRequest) bool {
+	return mailDomainControlEntRowValid(domain, organizationID) && domain.ID == request.DomainID && domain.Domain == request.CanonicalDomain && domain.EngineProvisioningKey == request.ProvisioningKey && domain.DeletedAt == nil
+}
+
 func mailDomainControlVerifiedEntRowValid(domain *appent.MailDomain, organizationID uuid.UUID) bool {
-	if !mailDomainControlEntRowValid(domain, organizationID) || !domain.DesiredPresent || !domain.Enabled || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DeletedAt != nil || domain.EngineDomainID == nil || !validMailboxOAuthOpaque(*domain.EngineDomainID, MaxEngineOpaqueIDBytes) || domain.DeployedGeneration == nil || domain.DeployedHashVersion == nil || domain.DeployedHash == nil || *domain.DeployedGeneration != domain.DesiredGeneration || *domain.DeployedHashVersion != domain.DesiredHashVersion || subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1 || domain.AttemptedGeneration != nil || domain.AttemptedHashVersion != nil || domain.AttemptedHash != nil || domain.LastErrorCode != nil || domain.NextRetryAt != nil || domain.LeaseToken != nil || domain.LeaseUntil != nil {
+	if !mailDomainControlEntRowValid(domain, organizationID) || !domain.DesiredPresent || !domain.Enabled || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DKIMStatus != maildomain.DKIMStatus("valid") || domain.DeletedAt != nil || domain.EngineDomainID == nil || !validMailboxOAuthOpaque(*domain.EngineDomainID, MaxEngineOpaqueIDBytes) || domain.DeployedGeneration == nil || domain.DeployedHashVersion == nil || domain.DeployedHash == nil || *domain.DeployedGeneration != domain.DesiredGeneration || *domain.DeployedHashVersion != domain.DesiredHashVersion || subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1 || domain.AttemptedGeneration != nil || domain.AttemptedHashVersion != nil || domain.AttemptedHash != nil || domain.LastErrorCode != nil || domain.NextRetryAt != nil || domain.LeaseToken != nil || domain.LeaseUntil != nil {
 		return false
 	}
 	return true
