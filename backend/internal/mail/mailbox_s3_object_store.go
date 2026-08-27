@@ -98,7 +98,7 @@ func (store *MailboxS3ObjectStore) PresignPut(ctx context.Context, request Mailb
 	if presigned == nil {
 		return MailboxObjectPresignPutResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorUnavailable, nil)
 	}
-	proof, ok := mailboxS3ObjectStorePresignProof(
+	proof, ok := mailboxS3ObjectStoreValidatePresign(
 		store.publicOrigin,
 		request.Object,
 		presigned.URL,
@@ -178,7 +178,7 @@ func (store *MailboxS3ObjectStore) PresignGet(ctx context.Context, request Mailb
 	if presigned == nil {
 		return MailboxObjectPresignGetResult{}, newMailboxObjectStoreError(MailboxObjectStoreErrorUnavailable, nil)
 	}
-	proof, ok := mailboxS3ObjectStorePresignProof(
+	proof, ok := mailboxS3ObjectStoreValidatePresign(
 		store.publicOrigin,
 		request.Object,
 		presigned.URL,
@@ -281,7 +281,7 @@ type mailboxS3ObjectStorePresignProof struct {
 	authority     string
 }
 
-func mailboxS3ObjectStorePresignProof(origin *url.URL, object MailboxObjectLocator, value, method, expectedMethod string, lifetime, maximum time.Duration, requestExpiresAt time.Time) (mailboxS3ObjectStorePresignProof, bool) {
+func mailboxS3ObjectStoreValidatePresign(origin *url.URL, object MailboxObjectLocator, value, method, expectedMethod string, lifetime, maximum time.Duration, requestExpiresAt time.Time) (mailboxS3ObjectStorePresignProof, bool) {
 	if origin == nil || !validMailboxObjectStoreURL(value) || !validMailboxObjectStoreTime(requestExpiresAt) ||
 		method != expectedMethod || lifetime < time.Second || lifetime > maximum || lifetime%time.Second != 0 {
 		return mailboxS3ObjectStorePresignProof{}, false
