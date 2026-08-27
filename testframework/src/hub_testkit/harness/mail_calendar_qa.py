@@ -76,14 +76,16 @@ def wait_for_mail_account_materialization(
     client: MailCalendarQAClient,
     nonce: str,
 ) -> AccountMaterializationFixtureSnapshot:
-    """Boundedly wait until one account-materialization fixture finalizes."""
+    """Wait for a final fixture observation within the monotonic polling window."""
     deadline = monotonic() + _CORRELATION_TIMEOUT_SECONDS
     while True:
+        if monotonic() >= deadline:
+            raise MailCalendarQAError(_CORRELATION_TIMEOUT_FAILURE)
         fixture = client.get_account_materialization_fixture(nonce)
-        if fixture.materialization_state == "finalized":
-            return fixture
-
         remaining_seconds = deadline - monotonic()
         if remaining_seconds <= 0:
             raise MailCalendarQAError(_CORRELATION_TIMEOUT_FAILURE)
+        if fixture.materialization_state == "finalized":
+            return fixture
+
         sleep(min(_CORRELATION_POLL_INTERVAL_SECONDS, remaining_seconds))
