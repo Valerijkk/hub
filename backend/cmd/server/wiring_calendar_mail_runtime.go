@@ -23,6 +23,48 @@ func wireMailboxMessageDetail(d *serverDeps, mailboxSvc *mailmod.MailboxService,
 	}
 }
 
+func wireCalendarOutboundRuntime(
+	d *serverDeps,
+	mailboxRepo *mailmod.MailboxEntRepository,
+	drafts mailmod.CalendarMailDeliveryDraftCreator,
+	submissions *mailmod.MailboxSubmissionService,
+) {
+	calendarMailDeliveryService, err := mailmod.NewCalendarMailDeliveryService(
+		mailboxRepo,
+		drafts,
+		submissions,
+		mailmod.NewCalendarMailMaterializer(),
+		mailmod.NewCalendarMailDeliveryTimer(),
+		mailmod.DefaultCalendarMailDeliveryServiceOptions(),
+	)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	calendarInviteDeliveryConsumer, err := calendarmod.NewCalendarInviteDeliveryConsumer(d.nc, mailboxRepo)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := calendarInviteDeliveryConsumer.Start(d.rootCtx); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	calendarMailDeliveryWorkerCtx, calendarMailDeliveryWorkerCancel := context.WithCancel(d.rootCtx)
+	calendarMailDeliveryWorkerDone := make(chan struct{})
+	go func() {
+		defer close(calendarMailDeliveryWorkerDone)
+		if err := calendarMailDeliveryService.Run(calendarMailDeliveryWorkerCtx); err != nil && calendarMailDeliveryWorkerCtx.Err() == nil {
+			slog.Error("background worker stopped")
+		}
+	}()
+	var calendarMailDeliveryCleanup sync.Once
+	d.addCleanup(func() {
+		calendarMailDeliveryCleanup.Do(func() {
+			calendarInviteDeliveryConsumer.Stop()
+			calendarMailDeliveryWorkerCancel()
+			<-calendarMailDeliveryWorkerDone
+		})
+	})
+}
+
 func wireCalendarInboundRuntime(d *serverDeps, mailboxRepo *mailmod.MailboxEntRepository, engine mailmod.MailboxCalendarPartReadEngine, eventRepo *calendarmod.EventEntRepository, eventSvc *calendarmod.EventService) {
 	calendarInboundSource := mailmod.NewMailboxEntCalendarPartSource(mailboxRepo, engine)
 	calendarInboundService, err := calendarmod.NewCalendarInboundMessageService(eventRepo, calendarInboundSource, eventSvc)

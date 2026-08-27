@@ -291,6 +291,11 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	calendarMailDeliveryDraftCreator, err := mailmod.NewCalendarMailDeliveryDraftCreator(mailboxSvc, mailboxRepo, mailboxEngine)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	wireCalendarOutboundRuntime(d, mailboxRepo, calendarMailDeliveryDraftCreator, mailboxSubmissionService)
 	mailboxSubmissionHandler, err := mailmod.NewMailboxSubmissionHandler(mailboxSubmissionService)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
