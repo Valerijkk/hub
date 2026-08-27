@@ -342,13 +342,14 @@ func TestProjectEventCall_ValidatesStatesAndBounds(t *testing.T) {
 			},
 			want: calendar.ErrEventCallProjectionTooLarge,
 		},
-	} {
-		t.Run(tests.name, func(t *testing.T) {
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			input := callPolicyValidInput()
-			tests.mutate(&input)
+			testCase.mutate(&input)
 			projection, err := calendar.ProjectEventCall(input)
-			if !errors.Is(err, tests.want) {
-				t.Fatalf("ProjectEventCall() error = %v, want errors.Is(..., %v)", err, tests.want)
+			if !errors.Is(err, testCase.want) {
+				t.Fatalf("ProjectEventCall() error = %v, want errors.Is(..., %v)", err, testCase.want)
 			}
 			if got := projection.Snapshot(); !reflect.DeepEqual(got, calendar.EventCallProjectionSnapshot{}) {
 				t.Fatalf("invalid projection = %#v, want zero", got)
@@ -411,13 +412,14 @@ func TestProjectEventCall_ValidatesCanonicalTemporalEmailAndTimezoneBeforeProjec
 			mutate: func(input *calendar.EventCallProjectionInput) { input.Event.Temporal.Timezone = "UTC\x00" },
 			want: calendar.ErrEventCallProjectionInvalid,
 		},
-	} {
-		t.Run(tests.name, func(t *testing.T) {
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			input := callPolicyValidInput()
-			tests.mutate(&input)
+			testCase.mutate(&input)
 			_, err := calendar.ProjectEventCall(input)
-			if !errors.Is(err, tests.want) {
-				t.Fatalf("ProjectEventCall() error = %v, want errors.Is(..., %v)", err, tests.want)
+			if !errors.Is(err, testCase.want) {
+				t.Fatalf("ProjectEventCall() error = %v, want errors.Is(..., %v)", err, testCase.want)
 			}
 		})
 	}
