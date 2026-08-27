@@ -59,6 +59,9 @@ func (repository *MailboxEntRepository) FinalizeMailboxBootstrapOAuth(ctx contex
 		if snapshot != request.Account {
 			return mailboxOAuthError(MailboxOAuthErrorConflict)
 		}
+		if account.DeployedHash == nil {
+			return mailboxOAuthError(MailboxOAuthErrorConflict)
+		}
 
 		if _, err := transaction.MailOAuthCredential.Create().
 			SetMailAccountID(account.ID).
@@ -125,7 +128,7 @@ func (repository *MailboxEntRepository) FinalizeMailboxBootstrapOAuth(ctx contex
 				mailaccount.AttemptedControlHashIsNil(),
 				mailaccount.DeployedGenerationEQ(*account.DeployedGeneration),
 				mailaccount.DeployedHashVersionEQ(*account.DeployedHashVersion),
-				mailaccount.DeployedHashEQ(account.DeployedHash),
+				mailaccount.DeployedHashEQ(*account.DeployedHash),
 				mailaccount.ProvisionLeaseTokenIsNil(),
 				mailaccount.ProvisionLeaseUntilIsNil(),
 				mailaccount.NextProvisionAtIsNil(),
