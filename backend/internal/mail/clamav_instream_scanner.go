@@ -61,7 +61,7 @@ func (scanner *ClamAVINSTREAMScanner) Begin(ctx context.Context) (MailboxAttachm
 	session.contextStop = context.AfterFunc(ctx, func() {
 		_ = connection.Close()
 	})
-	session.abortStop = time.AfterFunc(clamAVINSTREAMIOTimeout, func() {
+	session.abortTimer = time.AfterFunc(clamAVINSTREAMIOTimeout, func() {
 		session.abort()
 	})
 	return session, nil
@@ -174,7 +174,7 @@ type clamAVINSTREAMSession struct {
 	connection  *clamAVINSTREAMConnection
 	deadline    time.Time
 	contextStop func() bool
-	abortStop   func() bool
+	abortTimer  *time.Timer
 	totalBytes  int64
 	closed      bool
 	failed      bool
@@ -301,11 +301,11 @@ func (session *clamAVINSTREAMSession) abort() {
 }
 
 func (session *clamAVINSTREAMSession) stopAbortLocked() {
-	if session == nil || session.abortStop == nil {
+	if session == nil || session.abortTimer == nil {
 		return
 	}
-	_ = session.abortStop()
-	session.abortStop = nil
+	_ = session.abortTimer.Stop()
+	session.abortTimer = nil
 }
 
 func (session *clamAVINSTREAMSession) stopContextLocked() {
