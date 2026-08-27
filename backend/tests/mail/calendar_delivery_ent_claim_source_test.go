@@ -186,3 +186,27 @@ func TestCalendarDeliveryEntRemovedAttendeeMasterCancelSourceContract(t *testing
 		}
 	}
 }
+
+func TestCalendarDeliveryEntObservationUnknownMailboxUnavailableReschedules(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_calendar_delivery_observation.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(sourceBytes)
+	unknownStart := strings.Index(source, "case MailboxSubmissionStatusUnknown:")
+	sentStart := strings.Index(source, "case MailboxSubmissionStatusSent:")
+	if unknownStart < 0 || sentStart <= unknownStart {
+		t.Fatal("missing ordered MailSubmission unknown observation branch")
+	}
+	unknownBranch := source[unknownStart:sentStart]
+	for _, term := range []string{
+		"MailboxSubmissionErrorCodeOutcomeUnknown",
+		"MailboxSubmissionErrorCodeReconciliationRequired",
+		"MailboxSubmissionErrorCodeMailboxUnavailable",
+		"mailboxEntCalendarDeliveryObservationReschedule",
+	} {
+		if !strings.Contains(unknownBranch, term) {
+			t.Fatalf("unknown submission branch must safely reschedule %q", term)
+		}
+	}
+}

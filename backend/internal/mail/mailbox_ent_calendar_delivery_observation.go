@@ -121,7 +121,9 @@ func mailboxEntCalendarDeliveryObservationFromSubmission(submission *ent.MailSub
 			return mailboxEntCalendarDeliveryObservation{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
 		switch MailboxSubmissionErrorCode(*submission.LastErrorCode) {
-		case MailboxSubmissionErrorCodeOutcomeUnknown, MailboxSubmissionErrorCodeReconciliationRequired:
+		case MailboxSubmissionErrorCodeOutcomeUnknown,
+			MailboxSubmissionErrorCodeReconciliationRequired,
+			MailboxSubmissionErrorCodeMailboxUnavailable:
 			return mailboxEntCalendarDeliveryObservation{kind: mailboxEntCalendarDeliveryObservationReschedule}, nil
 		default:
 			return mailboxEntCalendarDeliveryObservation{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
