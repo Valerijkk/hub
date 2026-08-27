@@ -338,7 +338,8 @@ func TestProjectEventCallDue_ExpandedOrderedStateTable(t *testing.T) {
 		{name: "overdue advances one successor only", mutate: func(input *calendar.EventCallDueInput) { input.Now = dueStart().AddDate(0, 0, 1); input.Envelope.OccurredAt = input.Now }, want: calendar.EventCallDueAdvance, active: true, at: dueStart().AddDate(0, 0, 2), key: dueKey, outbox: true},
 		{name: "overdue one time deactivates with one descriptor", mutate: func(input *calendar.EventCallDueInput) { input.Now = dueStart().AddDate(0, 0, 2); input.Envelope.OccurredAt = input.Now; input.Projection.Event.RRULE = ""; input.Projection.Exceptions = nil }, want: calendar.EventCallDueDeactivate, active: false, key: dueKey, outbox: true},
 		{name: "finite recurrence exhaustion deactivates with descriptor", mutate: func(input *calendar.EventCallDueInput) { input.Projection.Event.RRULE = "FREQ=DAILY;INTERVAL=1;COUNT=1"; input.Projection.Exceptions = nil }, want: calendar.EventCallDueDeactivate, active: false, key: dueKey, outbox: true},
-	} {
+	}
+	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			input := dueValidInput()
 			testCase.mutate(&input)

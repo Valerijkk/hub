@@ -103,7 +103,7 @@ func TestMailDomainSchema_HasExactFieldsDefaultsAndEnums(t *testing.T) {
 	dnsRecords := fields["required_dns_records"]
 	assertFieldType(t, "required_dns_records", dnsRecords, field.TypeJSON)
 	assertRequired(t, "required_dns_records", dnsRecords)
-	if got, want := dnsRecords.Default, mail.RequiredDNSRecords{}; !reflect.DeepEqual(got, want) {
+	if got, want := dnsRecords.Default, (mail.RequiredDNSRecords{}); !reflect.DeepEqual(got, want) {
 		t.Fatalf("required_dns_records default = %#v, want concrete empty %#v", got, want)
 	}
 
