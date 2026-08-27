@@ -50,6 +50,10 @@ type qaFixtureHTTPAccountMaterializationResponse struct {
 	PrimaryIdentityStatus  *string `json:"primary_identity_status"`
 }
 
+type qaFixtureHTTPAccountMaterializationRecoveryResponse struct {
+	Outcome string `json:"outcome"`
+}
+
 // RegisterRoutes exposes the closed QA-only Mail/Calendar fixture surface on /api.
 func (c *Controller) RegisterRoutes(api fiber.Router) error {
 	if c == nil || api == nil {
@@ -62,6 +66,7 @@ func (c *Controller) RegisterRoutes(api fiber.Router) error {
 	api.Get("/_qa/mail-calendar/fixtures/:nonce/account-materialization", c.observeAccountMaterialization)
 	api.Post("/_qa/mail-calendar/fixtures/:nonce/account-materialization/quiesce", c.quiesceAccountMaterialization)
 	api.Delete("/_qa/mail-calendar/fixtures/:nonce/account-materialization", c.deleteAccountMaterialization)
+	api.Post("/_qa/mail-calendar/fixtures/:nonce/account-materialization/recover", c.recoverAccountMaterialization)
 	return nil
 }
 
@@ -123,6 +128,28 @@ func (c *Controller) deleteAccountMaterialization(ctx fiber.Ctx) error {
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
+func (c *Controller) recoverAccountMaterialization(ctx fiber.Ctx) error {
+	if !c.authorized(ctx) {
+		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
+	}
+
+	nonce, ok := qaFixtureMutationNonce(ctx)
+	if !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	outcome, err := c.recoverAccountMaterializationFixture(ctx.Context(), nonce)
+	if err != nil {
+		if err == errAccountMaterializationFixtureLifecycle {
+			return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
+		}
+
+		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(qaFixtureHTTPAccountMaterializationRecoveryOutcome(outcome))
 }
 
 func (c *Controller) create(ctx fiber.Ctx) error {
@@ -307,6 +334,10 @@ func qaFixtureHTTPAccountMaterializationSnapshot(snapshot accountMaterialization
 		PrimaryIdentityID:     primaryIdentityID,
 		PrimaryIdentityStatus: primaryIdentityStatus,
 	}
+}
+
+func qaFixtureHTTPAccountMaterializationRecoveryOutcome(outcome accountMaterializationFixtureRecoveryOutcome) qaFixtureHTTPAccountMaterializationRecoveryResponse {
+	return qaFixtureHTTPAccountMaterializationRecoveryResponse{Outcome: string(outcome)}
 }
 
 func qaFixtureHTTPError(ctx fiber.Ctx, status int, message string) error {
