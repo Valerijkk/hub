@@ -63,6 +63,44 @@ type Phase151PostCreateCompletionPlan struct {
 	Update bson.D
 }
 
+type Phase151PendingPostCreateScanPlan struct {
+	Filter bson.D
+	Sort   bson.D
+	Limit  int64
+}
+
+func ExportPhase151BuildPendingPostCreateScanPlan(
+	scope AuthorizedMessageProducerScope,
+	target Phase151PendingRecoveryTarget,
+	limit int,
+) (Phase151PendingPostCreateScanPlan, error) {
+	if err := ExportPhase151ValidateTrustedMessageProducer(scope, scope.Producer); err != nil {
+		return Phase151PendingPostCreateScanPlan{}, err
+	}
+	if validatePhase151PendingRecoveryTarget(target) != nil || limit <= 0 ||
+		scope.TenantID != target.TenantID || scope.ChannelID != target.ChannelID {
+		return Phase151PendingPostCreateScanPlan{}, ErrPostCreatePipelineInvalid
+	}
+	if limit > 500 {
+		limit = 500
+	}
+
+	return Phase151PendingPostCreateScanPlan{
+		Filter: bson.D{
+			{Key: "channel_id", Value: target.ChannelID},
+			{Key: "deleted_at", Value: nil},
+			{Key: "post_create_effects_state", Value: PostCreateEffectsStatePending},
+			{Key: "post_create_effects_completed_at", Value: nil},
+			{Key: "post_create_producer_provenance.version", Value: PostCreateProducerProvenanceVersionV1},
+		},
+		Sort: bson.D{
+			{Key: "created_at", Value: 1},
+			{Key: "_id", Value: 1},
+		},
+		Limit: int64(limit),
+	}, nil
+}
+
 func ExportPhase151BuildPostCreateCompletionPlan(
 	scope AuthorizedMessageProducerScope,
 	messageID string,
@@ -197,26 +235,24 @@ func (r *MongoRepository) ListPendingPostCreateDocuments(
 	target Phase151PendingRecoveryTarget,
 	limit int,
 ) ([]MessageDocument, error) {
-	if r == nil || r.db == nil || limit <= 0 || scope.TenantID != target.TenantID ||
-		scope.ChannelID != target.ChannelID || target.ChannelID == uuid.Nil {
+	if r == nil || r.db == nil {
 		return nil, ErrPostCreatePipelineInvalid
 	}
-	if limit > 500 {
-		limit = 500
+	plan, err := ExportPhase151BuildPendingPostCreateScanPlan(scope, target, limit)
+	if err != nil {
+		return nil, err
 	}
-	cursor, err := r.messages().Find(ctx, bson.D{
-		{Key: "channel_id", Value: target.ChannelID},
-		{Key: "post_create_effects_state", Value: PostCreateEffectsStatePending},
-	}, options.Find().SetSort(bson.D{
-		{Key: "created_at", Value: 1},
-		{Key: "_id", Value: 1},
-	}).SetLimit(int64(limit)))
+	cursor, err := r.messages().Find(
+		ctx,
+		plan.Filter,
+		options.Find().SetSort(plan.Sort).SetLimit(plan.Limit),
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	documents := make([]MessageDocument, 0, limit)
+	documents := make([]MessageDocument, 0, int(plan.Limit))
 	if err := cursor.All(ctx, &documents); err != nil {
 		return nil, err
 	}
