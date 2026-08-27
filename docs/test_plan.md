@@ -456,3 +456,9 @@ One combined isolated Docker `backend-unit` run exited `0`; build, vet, unit, an
 Commit `0a332760` is covered for exact provider/room/service-URL/token projection, a single private issuance clock call, token claim agreement, and zero-result failures for invalid server inputs. The first attempted RED contained a test typo and is not counted; the corrected replacement RED failed on the exact undefined method. Final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing while Mail was absent.
 
 No provider factory, public route/DTO, frontend, self-hosted deployment, cutover, live provider runtime, or browser E2E was exercised; these remain `UNBOUND/NOT_RUN`, and LiveKit remains active.
+
+## Inert Jitsi host and recovery page-guard evidence (2026-08-28)
+
+Commit `ee0387e5` tests one exact empty host/ref for valid input, fail-closed invalid/null input and rerender, absence of credential values in DOM, and zero fetch/storage/logging/external-API/script/iframe activation. Its valid RED was the missing module; final isolated Docker `frontend-unit` exited `0` with TypeScript and Vitest passing.
+
+Commit `ce46a0b2` tests cursor/page structure, tuple order and advancement, exact `Next`, size bounds, future nonempty kinds, error identity, zero partial pages, and alias isolation. Its valid RED kept build/vet passing and failed unit/race on the old pass-through; final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing. Live provider/recovery runtime, deployment, routing, `CallPanel`, cutover, integration, and browser E2E remain `NOT_RUN/UNBOUND`; LiveKit remains active.

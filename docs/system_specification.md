@@ -890,3 +890,9 @@ Messenger pending recovery candidates must match the authorized target channel, 
 ## Typed Jitsi join projection contract (2026-08-28)
 
 `jitsiCredentialIssuer.IssueJoinCredential` (`0a332760`) accepts only the issuer's already validated configuration and server-loaded call/user inputs, invokes private issuance once, and returns `JoinCredential{Provider:"jitsi", RoomName:call.RoomName, ServiceURL:validated self-hosted public URL, Token:signed token}`. Any failure returns the zero result; legacy token issuance is unchanged. Provider factory binding, public route/DTO, frontend/deployment integration, and cutover remain `UNBOUND`; LiveKit remains active.
+
+## Inert Jitsi host and Messenger recovery-page contract (2026-08-28)
+
+`JitsiEmbedHost` (`ee0387e5`) accepts only a credential that passes the existing strict self-hosted contract and renders exactly one empty marked mount with a forwarded ref. Invalid/null credentials render nothing. Credential values are not stored or emitted, and the component performs no network, storage, logging, script, iframe, provider API, or runtime work. It is not bound to `CallPanel` or a route; LiveKit remains active.
+
+`Phase151ClaimedRecoveryCoordinatorAdapter` (`ce46a0b2`) validates positive limits and owned input cursors before scanning, then requires an in-limit structurally valid page strictly ordered after the cursor by tenant UUID bytes, channel UUID bytes, and kind. Nonnil `Next` must be valid and equal the last target. Errors return a zero page; valid output is defensively copied. PG pager/principal/scheduler and `SendMessage` remain `UNBOUND`.

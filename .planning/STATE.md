@@ -1409,3 +1409,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Any issuer error returns the zero typed result. The legacy token-only `Issue` behavior is unchanged.
 - The first test-only RED was invalid because of a test typo and is not counted. Its corrected replacement produced the valid missing-method RED; final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing while Mail was absent.
 - The projection remains `UNBOUND`: there is no provider factory binding, public route/DTO, frontend conference surface, self-hosted deployment, provider cutover, or live/browser runtime evidence. LiveKit remains active.
+
+## Session note - 2026-08-28 (inert Jitsi host and recovery page guard)
+
+- Calls commit `ee0387e5` adds `JitsiEmbedHost`, which validates the existing strict self-hosted embed contract and renders exactly one empty ref-forwarding mount only for a valid credential. It stores or exposes no credential fields and performs no fetch, storage, logging, script, iframe, external API, or media/runtime activation.
+- The valid RED failed on the missing host module. Final isolated Docker `frontend-unit` exited `0`; TypeScript and Vitest passed.
+- Messenger commit `ce46a0b2` validates recovery target pages at the adapter boundary: the input cursor is copied, targets must be structurally valid and strictly ascending after the cursor by tenant UUID bytes, channel UUID bytes, then kind, and a nonnil `Next` must equal the last tuple. Scanner errors retain identity with a zero page; valid targets and cursor are returned as owned copies.
+- Its valid RED kept backend build/vet passing and failed unit/race on the prior pass-through behavior. Final isolated Docker `backend-unit` exited `0`; build, vet, unit, and race passed.
+- Both atoms remain bounded. LiveKit is active; Jitsi `CallPanel`/route/deployment/cutover and live/browser E2E are `UNBOUND/NOT_RUN`. Messenger still has no PG pager, recovery principal, scheduler, or `SendMessage` cutover.

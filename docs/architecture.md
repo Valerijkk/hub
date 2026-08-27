@@ -427,3 +427,9 @@ Messenger pending recovery scans now use a pure exact Mongo plan (`44b3a95e`) fo
 ## Typed Jitsi join projection seam (2026-08-28)
 
 The internal Jitsi issuer now exposes `IssueJoinCredential` (`0a332760`): one private issuance call is projected into provider-neutral data containing exact provider `jitsi`, canonical `Call.RoomName`, validated self-hosted public URL, and token. Errors return a zero credential and the legacy token-only path remains unchanged. The seam is not connected to a provider factory, HTTP route/DTO, frontend, deployment, or cutover; LiveKit remains active.
+
+## Inert Jitsi host and recovery-page boundary (2026-08-28)
+
+`JitsiEmbedHost` (`ee0387e5`) is an inert validated mount seam: one empty ref target for valid self-hosted credentials and no credential persistence/exposure, network, script, iframe, provider API, or runtime activation. It is not connected to `CallPanel`, routing, deployment, or cutover; LiveKit remains active.
+
+The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. This does not provide the missing PG pager, recovery principal, interval gate, scheduler, or writer cutover.

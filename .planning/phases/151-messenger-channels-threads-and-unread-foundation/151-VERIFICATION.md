@@ -253,3 +253,9 @@ No writer invokes the dependency and no live Mongo/PostgreSQL/NATS path ran. Rec
 Commit `44b3a95e` is covered by an exact plan test for the Mongo candidate filter, deterministic ordering, 500-row cap, absence of lease/fence predicates, and fail-closed invalid actor/producer/target or tenant/channel drift. `ListPendingPostCreateDocuments` consumes that plan directly.
 
 A combined isolated Docker `backend-unit` run exited `0`; build, vet, unit, and race passed with no Mail overlap. This is unit/compile evidence only. Live Mongo recovery execution, a production scheduler/principal, `SendMessage` cutover, integration, and browser behavior remain `UNBOUND/NOT_RUN`.
+
+## Recovery target page guard evidence (2026-08-28)
+
+Commit `ce46a0b2` is covered for pre-scanner cursor/limit rejection, post-scanner page size and structural validation, strict tenant/channel/kind tuple ordering, advancement beyond the input cursor, exact `Next` binding, future nonempty kinds, scanner error identity, zero partial results, and defensive cursor/target ownership.
+
+The valid RED recorded backend build/vet `PASS` and unit/race `FAIL` on aliasing and accepted malformed pass-through pages. Final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing. This is adapter/unit evidence only; PG pager, authority principal, scheduler, `SendMessage`, integration, and live recovery remain `UNBOUND/NOT_RUN`.
