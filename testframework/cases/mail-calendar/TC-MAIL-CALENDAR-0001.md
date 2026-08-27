@@ -1,24 +1,25 @@
 +++
 schema = "hub.testframework.case/v1"
 id = "TC-MAIL-CALENDAR-0001"
-title = "QA fixture control plane rejects an invalid capability and cleans an exact created fixture"
+title = "QA account-materialization control plane rejects an invalid capability and cleans its exact fixture"
 status = "active"
 task = "TASK-237"
-requirement = "MAIL-QA-FIXTURE-LIFECYCLE"
-risk = "RISK-MAIL-QA-CONTROL-PLANE-LEAK"
+requirement = "MAIL-ACCOUNT-MATERIALIZATION-LIFECYCLE"
+risk = "RISK-MAIL-ACCOUNT-MATERIALIZATION-CONTROL-PLANE-LEAK"
 scenario = "authn"
-subject = "QA-only Mail and Calendar fixture lifecycle"
+subject = "QA-only Mail account-materialization fixture lifecycle"
 preconditions = ["The Docker-only python-api profile provides the fixed internal QA backend URL and control-plane capability token"]
-oracle = "A wrong fixed-length token receives only the generic client failure; the authorized client receives one typed created fixture with its nonce-bound owner identity"
-cleanup = "The test deletes only its one un-published created fixture in finally; no published fixture is created"
+oracle = "A wrong fixed-length token receives only the generic client failure; the authorized client creates one typed account-materialization-v1 fixture with a nonce-bound owner root, a closed initial public materialization shape, then accepts its exact quiesce and delete acknowledgements"
+cleanup = "After a successful create, finally quiesces then deletes only that fixture nonce; a cleanup failure never masks a primary test failure and otherwise fails the test"
 
 [automation]
 kind = "pytest"
 layer = "api"
-node_id = "testframework/tests/api/mail_calendar/test_mail_calendar_qa_api.py::test_mail_calendar_qa_fixture_control_plane_requires_capability_and_cleans_created_fixture"
+node_id = "testframework/tests/api/mail_calendar/test_mail_calendar_qa_api.py::test_mail_calendar_qa_account_materialization_requires_capability_and_cleans_fixture"
 +++
-# QA fixture lifecycle
+# QA account-materialization lifecycle
 
-The API scenario couples an authentication-negative control-plane probe with the happy
-create-and-delete lifecycle. It executes only through the disposable Docker
-`python-api` profile and never publishes an inbound fixture.
+The API scenario couples an authentication-negative control-plane probe with the public
+`create -> quiesce -> delete` lifecycle of one account-materialization fixture. It executes
+only through the disposable Docker `python-api` profile. It does not poll, await a worker,
+inspect persistence, inject faults, contact an external provider, or exercise UI behavior.
