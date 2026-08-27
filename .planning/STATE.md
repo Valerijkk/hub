@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through the standalone seven-port post-create composition plus a durable recovery claim/completion-fence BSON plan. Live Mongo claim CAS, the claimed effect runner, producer-provenance reconstruction, and all live writers remain unbound.
-**Resume:** implement one exact Mongo claim and fenced-completion adapter over the frozen plans, returning the post-update owner/fence/lease token and mapping CAS misses without executing effects or routing live writers. Producer provenance, outbox loss, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
+**Stopped at:** bounded Phase 151 units are green through the standalone seven-port post-create composition, recovery claim/completion-fence BSON plans, and a concrete Mongo claim/completion adapter. The claimed effect runner, durable producer-provenance reconstruction, recovery-loop binding, and all live writers remain unbound.
+**Resume:** freeze durable trusted-producer provenance for recovery (producer, bot kind, integration identity) and exact scope reconstruction without guessing or routing live writers. Then bind a claimed effect runner. Outbox loss, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1343,3 +1343,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - `ExportPhase151BuildPostCreateRecoveryCompletionPlan` binds tenant/message/channel/sender plus the exact owner/fence/lease token. Completion must be at or after message creation and strictly before lease expiry; the Mongo predicate repeats the exact fence and live lease, then sets complete/completed-at and unsets owner/lease while retaining the fence.
 - Initial RED kept build green and failed vet/unit/race only on missing recovery symbols/fields. First GREEN passed. Mutation RED exposed the two chronology gaps; one separate fixed-zone assertion was correctly triaged as a test expectation bug. Final minimal-diff Docker evidence is overall/build/vet/unit/race `PASS`, with four top-level groups passing under unit and race and no `FAIL`, panic, or `DATA RACE` markers.
 - Root review is `PASS`; independent review is `UNKNOWN` because all retained subagent slots are exhausted. These are pure BSON plans only: no live `FindOneAndUpdate`, claimed effect execution, lease renewal, durable producer provenance, `qa-build`, Swagger, integration, or live store evidence exists.
+
+## Session note - 2026-08-27 (Phase 151 Mongo recovery claim/completion adapter atom)
+
+- `Phase151PostCreateRecoveryMongoAdapter` delegates the frozen claim/completion plans through an injectable BSON store. Claim miss is a clean non-acquisition, store errors retain identity, malformed return-after data fails closed, and completion miss maps to `ErrPostCreateRecoveryLeaseLost`.
+- The concrete `MongoRepository` wrapper uses `FindOneAndUpdate` with `ReturnDocument=After` for atomic owner/fence/lease decode and `UpdateOne` for exact fenced completion. Returned ID/channel/sender/creation/state, owner, positive fence, and exact lease are validated before an acquisition is exposed.
+- The acquisition owns value copies of recovery-critical resolved-mention IDs and lease metadata. Nil/typed-nil stores, nil receivers, cancelled contexts, invalid tokens, contradictory miss payloads, and malformed claimed documents stop before later effects.
+- RED kept backend build green and failed vet/unit/race only on missing adapter symbols. First GREEN passed. Mutation RED kept build/vet green and failed unit/race on store-owned slice/pointer aliasing; final Docker evidence is overall/build/vet/unit/race `PASS`, with five top-level groups passing in unit and race and no `FAIL`, panic, or `DATA RACE` markers.
+- Root review is `PASS`; independent review is `UNKNOWN` because retained subagents occupy all slots. The driver path is compile/unit-verified only: no live Mongo command, producer provenance, claimed effect execution, recovery-loop binding, lease renewal, integration, or writer cutover was run.
