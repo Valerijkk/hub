@@ -43,6 +43,7 @@ type OAuthClientSecretProvider interface {
 type OAuthConfig struct {
 	IssuerOrigin         string
 	ResourceOrigin       string
+	TransportOrigin      string
 	ClientID             string
 	ClientSecretProvider OAuthClientSecretProvider
 	RedirectURI          string
@@ -53,13 +54,14 @@ type OAuthConfig struct {
 // OAuthClient retains only validated public values and opaque dependency
 // boundaries. Construction performs no network or credential-provider I/O.
 type OAuthClient struct {
-	issuerOrigin   string
-	resourceOrigin string
-	clientID       string
-	clientSecrets  OAuthClientSecretProvider
-	redirectURI    string
-	httpClient     *http.Client
-	random         io.Reader
+	issuerOrigin    string
+	resourceOrigin  string
+	transportOrigin string
+	clientID        string
+	clientSecrets   OAuthClientSecretProvider
+	redirectURI     string
+	httpClient      *http.Client
+	random          io.Reader
 }
 
 // NewOAuthClient validates the complete immutable OAuth configuration.
@@ -69,6 +71,10 @@ func NewOAuthClient(config OAuthConfig) (*OAuthClient, error) {
 		return nil, newOAuthError(OAuthErrorInvalidConfiguration)
 	}
 	resourceOrigin, ok := canonicalOAuthOrigin(config.ResourceOrigin)
+	if !ok {
+		return nil, newOAuthError(OAuthErrorInvalidConfiguration)
+	}
+	transportOrigin, ok := canonicalOAuthOrigin(config.TransportOrigin)
 	if !ok || !validOAuthClientID(config.ClientID) || config.ClientSecretProvider == nil || config.HTTPClient == nil {
 		return nil, newOAuthError(OAuthErrorInvalidConfiguration)
 	}
@@ -81,13 +87,14 @@ func NewOAuthClient(config OAuthConfig) (*OAuthClient, error) {
 		randomSource = rand.Reader
 	}
 	return &OAuthClient{
-		issuerOrigin:   issuerOrigin,
-		resourceOrigin: resourceOrigin,
-		clientID:       config.ClientID,
-		clientSecrets:  config.ClientSecretProvider,
-		redirectURI:    redirectURI,
-		httpClient:     config.HTTPClient,
-		random:         randomSource,
+		issuerOrigin:    issuerOrigin,
+		resourceOrigin:  resourceOrigin,
+		transportOrigin: transportOrigin,
+		clientID:        config.ClientID,
+		clientSecrets:   config.ClientSecretProvider,
+		redirectURI:     redirectURI,
+		httpClient:      config.HTTPClient,
+		random:          randomSource,
 	}, nil
 }
 

@@ -78,7 +78,7 @@ func (client *OAuthClient) Discover(ctx context.Context) (OAuthDiscovery, error)
 	if err := client.validateOperation(ctx); err != nil {
 		return OAuthDiscovery{}, err
 	}
-	response, payload, err := client.doOAuthRequest(ctx, http.MethodGet, client.issuerOrigin+oauthDiscoveryPath, "", oauthMaxDiscoveryBytes, false)
+	response, payload, err := client.doOAuthRequest(ctx, http.MethodGet, client.transportOrigin+oauthDiscoveryPath, "", oauthMaxDiscoveryBytes, false)
 	if err != nil {
 		return OAuthDiscovery{}, err
 	}
@@ -185,11 +185,10 @@ func (client *OAuthClient) exchangeToken(ctx context.Context, form url.Values, p
 		}
 		return OAuthTokenSet{}, newOAuthError(OAuthErrorInvalidRequest)
 	}
-	discovery, err := client.Discover(ctx)
-	if err != nil {
+	if _, err := client.Discover(ctx); err != nil {
 		return OAuthTokenSet{}, err
 	}
-	response, payload, err := client.doOAuthRequest(ctx, http.MethodPost, discovery.TokenEndpoint, form.Encode(), oauthMaxTokenResponseBytes, true)
+	response, payload, err := client.doOAuthRequest(ctx, http.MethodPost, client.transportOrigin+oauthTokenPath, form.Encode(), oauthMaxTokenResponseBytes, true)
 	if err != nil {
 		return OAuthTokenSet{}, err
 	}
@@ -292,7 +291,7 @@ func (client *OAuthClient) doOAuthRequest(ctx context.Context, method, target, e
 }
 
 func (client *OAuthClient) validateOperation(ctx context.Context) error {
-	if client == nil || client.httpClient == nil || client.clientSecrets == nil || client.random == nil || client.issuerOrigin == "" || client.resourceOrigin == "" || client.clientID == "" || client.redirectURI == "" {
+	if client == nil || client.httpClient == nil || client.clientSecrets == nil || client.random == nil || client.issuerOrigin == "" || client.resourceOrigin == "" || client.transportOrigin == "" || client.clientID == "" || client.redirectURI == "" {
 		return newOAuthError(OAuthErrorInvalidConfiguration)
 	}
 	if ctx == nil {
