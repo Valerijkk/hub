@@ -311,7 +311,7 @@ func mailboxEntAccountProvisioningDomainLive(domain *ent.MailDomain, organizatio
 	if domain == nil || domain.ID == uuid.Nil || organizationID == uuid.Nil || domain.OrganizationID != organizationID || !domain.IsDefault || !domain.DesiredPresent || !domain.Enabled || domain.DeletedAt != nil || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DkimStatus != maildomain.DkimStatus("valid") || domain.EngineDomainID == nil || !mailboxAccountProvisioningSafeText(*domain.EngineDomainID) || !validCanonicalRegistryDomain(domain.Domain) {
 		return false
 	}
-	return domain.DesiredGeneration >= 1 && domain.DesiredHashVersion >= 1 && len(domain.DesiredHash) == sha256.Size && domain.DeployedGeneration != nil && domain.DeployedHashVersion != nil && domain.DeployedHash != nil && *domain.DeployedGeneration == domain.DesiredGeneration && *domain.DeployedHashVersion == domain.DesiredHashVersion && len(domain.DeployedHash) == sha256.Size && subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) == 1
+	return domain.DesiredGeneration >= 1 && domain.DesiredHashVersion >= 1 && len(domain.DesiredHash) == sha256.Size && domain.DeployedGeneration != nil && domain.DeployedHashVersion != nil && domain.DeployedHash != nil && *domain.DeployedGeneration == domain.DesiredGeneration && *domain.DeployedHashVersion == domain.DesiredHashVersion && len(*domain.DeployedHash) == sha256.Size && subtle.ConstantTimeCompare(*domain.DeployedHash, domain.DesiredHash) == 1
 }
 
 // ClaimMailboxAccountProvisioning seals one provider-free capability for exactly one due account.
@@ -664,7 +664,7 @@ func mailboxEntAccountProvisioningDue(account *ent.MailAccount, databaseNow time
 }
 
 func mailboxEntAccountProvisioningConverged(account *ent.MailAccount) bool {
-	if account == nil || account.Status != mailaccount.Status("provisioning") || !account.DesiredEnabled || account.EngineAccountID == nil || !mailboxAccountProvisioningSafeText(*account.EngineAccountID) || account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || len(account.DeployedHash) != sha256.Size || subtle.ConstantTimeCompare(account.DeployedHash, account.ControlHash) != 1 {
+	if account == nil || account.Status != mailaccount.Status("provisioning") || !account.DesiredEnabled || account.EngineAccountID == nil || !mailboxAccountProvisioningSafeText(*account.EngineAccountID) || account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || len(*account.DeployedHash) != sha256.Size || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 {
 		return false
 	}
 	return account.AttemptedControlGeneration == nil && account.AttemptedControlHashVersion == nil && account.AttemptedControlHash == nil && account.ProvisionLeaseToken == nil && account.ProvisionLeaseUntil == nil && account.NextProvisionAt == nil && account.ProvisionErrorCode == nil

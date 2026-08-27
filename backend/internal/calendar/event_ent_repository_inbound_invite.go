@@ -659,7 +659,8 @@ func calendarInboundInviteMailAccountReady(
 		*account.EngineAccountID == "" ||
 		account.DeployedGeneration == nil ||
 		account.DeployedHashVersion == nil ||
-		len(account.DeployedHash) != sha256.Size ||
+		account.DeployedHash == nil ||
+		len(*account.DeployedHash) != sha256.Size ||
 		*account.DeployedGeneration < 1 ||
 		*account.DeployedHashVersion < 1 ||
 		*account.DeployedGeneration > account.ControlGeneration ||

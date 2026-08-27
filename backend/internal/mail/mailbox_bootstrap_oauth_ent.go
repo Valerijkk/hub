@@ -303,7 +303,7 @@ func mailboxBootstrapOAuthAccountReady(account *ent.MailAccount) bool {
 	if account == nil || account.ID == uuid.Nil || account.OrganizationID == uuid.Nil || account.UserID == uuid.Nil || account.MailDomainID == uuid.Nil || account.Status != mailaccount.Status("provisioning") || !account.DesiredEnabled || account.EngineAccountID == nil || !validMailboxOAuthOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) {
 		return false
 	}
-	if account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || len(account.DeployedHash) != sha256.Size || subtle.ConstantTimeCompare(account.DeployedHash, account.ControlHash) != 1 {
+	if account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || len(*account.DeployedHash) != sha256.Size || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 {
 		return false
 	}
 	if account.AttemptedControlGeneration != nil || account.AttemptedControlHashVersion != nil || account.AttemptedControlHash != nil || account.ProvisionLeaseToken != nil || account.ProvisionLeaseUntil != nil || account.NextProvisionAt != nil || account.ProvisionErrorCode != nil {
@@ -319,7 +319,7 @@ func mailboxBootstrapOAuthDomainReady(domain *ent.MailDomain, organizationID uui
 	if domain == nil || organizationID == uuid.Nil || domain.ID == uuid.Nil || domain.OrganizationID != organizationID || !domain.DesiredPresent || !domain.Enabled || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DeletedAt != nil || domain.EngineDomainID == nil || !validMailboxOAuthOpaque(*domain.EngineDomainID, MaxEngineOpaqueIDBytes) {
 		return false
 	}
-	return domain.DesiredGeneration >= 1 && domain.DesiredHashVersion >= 1 && len(domain.DesiredHash) == sha256.Size && domain.DeployedGeneration != nil && domain.DeployedHashVersion != nil && domain.DeployedHash != nil && *domain.DeployedGeneration == domain.DesiredGeneration && *domain.DeployedHashVersion == domain.DesiredHashVersion && len(domain.DeployedHash) == sha256.Size && subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) == 1
+	return domain.DesiredGeneration >= 1 && domain.DesiredHashVersion >= 1 && len(domain.DesiredHash) == sha256.Size && domain.DeployedGeneration != nil && domain.DeployedHashVersion != nil && domain.DeployedHash != nil && *domain.DeployedGeneration == domain.DesiredGeneration && *domain.DeployedHashVersion == domain.DesiredHashVersion && len(*domain.DeployedHash) == sha256.Size && subtle.ConstantTimeCompare(*domain.DeployedHash, domain.DesiredHash) == 1
 }
 
 func mailboxBootstrapOAuthAccountCopy(snapshot MailboxBootstrapOAuthAccount) MailboxBootstrapOAuthAccount {

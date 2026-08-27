@@ -134,7 +134,7 @@ func TestMailboxBootstrapOAuthEntSourceContract(t *testing.T) {
 		"account.DeployedGeneration == nil",
 		"*account.DeployedGeneration != account.ControlGeneration",
 		"*account.DeployedHashVersion != account.ControlHashVersion",
-		"subtle.ConstantTimeCompare(account.DeployedHash, account.ControlHash) != 1",
+		"subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1",
 		"account.AttemptedControlGeneration != nil",
 		"account.AttemptedControlHashVersion != nil",
 		"account.AttemptedControlHash != nil",
@@ -156,7 +156,7 @@ func TestMailboxBootstrapOAuthEntSourceContract(t *testing.T) {
 		"domain.DeployedGeneration == nil",
 		"*domain.DeployedGeneration != domain.DesiredGeneration",
 		"*domain.DeployedHashVersion != domain.DesiredHashVersion",
-		"subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1",
+		"subtle.ConstantTimeCompare(*domain.DeployedHash, domain.DesiredHash) != 1",
 	)
 
 	requireMailboxBootstrapOAuthEntOrdered(t, finalize,

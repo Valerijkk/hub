@@ -278,7 +278,7 @@ func mailboxPasswordEnrollmentDeployedTupleValid(account *ent.MailAccount) bool 
 	if hasGeneration != hasVersion || hasGeneration != hasHash {
 		return false
 	}
-	return !hasGeneration || (*account.DeployedGeneration >= 1 && *account.DeployedHashVersion >= 1 && len(account.DeployedHash) == sha256.Size)
+	return !hasGeneration || (*account.DeployedGeneration >= 1 && *account.DeployedHashVersion >= 1 && len(*account.DeployedHash) == sha256.Size)
 }
 
 func mailboxPasswordEnrollmentEligible(account *ent.MailAccount) bool {
@@ -305,16 +305,16 @@ func mailboxPasswordEnrollmentClaimDeployedTuple(account *ent.MailAccount) (int6
 		return 0, 0, [sha256.Size]byte{}, false
 	}
 	var deployedHash [sha256.Size]byte
-	copy(deployedHash[:], account.DeployedHash)
+	copy(deployedHash[:], *account.DeployedHash)
 	return *account.DeployedGeneration, *account.DeployedHashVersion, deployedHash, true
 }
 
 func mailboxPasswordEnrollmentClaimDeployedTupleMatches(account *ent.MailAccount, claim MailboxPasswordEnrollmentClaim) bool {
-	if account == nil || !mailboxPasswordEnrollmentClaimValid(claim) || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || len(account.DeployedHash) != sha256.Size {
+	if account == nil || !mailboxPasswordEnrollmentClaimValid(claim) || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || len(*account.DeployedHash) != sha256.Size {
 		return false
 	}
 	var deployedHash [sha256.Size]byte
-	copy(deployedHash[:], account.DeployedHash)
+	copy(deployedHash[:], *account.DeployedHash)
 	return *account.DeployedGeneration == claim.deployedGeneration &&
 		*account.DeployedHashVersion == claim.deployedHashVersion &&
 		deployedHash == claim.deployedHash

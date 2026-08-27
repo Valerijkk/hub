@@ -258,7 +258,7 @@ func mailboxSetupStatusMutationLeaseValid(account *ent.MailAccount) bool {
 }
 
 func mailboxSetupStatusAccountCurrentControlValid(account *ent.MailAccount) bool {
-	if account == nil || account.EngineAccountID == nil || !validMailboxOAuthOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) || !mailboxSetupStatusAccountTupleIntegrityValid(account) || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || subtle.ConstantTimeCompare(account.DeployedHash, account.ControlHash) != 1 || account.AttemptedControlGeneration != nil || account.AttemptedControlHashVersion != nil || account.AttemptedControlHash != nil || account.ProvisionLeaseToken != nil || account.ProvisionLeaseUntil != nil || account.NextProvisionAt != nil || account.ProvisionErrorCode != nil {
+	if account == nil || account.EngineAccountID == nil || !validMailboxOAuthOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) || !mailboxSetupStatusAccountTupleIntegrityValid(account) || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 || account.AttemptedControlGeneration != nil || account.AttemptedControlHashVersion != nil || account.AttemptedControlHash != nil || account.ProvisionLeaseToken != nil || account.ProvisionLeaseUntil != nil || account.NextProvisionAt != nil || account.ProvisionErrorCode != nil {
 		return false
 	}
 	return true

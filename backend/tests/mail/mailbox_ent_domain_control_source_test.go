@@ -123,7 +123,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 		"domain.DkimStatus != maildomain.DkimStatus(" + "\x22valid\x22" + ")",
 		"*domain.DeployedGeneration != domain.DesiredGeneration",
 		"*domain.DeployedHashVersion != domain.DesiredHashVersion",
-		"subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1",
+		"subtle.ConstantTimeCompare(*domain.DeployedHash, domain.DesiredHash) != 1",
 	} {
 		if !strings.Contains(verified, required) {
 			t.Fatalf("locked default validator is missing %q", required)
