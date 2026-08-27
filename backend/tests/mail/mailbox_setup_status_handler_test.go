@@ -34,21 +34,47 @@ func TestMailboxSetupStatusHandler_ConstructorAndAuthenticatedRoute(t *testing.T
 	}
 }
 
+func TestMailboxSetupStatusHandler_StatusValueDoesNotAliasSourceReassignment(t *testing.T) {
+	source := &mailboxSetupStatusFake{
+		status: mail.MailboxSetupStatus{
+			Stage:             mail.MailboxSetupStageReady,
+			PrimaryAddress:    "member@example.test",
+			HasPrimaryAddress: true,
+		},
+	}
+
+	first, err := source.ResolveMailboxSetupStatus(context.Background(), uuid.New())
+	if err != nil {
+		t.Fatalf("first ResolveMailboxSetupStatus() error = %v", err)
+	}
+	source.status.PrimaryAddress = "reassigned@example.test"
+	second, err := source.ResolveMailboxSetupStatus(context.Background(), uuid.New())
+	if err != nil {
+		t.Fatalf("second ResolveMailboxSetupStatus() error = %v", err)
+	}
+
+	if !first.HasPrimaryAddress || first.PrimaryAddress != "member@example.test" {
+		t.Fatalf("first status = %#v, want original value without alias", first)
+	}
+	if !second.HasPrimaryAddress || second.PrimaryAddress != "reassigned@example.test" {
+		t.Fatalf("second status = %#v, want reassigned source value", second)
+	}
+}
+
 func TestMailboxSetupStatusHandler_ReturnsOnlyClosedPublicStatuses(t *testing.T) {
 	primaryAddress := "member@example.test"
 	for _, testCase := range []struct {
 		name       string
 		status     mail.MailboxSetupStatus
 		wantBody   string
-		wantAddress *string
 	}{
 		{name: "preparing without address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStagePreparing}, wantBody: `{"stage":"preparing","primary_address":null}`},
-		{name: "password required", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStagePasswordRequired, PrimaryAddress: &primaryAddress}, wantBody: `{"stage":"password_required","primary_address":"member@example.test"}`, wantAddress: &primaryAddress},
-		{name: "oauth required", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageOAuthRequired, PrimaryAddress: &primaryAddress}, wantBody: `{"stage":"oauth_required","primary_address":"member@example.test"}`, wantAddress: &primaryAddress},
-		{name: "syncing", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageSyncing, PrimaryAddress: &primaryAddress}, wantBody: `{"stage":"syncing","primary_address":"member@example.test"}`, wantAddress: &primaryAddress},
-		{name: "ready", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageReady, PrimaryAddress: &primaryAddress}, wantBody: `{"stage":"ready","primary_address":"member@example.test"}`, wantAddress: &primaryAddress},
+		{name: "password required", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStagePasswordRequired, PrimaryAddress: primaryAddress, HasPrimaryAddress: true}, wantBody: `{"stage":"password_required","primary_address":"member@example.test"}`},
+		{name: "oauth required", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageOAuthRequired, PrimaryAddress: primaryAddress, HasPrimaryAddress: true}, wantBody: `{"stage":"oauth_required","primary_address":"member@example.test"}`},
+		{name: "syncing", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageSyncing, PrimaryAddress: primaryAddress, HasPrimaryAddress: true}, wantBody: `{"stage":"syncing","primary_address":"member@example.test"}`},
+		{name: "ready", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageReady, PrimaryAddress: primaryAddress, HasPrimaryAddress: true}, wantBody: `{"stage":"ready","primary_address":"member@example.test"}`},
 		{name: "action required without address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageActionRequired}, wantBody: `{"stage":"action_required","primary_address":null}`},
-		{name: "action required with address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageActionRequired, PrimaryAddress: &primaryAddress}, wantBody: `{"stage":"action_required","primary_address":"member@example.test"}`, wantAddress: &primaryAddress},
+		{name: "action required with address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageActionRequired, PrimaryAddress: primaryAddress, HasPrimaryAddress: true}, wantBody: `{"stage":"action_required","primary_address":"member@example.test"}`},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			fixture := newMailboxSetupStatusHTTPFixture(t)
@@ -110,7 +136,7 @@ func TestMailboxSetupStatusHandler_RejectsInvalidSourceOutput(t *testing.T) {
 		{name: "oauth required without address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageOAuthRequired}},
 		{name: "syncing without address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageSyncing}},
 		{name: "ready without address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageReady}},
-		{name: "invalid optional address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageActionRequired, PrimaryAddress: &malformedAddress}},
+		{name: "invalid optional address", status: mail.MailboxSetupStatus{Stage: mail.MailboxSetupStageActionRequired, PrimaryAddress: malformedAddress, HasPrimaryAddress: true}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			fixture := newMailboxSetupStatusHTTPFixture(t)

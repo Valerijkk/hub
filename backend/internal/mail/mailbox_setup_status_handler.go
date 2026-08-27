@@ -24,8 +24,9 @@ const (
 
 // MailboxSetupStatus is the copy-safe public mailbox setup state.
 type MailboxSetupStatus struct {
-	Stage          MailboxSetupStage
-	PrimaryAddress *string
+	Stage             MailboxSetupStage
+	PrimaryAddress    string
+	HasPrimaryAddress bool
 }
 
 // MailboxSetupStatusSource resolves the authenticated actor's safe setup state.
@@ -89,22 +90,26 @@ func mailboxSetupStatusHTTPResponseFromStatus(status MailboxSetupStatus) (mailbo
 	}
 
 	response := mailboxSetupStatusHTTPResponse{Stage: status.Stage}
-	if status.PrimaryAddress != nil {
-		primaryAddress := *status.PrimaryAddress
+	if status.HasPrimaryAddress {
+		primaryAddress := status.PrimaryAddress
 		response.PrimaryAddress = &primaryAddress
 	}
 	return response, true
 }
 
 func validMailboxSetupStatus(status MailboxSetupStatus) bool {
-	if status.PrimaryAddress != nil && !validMailboxOwnerPrimaryAddress(*status.PrimaryAddress) {
+	if status.HasPrimaryAddress {
+		if !validMailboxOwnerPrimaryAddress(status.PrimaryAddress) {
+			return false
+		}
+	} else if status.PrimaryAddress != "" {
 		return false
 	}
 	switch status.Stage {
 	case MailboxSetupStagePreparing, MailboxSetupStageActionRequired:
 		return true
 	case MailboxSetupStagePasswordRequired, MailboxSetupStageOAuthRequired, MailboxSetupStageSyncing, MailboxSetupStageReady:
-		return status.PrimaryAddress != nil
+		return status.HasPrimaryAddress
 	default:
 		return false
 	}
