@@ -44,6 +44,12 @@
 		},
 		"error": "The action could not be completed. Please try again."
 	},
+	"callback": {
+		"loading": "Completing mail connection...",
+		"errorTitle": "Mail connection could not be completed",
+		"error": "We could not complete the mail connection. Return to Mail and try again from there.",
+		"back": "Back to Mail"
+	},
 	"unavailable": {
 		"title": "Mailbox status is unavailable",
 		"description": "We could not check your mailbox right now. Try again when you are ready."
