@@ -36,12 +36,12 @@ func TestMailboxEntDraftCalendarCreateSourceContract(t *testing.T) {
 		"MailboxDraftCreateMIMEKindCalendar",
 		"MailboxDraftCreateMIMEPhaseUpload",
 		"MailboxDraftCreateMIMEPhaseImport",
-		"SetPendingCreateMIMEBindingDigest",
-		"SetPendingCreateMIMEAttempt(1)",
-		"SetPendingCreateMIMEAttempt(nextAttempt)",
-		"ClearPendingCreateMIMEKind()",
-		"ClearPendingCreateMIMEPhase()",
-		"ClearPendingCreateMIMEBindingDigest()",
+		"SetPendingCreateMimeBindingDigest",
+		"SetPendingCreateMimeAttempt(1)",
+		"SetPendingCreateMimeAttempt(nextAttempt)",
+		"ClearPendingCreateMimeKind()",
+		"ClearPendingCreateMimePhase()",
+		"ClearPendingCreateMimeBindingDigest()",
 		"SetStatus(maildraft.StatusUnknown)",
 		"SetStatus(maildraft.StatusActive)",
 		"SetStatus(maildraft.StatusAbandoned)",
@@ -93,13 +93,13 @@ func TestMailboxEntDraftCalendarCreateSourceContract(t *testing.T) {
 		name     string
 		markers  []string
 	}{
-		{"ReserveMailboxDraftCalendarCreate", []string{"mailboxEntDraftCreateLockAccount", "SetPendingCreateMIMEKind", "SetPendingCreateMIMEAttempt(1)", "MailboxDraftReservationDispatch"}},
-		{"AdvanceMailboxDraftCalendarCreateToImport", []string{"mailboxEntDraftCalendarCreateLock", "SetPendingCreateMIMEBlobID", "MailboxDraftCreateMIMEPhaseImport", "ExpectedBindingDigest"}},
+		{"ReserveMailboxDraftCalendarCreate", []string{"mailboxEntDraftCreateLockAccount", "SetPendingCreateMimeKind", "SetPendingCreateMimeAttempt(1)", "MailboxDraftReservationDispatch"}},
+		{"AdvanceMailboxDraftCalendarCreateToImport", []string{"mailboxEntDraftCalendarCreateLock", "SetPendingCreateMimeBlobID", "MailboxDraftCreateMIMEPhaseImport", "ExpectedBindingDigest"}},
 		{"MarkMailboxDraftCalendarCreateUnknown", []string{"mailboxEntDraftCalendarCreateLock", "mailboxEntDraftCalendarCreateUnknownUploadSchedule", "SetStatus(maildraft.StatusUnknown)", "mailboxEntDraftCreateRelease"}},
-		{"FinishMailboxDraftCalendarCreateApplied", []string{"mailboxEntDraftCalendarCreateLock", "SetStatus(maildraft.StatusActive)", "SetConfirmedMutationID(request.MutationID)", "ClearPendingCreateMIMEBindingDigest"}},
-		{"RestartMailboxDraftCalendarCreateUpload", []string{"mailboxEntDraftCalendarCreateLock", "RestartableUnknown", "SetPendingCreateMIMEAttempt(nextAttempt)", "NextBindingDigest"}},
-		{"RestartMailboxDraftCalendarCreateUploadAfterBlobNotFound", []string{"mailboxEntDraftCalendarCreateLock", "ExpectedBlobID", "ExpectedSizeBytes", "SetPendingCreateMIMEAttempt(nextAttempt)"}},
-		{"AbandonMailboxDraftCalendarCreateUpload", []string{"mailboxEntDraftCalendarCreateLock", "SetStatus(maildraft.StatusAbandoned)", "SetAbandonedMutationID(request.ExpectedMutationID)", "ClearPendingCreateMIMEKind"}},
+		{"FinishMailboxDraftCalendarCreateApplied", []string{"mailboxEntDraftCalendarCreateLock", "SetStatus(maildraft.StatusActive)", "SetConfirmedMutationID(request.MutationID)", "ClearPendingCreateMimeBindingDigest"}},
+		{"RestartMailboxDraftCalendarCreateUpload", []string{"mailboxEntDraftCalendarCreateLock", "RestartableUnknown", "SetPendingCreateMimeAttempt(nextAttempt)", "NextBindingDigest"}},
+		{"RestartMailboxDraftCalendarCreateUploadAfterBlobNotFound", []string{"mailboxEntDraftCalendarCreateLock", "ExpectedBlobID", "ExpectedSizeBytes", "SetPendingCreateMimeAttempt(nextAttempt)"}},
+		{"AbandonMailboxDraftCalendarCreateUpload", []string{"mailboxEntDraftCalendarCreateLock", "SetStatus(maildraft.StatusAbandoned)", "SetAbandonedMutationID(request.ExpectedMutationID)", "ClearPendingCreateMimeKind"}},
 	} {
 		section := mailboxEntDraftCalendarCreateSourceSection(t, text, contract.name)
 		for _, marker := range contract.markers {

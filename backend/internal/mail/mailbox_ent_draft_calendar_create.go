@@ -57,10 +57,10 @@ func (repository *MailboxEntRepository) ReserveMailboxDraftCalendarCreate(ctx co
 			SetCreateRequestHash(append([]byte(nil), request.Create.CreateRequestHash[:]...)).
 			SetLastMutationID(request.Create.MutationID).
 			SetPendingMutationKind(maildraft.PendingMutationKind(MailboxDraftMutationCreate)).
-			SetPendingCreateMIMEKind(maildraft.PendingCreateMIMEKind(MailboxDraftCreateMIMEKindCalendar)).
-			SetPendingCreateMIMEPhase(maildraft.PendingCreateMIMEPhase(MailboxDraftCreateMIMEPhaseUpload)).
-			SetPendingCreateMIMEBindingDigest(append([]byte(nil), request.State.BindingDigest[:]...)).
-			SetPendingCreateMIMEAttempt(1).
+			SetPendingCreateMimeKind(maildraft.PendingCreateMimeKind(MailboxDraftCreateMIMEKindCalendar)).
+			SetPendingCreateMimePhase(maildraft.PendingCreateMimePhase(MailboxDraftCreateMIMEPhaseUpload)).
+			SetPendingCreateMimeBindingDigest(append([]byte(nil), request.State.BindingDigest[:]...)).
+			SetPendingCreateMimeAttempt(1).
 			SetCreatedAt(databaseNow).
 			SetUpdatedAt(databaseNow).
 			Save(ctx)
@@ -104,11 +104,11 @@ func (repository *MailboxEntRepository) AdvanceMailboxDraftCalendarCreateToImpor
 			return mailboxEntDraftCalendarCreateLogicalError(ctx, locked.account, request.Fence, locked.databaseNow, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
 		}
 		if err := locked.draft.Update().
-			SetPendingCreateMIMEPhase(maildraft.PendingCreateMIMEPhase(MailboxDraftCreateMIMEPhaseImport)).
-			SetPendingCreateMIMEBlobID(request.BlobID).
-			SetPendingCreateMIMESizeBytes(request.SizeBytes).
-			ClearPendingCreateMIMERetryAt().
-			ClearPendingCreateMIMEExhaustedAt().
+			SetPendingCreateMimePhase(maildraft.PendingCreateMimePhase(MailboxDraftCreateMIMEPhaseImport)).
+			SetPendingCreateMimeBlobID(request.BlobID).
+			SetPendingCreateMimeSizeBytes(request.SizeBytes).
+			ClearPendingCreateMimeRetryAt().
+			ClearPendingCreateMimeExhaustedAt().
 			SetUpdatedAt(locked.databaseNow).
 			Exec(ctx); err != nil {
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
@@ -205,14 +205,14 @@ func (repository *MailboxEntRepository) FinishMailboxDraftCalendarCreateApplied(
 			SetConfirmedMutationID(request.MutationID).
 			ClearLastMutationID().
 			ClearPendingMutationKind().
-			ClearPendingCreateMIMEKind().
-			ClearPendingCreateMIMEPhase().
-			ClearPendingCreateMIMEBlobID().
-			ClearPendingCreateMIMESizeBytes().
-			ClearPendingCreateMIMEBindingDigest().
-			SetPendingCreateMIMEAttempt(0).
-			ClearPendingCreateMIMERetryAt().
-			ClearPendingCreateMIMEExhaustedAt().
+			ClearPendingCreateMimeKind().
+			ClearPendingCreateMimePhase().
+			ClearPendingCreateMimeBlobID().
+			ClearPendingCreateMimeSizeBytes().
+			ClearPendingCreateMimeBindingDigest().
+			SetPendingCreateMimeAttempt(0).
+			ClearPendingCreateMimeRetryAt().
+			ClearPendingCreateMimeExhaustedAt().
 			ClearPendingCreateAttachmentPhase().
 			ClearPendingCreateUploadBlobID().
 			ClearPendingCreateUploadSizeBytes().
@@ -277,14 +277,14 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCalendarCreateUpload(
 			SetStatus(maildraft.StatusSaving).
 			SetLastMutationID(request.NextMutationID).
 			SetPendingMutationKind(maildraft.PendingMutationKind(MailboxDraftMutationCreate)).
-			SetPendingCreateMIMEKind(maildraft.PendingCreateMIMEKind(MailboxDraftCreateMIMEKindCalendar)).
-			SetPendingCreateMIMEPhase(maildraft.PendingCreateMIMEPhase(MailboxDraftCreateMIMEPhaseUpload)).
-			ClearPendingCreateMIMEBlobID().
-			ClearPendingCreateMIMESizeBytes().
-			SetPendingCreateMIMEBindingDigest(append([]byte(nil), request.NextBindingDigest[:]...)).
-			SetPendingCreateMIMEAttempt(nextAttempt).
-			ClearPendingCreateMIMERetryAt().
-			ClearPendingCreateMIMEExhaustedAt().
+			SetPendingCreateMimeKind(maildraft.PendingCreateMimeKind(MailboxDraftCreateMIMEKindCalendar)).
+			SetPendingCreateMimePhase(maildraft.PendingCreateMimePhase(MailboxDraftCreateMIMEPhaseUpload)).
+			ClearPendingCreateMimeBlobID().
+			ClearPendingCreateMimeSizeBytes().
+			SetPendingCreateMimeBindingDigest(append([]byte(nil), request.NextBindingDigest[:]...)).
+			SetPendingCreateMimeAttempt(nextAttempt).
+			ClearPendingCreateMimeRetryAt().
+			ClearPendingCreateMimeExhaustedAt().
 			SetUpdatedAt(locked.databaseNow).
 			Exec(ctx); err != nil {
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
@@ -328,14 +328,14 @@ func (repository *MailboxEntRepository) RestartMailboxDraftCalendarCreateUploadA
 			SetStatus(maildraft.StatusSaving).
 			SetLastMutationID(request.NextMutationID).
 			SetPendingMutationKind(maildraft.PendingMutationKind(MailboxDraftMutationCreate)).
-			SetPendingCreateMIMEKind(maildraft.PendingCreateMIMEKind(MailboxDraftCreateMIMEKindCalendar)).
-			SetPendingCreateMIMEPhase(maildraft.PendingCreateMIMEPhase(MailboxDraftCreateMIMEPhaseUpload)).
-			ClearPendingCreateMIMEBlobID().
-			ClearPendingCreateMIMESizeBytes().
-			SetPendingCreateMIMEBindingDigest(append([]byte(nil), request.NextBindingDigest[:]...)).
-			SetPendingCreateMIMEAttempt(nextAttempt).
-			ClearPendingCreateMIMERetryAt().
-			ClearPendingCreateMIMEExhaustedAt().
+			SetPendingCreateMimeKind(maildraft.PendingCreateMimeKind(MailboxDraftCreateMIMEKindCalendar)).
+			SetPendingCreateMimePhase(maildraft.PendingCreateMimePhase(MailboxDraftCreateMIMEPhaseUpload)).
+			ClearPendingCreateMimeBlobID().
+			ClearPendingCreateMimeSizeBytes().
+			SetPendingCreateMimeBindingDigest(append([]byte(nil), request.NextBindingDigest[:]...)).
+			SetPendingCreateMimeAttempt(nextAttempt).
+			ClearPendingCreateMimeRetryAt().
+			ClearPendingCreateMimeExhaustedAt().
 			SetUpdatedAt(locked.databaseNow).
 			Exec(ctx); err != nil {
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
@@ -395,14 +395,14 @@ func (repository *MailboxEntRepository) AbandonMailboxDraftCalendarCreateUpload(
 			ClearPendingReplyToMessageID().
 			ClearPendingForwardMessageID().
 			ClearPendingSaveRequestHash().
-			ClearPendingCreateMIMEKind().
-			ClearPendingCreateMIMEPhase().
-			ClearPendingCreateMIMEBlobID().
-			ClearPendingCreateMIMESizeBytes().
-			ClearPendingCreateMIMEBindingDigest().
-			SetPendingCreateMIMEAttempt(0).
-			ClearPendingCreateMIMERetryAt().
-			ClearPendingCreateMIMEExhaustedAt().
+			ClearPendingCreateMimeKind().
+			ClearPendingCreateMimePhase().
+			ClearPendingCreateMimeBlobID().
+			ClearPendingCreateMimeSizeBytes().
+			ClearPendingCreateMimeBindingDigest().
+			SetPendingCreateMimeAttempt(0).
+			ClearPendingCreateMimeRetryAt().
+			ClearPendingCreateMimeExhaustedAt().
 			ClearPendingCreateAttachmentPhase().
 			ClearPendingCreateUploadBlobID().
 			ClearPendingCreateUploadSizeBytes().
@@ -573,22 +573,22 @@ func mailboxEntDraftCalendarCreateMIMEStateFromRow(draft *ent.MailDraft) (*Mailb
 	if draft == nil {
 		return nil, false
 	}
-	if draft.PendingCreateMIMEKind == nil && draft.PendingCreateMIMEPhase == nil && draft.PendingCreateMIMEBlobID == nil && draft.PendingCreateMIMESizeBytes == nil && draft.PendingCreateMIMEBindingDigest == nil && draft.PendingCreateMIMEAttempt == 0 && draft.PendingCreateMIMERetryAt == nil && draft.PendingCreateMIMEExhaustedAt == nil {
+	if draft.PendingCreateMimeKind == nil && draft.PendingCreateMimePhase == nil && draft.PendingCreateMimeBlobID == nil && draft.PendingCreateMimeSizeBytes == nil && draft.PendingCreateMimeBindingDigest == nil && draft.PendingCreateMimeAttempt == 0 && draft.PendingCreateMimeRetryAt == nil && draft.PendingCreateMimeExhaustedAt == nil {
 		return nil, true
 	}
-	if draft.PendingCreateMIMEKind == nil || draft.PendingCreateMIMEPhase == nil || draft.PendingCreateMIMEBindingDigest == nil || len(*draft.PendingCreateMIMEBindingDigest) != sha256.Size {
+	if draft.PendingCreateMimeKind == nil || draft.PendingCreateMimePhase == nil || draft.PendingCreateMimeBindingDigest == nil || len(*draft.PendingCreateMimeBindingDigest) != sha256.Size {
 		return nil, false
 	}
 	state := &MailboxDraftCreateMIMEState{
-		Kind:        MailboxDraftCreateMIMEKind(*draft.PendingCreateMIMEKind),
-		Phase:       MailboxDraftCreateMIMEPhase(*draft.PendingCreateMIMEPhase),
-		BlobID:      mailboxEntStringPointer(draft.PendingCreateMIMEBlobID),
-		SizeBytes:   mailboxEntDraftReadInt64PointerCopy(draft.PendingCreateMIMESizeBytes),
-		Attempt:     draft.PendingCreateMIMEAttempt,
-		RetryAt:     mailboxEntDraftReadTimePointerCopy(draft.PendingCreateMIMERetryAt),
-		ExhaustedAt: mailboxEntDraftReadTimePointerCopy(draft.PendingCreateMIMEExhaustedAt),
+		Kind:        MailboxDraftCreateMIMEKind(*draft.PendingCreateMimeKind),
+		Phase:       MailboxDraftCreateMIMEPhase(*draft.PendingCreateMimePhase),
+		BlobID:      mailboxEntStringPointer(draft.PendingCreateMimeBlobID),
+		SizeBytes:   mailboxEntDraftReadInt64PointerCopy(draft.PendingCreateMimeSizeBytes),
+		Attempt:     draft.PendingCreateMimeAttempt,
+		RetryAt:     mailboxEntDraftReadTimePointerCopy(draft.PendingCreateMimeRetryAt),
+		ExhaustedAt: mailboxEntDraftReadTimePointerCopy(draft.PendingCreateMimeExhaustedAt),
 	}
-	copy(state.BindingDigest[:], *draft.PendingCreateMIMEBindingDigest)
+	copy(state.BindingDigest[:], *draft.PendingCreateMimeBindingDigest)
 	return state, true
 }
 
@@ -660,14 +660,14 @@ func mailboxEntDraftCalendarCreateApplyMIMERetry(update *ent.MailDraftUpdateOne,
 		return
 	}
 	if retryAt == nil {
-		update.ClearPendingCreateMIMERetryAt()
+		update.ClearPendingCreateMimeRetryAt()
 	} else {
-		update.SetPendingCreateMIMERetryAt(*retryAt)
+		update.SetPendingCreateMimeRetryAt(*retryAt)
 	}
 	if exhaustedAt == nil {
-		update.ClearPendingCreateMIMEExhaustedAt()
+		update.ClearPendingCreateMimeExhaustedAt()
 	} else {
-		update.SetPendingCreateMIMEExhaustedAt(*exhaustedAt)
+		update.SetPendingCreateMimeExhaustedAt(*exhaustedAt)
 	}
 }
 
