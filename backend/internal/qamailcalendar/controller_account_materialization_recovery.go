@@ -141,20 +141,22 @@ func (c *Controller) observeAccountMaterializationFixtureRecovery(
 		return accountMaterializationFixtureRecoveryObservation{}, false
 	}
 	observation.accounts = accounts
+	identityAccountID := record.plan.expectedAccountIntentID
 	if len(accounts) == 1 {
-		identities, err := tx.MailIdentity.Query().
-			Where(
-				mailidentity.MailAccountIDEQ(accounts[0].ID),
-				accountMaterializationFixtureMailIdentityNoWait(),
-			).
-			Order(mailidentity.ByID()).
-			Limit(2).
-			All(ctx)
-		if err != nil {
-			return accountMaterializationFixtureRecoveryObservation{}, false
-		}
-		observation.identities = identities
+		identityAccountID = accounts[0].ID
 	}
+	identities, err := tx.MailIdentity.Query().
+		Where(
+			mailidentity.MailAccountIDEQ(identityAccountID),
+			accountMaterializationFixtureMailIdentityNoWait(),
+		).
+		Order(mailidentity.ByID()).
+		Limit(2).
+		All(ctx)
+	if err != nil {
+		return accountMaterializationFixtureRecoveryObservation{}, false
+	}
+	observation.identities = identities
 
 	domainRow, err := tx.MailDomain.Query().
 		Where(
