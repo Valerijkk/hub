@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	errAccountMaterializationFixtureControllerInput = errors.New("")
-	errAccountMaterializationFixtureLifecycle       = errors.New("")
+	errAccountMaterializationFixtureControllerInput = errors.New("qa mail account materialization controller input is invalid")
+	errAccountMaterializationFixtureLifecycle       = errors.New("qa mail account materialization fixture lifecycle failed")
 )
 
 const accountMaterializationFixtureScenario Scenario = "account-materialization-v1"
