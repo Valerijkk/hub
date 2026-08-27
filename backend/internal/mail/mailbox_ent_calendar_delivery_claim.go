@@ -501,7 +501,7 @@ func mailboxEntCalendarReplyDeliveryClaimSnapshot(ctx context.Context, transacti
 		ForUpdate().
 		Only(ctx)
 	if err != nil || attendee == nil || attendee.RemovedAt != nil || attendee.UserID == nil || *attendee.UserID == uuid.Nil ||
-		attendee.CalendarEventID != event.ID || attendee.RecurrenceID != nil || attendee.RSVPStatus != calendarattendee.RsvpStatus(delivery.RSVPStatus) ||
+		attendee.CalendarEventID != event.ID || attendee.RecurrenceID != nil || attendee.RsvpStatus != calendarattendee.RsvpStatus(delivery.RsvpStatus) ||
 		delivery.AttendeeVersion < 1 {
 		return mailboxEntCalendarDeliveryClaimSnapshot{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
@@ -635,7 +635,7 @@ func mailboxEntCalendarDeliveryITIPParticipant(attendee *ent.CalendarAttendee, r
 	default:
 		return ical.ITIPParticipant{}, false
 	}
-	status, ok := mailboxEntCalendarDeliveryRSVPStatus(attendee.RSVPStatus)
+	status, ok := mailboxEntCalendarDeliveryRSVPStatus(attendee.RsvpStatus)
 	if !ok {
 		return ical.ITIPParticipant{}, false
 	}
