@@ -76,10 +76,10 @@ def test_mail_calendar_qa_account_materialization_requires_capability_and_cleans
                 mail_calendar_qa_client.quiesce_account_materialization_fixture(created.nonce)
             except Exception as error:
                 cleanup_error = error
-            else:
-                try:
-                    mail_calendar_qa_client.delete_account_materialization_fixture(created.nonce)
-                except Exception as error:
+            try:
+                mail_calendar_qa_client.delete_account_materialization_fixture(created.nonce)
+            except Exception as error:
+                if cleanup_error is None:
                     cleanup_error = error
             if cleanup_error is not None and exc_info()[0] is None:
                 raise cleanup_error
