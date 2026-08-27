@@ -342,6 +342,160 @@ describe("import-export FormData via api.post", () => {
 	});
 });
 
+describe("api.postBytes", () => {
+	beforeEach(() => {
+		resetAuthStore();
+		vi.restoreAllMocks();
+		useAuthStore.getState().setTokens("binary-access", "binary-refresh");
+	});
+
+	it("sends an owned non-JSON byte body with binary content type and preserves caller bytes", async () => {
+		const callerBytes = new Uint8Array([0, 1, 42, 255]);
+		const abortController = new AbortController();
+		let ownedRequestBytes: Uint8Array | undefined;
+
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+				const headers = init?.headers as Record<string, string> | undefined;
+				expect(init?.method).toBe("POST");
+				expect(init?.signal).toBe(abortController.signal);
+				expect(headers?.Authorization).toBe("Bearer binary-access");
+				expect(headers?.["Content-Type"]).toBe(
+					"application/octet-stream",
+				);
+
+				const requestBody = init?.body;
+				expect(requestBody).toBeInstanceOf(Uint8Array);
+				expect(typeof requestBody).not.toBe("string");
+				expect(requestBody).not.toBe(callerBytes);
+				expect([...((requestBody as Uint8Array) ?? [])]).toEqual([
+					0,
+					1,
+					42,
+					255,
+				]);
+				ownedRequestBytes = requestBody as Uint8Array;
+				return new Response(JSON.stringify({ accepted: true }), {
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				});
+			}),
+		);
+
+		const result = await api.postBytes<{ accepted: boolean }>(
+			"/mail/setup/bytes",
+			callerBytes,
+			{ signal: abortController.signal },
+		);
+
+		expect(result).toEqual({ accepted: true });
+		expect([...callerBytes]).toEqual([0, 1, 42, 255]);
+		expect([...((ownedRequestBytes as Uint8Array) ?? [])]).toEqual([
+			0,
+			0,
+			0,
+			0,
+		]);
+	});
+
+	it("rejects empty and oversized byte bodies before fetching", async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+
+		await expect(api.postBytes("/mail/setup/bytes", new Uint8Array())).rejects.toThrow(
+			"Invalid binary request body",
+		);
+		await expect(
+			api.postBytes("/mail/setup/bytes", new Uint8Array(257)),
+		).rejects.toThrow("Invalid binary request body");
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("retries byte body once after refresh with a fresh owned copy", async () => {
+		const callerBytes = new Uint8Array([7, 8, 9]);
+		let byteCalls = 0;
+		let refreshCalls = 0;
+		const sentBodies: number[][] = [];
+		const authorizations: string[] = [];
+
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+				const url = String(input);
+				if (url.endsWith("/api/auth/refresh")) {
+					refreshCalls += 1;
+					return new Response(
+						JSON.stringify({
+							access_token: "binary-access-refreshed",
+							refresh_token: "binary-refresh-refreshed",
+						}),
+						{ status: 200, headers: { "Content-Type": "application/json" } },
+					);
+				}
+
+				byteCalls += 1;
+				const headers = init?.headers as Record<string, string> | undefined;
+				authorizations.push(headers?.Authorization ?? "");
+				sentBodies.push([...((init?.body as Uint8Array) ?? [])]);
+				if (byteCalls === 1) return new Response(null, { status: 401 });
+				return new Response(JSON.stringify({ retried: true }), {
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				});
+			}),
+		);
+
+		await expect(
+			api.postBytes<{ retried: boolean }>("/mail/setup/bytes", callerBytes),
+		).resolves.toEqual({ retried: true });
+		expect(refreshCalls).toBe(1);
+		expect(byteCalls).toBe(2);
+		expect(authorizations).toEqual([
+			"Bearer binary-access",
+			"Bearer binary-access-refreshed",
+		]);
+		expect(sentBodies).toEqual([
+			[7, 8, 9],
+			[7, 8, 9],
+		]);
+		expect([...callerBytes]).toEqual([7, 8, 9]);
+	});
+
+	it("uses the same wire error mapping for byte body requests", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () =>
+				wireErrorResponse(
+					429,
+					{ error: "rate limited", request_id: WIRE_REQUEST_ID },
+					{ "Retry-After": "4" },
+				),
+			),
+		);
+
+		await expect(
+			api.postBytes("/mail/setup/bytes", new Uint8Array([12])),
+		).rejects.toMatchObject({
+			code: 429,
+			message: "rate limited",
+			request_id: WIRE_REQUEST_ID,
+			retry_after: 4,
+		});
+	});
+
+	it("returns undefined for a 204 byte response", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => new Response(null, { status: 204 })),
+		);
+
+		await expect(
+			api.postBytes<undefined>("/mail/setup/bytes", new Uint8Array([5])),
+		).resolves.toBeUndefined();
+	});
+});
+
 describe("api client wire error → ApiError (A3W11-1-001)", () => {
 	beforeEach(() => {
 		resetAuthStore();

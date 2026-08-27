@@ -5,6 +5,7 @@ const API_BASE = "/api";
 
 const MAX_HEADER_VALUE_LENGTH = 256;
 const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
+const MAX_POST_BYTES_BODY_LENGTH = 256;
 const SAFE_LOCATION_ORIGIN = "https://hub.invalid";
 const ENCODED_UNSAFE_LOCATION_MATERIAL = /%(?:0[0-9A-F]|1[0-9A-F]|2E|2F|5C|7F)/i;
 const MAX_LOCATION_LENGTH = 2048;
@@ -422,6 +423,91 @@ class ApiClient {
 		options?: ApiRequestOptions,
 	): Promise<ApiSuccessResponse<T>> {
 		return this.requestWithResponse<T>("POST", path, body, options);
+	}
+
+	async postBytes<T>(
+		path: string,
+		body: Uint8Array,
+		options?: ApiRequestOptions,
+	): Promise<T> {
+		if (
+			!(body instanceof Uint8Array) ||
+			body.length === 0 ||
+			body.length > MAX_POST_BYTES_BODY_LENGTH
+		) {
+			throw new Error("Invalid binary request body");
+		}
+
+		const requestBytes = async (
+			_retried = false,
+		): Promise<ApiSuccessResponse<T>> => {
+			const ownedBody = new Uint8Array(body);
+			try {
+				const response = await fetch(`${API_BASE}${path}`, {
+					method: "POST",
+					headers: {
+						...this.getHeaders(undefined, options),
+						"Content-Type": "application/octet-stream",
+					},
+					signal: options?.signal,
+					body: ownedBody,
+				});
+
+				if (response.status === 401) {
+					if (_retried) {
+						await this.expireSession();
+						throw new Error("Session expired");
+					}
+					const refreshed = await this.tryRefresh();
+					if (refreshed) return requestBytes(true);
+					await this.expireSession();
+					throw new Error("Session expired");
+				}
+
+				if (!response.ok) {
+					const error = await this.mapWireToApiError(response);
+					if (response.status === 429) {
+						const retryHeader = response.headers.get("Retry-After");
+						if (retryHeader) {
+							const seconds = Number.parseInt(retryHeader, 10);
+							if (!Number.isNaN(seconds) && seconds > 0) {
+								error.retry_after = seconds;
+							}
+						}
+					}
+					if (
+						response.status === 423 &&
+						error.error_code === "MAIL_ACCOUNT_BUSY"
+					) {
+						const retryHeader = response.headers.get("Retry-After");
+						if (retryHeader && /^[1-5]$/.test(retryHeader)) {
+							error.retry_after_seconds = Number(retryHeader);
+						}
+					}
+					throw error;
+				}
+
+				if (response.status === 204) {
+					return { status: response.status, data: undefined as T };
+				}
+
+				const text = await response.text();
+				if (!text) return { status: response.status, data: undefined as T };
+				try {
+					return { status: response.status, data: JSON.parse(text) as T };
+				} catch {
+					const parseError: ApiError = {
+						code: 502,
+						message: "invalid json",
+					};
+					throw parseError;
+				}
+			} finally {
+				ownedBody.fill(0);
+			}
+		};
+
+		return (await requestBytes()).data;
 	}
 	/** PUT-запрос. */
 	put<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
