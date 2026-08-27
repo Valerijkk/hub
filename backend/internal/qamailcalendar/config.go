@@ -13,7 +13,10 @@ const (
 	HeaderHubQAToken        = "X-Hub-QA-Token"
 )
 
-const ScenarioInboundRequestV1 Scenario = "inbound-request-v1"
+const (
+	ScenarioInboundRequestV1         Scenario = "inbound-request-v1"
+	ScenarioAccountMaterializationV1 Scenario = "account-materialization-v1"
+)
 
 var (
 	errNilLookup       = errors.New("qa mail calendar environment lookup is nil")
@@ -65,11 +68,14 @@ func (c Config) Authorized(candidate string) bool {
 }
 
 func ParseScenario(value string) (Scenario, error) {
-	if value != string(ScenarioInboundRequestV1) {
+	switch Scenario(value) {
+	case ScenarioInboundRequestV1:
+		return ScenarioInboundRequestV1, nil
+	case ScenarioAccountMaterializationV1:
+		return ScenarioAccountMaterializationV1, nil
+	default:
 		return "", errInvalidScenario
 	}
-
-	return ScenarioInboundRequestV1, nil
 }
 
 func ValidNonce(value string) bool {

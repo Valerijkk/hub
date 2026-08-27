@@ -35,6 +35,21 @@ type qaFixtureHTTPResponse struct {
 	EnvelopeEventID string `json:"envelope_event_id"`
 }
 
+type qaFixtureHTTPAccountMaterializationResponse struct {
+	Nonce                  string  `json:"nonce"`
+	Scenario               string  `json:"scenario"`
+	State                  string  `json:"state"`
+	OwnerEmail             string  `json:"owner_email"`
+	OrganizationID         string  `json:"organization_id"`
+	OwnerUserID            string  `json:"owner_user_id"`
+	MailDomainID           string  `json:"mail_domain_id"`
+	ExpectedMailAccountID  string  `json:"expected_mail_account_id"`
+	MaterializationState   string  `json:"materialization_state"`
+	MailAccountID          *string `json:"mail_account_id"`
+	PrimaryIdentityID      *string `json:"primary_identity_id"`
+	PrimaryIdentityStatus  *string `json:"primary_identity_status"`
+}
+
 // RegisterRoutes exposes the closed QA-only Mail/Calendar fixture surface on /api.
 func (c *Controller) RegisterRoutes(api fiber.Router) error {
 	if c == nil || api == nil {
@@ -52,15 +67,27 @@ func (c *Controller) create(ctx fiber.Ctx) error {
 		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
 	}
 
-	if _, ok := qaFixtureCreateScenario(ctx); !ok {
+	scenario, ok := qaFixtureCreateScenario(ctx)
+	if !ok {
 		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
 	}
 
-	snapshot, err := c.createInboundRequestFixture(ctx.Context())
-	if err != nil {
-		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	switch scenario {
+	case ScenarioInboundRequestV1:
+		snapshot, err := c.createInboundRequestFixture(ctx.Context())
+		if err != nil {
+			return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+		}
+		return ctx.Status(fiber.StatusCreated).JSON(qaFixtureHTTPSnapshot(snapshot))
+	case ScenarioAccountMaterializationV1:
+		snapshot, err := c.createAccountMaterializationFixture(ctx.Context())
+		if err != nil {
+			return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+		}
+		return ctx.Status(fiber.StatusCreated).JSON(qaFixtureHTTPAccountMaterializationSnapshot(snapshot))
+	default:
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
 	}
-	return ctx.Status(fiber.StatusCreated).JSON(qaFixtureHTTPSnapshot(snapshot))
 }
 
 func (c *Controller) publish(ctx fiber.Ctx) error {
@@ -181,6 +208,35 @@ func qaFixtureHTTPSnapshot(snapshot inboundRequestFixtureSnapshot) qaFixtureHTTP
 		MailThreadID:    snapshot.mailThreadID.String(),
 		MailMessageID:   snapshot.mailMessageID.String(),
 		EnvelopeEventID: snapshot.envelopeEventID.String(),
+	}
+}
+
+func qaFixtureHTTPAccountMaterializationSnapshot(snapshot accountMaterializationFixtureSnapshot) qaFixtureHTTPAccountMaterializationResponse {
+	var mailAccountID *string
+	if snapshot.mailAccountID != nil {
+		value := snapshot.mailAccountID.String()
+		mailAccountID = &value
+	}
+
+	var primaryIdentityID *string
+	if snapshot.primaryIdentityID != nil {
+		value := snapshot.primaryIdentityID.String()
+		primaryIdentityID = &value
+	}
+
+	return qaFixtureHTTPAccountMaterializationResponse{
+		Nonce:                 snapshot.nonce,
+		Scenario:              string(snapshot.scenario),
+		State:                 string(snapshot.state),
+		OwnerEmail:            snapshot.ownerEmail,
+		OrganizationID:        snapshot.organizationID.String(),
+		OwnerUserID:           snapshot.ownerUserID.String(),
+		MailDomainID:          snapshot.mailDomainID.String(),
+		ExpectedMailAccountID: snapshot.expectedMailAccountID.String(),
+		MaterializationState:  string(snapshot.materializationState),
+		MailAccountID:         mailAccountID,
+		PrimaryIdentityID:     primaryIdentityID,
+		PrimaryIdentityStatus: snapshot.primaryIdentityStatus,
 	}
 }
 
