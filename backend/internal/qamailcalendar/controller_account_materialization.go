@@ -17,6 +17,7 @@ import (
 	"github.com/valerii/hub/backend/ent/mailaccount"
 	"github.com/valerii/hub/backend/ent/maildomain"
 	"github.com/valerii/hub/backend/ent/mailidentity"
+	"github.com/valerii/hub/backend/ent/organization"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -107,6 +108,113 @@ func (c *Controller) createAccountMaterializationFixture(
 	}
 	snapshot, completed := c.completeAccountMaterializationFixture(nonce, plan, persisted)
 	if !completed {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	return snapshot, nil
+}
+
+func (c *Controller) observeAccountMaterializationFixture(
+	ctx context.Context,
+	nonce string,
+) (accountMaterializationFixtureSnapshot, error) {
+	if c == nil ||
+		ctx == nil ||
+		c.client == nil ||
+		c.fixtures == nil ||
+		c.accountMaterializationFixtures == nil ||
+		!validToken(string(c.config.token)) ||
+		!ValidNonce(nonce) {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureControllerInput
+	}
+
+	canonicalPlan, err := newAccountMaterializationFixturePlan(nonce)
+	if err != nil {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureControllerInput
+	}
+
+	c.mu.Lock()
+	record, found := c.accountMaterializationFixtures[nonce]
+	c.mu.Unlock()
+	if !found ||
+		record.nonce != nonce ||
+		record.state != accountMaterializationFixtureStateCreated ||
+		record.plan != canonicalPlan ||
+		!accountMaterializationFixturePersistedMatchesPlan(record.persisted, canonicalPlan) {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+
+	tx, err := c.client.Tx(ctx)
+	if err != nil || tx == nil {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	organizationRow, err := tx.Organization.Query().
+		Where(organization.IDEQ(record.persisted.organizationID)).
+		Only(ctx)
+	if err != nil {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	ownerRow, err := tx.User.Query().
+		Where(user.IDEQ(record.persisted.ownerUserID)).
+		Only(ctx)
+	if err != nil {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	domainRow, err := tx.MailDomain.Query().
+		Where(maildomain.IDEQ(record.persisted.mailDomainID)).
+		Only(ctx)
+	if err != nil {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	accounts, err := tx.MailAccount.Query().
+		Where(mailaccount.UserIDEQ(record.persisted.ownerUserID)).
+		Order(mailaccount.ByID()).
+		Limit(2).
+		All(ctx)
+	if err != nil || len(accounts) > 1 {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+
+	identities := make([]*ent.MailIdentity, 0)
+	if len(accounts) == 1 {
+		identities, err = tx.MailIdentity.Query().
+			Where(mailidentity.MailAccountIDEQ(accounts[0].ID)).
+			Order(mailidentity.ByID()).
+			Limit(2).
+			All(ctx)
+		if err != nil {
+			return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+		}
+	}
+
+	snapshot, valid := accountMaterializationFixtureClassifyRows(
+		record,
+		organizationRow,
+		ownerRow,
+		domainRow,
+		accounts,
+		identities,
+	)
+	if !valid {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	if err := tx.Commit(); err != nil {
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	committed = true
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	current, found := c.accountMaterializationFixtures[nonce]
+	if !found ||
+		current != record ||
+		current.state != accountMaterializationFixtureStateCreated {
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	return snapshot, nil
