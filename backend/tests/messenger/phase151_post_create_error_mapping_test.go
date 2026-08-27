@@ -28,6 +28,16 @@ func TestPhase151MapsTypedPostCreateNonceOutcomesToStableConflicts(t *testing.T)
 			message: "client_nonce уже использован для другого сообщения",
 		},
 		{
+			name:    "direct legacy reservation",
+			err:     messenger.ErrPostCreatePipelineNonceLegacyReserved,
+			message: "client_nonce уже использован для другого сообщения",
+		},
+		{
+			name:    "wrapped legacy reservation",
+			err:     fmt.Errorf("post-create failed: %w", messenger.ErrPostCreatePipelineNonceLegacyReserved),
+			message: "client_nonce уже использован для другого сообщения",
+		},
+		{
 			name:    "direct deleted reservation",
 			err:     messenger.ErrPostCreatePipelineNonceDeleted,
 			message: "client_nonce уже принадлежит удалённому сообщению",

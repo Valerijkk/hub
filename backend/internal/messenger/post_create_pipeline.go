@@ -21,10 +21,11 @@ const (
 )
 
 var (
-	ErrTrustedMessageProducerDenied     = errors.New("trusted message producer denied")
-	ErrPostCreatePipelineInvalid        = errors.New("post-create pipeline request invalid")
-	ErrPostCreatePipelineNonceConflict  = errors.New("post-create client nonce conflict")
-	ErrPostCreatePipelineNonceDeleted   = errors.New("post-create client nonce reserved by deleted message")
+	ErrTrustedMessageProducerDenied              = errors.New("trusted message producer denied")
+	ErrPostCreatePipelineInvalid                 = errors.New("post-create pipeline request invalid")
+	ErrPostCreatePipelineNonceConflict           = errors.New("post-create client nonce conflict")
+	ErrPostCreatePipelineNonceDeleted            = errors.New("post-create client nonce reserved by deleted message")
+	ErrPostCreatePipelineNonceLegacyReserved     = errors.New("post-create client nonce reserved by legacy message")
 )
 
 type AuthorizedMessageProducerScope struct {
@@ -197,6 +198,11 @@ func validatePostCreateCanonicalResult(
 			return ErrPostCreatePipelineNonceDeleted
 		}
 		return ErrPostCreatePipelineInvalid
+	}
+	if existingCanonical &&
+		result.Message.ClientNonceFingerprintVersion == 0 &&
+		result.Message.ClientNonceFingerprint == "" {
+		return ErrPostCreatePipelineNonceLegacyReserved
 	}
 	if result.Message.ClientNonceFingerprintVersion != clientNonceFingerprintVersionV1 ||
 		!isCanonicalPostCreateClientNonceFingerprintV1(result.Message.ClientNonceFingerprint) {

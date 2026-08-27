@@ -14,7 +14,8 @@ func ExportPhase151MapPostCreatePipelineError(err error) error {
 		return nil
 	}
 	switch {
-	case errors.Is(err, ErrPostCreatePipelineNonceConflict):
+	case errors.Is(err, ErrPostCreatePipelineNonceConflict),
+		errors.Is(err, ErrPostCreatePipelineNonceLegacyReserved):
 		return apperrors.NewConflict("client_nonce уже использован для другого сообщения")
 	case errors.Is(err, ErrPostCreatePipelineNonceDeleted):
 		return apperrors.NewConflict("client_nonce уже принадлежит удалённому сообщению")

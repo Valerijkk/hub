@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through typed `client_nonce` outcomes and their redacted service mapper. The pure adapter preserves two stable 409 messages and maps every non-user pipeline failure to one fixed 500; live writers still do not invoke it, and legacy no-fingerprint compatibility remains open.
-**Resume:** typed nonce outcomes and their pure service mapper are closed at unit level. Freeze the legacy no-fingerprint reservation/migration policy or one missing effect port before any live send/forward binding; recovery ownership/fencing, outbox/event ownership, membership lifecycle, and cross-store TOCTOU remain separate.
+**Stopped at:** bounded Phase 151 units are green through typed `client_nonce` outcomes, their redacted service mapper, and a fail-closed legacy reservation policy. Existing fully unversioned records reserve nonce without replay/backfill; partial metadata and new unversioned results remain invalid. Live writers and post-create effects remain unbound.
+**Resume:** typed nonce outcomes, mapper, and legacy no-replay reservation policy are closed at unit level. Freeze one missing post-create effect port and its idempotency/authority contract before any live send/forward binding; recovery ownership/fencing, outbox/event ownership, membership lifecycle, and cross-store TOCTOU remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1286,3 +1286,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Compile RED kept production build `PASS` and failed vet/unit/race only on the missing mapper symbol, with zero panic or data-race warnings. Final fresh Docker `backend-unit` overall/build/vet/unit/race is `PASS`; three mapper groups plus eight typed nonce/fingerprint groups each pass once in unit and race, with zero fail records, panics, or data-race warnings.
 - Root static/security/mutation review is `PASS`. Independent Terra/high review is `UNKNOWN` because the runtime agent-thread limit rejected dispatch.
 - This is a pure service adapter, not live routing. `SendMessage`, forward/bot/poll/promotion producers, version-0 migration, effects, recovery, outbox ownership, and live Mongo/NATS/WS remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Session note - 2026-08-27 (Phase 151 legacy client-nonce reservation atom)
+
+- A structurally valid existing canonical record with both `client_nonce_fingerprint=""` and version `0` now returns `ErrPostCreatePipelineNonceLegacyReserved`. Existing means a lookup hit or `Created=false` persist race. It reserves the nonce but is never replayed as success and receives no synthetic fingerprint/backfill.
+- Deleted legacy records still return `ErrPostCreatePipelineNonceDeleted` first. Partial metadata, unknown/malformed metadata, and any `Created=true` fully unversioned result remain `ErrPostCreatePipelineInvalid`. The service mapper maps direct/wrapped legacy reservation to the same generic different-message 409, so document age is not disclosed.
+- Compile RED kept production build `PASS` and failed vet/unit/race only on the missing legacy sentinel, with zero panic/data-race warnings. Final Docker `backend-unit` overall/build/vet/unit/race is `PASS`; three mapper, eight previous nonce/fingerprint, and two legacy lifecycle groups each pass once in unit and race, with zero fail records, panics, or data-race warnings.
+- Root static/security/mutation review is `PASS`. Independent Terra/high review is `UNKNOWN` because agent dispatch was rejected at the runtime thread limit.
+- This is fail-closed compatibility, not migration. No legacy payload is reconstructed, no live writer invokes the pipeline, and effect/recovery/outbox plus live Mongo/NATS/WS remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

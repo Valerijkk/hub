@@ -217,3 +217,102 @@ func TestPhase151DeletedLookupStillRejectsStructuralInvalidityBeforeNonceOutcome
 		})
 	}
 }
+
+func TestPhase151ExistingLegacyCanonicalReservesNonceWithoutUnsafeReplay(t *testing.T) {
+	for _, scenario := range []struct {
+		name          string
+		configure     func(*phase151PostCreateResultRecorder, messenger.CreateMessageResult)
+		expectedCalls func(messenger.PostCreatePipelineRequest) []string
+	}{
+		{
+			name: "lookup hit",
+			configure: func(recorder *phase151PostCreateResultRecorder, canonical messenger.CreateMessageResult) {
+				recorder.findFound = true
+				recorder.findResult = canonical
+			},
+			expectedCalls: func(request messenger.PostCreatePipelineRequest) []string {
+				return []string{"idempotency:" + request.Message.ClientNonce}
+			},
+		},
+		{
+			name: "persist race",
+			configure: func(recorder *phase151PostCreateResultRecorder, canonical messenger.CreateMessageResult) {
+				recorder.persistResult = &canonical
+			},
+			expectedCalls: func(request messenger.PostCreatePipelineRequest) []string {
+				return []string{
+					"idempotency:" + request.Message.ClientNonce,
+					"resolve-mentions",
+					"persist-pending",
+				}
+			},
+		},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			scope, request := phase151PostCreateFingerprintFixture()
+			canonical := phase151PostCreateCanonicalResult(
+				t, scope, request, false, messenger.PostCreateEffectsStateComplete,
+			)
+			canonical.Message = phase151MessageDocumentPointer(phase151MessageDocumentWithBSONOverrides(
+				t,
+				*canonical.Message,
+				map[string]interface{}{
+					"client_nonce_fingerprint":         nil,
+					"client_nonce_fingerprint_version": nil,
+				},
+			))
+			recorder := &phase151PostCreateResultRecorder{
+				phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
+			}
+			scenario.configure(recorder, canonical)
+
+			result, err := messenger.ExportPhase151ExecutePostCreatePipeline(
+				context.Background(), scope, request, recorder,
+			)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineNonceLegacyReserved)
+			assert.NotErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.NotErrorIs(t, err, messenger.ErrPostCreatePipelineNonceConflict)
+			assert.NotErrorIs(t, err, messenger.ErrPostCreatePipelineNonceDeleted)
+			assert.Equal(t, messenger.CreateMessageResult{}, result)
+			assert.Equal(t, scenario.expectedCalls(request), recorder.calls)
+			phase151AssertPostCreateNoEffects(t, recorder.phase151PostCreateRecorder)
+		})
+	}
+}
+
+func TestPhase151NewlyCreatedLegacyCanonicalIsRepositoryInvariantFailure(t *testing.T) {
+	scope, request := phase151PostCreateFingerprintFixture()
+	canonical := phase151PostCreateCanonicalResult(
+		t, scope, request, true, messenger.PostCreateEffectsStatePending,
+	)
+	canonical.Message = phase151MessageDocumentPointer(phase151MessageDocumentWithBSONOverrides(
+		t,
+		*canonical.Message,
+		map[string]interface{}{
+			"client_nonce_fingerprint":         nil,
+			"client_nonce_fingerprint_version": nil,
+		},
+	))
+	recorder := &phase151PostCreateResultRecorder{
+		phase151PostCreateRecorder: newPhase151PostCreateRecorder(),
+		persistResult:               &canonical,
+	}
+
+	result, err := messenger.ExportPhase151ExecutePostCreatePipeline(
+		context.Background(), scope, request, recorder,
+	)
+
+	require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+	assert.NotErrorIs(t, err, messenger.ErrPostCreatePipelineNonceLegacyReserved)
+	assert.NotErrorIs(t, err, messenger.ErrPostCreatePipelineNonceConflict)
+	assert.NotErrorIs(t, err, messenger.ErrPostCreatePipelineNonceDeleted)
+	assert.Equal(t, messenger.CreateMessageResult{}, result)
+	assert.Equal(t, []string{
+		"idempotency:" + request.Message.ClientNonce,
+		"resolve-mentions",
+		"persist-pending",
+	}, recorder.calls)
+	phase151AssertPostCreateNoEffects(t, recorder.phase151PostCreateRecorder)
+}
