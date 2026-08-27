@@ -287,11 +287,8 @@ func (client *RegistryAccountClient) getLocalUserAccount(ctx context.Context, ac
 }
 
 func validRegistryAccountResponseAccountID(payload json.RawMessage) bool {
-	if len(payload) == 0 {
-		return true
-	}
 	var accountID string
-	return json.Unmarshal(payload, &accountID) == nil && validOpaque(accountID)
+	return len(payload) != 0 && json.Unmarshal(payload, &accountID) == nil && validOpaque(accountID)
 }
 
 func registryAccountMethodPayload(response JMAPResponse, method, callID string) (json.RawMessage, error) {

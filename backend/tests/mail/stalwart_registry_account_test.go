@@ -121,6 +121,87 @@ func TestRegistryAccountClient_EnsureLocalUserAccount(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects omitted and null response account IDs", func(t *testing.T) {
+		const queryRequest = `{"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"],"methodCalls":[["x:Account/query",{"filter":{"operator":"AND","conditions":[{"name":"ada"},{"domainId":"domain-1"}]},"limit":2,"sort":[{"property":"id","isAscending":true}]},"registry-account-query"]]}`
+		const getRequest = `{"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"],"methodCalls":[["x:Account/get",{"ids":["account-1"],"properties":["id","@type","name","domainId","emailAddress"]},"registry-account-get"]]}`
+		const setRequest = `{"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"],"methodCalls":[["x:Account/set",{"create":{"hub-local-user":{"@type":"User","name":"ada","domainId":"domain-1","credentials":{},"memberGroupIds":{},"roles":{"@type":"User"},"permissions":{"@type":"Inherit"},"quotas":{},"aliases":{},"encryptionAtRest":{"@type":"Disabled"}}}},"registry-account-set"]]}`
+
+		for _, testCase := range []struct {
+			name             string
+			responses        []string
+			wantErr          error
+			wantPayloads     []string
+			setIndeterminate bool
+		}{
+			{
+				name: "query omitted",
+				responses: []string{
+					`{"methodResponses":[["x:Account/query",{"queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
+				},
+				wantErr:      stalwart.ErrProtocol,
+				wantPayloads: []string{queryRequest},
+			},
+			{
+				name: "query null",
+				responses: []string{
+					`{"methodResponses":[["x:Account/query",{"accountId":null,"queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
+				},
+				wantErr:      stalwart.ErrProtocol,
+				wantPayloads: []string{queryRequest},
+			},
+			{
+				name: "get omitted",
+				responses: []string{
+					`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":["account-1"]},"registry-account-query"]]}`,
+					`{"methodResponses":[["x:Account/get",{"list":[{"id":"account-1","@type":"User","name":"ada","domainId":"domain-1","emailAddress":"ada@example.test"}],"notFound":[]},"registry-account-get"]]}`,
+				},
+				wantErr:      stalwart.ErrProtocol,
+				wantPayloads: []string{queryRequest, getRequest},
+			},
+			{
+				name: "get null",
+				responses: []string{
+					`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":["account-1"]},"registry-account-query"]]}`,
+					`{"methodResponses":[["x:Account/get",{"accountId":null,"list":[{"id":"account-1","@type":"User","name":"ada","domainId":"domain-1","emailAddress":"ada@example.test"}],"notFound":[]},"registry-account-get"]]}`,
+				},
+				wantErr:      stalwart.ErrProtocol,
+				wantPayloads: []string{queryRequest, getRequest},
+			},
+			{
+				name: "set omitted",
+				responses: []string{
+					`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
+					`{"methodResponses":[["x:Account/set",{"created":{"hub-local-user":{"id":"account-2"}}},"registry-account-set"]]}`,
+				},
+				wantErr:          stalwart.ErrIndeterminate,
+				wantPayloads:     []string{queryRequest, setRequest},
+				setIndeterminate: true,
+			},
+			{
+				name: "set null",
+				responses: []string{
+					`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
+					`{"methodResponses":[["x:Account/set",{"accountId":null,"created":{"hub-local-user":{"id":"account-2"}}},"registry-account-set"]]}`,
+				},
+				wantErr:          stalwart.ErrIndeterminate,
+				wantPayloads:     []string{queryRequest, setRequest},
+				setIndeterminate: true,
+			},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				fixture := newRegistryAccountHTTPFixture(t, testCase.responses)
+				_, err := fixture.accountClient.EnsureLocalUserAccount(context.Background(), stalwart.LocalUserAccountSpec{EmailLocalPart: "ada", DomainID: "domain-1"})
+				if !errors.Is(err, testCase.wantErr) {
+					t.Fatalf("EnsureLocalUserAccount() error = %v, want %v", err, testCase.wantErr)
+				}
+				if testCase.setIndeterminate && len(fixture.requests) != 2 {
+					t.Fatalf("invalid set response issued %d requests, want initial query and exactly one mutation without recovery", len(fixture.requests))
+				}
+				fixture.requirePayloads(t, testCase.wantPayloads...)
+			})
+		}
+	})
+
 	t.Run("recovers the concurrent create winner after not created state mismatch", func(t *testing.T) {
 		fixture := newRegistryAccountHTTPFixture(t, []string{
 			`{"methodResponses":[["x:Account/query",{"accountId":"0","queryState":"account-state-1","canCalculateChanges":false,"position":0,"ids":[]},"registry-account-query"]]}`,
