@@ -5,9 +5,9 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 
-	"entgo.io/ent"
 	"github.com/google/uuid"
 
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailaccount"
 	"github.com/valerii/hub/backend/ent/maildomain"
 	"github.com/valerii/hub/backend/ent/mailidentity"
