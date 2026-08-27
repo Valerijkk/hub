@@ -317,6 +317,7 @@ services:
     networks: [schema-maintenance-internal]
   backend-unit:
     <<: *qa-common
+    mem_limit: 8g
     build:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa

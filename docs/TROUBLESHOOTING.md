@@ -9,6 +9,9 @@
 
 Единственный QA API для test/build/lint/validator jobs —
 `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
+
+`backend-unit` intentionally has a separate 8 GiB ceiling because generated Ent plus race compilation can exceed the shared 2 GiB QA limit. Treat compiler `signal: killed` as an infrastructure/OOM condition to triage, not a product failure. Run QA gates sequentially; do not parallelize them and avoid unnecessary disk churn.
+
 Допустимы только `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
 `python-integration`, `python-e2e-smoke`, `python-e2e-full` и `python-load`.
 QA services profile-explicit/disposable; integration/e2e поднимают только
