@@ -4,11 +4,20 @@ package qamailcalendar
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"io"
+	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/mailaccount"
+	"github.com/valerii/hub/backend/ent/maildomain"
+	"github.com/valerii/hub/backend/ent/mailidentity"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 var (
@@ -203,4 +212,170 @@ func accountMaterializationFixturePersistedMatchesPlan(
 	return persisted.organizationID == plan.organizationID &&
 		persisted.ownerUserID == plan.ownerUserID &&
 		persisted.mailDomainID == plan.mailDomainID
+}
+
+func accountMaterializationFixtureValidTime(value time.Time) bool {
+	return !value.IsZero() && value.Location() == time.UTC && value.Nanosecond() == 0
+}
+
+func accountMaterializationFixtureHashEqual(actual, expected []byte) bool {
+	return len(actual) == sha256.Size &&
+		len(expected) == sha256.Size &&
+		subtle.ConstantTimeCompare(actual, expected) == 1
+}
+
+func accountMaterializationFixtureOptionalTupleValid(
+	generation *int64,
+	hashVersion *int32,
+	hash []byte,
+) bool {
+	if generation == nil || hashVersion == nil || hash == nil {
+		return generation == nil && hashVersion == nil && hash == nil
+	}
+	return *generation >= 1 && *hashVersion >= 1 && len(hash) == sha256.Size
+}
+
+func accountMaterializationFixtureOptionalTupleMatches(
+	generation *int64,
+	hashVersion *int32,
+	hash []byte,
+	expectedGeneration int64,
+	expectedHashVersion int32,
+	expectedHash []byte,
+) bool {
+	return accountMaterializationFixtureOptionalTupleValid(generation, hashVersion, hash) &&
+		generation != nil &&
+		*generation == expectedGeneration &&
+		*hashVersion == expectedHashVersion &&
+		accountMaterializationFixtureHashEqual(hash, expectedHash)
+}
+
+func accountMaterializationFixtureExactRootsValid(
+	record accountMaterializationFixtureRecord,
+	organization *ent.Organization,
+	owner *ent.User,
+	domain *ent.MailDomain,
+) bool {
+	plan := record.plan
+	if record.nonce != plan.nonce ||
+		record.state != accountMaterializationFixtureStateCreated ||
+		!accountMaterializationFixturePlanMatchesCanonical(plan) ||
+		!accountMaterializationFixturePersistedMatchesPlan(record.persisted, plan) ||
+		organization == nil ||
+		organization.ID != plan.organizationID ||
+		organization.Slug != plan.organizationSlug ||
+		organization.Name != "QA Mail Materialization "+plan.nonce ||
+		organization.InviteToken != "qa-mail-materialization-invite-"+plan.nonce ||
+		!accountMaterializationFixtureValidTime(organization.CreatedAt) ||
+		!accountMaterializationFixtureValidTime(organization.UpdatedAt) ||
+		!organization.CreatedAt.Equal(plan.fixedAt) ||
+		!organization.UpdatedAt.Equal(plan.fixedAt) ||
+		owner == nil ||
+		owner.ID != plan.ownerUserID ||
+		owner.Email != plan.ownerAddress ||
+		owner.OrganizationID != plan.organizationID ||
+		owner.SystemRole != user.SystemRoleMember ||
+		owner.Status != user.StatusActive ||
+		owner.Timezone != "UTC" ||
+		owner.Language != "ru" ||
+		!owner.OnboardingCompleted ||
+		owner.Name != "QA Owner" ||
+		owner.DisplayName != "QA Owner" ||
+		!accountMaterializationFixtureValidTime(owner.CreatedAt) ||
+		!accountMaterializationFixtureValidTime(owner.UpdatedAt) ||
+		!owner.CreatedAt.Equal(plan.fixedAt) ||
+		!owner.UpdatedAt.Equal(plan.fixedAt) ||
+		domain == nil ||
+		domain.ID != plan.mailDomainID ||
+		domain.OrganizationID != plan.organizationID ||
+		domain.Domain != plan.domain ||
+		domain.EngineProvisioningKey != plan.domainProvisioningKey ||
+		domain.EngineDomainID == nil ||
+		*domain.EngineDomainID != plan.engineDomainID ||
+		!domain.DesiredPresent ||
+		!domain.Enabled ||
+		!domain.IsDefault ||
+		domain.State != maildomain.State("verified") ||
+		domain.VerificationStatus != maildomain.VerificationStatus("verified") ||
+		domain.DKIMStatus != maildomain.DKIMStatus("valid") ||
+		domain.RequiredDNSRecords == nil ||
+		len(domain.RequiredDNSRecords) != 0 ||
+		domain.DesiredGeneration != 1 ||
+		domain.DesiredHashVersion != 1 ||
+		!accountMaterializationFixtureHashEqual(domain.DesiredHash, plan.domainControlHash[:]) ||
+		!accountMaterializationFixtureOptionalTupleValid(domain.AttemptedGeneration, domain.AttemptedHashVersion, domain.AttemptedHash) ||
+		domain.AttemptedGeneration != nil ||
+		!accountMaterializationFixtureOptionalTupleMatches(
+			domain.DeployedGeneration,
+			domain.DeployedHashVersion,
+			domain.DeployedHash,
+			1,
+			1,
+			plan.domainControlHash[:],
+		) ||
+		domain.LastErrorCode != nil ||
+		domain.NextRetryAt != nil ||
+		domain.AttemptCount != 0 ||
+		domain.LeaseToken != nil ||
+		domain.LeaseUntil != nil ||
+		domain.DeletedAt != nil ||
+		!accountMaterializationFixtureValidTime(domain.CreatedAt) ||
+		!accountMaterializationFixtureValidTime(domain.UpdatedAt) ||
+		!domain.CreatedAt.Equal(plan.fixedAt) ||
+		!domain.UpdatedAt.Equal(plan.fixedAt) {
+		return false
+	}
+	return true
+}
+
+func accountMaterializationFixtureCommonAccountIdentityValid(
+	plan accountMaterializationFixturePlan,
+	account *ent.MailAccount,
+	identity *ent.MailIdentity,
+) bool {
+	if !accountMaterializationFixturePlanMatchesCanonical(plan) ||
+		account == nil ||
+		account.ID != plan.expectedAccountIntentID ||
+		account.OrganizationID != plan.organizationID ||
+		account.UserID != plan.ownerUserID ||
+		account.MailDomainID != plan.mailDomainID ||
+		account.EngineProvisioningKey != plan.expectedAccountProvisioningKey ||
+		account.LocalPart != plan.ownerLocalPart ||
+		!account.DesiredEnabled ||
+		account.Status != mailaccount.Status("provisioning") ||
+		account.ControlGeneration != 1 ||
+		account.ControlHashVersion != 1 ||
+		!accountMaterializationFixtureHashEqual(account.ControlHash, plan.expectedAccountControlHash[:]) ||
+		account.ProjectionState != mailaccount.ProjectionState("bootstrapping") ||
+		!accountMaterializationFixtureValidTime(account.EventCutoffAt) ||
+		!accountMaterializationFixtureValidTime(account.SyncScheduleUpdatedAt) ||
+		!accountMaterializationFixtureValidTime(account.CreatedAt) ||
+		!accountMaterializationFixtureValidTime(account.UpdatedAt) ||
+		account.ProvisionAttempts < 0 ||
+		account.PasswordEnrollmentGeneration != 0 ||
+		account.PasswordEnrolledEngineAccountID != nil ||
+		account.PasswordEnrolledAt != nil ||
+		account.PasswordEnrollmentLeaseToken != nil ||
+		account.PasswordEnrollmentLeaseUntil != nil ||
+		!accountMaterializationFixtureOptionalTupleValid(
+			account.AttemptedControlGeneration,
+			account.AttemptedControlHashVersion,
+			account.AttemptedControlHash,
+		) ||
+		!accountMaterializationFixtureOptionalTupleValid(
+			account.DeployedGeneration,
+			account.DeployedHashVersion,
+			account.DeployedHash,
+		) ||
+		identity == nil ||
+		identity.ID == uuid.Nil ||
+		identity.MailAccountID != account.ID ||
+		identity.NormalizedAddress != plan.ownerAddress ||
+		identity.Kind != mailidentity.KindPrimary ||
+		identity.Status != mailidentity.Status("pending") ||
+		identity.SendAllowed ||
+		identity.EngineIdentityID != nil {
+		return false
+	}
+	return true
 }
