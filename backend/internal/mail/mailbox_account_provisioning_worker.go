@@ -343,6 +343,10 @@ func (worker *MailboxAccountProvisioningWorker) providerFinalizeRequest(parent c
 		}
 		return retry(MailboxAccountProvisioningCodeUnavailable), false
 	}
+	if mailboxAccountProvisioningWorkerParentState(providerContext) != mailboxAccountProvisioningWorkerContextActive {
+		_ = mailboxAccountProvisioningWorkerCancel(cancel)
+		return retry(MailboxAccountProvisioningCodeUnavailable), false
+	}
 	account, providerErr, providerPanicked := worker.safeEnsure(providerContext, claim.AccountSpec())
 	contextState := mailboxAccountProvisioningWorkerParentState(providerContext)
 	cancelPanicked := mailboxAccountProvisioningWorkerCancel(cancel)
@@ -385,6 +389,11 @@ func (worker *MailboxAccountProvisioningWorker) finalizeClaim(parent context.Con
 		if cancel != nil {
 			_ = mailboxAccountProvisioningWorkerCancel(cancel)
 		}
+		result.Unfinalized++
+		return
+	}
+	if mailboxAccountProvisioningWorkerParentState(finalizeContext) != mailboxAccountProvisioningWorkerContextActive {
+		_ = mailboxAccountProvisioningWorkerCancel(cancel)
 		result.Unfinalized++
 		return
 	}

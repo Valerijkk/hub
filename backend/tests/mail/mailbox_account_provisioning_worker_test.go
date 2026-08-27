@@ -140,18 +140,36 @@ type provisioningWorkerRepositoryFake struct {
 	claim func(context.Context, mail.MailboxAccountProvisioningClaimRequest) (mail.MailboxAccountProvisioningClaimResult, error)
 	finalize func(context.Context, mail.MailboxAccountProvisioningFinalizeRequest) (mail.MailboxAccountProvisioningFinalizeResult, error)
 	finalizes []mail.MailboxAccountProvisioningFinalizeRequest
+	scanCount int
+	claimCount int
+	finalizeCount int
 }
 
-func (fake *provisioningWorkerRepositoryFake) Scan(ctx context.Context, request mail.MailboxAccountProvisioningScanRequest) (mail.MailboxAccountProvisioningScanResult, error) { if fake.scan == nil { return mail.MailboxAccountProvisioningScanResult{}, nil }; return fake.scan(ctx, request) }
-func (fake *provisioningWorkerRepositoryFake) Claim(ctx context.Context, request mail.MailboxAccountProvisioningClaimRequest) (mail.MailboxAccountProvisioningClaimResult, error) { if fake.claim == nil { return mail.MailboxAccountProvisioningClaimResult{Outcome: mail.MailboxAccountProvisioningNoop}, nil }; return fake.claim(ctx, request) }
-func (fake *provisioningWorkerRepositoryFake) Finalize(ctx context.Context, request mail.MailboxAccountProvisioningFinalizeRequest) (mail.MailboxAccountProvisioningFinalizeResult, error) { fake.mu.Lock(); fake.finalizes = append(fake.finalizes, request); fake.mu.Unlock(); if fake.finalize == nil { return mail.MailboxAccountProvisioningFinalizeResult{Outcome: request.Outcome, Code: request.Code}, nil }; return fake.finalize(ctx, request) }
+func (fake *provisioningWorkerRepositoryFake) Scan(ctx context.Context, request mail.MailboxAccountProvisioningScanRequest) (mail.MailboxAccountProvisioningScanResult, error) { fake.mu.Lock(); fake.scanCount++; callback := fake.scan; fake.mu.Unlock(); if callback == nil { return mail.MailboxAccountProvisioningScanResult{}, nil }; return callback(ctx, request) }
+func (fake *provisioningWorkerRepositoryFake) Claim(ctx context.Context, request mail.MailboxAccountProvisioningClaimRequest) (mail.MailboxAccountProvisioningClaimResult, error) { fake.mu.Lock(); fake.claimCount++; callback := fake.claim; fake.mu.Unlock(); if callback == nil { return mail.MailboxAccountProvisioningClaimResult{Outcome: mail.MailboxAccountProvisioningNoop}, nil }; return callback(ctx, request) }
+func (fake *provisioningWorkerRepositoryFake) Finalize(ctx context.Context, request mail.MailboxAccountProvisioningFinalizeRequest) (mail.MailboxAccountProvisioningFinalizeResult, error) { fake.mu.Lock(); fake.finalizeCount++; fake.finalizes = append(fake.finalizes, request); callback := fake.finalize; fake.mu.Unlock(); if callback == nil { return mail.MailboxAccountProvisioningFinalizeResult{Outcome: request.Outcome, Code: request.Code}, nil }; return callback(ctx, request) }
 func (fake *provisioningWorkerRepositoryFake) finalizeRequests() []mail.MailboxAccountProvisioningFinalizeRequest { fake.mu.Lock(); defer fake.mu.Unlock(); return append([]mail.MailboxAccountProvisioningFinalizeRequest(nil), fake.finalizes...) }
+func (fake *provisioningWorkerRepositoryFake) finalizeCalls() int { fake.mu.Lock(); defer fake.mu.Unlock(); return fake.finalizeCount }
+func (fake *provisioningWorkerRepositoryFake) claimCalls() int { fake.mu.Lock(); defer fake.mu.Unlock(); return fake.claimCount }
 
 type provisioningWorkerProvisionerFake struct { mu sync.Mutex; ensure func(context.Context, mail.AccountSpec) (mail.EngineAccount, error); count int }
 func (fake *provisioningWorkerProvisionerFake) EnsureAccount(ctx context.Context, spec mail.AccountSpec) (mail.EngineAccount, error) { fake.mu.Lock(); fake.count++; callback := fake.ensure; fake.mu.Unlock(); if callback == nil { return provisioningWorkerSuccess(spec), nil }; return callback(ctx, spec) }
 func (fake *provisioningWorkerProvisionerFake) calls() int { fake.mu.Lock(); defer fake.mu.Unlock(); return fake.count }
 
-type provisioningWorkerTimerFake struct { now time.Time }
-func (fake *provisioningWorkerTimerFake) Now() time.Time { return fake.now }
-func (*provisioningWorkerTimerFake) Wait(context.Context, time.Duration) error { return nil }
-func (*provisioningWorkerTimerFake) WithDeadline(ctx context.Context, deadline time.Time) (context.Context, context.CancelFunc) { return context.WithDeadline(ctx, deadline) }
+type provisioningWorkerTimerFake struct {
+	now time.Time
+	nowFn func() time.Time
+	wait func(context.Context, time.Duration) error
+	withDeadline func(context.Context, time.Time) (context.Context, context.CancelFunc)
+}
+
+func (fake *provisioningWorkerTimerFake) Now() time.Time { if fake.nowFn != nil { return fake.nowFn() }; return fake.now }
+func (fake *provisioningWorkerTimerFake) Wait(ctx context.Context, duration time.Duration) error { if fake.wait == nil { return nil }; return fake.wait(ctx, duration) }
+func (fake *provisioningWorkerTimerFake) WithDeadline(ctx context.Context, deadline time.Time) (context.Context, context.CancelFunc) { if fake.withDeadline != nil { return fake.withDeadline(ctx, deadline) }; return context.WithDeadline(ctx, deadline) }
+
+func provisioningWorkerNew(t *testing.T, repository mail.MailboxAccountProvisioningRepository, provisioner mail.MailboxAccountProvisioner, timer mail.MailboxAccountProvisioningWorkerTimer) *mail.MailboxAccountProvisioningWorker {
+	t.Helper()
+	worker, err := mail.NewMailboxAccountProvisioningWorker(repository, provisioner, timer, mail.DefaultMailboxAccountProvisioningWorkerOptions())
+	if err != nil { t.Fatal(err) }
+	return worker
+}
