@@ -50,6 +50,25 @@
 		"error": "We could not complete the mail connection. Return to Mail and try again from there.",
 		"back": "Back to Mail"
 	},
+	"connection": {
+		"connect": {
+			"title": "Connect mail",
+			"description": "Connect your mail account to send and receive messages.",
+			"action": "Connect"
+		},
+		"reconnect": {
+			"title": "Reconnect mail",
+			"description": "Your mail connection needs to be confirmed again before it can continue.",
+			"action": "Reconnect"
+		},
+		"unavailable": {
+			"title": "Mail connection is temporarily unavailable",
+			"description": "We could not check the mail connection status. Please try again later.",
+			"retry": "Refresh connection status"
+		},
+		"authorizing": "Opening secure page...",
+		"error": "The mail connection could not be started. Please try again."
+	},
 	"unavailable": {
 		"title": "Mailbox status is unavailable",
 		"description": "We could not check your mailbox right now. Try again when you are ready."

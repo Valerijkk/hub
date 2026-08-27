@@ -19,6 +19,7 @@ import {
 import { MailSidebar } from "./mail-sidebar";
 import { MailComposer } from "./mail-composer";
 import { MailComposerContext } from "./mail-composer-context";
+import { MailConnectionPanel } from "./mail-connection-panel";
 import { mailKeys } from "./mail-query-keys";
 import { MailSetupPanel } from "./mail-setup-panel";
 
@@ -185,6 +186,7 @@ export function MailShell({ children }: MailShellProps) {
 		const state = accountStateCopy(accountQuery.data.status);
 		content = (
 			<>
+				<MailConnectionPanel />
 				<MailStatePanel
 					title={t(state.title)}
 					description={t(state.description)}

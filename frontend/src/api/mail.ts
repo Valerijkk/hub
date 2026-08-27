@@ -74,6 +74,21 @@ export interface MailOAuthCallbackRequest {
 	code: string;
 }
 
+/**
+ * Browser-safe state of the OAuth connection for the current mailbox.
+ * Credentials and provider details deliberately never cross this API boundary.
+ */
+export type MailOAuthConnectionStatus =
+	| "not_connected"
+	| "active"
+	| "reconnect_required"
+	| "disconnected";
+
+export interface MailOAuthConnection {
+	status: MailOAuthConnectionStatus;
+	access_token_expires_at: string | null;
+}
+
 export function getMailSetupStatus(): Promise<MailSetupStatus> {
 	return api.get<MailSetupStatus>("/mail/setup/status");
 }
@@ -107,6 +122,10 @@ export function beginMailOAuth(
 		undefined,
 		options,
 	);
+}
+
+export function getMailOAuthConnectionStatus(): Promise<MailOAuthConnection> {
+	return api.get<MailOAuthConnection>("/mail/oauth/status");
 }
 
 export function completeMailSetupOAuth(

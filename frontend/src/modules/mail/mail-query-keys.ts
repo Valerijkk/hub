@@ -10,6 +10,7 @@ import {
 export const mailKeys = {
 	setup: () => ["mail", "setup"] as const,
 	mailbox: () => ["mail", "mailbox"] as const,
+	oauthConnection: () => [...mailKeys.mailbox(), "oauth-connection"] as const,
 	folders: () => ["mail", "folders"] as const,
 	threads: (params: MailThreadListParams = {}) =>
 		["mail", "threads", normalizeMailThreadListParams(params)] as const,
