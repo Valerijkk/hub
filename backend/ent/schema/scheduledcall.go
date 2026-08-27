@@ -94,10 +94,10 @@ func (ScheduledCall) Edges() []ent.Edge {
 			Field("created_by").
 			Unique().
 			Required(),
-		edge.To("calendar_event", CalendarEvent.Type).
+		edge.From("calendar_event", CalendarEvent.Type).
+			Ref("scheduled_call").
 			Unique(),
-		edge.From("calendar_event_reference", CalendarEvent.Type).
-			Ref("scheduled_call_reference").
+		edge.To("calendar_event_reference", CalendarEvent.Type).
 			Field("calendar_event_id").
 			Unique().
 			Immutable().
