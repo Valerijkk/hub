@@ -60,7 +60,7 @@ func TestEventEntRSVP_BindsDurableIdentityCASAndReplyDelivery(t *testing.T) {
 }
 
 func TestCalendarInboundReply_ReceiptOutboxReplayAndNoExternalIO(t *testing.T) {
-+	inbound := calendarCapabilitySource(t, "event_ent_inbound_reply.go")
+	inbound := calendarCapabilitySource(t, "event_ent_inbound_reply.go")
 	requireCalendarSource(t, inbound, "var _ CalendarInboundReplyTransactionBackend = (*eventEntTransactionBackend)(nil)")
 	requireCalendarSourceOrder(t, inbound, "backend.ResolveCalendarInboundReplyOwner", "backend.tx.CalendarEvent.Query()", "backend.tx.CalendarAttendee.Query()", "backend.tx.CalendarInboundReplyReceipt.Query()", "calendarattendee.VersionEQ(expectedVersion)", "backend.persistCalendarInboundReplyReceipt", "backend.appendCalendarInboundReplyOutbox", "NewCalendarInboundReplyPersistenceResult")
 	service := calendarCapabilitySource(t, "event_service_inbound_reply.go")
