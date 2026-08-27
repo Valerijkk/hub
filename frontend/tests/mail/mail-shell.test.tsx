@@ -6,6 +6,11 @@ import { MailShell } from "@/modules/mail/mail-shell";
 import { renderWithProviders } from "../support/render";
 
 vi.mock("@/api/mail");
+vi.mock("react-i18next", () => ({
+	useTranslation: () => ({
+		t: (key: string) => key,
+	}),
+}));
 vi.mock("@/modules/mail/mail-setup-panel", () => ({
 	MailSetupPanel: ({ onReady }: { onReady?: () => void }) => (
 		<button type="button" onClick={onReady}>
@@ -65,7 +70,7 @@ describe("MailShell", () => {
 		expect(screen.queryByTestId("mail-composer")).not.toBeInTheDocument();
 		expect(screen.queryByTestId("mail-content")).not.toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: /^(Compose|Написать)$/ }),
+			screen.queryByRole("button", { name: "compose.open" }),
 		).not.toBeInTheDocument();
 		expect(mailApi.getMailAccountStatus).toHaveBeenCalledTimes(1);
 
@@ -85,7 +90,7 @@ describe("MailShell", () => {
 		expect(screen.getByTestId("mail-composer")).toBeInTheDocument();
 		expect(screen.getByTestId("mail-content")).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: /^(Compose|Написать)$/ }),
+			screen.getByRole("button", { name: "compose.open" }),
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole("button", { name: "mock-mail-setup" }),
