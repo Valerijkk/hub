@@ -19,6 +19,12 @@ _INVALID_TEXT: Final = "mail calendar QA value is invalid"
 _API_BASE_URL: Final = "http://qa-backend:3000/"
 _FIXTURE_SCENARIO: Final = "inbound-request-v1"
 _FIXTURE_STATES: Final = frozenset({"created", "published"})
+_ACCOUNT_MATERIALIZATION_FIXTURE_SCENARIO: Final = "account-materialization-v1"
+_ACCOUNT_MATERIALIZATION_FIXTURE_STATES: Final = frozenset({"created"})
+_ACCOUNT_MATERIALIZATION_STATES: Final = frozenset(
+    {"not_materialized", "materialized_pending", "finalized"}
+)
+_ACCOUNT_MATERIALIZATION_PRIMARY_IDENTITY_STATUS: Final = "pending"
 _RSVP_STATUSES: Final = frozenset({"needs_action", "accepted", "declined", "tentative"})
 _MAX_TOKEN_LENGTH: Final = 8_192
 _MAX_JSON_DEPTH: Final = 12
@@ -39,6 +45,22 @@ _FIXTURE_KEYS: Final = frozenset(
         "mail_thread_id",
         "mail_message_id",
         "envelope_event_id",
+    }
+)
+_ACCOUNT_MATERIALIZATION_FIXTURE_KEYS: Final = frozenset(
+    {
+        "nonce",
+        "scenario",
+        "state",
+        "owner_email",
+        "organization_id",
+        "owner_user_id",
+        "mail_domain_id",
+        "expected_mail_account_id",
+        "materialization_state",
+        "mail_account_id",
+        "primary_identity_id",
+        "primary_identity_status",
     }
 )
 _DEV_SESSION_KEYS: Final = frozenset({"access_token", "refresh_token", "expires_in", "user"})
@@ -282,6 +304,66 @@ class FixtureSnapshot:
             self.mail_thread_id,
             self.mail_message_id,
             self.envelope_event_id,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class AccountMaterializationFixtureSnapshot:
+    """One immutable public account-materialization fixture observation."""
+
+    nonce: str
+    scenario: str
+    state: str
+    owner_email: str = field(repr=False)
+    organization_id: str
+    owner_user_id: str
+    mail_domain_id: str
+    expected_mail_account_id: str
+    materialization_state: str
+    mail_account_id: str | None
+    primary_identity_id: str | None
+    primary_identity_status: str | None
+
+    def __post_init__(self) -> None:
+        _nonce(self.nonce)
+        if type(self.scenario) is not str or self.scenario != _ACCOUNT_MATERIALIZATION_FIXTURE_SCENARIO:
+            raise _invalid()
+        if type(self.state) is not str or self.state not in _ACCOUNT_MATERIALIZATION_FIXTURE_STATES:
+            raise _invalid()
+        _email(self.owner_email)
+        for identifier in (
+            self.organization_id,
+            self.owner_user_id,
+            self.mail_domain_id,
+            self.expected_mail_account_id,
+        ):
+            _canonical_uuid(identifier)
+        if type(self.materialization_state) is not str or self.materialization_state not in _ACCOUNT_MATERIALIZATION_STATES:
+            raise _invalid()
+        if self.materialization_state == "not_materialized":
+            if self.mail_account_id is not None or self.primary_identity_id is not None or self.primary_identity_status is not None:
+                raise _invalid()
+            return
+        _canonical_uuid(self.mail_account_id)
+        _canonical_uuid(self.primary_identity_id)
+        if self.primary_identity_status != _ACCOUNT_MATERIALIZATION_PRIMARY_IDENTITY_STATUS:
+            raise _invalid()
+
+    @classmethod
+    def from_payload(cls, payload: object) -> Self:
+        value = _exact_object(payload, _ACCOUNT_MATERIALIZATION_FIXTURE_KEYS)
+        return cls(**value)  # type: ignore[arg-type]
+
+    @property
+    def immutable_roots(self) -> tuple[str, ...]:
+        return (
+            self.nonce,
+            self.scenario,
+            self.owner_email,
+            self.organization_id,
+            self.owner_user_id,
+            self.mail_domain_id,
+            self.expected_mail_account_id,
         )
 
 

@@ -8,6 +8,7 @@ from typing import Final, NoReturn
 import httpx
 
 from .models import (
+    AccountMaterializationFixtureSnapshot,
     CalendarCorrelation,
     DevSession,
     FixtureSnapshot,
@@ -16,12 +17,14 @@ from .models import (
     MailCorrelation,
     RSVPResult,
     _canonical_uuid,
+    _nonce,
     _positive_int,
 )
 
 
 _FAILURE_TEXT: Final = "mail calendar QA request failed"
 _CREATE_FIXTURE_BODY: Final = b'{"scenario":"inbound-request-v1"}'
+_CREATE_ACCOUNT_MATERIALIZATION_FIXTURE_BODY: Final = b'{"scenario":"account-materialization-v1"}'
 _RSVP_INPUT_STATUSES: Final = frozenset({"accepted", "declined", "tentative"})
 _MAX_RESPONSE_BYTES: Final = 262_144
 
@@ -59,6 +62,65 @@ class MailCalendarQAClient:
             if fixture.state != "created":
                 raise ValueError
             return fixture
+        except Exception:
+            raise _failure() from None
+
+    def create_account_materialization_fixture(self) -> AccountMaterializationFixtureSnapshot:
+        try:
+            self._require_open()
+            response = self._client.request(
+                "POST",
+                "/api/_qa/mail-calendar/fixtures",
+                content=_CREATE_ACCOUNT_MATERIALIZATION_FIXTURE_BODY,
+                headers={"Content-Type": "application/json", "X-Hub-QA-Token": self._config.qa_token},
+            )
+            return AccountMaterializationFixtureSnapshot.from_payload(_json_response(response, status_code=201))
+        except Exception:
+            raise _failure() from None
+
+    def get_account_materialization_fixture(self, nonce: str) -> AccountMaterializationFixtureSnapshot:
+        try:
+            fixture_nonce = _nonce(nonce)
+            self._require_open()
+            response = self._client.request(
+                "GET",
+                f"/api/_qa/mail-calendar/fixtures/{fixture_nonce}/account-materialization",
+                headers={"X-Hub-QA-Token": self._config.qa_token},
+            )
+            fixture = AccountMaterializationFixtureSnapshot.from_payload(_json_response(response, status_code=200))
+            if fixture.nonce != fixture_nonce:
+                raise ValueError
+            return fixture
+        except Exception:
+            raise _failure() from None
+
+    def quiesce_account_materialization_fixture(self, nonce: str) -> None:
+        try:
+            fixture_nonce = _nonce(nonce)
+            self._require_open()
+            response = self._client.request(
+                "POST",
+                f"/api/_qa/mail-calendar/fixtures/{fixture_nonce}/account-materialization/quiesce",
+                content=b"",
+                headers={"X-Hub-QA-Token": self._config.qa_token},
+            )
+            if response.status_code != 204 or response.content:
+                raise ValueError
+        except Exception:
+            raise _failure() from None
+
+    def delete_account_materialization_fixture(self, nonce: str) -> None:
+        try:
+            fixture_nonce = _nonce(nonce)
+            self._require_open()
+            response = self._client.request(
+                "DELETE",
+                f"/api/_qa/mail-calendar/fixtures/{fixture_nonce}/account-materialization",
+                content=b"",
+                headers={"X-Hub-QA-Token": self._config.qa_token},
+            )
+            if response.status_code != 204 or response.content:
+                raise ValueError
         except Exception:
             raise _failure() from None
 

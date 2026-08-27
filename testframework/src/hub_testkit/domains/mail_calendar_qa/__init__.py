@@ -2,6 +2,7 @@
 
 from .client import MailCalendarQAClient
 from .models import (
+    AccountMaterializationFixtureSnapshot,
     CalendarCorrelation,
     CalendarViewerAttendee,
     DevSession,
@@ -13,6 +14,7 @@ from .models import (
 )
 
 __all__ = [
+    "AccountMaterializationFixtureSnapshot",
     "CalendarCorrelation",
     "CalendarViewerAttendee",
     "DevSession",
