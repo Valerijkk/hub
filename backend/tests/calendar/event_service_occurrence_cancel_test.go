@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/internal/calendar"
+	ical "github.com/valerii/hub/backend/internal/ical"
 	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
@@ -26,6 +27,74 @@ var (
 )
 
 const occurrenceRecurrenceID = "2031-01-21T09:00:00Z"
+
+func TestResolveNominalOccurrence_ResolvesCanonicalTypedTemporalWithoutExdatePolicy(t *testing.T) {
+	timedStart := time.Date(2031, time.March, 1, 14, 30, 0, 0, time.UTC)
+	for _, testCase := range []struct {
+		name         string
+		event        ical.CalendarEvent
+		rrule        string
+		recurrenceID string
+		want         ical.CalendarEvent
+		ok           bool
+	}{
+		{
+			name:         "timed weekly preserves master duration",
+			event:        ical.CalendarEvent{StartsAt: timedStart, EndsAt: timedStart.Add(90 * time.Minute), Timezone: "America/New_York"},
+			rrule:        "FREQ=WEEKLY;INTERVAL=1;BYDAY=SA;COUNT=3",
+			recurrenceID: "2031-03-08T14:30:00Z",
+			want:         ical.CalendarEvent{StartsAt: time.Date(2031, time.March, 8, 14, 30, 0, 0, time.UTC), EndsAt: time.Date(2031, time.March, 8, 16, 0, 0, 0, time.UTC), Timezone: "America/New_York"},
+			ok:           true,
+		},
+		{
+			name:         "all day monthly preserves exclusive duration",
+			event:        ical.CalendarEvent{AllDay: true, StartDate: "2031-01-31", EndDateExclusive: "2031-02-02", Timezone: "Europe/Moscow"},
+			rrule:        "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=31;COUNT=3",
+			recurrenceID: "2031-03-31",
+			want:         ical.CalendarEvent{AllDay: true, StartDate: "2031-03-31", EndDateExclusive: "2031-04-02", Timezone: "Europe/Moscow"},
+			ok:           true,
+		},
+		{
+			name:         "dst gap is not a nominal timed member",
+			event:        ical.CalendarEvent{StartsAt: time.Date(2027, time.March, 13, 7, 30, 0, 0, time.UTC), EndsAt: time.Date(2027, time.March, 13, 8, 30, 0, 0, time.UTC), Timezone: "America/New_York"},
+			rrule:        "FREQ=DAILY;INTERVAL=1;COUNT=3",
+			recurrenceID: "2027-03-14T06:30:00Z",
+		},
+		{
+			name:         "dst gap skips to next valid local member",
+			event:        ical.CalendarEvent{StartsAt: time.Date(2027, time.March, 13, 7, 30, 0, 0, time.UTC), EndsAt: time.Date(2027, time.March, 13, 8, 30, 0, 0, time.UTC), Timezone: "America/New_York"},
+			rrule:        "FREQ=DAILY;INTERVAL=1;COUNT=3",
+			recurrenceID: "2027-03-15T06:30:00Z",
+			want:         ical.CalendarEvent{StartsAt: time.Date(2027, time.March, 15, 6, 30, 0, 0, time.UTC), EndsAt: time.Date(2027, time.March, 15, 7, 30, 0, 0, time.UTC), Timezone: "America/New_York"},
+			ok:           true,
+		},
+		{
+			name:         "noncanonical rule is rejected",
+			event:        ical.CalendarEvent{StartsAt: timedStart, EndsAt: timedStart.Add(time.Hour), Timezone: "UTC"},
+			rrule:        "INTERVAL=1;FREQ=DAILY;COUNT=2",
+			recurrenceID: "2031-03-02T14:30:00Z",
+		},
+		{
+			name:         "nonmember is rejected",
+			event:        ical.CalendarEvent{StartsAt: timedStart, EndsAt: timedStart.Add(time.Hour), Timezone: "UTC"},
+			rrule:        "FREQ=DAILY;INTERVAL=1;COUNT=2",
+			recurrenceID: "2031-03-03T14:30:00Z",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			occurrence, ok := ical.ResolveNominalOccurrence(testCase.event, testCase.rrule, testCase.recurrenceID)
+			if ok != testCase.ok {
+				t.Fatalf("ResolveNominalOccurrence() ok = %t, want %t", ok, testCase.ok)
+			}
+			if !ok {
+				return
+			}
+			if occurrence.RecurrenceID != testCase.recurrenceID || occurrence.Temporal != testCase.want {
+				t.Fatalf("ResolveNominalOccurrence() = %#v, want recurrence=%q temporal=%#v", occurrence, testCase.recurrenceID, testCase.want)
+			}
+		})
+	}
+}
 
 func TestCalendarEventOccurrenceCancelCommand_ValidatesAndFreezesInput(t *testing.T) {
 	command, err := calendar.NewCalendarEventOccurrenceCancelCommand(calendar.CalendarEventOccurrenceCancelInput{

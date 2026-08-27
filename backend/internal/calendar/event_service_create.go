@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+	ical "github.com/valerii/hub/backend/internal/ical"
 )
 
 const (
@@ -25,13 +25,13 @@ const (
 	calendarCreateMaxNameRunes       = 160
 	calendarCreateMaxNameBytes       = 640
 	calendarCreateMaxTimezoneBytes   = 64
-	calendarCreateMaxRRuleBytes      = 1000
+	calendarCreateMaxRRuleBytes      = ical.CalendarRecurrenceMaxRRuleBytes
 	calendarCreateMaxExdates         = 1000
 	calendarCreateMaxEmailBytes      = 320
 	calendarCreateMaxIdempotencyKey  = 128
 	calendarCreateMinIdempotencyKey  = 16
-	calendarCreateOccurrenceCap      = 1000
-	calendarCreateCandidateWorkGuard = 1001
+	calendarCreateOccurrenceCap      = ical.CalendarRecurrenceOccurrenceCap
+	calendarCreateCandidateWorkGuard = ical.CalendarRecurrenceCandidateWorkGuard
 )
 
 // CalendarEventCreateInput contains untrusted content and identity candidates.
@@ -406,390 +406,49 @@ func calendarCreateTemporalResponse(temporal CalendarEvent) (*time.Time, *time.T
 // normalizeCalendarCreateRRULE implements the closed section 3.11 create grammar.
 // It deliberately does not share the inbound iTIP parser or its repair rules.
 func normalizeCalendarCreateRRULE(value string, temporal CalendarEvent) (string, error) {
-	if value == "" || len(value) > calendarCreateMaxRRuleBytes || !utf8.ValidString(value) {
+	normalized, ok := ical.NormalizeCalendarRRULE(temporal, value)
+	if !ok {
 		return "", ErrEventInvalid
-	}
-	fields := make(map[string]string, 6)
-	for _, part := range strings.Split(value, ";") {
-		key, rawValue, found := strings.Cut(part, "=")
-		if !found || key == "" || rawValue == "" || strings.Contains(rawValue, "=") {
-			return "", ErrEventInvalid
-		}
-		switch key {
-		case "FREQ", "INTERVAL", "BYDAY", "BYMONTHDAY", "COUNT", "UNTIL":
-		default:
-			return "", ErrEventInvalid
-		}
-		if _, duplicate := fields[key]; duplicate {
-			return "", ErrEventInvalid
-		}
-		fields[key] = rawValue
-	}
-
-	frequency, found := fields["FREQ"]
-	if !found || (frequency != "DAILY" && frequency != "WEEKLY" && frequency != "MONTHLY") {
-		return "", ErrEventInvalid
-	}
-	interval := 1
-	if rawInterval, found := fields["INTERVAL"]; found {
-		parsed, err := parseCalendarCreatePositiveInteger(rawInterval, 365)
-		if err != nil {
-			return "", ErrEventInvalid
-		}
-		interval = parsed
-	}
-
-	byday := ""
-	byMonthDay := ""
-	switch frequency {
-	case "DAILY":
-		if _, found := fields["BYDAY"]; found {
-			return "", ErrEventInvalid
-		}
-		if _, found := fields["BYMONTHDAY"]; found {
-			return "", ErrEventInvalid
-		}
-	case "WEEKLY":
-		rawDays, found := fields["BYDAY"]
-		if !found {
-			return "", ErrEventInvalid
-		}
-		if _, found := fields["BYMONTHDAY"]; found {
-			return "", ErrEventInvalid
-		}
-		normalizedDays, err := normalizeCalendarCreateWeekdays(rawDays)
-		if err != nil {
-			return "", ErrEventInvalid
-		}
-		byday = normalizedDays
-	case "MONTHLY":
-		rawMonthDay, found := fields["BYMONTHDAY"]
-		if !found {
-			return "", ErrEventInvalid
-		}
-		if _, found := fields["BYDAY"]; found {
-			return "", ErrEventInvalid
-		}
-		parsed, err := parseCalendarCreatePositiveInteger(rawMonthDay, 31)
-		if err != nil {
-			return "", ErrEventInvalid
-		}
-		byMonthDay = strconv.Itoa(parsed)
-	}
-
-	rawCount, hasCount := fields["COUNT"]
-	rawUntil, hasUntil := fields["UNTIL"]
-	if hasCount == hasUntil {
-		return "", ErrEventInvalid
-	}
-	count := ""
-	if hasCount {
-		parsed, err := parseCalendarCreatePositiveInteger(rawCount, 1000)
-		if err != nil {
-			return "", ErrEventInvalid
-		}
-		count = strconv.Itoa(parsed)
-	}
-	until := ""
-	if hasUntil {
-		var err error
-		if temporal.AllDay {
-			until, err = normalizeCalendarCreateAllDayUntil(rawUntil)
-		} else {
-			until, err = normalizeCalendarCreateTimedUntil(rawUntil)
-		}
-		if err != nil {
-			return "", ErrEventInvalid
-		}
-		if err := validateCalendarCreateOccurrenceCap(temporal, frequency, interval, byday, byMonthDay, until); err != nil {
-			return "", ErrEventInvalid
-		}
-	}
-
-	normalized := "FREQ=" + frequency + ";INTERVAL=" + strconv.Itoa(interval)
-	if byday != "" {
-		normalized += ";BYDAY=" + byday
-	}
-	if byMonthDay != "" {
-		normalized += ";BYMONTHDAY=" + byMonthDay
-	}
-	if count != "" {
-		normalized += ";COUNT=" + count
-	}
-	if until != "" {
-		normalized += ";UNTIL=" + until
 	}
 	return normalized, nil
 }
 
 func parseCalendarCreatePositiveInteger(value string, maximum int) (int, error) {
-	if value == "" {
-		return 0, ErrEventInvalid
-	}
-	for index := 0; index < len(value); index++ {
-		if value[index] < '0' || value[index] > '9' {
-			return 0, ErrEventInvalid
-		}
-	}
-	parsed, err := strconv.Atoi(value)
-	if err != nil || parsed < 1 || parsed > maximum {
+	parsed, ok := ical.ParseCalendarRecurrencePositiveInteger(value, maximum)
+	if !ok {
 		return 0, ErrEventInvalid
 	}
 	return parsed, nil
 }
 
-func normalizeCalendarCreateWeekdays(value string) (string, error) {
-	order := map[string]int{"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
-	days := strings.Split(value, ",")
-	if len(days) < 1 || len(days) > 7 {
-		return "", ErrEventInvalid
-	}
-	seen := make(map[string]struct{}, len(days))
-	for _, day := range days {
-		if _, found := order[day]; !found {
-			return "", ErrEventInvalid
-		}
-		if _, duplicate := seen[day]; duplicate {
-			return "", ErrEventInvalid
-		}
-		seen[day] = struct{}{}
-	}
-	sort.Slice(days, func(left, right int) bool { return order[days[left]] < order[days[right]] })
-	return strings.Join(days, ","), nil
-}
-
-func normalizeCalendarCreateTimedUntil(value string) (string, error) {
-	parsed, err := time.Parse("20060102T150405Z", value)
-	if err != nil || parsed.Location() != time.UTC || parsed.Format("20060102T150405Z") != value {
-		return "", ErrEventInvalid
-	}
-	return parsed.Format("20060102T150405Z"), nil
-}
-
-func normalizeCalendarCreateAllDayUntil(value string) (string, error) {
-	parsed, err := time.Parse("20060102", value)
-	if err != nil || parsed.Format("20060102") != value {
-		return "", ErrEventInvalid
-	}
-	return parsed.Format("20060102"), nil
-}
-
-// validateCalendarCreateOccurrenceCap proves an UNTIL-bounded series has no
-// more than the global nominal occurrence cap without materializing it.
-func validateCalendarCreateOccurrenceCap(temporal CalendarEvent, frequency string, interval int, byday, byMonthDay, until string) error {
-	if temporal.AllDay {
-		return validateCalendarCreateAllDayOccurrenceCap(temporal, frequency, interval, byday, byMonthDay, until)
-	}
-	untilTime, err := time.Parse("20060102T150405Z", until)
-	if err != nil || temporal.StartsAt.After(untilTime) {
-		return ErrEventInvalid
-	}
-	location, err := time.LoadLocation(temporal.Timezone)
-	if err != nil {
-		return ErrEventInvalid
-	}
-	return validateCalendarCreateTimedOccurrenceCap(temporal.StartsAt, untilTime, location, frequency, interval, byday, byMonthDay)
-}
-
-func validateCalendarCreateAllDayOccurrenceCap(temporal CalendarEvent, frequency string, interval int, byday, byMonthDay, until string) error {
-	startDate, err := parseCalendarDate(temporal.StartDate)
-	if err != nil {
-		return ErrEventInvalid
-	}
-	untilDate, err := time.Parse("20060102", until)
-	if err != nil || untilDate.Before(startDate) {
-		return ErrEventInvalid
-	}
-	work := 1 // DTSTART is the first nominal occurrence.
-	occurrences := 1
-	process := func(candidate time.Time) (bool, error) {
-		if !candidate.After(startDate) {
-			return false, nil
-		}
-		if candidate.After(untilDate) {
-			return true, nil
-		}
-		work++
-		if work >= calendarCreateCandidateWorkGuard {
-			return false, ErrEventInvalid
-		}
-		occurrences++
-		if occurrences > calendarCreateOccurrenceCap {
-			return false, ErrEventInvalid
-		}
-		return false, nil
-	}
-
-	switch frequency {
-	case "DAILY":
-		for sequence := 1; ; sequence++ {
-			candidate := startDate.AddDate(0, 0, sequence*interval)
-			stop, err := process(candidate)
-			if err != nil || stop { return err }
-		}
-	case "WEEKLY":
-		weekdays, err := calendarCreateWeekdayOffsets(byday)
-		if err != nil { return ErrEventInvalid }
-		weekStart := calendarCreateMonday(startDate)
-		for group := 0; ; group++ {
-			base := weekStart.AddDate(0, 0, group*interval*7)
-			for _, weekday := range weekdays {
-				stop, err := process(base.AddDate(0, 0, weekday))
-				if err != nil || stop { return err }
-			}
-		}
-	case "MONTHLY":
-		monthDay, err := strconv.Atoi(byMonthDay)
-		if err != nil { return ErrEventInvalid }
-		for sequence := 0; ; sequence++ {
-			month := time.Date(startDate.Year(), startDate.Month()+time.Month(sequence*interval), 1, 0, 0, 0, 0, time.UTC)
-			if monthDay > calendarCreateDaysInMonth(month.Year(), month.Month()) {
-				if month.After(untilDate) { return nil }
-				work++
-				if work >= calendarCreateCandidateWorkGuard { return ErrEventInvalid }
-				continue
-			}
-			candidate := time.Date(month.Year(), month.Month(), monthDay, 0, 0, 0, 0, time.UTC)
-			stop, err := process(candidate)
-			if err != nil || stop { return err }
-		}
-	}
-	return ErrEventInvalid
-}
-
-func validateCalendarCreateTimedOccurrenceCap(start, until time.Time, location *time.Location, frequency string, interval int, byday, byMonthDay string) error {
-	start = start.UTC()
-	localStart := calendarCreateCivilTimeFromTime(start.In(location))
-	localUntil := calendarCreateCivilTimeFromTime(until.In(location))
-	work := 1 // DTSTART counts once, before exclusions outside this pure packet.
-	occurrences := 1
-	process := func(civil calendarCreateCivilTime) (bool, error) {
-		if calendarCreateCompareCivilTime(civil, localStart) <= 0 {
-			return false, nil
-		}
-		candidate, exists := calendarCreateResolveCivilTime(location, civil)
-		if exists && candidate.After(until) {
-			return true, nil
-		}
-		if !exists && calendarCreateCompareCivilTime(civil, localUntil) > 0 {
-			return true, nil
-		}
-		work++
-		if work >= calendarCreateCandidateWorkGuard {
-			return false, ErrEventInvalid
-		}
-		if !exists { // RFC 5545: a nonexistent local wall time is ignored.
-			return false, nil
-		}
-		occurrences++
-		if occurrences > calendarCreateOccurrenceCap {
-			return false, ErrEventInvalid
-		}
-		return false, nil
-	}
-
-	switch frequency {
-	case "DAILY":
-		for sequence := 1; ; sequence++ {
-			date := time.Date(localStart.Year, localStart.Month, localStart.Day, 0, 0, 0, 0, time.UTC).AddDate(0, 0, sequence*interval)
-			civil := localStart
-			civil.Year, civil.Month, civil.Day = date.Date()
-			stop, err := process(civil)
-			if err != nil || stop { return err }
-		}
-	case "WEEKLY":
-		weekdays, err := calendarCreateWeekdayOffsets(byday)
-		if err != nil { return ErrEventInvalid }
-		weekStart := calendarCreateMonday(time.Date(localStart.Year, localStart.Month, localStart.Day, 0, 0, 0, 0, time.UTC))
-		for group := 0; ; group++ {
-			base := weekStart.AddDate(0, 0, group*interval*7)
-			for _, weekday := range weekdays {
-				civil := localStart
-				civil.Year, civil.Month, civil.Day = base.AddDate(0, 0, weekday).Date()
-				stop, err := process(civil)
-				if err != nil || stop { return err }
-			}
-		}
-	case "MONTHLY":
-		monthDay, err := strconv.Atoi(byMonthDay)
-		if err != nil { return ErrEventInvalid }
-		for sequence := 0; ; sequence++ {
-			month := time.Date(localStart.Year, localStart.Month+time.Month(sequence*interval), 1, 0, 0, 0, 0, time.UTC)
-			if monthDay > calendarCreateDaysInMonth(month.Year(), month.Month()) {
-				if calendarCreateCompareCivilTime(calendarCreateCivilTime{Year: month.Year(), Month: month.Month(), Day: 1}, localUntil) > 0 { return nil }
-				work++
-				if work >= calendarCreateCandidateWorkGuard { return ErrEventInvalid }
-				continue
-			}
-			civil := localStart
-			civil.Year, civil.Month, civil.Day = month.Year(), month.Month(), monthDay
-			stop, err := process(civil)
-			if err != nil || stop { return err }
-		}
-	}
-	return ErrEventInvalid
-}
-
-type calendarCreateCivilTime struct {
-	Year int
-	Month time.Month
-	Day int
-	Hour int
-	Minute int
-	Second int
-	Nanosecond int
-}
+type calendarCreateCivilTime = ical.CalendarRecurrenceCivilTime
 
 func calendarCreateCivilTimeFromTime(value time.Time) calendarCreateCivilTime {
-	return calendarCreateCivilTime{Year: value.Year(), Month: value.Month(), Day: value.Day(), Hour: value.Hour(), Minute: value.Minute(), Second: value.Second(), Nanosecond: value.Nanosecond()}
+	return ical.CalendarRecurrenceCivilTimeFromTime(value)
 }
 
 func calendarCreateCompareCivilTime(left, right calendarCreateCivilTime) int {
-	for _, pair := range [][2]int{{left.Year, right.Year}, {int(left.Month), int(right.Month)}, {left.Day, right.Day}, {left.Hour, right.Hour}, {left.Minute, right.Minute}, {left.Second, right.Second}, {left.Nanosecond, right.Nanosecond}} {
-		if pair[0] < pair[1] { return -1 }
-		if pair[0] > pair[1] { return 1 }
-	}
-	return 0
+	return ical.CompareCalendarRecurrenceCivilTime(left, right)
 }
 
 func calendarCreateResolveCivilTime(location *time.Location, civil calendarCreateCivilTime) (time.Time, bool) {
-	naive := time.Date(civil.Year, civil.Month, civil.Day, civil.Hour, civil.Minute, civil.Second, civil.Nanosecond, time.UTC)
-	offsets := make(map[int]struct{}, 17)
-	for hours := -48; hours <= 48; hours += 6 {
-		_, offset := naive.Add(time.Duration(hours) * time.Hour).In(location).Zone()
-		offsets[offset] = struct{}{}
-	}
-	var earliest time.Time
-	found := false
-	for offset := range offsets {
-		candidate := naive.Add(-time.Duration(offset) * time.Second)
-		if calendarCreateCompareCivilTime(calendarCreateCivilTimeFromTime(candidate.In(location)), civil) != 0 { continue }
-		if !found || candidate.Before(earliest) {
-			earliest, found = candidate, true
-		}
-	}
-	return earliest, found
+	return ical.ResolveCalendarRecurrenceCivilTime(location, civil)
 }
 
 func calendarCreateWeekdayOffsets(value string) ([]int, error) {
-	offsets := map[string]int{"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
-	parts := strings.Split(value, ",")
-	result := make([]int, len(parts))
-	for index, part := range parts {
-		offset, found := offsets[part]
-		if !found { return nil, ErrEventInvalid }
-		result[index] = offset
+	offsets, ok := ical.CalendarRecurrenceWeekdayOffsets(value)
+	if !ok {
+		return nil, ErrEventInvalid
 	}
-	return result, nil
+	return offsets, nil
 }
 
 func calendarCreateMonday(value time.Time) time.Time {
-	offset := (int(value.Weekday()) + 6) % 7
-	return value.AddDate(0, 0, -offset)
+	return ical.CalendarRecurrenceMonday(value)
 }
 
 func calendarCreateDaysInMonth(year int, month time.Month) int {
-	return time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
+	return ical.CalendarRecurrenceDaysInMonth(year, month)
 }
 
 func canonicalizeCalendarCreateExdates(temporal CalendarEvent, exdates []string) ([]string, error) {
