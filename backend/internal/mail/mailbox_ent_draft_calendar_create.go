@@ -576,7 +576,7 @@ func mailboxEntDraftCalendarCreateMIMEStateFromRow(draft *ent.MailDraft) (*Mailb
 	if draft.PendingCreateMIMEKind == nil && draft.PendingCreateMIMEPhase == nil && draft.PendingCreateMIMEBlobID == nil && draft.PendingCreateMIMESizeBytes == nil && draft.PendingCreateMIMEBindingDigest == nil && draft.PendingCreateMIMEAttempt == 0 && draft.PendingCreateMIMERetryAt == nil && draft.PendingCreateMIMEExhaustedAt == nil {
 		return nil, true
 	}
-	if draft.PendingCreateMIMEKind == nil || draft.PendingCreateMIMEPhase == nil || len(draft.PendingCreateMIMEBindingDigest) != sha256.Size {
+	if draft.PendingCreateMIMEKind == nil || draft.PendingCreateMIMEPhase == nil || draft.PendingCreateMIMEBindingDigest == nil || len(*draft.PendingCreateMIMEBindingDigest) != sha256.Size {
 		return nil, false
 	}
 	state := &MailboxDraftCreateMIMEState{
@@ -588,7 +588,7 @@ func mailboxEntDraftCalendarCreateMIMEStateFromRow(draft *ent.MailDraft) (*Mailb
 		RetryAt:     mailboxEntDraftReadTimePointerCopy(draft.PendingCreateMIMERetryAt),
 		ExhaustedAt: mailboxEntDraftReadTimePointerCopy(draft.PendingCreateMIMEExhaustedAt),
 	}
-	copy(state.BindingDigest[:], draft.PendingCreateMIMEBindingDigest)
+	copy(state.BindingDigest[:], *draft.PendingCreateMIMEBindingDigest)
 	return state, true
 }
 

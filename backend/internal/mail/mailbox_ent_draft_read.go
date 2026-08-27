@@ -241,7 +241,7 @@ func mailboxEntDraftReadStorageObjectValid(object *ent.MailObject, accountID, dr
 }
 
 func mailboxEntDraftReadRowValid(draft *ent.MailDraft, accountID, draftID uuid.UUID) bool {
-	if draft == nil || draft.ID != draftID || draftID == uuid.Nil || draft.MailAccountID != accountID || accountID == uuid.Nil || draft.FromIdentityID == uuid.Nil || draft.DraftClientID == uuid.Nil || !syncValidOpaque(draft.EngineDraftKey, MaxEngineOpaqueIDBytes) || draft.Revision < 1 || !mailboxEntDraftReadHashValid(draft.CreateIdempotencyKeyHash) || !mailboxEntDraftReadHashValid(draft.CreateRequestHash) || !mailboxEntValidTime(draft.UpdatedAt) || !mailboxEntDraftReadUUIDPointerValid(draft.ReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.ForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingFromIdentityID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.LastMutationID) || !mailboxEntDraftReadUUIDPointerValid(draft.ConfirmedMutationID) || (len(draft.PendingSaveRequestHash) != 0 && !mailboxEntDraftReadHashValid(draft.PendingSaveRequestHash)) {
+	if draft == nil || draft.ID != draftID || draftID == uuid.Nil || draft.MailAccountID != accountID || accountID == uuid.Nil || draft.FromIdentityID == uuid.Nil || draft.DraftClientID == uuid.Nil || !syncValidOpaque(draft.EngineDraftKey, MaxEngineOpaqueIDBytes) || draft.Revision < 1 || !mailboxEntDraftReadHashValid(draft.CreateIdempotencyKeyHash) || !mailboxEntDraftReadHashValid(draft.CreateRequestHash) || !mailboxEntValidTime(draft.UpdatedAt) || !mailboxEntDraftReadUUIDPointerValid(draft.ReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.ForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingFromIdentityID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.LastMutationID) || !mailboxEntDraftReadUUIDPointerValid(draft.ConfirmedMutationID) || (draft.PendingSaveRequestHash != nil && !mailboxEntDraftReadHashValid(*draft.PendingSaveRequestHash)) {
 		return false
 	}
 	if !mailboxEntDraftReadTimePointerValid(draft.PendingCreateUploadRetryAt) || !mailboxEntDraftReadTimePointerValid(draft.PendingCreateUploadExhaustedAt) || !mailboxEntDraftReadTimePointerValid(draft.AbandonedAt) || !mailboxEntDraftReadUUIDPointerValid(draft.AbandonedMutationID) {
@@ -256,7 +256,11 @@ func mailboxEntDraftReadRowValid(draft *ent.MailDraft, accountID, draftID uuid.U
 	if !pendingKindValid || !pendingCreateAttachmentPhaseValid || !validMailboxDraftPendingCreateUploadHandoff(pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes) || draft.ConfirmedMutationID != nil && (!pairPresent || draft.LastMutationID != nil && *draft.ConfirmedMutationID == *draft.LastMutationID) {
 		return false
 	}
-	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes, draft.PendingCreateUploadAttempt, draft.PendingCreateUploadRetryAt, draft.PendingCreateUploadExhaustedAt, draft.AbandonedAt, draft.AbandonedMutationID, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, draft.PendingSaveRequestHash)
+	var pendingSaveRequestHash []byte
+	if draft.PendingSaveRequestHash != nil {
+		pendingSaveRequestHash = *draft.PendingSaveRequestHash
+	}
+	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes, draft.PendingCreateUploadAttempt, draft.PendingCreateUploadRetryAt, draft.PendingCreateUploadExhaustedAt, draft.AbandonedAt, draft.AbandonedMutationID, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, pendingSaveRequestHash)
 }
 
 func mailboxEntDraftReadEnginePairValid(messageID, version *string) (bool, bool) {
@@ -335,7 +339,7 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 		return MailboxDraftRecord{}, false
 	}
 	if pendingKind != nil && *pendingKind == MailboxDraftMutationSave {
-		if draft.PendingFromIdentityID == nil || len(draft.PendingSaveRequestHash) != 32 {
+		if draft.PendingFromIdentityID == nil || draft.PendingSaveRequestHash == nil || len(*draft.PendingSaveRequestHash) != 32 {
 			return MailboxDraftRecord{}, false
 		}
 	} else if len(attachments.PendingAttachmentIDs) != 0 {
@@ -353,7 +357,7 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 	var pending *MailboxDraftPendingSave
 	if pendingKind != nil && *pendingKind == MailboxDraftMutationSave {
 		var requestHash [32]byte
-		copy(requestHash[:], draft.PendingSaveRequestHash)
+		copy(requestHash[:], *draft.PendingSaveRequestHash)
 		pending = &MailboxDraftPendingSave{EffectiveState: MailboxDraftEffectiveState{
 			FromIdentityID:   *draft.PendingFromIdentityID,
 			ReplyToMessageID: mailboxEntDraftReadUUIDPointerCopy(draft.PendingReplyToMessageID),
