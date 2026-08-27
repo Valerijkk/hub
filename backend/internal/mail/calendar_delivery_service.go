@@ -553,14 +553,14 @@ func calendarMailDeliveryDraftKey(deliveryID CalendarMailDeliveryID) string {
 	if !validCalendarMailDeliveryID(deliveryID) {
 		return ""
 	}
-	return calendarMailDeliveryDraftKeyPrefix + deliveryID.UUID().String()
+	return calendarMailDeliveryDraftKeyPrefix + string(deliveryID.Kind()) + "/" + deliveryID.UUID().String()
 }
 
 func calendarMailDeliverySubmissionKey(deliveryID CalendarMailDeliveryID) string {
 	if !validCalendarMailDeliveryID(deliveryID) {
 		return ""
 	}
-	return calendarMailDeliverySubmissionKeyPrefix + deliveryID.UUID().String()
+	return calendarMailDeliverySubmissionKeyPrefix + string(deliveryID.Kind()) + "/" + deliveryID.UUID().String()
 }
 
 func validCalendarMailDeliveryDraftView(view MailboxDraftView, deliveryID CalendarMailDeliveryID) bool {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -27,6 +28,7 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 	repository := calendarMailDeliverySource(t, filepath.Join(root, "calendar_delivery_repository.go"))
 	fake := calendarMailDeliverySource(t, filepath.Join(root, "calendar_delivery_fake.go"))
 	service := calendarMailDeliverySource(t, filepath.Join(root, "calendar_delivery_service.go"))
+	mimePart := calendarMailDeliverySource(t, filepath.Join(root, "calendar_mime_part.go"))
 
 	for _, required := range []string{
 		"AdmitCalendarInviteDeliveries",
@@ -76,6 +78,7 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 		"hub.calendar.delivery.draft.v1/",
 		"hub.calendar.delivery.submission.v1/",
 		"calendarMailDeliveryDraftClientID",
+		"string(deliveryID.Kind()) + \"/\" + deliveryID.UUID().String()",
 		"CreateMailboxDraft",
 		"CreateMailboxSubmission",
 		"BindCalendarMailDeliverySubmission",
@@ -95,6 +98,9 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 		if !strings.Contains(service, required) {
 			t.Fatalf("calendar delivery service source missing %q", required)
 		}
+	}
+	if !strings.Contains(mimePart, "calendarMIMEPartHashString(hash, string(sourceDeliveryID.Kind()))") {
+		t.Fatal("calendar MIME part binding does not namespace the delivery kind")
 	}
 	for _, required := range []string{
 		"SetNow",
@@ -563,6 +569,92 @@ func TestCalendarMailDeliveryObservedSkipsMailIO(t *testing.T) {
 	}
 }
 
+func TestCalendarMailDeliveryNamespacesDurableKeysAndMaterializationByKind(t *testing.T) {
+	now := time.Now().UTC()
+	leaseUntil := now.Add(time.Minute)
+	sharedDeliveryUUID := uuid.New()
+	inviteDeliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindInvite, sharedDeliveryUUID)
+	if err != nil {
+		t.Fatalf("NewCalendarMailDeliveryID(invite) error = %v", err)
+	}
+	replyDeliveryID, err := mail.NewCalendarMailDeliveryID(mail.CalendarMailDeliveryKindReply, sharedDeliveryUUID)
+	if err != nil {
+		t.Fatalf("NewCalendarMailDeliveryID(reply) error = %v", err)
+	}
+	inviteID, err := mail.NewCalendarInviteDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarInviteDeliveryID() error = %v", err)
+	}
+	replyID, err := mail.NewCalendarReplyDeliveryID(uuid.New())
+	if err != nil {
+		t.Fatalf("NewCalendarReplyDeliveryID() error = %v", err)
+	}
+
+	repository := mail.NewCalendarMailDeliveryRepositoryFake()
+	if err := repository.SetNow(now); err != nil {
+		t.Fatalf("SetNow() error = %v", err)
+	}
+	inviteClaim := calendarDeliveryFakeClaimFixture(t, inviteDeliveryID, inviteID, leaseUntil)
+	inviteClaim.Recipient = mail.EngineAddress{Email: "external-organizer@example.com"}
+	inviteClaim.Message.Attendees[0].Email = inviteClaim.Recipient.Email
+	if err := repository.SetClaim(inviteClaim); err != nil {
+		t.Fatalf("SetClaim(invite) error = %v", err)
+	}
+	replyClaim := mail.CalendarMailDeliveryFakeClaim{
+		DeliveryID:       replyDeliveryID,
+		ReplyID:          replyID,
+		Kind:             mail.CalendarMailDeliveryKindReply,
+		Method:           mail.CalendarMailDeliveryMethodReply,
+		EventID:          inviteClaim.EventID,
+		AttendeeID:       inviteClaim.AttendeeID,
+		OrganizationID:   inviteClaim.OrganizationID,
+		AccountID:        inviteClaim.AccountID,
+		SenderActorID:    inviteClaim.SenderActorID,
+		FromIdentityID:   inviteClaim.FromIdentityID,
+		Recipient:        inviteClaim.Recipient,
+		EventSequence:    1,
+		AttendeeVersion:  1,
+		Message:          calendarDeliveryTimedReplyMessage(),
+		ClaimGeneration:  1,
+		LeaseUntil:       leaseUntil,
+	}
+	if err := repository.SetClaim(replyClaim); err != nil {
+		t.Fatalf("SetClaim(reply) error = %v", err)
+	}
+
+	mailIO := &calendarDeliveryMailProbe{}
+	materializer := &calendarDeliveryMaterializerProbe{}
+	service := calendarDeliveryService(t, repository, mailIO, mailIO, materializer)
+	for _, deliveryID := range []mail.CalendarMailDeliveryID{inviteDeliveryID, replyDeliveryID} {
+		if err := service.Deliver(context.Background(), deliveryID); err != nil {
+			t.Fatalf("Deliver(%s) error = %v", deliveryID.Kind(), err)
+		}
+	}
+	if len(mailIO.draftInputs) != 2 || len(mailIO.submissionInputs) != 2 || len(materializer.inputs) != 2 {
+		t.Fatalf("delivery observations = drafts:%d submissions:%d materializations:%d, want two each", len(mailIO.draftInputs), len(mailIO.submissionInputs), len(materializer.inputs))
+	}
+
+	wantInviteDraftKey := "hub.calendar.delivery.draft.v1/invite/" + sharedDeliveryUUID.String()
+	wantReplyDraftKey := "hub.calendar.delivery.draft.v1/reply/" + sharedDeliveryUUID.String()
+	if mailIO.draftInputs[0].IdempotencyKey != wantInviteDraftKey || mailIO.draftInputs[1].IdempotencyKey != wantReplyDraftKey {
+		t.Fatalf("draft idempotency keys = %q, %q; want %q, %q", mailIO.draftInputs[0].IdempotencyKey, mailIO.draftInputs[1].IdempotencyKey, wantInviteDraftKey, wantReplyDraftKey)
+	}
+	if mailIO.draftInputs[0].DraftClientID == mailIO.draftInputs[1].DraftClientID {
+		t.Fatal("invite and reply delivery IDs with the same UUID reused a DraftClientID")
+	}
+	wantInviteSubmissionKey := "hub.calendar.delivery.submission.v1/invite/" + sharedDeliveryUUID.String()
+	wantReplySubmissionKey := "hub.calendar.delivery.submission.v1/reply/" + sharedDeliveryUUID.String()
+	if mailIO.submissionInputs[0].IdempotencyKey != wantInviteSubmissionKey || mailIO.submissionInputs[1].IdempotencyKey != wantReplySubmissionKey {
+		t.Fatalf("submission idempotency keys = %q, %q; want %q, %q", mailIO.submissionInputs[0].IdempotencyKey, mailIO.submissionInputs[1].IdempotencyKey, wantInviteSubmissionKey, wantReplySubmissionKey)
+	}
+	if reflect.DeepEqual(materializer.inputs[0], materializer.inputs[1]) {
+		t.Fatal("invite and reply delivery materialization inputs were cross-replayed")
+	}
+	if reflect.DeepEqual(mailIO.draftInputs[0], mailIO.draftInputs[1]) {
+		t.Fatal("invite and reply MIME-bound draft inputs were cross-replayed")
+	}
+}
+
 func TestCalendarMailDeliveryBindsKnownSubmissionDespiteErrorWithoutResolve(t *testing.T) {
 	deliveryID, repository := calendarDeliveryFixture(t)
 	submissionID := uuid.New()
@@ -840,17 +932,20 @@ func (calendarDeliveryTimer) Wait(context.Context, time.Duration) error {
 }
 
 type calendarDeliveryMailProbe struct {
-	draftCalls      int
-	submissionCalls int
-	draftContexts   []context.Context
+	draftCalls        int
+	submissionCalls   int
+	draftContexts     []context.Context
 	submissionContexts []context.Context
-	draftFunc       func(context.Context, uuid.UUID, mail.MailboxDraftCreateInput) (mail.MailboxDraftView, error)
-	submissionFunc  func(context.Context, uuid.UUID, uuid.UUID, mail.MailboxSubmissionCreateInput) (mail.MailboxSubmissionView, error)
+	draftInputs       []mail.MailboxDraftCreateInput
+	submissionInputs  []mail.MailboxSubmissionCreateInput
+	draftFunc         func(context.Context, uuid.UUID, mail.MailboxDraftCreateInput) (mail.MailboxDraftView, error)
+	submissionFunc    func(context.Context, uuid.UUID, uuid.UUID, mail.MailboxSubmissionCreateInput) (mail.MailboxSubmissionView, error)
 }
 
 func (probe *calendarDeliveryMailProbe) CreateMailboxDraft(ctx context.Context, actorID uuid.UUID, input mail.MailboxDraftCreateInput) (mail.MailboxDraftView, error) {
 	probe.draftCalls++
 	probe.draftContexts = append(probe.draftContexts, ctx)
+	probe.draftInputs = append(probe.draftInputs, input)
 	if probe.draftFunc != nil {
 		return probe.draftFunc(ctx, actorID, input)
 	}
@@ -860,6 +955,7 @@ func (probe *calendarDeliveryMailProbe) CreateMailboxDraft(ctx context.Context, 
 func (probe *calendarDeliveryMailProbe) CreateMailboxSubmission(ctx context.Context, actorID, draftID uuid.UUID, input mail.MailboxSubmissionCreateInput) (mail.MailboxSubmissionView, error) {
 	probe.submissionCalls++
 	probe.submissionContexts = append(probe.submissionContexts, ctx)
+	probe.submissionInputs = append(probe.submissionInputs, input)
 	if probe.submissionFunc != nil {
 		return probe.submissionFunc(ctx, actorID, draftID, input)
 	}
@@ -867,11 +963,13 @@ func (probe *calendarDeliveryMailProbe) CreateMailboxSubmission(ctx context.Cont
 }
 
 type calendarDeliveryMaterializerProbe struct {
-	calls int
+	calls  int
+	inputs []mail.CalendarMailDeliveryMaterializationInput
 }
 
-func (probe *calendarDeliveryMaterializerProbe) MaterializeCalendarMail(mail.CalendarMailDeliveryMaterializationInput) (mail.CalendarMailMaterialization, error) {
+func (probe *calendarDeliveryMaterializerProbe) MaterializeCalendarMail(input mail.CalendarMailDeliveryMaterializationInput) (mail.CalendarMailMaterialization, error) {
 	probe.calls++
+	probe.inputs = append(probe.inputs, input)
 	return mail.NewCalendarMailMaterialization("Calendar update", mail.MailboxContentInput{
 		SourceFormat: mail.MailboxContentFormatPlain,
 		Body:         "Calendar delivery",

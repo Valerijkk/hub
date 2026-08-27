@@ -165,6 +165,7 @@ func calendarMIMEPartBindingHash(organizationID uuid.UUID, sourceDeliveryID Cale
 	_, _ = hash.Write([]byte(calendarMIMEPartBindingDomain))
 	_, _ = hash.Write([]byte{0})
 	_, _ = hash.Write(organizationID[:])
+	calendarMIMEPartHashString(hash, string(sourceDeliveryID.Kind()))
 	deliveryID := sourceDeliveryID.UUID()
 	_, _ = hash.Write(deliveryID[:])
 	calendarMIMEPartHashString(hash, string(method))
