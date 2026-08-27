@@ -497,14 +497,20 @@ func (c *Client) renderUploadURL(accountID string) (*url.URL, bool) {
 	if c == nil || !validOpaque(accountID) {
 		return nil, false
 	}
-	return url.Parse(c.origin.String() + "/jmap/upload/" + url.PathEscape(accountID) + "/")
+	parsed, err := url.Parse(
+		c.origin.String() + "/jmap/upload/" + url.PathEscape(accountID) + "/",
+	)
+	return parsed, err == nil && parsed != nil
 }
 
 func (c *Client) renderDownloadURL(accountID, blobID, name, contentType string) (*url.URL, bool) {
 	if c == nil || !validOpaque(accountID) || !validOpaque(blobID) || !validDownloadName(name) || !validContentType(contentType) {
 		return nil, false
 	}
-	return url.Parse(c.origin.String() + "/jmap/download/" + url.PathEscape(accountID) + "/" + url.PathEscape(blobID) + "/" + url.PathEscape(name) + "?type=" + url.QueryEscape(contentType))
+	parsed, err := url.Parse(
+		c.origin.String() + "/jmap/download/" + url.PathEscape(accountID) + "/" + url.PathEscape(blobID) + "/" + url.PathEscape(name) + "?type=" + url.QueryEscape(contentType),
+	)
+	return parsed, err == nil && parsed != nil
 }
 
 func boundedLimit(value, hardLimit int64) (int64, bool) {
