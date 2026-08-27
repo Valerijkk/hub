@@ -103,7 +103,7 @@ func TestMailDomainControlHandler_AdminRoutesUseOnlySafeCoreInputsAndDTOs(t *tes
 	if err := json.Unmarshal(createBody, &created); err != nil {
 		t.Fatalf("decode POST domain: %v", err)
 	}
-	if !mailDomainControlHTTPDomainResponseEqual(created.Domain, pending) || service.createCalls != 1 || len(service.createInputs) != 1 {
+	if !mailDomainControlHTTPDomainResponseEqual(created.Domain, pending) || service.createCalls != 1 || len(service.createInputs) != 1 || *adminCalls != 2 {
 		t.Fatalf("POST payload/calls = %#v/%#v, want one safe result", created, service.createInputs)
 	}
 	if input := service.createInputs[0]; input.ActorID != mailDomainControlHTTPActorID || input.IdempotencyKey != mailDomainControlHTTPIdempotencyKey || input.Domain != "example.test" {
@@ -122,7 +122,7 @@ func TestMailDomainControlHandler_AdminRoutesUseOnlySafeCoreInputsAndDTOs(t *tes
 	if err := json.Unmarshal(defaultBody, &madeDefault); err != nil {
 		t.Fatalf("decode PUT default: %v", err)
 	}
-	if !mailDomainControlHTTPDomainResponseEqual(madeDefault.Domain, verified) || service.defaultCalls != 1 || len(service.defaultInputs) != 1 {
+	if !mailDomainControlHTTPDomainResponseEqual(madeDefault.Domain, verified) || service.defaultCalls != 1 || len(service.defaultInputs) != 1 || *adminCalls != 3 {
 		t.Fatalf("PUT payload/calls = %#v/%#v, want one safe verified result", madeDefault, service.defaultInputs)
 	}
 	if input := service.defaultInputs[0]; input.ActorID != mailDomainControlHTTPActorID || input.DomainID != mailDomainControlHTTPDomainID {
@@ -192,14 +192,14 @@ func TestMailDomainControlHandler_RejectsTransportBeforeService(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			service := &mailDomainControlHTTPServiceSpy{}
-			app, _ := mailDomainControlHTTPApp(t, service, mailDomainControlHTTPActorID.String(), true, nil)
+			app, adminCalls := mailDomainControlHTTPApp(t, service, mailDomainControlHTTPActorID.String(), true, nil)
 			response := mailDomainControlHTTPDo(t, app, testCase.request())
 			body := mailDomainControlHTTPBody(t, response)
 			if response.StatusCode != http.StatusBadRequest || response.Header.Get("X-Hub-Error-Code") != "MAIL_DOMAIN_INVALID" {
 				t.Fatalf("status/code = %d/%q, want 400/%q", response.StatusCode, response.Header.Get("X-Hub-Error-Code"), "MAIL_DOMAIN_INVALID")
 			}
-			if service.calls() != 0 || strings.Contains(string(body), "forbidden") || strings.Contains(string(body), "other.test") {
-				t.Fatalf("rejected transport service/body = %d/%q, want zero call and no echo", service.calls(), body)
+			if service.calls() != 0 || *adminCalls != 0 || strings.Contains(string(body), "forbidden") || strings.Contains(string(body), "other.test") {
+				t.Fatalf("rejected transport service/admin/body = %d/%d/%q, want zero calls and no echo", service.calls(), *adminCalls, body)
 			}
 		})
 	}

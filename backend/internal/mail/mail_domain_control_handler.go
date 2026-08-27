@@ -16,6 +16,8 @@ import (
 
 const mailDomainControlHTTPMaximumJSONBytes = 2048
 
+const mailDomainControlHTTPRouteInputLocalKey = "mail_domain_control_http_route_input_v1"
+
 type mailDomainControlHTTPService interface {
 	CreateMailDomain(context.Context, MailDomainControlCreateRequest) (MailDomainControlCreateResult, error)
 	ListMailDomains(context.Context, MailDomainControlListRequest) ([]MailDomainControlView, error)
@@ -43,11 +45,82 @@ func (handler *MailDomainControlHandler) RegisterRoutes(api fiber.Router, authMi
 	if handler == nil || mailboxHTTPDependencyNil(handler.service) || handler.isAdmin == nil || mailboxHTTPDependencyNil(api) || authMiddleware == nil {
 		return mailDomainControlError(MailDomainControlErrorInvalid)
 	}
-	routes := api.Group("/admin/mail", authMiddleware, handler.requireAdmin())
-	routes.Get("/domains", handler.list)
-	routes.Post("/domains", handler.create)
-	routes.Put("/domains/:id/default", handler.setDefault)
+	routes := api.Group("/admin/mail", authMiddleware)
+	routes.Get("/domains", handler.preflightList, handler.requireAdmin(), handler.list)
+	routes.Post("/domains", handler.preflightCreate, handler.requireAdmin(), handler.create)
+	routes.Put("/domains/:id/default", handler.preflightSetDefault, handler.requireAdmin(), handler.setDefault)
 	return nil
+}
+
+type mailDomainControlHTTPRoute uint8
+
+const (
+	mailDomainControlHTTPRouteList mailDomainControlHTTPRoute = iota + 1
+	mailDomainControlHTTPRouteCreate
+	mailDomainControlHTTPRouteSetDefault
+)
+
+type mailDomainControlHTTPRouteInput struct {
+	route          mailDomainControlHTTPRoute
+	idempotencyKey uuid.UUID
+	domain         string
+	domainID       uuid.UUID
+}
+
+func (handler *MailDomainControlHandler) preflightList(ctx fiber.Ctx) error {
+	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
+		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
+	}
+	if err := mailDomainControlHTTPRejectEmptyTransport(ctx); err != nil {
+		return err
+	}
+	ctx.Locals(mailDomainControlHTTPRouteInputLocalKey, mailDomainControlHTTPRouteInput{route: mailDomainControlHTTPRouteList})
+	return ctx.Next()
+}
+
+func (handler *MailDomainControlHandler) preflightCreate(ctx fiber.Ctx) error {
+	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
+		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
+	}
+	if err := mailDomainControlHTTPRejectQuery(ctx); err != nil {
+		return err
+	}
+	idempotencyKey, err := mailDomainControlHTTPIdempotencyKey(ctx)
+	if err != nil {
+		return err
+	}
+	request, err := mailDomainControlHTTPDecodeCreate(ctx)
+	if err != nil {
+		return err
+	}
+	canonicalDomain, ok := canonicalMailDomainControlDomain(request.Domain)
+	if !ok || request.Domain != canonicalDomain {
+		return mailDomainControlHTTPError(ctx, http.StatusBadRequest, "MAIL_DOMAIN_INVALID")
+	}
+	ctx.Locals(mailDomainControlHTTPRouteInputLocalKey, mailDomainControlHTTPRouteInput{
+		route:          mailDomainControlHTTPRouteCreate,
+		idempotencyKey: idempotencyKey,
+		domain:         canonicalDomain,
+	})
+	return ctx.Next()
+}
+
+func (handler *MailDomainControlHandler) preflightSetDefault(ctx fiber.Ctx) error {
+	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
+		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
+	}
+	if err := mailDomainControlHTTPRejectEmptyTransport(ctx); err != nil {
+		return err
+	}
+	domainID, err := mailDomainControlHTTPCanonicalUUID(ctx.Params("id"))
+	if err != nil {
+		return mailDomainControlHTTPError(ctx, http.StatusBadRequest, "MAIL_DOMAIN_INVALID")
+	}
+	ctx.Locals(mailDomainControlHTTPRouteInputLocalKey, mailDomainControlHTTPRouteInput{
+		route:    mailDomainControlHTTPRouteSetDefault,
+		domainID: domainID,
+	})
+	return ctx.Next()
 }
 
 func (handler *MailDomainControlHandler) requireAdmin() fiber.Handler {
@@ -74,8 +147,8 @@ func (handler *MailDomainControlHandler) list(ctx fiber.Ctx) error {
 	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
 		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
 	}
-	if err := mailDomainControlHTTPRejectEmptyTransport(ctx); err != nil {
-		return err
+	if _, ok := mailDomainControlHTTPRouteInputFromContext(ctx, mailDomainControlHTTPRouteList); !ok {
+		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
 	}
 	actorID, err := mailboxActorID(ctx)
 	if err != nil {
@@ -103,29 +176,18 @@ func (handler *MailDomainControlHandler) create(ctx fiber.Ctx) error {
 	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
 		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
 	}
-	if err := mailDomainControlHTTPRejectQuery(ctx); err != nil {
-		return err
+	input, ok := mailDomainControlHTTPRouteInputFromContext(ctx, mailDomainControlHTTPRouteCreate)
+	if !ok {
+		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
 	}
 	actorID, err := mailboxActorID(ctx)
 	if err != nil {
 		return mailDomainControlHTTPError(ctx, http.StatusUnauthorized, "MAIL_DOMAIN_UNAUTHORIZED")
 	}
-	idempotencyKey, err := mailDomainControlHTTPIdempotencyKey(ctx)
-	if err != nil {
-		return err
-	}
-	request, err := mailDomainControlHTTPDecodeCreate(ctx)
-	if err != nil {
-		return err
-	}
-	canonicalDomain, ok := canonicalMailDomainControlDomain(request.Domain)
-	if !ok || request.Domain != canonicalDomain {
-		return mailDomainControlHTTPError(ctx, http.StatusBadRequest, "MAIL_DOMAIN_INVALID")
-	}
 	result, err := handler.service.CreateMailDomain(ctx.Context(), MailDomainControlCreateRequest{
 		ActorID:        actorID,
-		IdempotencyKey: idempotencyKey,
-		Domain:         canonicalDomain,
+		IdempotencyKey: input.idempotencyKey,
+		Domain:         input.domain,
 	})
 	if err != nil {
 		return mailDomainControlHTTPServiceError(ctx, err)
@@ -141,18 +203,15 @@ func (handler *MailDomainControlHandler) setDefault(ctx fiber.Ctx) error {
 	if handler == nil || mailboxHTTPDependencyNil(handler.service) {
 		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
 	}
-	if err := mailDomainControlHTTPRejectEmptyTransport(ctx); err != nil {
-		return err
+	input, ok := mailDomainControlHTTPRouteInputFromContext(ctx, mailDomainControlHTTPRouteSetDefault)
+	if !ok {
+		return mailDomainControlHTTPError(ctx, http.StatusServiceUnavailable, "MAIL_DOMAIN_UNAVAILABLE")
 	}
 	actorID, err := mailboxActorID(ctx)
 	if err != nil {
 		return mailDomainControlHTTPError(ctx, http.StatusUnauthorized, "MAIL_DOMAIN_UNAUTHORIZED")
 	}
-	domainID, err := mailDomainControlHTTPCanonicalUUID(ctx.Params("id"))
-	if err != nil {
-		return mailDomainControlHTTPError(ctx, http.StatusBadRequest, "MAIL_DOMAIN_INVALID")
-	}
-	view, err := handler.service.SetDefaultMailDomain(ctx.Context(), MailDomainControlSetDefaultRequest{ActorID: actorID, DomainID: domainID})
+	view, err := handler.service.SetDefaultMailDomain(ctx.Context(), MailDomainControlSetDefaultRequest{ActorID: actorID, DomainID: input.domainID})
 	if err != nil {
 		return mailDomainControlHTTPServiceError(ctx, err)
 	}
@@ -168,6 +227,17 @@ func (handler *MailDomainControlHandler) setDefault(ctx fiber.Ctx) error {
 
 type mailDomainControlHTTPCreateRequest struct {
 	Domain string
+}
+
+func mailDomainControlHTTPRouteInputFromContext(ctx fiber.Ctx, expectedRoute mailDomainControlHTTPRoute) (mailDomainControlHTTPRouteInput, bool) {
+	if ctx == nil {
+		return mailDomainControlHTTPRouteInput{}, false
+	}
+	input, ok := ctx.Locals(mailDomainControlHTTPRouteInputLocalKey).(mailDomainControlHTTPRouteInput)
+	if !ok || input.route != expectedRoute {
+		return mailDomainControlHTTPRouteInput{}, false
+	}
+	return input, true
 }
 
 type mailDomainControlHTTPDomainResponse struct {
