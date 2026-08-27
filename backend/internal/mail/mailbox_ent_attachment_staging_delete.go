@@ -102,7 +102,7 @@ func (repository *MailboxEntRepository) AbandonMailboxAttachment(ctx context.Con
 				mailattachment.IDEQ(attachment.ID),
 				mailattachment.StorageObjectIDEQ(object.ID),
 			).
-			Exec(ctx)
+			Save(ctx)
 		if err != nil {
 			return mailboxAttachmentStagingError(MailboxAttachmentStagingErrorUnavailable)
 		}
