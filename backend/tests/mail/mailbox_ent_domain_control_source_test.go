@@ -66,7 +66,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 		"maildomain.DomainEQ(request.CanonicalDomain)",
 		"SetState(maildomain.State(" + "\x22pending\x22" + "))",
 		"SetVerificationStatus(maildomain.VerificationStatus(" + "\x22pending\x22" + "))",
-		"SetDKIMStatus(maildomain.DKIMStatus(" + "\x22unknown\x22" + "))",
+		"SetDkimStatus(maildomain.DkimStatus(" + "\x22unknown\x22" + "))",
 		"SetRequiredDNSRecords(RequiredDNSRecords{})",
 		"SetIsDefault(false)",
 		"SetDesiredGeneration(1)",
@@ -106,7 +106,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 	for _, required := range []string{
 		"maildomain.StateEQ(maildomain.State(" + "\x22verified\x22" + "))",
 		"maildomain.VerificationStatusEQ(maildomain.VerificationStatus(" + "\x22verified\x22" + "))",
-		"maildomain.DKIMStatusEQ(maildomain.DKIMStatus(" + "\x22valid\x22" + "))",
+		"maildomain.DkimStatusEQ(maildomain.DkimStatus(" + "\x22valid\x22" + "))",
 		"maildomain.DesiredPresentEQ(true)",
 		"maildomain.EnabledEQ(true)",
 		"maildomain.DeletedAtIsNil()",
@@ -120,7 +120,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
-		"domain.DKIMStatus != maildomain.DKIMStatus(" + "\x22valid\x22" + ")",
+		"domain.DkimStatus != maildomain.DkimStatus(" + "\x22valid\x22" + ")",
 		"*domain.DeployedGeneration != domain.DesiredGeneration",
 		"*domain.DeployedHashVersion != domain.DesiredHashVersion",
 		"subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1",

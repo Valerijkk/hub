@@ -89,7 +89,7 @@ func TestMailboxEntAccountProvisioningSourceContract(t *testing.T) {
 		"user.StatusEQ(user.StatusActive)",
 		"user.Not(user.HasMailAccount())",
 		"maildomain.IsDefaultEQ(true)",
-		"maildomain.DKIMStatusEQ(maildomain.DKIMStatus(\"valid\"))",
+		"maildomain.DkimStatusEQ(maildomain.DkimStatus(\"valid\"))",
 		"mailboxEntAccountProvisioningDomainLive",
 		"mailboxEntAccountProvisioningIntentID",
 		"SetStatus(mailaccount.Status(\"provisioning\"))",

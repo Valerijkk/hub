@@ -81,7 +81,7 @@ func persistAccountMaterializationFixture(
 		SetIsDefault(true).
 		SetState(maildomain.State("verified")).
 		SetVerificationStatus(maildomain.VerificationStatus("verified")).
-		SetDKIMStatus(maildomain.DKIMStatus("valid")).
+		SetDkimStatus(maildomain.DkimStatus("valid")).
 		SetDesiredGeneration(1).
 		SetDesiredHashVersion(1).
 		SetDesiredHash(append([]byte(nil), plan.domainControlHash[:]...)).

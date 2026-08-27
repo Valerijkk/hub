@@ -137,7 +137,7 @@ func (repository *MailboxEntRepository) SetDefaultMailDomain(ctx context.Context
 				maildomain.EnabledEQ(true),
 				maildomain.StateEQ(maildomain.State("verified")),
 				maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
-				maildomain.DKIMStatusEQ(maildomain.DKIMStatus("valid")),
+		maildomain.DkimStatusEQ(maildomain.DkimStatus("valid")),
 				maildomain.DeletedAtIsNil(),
 			).
 			ForUpdate().
@@ -188,7 +188,7 @@ func (repository *MailboxEntRepository) SetDefaultMailDomain(ctx context.Context
 					maildomain.EnabledEQ(true),
 					maildomain.StateEQ(maildomain.State("verified")),
 					maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
-					maildomain.DKIMStatusEQ(maildomain.DKIMStatus("valid")),
+		maildomain.DkimStatusEQ(maildomain.DkimStatus("valid")),
 					maildomain.DeletedAtIsNil(),
 				).
 				SetIsDefault(false).
@@ -211,7 +211,7 @@ func (repository *MailboxEntRepository) SetDefaultMailDomain(ctx context.Context
 				maildomain.EnabledEQ(true),
 				maildomain.StateEQ(maildomain.State("verified")),
 				maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")),
-				maildomain.DKIMStatusEQ(maildomain.DKIMStatus("valid")),
+		maildomain.DkimStatusEQ(maildomain.DkimStatus("valid")),
 				maildomain.DeletedAtIsNil(),
 			).
 			SetIsDefault(true).
@@ -335,7 +335,7 @@ func mailDomainControlCreateFresh(ctx context.Context, transaction *appent.Tx, d
 		SetIsDefault(false).
 		SetState(maildomain.State("pending")).
 		SetVerificationStatus(maildomain.VerificationStatus("pending")).
-		SetDKIMStatus(maildomain.DKIMStatus("unknown")).
+		SetDkimStatus(maildomain.DkimStatus("unknown")).
 		SetRequiredDNSRecords(RequiredDNSRecords{}).
 		SetDesiredGeneration(1).
 		SetDesiredHashVersion(mailDomainControlFingerprintVersion).
@@ -379,7 +379,7 @@ func mailDomainControlReceiptReplayKind(receipt *appent.MailMutationReceipt, dat
 }
 
 func mailDomainControlPendingReplayRowValid(domain *appent.MailDomain, organizationID uuid.UUID, request mailDomainControlCreateRepositoryRequest) bool {
-	if !mailDomainControlEntRowValid(domain, organizationID) || domain.ID != request.DomainID || domain.Domain != request.CanonicalDomain || domain.EngineProvisioningKey != request.ProvisioningKey || domain.EngineDomainID != nil || !domain.DesiredPresent || !domain.Enabled || domain.IsDefault || domain.State != maildomain.State("pending") || domain.VerificationStatus != maildomain.VerificationStatus("pending") || domain.DKIMStatus != maildomain.DKIMStatus("unknown") || len(domain.RequiredDNSRecords) != 0 || domain.DesiredGeneration != 1 || domain.DesiredHashVersion != request.FingerprintVersion || subtle.ConstantTimeCompare(domain.DesiredHash, request.DesiredHash[:]) != 1 || domain.AttemptedGeneration != nil || domain.AttemptedHashVersion != nil || domain.AttemptedHash != nil || domain.DeployedGeneration != nil || domain.DeployedHashVersion != nil || domain.DeployedHash != nil || domain.LastErrorCode != nil || domain.NextRetryAt != nil || domain.AttemptCount != 0 || domain.LeaseToken != nil || domain.LeaseUntil != nil || domain.DeletedAt != nil {
+		if !mailDomainControlEntRowValid(domain, organizationID) || domain.ID != request.DomainID || domain.Domain != request.CanonicalDomain || domain.EngineProvisioningKey != request.ProvisioningKey || domain.EngineDomainID != nil || !domain.DesiredPresent || !domain.Enabled || domain.IsDefault || domain.State != maildomain.State("pending") || domain.VerificationStatus != maildomain.VerificationStatus("pending") || domain.DkimStatus != maildomain.DkimStatus("unknown") || len(domain.RequiredDNSRecords) != 0 || domain.DesiredGeneration != 1 || domain.DesiredHashVersion != request.FingerprintVersion || subtle.ConstantTimeCompare(domain.DesiredHash, request.DesiredHash[:]) != 1 || domain.AttemptedGeneration != nil || domain.AttemptedHashVersion != nil || domain.AttemptedHash != nil || domain.DeployedGeneration != nil || domain.DeployedHashVersion != nil || domain.DeployedHash != nil || domain.LastErrorCode != nil || domain.NextRetryAt != nil || domain.AttemptCount != 0 || domain.LeaseToken != nil || domain.LeaseUntil != nil || domain.DeletedAt != nil {
 		return false
 	}
 	return domain.CreatedAt.Equal(domain.UpdatedAt)
@@ -392,7 +392,7 @@ func mailDomainControlReplayTargetValid(domain *appent.MailDomain, organizationI
 }
 
 func mailDomainControlVerifiedEntRowValid(domain *appent.MailDomain, organizationID uuid.UUID) bool {
-	if !mailDomainControlEntRowValid(domain, organizationID) || !domain.DesiredPresent || !domain.Enabled || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DKIMStatus != maildomain.DKIMStatus("valid") || domain.DeletedAt != nil || domain.EngineDomainID == nil || !validMailboxOAuthOpaque(*domain.EngineDomainID, MaxEngineOpaqueIDBytes) || domain.DeployedGeneration == nil || domain.DeployedHashVersion == nil || domain.DeployedHash == nil || *domain.DeployedGeneration != domain.DesiredGeneration || *domain.DeployedHashVersion != domain.DesiredHashVersion || subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1 || domain.AttemptedGeneration != nil || domain.AttemptedHashVersion != nil || domain.AttemptedHash != nil || domain.LastErrorCode != nil || domain.NextRetryAt != nil || domain.LeaseToken != nil || domain.LeaseUntil != nil {
+		if !mailDomainControlEntRowValid(domain, organizationID) || !domain.DesiredPresent || !domain.Enabled || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") || domain.DkimStatus != maildomain.DkimStatus("valid") || domain.DeletedAt != nil || domain.EngineDomainID == nil || !validMailboxOAuthOpaque(*domain.EngineDomainID, MaxEngineOpaqueIDBytes) || domain.DeployedGeneration == nil || domain.DeployedHashVersion == nil || domain.DeployedHash == nil || *domain.DeployedGeneration != domain.DesiredGeneration || *domain.DeployedHashVersion != domain.DesiredHashVersion || subtle.ConstantTimeCompare(domain.DeployedHash, domain.DesiredHash) != 1 || domain.AttemptedGeneration != nil || domain.AttemptedHashVersion != nil || domain.AttemptedHash != nil || domain.LastErrorCode != nil || domain.NextRetryAt != nil || domain.LeaseToken != nil || domain.LeaseUntil != nil {
 		return false
 	}
 	return true
@@ -403,7 +403,7 @@ func mailDomainControlEntRowValid(domain *appent.MailDomain, organizationID uuid
 		return false
 	}
 	canonicalDomain, ok := canonicalMailDomainControlDomain(domain.Domain)
-	if !ok || canonicalDomain != domain.Domain || domain.EngineProvisioningKey == "" || !validMailDomainControlState(string(domain.State)) || !validMailDomainControlVerificationStatus(string(domain.VerificationStatus)) || !validMailDomainControlDKIMStatus(string(domain.DKIMStatus)) || !mailDomainControlTupleValid(domain.AttemptedGeneration, domain.AttemptedHashVersion, domain.AttemptedHash, domain.DesiredGeneration) || !mailDomainControlTupleValid(domain.DeployedGeneration, domain.DeployedHashVersion, domain.DeployedHash, domain.DesiredGeneration) || (domain.LeaseToken == nil) != (domain.LeaseUntil == nil) {
+		if !ok || canonicalDomain != domain.Domain || domain.EngineProvisioningKey == "" || !validMailDomainControlState(string(domain.State)) || !validMailDomainControlVerificationStatus(string(domain.VerificationStatus)) || !validMailDomainControlDKIMStatus(string(domain.DkimStatus)) || !mailDomainControlTupleValid(domain.AttemptedGeneration, domain.AttemptedHashVersion, domain.AttemptedHash, domain.DesiredGeneration) || !mailDomainControlTupleValid(domain.DeployedGeneration, domain.DeployedHashVersion, domain.DeployedHash, domain.DesiredGeneration) || (domain.LeaseToken == nil) != (domain.LeaseUntil == nil) {
 		return false
 	}
 	if domain.EngineDomainID != nil && !validMailboxOAuthOpaque(*domain.EngineDomainID, MaxEngineOpaqueIDBytes) {
@@ -431,7 +431,7 @@ func mailDomainControlViewFromEnt(domain *appent.MailDomain, organizationID uuid
 		Domain:             domain.Domain,
 		State:              string(domain.State),
 		VerificationStatus: string(domain.VerificationStatus),
-		DKIMStatus:         string(domain.DKIMStatus),
+		DKIMStatus:         string(domain.DkimStatus),
 		RequiredDNSRecords: append(RequiredDNSRecords(nil), domain.RequiredDNSRecords...),
 		IsDefault:          domain.IsDefault,
 	}

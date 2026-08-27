@@ -416,7 +416,7 @@ func accountMaterializationFixtureExactRootsValid(
 		!domain.IsDefault ||
 		domain.State != maildomain.State("verified") ||
 		domain.VerificationStatus != maildomain.VerificationStatus("verified") ||
-		domain.DKIMStatus != maildomain.DKIMStatus("valid") ||
+		domain.DkimStatus != maildomain.DkimStatus("valid") ||
 		domain.RequiredDNSRecords == nil ||
 		len(domain.RequiredDNSRecords) != 0 ||
 		domain.DesiredGeneration != 1 ||
