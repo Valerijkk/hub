@@ -455,13 +455,13 @@ func mailboxDraftCreateHTTPAttachments(request []string) ([]MailboxDraftAttachme
 }
 
 func mailboxDraftCreateHTTPContent(bodyFormat string, richBody, plainBody mailboxDraftCreateHTTPBodyField) (MailboxContentInput, error) {
-	switch MailboxContentFormat(bodyFormat) {
-	case MailboxContentFormatPlain:
+	switch EngineBodyFormat(bodyFormat) {
+	case EngineBodyPlain:
 		if !plainBody.present || richBody.present {
 			return MailboxContentInput{}, mailboxDraftCreateHTTPInvalidRequest()
 		}
 		return MailboxContentInput{SourceFormat: MailboxContentFormatPlain, Body: plainBody.value}, nil
-	case MailboxContentFormatRich:
+	case EngineBodyRich:
 		if !richBody.present || plainBody.present {
 			return MailboxContentInput{}, mailboxDraftCreateHTTPInvalidRequest()
 		}
