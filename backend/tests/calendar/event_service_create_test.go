@@ -94,7 +94,7 @@ func TestEventServiceCreateCalendarEvent_PersistsCompleteEnvelopeAndReplays(t *t
 	}
 
 	envelope := backend.outboxes[0].Envelope()
-	if envelope.Subject() != "calendar.invite.created.v1" || envelope.EventID() != createApplicationID {
+	if envelope.Subject() != calendar.CalendarInviteCreatedSubjectV2 || envelope.EventID() != createApplicationID {
 		t.Fatalf("outbox envelope subject/id = %q/%s", envelope.Subject(), envelope.EventID())
 	}
 	encodedEnvelope, err := json.Marshal(envelope)
@@ -110,7 +110,7 @@ func TestEventServiceCreateCalendarEvent_PersistsCompleteEnvelopeAndReplays(t *t
 			t.Fatalf("complete envelope does not contain %q", field)
 		}
 	}
-	if strings.Contains(string(encodedEnvelope), "Private details") || strings.Contains(string(encodedEnvelope), "create-key-0000001") {
+	if strings.Contains(string(encodedEnvelope), "Private details") || strings.Contains(string(encodedEnvelope), "create-key-0000001") || strings.Contains(string(encodedEnvelope), "calendar.invite.created.v1") {
 		t.Fatalf("safe create envelope leaked content or raw key: %s", encodedEnvelope)
 	}
 	var exactEnvelope struct {
@@ -121,22 +121,28 @@ func TestEventServiceCreateCalendarEvent_PersistsCompleteEnvelopeAndReplays(t *t
 		OrganizationID uuid.UUID `json:"organization_id"`
 		ActorID        *uuid.UUID `json:"actor_id"`
 		CorrelationID  string    `json:"correlation_id"`
-		Payload        struct {
-			EventID     uuid.UUID   `json:"event_id"`
-			UID         string      `json:"uid"`
-			Sequence    uint        `json:"sequence"`
-			AttendeeIDs []uuid.UUID `json:"attendee_ids"`
-		} `json:"payload"`
 	}
 	if err := json.Unmarshal(encodedEnvelope, &exactEnvelope); err != nil {
 		t.Fatalf("json.Unmarshal(exact envelope) error = %v", err)
 	}
-	if exactEnvelope.Subject != "calendar.invite.created.v1" || exactEnvelope.SchemaVersion != 1 || exactEnvelope.EventID != createApplicationID ||
+	if exactEnvelope.Subject != calendar.CalendarInviteCreatedSubjectV2 || exactEnvelope.SchemaVersion != 1 || exactEnvelope.EventID != createApplicationID ||
 		exactEnvelope.OccurredAt != clock.now || exactEnvelope.OrganizationID != createOrganizationID || exactEnvelope.ActorID == nil ||
-		*exactEnvelope.ActorID != createActorID || exactEnvelope.CorrelationID != response.ID.String() || exactEnvelope.Payload.EventID != response.ID ||
-		exactEnvelope.Payload.UID != response.UID || exactEnvelope.Payload.Sequence != 0 || len(exactEnvelope.Payload.AttendeeIDs) != 1 ||
-		exactEnvelope.Payload.AttendeeIDs[0] != backend.attendees[1].AttendeeID() {
+		*exactEnvelope.ActorID != createActorID || exactEnvelope.CorrelationID != response.ID.String() {
 		t.Fatalf("exact EnvelopeV1 values = %#v", exactEnvelope)
+	}
+	payload, err := calendar.DecodeCalendarInviteDeliveryEnvelopeV2(envelope)
+	if err != nil {
+		t.Fatalf("DecodeCalendarInviteDeliveryEnvelopeV2() error = %v", err)
+	}
+	eventSnapshot := backend.events[0].Snapshot()
+	if eventSnapshot.OrganizerID == nil || payload.EventID != response.ID || payload.EventSequence != 0 || payload.OrganizerID != *eventSnapshot.OrganizerID || payload.RecurrenceID != nil || len(payload.Deliveries) != 1 {
+		t.Fatalf("strict v2 create payload = %#v, event = %#v", payload, eventSnapshot)
+	}
+	attendeeID := backend.attendees[1].AttendeeID()
+	inviteNamespace := uuid.NewSHA1(uuid.NameSpaceURL, []byte("hub.calendar.invite-delivery.id.v1"))
+	wantInviteID := uuid.NewSHA1(inviteNamespace, []byte(createApplicationID.String()+"/"+attendeeID.String()))
+	if payload.Deliveries[0].AttendeeID != attendeeID || payload.Deliveries[0].InviteID != wantInviteID {
+		t.Fatalf("deterministic v2 delivery = %#v, want attendee %s invite %s", payload.Deliveries[0], attendeeID, wantInviteID)
 	}
 
 	replayed, err := service.CreateCalendarEvent(context.Background(), createActorID, command)

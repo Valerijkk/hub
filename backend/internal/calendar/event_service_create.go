@@ -14,8 +14,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-
-	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
 const (
@@ -199,14 +197,21 @@ func (service *EventService) CreateCalendarEvent(ctx context.Context, actorID uu
 				return err
 			}
 		}
-		applicationEventID := service.ids.NewEventID()
-		if applicationEventID == uuid.Nil {
+		sourceEnvelopeID := service.ids.NewEventID()
+		if sourceEnvelopeID == uuid.Nil {
+			return ErrEventInvalid
+		}
+		eventSnapshot := event.Snapshot()
+		if eventSnapshot.EventID != eventID || eventSnapshot.OrganizerID == nil || *eventSnapshot.OrganizerID == uuid.Nil {
 			return ErrEventInvalid
 		}
 		actor := scope.ActorID()
-		envelope, err := events.NewEnvelopeV1(
-			"calendar.invite.created.v1", applicationEventID, service.clock.Now().UTC(), scope.OrganizationID(), &actor, eventID.String(),
-			calendarCreateInvitePayload{EventID: eventID, UID: "hub-" + eventID.String(), Sequence: 0, AttendeeIDs: attendeeIDs},
+		envelope, err := NewCalendarInviteDeliveryEnvelopeV2(
+			CalendarInviteCreatedSubjectV2, sourceEnvelopeID, service.clock.Now().UTC(), scope.OrganizationID(), &actor, eventID.String(),
+			CalendarInviteDeliveryEnvelopeV2Input{
+				EventID: eventID, EventSequence: eventSnapshot.Sequence, OrganizerID: *eventSnapshot.OrganizerID,
+				RecurrenceID: nil, AttendeeIDs: attendeeIDs,
+			},
 		)
 		if err != nil {
 			return ErrEventInvalid
@@ -356,13 +361,6 @@ func calendarCreatePersistenceCommands(scope EventMutationScope, eventID uuid.UU
 func calendarCreateDisplayName(value *string) string {
 	if value == nil { return "" }
 	return *value
-}
-
-type calendarCreateInvitePayload struct {
-	EventID uuid.UUID `json:"event_id"`
-	UID string `json:"uid"`
-	Sequence uint `json:"sequence"`
-	AttendeeIDs []uuid.UUID `json:"attendee_ids"`
 }
 
 func calendarCreateResponse(eventID uuid.UUID, input CalendarEventCreateInput, authorization CalendarEventCreateAuthorization, attendees []CalendarEventAttendeeCommand, attendeeIDs []uuid.UUID) (MutationReceiptResponse, error) {
