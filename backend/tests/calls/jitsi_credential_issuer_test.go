@@ -21,10 +21,6 @@ import (
 
 var fixedJitsiIssueTime = time.Date(2026, time.August, 25, 12, 0, 0, 0, time.UTC)
 
-type jitsiCredentialIssuer interface {
-	Issue(*ent.Call, uuid.UUID, string) (string, error)
-}
-
 type jitsiTokenClaims struct {
 	jwt.RegisteredClaims
 	Room    string             `json:"room"`
@@ -150,7 +146,10 @@ func TestJitsiCredentialIssuerConstructorRejectsUnsafeOrIncompleteConfig(t *test
 
 func TestJitsiCredentialIssuerRejectsInvalidServerInputsWithoutReturningToken(t *testing.T) {
 	cfg := validJitsiIssuerConfig()
-	issuer := newJitsiCredentialIssuer(t, cfg)
+	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
+		return fixedJitsiIssueTime
+	})
+	require.NoError(t, err)
 	validCall := activeJitsiCall()
 	validUserID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
 
@@ -217,6 +216,12 @@ func TestJitsiCredentialIssuerRejectsInvalidServerInputsWithoutReturningToken(t 
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			credential, err := calls.ExportIssueJitsiCredentialForTest(issuer, testCase.call, testCase.userID, testCase.userName)
+
+			requireCredentialSafeError(t, err, cfg.AppSecret)
+			assert.Empty(t, credential.Token)
+			assert.True(t, credential.ExpiresAt.IsZero())
+
 			rawToken, err := issuer.Issue(testCase.call, testCase.userID, testCase.userName)
 
 			requireCredentialSafeError(t, err, cfg.AppSecret)
@@ -227,9 +232,46 @@ func TestJitsiCredentialIssuerRejectsInvalidServerInputsWithoutReturningToken(t 
 	}
 }
 
+func TestJitsiCredentialIssuerCapturesExpiryOnceAndReturnsSameJWTInstant(t *testing.T) {
+	cfg := validJitsiIssuerConfig()
+	clockCalls := 0
+	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
+		clockCalls++
+		return fixedJitsiIssueTime.Add(time.Duration(clockCalls) * time.Second)
+	})
+	require.NoError(t, err)
+
+	credential, err := calls.ExportIssueJitsiCredentialForTest(
+		issuer,
+		activeJitsiCall(),
+		uuid.MustParse("22222222-2222-4222-8222-222222222222"),
+		"Ada Lovelace",
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, credential.Token)
+	assert.Equal(t, 1, clockCalls)
+	assert.True(t, credential.ExpiresAt.Equal(fixedJitsiIssueTime.Add(time.Second+5*time.Minute)))
+
+	_, claims, err := inspectJitsiIssuerToken(
+		credential.Token,
+		cfg.AppSecret,
+		fixedJitsiIssueTime.Add(time.Minute),
+		cfg,
+		activeJitsiCall().RoomName,
+		uuid.MustParse("22222222-2222-4222-8222-222222222222"),
+		"Ada Lovelace",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, claims.ExpiresAt)
+	assert.True(t, claims.ExpiresAt.Time.Equal(credential.ExpiresAt))
+}
+
 func TestJitsiCredentialIssuerBindsClaimsToExactCallAndAuthenticatedUser(t *testing.T) {
 	cfg := validJitsiIssuerConfig()
-	issuer := newJitsiCredentialIssuer(t, cfg)
+	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
+		return fixedJitsiIssueTime
+	})
+	require.NoError(t, err)
 	callEntity := activeJitsiCall()
 	callEntity.RoomName = "hub-call-room-42"
 	callEntity.CreatedBy = uuid.MustParse("33333333-3333-4333-8333-333333333333")
@@ -271,7 +313,10 @@ func TestJitsiCredentialIssuerBindsClaimsToExactCallAndAuthenticatedUser(t *test
 
 func TestJitsiCredentialIssuerOmitsPrivilegeGuestWildcardAndCredentialClaims(t *testing.T) {
 	cfg := validJitsiIssuerConfig()
-	issuer := newJitsiCredentialIssuer(t, cfg)
+	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
+		return fixedJitsiIssueTime
+	})
+	require.NoError(t, err)
 
 	rawToken, err := issuer.Issue(
 		activeJitsiCall(),
@@ -314,7 +359,10 @@ func TestJitsiCredentialIssuerOmitsPrivilegeGuestWildcardAndCredentialClaims(t *
 // product code does not accept or verify incoming Jitsi JWTs.
 func TestJitsiIssuerInspectionRejectsWrongSecretAlgorithmExpiryAndLifetime(t *testing.T) {
 	cfg := validJitsiIssuerConfig()
-	issuer := newJitsiCredentialIssuer(t, cfg)
+	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
+		return fixedJitsiIssueTime
+	})
+	require.NoError(t, err)
 	issuedToken, err := issuer.Issue(
 		activeJitsiCall(),
 		uuid.MustParse("22222222-2222-4222-8222-222222222222"),
@@ -572,15 +620,6 @@ func TestJitsiIssuerInspectionRejectsWrongOrMissingRequiredClaims(t *testing.T) 
 			requireCredentialSafeError(t, err, rawToken, cfg.AppSecret)
 		})
 	}
-}
-
-func newJitsiCredentialIssuer(t *testing.T, cfg config.JitsiConfig) jitsiCredentialIssuer {
-	t.Helper()
-	issuer, err := calls.ExportNewJitsiCredentialIssuerForTest(cfg, func() time.Time {
-		return fixedJitsiIssueTime
-	})
-	require.NoError(t, err)
-	return issuer
 }
 
 func validJitsiIssuerConfig() config.JitsiConfig {

@@ -13,11 +13,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"github.com/valerii/hub/backend/internal/rbac"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // ExportToRecordingResponse конвертирует ent.Recording в RecordingResponse для hubtest.
@@ -49,6 +49,7 @@ func ExportVerifyWebhookSignature(h *Handler, authHeader string, body []byte) bo
 func ExportFinalizeCreate(ctx context.Context, provider ConferenceProvider, repo *EntRepository, callEnt *ent.Call, userID uuid.UUID, userName string) (*CallResponse, error) {
 	return finalizeCreate(ctx, provider, repo, callEnt, userID, userName)
 }
+
 // ExportResolveParticipant находит звонок и парсит identity webhook для hubtest.
 func ExportResolveParticipant(ctx context.Context, repo *EntRepository, roomName, identity string) (*ent.Call, uuid.UUID, error) {
 	return resolveParticipant(ctx, repo, roomName, identity)
@@ -72,6 +73,25 @@ func ExportNewCallServiceWithProviderForTest(repo *EntRepository, provider Confe
 // ExportNewJitsiCredentialIssuerForTest creates an isolated Jitsi issuer for hubtest.
 func ExportNewJitsiCredentialIssuerForTest(cfg config.JitsiConfig, now func() time.Time) (*jitsiCredentialIssuer, error) {
 	return newJitsiCredentialIssuer(cfg, now)
+}
+
+type ExportJitsiIssuedCredential struct {
+	Token     string
+	ExpiresAt time.Time
+}
+
+// ExportIssueJitsiCredentialForTest exposes Jitsi issuing results for hubtest only.
+func ExportIssueJitsiCredentialForTest(
+	issuer *jitsiCredentialIssuer,
+	call *ent.Call,
+	authenticatedUserID uuid.UUID,
+	serverKnownUserName string,
+) (ExportJitsiIssuedCredential, error) {
+	credential, err := issuer.issueCredential(call, authenticatedUserID, serverKnownUserName)
+	return ExportJitsiIssuedCredential{
+		Token:     credential.Token,
+		ExpiresAt: credential.ExpiresAt,
+	}, err
 }
 
 // ExportNewHandlerForTest создаёт Handler с полным набором зависимостей для hubtest.
@@ -124,7 +144,6 @@ func ExportCallServiceRepo(s *CallService) *EntRepository {
 	return s.repo
 }
 
-
 // ExportCallServicePub возвращает CallEventPublisher из CallService для hubtest.
 func ExportCallServicePub(s *CallService) *CallEventPublisher {
 	return s.pub
@@ -134,7 +153,6 @@ func ExportCallServicePub(s *CallService) *CallEventPublisher {
 func ExportCallServiceChat(s *CallService) *CallChatService {
 	return s.chat
 }
-
 
 // ExportCallServiceSetChat подменяет CallChatService в CallService для hubtest.
 func ExportCallServiceSetChat(s *CallService, chat *CallChatService) {
@@ -196,7 +214,6 @@ func ExportRecordingServicePresignClient(s *RecordingService) *s3.PresignClient 
 	return s.presignClient
 }
 
-
 // ExportNewCallEventPublisherWithEventPublisher creates a CallEventPublisher
 // with an isolated EventPublisher for hubtest producer assertions.
 func ExportNewCallEventPublisherWithEventPublisher(publisher EventPublisher) *CallEventPublisher {
@@ -229,6 +246,7 @@ func isNilCallEventPublisher(publisher EventPublisher) bool {
 		return false
 	}
 }
+
 // ExportCallEventPublisherNats возвращает NATS client из CallEventPublisher для hubtest.
 func ExportCallEventPublisherNats(p *CallEventPublisher) *natsclient.Client {
 	if p == nil {
@@ -318,7 +336,6 @@ func ExportChatRepositoryInsertForTest(r *ChatRepository, ctx context.Context, m
 	return r.store.insert(ctx, msg)
 }
 
-
 // ExportUserNameFromCtx извлекает userName из Fiber Locals для hubtest.
 func ExportUserNameFromCtx(c fiber.Ctx) string {
 	return userNameFromCtx(c)
@@ -332,6 +349,7 @@ func ExportGenerateGuestToken(h *Handler, roomName, identity, name string) (stri
 	}
 	return credential.Token, nil
 }
+
 type ExportMongoChatStore struct {
 	inner *mongoChatStore
 }
