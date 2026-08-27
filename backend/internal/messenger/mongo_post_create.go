@@ -39,7 +39,8 @@ func (r *MongoRepository) PersistPendingCanonicalMessage(
 	if r == nil || r.db == nil || document == nil || document.ClientNonce == "" ||
 		document.ChannelID != scope.ChannelID || document.SenderID != scope.ActorID ||
 		document.PostCreateEffectsState != PostCreateEffectsStatePending ||
-		document.PostCreateEffectsCompletedAt != nil {
+		document.PostCreateEffectsCompletedAt != nil ||
+		!postCreateProducerProvenanceMatchesScope(document.PostCreateProducerProvenance, scope) {
 		return CreateMessageResult{}, ErrPostCreatePipelineInvalid
 	}
 	result, err := r.CreateMessageIdempotent(ctx, document)

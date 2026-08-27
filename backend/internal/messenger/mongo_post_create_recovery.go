@@ -97,6 +97,8 @@ func (a *Phase151PostCreateRecoveryMongoAdapter) ClaimPendingPostCreateRecovery(
 	}
 	ownedMessage := *claimed
 	ownedMessage.ResolvedMentionUserIDs = append([]uuid.UUID(nil), claimed.ResolvedMentionUserIDs...)
+	ownedProvenance := *claimed.PostCreateProducerProvenance
+	ownedMessage.PostCreateProducerProvenance = &ownedProvenance
 	ownedLeaseUntil := plan.LeaseUntil
 	ownedMessage.PostCreateRecoveryLeaseUntil = &ownedLeaseUntil
 	return Phase151PostCreateRecoveryAcquisition{Claim: claim, Message: ownedMessage}, true, nil

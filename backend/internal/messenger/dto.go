@@ -200,8 +200,9 @@ type MessageDocument struct {
 	AlsoSendToChannel             bool                   `bson:"also_send_to_channel"`
 	ResolvedMentionUserIDs        []uuid.UUID            `bson:"resolved_mention_user_ids,omitempty"`
 	PostCreateEffectsState        PostCreateEffectsState `bson:"post_create_effects_state,omitempty"`
-	PostCreateEffectsCompletedAt *time.Time              `bson:"post_create_effects_completed_at,omitempty"`
-	PostCreateRecoveryOwnerID uuid.UUID `bson:"post_create_recovery_owner_id,omitempty"`
+	PostCreateEffectsCompletedAt *time.Time                     `bson:"post_create_effects_completed_at,omitempty"`
+	PostCreateProducerProvenance *PostCreateProducerProvenance `bson:"post_create_producer_provenance,omitempty"`
+	PostCreateRecoveryOwnerID     uuid.UUID                      `bson:"post_create_recovery_owner_id,omitempty"`
 	PostCreateRecoveryFence int64 `bson:"post_create_recovery_fence,omitempty"`
 	PostCreateRecoveryLeaseUntil *time.Time `bson:"post_create_recovery_lease_until,omitempty"`
 	EditedAt        *time.Time             `bson:"edited_at,omitempty"`

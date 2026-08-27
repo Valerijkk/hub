@@ -218,6 +218,9 @@ func validatePostCreateCanonicalResult(
 		}
 		return ErrPostCreatePipelineInvalid
 	}
+	if !postCreateProducerProvenanceMatchesScope(result.Message.PostCreateProducerProvenance, scope) {
+		return ErrPostCreatePipelineInvalid
+	}
 	return nil
 }
 
@@ -250,6 +253,7 @@ func ExportPhase151PreparePendingCanonicalMessage(
 	document.ResolvedMentionUserIDs = append([]uuid.UUID(nil), resolvedMentions...)
 	document.ClientNonceFingerprint = fingerprint
 	document.ClientNonceFingerprintVersion = clientNonceFingerprintVersionV1
+	document.PostCreateProducerProvenance = newPostCreateProducerProvenance(scope)
 	document.PostCreateEffectsState = PostCreateEffectsStatePending
 	document.CreatedAt = now.UTC()
 	return &document, nil
@@ -289,8 +293,8 @@ func validatePostCreatePipelineRequest(
 	if message.ID != "" || message.ClientNonceFingerprint != "" ||
 		message.ClientNonceFingerprintVersion != 0 || message.ReplyCount != 0 || len(message.Reactions) != 0 ||
 		len(message.ResolvedMentionUserIDs) != 0 || message.PostCreateEffectsState != "" ||
-		message.PostCreateEffectsCompletedAt != nil || message.PostCreateRecoveryOwnerID != uuid.Nil ||
-		message.PostCreateRecoveryFence != 0 || message.PostCreateRecoveryLeaseUntil != nil || message.EditedAt != nil ||
+		message.PostCreateEffectsCompletedAt != nil || message.PostCreateProducerProvenance != nil ||
+		message.PostCreateRecoveryOwnerID != uuid.Nil || message.PostCreateRecoveryFence != 0 || message.PostCreateRecoveryLeaseUntil != nil || message.EditedAt != nil ||
 		message.DeletedAt != nil || !message.CreatedAt.IsZero() {
 		return ErrPostCreatePipelineInvalid
 	}

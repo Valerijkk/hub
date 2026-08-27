@@ -22,6 +22,10 @@ func phase151RecoveryClaimFixture() (messenger.AuthorizedMessageProducerScope, *
 		ID: "phase151-recovery-message", ChannelID: scope.ChannelID, SenderID: scope.ActorID,
 		ClientNonce: "phase151-recovery-nonce", CreatedAt: now.Add(-time.Minute),
 		PostCreateEffectsState: messenger.PostCreateEffectsStatePending,
+		PostCreateProducerProvenance: &messenger.PostCreateProducerProvenance{
+			Version: messenger.PostCreateProducerProvenanceVersionV1,
+			Producer: messenger.TrustedMessageProducerUser,
+		},
 	}
 	return scope, message, now
 }
@@ -43,6 +47,7 @@ func TestPhase151PostCreateRecoveryClaimPlanOwnsOnlyExpiredOrUnclaimedPendingMes
 		{Key: "_id", Value: message.ID},
 		{Key: "channel_id", Value: scope.ChannelID},
 		{Key: "sender_id", Value: scope.ActorID},
+		{Key: "post_create_producer_provenance", Value: message.PostCreateProducerProvenance},
 		{Key: "deleted_at", Value: nil},
 		{Key: "post_create_effects_state", Value: messenger.PostCreateEffectsStatePending},
 		{Key: "post_create_effects_completed_at", Value: nil},
@@ -77,6 +82,7 @@ func TestPhase151PostCreateRecoveryCompletionPlanRequiresExactLiveFence(t *testi
 		{Key: "_id", Value: message.ID},
 		{Key: "channel_id", Value: scope.ChannelID},
 		{Key: "sender_id", Value: scope.ActorID},
+		{Key: "post_create_producer_provenance", Value: message.PostCreateProducerProvenance},
 		{Key: "deleted_at", Value: nil},
 		{Key: "post_create_effects_state", Value: messenger.PostCreateEffectsStatePending},
 		{Key: "post_create_effects_completed_at", Value: nil},

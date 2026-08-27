@@ -58,6 +58,7 @@ func ExportPhase151BuildPostCreateRecoveryClaimPlan(
 			{Key: "_id", Value: message.ID},
 			{Key: "channel_id", Value: scope.ChannelID},
 			{Key: "sender_id", Value: scope.ActorID},
+			{Key: "post_create_producer_provenance", Value: message.PostCreateProducerProvenance},
 			{Key: "deleted_at", Value: nil},
 			{Key: "post_create_effects_state", Value: PostCreateEffectsStatePending},
 			{Key: "post_create_effects_completed_at", Value: nil},
@@ -105,6 +106,7 @@ func ExportPhase151BuildPostCreateRecoveryCompletionPlan(
 			{Key: "_id", Value: message.ID},
 			{Key: "channel_id", Value: scope.ChannelID},
 			{Key: "sender_id", Value: scope.ActorID},
+			{Key: "post_create_producer_provenance", Value: message.PostCreateProducerProvenance},
 			{Key: "deleted_at", Value: nil},
 			{Key: "post_create_effects_state", Value: PostCreateEffectsStatePending},
 			{Key: "post_create_effects_completed_at", Value: nil},
@@ -140,6 +142,9 @@ func validatePhase151PendingRecoveryMessage(
 		message.PostCreateEffectsState != PostCreateEffectsStatePending ||
 		message.PostCreateEffectsCompletedAt != nil {
 		return ErrPostCreatePipelineInvalid
+	}
+	if !postCreateProducerProvenanceMatchesScope(message.PostCreateProducerProvenance, scope) {
+		return ErrTrustedMessageProducerDenied
 	}
 	return nil
 }
