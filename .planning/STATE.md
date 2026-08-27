@@ -1141,8 +1141,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
-**Stopped at:** bounded Phase 151 units are green through strict durable `client_nonce` fingerprint v1. The still-unbound pure pipeline persists original create intent and rejects caller metadata plus missing/unknown/mismatched canonical metadata before effects; live writer cutover and legacy no-fingerprint compatibility remain open.
-**Resume:** fingerprint v1 is closed at pure unit level. Freeze the next typed nonce-conflict/deleted-canonical outcome and legacy migration or compatibility policy before any live send/forward binding; recovery ownership/fencing, outbox/event ownership, membership lifecycle, and cross-store TOCTOU remain separate.
+**Stopped at:** bounded Phase 151 units are green through typed `client_nonce` outcomes and their redacted service mapper. The pure adapter preserves two stable 409 messages and maps every non-user pipeline failure to one fixed 500; live writers still do not invoke it, and legacy no-fingerprint compatibility remains open.
+**Resume:** typed nonce outcomes and their pure service mapper are closed at unit level. Freeze the legacy no-fingerprint reservation/migration policy or one missing effect port before any live send/forward binding; recovery ownership/fencing, outbox/event ownership, membership lifecycle, and cross-store TOCTOU remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
@@ -1269,7 +1269,7 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Canonical lookup and persist results must return strict v1 metadata matching the retry request before any derived effect. Missing or unknown version, missing/malformed/different fingerprint, and every covered create-intent mismatch fail closed; malformed lookup stops after idempotency and malformed persist after mention resolution/persist. No unsafe legacy fallback is present in the pure seam.
 - Valid test-only RED kept build/vet `PASS`; unit/race failed only the new durable-field, fingerprint creation/caller metadata, invalid metadata, create-intent mutation, and persist-mismatch groups, with zero panic/race warnings. Final fresh Docker `backend-unit` overall/build/vet/unit/race is `PASS`; nine named durable/fingerprint/compatibility/realtime groups pass in unit and race, with zero fail, panic, or race-warning events.
 - Root static/security/mutation review is `PASS`; independent `Terra/high` review is `UNKNOWN` because runtime agent-thread allocation was exhausted.
-- This hash is an idempotency equality token, not a secret or authorization proof. Production send/forward binding, legacy records without v1 migration/compatibility, transport mapping of typed different-payload/deleted-nonce outcomes, effect/recovery fencing, outbox ownership, and live Mongo/NATS/WS remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+- This hash is an idempotency equality token, not a secret or authorization proof. Production send/forward binding, legacy records without v1 migration/compatibility, live invocation of the frozen typed different-payload/deleted-nonce mapper, effect/recovery fencing, outbox ownership, and live Mongo/NATS/WS remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
 
 ## Session note - 2026-08-27 (Phase 151 typed client-nonce outcomes atom)
 
@@ -1278,3 +1278,11 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - The test-only RED recorded overall `FAIL`: production build `PASS`, while vet/unit/race failed only because the two frozen sentinels were undefined; there were no secondary syntax diagnostics, panics, or race warnings. Final fresh Docker `backend-unit` overall/build/vet/unit/race is `PASS`; eight nonce outcome/fingerprint/compatibility groups pass once in unit and race, with zero fail records, panics, or data-race warnings.
 - Root static/security/mutation review is `PASS`. The required independent `gpt-5.6-terra/high` review remains `UNKNOWN` because dispatch was rejected by the exhausted agent-thread limit.
 - This atom adds domain classification only. HTTP/service status mapping, production send/forward binding, version-0 migration/compatibility, effect/recovery fencing, outbox ownership, and live Mongo/NATS/WS remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Session note - 2026-08-27 (Phase 151 post-create service error mapper atom)
+
+- `ExportPhase151MapPostCreatePipelineError` preserves the two existing live `SendMessage` public conflicts for eventual pipeline binding: direct or wrapped `ErrPostCreatePipelineNonceConflict` maps to the existing different-message 409, while `ErrPostCreatePipelineNonceDeleted` maps to the distinct deleted-message reservation 409. Nil remains nil.
+- `ErrPostCreatePipelineInvalid`, trusted-producer denial, wrapped canonical errors, and arbitrary repository details all map to one fixed 500 save-message error. The mapper exposes no raw cause, request id, details, or retry metadata.
+- Compile RED kept production build `PASS` and failed vet/unit/race only on the missing mapper symbol, with zero panic or data-race warnings. Final fresh Docker `backend-unit` overall/build/vet/unit/race is `PASS`; three mapper groups plus eight typed nonce/fingerprint groups each pass once in unit and race, with zero fail records, panics, or data-race warnings.
+- Root static/security/mutation review is `PASS`. Independent Terra/high review is `UNKNOWN` because the runtime agent-thread limit rejected dispatch.
+- This is a pure service adapter, not live routing. `SendMessage`, forward/bot/poll/promotion producers, version-0 migration, effects, recovery, outbox ownership, and live Mongo/NATS/WS remain `UNBOUND/NOT_RUN`. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
