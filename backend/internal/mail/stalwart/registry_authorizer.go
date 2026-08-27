@@ -42,11 +42,14 @@ func (authorizer *registryAuthorizer) AuthorizeRegistry(ctx context.Context, req
 		return err
 	}
 
-	key := append([]byte(nil), rawKey...)
-	defer clear(key)
-	if !validRegistryAPIKey(key) {
+	if len(rawKey) < 1 || len(rawKey) > registryAPIKeyMaximumBytes {
 		return ErrUnauthorized
 	}
+	if !validRegistryAPIKey(rawKey) {
+		return ErrUnauthorized
+	}
+	key := append([]byte(nil), rawKey...)
+	defer clear(key)
 	if err := registryAuthorizationContextError(ctx); err != nil {
 		return err
 	}

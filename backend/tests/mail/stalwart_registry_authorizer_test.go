@@ -169,6 +169,26 @@ func TestRegistryAuthorizer_ProviderBufferRemainsCallerOwned(t *testing.T) {
 	}
 }
 
+func TestRegistryAuthorizer_OversizedProviderBufferIsNeverCopiedOrCleared(t *testing.T) {
+	key := []byte(strings.Repeat(`a`, 4097))
+	before := append([]byte(nil), key...)
+	authorizer, err := stalwart.NewRegistryAuthorizer(func(context.Context) ([]byte, error) { return key, nil })
+	if err != nil {
+		t.Fatalf(`NewRegistryAuthorizer() error = %v`, err)
+	}
+	request := newRegistryRequest()
+	err = authorizer.AuthorizeRegistry(context.Background(), request)
+	if !errors.Is(err, stalwart.ErrUnauthorized) || strings.Contains(err.Error(), `provider`) {
+		t.Fatalf(`AuthorizeRegistry() error = %v, want redacted unauthorized`, err)
+	}
+	if got := authorizationValue(request); got != `` {
+		t.Fatalf(`Authorization = %q, want no header for oversized key`, got)
+	}
+	if string(key) != string(before) {
+		t.Fatalf(`provider key changed for oversized input`)
+	}
+}
+
 func TestRegistryAuthorizer_ContextCancellationAfterLookupLeavesRequestUntouched(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
