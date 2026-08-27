@@ -385,7 +385,7 @@ func TestMailDeliverySchemas_RejectWrongChecksIndexesAndRelations(t *testing.T) 
 	attachmentEdges := edgeDescriptors((entschema.MailAttachment{}).Edges())
 	assertExactNames(t, "MailAttachment edges", edgeNames(attachmentEdges), []string{"draft", "message", "storage_object"})
 	assertDeliveryParentEdge(t, "MailAttachment.storage_object", attachmentEdges["storage_object"], "storage_object_id", "attachment", false, entsql.Restrict)
-	assertDeliveryParentEdge(t, "MailAttachment.message", attachmentEdges["message"], "mail_message_id", "attachments", false, entsql.Restrict)
+	assertDeliveryParentEdge(t, "MailAttachment.message", attachmentEdges["message"], "mail_message_id", "attachment_records", false, entsql.Restrict)
 	assertDeliveryParentEdge(t, "MailAttachment.draft", attachmentEdges["draft"], "mail_draft_id", "attachments", false, entsql.Restrict)
 
 	draftEdges := edgeDescriptors((entschema.MailDraft{}).Edges())

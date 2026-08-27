@@ -312,13 +312,13 @@ func TestMailProjectionSchemas_HaveOnlyFrozenRelations(t *testing.T) {
 	assertReceiptChildEdge(t, "MailThread.messages", threadEdges["messages"])
 
 	messageEdges := edgeDescriptors((entschema.MailMessage{}).Edges())
-	assertExactNames(t, "MailMessage edges", edgeNames(messageEdges), []string{"account", "attachments", "calendar_event", "folders", "forward_drafts", "labels", "reply_drafts", "thread"})
+	assertExactNames(t, "MailMessage edges", edgeNames(messageEdges), []string{"account", "attachment_records", "calendar_event", "folders", "forward_drafts", "labels", "reply_drafts", "thread"})
 	assertReceiptParentEdge(t, "MailMessage.account", messageEdges["account"], "mail_account_id", "messages", true, entsql.Cascade)
 	assertReceiptParentEdge(t, "MailMessage.thread", messageEdges["thread"], "mail_thread_id", "messages", true, entsql.Cascade)
 	assertReceiptParentEdge(t, "MailMessage.calendar_event", messageEdges["calendar_event"], "calendar_event_id", "mail_messages", false, entsql.SetNull)
 	assertReceiptChildEdge(t, "MailMessage.folders", messageEdges["folders"])
 	assertReceiptChildEdge(t, "MailMessage.labels", messageEdges["labels"])
-	assertReceiptChildEdge(t, "MailMessage.attachments", messageEdges["attachments"])
+	assertReceiptChildEdge(t, "MailMessage.attachment_records", messageEdges["attachment_records"])
 	assertReceiptChildEdge(t, "MailMessage.reply_drafts", messageEdges["reply_drafts"])
 	assertReceiptChildEdge(t, "MailMessage.forward_drafts", messageEdges["forward_drafts"])
 
