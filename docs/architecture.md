@@ -576,3 +576,9 @@ The value and its pointer intentionally implement no `fmt.Stringer`; tests make 
 `Phase151PendingRecoveryRuntimeConfig` is an immutable private-field configuration value, not a runtime owner. It contains only a nonzero owner UUID, positive lease duration, and an existing `Phase151PendingRecoveryConfig` whose `MaxPages`, `MaxTargets`, `PendingScanLimit`, and `MinimumInterval` are all positive. Construction otherwise returns nil. Nil accessors expose zero values; the execution-config accessor returns an isolated copy.
 
 It provides no owner creation, singleton/distributed exclusivity, lease renewal, caps/defaults, environment/deployment parsing, or factory/coordinator/scanner/gate/server/scheduler/process ownership. It is not composed with stores, writer, runtime, or integration. The existing scanner adapter remains unbound; Phase 151 runtime remains `UNBOUND/NOT_RUN`.
+
+## Calls connection-aware refcount reducer (2026-08-29)
+
+Commit `519d14b1` adds a pure internal reducer that combines an accepted Hub `ConfirmedParticipantConnectionKey` with a trusted confirmed participant observation. It retains per-user aggregate edges: connected admits joined only on `0 -> 1`; left admits left only on `1 -> 0`; duplicate connected and duplicate left are no-ops. An unknown left requests reconciliation only. For one active same-epoch connection, `Left -> Connected` is invalid and requires a new epoch. Structurally invalid inputs fail before ended-state handling with the exact reducer sentinel and a zero result; valid observations for an ended call are descriptive no-ops, avoiding an individual-left storm.
+
+This is a calculation boundary only. It does not perform I/O, logging, persistence, CAS/transactions, event publication, reconciliation execution, provider or webhook processing, runtime wiring, or Jitsi work; the simpler accepted presence reducer is unchanged. LiveKit remains active and Jitsi remains `UNBOUND/NOT_RUN`.
