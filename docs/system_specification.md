@@ -917,7 +917,7 @@ Internal `JoinCredential` includes `ExpiresAt`. For Jitsi it is the exact captur
 
 ## Recovery-authority migration and Calls projection contract (2026-08-28)
 
-Recovery reconciliation consumes `Phase151RecoveryTargetAuthority`; the coordinator creates the closed service authority and the runner reconstructs the canonical effect scope both before and after claim. `AuthorizedMessageProducerScope` is restricted to validated Mongo-scan input. This is not a fresh authorization or runtime binding: scanner implementation, composition of narrow Ent paging and pure reauthorization, scheduling, writer cutover, and recovery runtime are `UNBOUND`.
+Recovery reconciliation consumes `Phase151RecoveryTargetAuthority`; the coordinator creates the closed service authority and the runner reconstructs the canonical effect scope both before and after claim. `AuthorizedMessageProducerScope` is restricted to validated Mongo-scan input. The accepted in-memory scanner adapter is not a fresh authorization or runtime binding; production cross-store scanner composition/binding of the narrow Ent pager and pure reauthorization, plus scheduling, writer cutover, and recovery runtime, remain `UNBOUND`.
 
 `CallJoinCredentialProjector` has only an internal port, constructor, and method. Its required inputs are an active exact server-loaded `Call`, channel-member or instant-creator policy, server-known name, and one typed issuer invocation. Ent source implementation, service/`JoinCall`/HTTP, participant/factory/client, Jitsi cutover, and tenant claim are absent. LiveKit remains active; Docker evidence is `NOT_RUN` because Mail owns Docker and no earlier receipt survives the invalidated overlap.
 
