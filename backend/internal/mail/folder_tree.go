@@ -258,7 +258,7 @@ func normalizeFolderName(raw string) (string, error) {
 	}
 	runes := 0
 	for _, r := range raw {
-		if unicode.IsControl(r) {
+		if unicode.IsControl(r) && r != '\t' {
 			return "", &FolderPolicyError{Kind: FolderErrorInvalid}
 		}
 		runes++
