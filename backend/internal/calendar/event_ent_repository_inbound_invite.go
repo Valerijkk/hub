@@ -1787,7 +1787,7 @@ func (backend *eventEntTransactionBackend) appendCalendarInboundInviteOutbox(
 			CalendarInviteUpdatedPayload{
 				EventID:       calendarEventID,
 				UID:           incoming.Component().UID(),
-				Sequence:      incoming.Sequence(),
+				Sequence:      uint(incoming.Sequence()),
 				AttendeeIDs:   sortedAttendeeIDs,
 				ResetRSVP:     false,
 				ChangedFields: calendarInboundInviteChangedFields(),
@@ -1803,7 +1803,7 @@ func (backend *eventEntTransactionBackend) appendCalendarInboundInviteOutbox(
 			CalendarInviteCancelledPayload{
 				EventID:     calendarEventID,
 				UID:         incoming.Component().UID(),
-				Sequence:    incoming.Sequence(),
+				Sequence:    uint(incoming.Sequence()),
 				AttendeeIDs: sortedAttendeeIDs,
 			},
 		)
