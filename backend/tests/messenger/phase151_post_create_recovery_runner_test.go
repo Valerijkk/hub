@@ -107,7 +107,7 @@ func (c *phase151ClaimedRecoveryRunnerClock) Now() time.Time {
 }
 
 func phase151ClaimedRecoveryRunnerFixture() (
-	messenger.AuthorizedMessageProducerScope,
+	messenger.Phase151RecoveryTargetAuthority,
 	*messenger.MessageDocument,
 	uuid.UUID,
 	time.Time,
@@ -116,9 +116,11 @@ func phase151ClaimedRecoveryRunnerFixture() (
 	messenger.Phase151PostCreateRecoveryAcquisition,
 ) {
 	base := time.Date(2026, time.August, 27, 9, 0, 0, 0, time.UTC)
-	targetAuthority := messenger.AuthorizedMessageProducerScope{
-		TenantID: uuid.New(), ActorID: uuid.New(), ChannelID: uuid.New(),
-		Producer: messenger.TrustedMessageProducerUser,
+	targetAuthority := messenger.Phase151RecoveryTargetAuthority{
+		Principal: messenger.Phase151PostCreateRecoveryServicePrincipal,
+		TenantID:  uuid.New(),
+		ChannelID: uuid.New(),
+		Kind:      "channel",
 	}
 	message := &messenger.MessageDocument{
 		ID: "phase151-claimed-runner", ChannelID: targetAuthority.ChannelID, SenderID: uuid.New(),
@@ -174,8 +176,53 @@ func TestPhase151ClaimedRecoveryRunnerExecutesRootEffectsUnderExactClaim(t *test
 		assert.Equal(t, message.SenderID, scope.ActorID)
 		assert.Equal(t, messenger.TrustedMessageProducerUser, scope.Producer)
 	}
-	assert.NotEqual(t, target.ActorID, repository.claimScope.ActorID)
 	assert.Equal(t, 2, clock.calls)
+}
+
+func TestPhase151ClaimedRecoveryRunnerRejectsInvalidTargetAuthorityOrTargetDriftBeforeClaim(t *testing.T) {
+	for _, scenario := range []struct {
+		name       string
+		mutateAuth func(*messenger.Phase151RecoveryTargetAuthority)
+		mutateDoc  func(*messenger.MessageDocument)
+	}{
+		{name: "foreign recovery principal", mutateAuth: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+			authority.Principal = messenger.Phase151RecoveryServicePrincipal("messenger.user_actor")
+		}},
+		{name: "zero target tenant", mutateAuth: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+			authority.TenantID = uuid.Nil
+		}},
+		{name: "zero target channel", mutateAuth: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+			authority.ChannelID = uuid.Nil
+		}},
+		{name: "empty target kind", mutateAuth: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+			authority.Kind = ""
+		}},
+		{name: "scanned channel drifts from target", mutateDoc: func(document *messenger.MessageDocument) {
+			document.ChannelID = uuid.New()
+		}},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			target, message, ownerID, claimNow, completedAt, lease, acquisition := phase151ClaimedRecoveryRunnerFixture()
+			if scenario.mutateAuth != nil {
+				scenario.mutateAuth(&target)
+			}
+			if scenario.mutateDoc != nil {
+				scenario.mutateDoc(message)
+			}
+			repository := &phase151ClaimedRecoveryRunnerRepository{acquisition: acquisition, acquired: true}
+			clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
+
+			acquired, err := messenger.ExportPhase151ExecuteClaimedPostCreateRecovery(
+				context.Background(), target, message, ownerID, lease, clock, repository,
+			)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.False(t, acquired)
+			assert.Empty(t, repository.calls)
+			assert.Zero(t, clock.calls)
+		})
+	}
 }
 
 func TestPhase151ClaimedRecoveryRunnerReconcilesRepliesBeforeCompletion(t *testing.T) {

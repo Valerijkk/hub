@@ -164,13 +164,16 @@ func TestPhase151RecipientInvalidationIsAfterDurableCASAndRetryHasNoEffects(t *t
 }
 
 type phase151PendingRecoveryRecorder struct {
-	calls       []string
-	pages       []messenger.Phase151PendingRecoveryTargetPage
-	pageCalls   int
-	authorize   map[messenger.Phase151PendingRecoveryTarget]bool
-	pending     map[messenger.Phase151PendingRecoveryTarget][]messenger.MessageDocument
-	intervalOK  bool
-	intervals   []time.Duration
+	calls             []string
+	pages             []messenger.Phase151PendingRecoveryTargetPage
+	pageCalls         int
+	authorize         map[messenger.Phase151PendingRecoveryTarget]bool
+	scanProofs        map[messenger.Phase151PendingRecoveryTarget]messenger.AuthorizedMessageProducerScope
+	pending           map[messenger.Phase151PendingRecoveryTarget][]messenger.MessageDocument
+	mongoScopes       []messenger.AuthorizedMessageProducerScope
+	reconciledTargets []messenger.Phase151PendingRecoveryTarget
+	intervalOK        bool
+	intervals         []time.Duration
 }
 
 func (r *phase151PendingRecoveryRecorder) TryAcquirePendingRecoveryInterval(_ context.Context, minimum time.Duration) (bool, error) {
@@ -194,16 +197,21 @@ func (r *phase151PendingRecoveryRecorder) ReauthorizePendingRecoveryTarget(_ con
 	if !r.authorize[target] {
 		return messenger.AuthorizedMessageProducerScope{}, errors.New("access revoked")
 	}
+	if scope, ok := r.scanProofs[target]; ok {
+		return scope, nil
+	}
 	return messenger.AuthorizedMessageProducerScope{TenantID: target.TenantID, ActorID: uuid.New(), ChannelID: target.ChannelID, Producer: messenger.TrustedMessageProducerUser}, nil
 }
 
-func (r *phase151PendingRecoveryRecorder) ListPendingPostCreateDocuments(_ context.Context, _ messenger.AuthorizedMessageProducerScope, target messenger.Phase151PendingRecoveryTarget, limit int) ([]messenger.MessageDocument, error) {
+func (r *phase151PendingRecoveryRecorder) ListPendingPostCreateDocuments(_ context.Context, scope messenger.AuthorizedMessageProducerScope, target messenger.Phase151PendingRecoveryTarget, limit int) ([]messenger.MessageDocument, error) {
 	r.calls = append(r.calls, "mongo-pending:"+target.ChannelID.String())
+	r.mongoScopes = append(r.mongoScopes, scope)
 	return append([]messenger.MessageDocument(nil), r.pending[target]...), nil
 }
 
-func (r *phase151PendingRecoveryRecorder) ReconcilePendingPostCreateEffects(_ context.Context, _ messenger.AuthorizedMessageProducerScope, document messenger.MessageDocument) error {
+func (r *phase151PendingRecoveryRecorder) ReconcilePendingPostCreateEffects(_ context.Context, target messenger.Phase151PendingRecoveryTarget, document messenger.MessageDocument) error {
 	r.calls = append(r.calls, "reconcile:"+document.ID)
+	r.reconciledTargets = append(r.reconciledTargets, target)
 	return nil
 }
 
@@ -237,8 +245,72 @@ func TestPhase151PendingRecoveryUsesStablePGTargetsBeforeBoundedAuthorizedMongo(
 	assert.Equal(t, 1, countPhase151Calls(recorder.calls, "mongo-pending:"+allowed.ChannelID.String()))
 	assert.Zero(t, countPhase151Calls(recorder.calls, "mongo-pending:"+denied.ChannelID.String()), "denied target must not reach Mongo")
 	assert.Equal(t, 1, countPhase151Calls(recorder.calls, "reconcile:phase151-pending-effect"))
+	assert.Equal(t, []messenger.Phase151PendingRecoveryTarget{allowed}, recorder.reconciledTargets)
 	assert.Zero(t, countPhase151Calls(recorder.calls, "reconcile:phase151-legacy-complete"), "legacy missing effect state is complete")
 	assert.Equal(t, 1, countPhase151Calls(recorder.calls, "reauthorize:"+allowed.ChannelID.String()), "duplicate PG targets are unique globally")
+}
+
+func TestPhase151PendingRecoveryRejectsInvalidFreshScanProofBeforeMongoOrRunner(t *testing.T) {
+	target := messenger.Phase151PendingRecoveryTarget{
+		TenantID: uuid.New(), ChannelID: uuid.New(), Kind: "channel",
+	}
+	pending := messenger.MessageDocument{
+		ID: "phase151-invalid-scan-proof", PostCreateEffectsState: messenger.PostCreateEffectsStatePending,
+	}
+	valid := messenger.AuthorizedMessageProducerScope{
+		TenantID: target.TenantID, ActorID: uuid.New(), ChannelID: target.ChannelID,
+		Producer: messenger.TrustedMessageProducerUser,
+	}
+	for _, scenario := range []struct {
+		name   string
+		mutate func(*messenger.AuthorizedMessageProducerScope)
+	}{
+		{name: "foreign tenant", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
+			scope.TenantID = uuid.New()
+		}},
+		{name: "foreign channel", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
+			scope.ChannelID = uuid.New()
+		}},
+		{name: "zero actor", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
+			scope.ActorID = uuid.Nil
+		}},
+		{name: "untrusted producer", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
+			scope.Producer = messenger.TrustedMessageProducer("untrusted")
+		}},
+		{name: "malformed system bot producer", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
+			scope.Producer = messenger.TrustedMessageProducerSystemBot
+		}},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			proof := valid
+			scenario.mutate(&proof)
+			recorder := &phase151PendingRecoveryRecorder{
+				intervalOK: true,
+				pages: []messenger.Phase151PendingRecoveryTargetPage{{
+					Targets: []messenger.Phase151PendingRecoveryTarget{target},
+				}},
+				authorize:  map[messenger.Phase151PendingRecoveryTarget]bool{target: true},
+				scanProofs: map[messenger.Phase151PendingRecoveryTarget]messenger.AuthorizedMessageProducerScope{target: proof},
+				pending:    map[messenger.Phase151PendingRecoveryTarget][]messenger.MessageDocument{target: {pending}},
+			}
+
+			err := messenger.ExportPhase151ExecutePendingPostCreateRecovery(
+				context.Background(), recorder, messenger.Phase151PendingRecoveryConfig{
+					MaxPages: 1, MaxTargets: 1, PendingScanLimit: 1, MinimumInterval: time.Minute,
+				},
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, []string{
+				"interval",
+				"pg-target-page",
+				"reauthorize:" + target.ChannelID.String(),
+			}, recorder.calls)
+			assert.Empty(t, recorder.mongoScopes)
+			assert.Empty(t, recorder.reconciledTargets)
+		})
+	}
 }
 
 type phase151UnreadCutoverScopes struct {

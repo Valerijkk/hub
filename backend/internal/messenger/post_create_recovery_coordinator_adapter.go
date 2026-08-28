@@ -213,11 +213,20 @@ func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ListPendingPostCreateDocumen
 
 func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ReconcilePendingPostCreateEffects(
 	ctx context.Context,
-	targetAuthority AuthorizedMessageProducerScope,
+	target Phase151PendingRecoveryTarget,
 	document MessageDocument,
 ) error {
 	if err := a.validate(ctx); err != nil {
 		return err
+	}
+	if err := validatePhase151PendingRecoveryTarget(target); err != nil {
+		return err
+	}
+	targetAuthority := Phase151RecoveryTargetAuthority{
+		Principal: Phase151PostCreateRecoveryServicePrincipal,
+		TenantID:  target.TenantID,
+		ChannelID: target.ChannelID,
+		Kind:      target.Kind,
 	}
 	_, err := ExportPhase151ExecuteClaimedPostCreateRecovery(
 		ctx,

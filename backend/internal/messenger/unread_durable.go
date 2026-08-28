@@ -138,7 +138,7 @@ type Phase151PendingRecoveryRepository interface {
 	ListPendingRecoveryTargets(context.Context, *Phase151RecoveryTargetCursor, int) (Phase151PendingRecoveryTargetPage, error)
 	ReauthorizePendingRecoveryTarget(context.Context, Phase151PendingRecoveryTarget) (AuthorizedMessageProducerScope, error)
 	ListPendingPostCreateDocuments(context.Context, AuthorizedMessageProducerScope, Phase151PendingRecoveryTarget, int) ([]MessageDocument, error)
-	ReconcilePendingPostCreateEffects(context.Context, AuthorizedMessageProducerScope, MessageDocument) error
+	ReconcilePendingPostCreateEffects(context.Context, Phase151PendingRecoveryTarget, MessageDocument) error
 }
 
 func ExportPhase151ExecutePendingPostCreateRecovery(
@@ -185,6 +185,9 @@ func ExportPhase151ExecutePendingPostCreateRecovery(
 				scope.ActorID == uuid.Nil {
 				continue
 			}
+			if err := ExportPhase151ValidateTrustedMessageProducer(scope, scope.Producer); err != nil {
+				continue
+			}
 			documents, err := repository.ListPendingPostCreateDocuments(ctx, scope, target, config.PendingScanLimit)
 			if err != nil {
 				return fmt.Errorf("list pending post-create documents: %w", err)
@@ -201,7 +204,7 @@ func ExportPhase151ExecutePendingPostCreateRecovery(
 					continue
 				}
 				seenDocuments[document.ID] = struct{}{}
-				if err := repository.ReconcilePendingPostCreateEffects(ctx, scope, document); err != nil {
+				if err := repository.ReconcilePendingPostCreateEffects(ctx, target, document); err != nil {
 					return fmt.Errorf("reconcile pending post-create effects: %w", err)
 				}
 			}

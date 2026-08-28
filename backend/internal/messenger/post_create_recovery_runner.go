@@ -40,7 +40,7 @@ var _ Phase151ClaimedPostCreateRecoveryRepository = (*Phase151PostCreateReposito
 // A true return means a claim was acquired, including failures after claim.
 func ExportPhase151ExecuteClaimedPostCreateRecovery(
 	ctx context.Context,
-	targetAuthority AuthorizedMessageProducerScope,
+	targetAuthority Phase151RecoveryTargetAuthority,
 	scanned *MessageDocument,
 	ownerID uuid.UUID,
 	leaseDuration time.Duration,
@@ -54,7 +54,7 @@ func ExportPhase151ExecuteClaimedPostCreateRecovery(
 		return false, err
 	}
 
-	scope, err := ExportPhase151ReconstructPostCreateRecoveryProducerScope(targetAuthority, scanned)
+	scope, err := ExportPhase151ReconstructPostCreateRecoveryProducerScopeFromTargetAuthority(targetAuthority, scanned)
 	if err != nil {
 		return false, err
 	}
@@ -92,7 +92,7 @@ func ExportPhase151ExecuteClaimedPostCreateRecovery(
 	); err != nil {
 		return true, err
 	}
-	claimedScope, err := ExportPhase151ReconstructPostCreateRecoveryProducerScope(
+	claimedScope, err := ExportPhase151ReconstructPostCreateRecoveryProducerScopeFromTargetAuthority(
 		targetAuthority,
 		&acquisition.Message,
 	)

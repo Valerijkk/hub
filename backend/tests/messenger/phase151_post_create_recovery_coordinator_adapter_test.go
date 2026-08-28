@@ -84,11 +84,16 @@ func (s *phase151ClaimedRecoveryCoordinatorScanner) ListPendingPostCreateDocumen
 }
 
 type phase151ClaimedRecoveryCoordinatorEffects struct {
-	calls     []string
-	miss      map[string]bool
-	followErr error
-	owners    []uuid.UUID
-	leases    []time.Duration
+	calls              []string
+	miss               map[string]bool
+	followErr          error
+	owners             []uuid.UUID
+	leases             []time.Duration
+	claimScopes        []messenger.AuthorizedMessageProducerScope
+	followScopes       []messenger.AuthorizedMessageProducerScope
+	replyScopes        []messenger.AuthorizedMessageProducerScope
+	completeScopes     []messenger.AuthorizedMessageProducerScope
+	invalidationScopes []messenger.AuthorizedMessageProducerScope
 }
 
 func (e *phase151ClaimedRecoveryCoordinatorEffects) ClaimPendingPostCreateRecovery(
@@ -102,6 +107,7 @@ func (e *phase151ClaimedRecoveryCoordinatorEffects) ClaimPendingPostCreateRecove
 	e.calls = append(e.calls, "claim:"+message.ID)
 	e.owners = append(e.owners, ownerID)
 	e.leases = append(e.leases, lease)
+	e.claimScopes = append(e.claimScopes, scope)
 	if e.miss[message.ID] {
 		return messenger.Phase151PostCreateRecoveryAcquisition{}, false, nil
 	}
@@ -125,39 +131,43 @@ func (e *phase151ClaimedRecoveryCoordinatorEffects) ClaimPendingPostCreateRecove
 
 func (e *phase151ClaimedRecoveryCoordinatorEffects) EnsureAutoThreadFollows(
 	_ context.Context,
-	_ messenger.AuthorizedMessageProducerScope,
+	scope messenger.AuthorizedMessageProducerScope,
 	message *messenger.MessageDocument,
 ) error {
 	e.calls = append(e.calls, "auto-follow:"+message.ID)
+	e.followScopes = append(e.followScopes, scope)
 	return e.followErr
 }
 
 func (e *phase151ClaimedRecoveryCoordinatorEffects) ReconcileReplyCount(
 	_ context.Context,
-	_ messenger.AuthorizedMessageProducerScope,
+	scope messenger.AuthorizedMessageProducerScope,
 	message *messenger.MessageDocument,
 ) error {
 	e.calls = append(e.calls, "reply-count:"+message.ID)
+	e.replyScopes = append(e.replyScopes, scope)
 	return nil
 }
 
 func (e *phase151ClaimedRecoveryCoordinatorEffects) CompleteClaimedPostCreateRecovery(
 	_ context.Context,
-	_ messenger.AuthorizedMessageProducerScope,
+	scope messenger.AuthorizedMessageProducerScope,
 	message *messenger.MessageDocument,
 	_ messenger.Phase151PostCreateRecoveryClaim,
 	_ time.Time,
 ) error {
 	e.calls = append(e.calls, "complete:"+message.ID)
+	e.completeScopes = append(e.completeScopes, scope)
 	return nil
 }
 
 func (e *phase151ClaimedRecoveryCoordinatorEffects) PublishUnreadInvalidation(
 	_ context.Context,
-	_ messenger.AuthorizedMessageProducerScope,
+	scope messenger.AuthorizedMessageProducerScope,
 	message *messenger.MessageDocument,
 ) error {
 	e.calls = append(e.calls, "publish-unread:"+message.ID)
+	e.invalidationScopes = append(e.invalidationScopes, scope)
 	return nil
 }
 
@@ -175,12 +185,16 @@ func phase151ClaimedRecoveryCoordinatorFixture() (
 	target := messenger.Phase151PendingRecoveryTarget{
 		TenantID:  targetAuthority.TenantID,
 		ChannelID: targetAuthority.ChannelID,
-		Kind:      "channel",
+		Kind:      targetAuthority.Kind,
 	}
-	return target, targetAuthority, *message, ownerID, claimNow, completedAt, lease
+	scanScope := messenger.AuthorizedMessageProducerScope{
+		TenantID: target.TenantID, ActorID: uuid.New(), ChannelID: target.ChannelID,
+		Producer: messenger.TrustedMessageProducerForward,
+	}
+	return target, scanScope, *message, ownerID, claimNow, completedAt, lease
 }
 
-func TestPhase151ClaimedRecoveryCoordinatorAdapterBindsBoundedScanToRunner(t *testing.T) {
+func TestPhase151ClaimedRecoveryCoordinatorAdapterDerivesEffectScopesFromCanonicalMessageNotScanProof(t *testing.T) {
 	target, scope, message, ownerID, claimNow, completedAt, lease :=
 		phase151ClaimedRecoveryCoordinatorFixture()
 	scanner := &phase151ClaimedRecoveryCoordinatorScanner{
@@ -213,6 +227,17 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterBindsBoundedScanToRunner(t *te
 	assert.Equal(t, 2, clock.calls)
 	assert.Equal(t, scope, scanner.lastScope)
 	assert.Equal(t, target, scanner.lastTarget)
+
+	canonicalEffectScope := messenger.AuthorizedMessageProducerScope{
+		TenantID: target.TenantID, ActorID: message.SenderID, ChannelID: target.ChannelID,
+		Producer: messenger.TrustedMessageProducerUser,
+	}
+	assert.Equal(t, []messenger.AuthorizedMessageProducerScope{canonicalEffectScope}, effects.claimScopes)
+	assert.Equal(t, []messenger.AuthorizedMessageProducerScope{canonicalEffectScope}, effects.followScopes)
+	assert.Equal(t, []messenger.AuthorizedMessageProducerScope{canonicalEffectScope}, effects.completeScopes)
+	assert.Equal(t, []messenger.AuthorizedMessageProducerScope{canonicalEffectScope}, effects.invalidationScopes)
+	assert.NotEqual(t, scope.ActorID, effects.claimScopes[0].ActorID)
+	assert.NotEqual(t, scope.Producer, effects.claimScopes[0].Producer)
 }
 
 func TestPhase151ClaimedRecoveryCoordinatorAdapterContinuesAfterClaimMiss(t *testing.T) {
@@ -356,6 +381,45 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsDriftingFreshAuthority(
 	}
 }
 
+func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsInvalidTargetOrDocumentDriftBeforeClaim(t *testing.T) {
+	for _, scenario := range []struct {
+		name         string
+		mutateTarget func(*messenger.Phase151PendingRecoveryTarget)
+		mutateDoc    func(*messenger.MessageDocument)
+	}{
+		{name: "empty target kind", mutateTarget: func(target *messenger.Phase151PendingRecoveryTarget) {
+			target.Kind = ""
+		}},
+		{name: "canonical document channel drift", mutateDoc: func(document *messenger.MessageDocument) {
+			document.ChannelID = uuid.New()
+		}},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			target, scope, message, ownerID, claimNow, completedAt, lease :=
+				phase151ClaimedRecoveryCoordinatorFixture()
+			if scenario.mutateTarget != nil {
+				scenario.mutateTarget(&target)
+			}
+			if scenario.mutateDoc != nil {
+				scenario.mutateDoc(&message)
+			}
+			scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, scope: scope}
+			effects := &phase151ClaimedRecoveryCoordinatorEffects{}
+			clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
+			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
+				scanner, ownerID, lease, clock, effects,
+			)
+
+			err := adapter.ReconcilePendingPostCreateEffects(context.Background(), target, message)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.Empty(t, effects.calls)
+			assert.Zero(t, clock.calls)
+		})
+	}
+}
+
 func TestPhase151ClaimedRecoveryCoordinatorAdapterForwardsScannerAndFailsClosed(t *testing.T) {
 	target, scope, message, ownerID, claimNow, completedAt, lease :=
 		phase151ClaimedRecoveryCoordinatorFixture()
@@ -407,7 +471,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterForwardsScannerAndFailsClosed(
 	require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
 	_, err = nilAdapter.ListPendingPostCreateDocuments(context.Background(), scope, target, 1)
 	require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
-	err = nilAdapter.ReconcilePendingPostCreateEffects(context.Background(), scope, message)
+	err = nilAdapter.ReconcilePendingPostCreateEffects(context.Background(), target, message)
 	require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
 
 	_, err = adapter.TryAcquirePendingRecoveryInterval(nil, time.Minute)

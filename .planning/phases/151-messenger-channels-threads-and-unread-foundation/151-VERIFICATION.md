@@ -271,3 +271,9 @@ Valid RED: build `PASS`; vet/unit/race failed only on missing authority symbols.
 `ExportPhase151ReconstructPostCreateRecoveryProducerScopeFromTargetAuthority` is a pure bridge from closed `Phase151RecoveryTargetAuthority` facts to canonical pending-message provenance. It validates the exact closed principal and target tuple first, takes tenant/channel only from that authority, and takes sender plus producer metadata only from the canonical message/provenance. Canonical-shape failures remain `ErrPostCreatePipelineInvalid`; malformed producer provenance remains `ErrTrustedMessageProducerDenied`.
 
 Focused source tests exist, but current Docker evidence is `NOT_RUN` because Mail owns Docker; no earlier receipt is reused for this atom. This is not a fresh database authorization or recovery-worker binding: runner/scanner/coordinator contracts still use `AuthorizedMessageProducerScope`, and PG pager, reauthorizer, scheduler, writer cutover, integration, and live runtime remain `UNBOUND/NOT_RUN`.
+
+## Recovery-authority migration and Calls projector boundary (2026-08-28)
+
+Messenger reconciliation accepts the closed recovery target authority; the coordinator builds that service authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner/PG pager/reauthorizer/scheduler/writer/runtime are `UNBOUND`.
+
+Calls has only an unbound `CallJoinCredentialProjector` port/constructor/method: active exact server-loaded `Call`, channel-member or instant-creator policy, server-known name, typed issuer exactly once. Ent source implementation, service/`JoinCall`/HTTP/participant/factory/client/Jitsi cutover/tenant claim are absent. LiveKit remains active. Docker is `NOT_RUN` because Mail owns it and the invalidated overlap supplies no inheritable receipt.
