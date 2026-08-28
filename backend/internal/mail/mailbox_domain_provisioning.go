@@ -481,16 +481,11 @@ func ExecuteMailboxDomainProvisioning(ctx context.Context, provider MailboxDomai
 				return retry(MailboxDomainProvisioningCodeDNSInvalid)
 			}
 			return mailboxDomainProvisioningEnsure(ctx, provider, claim)
-		case EngineDomainDNSRequired:
-			if request, ok := NewMailboxDomainProvisioningFinalizeDNSRequired(claim, state); ok {
-				return request, true
+		case EngineDomainDNSRequired, EngineDomainVerified:
+			if _, ok := mailboxDomainProvisioningObservedFromEngine(state); !ok {
+				return retry(MailboxDomainProvisioningCodeDNSInvalid)
 			}
-			return retry(MailboxDomainProvisioningCodeDNSInvalid)
-		case EngineDomainVerified:
-			if request, ok := NewMailboxDomainProvisioningFinalizeVerified(claim, state); ok {
-				return request, true
-			}
-			return retry(MailboxDomainProvisioningCodeDNSInvalid)
+			return mailboxDomainProvisioningEnsure(ctx, provider, claim)
 		case EngineDomainRejected:
 			return retry(MailboxDomainProvisioningCodeApplyRejected)
 		case EngineDomainIndeterminate:
