@@ -120,6 +120,76 @@ func TestPublicDNSVerifierVerify_MissingAndPositiveMismatchHaveDifferentStates(t
 	}
 }
 
+func TestPublicDNSVerifierVerify_IsNotFoundAnswersAreDiscarded(t *testing.T) {
+	for _, testCase := range []struct {
+		name  string
+		apply func(*publicDNSLookupFixture)
+	}{
+		{
+			name: "txt",
+			apply: func(lookup *publicDNSLookupFixture) {
+				lookup.txt["example.test."] = publicDNSTXTReply{
+					values: []string{"v=spf1 -all"},
+					err:    &net.DNSError{IsNotFound: true},
+				}
+			},
+		},
+		{
+			name: "mx",
+			apply: func(lookup *publicDNSLookupFixture) {
+				lookup.mx["example.test."] = publicDNSMXReply{
+					values: []mail.PublicDNSMX{{Preference: 10, Host: "mail.example.test."}},
+					err:    &net.DNSError{IsNotFound: true},
+				}
+			},
+		},
+		{
+			name: "cname",
+			apply: func(lookup *publicDNSLookupFixture) {
+				lookup.cname["alias.example.test."] = publicDNSCNAMEReply{
+					value: "target.example.test.",
+					err:   &net.DNSError{IsNotFound: true},
+				}
+			},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			lookup := publicDNSLookupFixtureFor(publicDNSExpectedRecords())
+			testCase.apply(lookup)
+			verifier, err := mail.NewPublicDNSVerifier(lookup)
+			if err != nil {
+				t.Fatalf("NewPublicDNSVerifier() error = %v", err)
+			}
+			result, err := verifier.Verify(context.Background(), publicDNSExpectedRecords())
+			if err != nil {
+				t.Fatalf("Verify() error = %v", err)
+			}
+			want := mail.PublicDNSVerification{Verification: mail.EngineVerificationPending, DKIM: mail.EngineVerificationVerified}
+			if result != want || result.Verification == mail.EngineVerificationVerified {
+				t.Fatalf("Verify() = %#v, want missing non-verified result %#v", result, want)
+			}
+		})
+	}
+}
+
+func TestPublicDNSVerifierVerify_IsNotFoundTimeoutAndTemporaryAreUnavailable(t *testing.T) {
+	for _, dnsError := range []*net.DNSError{
+		{IsNotFound: true, IsTimeout: true},
+		{IsNotFound: true, IsTemporary: true},
+	} {
+		lookup := publicDNSLookupFixtureFor(publicDNSExpectedRecords())
+		lookup.txt["example.test."] = publicDNSTXTReply{values: []string{"v=spf1 -all"}, err: dnsError}
+		verifier, err := mail.NewPublicDNSVerifier(lookup)
+		if err != nil {
+			t.Fatalf("NewPublicDNSVerifier() error = %v", err)
+		}
+		result, err := verifier.Verify(context.Background(), publicDNSExpectedRecords())
+		if !errors.Is(err, mail.ErrEngineUnavailable) || result != (mail.PublicDNSVerification{}) {
+			t.Fatalf("Verify() = %#v, %v; want zero unavailable result", result, err)
+		}
+	}
+}
+
 func TestPublicDNSVerificationValid_RejectsFailedDKIMWithoutFailedVerification(t *testing.T) {
 	for _, verification := range []mail.PublicDNSVerification{
 		{Verification: mail.EngineVerificationPending, DKIM: mail.EngineVerificationFailed},
@@ -250,6 +320,90 @@ func TestPublicDNSVerifierVerify_PanicInLookupFailsClosed(t *testing.T) {
 	}
 }
 
+func TestPublicDNSVerifierVerify_UncooperativeLookupReturnsBoundedUnavailable(t *testing.T) {
+	lookup := publicDNSLookupFixtureFor(publicDNSExpectedRecords())
+	lookup.ignoreContextBlock = make(chan struct{})
+	defer close(lookup.ignoreContextBlock)
+	verifier, err := mail.NewPublicDNSVerifier(lookup)
+	if err != nil {
+		t.Fatalf("NewPublicDNSVerifier() error = %v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	type verificationOutcome struct {
+		result mail.PublicDNSVerification
+		err    error
+	}
+	outcomes := make(chan verificationOutcome, 1)
+	go func() {
+		result, verifyErr := verifier.Verify(ctx, publicDNSExpectedRecords())
+		outcomes <- verificationOutcome{result: result, err: verifyErr}
+	}()
+	select {
+	case outcome := <-outcomes:
+		if !errors.Is(outcome.err, mail.ErrEngineUnavailable) || outcome.result != (mail.PublicDNSVerification{}) {
+			t.Fatalf("Verify() = %#v, %v; want zero unavailable result", outcome.result, outcome.err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Verify() did not return after its parent deadline")
+	}
+	if started := lookup.started.Load(); started > 4 {
+		t.Fatalf("stuck lookups = %d, want <= 4", started)
+	}
+}
+
+func TestPublicDNSVerifierVerify_UncooperativeLookupCannotAccumulateStuckCalls(t *testing.T) {
+	lookup := publicDNSLookupFixtureFor(publicDNSExpectedRecords())
+	lookup.ignoreContextBlock = make(chan struct{})
+	defer close(lookup.ignoreContextBlock)
+	verifier, err := mail.NewPublicDNSVerifier(lookup)
+	if err != nil {
+		t.Fatalf("NewPublicDNSVerifier() error = %v", err)
+	}
+
+	firstContext, firstCancel := context.WithCancel(context.Background())
+	firstDone := make(chan error, 1)
+	go func() {
+		_, verifyErr := verifier.Verify(firstContext, publicDNSExpectedRecords())
+		firstDone <- verifyErr
+	}()
+	deadline := time.After(500 * time.Millisecond)
+	for lookup.started.Load() < 4 {
+		select {
+		case <-deadline:
+			t.Fatalf("stuck lookups = %d, want 4", lookup.started.Load())
+		case <-time.After(time.Millisecond):
+		}
+	}
+	firstCancel()
+	if err := <-firstDone; !errors.Is(err, mail.ErrEngineUnavailable) {
+		t.Fatalf("first Verify() error = %v, want unavailable", err)
+	}
+
+	var workers sync.WaitGroup
+	errorsByCall := make(chan error, 8)
+	for range 8 {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+			defer cancel()
+			_, verifyErr := verifier.Verify(ctx, publicDNSExpectedRecords())
+			errorsByCall <- verifyErr
+		}()
+	}
+	workers.Wait()
+	close(errorsByCall)
+	for verifyErr := range errorsByCall {
+		if !errors.Is(verifyErr, mail.ErrEngineUnavailable) {
+			t.Fatalf("subsequent Verify() error = %v, want unavailable", verifyErr)
+		}
+	}
+	if started := lookup.started.Load(); started != 4 || lookup.maximum.Load() > 4 {
+		t.Fatalf("stuck lookup accounting = started %d maximum %d, want exactly four", started, lookup.maximum.Load())
+	}
+}
+
 func TestPublicDNSVerifierVerify_BoundsConcurrencyAndDoesNotMutateInput(t *testing.T) {
 	records := append(publicDNSExpectedRecords(),
 		mail.EngineDNSRecord{Type: mail.EngineDNSRecordTXT, Name: "one.example.test", Value: "one", TTL: 300},
@@ -344,16 +498,17 @@ type publicDNSCNAMEReply struct {
 }
 
 type publicDNSLookupFixture struct {
-	mu      sync.Mutex
-	txt     map[string]publicDNSTXTReply
-	mx      map[string]publicDNSMXReply
-	cname   map[string]publicDNSCNAMEReply
-	names   []string
-	txtFn   func(context.Context, string) ([]string, error)
-	block   chan struct{}
-	started atomic.Int32
-	active  atomic.Int32
-	maximum atomic.Int32
+	mu                 sync.Mutex
+	txt                map[string]publicDNSTXTReply
+	mx                 map[string]publicDNSMXReply
+	cname              map[string]publicDNSCNAMEReply
+	names              []string
+	txtFn              func(context.Context, string) ([]string, error)
+	block              chan struct{}
+	ignoreContextBlock chan struct{}
+	started            atomic.Int32
+	active             atomic.Int32
+	maximum            atomic.Int32
 }
 
 func (fixture *publicDNSLookupFixture) LookupTXT(ctx context.Context, name string) ([]string, error) {
@@ -396,6 +551,10 @@ func (fixture *publicDNSLookupFixture) enter(ctx context.Context, name string) {
 		}
 	}
 	defer fixture.active.Add(-1)
+	if fixture.ignoreContextBlock != nil {
+		<-fixture.ignoreContextBlock
+		return
+	}
 	if fixture.block == nil {
 		return
 	}

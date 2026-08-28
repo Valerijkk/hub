@@ -8,19 +8,19 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
 )
 
 const (
-	publicDNSMaximumRecords     = 32
-	publicDNSMaximumRRSet       = 64
-	publicDNSMaximumTXTBytes    = 2048
-	publicDNSLookupTimeout      = 2 * time.Second
-	publicDNSMaximumConcurrency = 4
-	publicDNSMaximumNameBytes   = 253
+	publicDNSMaximumRecords               = 32
+	publicDNSMaximumRRSet                 = 64
+	publicDNSMaximumTXTBytes              = 2048
+	publicDNSLookupTimeout                = 2 * time.Second
+	publicDNSMaximumConcurrency           = 4
+	publicDNSMaximumNameBytes             = 253
+	publicDNSVerificationSchedulingMargin = 250 * time.Millisecond
 )
 
 // PublicDNSMX is one public MX answer without provider-specific metadata.
@@ -30,7 +30,9 @@ type PublicDNSMX struct {
 }
 
 // PublicDNSLookup resolves one public DNS record-set through an injected
-// provider-neutral boundary.
+// provider-neutral boundary. Implementations must honor context cancellation
+// and deadlines; PublicDNSVerifier separately bounds wall time and the
+// verifier-lifetime count of uncooperative calls.
 type PublicDNSLookup interface {
 	LookupTXT(context.Context, string) ([]string, error)
 	LookupMX(context.Context, string) ([]PublicDNSMX, error)
@@ -87,6 +89,8 @@ func (lookup netResolverPublicDNSLookup) LookupCNAME(ctx context.Context, name s
 	queried, validQueried := canonicalPublicDNSTarget(name)
 	target, validTarget := canonicalPublicDNSTarget(value)
 	if validQueried && validTarget && queried == target {
+		// Resolver canonicalization returns the queried name when no alias
+		// exists. Preserve that as the absence of a CNAME, never as a target.
 		return "", nil
 	}
 	return strings.Clone(value), nil
@@ -128,6 +132,7 @@ func validPublicDNSVerificationState(value EngineVerificationState) bool {
 // caller-provided lookup boundary.
 type PublicDNSVerifier struct {
 	lookup PublicDNSLookup
+	slots  chan struct{}
 }
 
 // NewPublicDNSVerifier constructs a verifier without invoking DNS.
@@ -135,13 +140,16 @@ func NewPublicDNSVerifier(lookup PublicDNSLookup) (*PublicDNSVerifier, error) {
 	if publicDNSLookupNil(lookup) {
 		return nil, publicDNSEngineError(EngineErrorRejectedPolicy)
 	}
-	return &PublicDNSVerifier{lookup: lookup}, nil
+	return &PublicDNSVerifier{
+		lookup: lookup,
+		slots:  make(chan struct{}, publicDNSMaximumConcurrency),
+	}, nil
 }
 
 // Verify resolves every distinct expected owner/type once. It returns no
 // partial result when DNS is unavailable, timed out, malformed, or cancelled.
 func (verifier *PublicDNSVerifier) Verify(ctx context.Context, records []EngineDNSRecord) (PublicDNSVerification, error) {
-	if verifier == nil || publicDNSLookupNil(verifier.lookup) || ctx == nil {
+	if verifier == nil || publicDNSLookupNil(verifier.lookup) || verifier.slots == nil || cap(verifier.slots) != publicDNSMaximumConcurrency || ctx == nil {
 		return PublicDNSVerification{}, publicDNSEngineError(EngineErrorRejectedPolicy)
 	}
 	if ctx.Err() != nil {
@@ -152,66 +160,42 @@ func (verifier *PublicDNSVerifier) Verify(ctx context.Context, records []EngineD
 		return PublicDNSVerification{}, publicDNSEngineError(EngineErrorRejectedPolicy)
 	}
 
-	workContext, cancel := context.WithCancel(ctx)
+	verificationContext, cancel := context.WithTimeout(ctx, publicDNSVerificationDeadline(len(groups)))
 	defer cancel()
 	results := make(chan publicDNSLookupResult, len(groups))
-	semaphore := make(chan struct{}, publicDNSMaximumConcurrency)
-	var workers sync.WaitGroup
 	for _, group := range groups {
-		group := group
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
-			result := publicDNSLookupResult{unavailable: true}
-			defer func() {
-				if recover() != nil {
-					result = publicDNSLookupResult{unavailable: true}
-				}
-				results <- result
-			}()
-			select {
-			case semaphore <- struct{}{}:
-			case <-workContext.Done():
-				return
-			}
-			defer func() { <-semaphore }()
-			lookupContext, lookupCancel := context.WithTimeout(workContext, publicDNSLookupTimeout)
-			result = verifier.lookupGroup(lookupContext, group)
-			lookupCancel()
-		}()
+		go verifier.lookupGroupBounded(verificationContext, group, results)
 	}
-	go func() {
-		workers.Wait()
-		close(results)
-	}()
 
 	var (
 		missing      bool
 		mismatch     bool
 		dkimMissing  bool
 		dkimMismatch bool
-		unavailable  bool
 	)
-	for result := range results {
-		if result.unavailable {
-			unavailable = true
-			cancel()
-			continue
-		}
-		if result.missing {
-			missing = true
-			if result.dkim {
-				dkimMissing = true
+	for received := 0; received < len(groups); received++ {
+		select {
+		case result := <-results:
+			if result.unavailable {
+				return PublicDNSVerification{}, publicDNSEngineError(EngineErrorUnavailable)
 			}
-		}
-		if result.mismatch {
-			mismatch = true
-			if result.dkim {
-				dkimMismatch = true
+			if result.missing {
+				missing = true
+				if result.dkim {
+					dkimMissing = true
+				}
 			}
+			if result.mismatch {
+				mismatch = true
+				if result.dkim {
+					dkimMismatch = true
+				}
+			}
+		case <-verificationContext.Done():
+			return PublicDNSVerification{}, publicDNSEngineError(EngineErrorUnavailable)
 		}
 	}
-	if unavailable || ctx.Err() != nil {
+	if verificationContext.Err() != nil || ctx.Err() != nil {
 		return PublicDNSVerification{}, publicDNSEngineError(EngineErrorUnavailable)
 	}
 	verification := EngineVerificationVerified
@@ -231,6 +215,32 @@ func (verifier *PublicDNSVerifier) Verify(ctx context.Context, records []EngineD
 		return PublicDNSVerification{}, publicDNSEngineError(EngineErrorUnavailable)
 	}
 	return result, nil
+}
+
+func publicDNSVerificationDeadline(groupCount int) time.Duration {
+	batches := (groupCount + publicDNSMaximumConcurrency - 1) / publicDNSMaximumConcurrency
+	return time.Duration(batches)*publicDNSLookupTimeout + publicDNSVerificationSchedulingMargin
+}
+
+func (verifier *PublicDNSVerifier) lookupGroupBounded(ctx context.Context, group publicDNSExpectedGroup, results chan<- publicDNSLookupResult) {
+	result := publicDNSLookupResult{unavailable: true}
+	defer func() {
+		if recover() != nil {
+			result = publicDNSLookupResult{unavailable: true}
+		}
+		results <- result
+	}()
+	select {
+	case verifier.slots <- struct{}{}:
+	case <-ctx.Done():
+		return
+	}
+	defer func() { <-verifier.slots }()
+	func() {
+		lookupContext, lookupCancel := context.WithTimeout(ctx, publicDNSLookupTimeout)
+		defer lookupCancel()
+		result = verifier.lookupGroup(lookupContext, group)
+	}()
 }
 
 type publicDNSExpectedGroup struct {
@@ -257,7 +267,13 @@ func (verifier *PublicDNSVerifier) lookupGroup(ctx context.Context, group public
 	switch group.recordType {
 	case EngineDNSRecordTXT:
 		values, err := verifier.lookup.LookupTXT(ctx, name)
-		if publicDNSLookupUnavailable(err) {
+		if ctx.Err() != nil {
+			return publicDNSLookupResult{unavailable: true}
+		}
+		if err != nil {
+			if publicDNSLookupMissing(err) {
+				return publicDNSLookupResult{missing: true, dkim: group.dkim}
+			}
 			return publicDNSLookupResult{unavailable: true}
 		}
 		if len(values) == 0 {
@@ -280,7 +296,13 @@ func (verifier *PublicDNSVerifier) lookupGroup(ctx context.Context, group public
 		}
 	case EngineDNSRecordMX:
 		values, err := verifier.lookup.LookupMX(ctx, name)
-		if publicDNSLookupUnavailable(err) {
+		if ctx.Err() != nil {
+			return publicDNSLookupResult{unavailable: true}
+		}
+		if err != nil {
+			if publicDNSLookupMissing(err) {
+				return publicDNSLookupResult{missing: true}
+			}
 			return publicDNSLookupResult{unavailable: true}
 		}
 		if len(values) == 0 {
@@ -304,7 +326,13 @@ func (verifier *PublicDNSVerifier) lookupGroup(ctx context.Context, group public
 		}
 	case EngineDNSRecordCNAME:
 		value, err := verifier.lookup.LookupCNAME(ctx, name)
-		if publicDNSLookupUnavailable(err) {
+		if ctx.Err() != nil {
+			return publicDNSLookupResult{unavailable: true}
+		}
+		if err != nil {
+			if publicDNSLookupMissing(err) {
+				return publicDNSLookupResult{missing: true}
+			}
 			return publicDNSLookupResult{unavailable: true}
 		}
 		if value == "" {
@@ -473,12 +501,9 @@ func validPublicDNSText(value string) bool {
 	return true
 }
 
-func publicDNSLookupUnavailable(err error) bool {
-	if err == nil {
-		return false
-	}
+func publicDNSLookupMissing(err error) bool {
 	var dnsError *net.DNSError
-	return !errors.As(err, &dnsError) || !dnsError.IsNotFound
+	return errors.As(err, &dnsError) && dnsError.IsNotFound && !dnsError.IsTimeout && !dnsError.IsTemporary
 }
 
 func publicDNSLookupNil(lookup PublicDNSLookup) bool {
