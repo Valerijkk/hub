@@ -19,11 +19,10 @@ type Phase151PendingRecoveryScanRepository interface {
 	ReauthorizePendingRecoveryTarget(
 		context.Context,
 		Phase151PendingRecoveryTarget,
-	) (AuthorizedMessageProducerScope, error)
+	) (Phase151RecoveryTargetAuthority, error)
 	ListPendingPostCreateDocuments(
 		context.Context,
-		AuthorizedMessageProducerScope,
-		Phase151PendingRecoveryTarget,
+		Phase151RecoveryTargetAuthority,
 		int,
 	) ([]MessageDocument, error)
 }
@@ -170,67 +169,60 @@ func comparePhase151PendingRecoveryTargets(left, right Phase151PendingRecoveryTa
 func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ReauthorizePendingRecoveryTarget(
 	ctx context.Context,
 	target Phase151PendingRecoveryTarget,
-) (AuthorizedMessageProducerScope, error) {
+) (Phase151RecoveryTargetAuthority, error) {
 	if err := a.validate(ctx); err != nil {
-		return AuthorizedMessageProducerScope{}, err
+		return Phase151RecoveryTargetAuthority{}, err
 	}
 	if err := validatePhase151PendingRecoveryTarget(target); err != nil {
-		return AuthorizedMessageProducerScope{}, err
+		return Phase151RecoveryTargetAuthority{}, err
 	}
-	scope, err := a.scanner.ReauthorizePendingRecoveryTarget(ctx, target)
+	authority, err := a.scanner.ReauthorizePendingRecoveryTarget(ctx, target)
 	if err != nil {
-		return AuthorizedMessageProducerScope{}, err
+		return Phase151RecoveryTargetAuthority{}, err
 	}
-	if scope.TenantID != target.TenantID || scope.ChannelID != target.ChannelID ||
-		scope.ActorID == uuid.Nil {
-		return AuthorizedMessageProducerScope{}, ErrPostCreatePipelineInvalid
+	if err := ExportPhase151ValidateRecoveryTargetAuthority(Phase151PostCreateRecoveryServicePrincipal, target, authority); err != nil {
+		return Phase151RecoveryTargetAuthority{}, err
 	}
-	if err := ExportPhase151ValidateTrustedMessageProducer(scope, scope.Producer); err != nil {
-		return AuthorizedMessageProducerScope{}, err
-	}
-	return scope, nil
+	return authority, nil
 }
 
 func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ListPendingPostCreateDocuments(
 	ctx context.Context,
-	scope AuthorizedMessageProducerScope,
-	target Phase151PendingRecoveryTarget,
+	authority Phase151RecoveryTargetAuthority,
 	limit int,
 ) ([]MessageDocument, error) {
 	if err := a.validate(ctx); err != nil {
 		return nil, err
 	}
-	if limit <= 0 || validatePhase151PendingRecoveryTarget(target) != nil ||
-		scope.TenantID != target.TenantID || scope.ChannelID != target.ChannelID ||
-		scope.ActorID == uuid.Nil {
+	target := Phase151PendingRecoveryTarget{
+		TenantID: authority.TenantID, ChannelID: authority.ChannelID, Kind: authority.Kind,
+	}
+	if limit <= 0 {
 		return nil, ErrPostCreatePipelineInvalid
 	}
-	if err := ExportPhase151ValidateTrustedMessageProducer(scope, scope.Producer); err != nil {
+	if err := ExportPhase151ValidateRecoveryTargetAuthority(Phase151PostCreateRecoveryServicePrincipal, target, authority); err != nil {
 		return nil, err
 	}
-	return a.scanner.ListPendingPostCreateDocuments(ctx, scope, target, limit)
+	return a.scanner.ListPendingPostCreateDocuments(ctx, authority, limit)
 }
 
 func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ReconcilePendingPostCreateEffects(
 	ctx context.Context,
-	target Phase151PendingRecoveryTarget,
+	authority Phase151RecoveryTargetAuthority,
 	document MessageDocument,
 ) error {
 	if err := a.validate(ctx); err != nil {
 		return err
 	}
-	if err := validatePhase151PendingRecoveryTarget(target); err != nil {
-		return err
+	target := Phase151PendingRecoveryTarget{
+		TenantID: authority.TenantID, ChannelID: authority.ChannelID, Kind: authority.Kind,
 	}
-	targetAuthority := Phase151RecoveryTargetAuthority{
-		Principal: Phase151PostCreateRecoveryServicePrincipal,
-		TenantID:  target.TenantID,
-		ChannelID: target.ChannelID,
-		Kind:      target.Kind,
+	if err := ExportPhase151ValidateRecoveryTargetAuthority(Phase151PostCreateRecoveryServicePrincipal, target, authority); err != nil {
+		return err
 	}
 	_, err := ExportPhase151ExecuteClaimedPostCreateRecovery(
 		ctx,
-		targetAuthority,
+		authority,
 		&document,
 		a.ownerID,
 		a.leaseDuration,

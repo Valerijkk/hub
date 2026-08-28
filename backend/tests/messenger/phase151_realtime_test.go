@@ -164,16 +164,16 @@ func TestPhase151RecipientInvalidationIsAfterDurableCASAndRetryHasNoEffects(t *t
 }
 
 type phase151PendingRecoveryRecorder struct {
-	calls             []string
-	pages             []messenger.Phase151PendingRecoveryTargetPage
-	pageCalls         int
-	authorize         map[messenger.Phase151PendingRecoveryTarget]bool
-	scanProofs        map[messenger.Phase151PendingRecoveryTarget]messenger.AuthorizedMessageProducerScope
-	pending           map[messenger.Phase151PendingRecoveryTarget][]messenger.MessageDocument
-	mongoScopes       []messenger.AuthorizedMessageProducerScope
-	reconciledTargets []messenger.Phase151PendingRecoveryTarget
-	intervalOK        bool
-	intervals         []time.Duration
+	calls                 []string
+	pages                 []messenger.Phase151PendingRecoveryTargetPage
+	pageCalls             int
+	authorize             map[messenger.Phase151PendingRecoveryTarget]bool
+	scanAuthorities       map[messenger.Phase151PendingRecoveryTarget]messenger.Phase151RecoveryTargetAuthority
+	pending               map[messenger.Phase151PendingRecoveryTarget][]messenger.MessageDocument
+	mongoAuthorities      []messenger.Phase151RecoveryTargetAuthority
+	reconciledAuthorities []messenger.Phase151RecoveryTargetAuthority
+	intervalOK            bool
+	intervals             []time.Duration
 }
 
 func (r *phase151PendingRecoveryRecorder) TryAcquirePendingRecoveryInterval(_ context.Context, minimum time.Duration) (bool, error) {
@@ -192,26 +192,32 @@ func (r *phase151PendingRecoveryRecorder) ListPendingRecoveryTargets(_ context.C
 	return page, nil
 }
 
-func (r *phase151PendingRecoveryRecorder) ReauthorizePendingRecoveryTarget(_ context.Context, target messenger.Phase151PendingRecoveryTarget) (messenger.AuthorizedMessageProducerScope, error) {
+func (r *phase151PendingRecoveryRecorder) ReauthorizePendingRecoveryTarget(_ context.Context, target messenger.Phase151PendingRecoveryTarget) (messenger.Phase151RecoveryTargetAuthority, error) {
 	r.calls = append(r.calls, "reauthorize:"+target.ChannelID.String())
 	if !r.authorize[target] {
-		return messenger.AuthorizedMessageProducerScope{}, errors.New("access revoked")
+		return messenger.Phase151RecoveryTargetAuthority{}, errors.New("access revoked")
 	}
-	if scope, ok := r.scanProofs[target]; ok {
-		return scope, nil
+	if authority, ok := r.scanAuthorities[target]; ok {
+		return authority, nil
 	}
-	return messenger.AuthorizedMessageProducerScope{TenantID: target.TenantID, ActorID: uuid.New(), ChannelID: target.ChannelID, Producer: messenger.TrustedMessageProducerUser}, nil
+	return messenger.Phase151RecoveryTargetAuthority{
+		Principal: messenger.Phase151PostCreateRecoveryServicePrincipal,
+		TenantID: target.TenantID, ChannelID: target.ChannelID, Kind: target.Kind,
+	}, nil
 }
 
-func (r *phase151PendingRecoveryRecorder) ListPendingPostCreateDocuments(_ context.Context, scope messenger.AuthorizedMessageProducerScope, target messenger.Phase151PendingRecoveryTarget, limit int) ([]messenger.MessageDocument, error) {
-	r.calls = append(r.calls, "mongo-pending:"+target.ChannelID.String())
-	r.mongoScopes = append(r.mongoScopes, scope)
+func (r *phase151PendingRecoveryRecorder) ListPendingPostCreateDocuments(_ context.Context, authority messenger.Phase151RecoveryTargetAuthority, limit int) ([]messenger.MessageDocument, error) {
+	target := messenger.Phase151PendingRecoveryTarget{
+		TenantID: authority.TenantID, ChannelID: authority.ChannelID, Kind: authority.Kind,
+	}
+	r.calls = append(r.calls, "mongo-pending:"+authority.ChannelID.String())
+	r.mongoAuthorities = append(r.mongoAuthorities, authority)
 	return append([]messenger.MessageDocument(nil), r.pending[target]...), nil
 }
 
-func (r *phase151PendingRecoveryRecorder) ReconcilePendingPostCreateEffects(_ context.Context, target messenger.Phase151PendingRecoveryTarget, document messenger.MessageDocument) error {
+func (r *phase151PendingRecoveryRecorder) ReconcilePendingPostCreateEffects(_ context.Context, authority messenger.Phase151RecoveryTargetAuthority, document messenger.MessageDocument) error {
 	r.calls = append(r.calls, "reconcile:"+document.ID)
-	r.reconciledTargets = append(r.reconciledTargets, target)
+	r.reconciledAuthorities = append(r.reconciledAuthorities, authority)
 	return nil
 }
 
@@ -245,54 +251,48 @@ func TestPhase151PendingRecoveryUsesStablePGTargetsBeforeBoundedAuthorizedMongo(
 	assert.Equal(t, 1, countPhase151Calls(recorder.calls, "mongo-pending:"+allowed.ChannelID.String()))
 	assert.Zero(t, countPhase151Calls(recorder.calls, "mongo-pending:"+denied.ChannelID.String()), "denied target must not reach Mongo")
 	assert.Equal(t, 1, countPhase151Calls(recorder.calls, "reconcile:phase151-pending-effect"))
-	assert.Equal(t, []messenger.Phase151PendingRecoveryTarget{allowed}, recorder.reconciledTargets)
+	expectedAuthority := messenger.Phase151RecoveryTargetAuthority{
+		Principal: messenger.Phase151PostCreateRecoveryServicePrincipal,
+		TenantID: allowed.TenantID, ChannelID: allowed.ChannelID, Kind: allowed.Kind,
+	}
+	assert.Equal(t, []messenger.Phase151RecoveryTargetAuthority{expectedAuthority}, recorder.mongoAuthorities)
+	assert.Equal(t, []messenger.Phase151RecoveryTargetAuthority{expectedAuthority}, recorder.reconciledAuthorities)
 	assert.Zero(t, countPhase151Calls(recorder.calls, "reconcile:phase151-legacy-complete"), "legacy missing effect state is complete")
 	assert.Equal(t, 1, countPhase151Calls(recorder.calls, "reauthorize:"+allowed.ChannelID.String()), "duplicate PG targets are unique globally")
 }
 
-func TestPhase151PendingRecoveryRejectsInvalidFreshScanProofBeforeMongoOrRunner(t *testing.T) {
+func TestPhase151PendingRecoveryRejectsInvalidFreshAuthorityBeforeMongoOrRunner(t *testing.T) {
 	target := messenger.Phase151PendingRecoveryTarget{
 		TenantID: uuid.New(), ChannelID: uuid.New(), Kind: "channel",
 	}
 	pending := messenger.MessageDocument{
-		ID: "phase151-invalid-scan-proof", PostCreateEffectsState: messenger.PostCreateEffectsStatePending,
+		ID: "phase151-invalid-scan-authority", PostCreateEffectsState: messenger.PostCreateEffectsStatePending,
 	}
-	valid := messenger.AuthorizedMessageProducerScope{
-		TenantID: target.TenantID, ActorID: uuid.New(), ChannelID: target.ChannelID,
-		Producer: messenger.TrustedMessageProducerUser,
+	valid := messenger.Phase151RecoveryTargetAuthority{
+		Principal: messenger.Phase151PostCreateRecoveryServicePrincipal,
+		TenantID: target.TenantID, ChannelID: target.ChannelID, Kind: target.Kind,
 	}
 	for _, scenario := range []struct {
-		name   string
-		mutate func(*messenger.AuthorizedMessageProducerScope)
+		name               string
+		mutate             func(*messenger.Phase151RecoveryTargetAuthority)
+		reauthorizationErr bool
 	}{
-		{name: "foreign tenant", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
-			scope.TenantID = uuid.New()
-		}},
-		{name: "foreign channel", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
-			scope.ChannelID = uuid.New()
-		}},
-		{name: "zero actor", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
-			scope.ActorID = uuid.Nil
-		}},
-		{name: "untrusted producer", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
-			scope.Producer = messenger.TrustedMessageProducer("untrusted")
-		}},
-		{name: "malformed system bot producer", mutate: func(scope *messenger.AuthorizedMessageProducerScope) {
-			scope.Producer = messenger.TrustedMessageProducerSystemBot
-		}},
+		{name: "foreign principal", mutate: func(authority *messenger.Phase151RecoveryTargetAuthority) { authority.Principal = messenger.Phase151RecoveryServicePrincipal("messenger.user_actor") }},
+		{name: "foreign tenant", mutate: func(authority *messenger.Phase151RecoveryTargetAuthority) { authority.TenantID = uuid.New() }},
+		{name: "foreign channel", mutate: func(authority *messenger.Phase151RecoveryTargetAuthority) { authority.ChannelID = uuid.New() }},
+		{name: "foreign kind", mutate: func(authority *messenger.Phase151RecoveryTargetAuthority) { authority.Kind = "dm" }},
+		{name: "reauthorization error", reauthorizationErr: true},
 	} {
 		scenario := scenario
 		t.Run(scenario.name, func(t *testing.T) {
-			proof := valid
-			scenario.mutate(&proof)
+			authority := valid
+			if scenario.mutate != nil { scenario.mutate(&authority) }
 			recorder := &phase151PendingRecoveryRecorder{
 				intervalOK: true,
-				pages: []messenger.Phase151PendingRecoveryTargetPage{{
-					Targets: []messenger.Phase151PendingRecoveryTarget{target},
-				}},
-				authorize:  map[messenger.Phase151PendingRecoveryTarget]bool{target: true},
-				scanProofs: map[messenger.Phase151PendingRecoveryTarget]messenger.AuthorizedMessageProducerScope{target: proof},
-				pending:    map[messenger.Phase151PendingRecoveryTarget][]messenger.MessageDocument{target: {pending}},
+				pages: []messenger.Phase151PendingRecoveryTargetPage{{Targets: []messenger.Phase151PendingRecoveryTarget{target}}},
+				authorize: map[messenger.Phase151PendingRecoveryTarget]bool{target: !scenario.reauthorizationErr},
+				scanAuthorities: map[messenger.Phase151PendingRecoveryTarget]messenger.Phase151RecoveryTargetAuthority{target: authority},
+				pending: map[messenger.Phase151PendingRecoveryTarget][]messenger.MessageDocument{target: {pending}},
 			}
 
 			err := messenger.ExportPhase151ExecutePendingPostCreateRecovery(
@@ -302,17 +302,12 @@ func TestPhase151PendingRecoveryRejectsInvalidFreshScanProofBeforeMongoOrRunner(
 			)
 
 			require.NoError(t, err)
-			assert.Equal(t, []string{
-				"interval",
-				"pg-target-page",
-				"reauthorize:" + target.ChannelID.String(),
-			}, recorder.calls)
-			assert.Empty(t, recorder.mongoScopes)
-			assert.Empty(t, recorder.reconciledTargets)
+			assert.Equal(t, []string{"interval", "pg-target-page", "reauthorize:" + target.ChannelID.String()}, recorder.calls)
+			assert.Empty(t, recorder.mongoAuthorities)
+			assert.Empty(t, recorder.reconciledAuthorities)
 		})
 	}
 }
-
 type phase151UnreadCutoverScopes struct {
 	scopes []messenger.AuthorizedUnreadScope
 	calls  int

@@ -257,14 +257,13 @@ func (r *MongoRepository) CompletePostCreateEffects(
 
 func (r *MongoRepository) ListPendingPostCreateDocuments(
 	ctx context.Context,
-	scope AuthorizedMessageProducerScope,
-	target Phase151PendingRecoveryTarget,
+	authority Phase151RecoveryTargetAuthority,
 	limit int,
 ) ([]MessageDocument, error) {
 	if r == nil || r.db == nil {
 		return nil, ErrPostCreatePipelineInvalid
 	}
-	plan, err := ExportPhase151BuildPendingPostCreateScanPlan(scope, target, limit)
+	plan, err := ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, limit)
 	if err != nil {
 		return nil, err
 	}
