@@ -7,7 +7,6 @@ import (
 
 	"github.com/valerii/hub/backend/internal/auth"
 	apigatewaymod "github.com/valerii/hub/backend/internal/apigateway"
-	devmod "github.com/valerii/hub/backend/internal/dev"
 	"github.com/valerii/hub/backend/internal/platform/cron"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 )
@@ -97,6 +96,4 @@ func wireAuth(d *serverDeps) {
 	authHandler.RegisterRoutes(api, requireAuth)
 
 	// Dev routes (seed, login без Magic Link — только при DEV_MODE=true)
-	devHandler := devmod.NewHandler(d.db, authSvc, nil)
-	devHandler.RegisterRoutes(api, cfg.Server.DevMode)
 }
