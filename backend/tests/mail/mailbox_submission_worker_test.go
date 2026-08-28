@@ -176,13 +176,31 @@ func TestMailboxSubmissionWorkerSourceContract(t *testing.T) {
 		}
 	}
 	start := strings.Index(text, "func (worker *MailboxSubmissionWorker) runOnce")
+	if start < 0 {
+		t.Fatal("worker runOnce source boundary is missing")
+	}
 	end := strings.Index(text[start:], "func (worker *MailboxSubmissionWorker) safeScan")
-	if start < 0 || end < 0 {
+	if end < 0 {
 		t.Fatal("worker runOnce source boundary is missing")
 	}
 	runOnce := text[start : start+end]
-	if calls := strings.Count(runOnce, "worker.dispatcher.Dispatch("); calls != 1 {
-		t.Fatalf("RunOnce dispatch call sites = %d, want exactly one", calls)
+	if calls := strings.Count(runOnce, "worker.safeDispatch("); calls != 1 {
+		t.Fatalf("RunOnce safeDispatch call sites = %d, want exactly one", calls)
+	}
+	if calls := strings.Count(runOnce, "worker.dispatcher.Dispatch("); calls != 0 {
+		t.Fatalf("RunOnce direct dispatcher call sites = %d, want none", calls)
+	}
+	safeDispatchStart := strings.Index(text, "func (worker *MailboxSubmissionWorker) safeDispatch")
+	if safeDispatchStart < 0 {
+		t.Fatal("worker safeDispatch source boundary is missing")
+	}
+	safeDispatchEnd := strings.Index(text[safeDispatchStart:], "func (worker *MailboxSubmissionWorker) withTimeout")
+	if safeDispatchEnd < 0 {
+		t.Fatal("worker safeDispatch source boundary is missing")
+	}
+	safeDispatch := text[safeDispatchStart : safeDispatchStart+safeDispatchEnd]
+	if calls := strings.Count(safeDispatch, "worker.dispatcher.Dispatch("); calls != 1 {
+		t.Fatalf("safeDispatch direct dispatcher call sites = %d, want exactly one", calls)
 	}
 	if strings.Contains(strings.ToLower(runOnce), "retry") {
 		t.Fatal("RunOnce must not retry due dispatches; durable due state is authoritative")
