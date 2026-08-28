@@ -55,7 +55,6 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 		"organizationID",
 		"leaseUntil",
 		"validCalendarMailDeliveryLeaseUntil",
-		"calendarMailDeliveryLease = 60 * time.Second",
 		"calendarMailDeliveryDefaultScanInterval = 30 * time.Second",
 		"calendarMailDeliveryDefaultBatchSize = 50",
 		"calendarMailDeliveryMaximumAttempts = 8",
@@ -73,6 +72,9 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 		if !strings.Contains(repository, required) {
 			t.Fatalf("calendar delivery repository source missing %q", required)
 		}
+	}
+	if !strings.Contains(strings.Join(strings.Fields(repository), " "), "calendarMailDeliveryLease = 60 * time.Second") {
+		t.Fatal("calendar delivery repository source missing normalized lease declaration")
 	}
 	for _, required := range []string{
 		"hub.calendar.delivery.draft.v1/",

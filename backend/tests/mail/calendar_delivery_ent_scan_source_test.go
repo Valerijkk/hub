@@ -38,7 +38,7 @@ func TestCalendarDeliveryEntDueScanSourceContract(t *testing.T) {
 	source := string(sourceBytes)
 	scan := calendarDeliveryEntScanSourceSlice(t, source,
 		"func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries",
-		"type mailboxEntCalendarDueDelivery",
+		"func mailboxEntCalendarDueScanResultCopy",
 	)
 
 	requireCalendarDeliveryEntScanSourceContains(t, scan,

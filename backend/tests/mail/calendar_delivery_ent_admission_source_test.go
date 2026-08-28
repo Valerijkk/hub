@@ -78,7 +78,7 @@ func TestCalendarDeliveryEntAdmissionSourceContract(t *testing.T) {
 	)
 	wakeRows := calendarDeliveryEntAdmissionSlice(t, source,
 		"func mailboxEntWakeCalendarReplyDelivery",
-		"func mailboxEntCalendarReplyDeliveryRows",
+		"func mailboxEntCalendarReplyDeliveryCalendarFactsValid",
 	)
 
 	requireCalendarDeliveryEntAdmissionSourceOrder(t, admit,
