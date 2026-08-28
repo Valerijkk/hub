@@ -445,3 +445,9 @@ The seam is not yet composed into recovery execution. Existing scanner/runner co
 Expiry is now provider-neutral data, but the signed credential remains its only source of truth. Jitsi reuses the single captured instant used to construct the JWT; LiveKit verifies its own freshly issued JWT and projects the verified claim. The adapter does not approximate `now + TTL`, log tokens or secrets, make network calls, or persist credentials.
 
 This seam does not activate Jitsi or alter the conference lifecycle. LiveKit remains the active provider; public join/refresh DTOs, call-aware service authorization, client consumption, self-hosted deployment, browser/media runtime, and cutover remain separate `UNBOUND/NOT_RUN` gates.
+
+## Closed recovery provenance and call-aware issuer seams (2026-08-28)
+
+Messenger now has a pure `Phase151RecoveryTargetAuthority` to canonical-producer-scope reconstruction seam. It validates the closed exact target tuple, sources tenant/channel only from that authority, and sources sender and producer metadata only from pending canonical-message provenance. It is not a database authorization or recovery-worker migration: scanner, runner, coordinator, PostgreSQL pager, reauthorizer, scheduler, and writer cutover remain `UNBOUND`.
+
+`CallJoinCredentialIssuer` is an internal structural adapter over existing LiveKit and Jitsi issuance. Its shared validation rejects invalid server-loaded call and identity inputs, then delegates without loading calls, authorizing membership/RBAC/invites/guests, mutating state, or binding a service, factory, route, or client. Current Docker evidence for both seams is `NOT_RUN` because Mail owns Docker. LiveKit remains active; Jitsi self-host deployment, public API, client, cutover, and browser/media runtime remain `UNBOUND/NOT_RUN`.

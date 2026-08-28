@@ -474,3 +474,9 @@ The valid RED kept build `PASS` and failed vet/unit/race only on missing symbols
 Focused tests verify exact equality between `JoinCredential.ExpiresAt` and the signed JWT `exp` for Jitsi, authenticated LiveKit, and both guest LiveKit credentials; the existing five-minute Jitsi and 24-hour LiveKit lifetime assertions remain. The valid RED kept production build `PASS` and failed vet/unit/race on the absent field. After unrelated Messenger test-only triage, final sequential Docker `backend-unit --no-deps` recorded target/build/vet/unit/race `PASS`, with every named expiry case passing in unit and race and no Mail overlap; independent crypto/code and test reviews are `Ready`.
 
 This is executable unit/race evidence, not deployment or browser evidence. Public DTO/route/refresh/client enforcement, self-hosted Jitsi runtime, provider cutover, and browser/media behavior remain `UNBOUND/NOT_RUN`.
+
+## Unverified closed-authority reconstruction and call-aware issuer coverage (2026-08-28)
+
+Focused source tests cover closed-target authority reconstruction into canonical producer scope, including invalid authority, canonical-message, and producer-provenance paths. Separate source tests cover `CallJoinCredentialIssuer` structural validation, compile satisfaction by LiveKit/Jitsi, and one-delegation typed credential projection. Current Docker evidence for these two atoms is `NOT_RUN` because Mail owns Docker; no prior backend-unit receipt is inherited.
+
+Future execution must keep the boundary explicit: Messenger coverage does not prove fresh database authorization, scanner/runner/coordinator migration, PG pager, reauthorizer, scheduler, writer cutover, or recovery runtime. Calls coverage does not prove call loading, RBAC/membership/invite/guest authorization, service/factory/route/client binding, Jitsi deployment/cutover, or browser/media runtime. LiveKit remains active; all such Jitsi and runtime gates remain `UNBOUND/NOT_RUN`.

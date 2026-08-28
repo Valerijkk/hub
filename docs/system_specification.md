@@ -908,3 +908,9 @@ This is a prerequisite contract, not a production recovery API: scanner/runner s
 Internal `JoinCredential` includes `ExpiresAt`. For Jitsi it is the exact captured UTC instant signed into JWT `exp`; for LiveKit it is read only after verification of the just-issued JWT with the configured secret and normalized to UTC. LiveKit parse, signature, nil-claims, missing-exp, or zero-exp failure returns a zero credential and fixed non-secret error. No client-calculated or server-approximated expiry is authoritative.
 
 `CallResponse`, handlers, routes, refresh semantics, guest policy, and frontend contracts are unchanged. LiveKit remains active; Jitsi public/API/runtime/deployment binding remains `UNBOUND`.
+
+## Closed recovery reconstruction and call-aware issuer contract (2026-08-28)
+
+`ExportPhase151ReconstructPostCreateRecoveryProducerScopeFromTargetAuthority` accepts only closed `Phase151RecoveryTargetAuthority` facts and a pending canonical message. It validates the authority first, derives tenant/channel only from authority, and derives sender plus producer metadata only from message provenance; invalid canonical data returns `ErrPostCreatePipelineInvalid` and invalid provenance retains `ErrTrustedMessageProducerDenied`. It does not perform fresh database authorization. Runner/scanner/coordinator migration, PG pager, reauthorizer, scheduler, writer cutover, and recovery runtime remain `UNBOUND`.
+
+`CallJoinCredentialIssuer` is internal-only: it structurally validates server-loaded active call/identity inputs and delegates to the existing LiveKit or Jitsi issuer. It does not load a call, authorize RBAC/membership/invite/guest policy, mutate state, or expose a service/factory/HTTP/client contract. LiveKit remains active; Jitsi self-host deployment, public route/DTO, client binding, cutover, and browser/media runtime remain `UNBOUND`.
