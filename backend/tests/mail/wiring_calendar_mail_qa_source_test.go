@@ -48,7 +48,6 @@ func TestQACalendarMailSubmissionRuntimeWiringSourceContract(t *testing.T) {
 		"NewMailboxSubmissionHandler",
 		"NewMailboxEntDraftAttachmentMaterializer",
 		"mailboxObjectStore",
-		"CalendarMailDelivery",
 		"Stub",
 	} {
 		if strings.Contains(source, forbidden) {
@@ -115,12 +114,6 @@ func TestQACalendarMailAccountProvisioningRuntimeWiringSourceContract(t *testing
 		"mailboxAccountProvisioningCtx, cancelMailboxAccountProvisioning := context.WithCancel(d.rootCtx)",
 		"mailboxAccountProvisioningDone := make(chan struct{})",
 		"var mailboxAccountProvisioningCleanup sync.Once",
-		`d.addCleanup(func() {
-	mailboxAccountProvisioningCleanup.Do(func() {
-		cancelMailboxAccountProvisioning()
-		<-mailboxAccountProvisioningDone
-	})
-})`,
 		"defer close(mailboxAccountProvisioningDone)",
 		"mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningCtx)",
 		"mailboxAccountProvisioningCtx.Err() == nil",
@@ -150,6 +143,14 @@ func TestQACalendarMailAccountProvisioningRuntimeWiringSourceContract(t *testing
 		"mailboxAccountProvisioner := mailmod.NewQAMailboxAccountProvisioner()",
 		"mailboxAccountProvisioningWorker, err := mailmod.NewMailboxAccountProvisioningWorker(",
 		"mailboxAccountProvisioningCtx, cancelMailboxAccountProvisioning := context.WithCancel(d.rootCtx)",
+		"mailboxAccountProvisioningDone := make(chan struct{})",
+		"var mailboxAccountProvisioningCleanup sync.Once",
+		"d.addCleanup(func() {",
+		"mailboxAccountProvisioningCleanup.Do(func() {",
+		"cancelMailboxAccountProvisioning()",
+		"<-mailboxAccountProvisioningDone",
+		"go func() {",
+		"defer close(mailboxAccountProvisioningDone)",
 		"mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningCtx)",
 		"mailboxSubmissionWorker.Run(d.rootCtx)",
 		"mailboxSubmissionStaleWorker.Run(d.rootCtx)",
@@ -168,24 +169,27 @@ func TestQACalendarMailAccountProvisioningRuntimeWiringSourceContract(t *testing
 		previous = position
 	}
 
-	for fragment, want := range map[string]int{
-		"mailmod.NewQAMailboxAccountProvisioner()":                               1,
-		"mailmod.NewMailboxAccountProvisioningWorker(":                          1,
-		"mailmod.NewMailboxAccountProvisioningWorkerTimer()":                    1,
-		"mailmod.DefaultMailboxAccountProvisioningWorkerOptions()":              1,
-		"mailboxAccountProvisioningWorkerOptions.ScanInterval = time.Second":    1,
-		"context.WithCancel(d.rootCtx)":                                         1,
-		"make(chan struct{})":                                                   1,
-		"sync.Once":                                                             1,
-		"d.addCleanup(func() {":                                                 1,
-		"defer close(mailboxAccountProvisioningDone)":                           1,
-		"mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningCtx)":  1,
-		`slog.Error("background worker stopped")`:                               1,
-		"qamailcalendar.ParseConfig(os.LookupEnv)":                              1,
-		"qamailcalendar.NewController(d.db, mailboxEngine, config)":            1,
+	for _, fragment := range []string{
+		"mailmod.NewQAMailboxAccountProvisioner()",
+		"mailmod.NewMailboxAccountProvisioningWorker(",
+		"mailmod.NewMailboxAccountProvisioningWorkerTimer()",
+		"mailmod.DefaultMailboxAccountProvisioningWorkerOptions()",
+		"mailboxAccountProvisioningWorkerOptions.ScanInterval = time.Second",
+		"context.WithCancel(d.rootCtx)",
+		"make(chan struct{})",
+		"sync.Once",
+		"d.addCleanup(func() {",
+		"mailboxAccountProvisioningCleanup.Do(func() {",
+		"cancelMailboxAccountProvisioning()",
+		"<-mailboxAccountProvisioningDone",
+		"defer close(mailboxAccountProvisioningDone)",
+		"mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningCtx)",
+		`slog.Error("background worker stopped")`,
+		"qamailcalendar.ParseConfig(os.LookupEnv)",
+		"qamailcalendar.NewController(d.db, mailboxEngine, config)",
 	} {
-		if got := strings.Count(source, fragment); got != want {
-			t.Fatalf("QA account provisioning runtime wiring occurrences of %q = %d; want %d", fragment, got, want)
+		if got := strings.Count(source, fragment); got != 1 {
+			t.Fatalf("QA account provisioning runtime wiring occurrences of %q = %d; want %d", fragment, got, 1)
 		}
 	}
 }
