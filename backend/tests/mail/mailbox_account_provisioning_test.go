@@ -100,19 +100,18 @@ func TestMailboxAccountProvisioningClaim_SealsACompleteProviderCallFence(t *test
 	if got := claim.Fence(); got != fence {
 		t.Fatalf("Claim.Fence() = %#v, want exact sealed fence %#v", got, fence)
 	}
-	if got := claim.AccountSpec(); got != (mail.AccountSpec{
-		ProvisioningKey:   "mailbox-account-41",
-		LocalPart:         "ada",
-		Domain:            "example.test",
-		DesiredGeneration: 41,
-		DesiredHash:       "sha256:account-control-41",
-		Enabled:           true,
-		Primary: mail.AccountIdentitySpec{
+	if got := claim.AccountSpec(); got.ProvisioningKey != "mailbox-account-41" ||
+		got.LocalPart != "ada" ||
+		got.Domain != "example.test" ||
+		got.DesiredGeneration != 41 ||
+		got.DesiredHash != "sha256:account-control-41" ||
+		!got.Enabled ||
+		got.Primary != (mail.AccountIdentitySpec{
 			LocalPart: "ada",
 			Domain:    "example.test",
 			Enabled:   true,
-		},
-	}) {
+		}) ||
+		len(got.Aliases) != 0 {
 		t.Fatalf("Claim.AccountSpec() = %#v, want the one exact provider-neutral ensure input", got)
 	}
 
