@@ -987,4 +987,12 @@ This is compile/unit/race evidence only. No server/runtime construction uses the
 
 `PGPhase151PendingRecoveryTargetReauthorizer` consumes fresh singleton-tenant lookup and exact target facts. It fails closed unless tenant and channel match the request, the channel is live, `public|private` maps to `channel` or `dm|group` to `dm`, and project channels have an active tenant project while projectless channels have the tenant creator. It returns only `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}` with the closed recovery principal; actor, sender, bot, integration, and Mongo authority are excluded.
 
-This source-port contract specifies no Ent persistence, PG paging, cross-store scan, scheduler/interval owner, production coordinator/repository composition, writer cutover, service/server wiring, or runtime/API surface. Those remain `UNBOUND/NOT_RUN`.
+This reauthorizer source-port contract does not itself compose the separately implemented Ent recovery-target facts source, PG paging, cross-store scan, scheduler/interval owner, production coordinator/repository composition, writer cutover, service/server wiring, or runtime/API surface. Those remain `UNBOUND/NOT_RUN`.
+
+## Phase 151 Ent recovery-target facts contract (2026-08-28)
+
+Commit 4b100ee6 implements EntRepository.ResolvePendingRecoveryTargetFacts for Phase151PendingRecoveryTargetFactSource. It requires a usable repository/client/context plus nonzero tenant and channel IDs before its Ent query; invalid or cancelled inputs fail closed. The source is not a pager, scanner, scheduler, writer, or production composition.
+
+Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 is superseded by final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit  , four empty stderr logs. Independent review is PASS/Approved without findings; separate predicate review is PASS.
+
+Evidence proves compile/interface and pre-query guards only. Successful query, NotFound, driver/generated SQL, projection, live PostgreSQL semantics, API/runtime wiring, and readiness remain NOT_RUN or UNBOUND as applicable.

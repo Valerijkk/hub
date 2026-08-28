@@ -316,7 +316,7 @@ The valid RED retained build PASS and failed vet/unit/race only for old scope-pl
 
 Review evidence only: invalid System.Object[] was rejected; regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
 
-Runtime remains UNBOUND/NOT_RUN: the pure PG reauthorizer source port exists, but no Ent implementation, PG pager, cross-store scanner, scheduler/interval owner, coordinator/repository production composition, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration exists.
+Runtime remains UNBOUND/NOT_RUN: the pure PG reauthorizer and Ent recovery-target facts source ports exist, but no PG pager, cross-store scanner, scheduler/interval owner, coordinator/repository production composition, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration exists.
 
 Docker policy permits concurrent branch-isolated Compose projects but only one task-owned container per branch; no --build, pull, image creation, or stopping another branch. Shared layers storage numeric Jitsi disk budget is separately gated.
 
@@ -333,3 +333,9 @@ This is compile/unit/race evidence only. No server/runtime construction uses the
 Commits `326fb23c` and hardening `a57f5da5` (with whitespace-only `67abe088`) add `PGPhase151PendingRecoveryTargetReauthorizer`: singleton tenant, exact target facts, live channel, exact `public|private -> channel` and `dm|group -> dm`, active tenant project for project channels, and tenant creator for projectless channels. Output is closed-principal-only: no actor/sender/bot/integration/Mongo authority.
 
 Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` completed `2026-08-28T19:48:05+03:00`: target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Initial RED `worktree-master-backend-unit-run-996a06b88265` (exit `1`) and first GREEN `971034f37f73` are historical. Independent final review: Spec Compliance `PASS`, Task quality `Approved`, no findings. This is unit/race evidence only; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product readiness not claimed.
+
+## Ent recovery-target facts evidence (2026-08-28)
+
+Commit 4b100ee6 adds EntRepository.ResolvePendingRecoveryTargetFacts and compile-time Phase151PendingRecoveryTargetFactSource satisfaction. Coverage is limited to compile/interface and fail-closed pre-query guards for receiver/client/context/UUID inputs. RED worktree-master-backend-unit-run-e14c5e925814 was missing-method-only; final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00 recorded target/build/vet/unit/race PASS, exit  , and four empty stderr logs. Independent review is PASS/Approved with no findings; separate predicate review is PASS.
+
+Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics remain NOT_RUN; no API or readiness claim follows.

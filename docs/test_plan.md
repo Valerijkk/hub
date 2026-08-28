@@ -553,4 +553,10 @@ Focused unit/race coverage for `326fb23c` and hardening `a57f5da5` verifies sing
 
 Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` completed `2026-08-28T19:48:05+03:00` with target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Initial RED `worktree-master-backend-unit-run-996a06b88265` (exit `1`) and first GREEN `971034f37f73` are historical. Independent final review: Spec Compliance `PASS`, Task quality `Approved`, no findings.
 
-No API/OpenAPI or runtime claim follows. Ent implementation, PG pager, cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product not ready.
+No API/OpenAPI or runtime claim follows. The Ent recovery-target facts source exists; PG pager, cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product not ready.
+
+## Phase 151 Ent recovery-target facts coverage (2026-08-28)
+
+Commit 4b100ee6 is covered only for compile-time Phase151PendingRecoveryTargetFactSource satisfaction and pre-query fail-closed guards in EntRepository.ResolvePendingRecoveryTargetFacts: receiver/client, nil or typed-nil/cancelled context, and tenant/channel UUID inputs. RED worktree-master-backend-unit-run-e14c5e925814 failed only because the method was absent. Final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00 recorded target/build/vet/unit/race PASS, exit  , and four empty stderr logs; independent review is PASS/Approved with no findings and separate predicate review is PASS.
+
+Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics remain NOT_RUN. No API, runtime, or readiness conclusion follows.
