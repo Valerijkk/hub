@@ -31,6 +31,21 @@ func mailboxPasswordEnrollmentEntSourceSlice(t *testing.T, source, start, end st
 	return source[startIndex : startIndex+len(start)+endOffset]
 }
 
+func mailboxPasswordEnrollmentEntSourceSliceInclusive(t *testing.T, source, start, end string) string {
+	t.Helper()
+
+	startIndex := strings.Index(source, start)
+	if startIndex < 0 {
+		t.Fatalf("source is missing start marker %q", start)
+	}
+	endOffset := strings.Index(source[startIndex+len(start):], end)
+	if endOffset < 0 {
+		t.Fatalf("source is missing end marker %q after %q", end, start)
+	}
+	endIndex := startIndex + len(start) + endOffset + len(end)
+	return source[startIndex:endIndex]
+}
+
 func requireMailboxPasswordEnrollmentEntOrdered(t *testing.T, source string, fragments ...string) {
 	t.Helper()
 
@@ -182,11 +197,14 @@ func TestMailboxPasswordEnrollmentEntSourceContract(t *testing.T) {
 		"ClearPasswordEnrollmentLeaseToken()",
 		"ClearPasswordEnrollmentLeaseUntil()",
 	)
-	requireMailboxPasswordEnrollmentEntOrdered(t, release,
+	staleRelease := mailboxPasswordEnrollmentEntSourceSliceInclusive(t, release,
+		"if !mailboxPasswordEnrollmentCurrentTupleMatches(account, claim, databaseWallClock, false)",
+		"if err := account.Update()",
+	)
+	requireMailboxPasswordEnrollmentEntOrdered(t, staleRelease,
 		"if !mailboxPasswordEnrollmentCurrentTupleMatches(account, claim, databaseWallClock, false)",
 		"return nil",
 		"account.Update()",
-		"ClearPasswordEnrollmentLeaseToken()",
 	)
 	for _, required := range []string{
 		"DeployedGeneration  int64",
