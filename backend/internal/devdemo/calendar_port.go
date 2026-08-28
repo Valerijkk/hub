@@ -2,10 +2,15 @@ package devdemo
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// ErrCalendarDemoReconcile is the stable neutral errors.Is target for adapter and orchestrator failures.
+// HTTP responses remain generic; this sentinel does not mirror the Calendar error taxonomy.
+var ErrCalendarDemoReconcile = errors.New("calendar demo reconciliation failed")
 
 // CalendarDemoPort synchronously exposes the Calendar operations required by demo seeding.
 // Implementations must validate all role and status strings exhaustively.
