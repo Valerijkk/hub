@@ -310,7 +310,8 @@ func (backend *eventEntCallTransactionBackend) persistEventCallProjectionSnapsho
 			SetDescription(snapshot.Description).
 			SetScheduledAt(snapshot.Occurrence.StartsAt.UTC()).
 			SetDurationMinutes(snapshot.DurationMinutes).
-			SetParticipantIDs(append([]uuid.UUID(nil), snapshot.ParticipantIDs...)...).
+			ClearParticipants().
+			AddParticipantIDs(append([]uuid.UUID(nil), snapshot.ParticipantIDs...)...).
 			SetIsActive(true).
 			ClearDeletedAt().
 			SetVersion(nextCallVersion)
