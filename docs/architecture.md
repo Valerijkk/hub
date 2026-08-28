@@ -439,3 +439,9 @@ The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner curso
 The frozen authority decision is now represented by closed `Phase151RecoveryServicePrincipal` value `messenger.post_create_recovery` and `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}`. The target contract intentionally has no actor/producer/bot/integration identity: exact validation accepts only the closed principal plus a structurally valid exact tenant/channel/kind target and otherwise fails with `ErrPostCreatePipelineInvalid`. This prevents arbitrary-member or channel-owner substitution from silently defining recovery authorization semantics.
 
 The seam is not yet composed into recovery execution. Existing scanner/runner contracts still use `AuthorizedMessageProducerScope`; no PostgreSQL pager, reauthorizer, scheduler, production writer, or live recovery runtime is bound. The next safe atom is pure provenance reconstruction/claimed runner/coordinator contract migration to `Phase151RecoveryTargetAuthority`; all live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
+
+## Calls signed credential-expiry projection (2026-08-28)
+
+Expiry is now provider-neutral data, but the signed credential remains its only source of truth. Jitsi reuses the single captured instant used to construct the JWT; LiveKit verifies its own freshly issued JWT and projects the verified claim. The adapter does not approximate `now + TTL`, log tokens or secrets, make network calls, or persist credentials.
+
+This seam does not activate Jitsi or alter the conference lifecycle. LiveKit remains the active provider; public join/refresh DTOs, call-aware service authorization, client consumption, self-hosted deployment, browser/media runtime, and cutover remain separate `UNBOUND/NOT_RUN` gates.

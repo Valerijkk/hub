@@ -902,3 +902,9 @@ Messenger pending recovery candidates must match the authorized target channel, 
 `Phase151RecoveryServicePrincipal` is closed and currently admits only `messenger.post_create_recovery`. `Phase151RecoveryTargetAuthority` consists exactly of `Principal`, `TenantID`, `ChannelID`, and `Kind`; it deliberately does not represent an actor, producer, bot, or integration. Validation accepts only that closed principal and a structurally valid exact target tuple; every invalid principal, malformed target, or identity drift maps to `ErrPostCreatePipelineInvalid`.
 
 This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`, and there is no PG pager, reauthorizer, scheduler, live writer, or external/runtime binding. Those boundaries remain `UNBOUND`.
+
+## Calls truthful join-credential expiry contract (2026-08-28)
+
+Internal `JoinCredential` includes `ExpiresAt`. For Jitsi it is the exact captured UTC instant signed into JWT `exp`; for LiveKit it is read only after verification of the just-issued JWT with the configured secret and normalized to UTC. LiveKit parse, signature, nil-claims, missing-exp, or zero-exp failure returns a zero credential and fixed non-secret error. No client-calculated or server-approximated expiry is authoritative.
+
+`CallResponse`, handlers, routes, refresh semantics, guest policy, and frontend contracts are unchanged. LiveKit remains active; Jitsi public/API/runtime/deployment binding remains `UNBOUND`.

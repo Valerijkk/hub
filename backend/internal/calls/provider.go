@@ -1,6 +1,9 @@
 package calls
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // ProviderLiveKit identifies the LiveKit conference provider.
 const ProviderLiveKit = "livekit"
@@ -11,6 +14,7 @@ type JoinCredential struct {
 	RoomName   string
 	ServiceURL string
 	Token      string
+	ExpiresAt  time.Time
 }
 
 // GuestJoinCredential binds a generated guest identity to its join credential.

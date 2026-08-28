@@ -286,6 +286,7 @@ func TestJitsiCredentialIssuerIssuesProviderNeutralJoinCredential(t *testing.T) 
 	assert.NotEqual(t, callEntity.ID.String(), credential.RoomName)
 	assert.Equal(t, cfg.PublicURL, credential.ServiceURL)
 	require.NotEmpty(t, credential.Token)
+	require.False(t, credential.ExpiresAt.IsZero())
 	assert.Equal(t, 1, clockCalls)
 
 	parsedToken, claims, err := inspectJitsiIssuerToken(
@@ -300,6 +301,9 @@ func TestJitsiCredentialIssuerIssuesProviderNeutralJoinCredential(t *testing.T) 
 	require.NoError(t, err)
 	require.True(t, parsedToken.Valid)
 	assert.Equal(t, credential.RoomName, claims.Room)
+	require.NotNil(t, claims.ExpiresAt)
+	assert.True(t, credential.ExpiresAt.Equal(claims.ExpiresAt.Time))
+	assert.True(t, credential.ExpiresAt.Equal(fixedJitsiIssueTime.Add(5*time.Minute)))
 }
 
 func TestJitsiCredentialIssuerJoinCredentialReturnsZeroResultForInvalidServerInputs(t *testing.T) {

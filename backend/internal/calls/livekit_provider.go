@@ -2,6 +2,7 @@ package calls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -64,12 +65,28 @@ func (p *LiveKitConferenceProvider) IssueJoinCredential(roomName, userID, userNa
 	if err != nil {
 		return JoinCredential{}, err
 	}
+	verifier, err := auth.ParseAPIToken(token)
+	if err != nil {
+		return JoinCredential{}, errors.New("could not verify issued LiveKit credential")
+	}
+	claims, _, err := verifier.Verify(p.cfg.APISecret)
+	if err != nil {
+		return JoinCredential{}, errors.New("could not verify issued LiveKit credential")
+	}
+	if claims == nil || claims.Expiry == nil {
+		return JoinCredential{}, errors.New("issued LiveKit credential is missing an expiry")
+	}
+	expiresAt := claims.Expiry.Time().UTC()
+	if expiresAt.IsZero() {
+		return JoinCredential{}, errors.New("issued LiveKit credential is missing an expiry")
+	}
 
 	return JoinCredential{
 		Provider:   ProviderLiveKit,
 		RoomName:   roomName,
 		ServiceURL: p.cfg.URL,
 		Token:      token,
+		ExpiresAt:  expiresAt,
 	}, nil
 }
 

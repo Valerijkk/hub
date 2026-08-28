@@ -33,7 +33,7 @@ func TestLiveKitConferenceProviderIssuesBackwardCompatibleUserJoinCredential(t *
 	assert.Equal(t, cfg.URL, credential.ServiceURL)
 	require.NotEmpty(t, credential.Token)
 
-	assertLiveKitCredential(t, cfg, credential.Token, userID, "Ada Lovelace", credential.RoomName)
+	assertLiveKitCredential(t, cfg, credential.Token, userID, "Ada Lovelace", credential.RoomName, credential.ExpiresAt)
 }
 
 func TestLiveKitConferenceProviderIssuesGuestCredentialWithFreshGuestIdentity(t *testing.T) {
@@ -58,8 +58,8 @@ func TestLiveKitConferenceProviderIssuesGuestCredentialWithFreshGuestIdentity(t 
 	}
 
 	assert.NotEqual(t, first.Identity, second.Identity, "each guest credential must have fresh identity entropy")
-	assertLiveKitCredential(t, cfg, first.Join.Token, first.Identity, "Guest One", roomName)
-	assertLiveKitCredential(t, cfg, second.Join.Token, second.Identity, "Guest Two", roomName)
+	assertLiveKitCredential(t, cfg, first.Join.Token, first.Identity, "Guest One", roomName, first.Join.ExpiresAt)
+	assertLiveKitCredential(t, cfg, second.Join.Token, second.Identity, "Guest Two", roomName, second.Join.ExpiresAt)
 }
 
 func TestLiveKitConferenceProviderConstructionAndCredentialIssueAreNetworkFree(t *testing.T) {
@@ -90,6 +90,7 @@ func assertLiveKitCredential(
 	wantIdentity string,
 	wantName string,
 	wantRoom string,
+	wantExpiry time.Time,
 ) {
 	t.Helper()
 
@@ -108,5 +109,7 @@ func assertLiveKitCredential(
 	assert.Equal(t, wantRoom, grants.Video.Room)
 	require.NotNil(t, claims.NotBefore)
 	require.NotNil(t, claims.Expiry)
+	require.False(t, wantExpiry.IsZero())
+	assert.True(t, wantExpiry.Equal(claims.Expiry.Time()))
 	assert.WithinDuration(t, claims.NotBefore.Time().Add(24*time.Hour), claims.Expiry.Time(), time.Second)
 }

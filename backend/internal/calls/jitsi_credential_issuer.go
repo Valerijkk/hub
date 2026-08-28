@@ -80,6 +80,7 @@ func (i *jitsiCredentialIssuer) IssueJoinCredential(call *ent.Call, authenticate
 		RoomName:   call.RoomName,
 		ServiceURL: i.publicURL,
 		Token:      issued.Token,
+		ExpiresAt:  issued.ExpiresAt,
 	}, nil
 }
 func (i *jitsiCredentialIssuer) issueCredential(call *ent.Call, authenticatedUserID uuid.UUID, serverKnownUserName string) (jitsiIssuedCredential, error) {
