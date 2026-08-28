@@ -286,9 +286,9 @@ func (driver *eventEntRepositoryDriver) assertQueryOrder(t *testing.T) {
 
 func eventEntRepositoryQueryKind(query string) string {
 	switch {
-	case strings.Contains(query, "organizations"):
+	case strings.Contains(query, `FROM "organizations"`):
 		return "organization"
-	case strings.Contains(query, "users"):
+	case strings.Contains(query, `FROM "users"`):
 		return "user"
 	default:
 		return ""
