@@ -571,28 +571,31 @@ func TestMailEngine_ContentAndSubmissionShapesAreClosed(t *testing.T) {
 		SHA256        []byte
 	}{}))
 	assertExactFields(t, reflect.TypeOf(mail.EngineMessageProjection{}), reflect.TypeOf(struct {
-		AccountID         string
-		MessageID         string
-		Version           string
-		InternetMessageID string
-		InReplyTo         string
-		References        []string
-		From              mail.EngineAddress
-		To                []mail.EngineAddress
-		CC                []mail.EngineAddress
-		BCC               []mail.EngineAddress
-		ReplyTo           []mail.EngineAddress
-		Subject           string
-		Snippet           string
-		SentAt            *time.Time
-		ReceivedAt        *time.Time
-		SizeBytes         int64
-		Priority          mail.EngineMessagePriority
-		FolderIDs         []string
-		Flags             mail.EngineMessageFlags
-		ReservedKeywords  []mail.EngineKeywordMarker
-		Attachments       []mail.EngineProjectionAttachment
-		Origin            mail.EngineProjectionOrigin
+		AccountID               string
+		MessageID               string
+		Version                 string
+		InternetMessageID       string
+		InReplyTo               string
+		References              []string
+		From                    mail.EngineAddress
+		To                      []mail.EngineAddress
+		CC                      []mail.EngineAddress
+		BCC                     []mail.EngineAddress
+		ReplyTo                 []mail.EngineAddress
+		Subject                 string
+		Snippet                 string
+		SentAt                  *time.Time
+		ReceivedAt              *time.Time
+		CalendarMethod          *mail.MailCalendarMethod
+		AuthenticationClass     mail.MailAuthenticationClass
+		CalendarPartLocatorHash []byte
+		SizeBytes               int64
+		Priority                mail.EngineMessagePriority
+		FolderIDs               []string
+		Flags                   mail.EngineMessageFlags
+		ReservedKeywords        []mail.EngineKeywordMarker
+		Attachments             []mail.EngineProjectionAttachment
+		Origin                  mail.EngineProjectionOrigin
 	}{}))
 	assertExactFields(t, reflect.TypeOf(mail.EngineMessageBody{}), reflect.TypeOf(struct {
 		Format    mail.EngineBodyFormat
