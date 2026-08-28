@@ -74,6 +74,9 @@ func (handler *MailDomainControlHandler) preflightList(ctx fiber.Ctx) error {
 	if err := mailDomainControlHTTPRejectEmptyTransport(ctx); err != nil {
 		return err
 	}
+	if mailDomainControlHTTPInvalidResponseWritten(ctx) {
+		return nil
+	}
 	ctx.Locals(mailDomainControlHTTPRouteInputLocalKey, mailDomainControlHTTPRouteInput{route: mailDomainControlHTTPRouteList})
 	return ctx.Next()
 }
@@ -285,6 +288,12 @@ func mailDomainControlHTTPRejectEmptyTransport(ctx fiber.Ctx) error {
 		return mailDomainControlHTTPError(ctx, http.StatusBadRequest, "MAIL_DOMAIN_INVALID")
 	}
 	return nil
+}
+
+func mailDomainControlHTTPInvalidResponseWritten(ctx fiber.Ctx) bool {
+	return ctx != nil &&
+		ctx.Response().StatusCode() == http.StatusBadRequest &&
+		bytes.Equal(ctx.Response().Header.Peek("X-Hub-Error-Code"), []byte("MAIL_DOMAIN_INVALID"))
 }
 
 func mailDomainControlHTTPRejectQuery(ctx fiber.Ctx) error {
