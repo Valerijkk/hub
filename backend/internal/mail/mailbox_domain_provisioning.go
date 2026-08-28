@@ -325,6 +325,9 @@ const (
 	MailboxDomainProvisioningFinalizeDNSRequired MailboxDomainProvisioningFinalizeOutcome = "dns_required"
 	MailboxDomainProvisioningFinalizeVerified    MailboxDomainProvisioningFinalizeOutcome = "verified"
 	MailboxDomainProvisioningFinalizeRetry       MailboxDomainProvisioningFinalizeOutcome = "retry"
+	// MailboxDomainProvisioningFinalizeSuperseded is an output-only durable CAS
+	// result; it is never a request outcome.
+	MailboxDomainProvisioningFinalizeSuperseded MailboxDomainProvisioningFinalizeOutcome = "superseded"
 )
 
 // MailboxDomainProvisioningFinalizeRequest is one sealed provider outcome.
@@ -429,7 +432,7 @@ type MailboxDomainProvisioningFinalizeResult struct {
 // Valid reports whether the repository recorded the requested branch.
 func (result MailboxDomainProvisioningFinalizeResult) Valid() bool {
 	switch result.Outcome {
-	case MailboxDomainProvisioningFinalizeDNSRequired, MailboxDomainProvisioningFinalizeVerified:
+	case MailboxDomainProvisioningFinalizeDNSRequired, MailboxDomainProvisioningFinalizeVerified, MailboxDomainProvisioningFinalizeSuperseded:
 		return result.Code == ""
 	case MailboxDomainProvisioningFinalizeRetry:
 		return validMailboxDomainProvisioningCode(result.Code)
@@ -469,7 +472,7 @@ func ExecuteMailboxDomainProvisioning(ctx context.Context, provider MailboxDomai
 	case MailboxDomainProvisioningActionReconcileThenEnsure:
 		state, err := provider.GetDomain(ctx, claim.Fence().Domain)
 		if err != nil || ctx.Err() != nil {
-			return retry(mailboxDomainProvisioningGetErrorCode(err))
+			return retry(MailboxDomainProvisioningCodeOutcomeUnknown)
 		}
 		switch state.State {
 		case EngineDomainAbsent:
@@ -490,6 +493,8 @@ func ExecuteMailboxDomainProvisioning(ctx context.Context, provider MailboxDomai
 			return retry(MailboxDomainProvisioningCodeDNSInvalid)
 		case EngineDomainRejected:
 			return retry(MailboxDomainProvisioningCodeApplyRejected)
+		case EngineDomainIndeterminate:
+			return retry(MailboxDomainProvisioningCodeOutcomeUnknown)
 		default:
 			return retry(MailboxDomainProvisioningCodeEngineUnavailable)
 		}
