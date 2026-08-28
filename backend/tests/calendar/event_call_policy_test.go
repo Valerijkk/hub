@@ -153,7 +153,7 @@ func TestEventCallProjectionABI(t *testing.T) {
 	}
 	if got := []calendar.EventCallProjectionErrorKind{
 		calendar.EventCallProjectionInvalid,
-		calendar.EventCallProjectionBoundary,
+		calendar.EventCallProjectionBoundaryMismatch,
 		calendar.EventCallProjectionTooLarge,
 	}; !reflect.DeepEqual(got, []calendar.EventCallProjectionErrorKind{"invalid", "boundary", "too_large"}) {
 		t.Fatalf("error kinds = %#v", got)
@@ -577,7 +577,7 @@ func TestEventCallProjectionErrorsAreContentFreeAndTyped(t *testing.T) {
 		},
 		{
 			name: "boundary", input: func() calendar.EventCallProjectionInput { input := callPolicyValidInput(); input.Action = calendar.EventCallProjectionPause; return input }(),
-			want: calendar.ErrEventCallProjectionBoundary, text: "calendar: event call projection boundary mismatch", kind: calendar.EventCallProjectionBoundary,
+			want: calendar.ErrEventCallProjectionBoundary, text: "calendar: event call projection boundary mismatch", kind: calendar.EventCallProjectionBoundaryMismatch,
 		},
 		{
 			name: "too large", input: func() calendar.EventCallProjectionInput { input := callPolicyValidInput(); input.Event.Title = strings.Repeat("x", 256); return input }(),

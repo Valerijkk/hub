@@ -171,7 +171,7 @@ type EventCallProjectionErrorKind string
 
 const (
 	EventCallProjectionInvalid  EventCallProjectionErrorKind = "invalid"
-	EventCallProjectionBoundary EventCallProjectionErrorKind = "boundary"
+	EventCallProjectionBoundaryMismatch EventCallProjectionErrorKind = "boundary"
 	EventCallProjectionTooLarge EventCallProjectionErrorKind = "too_large"
 )
 
@@ -220,7 +220,7 @@ func eventCallProjectionSentinel(kind EventCallProjectionErrorKind) error {
 	switch kind {
 	case EventCallProjectionInvalid:
 		return ErrEventCallProjectionInvalid
-	case EventCallProjectionBoundary:
+	case EventCallProjectionBoundaryMismatch:
 		return ErrEventCallProjectionBoundary
 	case EventCallProjectionTooLarge:
 		return ErrEventCallProjectionTooLarge
@@ -274,7 +274,7 @@ func ProjectEventCall(input EventCallProjectionInput) (EventCallProjection, erro
 	}
 
 	if !eventCallProjectionActionAllowed(input.Action, input.Event, input.Target) {
-		return EventCallProjection{}, eventCallProjectionFailure(EventCallProjectionBoundary)
+		return EventCallProjection{}, eventCallProjectionFailure(EventCallProjectionBoundaryMismatch)
 	}
 	identity := eventCallProjectionIdentitySnapshot(input.Event, input.Creator)
 	switch input.Action {
