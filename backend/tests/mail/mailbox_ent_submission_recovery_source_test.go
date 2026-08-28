@@ -96,7 +96,7 @@ func TestMailboxEntSubmissionRecoverySourceContract(t *testing.T) {
 		"func mailboxEntSubmissionRecoveryUnknown",
 	)
 	unknown := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
-		"func mailboxEntSubmissionRecoveryUnknown",
+		"func mailboxEntSubmissionRecoveryUnknown(ctx context.Context,",
 		"func mailboxEntSubmissionRecoveryReleaseUnknown",
 	)
 	unknownLease := mailboxEntSubmissionRecoverySourceSlice(t, entSource,
