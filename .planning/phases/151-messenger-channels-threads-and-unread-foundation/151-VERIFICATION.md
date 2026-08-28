@@ -299,3 +299,23 @@ UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
 The valid RED kept build `PASS` and failed vet/unit/race only on the missing export. The first GREEN attempt was stopped and invalidated when Mail overlap appeared. After Mail completed and a fresh 60-second empty Docker window, the isolated `backend-unit --no-deps` rerun recorded target/build/vet/unit/race `PASS`, first exit `0`; the exact parity and fail-closed suites passed under unit and race with no overlap.
 
 This is pure source/unit evidence. `MongoRepository.ListPendingPostCreateDocuments`, the recovery port/runner, PG pager, reauthorizer, scheduler, writer, integration, live PostgreSQL/Mongo, and cutover remain unchanged and `UNBOUND/NOT_RUN`. Fresh DB/RBAC authorization and service-principal-to-actor semantics remain unresolved; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## 2026-08-28 closed recovery authority flow
+
+Status remains IN_PROGRESS_PARTIAL_UNIT_EVIDENCE: commit 9f8d0b66 is a bounded contract migration, not Phase 151 completion, stability, production, or runtime acceptance.
+
+Phase151PendingRecoveryRepository and Phase151PendingRecoveryScanRepository reauthorize a target to Phase151RecoveryTargetAuthority; scan and reconcile receive closed authority only.
+
+The bounded coordinator validates Phase151PostCreateRecoveryServicePrincipal and the exact target after reauthorization. Reauthorization error or principal/tenant/channel/kind drift produces zero Mongo scan and zero reconcile.
+
+The coordinator adapter repeats exact validation, forwards the same authority unchanged to MongoRepository.ListPendingPostCreateDocuments and the claimed runner, and does not create an AuthorizedMessageProducerScope.
+
+Only the claimed runner reconstructs AuthorizedMessageProducerScope from canonical durable message provenance. Mongo uses ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority without changing its filter, ascending order, or cap; nonempty Kind remains current policy and concrete PostgreSQL channel-type projection is deferred.
+
+The valid RED retained build PASS and failed vet/unit/race only for old scope-plus-target signatures. Implementer GREEN and final root GREEN used docker compose -f docker-compose.local.yml run --rm --no-deps backend-unit, with no build/pull; final receipt 2026-08-28T17:42:08.0869425+03:00 reports target/build/vet/unit/race PASS, first exit 0, four stderr logs empty, and named authority/coordinator tests in unit and race.
+
+Review evidence only: invalid System.Object[] was rejected; regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
+
+Runtime remains UNBOUND/NOT_RUN: no concrete PG pager/reauthorizer, scheduler/interval owner, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration.
+
+Docker policy permits concurrent branch-isolated Compose projects but only one task-owned container per branch; no --build, pull, image creation, or stopping another branch. Shared layers storage numeric Jitsi disk budget is separately gated.

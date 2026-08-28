@@ -1480,3 +1480,16 @@ UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
 - `*EntRepository` now satisfies `CallJoinCredentialProjectionSource`: active calls are loaded by exact call ID and active users by exact user ID, with a trimmed `DisplayName` then `Name` fallback. Nil/typed-nil context, receiver, database, and UUID inputs fail closed before Ent access.
 - The interface RED kept build `PASS` and failed vet/unit/race only on the two missing methods. The typed-nil RED kept build/vet `PASS` and isolated unit/race Ent-client panics. The final fresh isolated Docker run passed target/build/vet/unit/race with first exit `0`; both named suites passed under unit and race without Mail overlap.
 - The adapter remains production-unwired. Positive Ent predicate/fallback behavior and live PostgreSQL are `NOT_RUN`; service/HTTP/factory/provider/client, self-hosted Jitsi deployment, provider cutover, and browser/media runtime are unchanged. LiveKit remains active.
+
+## Session note - 2026-08-28 (Messenger closed recovery authority flow)
+
+- Commit 9f8d0b66 binds pending recovery scan/reconcile ports to the closed Phase151RecoveryTargetAuthority.
+- Phase151PendingRecoveryRepository and Phase151PendingRecoveryScanRepository reauthorize a target to that authority; scan and reconcile accept authority only.
+- The bounded coordinator validates the exact service principal and target before Mongo; reauthorization error or principal/tenant/channel/kind drift performs zero scan and zero reconcile.
+- The adapter revalidates and forwards the same authority to the authority-only Mongo scan and claimed runner; only the runner reconstructs AuthorizedMessageProducerScope from canonical message provenance.
+- MongoRepository.ListPendingPostCreateDocuments uses ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority, preserving its exact filter, ascending order, and cap; nonempty Kind stays, while stricter concrete PostgreSQL channel-type projection is later work.
+- Valid RED: build PASS; vet/unit/race failed only on prior scope-plus-target signatures.
+- Final root Docker receipt 2026-08-28T17:42:08.0869425+03:00 is target/build/vet/unit/race PASS, first exit 0, four stderr logs empty, and named authority/coordinator tests pass in unit and race.
+- Independent task review rejected invalid System.Object[]; the regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
+- Runtime is UNBOUND/NOT_RUN: no concrete PG pager/reauthorizer, scheduler/interval owner, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration; Phase 151 remains partial.
+- Separate branch-isolated Compose projects may run concurrently; this branch owns at most one task container and forbids --build, pull, image creation, or stopping another branch. Shared layer storage keeps Jitsi pull/build blocked pending numeric disk-budget authority.

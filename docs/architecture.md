@@ -495,3 +495,15 @@ The initial GREEN attempt was invalidated on Mail overlap; the later isolated Do
 `*EntRepository` implements the server-owned `CallJoinCredentialProjectionSource`. It queries an exact active call, queries an exact active user, and derives the credential name from trimmed `DisplayName` with trimmed `Name` fallback. Invalid receivers, dependencies, plain or typed-nil contexts, and UUIDs fail closed before an Ent query.
 
 This adapter is not part of production composition yet. Live Ent/PostgreSQL semantics remain `NOT_RUN`; service, HTTP, provider factory, provider/client selection, Jitsi deployment/cutover, and browser/media paths are unchanged. LiveKit remains the active provider.
+
+## Phase 151 closed recovery authority flow (2026-08-28)
+
+Pending post-create recovery has a closed server-owned authority boundary: Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind} uses only messenger.post_create_recovery and carries no actor, producer, bot, or integration identity. Phase151PendingRecoveryRepository and Phase151PendingRecoveryScanRepository reauthorize targets to it; scan and reconcile ports accept authority only.
+
+The bounded coordinator validates the exact service principal and target tuple after reauthorization. Error or principal/tenant/channel/kind drift returns before Mongo scan or recovery effect.
+
+The coordinator adapter repeats validation and passes the unchanged authority to the authority-only Mongo scan and the claimed runner. It never manufactures AuthorizedMessageProducerScope; only the runner reconstructs that scope from canonical durable message provenance.
+
+MongoRepository.ListPendingPostCreateDocuments derives its plan with ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority, retaining the exact legacy filter, ascending created_at/_id order, and cap. Kind remains nonempty; concrete PostgreSQL channel-type projection is deferred.
+
+This is compiled unit/race evidence, not runtime composition. Concrete PG pager/reauthorizer, scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain UNBOUND/NOT_RUN.

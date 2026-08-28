@@ -524,3 +524,17 @@ RED recorded target `FAIL`, build `PASS`, and vet/unit/race failures only on the
 The compile/fail-closed suite covers interface satisfaction plus nil receiver/client/context/UUID inputs. Independent review exposed a typed-nil context gap; its behavioral RED kept build/vet `PASS` and failed unit/race with Ent-client panics for both source methods. The shared typed-nil detector then closed both paths.
 
 The final fresh isolated Docker `backend-unit --no-deps` run passed target/build/vet/unit/race with first exit `0`; the invalid-input and typed-nil suites passed under unit and race, no race warning or Mail overlap was observed. Positive Ent predicates, name fallback against stored rows, and live PostgreSQL remain integration `NOT_RUN`; production wiring and Jitsi cutover remain unchanged.
+
+## Phase 151 closed recovery authority evidence (2026-08-28)
+
+Valid RED for 9f8d0b66 kept production build PASS; vet, unit, and race failed only because production still used old scope-plus-target pending scan signatures. Typo, undefined-identifier, and unrelated RED failures were invalid.
+
+Implementer GREEN and final root GREEN used exactly docker compose -f docker-compose.local.yml run --rm --no-deps backend-unit, with no --build or pull. Final root receipt 2026-08-28T17:42:08.0869425+03:00 records target/build/vet/unit/race PASS, first exit 0, four stderr logs empty, and named authority/coordinator tests passing under unit and race.
+
+Regression coverage proves valid authority reaches scan/reconcile once unchanged; reauthorization error, foreign principal/tenant/channel/kind, or malformed authority produces zero Mongo scan and zero reconcile. Claimed-runner provenance reconstruction remains green; Mongo retains exact filter/order/cap through the authority scan-plan builder.
+
+Review evidence only: invalid System.Object[] was rejected before the regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
+
+Runtime evidence is UNBOUND/NOT_RUN for concrete PG pager/reauthorizer, scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration; Phase 151 is partial.
+
+Docker policy allows concurrent branch-isolated Compose projects, one task-owned container per branch, no --build/pull/image creation/stopping another branch, and a separate shared-layer numeric Jitsi disk-budget gate.

@@ -958,3 +958,19 @@ The valid RED failed only on the missing export after build passed. The first GR
 `EntRepository.LoadActiveCall(ctx, callID)` accepts a nonnil repository/client/context and nonzero ID, then selects only the exact call with active status. `GetServerKnownCallUserName(ctx, userID)` applies the same structural guards, selects only the exact active user, and returns trimmed `DisplayName`, otherwise trimmed `Name`; an empty result is `ErrCallJoinCredentialInvalid`. Plain and typed-nil contexts fail before Ent access, while Ent query errors propagate unchanged.
 
 The type satisfies `CallJoinCredentialProjectionSource` but is not production-wired. Positive Ent query/fallback semantics and live PostgreSQL remain `NOT_RUN`; no route, DTO, service, factory, provider/client, Jitsi runtime, deployment, or cutover contract changes. LiveKit remains active.
+
+## Phase 151 pending recovery closed-authority contract (2026-08-28)
+
+Phase151PendingRecoveryRepository.ReauthorizePendingRecoveryTarget(ctx, target) and the corresponding scan repository operation return Phase151RecoveryTargetAuthority.
+
+ListPendingPostCreateDocuments(ctx, authority, limit) and ReconcilePendingPostCreateEffects(ctx, authority, document) accept no actor, producer, bot, integration identity, or mutable target argument.
+
+The coordinator calls ExportPhase151ValidateRecoveryTargetAuthority(Phase151PostCreateRecoveryServicePrincipal, target, authority) before a scan. A reauthorization error or invalid/drifting principal, tenant, channel, or kind causes zero scan and zero reconcile.
+
+The adapter repeats validation and forwards the same authority unchanged to its scanner and ExportPhase151ExecuteClaimedPostCreateRecovery.
+
+The claimed runner is the sole recovery layer that reconstructs AuthorizedMessageProducerScope from canonical durable message provenance.
+
+MongoRepository.ListPendingPostCreateDocuments builds from ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, limit), preserving existing filter/order/cap behavior.
+
+Kind must remain nonempty. A stricter concrete PostgreSQL channel-type projection is deferred; no concrete PG pager/reauthorizer, scheduler, writer cutover, service/server wiring, or live integration is specified by this bounded contract.
