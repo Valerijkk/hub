@@ -28,7 +28,7 @@ type Handler struct{}
 // NewHandler возвращает заглушку. db и authSvc принимаются для сохранения
 // идентичного API с dev-сборкой NewHandler, но ни один из них не сохраняется —
 // в release-сборке намеренно нет dev-функциональности.
-func NewHandler(_ *ent.Client, _ *auth.AuthService) *Handler {
+func NewHandler(_ *ent.Client, _ *auth.AuthService, _ MailCalendarDemoSeeder) *Handler {
 	return &Handler{}
 }
 

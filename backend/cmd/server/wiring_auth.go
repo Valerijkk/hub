@@ -97,6 +97,6 @@ func wireAuth(d *serverDeps) {
 	authHandler.RegisterRoutes(api, requireAuth)
 
 	// Dev routes (seed, login без Magic Link — только при DEV_MODE=true)
-	devHandler := devmod.NewHandler(d.db, authSvc)
+	devHandler := devmod.NewHandler(d.db, authSvc, nil)
 	devHandler.RegisterRoutes(api, cfg.Server.DevMode)
 }

@@ -22,13 +22,14 @@ import (
 
 // Handler обрабатывает dev-эндпоинты (seed, login, status).
 type Handler struct {
-	db      *ent.Client
-	authSvc *auth.AuthService
+	db                 *ent.Client
+	authSvc            *auth.AuthService
+	mailCalendarSeeder MailCalendarDemoSeeder
 }
 
 // NewHandler создаёт новый Handler для dev-эндпоинтов.
-func NewHandler(db *ent.Client, authSvc *auth.AuthService) *Handler {
-	return &Handler{db: db, authSvc: authSvc}
+func NewHandler(db *ent.Client, authSvc *auth.AuthService, mailCalendarSeeder MailCalendarDemoSeeder) *Handler {
+	return &Handler{db: db, authSvc: authSvc, mailCalendarSeeder: mailCalendarSeeder}
 }
 
 // RegisterRoutes регистрирует dev-маршруты под /api/dev.

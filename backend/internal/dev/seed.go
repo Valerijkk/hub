@@ -197,6 +197,26 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		body["error"] = "seed incomplete"
 		return c.Status(fiber.StatusInternalServerError).JSON(body)
 	}
+	if h.mailCalendarSeeder != nil {
+		copiedUserIDs := make(map[string]uuid.UUID, len(userIDs))
+		for email, userID := range userIDs {
+			copiedUserIDs[email] = userID
+		}
+		mailCalendarSummary, err := h.mailCalendarSeeder.SeedMailCalendar(ctx, MailCalendarDemoSeedInput{
+			ProjectID: proj.ID,
+			UserIDs:   copiedUserIDs,
+		})
+		if err != nil {
+			slog.Error("dev seed: Mail/Calendar demo failed", "error", err)
+			body["partial"] = true
+			body["error"] = "seed incomplete"
+			return c.Status(fiber.StatusInternalServerError).JSON(body)
+		}
+		if mailCalendarSummary == nil {
+			mailCalendarSummary = map[string]any{}
+		}
+		summary["mail_calendar"] = mailCalendarSummary
+	}
 	return c.JSON(body)
 }
 
