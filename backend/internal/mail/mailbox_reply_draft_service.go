@@ -15,7 +15,8 @@ type MailboxReplyDraftServiceAPI interface {
 }
 
 type mailboxReplyDrafts interface {
-	MailboxDraftServiceAPI
+	CreateMailboxDraft(context.Context, uuid.UUID, MailboxDraftCreateInput) (MailboxDraftView, error)
+	GetMailboxDraft(context.Context, uuid.UUID, uuid.UUID) (MailboxDraftView, error)
 	preflightMailboxReplyDraft(context.Context, uuid.UUID, mailboxReplyDraftPreflightInput) (mailboxReplyDraftPreflightResult, error)
 }
 

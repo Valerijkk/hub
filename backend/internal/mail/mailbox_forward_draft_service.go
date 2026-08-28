@@ -13,7 +13,8 @@ type MailboxForwardDraftServiceAPI interface {
 }
 
 type mailboxForwardDrafts interface {
-	MailboxDraftServiceAPI
+	CreateMailboxDraft(context.Context, uuid.UUID, MailboxDraftCreateInput) (MailboxDraftView, error)
+	GetMailboxDraft(context.Context, uuid.UUID, uuid.UUID) (MailboxDraftView, error)
 	preflightMailboxForwardDraft(context.Context, uuid.UUID, mailboxForwardDraftPreflightInput) (mailboxForwardDraftPreflightResult, error)
 }
 
