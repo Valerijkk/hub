@@ -156,7 +156,8 @@ func TestNormalizeAddress_ErrorValuesAreTypedStableAndContentFree(t *testing.T) 
 		if got := err.Error(); got != assertion.text {
 			t.Errorf("NormalizeAddress(%#v).Error() = %q, want %q", assertion.input, got, assertion.text)
 		}
-		if strings.Contains(err.Error(), assertion.input.Email) || strings.Contains(err.Error(), assertion.input.Name) {
+		if (assertion.input.Email != "" && strings.Contains(err.Error(), assertion.input.Email)) ||
+			(assertion.input.Name != "" && strings.Contains(err.Error(), assertion.input.Name)) {
 			t.Errorf("NormalizeAddress(%#v).Error() leaked input: %q", assertion.input, err.Error())
 		}
 	}
