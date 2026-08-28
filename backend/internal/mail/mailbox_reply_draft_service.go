@@ -188,7 +188,7 @@ func mailboxReplyDraftPreflightActiveViewMatches(view MailboxDraftView, draftID 
 
 func mailboxReplyDraftSourceEligible(snapshot MailboxMessageSnapshot) bool {
 	return !snapshot.summary.IsDraft && snapshot.projectionOrigin == EngineProjectionOriginInboundOrUnknown &&
-		snapshot.summary.CalendarMethod == nil && snapshot.summary.CalendarEventID == nil && len(snapshot.calendarPartLocatorHash) == 0
+		snapshot.summary.CalendarMethod == nil && len(snapshot.calendarPartLocatorHash) == 0
 }
 
 func mailboxReplyDraftRecipients(snapshot MailboxMessageSnapshot) ([]EngineAddress, error) {
