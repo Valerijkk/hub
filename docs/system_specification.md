@@ -934,3 +934,9 @@ under both unit and race.
 The earlier run was stopped because of Mail overlap and remains invalid history;
 no receipt is inherited from it. This is unit/race evidence only. All existing
 UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
+
+## Calls membership argument-order contract (2026-08-28)
+
+`CallJoinCredentialProjectionSource.IsChannelMember(ctx, channelID, authenticatedUserID)` uses channel-first repository ordering. For a channel call, `CallJoinCredentialProjector` must pass the server-loaded call channel as `channelID` and the authenticated caller as `authenticatedUserID`; denial or source error still short-circuits name lookup and credential issuance. This signature clarification does not bind an Ent/DB source, service, HTTP route, factory, client, tenant claim, Jitsi deployment, or provider cutover. LiveKit remains active.
+
+The focused RED demonstrated the former reversal with exact swapped channel/actor UUID observations in unit and race while build/vet passed. The corrected atom has isolated Docker evidence: target/build/vet/unit/race `PASS`, first exit `0`, no Mail overlap. Browser, media, deployment, integration, and cutover execution remain `UNBOUND/NOT_RUN`.

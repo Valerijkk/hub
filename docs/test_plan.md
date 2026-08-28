@@ -500,3 +500,9 @@ under both unit and race.
 The earlier run was stopped because of Mail overlap and remains invalid history;
 no receipt is inherited from it. This is unit/race evidence only. All existing
 UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
+
+## Calls membership argument-order regression (2026-08-28)
+
+Focused projector tests assert channel-first membership invocation: the persisted call `channelID` is the first UUID and the authenticated caller is the second. They preserve channel denial/error short-circuiting, instant-call creator policy, server-known-name ordering, and exactly one issuer invocation. The behavioral RED kept build/vet `PASS` and failed unit/race with the expected channel UUID receiving the actor UUID and vice versa. The corrected implementation then passed one isolated Docker `backend-unit --no-deps` run with target/build/vet/unit/race `PASS`, first exit `0`, and no Mail overlap; independent review found no issue.
+
+This regression does not execute or prove an Ent/DB source, service/HTTP/factory/client binding, tenant authorization, self-hosted Jitsi runtime, provider cutover, or browser/media behavior. Those gates remain `UNBOUND/NOT_RUN`, and LiveKit remains active.

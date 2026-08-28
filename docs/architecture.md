@@ -471,3 +471,9 @@ under both unit and race.
 The earlier run was stopped because of Mail overlap and remains invalid history;
 no receipt is inherited from it. This is unit/race evidence only. All existing
 UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
+
+## Calls membership argument-order boundary (2026-08-28)
+
+The `CallJoinCredentialProjectionSource` membership contract is explicitly `(channelID, authenticatedUserID)`, matching repository semantics. `CallJoinCredentialProjector` supplies the persisted channel before the authenticated actor, so a future same-signature Ent adapter cannot accidentally reverse the authorization proof. This remains an unbound port contract: no Ent/DB source, service/HTTP/factory/client wiring, tenant claim, Jitsi deployment/cutover, or browser/media runtime is added, and LiveKit remains active.
+
+Behavioral TDD captured the prior reversal as unit/race failures with the two UUIDs swapped while build/vet passed. The corrected atom then passed one isolated Docker `backend-unit --no-deps` run with target/build/vet/unit/race `PASS`, first exit `0`, and no Mail overlap; independent review reported no findings.

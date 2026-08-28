@@ -1456,3 +1456,9 @@ under both unit and race.
 The earlier run was stopped because of Mail overlap and remains invalid history;
 no receipt is inherited from it. This is unit/race evidence only. All existing
 UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
+
+## Session note - 2026-08-28 (Calls membership argument-order hardening)
+
+- `CallJoinCredentialProjectionSource.IsChannelMember` now names its UUID arguments in repository order: `(channelID, authenticatedUserID)`. The projector passes the persisted call channel first and the authenticated actor second, preventing a future signature-compatible Ent binding from silently reversing the authorization proof.
+- The focused behavioral RED kept build/vet `PASS` and failed unit/race with the channel and actor UUIDs observably swapped. After the two-line production correction, one isolated Docker `backend-unit --no-deps` run recorded target/build/vet/unit/race `PASS` with first exit `0`; monitoring found no Mail overlap. Independent review is `Ready` with no findings.
+- This hardens only the unbound projector port and unit contract. Ent/DB source, service/HTTP/factory/client wiring, tenant authorization, self-hosted Jitsi runtime, provider cutover, and browser/media evidence remain `UNBOUND/NOT_RUN`; LiveKit remains active.
