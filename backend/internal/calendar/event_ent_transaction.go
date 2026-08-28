@@ -733,7 +733,8 @@ func (backend *eventEntTransactionBackend) PersistMeetingUpdate(ctx context.Cont
 			SetDurationMinutes(int(command.desired.EndsAt.Sub(command.desired.StartsAt) / time.Minute)).
 			SetProjectID(command.desired.ProjectID).
 			SetChannelID(command.desired.ChannelID).
-			SetParticipantIDs(append([]uuid.UUID(nil), command.desired.AttendeeUserIDs...)...).
+			ClearParticipants().
+			AddParticipantIDs(append([]uuid.UUID(nil), command.desired.AttendeeUserIDs...)...).
 			SetIsActive(true).
 			ClearDeletedAt().
 			SetVersion(callVersion)
