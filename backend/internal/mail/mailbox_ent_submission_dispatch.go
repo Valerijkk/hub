@@ -49,7 +49,7 @@ func (repository *MailboxEntRepository) ResolveMailboxSubmissionDispatch(ctx con
 		}
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
-			return mailboxEntSubmissionClaimRepositoryError(err)
+			return mailboxEntSubmissionRepositoryError(err)
 		}
 		if !mailboxEntSubmissionDispatchFenceMatches(account, submission, draft, authorization, databaseNow) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
@@ -104,7 +104,7 @@ func (repository *MailboxEntRepository) ResolveMailboxSubmissionDispatch(ctx con
 		return nil
 	})
 	if err != nil {
-		return mailboxEntSubmissionClaimRepositoryError(err)
+		return mailboxEntSubmissionRepositoryError(err)
 	}
 	return nil
 }

@@ -78,6 +78,12 @@ func TestMailboxEntSubmissionDispatchSourceContract(t *testing.T) {
 			t.Fatalf("dispatch resolution source is missing %q", required)
 		}
 	}
+	if strings.Contains(resolve, "mailboxEntSubmissionClaimRepositoryError(") {
+		t.Fatal("dispatch resolution path uses deprecated submission repository mapper")
+	}
+	if got := strings.Count(resolve, "mailboxEntSubmissionRepositoryError("); got != 2 {
+		t.Fatalf("dispatch canonical repository mapper calls = %d, want 2", got)
+	}
 	for _, forbidden := range []string{
 		"SetStatus(mailsubmission.Status(\"queued\"))",
 		"BeginEngineCommand(",

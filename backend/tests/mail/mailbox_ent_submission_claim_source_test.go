@@ -85,6 +85,12 @@ func TestMailboxEntSubmissionClaimSourceContract(t *testing.T) {
 			t.Fatalf("claim source is missing %q", required)
 		}
 	}
+	if strings.Contains(claim, "mailboxEntSubmissionClaimRepositoryError(") {
+		t.Fatal("claim path uses deprecated submission repository mapper")
+	}
+	if got := strings.Count(claim, "mailboxEntSubmissionRepositoryError("); got != 2 {
+		t.Fatalf("claim canonical repository mapper calls = %d, want 2", got)
+	}
 	for _, forbidden := range []string{"BeginEngineCommand(", "MailEngine", ".PreflightSubmission(", ".Submit(", "http.", "net/http", "nats."} {
 		if strings.Contains(claim, forbidden) {
 			t.Fatalf("claim path contains forbidden call %q", forbidden)
@@ -160,6 +166,12 @@ func TestMailboxEntSubmissionAuthorizationSourceContract(t *testing.T) {
 	if got := strings.Count(authorize, "EvaluateMailboxSubmissionRateLimit("); got != 1 {
 		t.Fatalf("rate evaluator calls = %d, want exactly 1", got)
 	}
+	if strings.Contains(authorize, "mailboxEntSubmissionClaimRepositoryError(") {
+		t.Fatal("authorization path uses deprecated submission repository mapper")
+	}
+	if got := strings.Count(authorize, "mailboxEntSubmissionRepositoryError("); got != 2 {
+		t.Fatalf("authorization canonical repository mapper calls = %d, want 2", got)
+	}
 	for _, forbidden := range []string{"BeginEngineCommand(", "MailEngine", ".PreflightSubmission(", ".Submit(", "http.", "net/http", "nats."} {
 		if strings.Contains(authorize, forbidden) {
 			t.Fatalf("authorization path contains forbidden call %q", forbidden)
@@ -197,6 +209,12 @@ func TestMailboxEntSubmissionPreflightFailureResolutionSourceContract(t *testing
 		if !strings.Contains(resolve, required) {
 			t.Fatalf("preflight failure path is missing %q", required)
 		}
+	}
+	if strings.Contains(resolve, "mailboxEntSubmissionClaimRepositoryError(") {
+		t.Fatal("preflight failure path uses deprecated submission repository mapper")
+	}
+	if got := strings.Count(resolve, "mailboxEntSubmissionRepositoryError("); got != 2 {
+		t.Fatalf("preflight failure canonical repository mapper calls = %d, want 2", got)
 	}
 	for _, forbidden := range []string{"BeginEngineCommand(", "MailEngine", ".PreflightSubmission(", ".Submit(", "http.", "net/http", "nats."} {
 		if strings.Contains(resolve, forbidden) {

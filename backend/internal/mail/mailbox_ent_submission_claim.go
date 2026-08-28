@@ -103,7 +103,7 @@ func (repository *MailboxEntRepository) ClaimMailboxSubmission(ctx context.Conte
 
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
-			return mailboxEntSubmissionClaimRepositoryError(err)
+			return mailboxEntSubmissionRepositoryError(err)
 		}
 		if busyUntil, busy, valid := mailboxEntSubmissionClaimBusyUntil(account); !valid {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
@@ -173,7 +173,7 @@ func (repository *MailboxEntRepository) ClaimMailboxSubmission(ctx context.Conte
 		return nil
 	})
 	if err != nil {
-		return MailboxSubmissionClaimResult{}, mailboxEntSubmissionClaimRepositoryError(err)
+		return MailboxSubmissionClaimResult{}, mailboxEntSubmissionRepositoryError(err)
 	}
 	return result, nil
 }
@@ -313,7 +313,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
-			return mailboxEntSubmissionClaimRepositoryError(err)
+			return mailboxEntSubmissionRepositoryError(err)
 		}
 		if !mailboxEntSubmissionAuthorizingFenceMatches(account, submission, claim, databaseNow) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
@@ -472,7 +472,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 		return nil
 	})
 	if err != nil {
-		return MailboxSubmissionAuthorizeResult{}, mailboxEntSubmissionClaimRepositoryError(err)
+		return MailboxSubmissionAuthorizeResult{}, mailboxEntSubmissionRepositoryError(err)
 	}
 	return result, nil
 }
@@ -511,7 +511,7 @@ func (repository *MailboxEntRepository) ResolveMailboxSubmissionPreflightFailure
 		}
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
-			return mailboxEntSubmissionClaimRepositoryError(err)
+			return mailboxEntSubmissionRepositoryError(err)
 		}
 		if !mailboxEntSubmissionAuthorizingFenceMatches(account, submission, claim, databaseNow) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
@@ -554,7 +554,7 @@ func (repository *MailboxEntRepository) ResolveMailboxSubmissionPreflightFailure
 		return nil
 	})
 	if err != nil {
-		return MailboxSubmissionAuthorizeResult{}, mailboxEntSubmissionClaimRepositoryError(err)
+		return MailboxSubmissionAuthorizeResult{}, mailboxEntSubmissionRepositoryError(err)
 	}
 	return result, nil
 }
