@@ -63,6 +63,40 @@ services:
           memory: 1G
           cpus: "1.0"
 
+  mail-dns-resolver:
+    image: coredns/coredns:1.14.7@sha256:7efd3c635b03efd68c4e8398fc45f0d993d0e9ab016f72c1cefb0fd6d01aa286
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    user: "65532:65532"
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    command: ["-conf", "/etc/coredns/Corefile"]
+    expose:
+      - "53/tcp"
+      - "53/udp"
+    volumes:
+      - ./coredns/mail-public.Corefile:/etc/coredns/Corefile:ro
+    networks:
+      - mail_dns_client
+      - mail_dns_egress
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
   backend:
     environment:
       # Disabled-only static candidate. Backend must fail closed if an explicitly
@@ -73,6 +107,7 @@ services:
       MAILBOX_EXTERNAL_ENABLED: "false"
       MAILBOX_EXCLUSIVE_FOLDER_WRITER: "false"
       MAILBOX_INSTANCE_DOMAIN: "${MAILBOX_INSTANCE_DOMAIN:-}"
+      MAILBOX_DOMAIN_VERIFICATION_MODE: "${MAILBOX_DOMAIN_VERIFICATION_MODE:-}"
       MAILBOX_ENGINE_MAIL_AUTH_MODE: "${MAILBOX_ENGINE_MAIL_AUTH_MODE:-}"
       MAILBOX_ENGINE_OAUTH_CLIENT_ID: "${MAILBOX_ENGINE_OAUTH_CLIENT_ID:-}"
       MAILBOX_ENGINE_OAUTH_CLIENT_SECRET: "${MAILBOX_ENGINE_OAUTH_CLIENT_SECRET:-}"
@@ -87,14 +122,21 @@ services:
         condition: service_started
       clamav:
         condition: service_healthy
+      mail-dns-resolver:
+        condition: service_started
     networks:
       - default
       - mail_engine_internal
       - mail_scan_private
+      - mail_dns_client
 
 networks:
   mail_engine_internal:
     internal: true
+  mail_dns_client:
+    internal: true
+  mail_dns_egress:
+    driver: bridge
   # This ordinary private bridge is only for backend<->ClamAV and FreshClam
   # signature-refresh egress; no other service in this overlay attaches to it.
   mail_scan_private:
