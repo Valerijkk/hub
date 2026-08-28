@@ -715,6 +715,8 @@ func TestCalendarEventOccurrenceRSVPPersistenceValues_ValidateAndIsolateAliases(
 	*attendee.UserID = rsvpRepositoryOtherID
 	*attendee.RespondedAt = attendee.RespondedAt.Add(time.Hour)
 	reply.Status = calendar.RSVPDeclined
+	commandReply, commandHasReply := command.Reply()
+	resultReply, resultHasReply := result.Reply()
 
 	for _, value := range []struct {
 		name           string
@@ -726,8 +728,8 @@ func TestCalendarEventOccurrenceRSVPPersistenceValues_ValidateAndIsolateAliases(
 		reply          calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor
 		hasReply       bool
 	}{
-		{name: "command", series: command.SeriesAttendee(), attendee: command.Attendee(), expected: command.ExpectedVersion(), sequence: command.EventSequence(), hasPrior: func() bool { _, found := command.Prior(); return found }(), reply: occurrenceRSVPRepositoryMustReply(t, command.Reply()), hasReply: func() bool { _, found := command.Reply(); return found }()},
-		{name: "result", attendee: result.Attendee(), sequence: result.EventSequence(), reply: occurrenceRSVPRepositoryMustReply(t, result.Reply()), hasReply: func() bool { _, found := result.Reply(); return found }()},
+		{name: "command", series: command.SeriesAttendee(), attendee: command.Attendee(), expected: command.ExpectedVersion(), sequence: command.EventSequence(), hasPrior: func() bool { _, found := command.Prior(); return found }(), reply: occurrenceRSVPRepositoryMustReply(t, commandReply, commandHasReply), hasReply: commandHasReply},
+		{name: "result", attendee: result.Attendee(), sequence: result.EventSequence(), reply: occurrenceRSVPRepositoryMustReply(t, resultReply, resultHasReply), hasReply: resultHasReply},
 	} {
 		t.Run(value.name, func(t *testing.T) {
 			if value.attendee.AttendeeID != rsvpRepositoryOccurrenceID || value.attendee.UserID == nil || *value.attendee.UserID != rsvpRepositoryActorID || value.attendee.RespondedAt == nil || !value.attendee.RespondedAt.Equal(time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)) || value.attendee.RecurrenceID != "2032-02-04" || value.sequence != 0 || !value.hasReply || value.reply.RecurrenceID != "2032-02-04" || value.reply.Status != calendar.RSVPAccepted {
