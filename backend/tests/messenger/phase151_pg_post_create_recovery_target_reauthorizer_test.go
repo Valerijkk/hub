@@ -17,17 +17,19 @@ type phase151RecoveryTargetFactSource struct {
 	ids      []uuid.UUID
 	orgErr   error
 	facts    messenger.Phase151PendingRecoveryTargetFacts
-	factsErr error
-	calls    []string
-	ctx      context.Context
-	tenantID uuid.UUID
-	channelID uuid.UUID
+	factsErr         error
+	calls            []string
+	organizationCtx  context.Context
+	ctx              context.Context
+	tenantID         uuid.UUID
+	channelID        uuid.UUID
 }
 
 var _ messenger.Phase151PendingRecoveryTargetFactSource = (*phase151RecoveryTargetFactSource)(nil)
 
-func (s *phase151RecoveryTargetFactSource) ListInstanceOrganizationIDs(_ context.Context) ([]uuid.UUID, error) {
+func (s *phase151RecoveryTargetFactSource) ListInstanceOrganizationIDs(ctx context.Context) ([]uuid.UUID, error) {
 	s.calls = append(s.calls, "organization")
+	s.organizationCtx = ctx
 	if s.orgErr != nil {
 		return nil, s.orgErr
 	}
@@ -123,11 +125,36 @@ func TestPGPhase151PendingRecoveryTargetReauthorizerMapsOnlyCanonicalChannelType
 				Kind:      target.Kind,
 			}, authority)
 			assert.Equal(t, []string{"organization", "facts"}, source.calls)
+			assert.Same(t, ctx, source.organizationCtx)
 			assert.Same(t, ctx, source.ctx)
 			assert.Equal(t, target.TenantID, source.tenantID)
 			assert.Equal(t, target.ChannelID, source.channelID)
 		})
 	}
+
+	t.Run("project private channel with active tenant project", func(t *testing.T) {
+		target, source := phase151RecoveryTargetFixture("private", "channel")
+		source.facts.IsProjectChannel = true
+		source.facts.HasActiveTenantProject = true
+		source.facts.HasTenantCreator = false
+		reauthorizer := messenger.NewPGPhase151PendingRecoveryTargetReauthorizer(source)
+		ctx := context.WithValue(context.Background(), "phase151-recovery-context", "project-channel")
+
+		authority, err := reauthorizer.ReauthorizePendingRecoveryTarget(ctx, target)
+
+		require.NoError(t, err)
+		assert.Equal(t, messenger.Phase151RecoveryTargetAuthority{
+			Principal: messenger.Phase151PostCreateRecoveryServicePrincipal,
+			TenantID:  target.TenantID,
+			ChannelID: target.ChannelID,
+			Kind:      "channel",
+		}, authority)
+		assert.Equal(t, []string{"organization", "facts"}, source.calls)
+		assert.Same(t, ctx, source.organizationCtx)
+		assert.Same(t, ctx, source.ctx)
+		assert.Equal(t, target.TenantID, source.tenantID)
+		assert.Equal(t, target.ChannelID, source.channelID)
+	})
 }
 
 func TestPGPhase151PendingRecoveryTargetReauthorizerRejectsInvalidInputWithoutCalls(t *testing.T) {
