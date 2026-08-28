@@ -140,12 +140,46 @@ func TestCallJoinCredentialProjectorRejectsNilDependencies(t *testing.T) {
 	}
 }
 
+func TestCallJoinCredentialProjectorRejectsNilOrZeroValueReceiverBeforeDependencies(t *testing.T) {
+	ctx := context.Background()
+	callID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
+	actorID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+	var nilProjector *calls.CallJoinCredentialProjector
+
+	for _, testCase := range []struct {
+		name      string
+		projector *calls.CallJoinCredentialProjector
+	}{
+		{
+			name:      "nil receiver",
+			projector: nilProjector,
+		},
+		{
+			name:      "zero-value receiver",
+			projector: &calls.CallJoinCredentialProjector{},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			var credential calls.JoinCredential
+			var err error
+
+			require.NotPanics(t, func() {
+				credential, err = testCase.projector.IssueForAuthenticatedUser(ctx, callID, actorID)
+			})
+
+			assert.Equal(t, calls.JoinCredential{}, credential)
+			assert.Equal(t, calls.ErrCallJoinCredentialInvalid, err)
+		})
+	}
+}
+
 func TestCallJoinCredentialProjectorRejectsMalformedLoadedCallBeforeAuthorization(t *testing.T) {
 	ctx := context.Background()
 	requestedCallID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
 	actorID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
 	channelID := uuid.MustParse("44444444-4444-4444-8444-444444444444")
 	creatorID := uuid.MustParse("33333333-3333-4333-8333-333333333333")
+	invalidChannelID := uuid.Nil
 
 	for _, testCase := range []struct {
 		name       string
@@ -172,6 +206,54 @@ func TestCallJoinCredentialProjectorRejectsMalformedLoadedCallBeforeAuthorizatio
 				Status:    entcall.StatusEnded,
 				ChannelID: &channelID,
 				CreatedBy: creatorID,
+			},
+		},
+		{
+			name: "blank room name",
+			activeCall: &ent.Call{
+				ID:        requestedCallID,
+				RoomName:  "",
+				Status:    entcall.StatusActive,
+				ChannelID: &channelID,
+				CreatedBy: creatorID,
+			},
+		},
+		{
+			name: "whitespace room name",
+			activeCall: &ent.Call{
+				ID:        requestedCallID,
+				RoomName:  "   ",
+				Status:    entcall.StatusActive,
+				ChannelID: &channelID,
+				CreatedBy: creatorID,
+			},
+		},
+		{
+			name: "padded room name",
+			activeCall: &ent.Call{
+				ID:        requestedCallID,
+				RoomName:  " server-owned-room ",
+				Status:    entcall.StatusActive,
+				ChannelID: &channelID,
+				CreatedBy: creatorID,
+			},
+		},
+		{
+			name: "channel call with nil channel ID",
+			activeCall: &ent.Call{
+				ID:        requestedCallID,
+				RoomName:  "server-owned-room",
+				Status:    entcall.StatusActive,
+				ChannelID: &invalidChannelID,
+				CreatedBy: creatorID,
+			},
+		},
+		{
+			name: "instant call with nil creator ID",
+			activeCall: &ent.Call{
+				ID:       requestedCallID,
+				RoomName: "server-owned-room",
+				Status:   entcall.StatusActive,
 			},
 		},
 	} {

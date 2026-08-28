@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -51,6 +52,12 @@ func (p *CallJoinCredentialProjector) IssueForAuthenticatedUser(
 	callID uuid.UUID,
 	authenticatedUserID uuid.UUID,
 ) (JoinCredential, error) {
+	if p == nil ||
+		isNilCallJoinCredentialProjectionDependency(p.source) ||
+		isNilCallJoinCredentialProjectionDependency(p.issuer) {
+		return JoinCredential{}, ErrCallJoinCredentialInvalid
+	}
+
 	if isNilCallJoinCredentialProjectionDependency(ctx) ||
 		callID == uuid.Nil ||
 		authenticatedUserID == uuid.Nil {
@@ -64,6 +71,13 @@ func (p *CallJoinCredentialProjector) IssueForAuthenticatedUser(
 	if callEntity == nil ||
 		callEntity.ID != callID ||
 		callEntity.Status != entcall.StatusActive {
+		return JoinCredential{}, ErrCallJoinCredentialInvalid
+	}
+	trimmedRoomName := strings.TrimSpace(callEntity.RoomName)
+	if trimmedRoomName == "" ||
+		callEntity.RoomName != trimmedRoomName ||
+		(callEntity.ChannelID != nil && *callEntity.ChannelID == uuid.Nil) ||
+		(callEntity.ChannelID == nil && callEntity.CreatedBy == uuid.Nil) {
 		return JoinCredential{}, ErrCallJoinCredentialInvalid
 	}
 
