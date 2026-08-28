@@ -103,7 +103,7 @@ type MailboxSyncService struct {
 	config     MailboxSyncServiceConfig
 }
 
-func NewMailboxSyncService(engine MailboxSyncEngine, repository MailboxSyncRepository, config MailboxSyncServiceConfig) (*MailboxSyncService, error) {
+func NewMailboxSyncService(engine MailEngine, repository MailboxSyncRepository, config MailboxSyncServiceConfig) (*MailboxSyncService, error) {
 	if mailboxSyncNilDependency(engine) || mailboxSyncNilDependency(repository) || !validMailboxSyncServiceConfig(config) {
 		return nil, mailboxSyncServiceError(MailboxSyncServiceErrorInvalid)
 	}
