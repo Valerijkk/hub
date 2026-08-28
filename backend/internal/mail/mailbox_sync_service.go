@@ -728,17 +728,33 @@ func cloneMailboxSyncProjections(values []EngineMessageProjection) []EngineMessa
 
 func cloneMailboxSyncProjection(value EngineMessageProjection) EngineMessageProjection {
 	result := value
-	result.References = append([]string(nil), value.References...)
-	result.To = append([]EngineAddress(nil), value.To...)
-	result.CC = append([]EngineAddress(nil), value.CC...)
-	result.BCC = append([]EngineAddress(nil), value.BCC...)
-	result.ReplyTo = append([]EngineAddress(nil), value.ReplyTo...)
-	result.FolderIDs = append([]string(nil), value.FolderIDs...)
-	result.ReservedKeywords = append([]EngineKeywordMarker(nil), value.ReservedKeywords...)
-	result.Attachments = make([]EngineProjectionAttachment, len(value.Attachments))
-	for index, attachment := range value.Attachments {
-		result.Attachments[index] = attachment
-		result.Attachments[index].SHA256 = append([]byte(nil), attachment.SHA256...)
+	if value.References != nil {
+		result.References = append([]string{}, value.References...)
+	}
+	if value.To != nil {
+		result.To = append([]EngineAddress{}, value.To...)
+	}
+	if value.CC != nil {
+		result.CC = append([]EngineAddress{}, value.CC...)
+	}
+	if value.BCC != nil {
+		result.BCC = append([]EngineAddress{}, value.BCC...)
+	}
+	if value.ReplyTo != nil {
+		result.ReplyTo = append([]EngineAddress{}, value.ReplyTo...)
+	}
+	if value.FolderIDs != nil {
+		result.FolderIDs = append([]string{}, value.FolderIDs...)
+	}
+	if value.ReservedKeywords != nil {
+		result.ReservedKeywords = append([]EngineKeywordMarker{}, value.ReservedKeywords...)
+	}
+	if value.Attachments != nil {
+		result.Attachments = make([]EngineProjectionAttachment, len(value.Attachments))
+		for index, attachment := range value.Attachments {
+			result.Attachments[index] = attachment
+			result.Attachments[index].SHA256 = append([]byte(nil), attachment.SHA256...)
+		}
 	}
 	if value.SentAt != nil { copied := *value.SentAt; result.SentAt = &copied }
 	if value.ReceivedAt != nil { copied := *value.ReceivedAt; result.ReceivedAt = &copied }
