@@ -10,7 +10,7 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/dialect"
+	"entgo.io/ent/dialect"
 )
 
 type transactionRunner struct {
