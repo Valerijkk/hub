@@ -285,10 +285,10 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventOccurrenceRSVP(ct
 	if hadPrior {
 		appliedAttendeeID = currentOccurrence.ID
 	}
-	if err := backend.persistCalendarOccurrenceRSVPAttendee(ctx, event.ID, currentOccurrence, prior, hadPrior, requested, command.ExpectedVersion(), command.Reply()); err != nil {
+	reply, hasReply := command.Reply()
+	if err := backend.persistCalendarOccurrenceRSVPAttendee(ctx, event.ID, currentOccurrence, prior, hadPrior, requested, command.ExpectedVersion(), reply, hasReply); err != nil {
 		return CalendarEventOccurrenceRSVPPersistenceResult{}, err
 	}
-	reply, hasReply := command.Reply()
 	if hasReply {
 		recurrenceID := requested.RecurrenceID
 		if err := backend.persistCalendarReplyDelivery(ctx, event.OrganizationID, event.ID, appliedAttendeeID, command.EventSequence(), requested.Version, &recurrenceID, requested.Status); err != nil {
