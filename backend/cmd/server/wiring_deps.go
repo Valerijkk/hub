@@ -19,6 +19,7 @@ import (
 	callsmod "github.com/valerii/hub/backend/internal/calls"
 	crmmod "github.com/valerii/hub/backend/internal/crm"
 	dashboardmod "github.com/valerii/hub/backend/internal/dashboard"
+	devmod "github.com/valerii/hub/backend/internal/dev"
 	githubmod "github.com/valerii/hub/backend/internal/github"
 	gitlabmod "github.com/valerii/hub/backend/internal/gitlab"
 	messengermod "github.com/valerii/hub/backend/internal/messenger"
@@ -60,8 +61,9 @@ type serverDeps struct {
 	app *fiber.App
 	api fiber.Router
 
-	authSvc     *auth.AuthService
-	requireAuth fiber.Handler
+	authSvc                *auth.AuthService
+	requireAuth            fiber.Handler
+	mailCalendarDemoSeeder devmod.MailCalendarDemoSeeder
 
 	apigatewayRepo  *apigatewaymod.EntRepository
 	apiKeySvc       *apigatewaymod.APIKeyService
