@@ -56,7 +56,6 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 		"leaseUntil",
 		"validCalendarMailDeliveryLeaseUntil",
 		"calendarMailDeliveryDefaultScanInterval = 30 * time.Second",
-		"calendarMailDeliveryMaximumAttempts = 8",
 		"calendarMailDeliveryRetryMinimum = 30 * time.Second",
 		"calendarMailDeliveryRetryMaximum = 5 * time.Minute",
 		"CalendarInviteDeliveryKindCreated",
@@ -78,6 +77,9 @@ func TestCalendarMailDeliverySourceContract(t *testing.T) {
 	}
 	if !strings.Contains(normalizedRepository, "calendarMailDeliveryDefaultBatchSize = 50") {
 		t.Fatal("calendar delivery repository source missing normalized default batch size declaration")
+	}
+	if !strings.Contains(normalizedRepository, "calendarMailDeliveryMaximumAttempts = 8") {
+		t.Fatal("calendar delivery repository source missing normalized maximum attempts declaration")
 	}
 	for _, required := range []string{
 		"hub.calendar.delivery.draft.v1/",
