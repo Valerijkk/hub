@@ -872,7 +872,7 @@ Completion time must be nonzero, at/after message creation, and strictly before 
 
 ## Phase 151 recovery scanner authority decision (2026-08-27)
 
-`Phase151PendingRecoveryTarget` currently carries tenant, channel, and kind only. Because it has no actor or service-principal identity and production has no process-lifetime interval owner, PostgreSQL target pager, or recovery reauthorizer, a concrete scanner must not invent member authority. The later standalone per-instance interval gate is not a scheduler or production composition. Before implementation, freeze either an explicit server-owned recovery principal with auditable authorization semantics or a redesigned target-authority facts contract. The concrete scanner, scheduler, and live writer cutover remain `UNBOUND` until that decision.
+Historical 2026-08-27 snapshot (superseded): before authority was frozen, `Phase151PendingRecoveryTarget` carried tenant/channel/kind only and a scanner could not invent member authority. The current accepted boundaries are closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts`. The remaining unbound work is PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, and writer/server/runtime binding. The standalone per-instance interval gate is not a scheduler or production composition.
 
 ## Calls credentials and Messenger completion CAS (2026-08-27)
 
@@ -901,7 +901,7 @@ Messenger pending recovery candidates must match the authorized target channel, 
 
 `Phase151RecoveryServicePrincipal` is closed and currently admits only `messenger.post_create_recovery`. `Phase151RecoveryTargetAuthority` consists exactly of `Principal`, `TenantID`, `ChannelID`, and `Kind`; it deliberately does not represent an actor, producer, bot, or integration. Validation accepts only that closed principal and a structurally valid exact target tuple; every invalid principal, malformed target, or identity drift maps to `ErrPostCreatePipelineInvalid`.
 
-This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`, and there is no PG pager, reauthorizer, scheduler, live writer, or external/runtime binding. Those boundaries remain `UNBOUND`.
+This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`, and there is no PG pager, cross-store scanner, injection/production composition of the existing reauthorizer, scheduler, live writer, or external/runtime binding. Those boundaries remain `UNBOUND`.
 
 ## Calls truthful join-credential expiry contract (2026-08-28)
 

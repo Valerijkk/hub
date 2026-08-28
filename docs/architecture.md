@@ -409,7 +409,7 @@ The adapter treats claim non-acquisition as ordinary contention so the bounded l
 
 ## Phase 151 recovery scanner authority gap (2026-08-27)
 
-Concrete composition cannot safely choose fresh recovery authority yet. `Phase151PendingRecoveryTarget` identifies tenant/channel/kind but carries no actor or service principal, while production provides no process-lifetime recovery interval owner, stable PostgreSQL target pager, or reauthorizer. The later standalone per-instance interval gate is not production composition. The next architecture decision must introduce an explicit server-owned recovery principal or redesign the target-authority facts contract. Selecting an arbitrary current member or channel owner would change audit and authorization semantics and is forbidden. Until the decision is frozen, scanner construction, scheduling, and live writer cutover remain unbound.
+Historical 2026-08-27 snapshot (superseded): recovery authority was not yet frozen. The current accepted boundaries are the closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts`; no arbitrary member or channel owner is substituted. Remaining work is a PG pager, cross-store scanner, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live evidence. The standalone per-instance interval gate is not that owner or composition; all remaining boundaries are unbound.
 
 ## Calls provider seams and Messenger completion CAS (2026-08-27)
 
@@ -432,13 +432,13 @@ The internal Jitsi issuer now exposes `IssueJoinCredential` (`0a332760`): one pr
 
 `JitsiEmbedHost` (`ee0387e5`) is an inert validated mount seam: one empty ref target for valid self-hosted credentials and no credential persistence/exposure, network, script, iframe, provider API, or runtime activation. It is not connected to `CallPanel`, routing, deployment, or cutover; LiveKit remains active.
 
-The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. This does not provide the missing PG pager, recovery principal, process-lifetime interval owner, scheduler, or writer cutover.
+The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. This does not provide the missing PG pager, cross-store scanner, injection/production composition, process-lifetime interval owner, scheduler, or writer cutover; the closed recovery principal already exists.
 
 ## Messenger server-owned recovery authority seam (2026-08-28)
 
 The frozen authority decision is now represented by closed `Phase151RecoveryServicePrincipal` value `messenger.post_create_recovery` and `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}`. The target contract intentionally has no actor/producer/bot/integration identity: exact validation accepts only the closed principal plus a structurally valid exact tenant/channel/kind target and otherwise fails with `ErrPostCreatePipelineInvalid`. This prevents arbitrary-member or channel-owner substitution from silently defining recovery authorization semantics.
 
-The seam is not yet composed into recovery execution. Existing scanner/runner contracts still use `AuthorizedMessageProducerScope`; no PostgreSQL pager, reauthorizer, scheduler, production writer, or live recovery runtime is bound. The next safe atom is pure provenance reconstruction/claimed runner/coordinator contract migration to `Phase151RecoveryTargetAuthority`; all live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
+The seam is not yet composed into recovery execution. Existing scanner/runner contracts still use `AuthorizedMessageProducerScope`; no PostgreSQL pager, cross-store scanner, injection/production composition of the existing reauthorizer, scheduler, production writer, or live recovery runtime is bound. The next safe atom is pure provenance reconstruction/claimed runner/coordinator contract migration to `Phase151RecoveryTargetAuthority`; all live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
 
 ## Calls signed credential-expiry projection (2026-08-28)
 

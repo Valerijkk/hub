@@ -231,7 +231,7 @@ Initial RED kept build/vet `PASS` and failed unit/race only in `TestPhase151Prom
 
 Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`. Root chronological rendering, reply chronological rendering, selected-reply retention, and non-descending-page rejection all pass in unit and race; the final logs contain no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because retained agents exhaust runtime capacity. Live Mongo/Ent-PostgreSQL/NATS/WS/browser, integration, Swagger, and `qa-build` remain `NOT_RUN`; cross-store TOCTOU remains open.
 
-Recovery-scanner mapping is decision-blocked rather than code-complete: no production-composed interval owner, PG pager, or recovery reauthorizer exists, and `Phase151PendingRecoveryTarget` has no actor/service-principal identity; the later standalone per-instance gate is not that owner. A server-owned recovery principal or redesigned authority-facts contract must be frozen before concrete scanner implementation; arbitrary-member substitution is forbidden.
+Historical 2026-08-27 snapshot (superseded): recovery-scanner mapping was decision-blocked before a closed authority was frozen. `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` now exist and are accepted. Concrete scanner work remains blocked only on PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, and writer/server/runtime binding; arbitrary-member substitution remains forbidden.
 
 
 ## 2026-08-27 post-create completion CAS hardening
@@ -349,3 +349,7 @@ Deterministic focused coverage covers narrow-interface satisfaction; valid/nil/t
 Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`. Final-fix root-read receipts at `2026-08-28T21:55:49+03:00` show target/build/vet/unit/race `PASS`, exit `0`, and all four stderr lengths `0`; **container ID not retained**. Scoped re-review: `ADDRESSED` / `PASS` / `APPROVED`; new breakage `0/0/0`.
 
 Pager/scanner/coordinator migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Safe-report correction note (2026-08-28)
+
+Review round 1 corrected stale current authority-gap wording. The accepted closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` are present; only PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live execution remain `UNBOUND/NOT_RUN`. This correction preserves the standalone interval-gate evidence and does not claim production recovery.
