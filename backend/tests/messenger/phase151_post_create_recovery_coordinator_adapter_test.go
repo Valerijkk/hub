@@ -14,32 +14,40 @@ import (
 
 var _ messenger.Phase151PendingRecoveryRepository = (*messenger.Phase151ClaimedRecoveryCoordinatorAdapter)(nil)
 var _ messenger.Phase151PendingRecoveryScanRepository = (*phase151ClaimedRecoveryCoordinatorScanner)(nil)
+var _ messenger.Phase151PendingRecoveryIntervalGate = (*phase151ClaimedRecoveryCoordinatorIntervalGate)(nil)
 var _ messenger.Phase151ClaimedPostCreateRecoveryRepository = (*phase151ClaimedRecoveryCoordinatorEffects)(nil)
 
 type phase151ClaimedRecoveryCoordinatorScanner struct {
-	target       messenger.Phase151PendingRecoveryTarget
-	page         *messenger.Phase151PendingRecoveryTargetPage
-	authority    messenger.Phase151RecoveryTargetAuthority
-	documents    []messenger.MessageDocument
-	calls        []string
-	intervals    []time.Duration
-	intervalErr  error
-	pageErr      error
-	authorityErr error
-	documentsErr error
-	lastCursor   *messenger.Phase151RecoveryTargetCursor
-	lastLimit    int
+	target        messenger.Phase151PendingRecoveryTarget
+	page          *messenger.Phase151PendingRecoveryTargetPage
+	authority     messenger.Phase151RecoveryTargetAuthority
+	documents     []messenger.MessageDocument
+	calls         []string
+	pageErr       error
+	authorityErr  error
+	documentsErr  error
+	lastCursor    *messenger.Phase151RecoveryTargetCursor
+	lastLimit     int
 	lastAuthority messenger.Phase151RecoveryTargetAuthority
-	lastTarget   messenger.Phase151PendingRecoveryTarget
+	lastTarget    messenger.Phase151PendingRecoveryTarget
 }
 
-func (s *phase151ClaimedRecoveryCoordinatorScanner) TryAcquirePendingRecoveryInterval(
+type phase151ClaimedRecoveryCoordinatorIntervalGate struct {
+	minimums []time.Duration
+	acquired bool
+	err      error
+}
+
+func newPhase151ClaimedRecoveryCoordinatorIntervalGate() *phase151ClaimedRecoveryCoordinatorIntervalGate {
+	return &phase151ClaimedRecoveryCoordinatorIntervalGate{acquired: true}
+}
+
+func (g *phase151ClaimedRecoveryCoordinatorIntervalGate) TryAcquirePendingRecoveryInterval(
 	_ context.Context,
 	minimum time.Duration,
 ) (bool, error) {
-	s.calls = append(s.calls, "interval")
-	s.intervals = append(s.intervals, minimum)
-	return s.intervalErr == nil, s.intervalErr
+	g.minimums = append(g.minimums, minimum)
+	return g.acquired, g.err
 }
 
 func (s *phase151ClaimedRecoveryCoordinatorScanner) ListPendingRecoveryTargets(
@@ -194,10 +202,11 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterDerivesEffectScopesFromCanonic
 	scanner := &phase151ClaimedRecoveryCoordinatorScanner{
 		target: target, authority: authority, documents: []messenger.MessageDocument{message},
 	}
+	gate := newPhase151ClaimedRecoveryCoordinatorIntervalGate()
 	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
 	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
 	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
-		scanner, ownerID, lease, clock, effects,
+		scanner, gate, ownerID, lease, clock, effects,
 	)
 
 	err := messenger.ExportPhase151ExecutePendingPostCreateRecovery(
@@ -209,7 +218,8 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterDerivesEffectScopesFromCanonic
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, []string{"interval", "targets", "reauthorize", "documents"}, scanner.calls)
+	assert.Equal(t, []string{"targets", "reauthorize", "documents"}, scanner.calls)
+	assert.Equal(t, []time.Duration{time.Minute}, gate.minimums)
 	assert.Equal(t, []string{
 		"claim:" + message.ID,
 		"auto-follow:" + message.ID,
@@ -250,7 +260,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterContinuesAfterClaimMiss(t *tes
 		times: []time.Time{claimNow, claimNow.Add(time.Second), completedAt},
 	}
 	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
-		scanner, ownerID, lease, clock, effects,
+		scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, clock, effects,
 	)
 
 	err := messenger.ExportPhase151ExecutePendingPostCreateRecovery(
@@ -282,7 +292,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterPreservesRunnerError(t *testin
 	effects := &phase151ClaimedRecoveryCoordinatorEffects{followErr: stageErr}
 	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
 	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
-		scanner, ownerID, lease, clock, effects,
+		scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, clock, effects,
 	)
 
 	err := messenger.ExportPhase151ExecutePendingPostCreateRecovery(
@@ -301,22 +311,31 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterPreservesRunnerError(t *testin
 func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsInvalidConstruction(t *testing.T) {
 	_, _, _, ownerID, claimNow, completedAt, lease := phase151ClaimedRecoveryCoordinatorFixture()
 	scanner := &phase151ClaimedRecoveryCoordinatorScanner{}
+	gate := newPhase151ClaimedRecoveryCoordinatorIntervalGate()
 	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
 	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
 	var typedNilScanner *phase151ClaimedRecoveryCoordinatorScanner
+	var typedNilGate *phase151ClaimedRecoveryCoordinatorIntervalGate
 	var typedNilEffects *phase151ClaimedRecoveryCoordinatorEffects
 	var typedNilClock *phase151ClaimedRecoveryRunnerClock
 
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(nil, ownerID, lease, clock, effects))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(typedNilScanner, ownerID, lease, clock, effects))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, uuid.Nil, lease, clock, effects))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, 0, clock, effects))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, -time.Second, clock, effects))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, nil, effects))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, typedNilClock, effects))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, nil))
-	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, typedNilEffects))
-	assert.NotNil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(nil, gate, ownerID, lease, clock, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(typedNilScanner, gate, ownerID, lease, clock, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, nil, ownerID, lease, clock, effects))
+	typedNilGateAdapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, typedNilGate, ownerID, lease, clock, effects)
+	assert.Nil(t, typedNilGateAdapter)
+	acquired, err := typedNilGateAdapter.TryAcquirePendingRecoveryInterval(context.Background(), time.Minute)
+	assert.False(t, acquired)
+	require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+	assert.Empty(t, scanner.calls)
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, uuid.Nil, lease, clock, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, 0, clock, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, -time.Second, clock, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, lease, nil, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, lease, typedNilClock, effects))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, lease, clock, nil))
+	assert.Nil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, lease, clock, typedNilEffects))
+	assert.NotNil(t, messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, lease, clock, effects))
 }
 
 func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsDriftingFreshAuthority(t *testing.T) {
@@ -326,7 +345,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsDriftingFreshAuthority(
 	t.Run("malformed target stops before reauthorization", func(t *testing.T) {
 		scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, authority: validAuthority}
 		adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
-			scanner, ownerID, lease, &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}, &phase151ClaimedRecoveryCoordinatorEffects{},
+			scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}, &phase151ClaimedRecoveryCoordinatorEffects{},
 		)
 		malformed := target
 		malformed.Kind = ""
@@ -357,7 +376,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsDriftingFreshAuthority(
 				target: target, authority: drifted, authorityErr: scenario.authorityErr,
 			}
 			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
-				scanner, ownerID, lease, &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}, &phase151ClaimedRecoveryCoordinatorEffects{},
+				scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}, &phase151ClaimedRecoveryCoordinatorEffects{},
 			)
 
 			_, err := adapter.ReauthorizePendingRecoveryTarget(context.Background(), target)
@@ -389,7 +408,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsInvalidAuthorityOrDocum
 			scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, authority: authority}
 			effects := &phase151ClaimedRecoveryCoordinatorEffects{}
 			clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
-			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, clock, effects)
 
 			err := adapter.ReconcilePendingPostCreateEffects(context.Background(), authority, message)
 
@@ -399,23 +418,29 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsInvalidAuthorityOrDocum
 		})
 	}
 }
-func TestPhase151ClaimedRecoveryCoordinatorAdapterForwardsScannerAndFailsClosed(t *testing.T) {
+func TestPhase151ClaimedRecoveryCoordinatorAdapterForwardsScannerAndGateAndFailsClosed(t *testing.T) {
 	target, authority, message, ownerID, claimNow, completedAt, lease :=
 		phase151ClaimedRecoveryCoordinatorFixture()
 	scanErr := errors.New("phase151 recovery scan failed")
 	scanner := &phase151ClaimedRecoveryCoordinatorScanner{
 		target: target, authority: authority, documents: []messenger.MessageDocument{message},
 	}
+	gate := newPhase151ClaimedRecoveryCoordinatorIntervalGate()
 	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
 	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
 	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
-		scanner, ownerID, lease, clock, effects,
+		scanner, gate, ownerID, lease, clock, effects,
 	)
 
-	scanner.intervalErr = scanErr
-	_, err := adapter.TryAcquirePendingRecoveryInterval(context.Background(), time.Minute)
+	gate.acquired = false
+	gate.err = scanErr
+	acquired, err := adapter.TryAcquirePendingRecoveryInterval(context.Background(), time.Minute)
+	assert.False(t, acquired)
 	require.ErrorIs(t, err, scanErr)
-	scanner.intervalErr = nil
+	assert.Equal(t, []time.Duration{time.Minute}, gate.minimums)
+	assert.Empty(t, scanner.calls)
+	gate.acquired = true
+	gate.err = nil
 
 	scanner.pageErr = scanErr
 	cursor := &messenger.Phase151RecoveryTargetCursor{
@@ -456,6 +481,70 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterForwardsScannerAndFailsClosed(
 	_, err = adapter.TryAcquirePendingRecoveryInterval(nil, time.Minute)
 	require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
 }
+func TestPhase151ClaimedRecoveryCoordinatorAdapterReturnsGateFalseWithoutScanning(t *testing.T) {
+	target, authority, message, ownerID, claimNow, completedAt, lease :=
+		phase151ClaimedRecoveryCoordinatorFixture()
+	scanner := &phase151ClaimedRecoveryCoordinatorScanner{
+		target: target, authority: authority, documents: []messenger.MessageDocument{message},
+	}
+	gate := newPhase151ClaimedRecoveryCoordinatorIntervalGate()
+	gate.acquired = false
+	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
+	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
+	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, gate, ownerID, lease, clock, effects)
+
+	acquired, err := adapter.TryAcquirePendingRecoveryInterval(context.Background(), time.Minute)
+	require.NoError(t, err)
+	assert.False(t, acquired)
+	assert.Equal(t, []time.Duration{time.Minute}, gate.minimums)
+	assert.Empty(t, scanner.calls)
+
+	err = messenger.ExportPhase151ExecutePendingPostCreateRecovery(
+		context.Background(),
+		adapter,
+		messenger.Phase151PendingRecoveryConfig{
+			MaxPages: 1, MaxTargets: 1, PendingScanLimit: 10, MinimumInterval: time.Minute,
+		},
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, []time.Duration{time.Minute, time.Minute}, gate.minimums)
+	assert.Empty(t, scanner.calls)
+	assert.Empty(t, effects.calls)
+	assert.Zero(t, clock.calls)
+}
+
+func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsInvalidIntervalInputWithoutGateOrScanner(t *testing.T) {
+	target, authority, _, ownerID, claimNow, completedAt, lease := phase151ClaimedRecoveryCoordinatorFixture()
+
+	for _, scenario := range []struct {
+		name    string
+		ctx     context.Context
+		minimum time.Duration
+	}{
+		{name: "nil context", minimum: time.Minute},
+		{name: "zero interval", ctx: context.Background()},
+		{name: "negative interval", ctx: context.Background(), minimum: -time.Second},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, authority: authority}
+			gate := newPhase151ClaimedRecoveryCoordinatorIntervalGate()
+			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(
+				scanner, gate, ownerID, lease,
+				&phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}},
+				&phase151ClaimedRecoveryCoordinatorEffects{},
+			)
+
+			acquired, err := adapter.TryAcquirePendingRecoveryInterval(scenario.ctx, scenario.minimum)
+
+			assert.False(t, acquired)
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.Empty(t, gate.minimums)
+			assert.Empty(t, scanner.calls)
+		})
+	}
+}
 func TestPhase151ClaimedRecoveryCoordinatorAdapterOwnsValidatedOrderedTargetPage(t *testing.T) {
 	target, authority, _, ownerID, claimNow, completedAt, lease := phase151ClaimedRecoveryCoordinatorFixture()
 	tenantID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
@@ -472,7 +561,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterOwnsValidatedOrderedTargetPage
 	}
 	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
 	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
-	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, clock, effects)
 
 	page, err := adapter.ListPendingRecoveryTargets(context.Background(), after, 2)
 
@@ -511,7 +600,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsInvalidTargetPageInputs
 		scenario := scenario
 		t.Run(scenario.name, func(t *testing.T) {
 			scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, authority: authority}
-			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, clock, effects)
 
 			page, err := adapter.ListPendingRecoveryTargets(context.Background(), scenario.after, scenario.limit)
 
@@ -555,7 +644,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterRejectsMalformedOrNonAdvancing
 		t.Run(scenario.name, func(t *testing.T) {
 			scannerPage := scenario.page
 			scanner := &phase151ClaimedRecoveryCoordinatorScanner{target: target, authority: authority, page: &scannerPage}
-			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+			adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, clock, effects)
 
 			page, err := adapter.ListPendingRecoveryTargets(context.Background(), scenario.after, scenario.limit)
 
@@ -575,7 +664,7 @@ func TestPhase151ClaimedRecoveryCoordinatorAdapterPreservesTargetPageScannerErro
 	}
 	effects := &phase151ClaimedRecoveryCoordinatorEffects{}
 	clock := &phase151ClaimedRecoveryRunnerClock{times: []time.Time{claimNow, completedAt}}
-	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, ownerID, lease, clock, effects)
+	adapter := messenger.NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, newPhase151ClaimedRecoveryCoordinatorIntervalGate(), ownerID, lease, clock, effects)
 
 	page, err := adapter.ListPendingRecoveryTargets(context.Background(), nil, 1)
 

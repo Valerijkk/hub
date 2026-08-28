@@ -10,7 +10,6 @@ import (
 )
 
 type Phase151PendingRecoveryScanRepository interface {
-	TryAcquirePendingRecoveryInterval(context.Context, time.Duration) (bool, error)
 	ListPendingRecoveryTargets(
 		context.Context,
 		*Phase151RecoveryTargetCursor,
@@ -29,6 +28,7 @@ type Phase151PendingRecoveryScanRepository interface {
 
 type Phase151ClaimedRecoveryCoordinatorAdapter struct {
 	scanner       Phase151PendingRecoveryScanRepository
+	intervalGate  Phase151PendingRecoveryIntervalGate
 	ownerID       uuid.UUID
 	leaseDuration time.Duration
 	clock         Phase151PostCreateRecoveryClock
@@ -39,17 +39,19 @@ var _ Phase151PendingRecoveryRepository = (*Phase151ClaimedRecoveryCoordinatorAd
 
 func NewPhase151ClaimedRecoveryCoordinatorAdapter(
 	scanner Phase151PendingRecoveryScanRepository,
+	intervalGate Phase151PendingRecoveryIntervalGate,
 	ownerID uuid.UUID,
 	leaseDuration time.Duration,
 	clock Phase151PostCreateRecoveryClock,
 	repository Phase151ClaimedPostCreateRecoveryRepository,
 ) *Phase151ClaimedRecoveryCoordinatorAdapter {
-	if phase151PostCreateDependencyNil(scanner) || ownerID == uuid.Nil || leaseDuration <= 0 ||
+	if phase151PostCreateDependencyNil(scanner) || phase151PostCreateDependencyNil(intervalGate) ||
+		ownerID == uuid.Nil || leaseDuration <= 0 ||
 		phase151PostCreateDependencyNil(clock) || phase151PostCreateDependencyNil(repository) {
 		return nil
 	}
 	return &Phase151ClaimedRecoveryCoordinatorAdapter{
-		scanner: scanner, ownerID: ownerID, leaseDuration: leaseDuration,
+		scanner: scanner, intervalGate: intervalGate, ownerID: ownerID, leaseDuration: leaseDuration,
 		clock: clock, repository: repository,
 	}
 }
@@ -64,7 +66,7 @@ func (a *Phase151ClaimedRecoveryCoordinatorAdapter) TryAcquirePendingRecoveryInt
 		}
 		return false, ErrPostCreatePipelineInvalid
 	}
-	return a.scanner.TryAcquirePendingRecoveryInterval(ctx, minimum)
+	return a.intervalGate.TryAcquirePendingRecoveryInterval(ctx, minimum)
 }
 
 func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ListPendingRecoveryTargets(
@@ -234,6 +236,7 @@ func (a *Phase151ClaimedRecoveryCoordinatorAdapter) ReconcilePendingPostCreateEf
 
 func (a *Phase151ClaimedRecoveryCoordinatorAdapter) validate(ctx context.Context) error {
 	if a == nil || ctx == nil || phase151PostCreateDependencyNil(a.scanner) ||
+		phase151PostCreateDependencyNil(a.intervalGate) ||
 		a.ownerID == uuid.Nil || a.leaseDuration <= 0 ||
 		phase151PostCreateDependencyNil(a.clock) ||
 		phase151PostCreateDependencyNil(a.repository) {
