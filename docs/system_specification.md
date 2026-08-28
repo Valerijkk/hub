@@ -1039,6 +1039,6 @@ No Ent/Mongo execution, coordinator or interval-gate construction, owner/config/
 
 ## Calls confirmed participant connection key (2026-08-29)
 
-`ConfirmedParticipantConnectionKey` is a pure future internal Hub value containing `(CallID, UserID, Epoch)` for a connection fact already trusted upstream. Its only canonical rendering is `hub.call-connection.v1/<call>/<user>/<epoch>`. Every component must be nonzero; invalid construction or validity yields `ErrConfirmedParticipantConnectionKeyInvalid` and the zero key, while `Canonical` is empty.
+`ConfirmedParticipantConnectionKey` is a pure future internal Hub value containing `(CallID, UserID, Epoch)` for a connection fact already trusted upstream. Its only canonical rendering is `hub.call-connection.v1/<call>/<user>/<epoch>`. Every component must be nonzero; invalid construction yields `ErrConfirmedParticipantConnectionKeyInvalid` and the zero key, `IsValid` returns `false`, and `Canonical` is empty.
 
 Neither the value nor pointer implements `fmt.Stringer`. Tests prevent accidental default stringification only: this is not redaction or a security guarantee, because exported UUID fields remain formattable; runtime operations must continue not to log connection keys. The value neither creates epochs nor parses/serializes data, selects a provider, accepts webhooks, persists/refcounts connections, or binds service/server/runtime/Jitsi code. Existing legacy behavior remains unchanged. LiveKit remains active; Jitsi is `UNBOUND/NOT_RUN`.
