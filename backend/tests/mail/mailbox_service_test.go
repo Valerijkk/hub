@@ -296,8 +296,12 @@ func TestMailboxService_ResolvesOwnerStatesThroughActorOnlyRepositoryCall(t *tes
 			if got := owner.OrganizationID(); got != organizationID {
 				t.Fatalf("owner OrganizationID() = %s, want %s", got, organizationID)
 			}
-			if got, ok := owner.AccountID(); got != accountID || ok != test.wantAccount {
-				t.Fatalf("owner AccountID() = (%s, %t), want (%s, %t)", got, ok, accountID, test.wantAccount)
+			wantAccountID := accountID
+			if !test.wantAccount {
+				wantAccountID = uuid.Nil
+			}
+			if got, ok := owner.AccountID(); got != wantAccountID || ok != test.wantAccount {
+				t.Fatalf("owner AccountID() = (%s, %t), want (%s, %t)", got, ok, wantAccountID, test.wantAccount)
 			}
 			if got, ok := owner.PrimaryAddress(); got != test.wantPrimaryValue || ok != test.wantPrimary {
 				t.Fatalf("owner PrimaryAddress() = (%q, %t), want (%q, %t)", got, ok, test.wantPrimaryValue, test.wantPrimary)
@@ -312,10 +316,11 @@ func TestMailboxService_ResolvesOwnerStatesThroughActorOnlyRepositoryCall(t *tes
 	}
 }
 
-func TestMailboxService_DeletingIsTypedAndNeverReturnsAnOwner(t *testing.T) {
+func TestMailboxService_DeletingReturnsTypedOwnerWithoutEngineAccess(t *testing.T) {
 	actorID := uuid.New()
 	record := validActiveMailboxOwnerRecord(actorID)
 	record.State = mail.MailboxOwnerDeleting
+	record.EngineAccountID = nil
 	repository := &mailboxOwnerRepositoryFake{result: record}
 	service, err := mail.NewMailboxService(repository)
 	if err != nil {
@@ -323,10 +328,24 @@ func TestMailboxService_DeletingIsTypedAndNeverReturnsAnOwner(t *testing.T) {
 	}
 
 	owner, err := service.ResolveOwner(context.Background(), actorID)
-	if owner != (mail.MailboxOwner{}) {
-		t.Fatalf("ResolveOwner() owner = %#v, want zero owner while deleting", owner)
+	if err != nil {
+		t.Fatalf("ResolveOwner() unexpected error = %v", err)
 	}
-	requireMailboxServiceError(t, err, mail.MailboxServiceErrorDeleting, mail.ErrMailboxServiceDeleting)
+	if got := owner.State(); got != mail.MailboxOwnerDeleting {
+		t.Fatalf("owner State() = %q, want %q", got, mail.MailboxOwnerDeleting)
+	}
+	if got, ok := owner.AccountID(); got != record.AccountID || !ok {
+		t.Fatalf("owner AccountID() = (%s, %t), want (%s, true)", got, ok, record.AccountID)
+	}
+	if got, ok := owner.PrimaryAddress(); got != *record.PrimaryAddress || !ok {
+		t.Fatalf("owner PrimaryAddress() = (%q, %t), want (%q, true)", got, ok, *record.PrimaryAddress)
+	}
+	if got, ok := owner.ProjectionState(); got != record.ProjectionState || !ok {
+		t.Fatalf("owner ProjectionState() = (%q, %t), want (%q, true)", got, ok, record.ProjectionState)
+	}
+	if got, ok := owner.RecoveryCode(); got != "" || ok {
+		t.Fatalf("owner RecoveryCode() = (%q, %t), want (\"\", false)", got, ok)
+	}
 	if repository.calls != 1 {
 		t.Fatalf("repository calls = %d, want 1", repository.calls)
 	}
