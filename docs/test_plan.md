@@ -632,3 +632,11 @@ Focused units for commit `519d14b1` cover the accepted Hub key plus trusted obse
 Valid RED `worktree-master-backend-unit-run-4ceca6a1e260` recorded target `FAIL`, first exit `1`, build `PASS`, and expected missing-symbol vet/unit/race failures with retained stderr lengths `0/232/0/0`. Canonical GREEN `worktree-master-backend-unit-run-5f5fbdac76bd` records target/build/vet/unit/race `PASS`, exit `0`, and four empty stderr logs. Specification review is `PASS`, quality review `APPROVED`, `C0/I0/M0`.
 
 This is unit/race evidence only: it does not prove I/O, logging, persistence, CAS/transactions, event delivery, reconciliation execution, provider/webhook integration, lifecycle/server wiring, self-hosted Jitsi runtime, cutover, or browser/media behavior. The earlier simpler reducer is unchanged; LiveKit remains active and Jitsi stays `UNBOUND/NOT_RUN`.
+
+## Phase 151 pending-recovery composition coverage (2026-08-29)
+
+Focused unit/race coverage for commit `fc80c9e8` verifies passive composition of a valid immutable runtime config with one complete post-create-owned Combined Ent/Mongo graph and a plain nonnil clock; typed-nil clock and every incomplete graph/config shape fail closed. The suite proves the holder returns one opaque repository identity, copies the retained execution config, forwards fixed owner/lease values through construction, and invokes neither clock nor dependency methods.
+
+Valid RED `worktree-master-backend-unit-run-e0417e335e61` had target `FAIL`, first exit `1`, build `PASS`, and expected missing-constructor vet/unit/race failures with stderr lengths `0/243/0/0`. `f86bc87afa18` is not canonical because only a test-side typed-nil dereference failed unit/race. Canonical GREEN `worktree-master-backend-unit-run-6dad11197ae4` records target/build/vet/unit/race `PASS`, exit `0`, and four empty stderr logs. Specification review is `PASS`; quality review is `APPROVED`, `C0/I0/M0`.
+
+This proves no I/O, recovery execution, executor, `RunOnce`, scheduler/goroutine, process ownership, server/startup, deployment installation, live Ent/Mongo behavior, or runtime/integration flow. Production installation and live execution remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

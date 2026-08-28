@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-minimal-merge-candidate
 stopped_at: final Git audit and remote fast-forward publication
-last_updated: "2026-08-23T00:00:00.000+03:00"
-last_activity: 2026-08-23 · minimal Docker gates PASS; hosted CI off; publication pending
+last_updated: "2026-08-29T00:00:00.000+03:00"
+last_activity: 2026-08-29 · pending-recovery composition documented; unit/race evidence accepted; runtime remains unbound
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -1571,3 +1571,10 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 - Structural validation precedes ended-state handling: invalid input returns the exact reducer sentinel and zero result. A valid ended-call observation is descriptive no-op, preventing an individual-left storm. The older simpler presence reducer is unchanged.
 - RED `worktree-master-backend-unit-run-4ceca6a1e260`: target `FAIL`, first exit `1`, build `PASS`, expected missing-symbol vet/unit/race failures, retained stderr `0/232/0/0`. Canonical GREEN `worktree-master-backend-unit-run-5f5fbdac76bd`: target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Specification review `PASS`, quality review `APPROVED`, `C0/I0/M0`.
 - No I/O/logging/persistence/CAS/transactions/events/reconciliation execution/provider/webhook/runtime/Jitsi integration is added. LiveKit remains active; Jitsi deployment/media/browser/cutover remains `UNBOUND/NOT_RUN`; Phase 150 verdict is unchanged.
+
+## Session note - 2026-08-29 (Messenger pending-recovery composition)
+
+- Commit `fc80c9e8` adds the passive `Phase151PendingRecoveryComposition` holder. It accepts only a valid immutable `Phase151PendingRecoveryRuntimeConfig`, one complete post-create-owned combined Ent/Mongo graph, and a plain nonnil clock; typed-nil clocks fail closed.
+- Composition constructs the existing PG target reauthorizer, in-memory scanner adapter, process-local interval gate, and claimed coordinator. It retains only the opaque repository identity and a value copy of the execution config; immutable owner and lease values are forwarded statically.
+- The constructor and accessors invoke no clock or dependency method, perform no I/O, and do not execute recovery. They do not add an executor, `RunOnce`, scheduler/goroutine, process owner, server/startup, or runtime installation. Production installation, live stores, and runtime remain `UNBOUND/NOT_RUN`.
+- Valid RED `worktree-master-backend-unit-run-e0417e335e61` had target `FAIL`, first exit `1`, build `PASS`, and expected missing-constructor vet/unit/race failures with stderr lengths `0/243/0/0`. Intermediate `f86bc87afa18` was not canonical because a test-only typed-nil dereference failed unit/race. Final canonical GREEN `worktree-master-backend-unit-run-6dad11197ae4` records target/build/vet/unit/race `PASS`, exit `0`, and four empty stderr logs. Specification review is `PASS`; quality review is `APPROVED`, `C0/I0/M0`.
