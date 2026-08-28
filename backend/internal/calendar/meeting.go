@@ -616,7 +616,6 @@ type MeetingUpdatePersistenceCommand struct {
 func NewMeetingUpdatePersistenceCommand(current MeetingMutationSnapshot, desired MeetingCreateInput, authorization MeetingCreateAuthorization, reservations CalendarAvailabilityReservationSet, expectedVersion uint, notifyAttendees bool) (MeetingUpdatePersistenceCommand, error) {
 	canonical, err := NewMeetingCreateCommand(desired)
 	if err != nil || !current.valid() || !authorization.valid() || !reservations.valid() || expectedVersion == 0 ||
-		!meetingMutationSnapshotsEqual(current, authorization.Current) ||
 		current.EventVersion != expectedVersion || authorization.Organizer.UserID != current.OwnerID ||
 		authorization.ProjectID != canonical.input.ProjectID || authorization.ChannelID != canonical.input.ChannelID ||
 		reservations.EventID() != current.EventID || reservations.OrganizationID() != current.OrganizationID || reservations.OrganizerID() != current.OwnerID ||
