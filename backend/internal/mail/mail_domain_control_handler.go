@@ -296,7 +296,7 @@ func mailDomainControlHTTPRejectEmptyTransport(ctx fiber.Ctx) error {
 	if err := mailDomainControlHTTPRejectQuery(ctx); err != nil {
 		return err
 	}
-	if ctx == nil || len(ctx.BodyRaw()) != 0 || ctx.Request().Header.Peek(fiber.HeaderContentType) != nil {
+	if ctx == nil || len(ctx.BodyRaw()) != 0 || len(ctx.Request().Header.Peek(fiber.HeaderContentType)) != 0 {
 		return mailDomainControlHTTPError(ctx, http.StatusBadRequest, "MAIL_DOMAIN_INVALID")
 	}
 	return nil
