@@ -124,11 +124,11 @@ func TestMailboxSubmissionHandler_SendRejectsInvalidTransportBeforeService(t *te
 		authenticated bool
 		wantStatus   int
 	}{
-		{name: "query", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.URL.RawQuery = "ignored=1" }, authenticated: true, wantStatus: http.StatusBadRequest},
+		{name: "query", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.URL.RawQuery = "ignored=1"; request.RequestURI = request.URL.RequestURI() }, authenticated: true, wantStatus: http.StatusBadRequest},
 		{name: "body", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.Body = io.NopCloser(strings.NewReader("{}")); request.ContentLength = 2 }, authenticated: true, wantStatus: http.StatusBadRequest},
 		{name: "content type", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.Header.Set("Content-Type", "application/json") }, authenticated: true, wantStatus: http.StatusBadRequest},
 		{name: "missing idempotency key", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.Header.Del("Idempotency-Key") }, authenticated: true, wantStatus: http.StatusBadRequest},
-		{name: "control idempotency key", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.Header.Set("Idempotency-Key", "draft\x01key") }, authenticated: true, wantStatus: http.StatusBadRequest},
+		{name: "oversized idempotency key", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.Header.Set("Idempotency-Key", strings.Repeat("k", 129)) }, authenticated: true, wantStatus: http.StatusBadRequest},
 		{name: "invalid if match", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.Header.Set("If-Match", "7") }, authenticated: true, wantStatus: http.StatusBadRequest},
 		{name: "missing if match", draftID: mailboxSubmissionHandlerDraftID.String(), configure: func(request *http.Request) { request.Header.Del("If-Match") }, authenticated: true, wantStatus: http.StatusBadRequest},
 		{name: "noncanonical draft", draftID: strings.ToUpper(mailboxSubmissionHandlerDraftID.String()), configure: func(*http.Request) {}, authenticated: true, wantStatus: http.StatusBadRequest},
