@@ -629,7 +629,22 @@ func TestCalendarEventOccurrenceCancel_DeepCopyAndFullEchoRollback(t *testing.T)
 		}},
 		{name: "outbox event id", mutate: func(command calendar.CalendarEventOccurrenceCancelPersistenceCommand, result calendar.CalendarEventOccurrenceCancelPersistenceResult) calendar.CalendarEventOccurrenceCancelPersistenceResult {
 			actor := occurrenceActorID
-			envelope, err := calendar.NewCalendarInviteOccurrenceCancelledEnvelopeV1(uuid.MustParse("abbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), time.Date(2031, time.January, 20, 1, 2, 3, 0, time.UTC), occurrenceOrganizationID, &actor, occurrenceEventID.String(), calendar.CalendarInviteOccurrenceCancelledPayload{EventID: occurrenceEventID, UID: "hub-" + occurrenceEventID.String(), Sequence: 8, RecurrenceID: occurrenceRecurrenceID, AttendeeIDs: []uuid.UUID{occurrenceAttendeeID, occurrenceExternalID}})
+			recurrenceID := occurrenceRecurrenceID
+			envelope, err := calendar.NewCalendarInviteDeliveryEnvelopeV2(
+				calendar.CalendarInviteCancelledSubjectV2,
+				uuid.MustParse("abbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+				time.Date(2031, time.January, 20, 1, 2, 3, 0, time.UTC),
+				occurrenceOrganizationID,
+				&actor,
+				occurrenceEventID.String(),
+				calendar.CalendarInviteDeliveryEnvelopeV2Input{
+					EventID:       occurrenceEventID,
+					EventSequence: 8,
+					OrganizerID:   actor,
+					RecurrenceID:  &recurrenceID,
+					AttendeeIDs:   []uuid.UUID{occurrenceAttendeeID, occurrenceExternalID},
+				},
+			)
 			if err != nil { panic(err) }
 			descriptor, err := calendar.NewEventOutboxDescriptor(envelope); if err != nil { panic(err) }
 			changed, err := calendar.NewCalendarEventOccurrenceCancelPersistenceResult(result.Event(), result.Exception(), descriptor); if err != nil { panic(err) }
@@ -1049,7 +1064,21 @@ func mustOccurrencePersistencePartsFor(t *testing.T, recurrenceID string, exdate
 	exception, err := calendar.NewCalendarEventExceptionCommand(calendar.CalendarEventExceptionCommandInput{ExceptionID: occurrenceExceptionID, EventID: occurrenceEventID, RecurrenceID: recurrenceID, Sequence: 8, Status: calendar.CalendarEventStatusCancelled, Cancelled: true})
 	if err != nil { t.Fatalf("NewCalendarEventExceptionCommand() error = %v", err) }
 	actor := occurrenceActorID
-	envelope, err := calendar.NewCalendarInviteOccurrenceCancelledEnvelopeV1(occurrenceEnvelopeID, time.Date(2031, time.January, 20, 1, 2, 3, 0, time.UTC), occurrenceOrganizationID, &actor, occurrenceEventID.String(), calendar.CalendarInviteOccurrenceCancelledPayload{EventID: occurrenceEventID, UID: "hub-" + occurrenceEventID.String(), Sequence: 8, RecurrenceID: recurrenceID, AttendeeIDs: []uuid.UUID{occurrenceAttendeeID, occurrenceExternalID}})
+	envelope, err := calendar.NewCalendarInviteDeliveryEnvelopeV2(
+		calendar.CalendarInviteCancelledSubjectV2,
+		occurrenceEnvelopeID,
+		time.Date(2031, time.January, 20, 1, 2, 3, 0, time.UTC),
+		occurrenceOrganizationID,
+		&actor,
+		occurrenceEventID.String(),
+		calendar.CalendarInviteDeliveryEnvelopeV2Input{
+			EventID:       occurrenceEventID,
+			EventSequence: 8,
+			OrganizerID:   actor,
+			RecurrenceID:  &recurrenceID,
+			AttendeeIDs:   []uuid.UUID{occurrenceAttendeeID, occurrenceExternalID},
+		},
+	)
 	if err != nil { t.Fatalf("NewCalendarInviteOccurrenceCancelledEnvelopeV1() error = %v", err) }
 	descriptor, err := calendar.NewEventOutboxDescriptor(envelope)
 	if err != nil { t.Fatalf("NewEventOutboxDescriptor() error = %v", err) }
@@ -1071,7 +1100,22 @@ func mustOccurrenceEchoResult(t *testing.T, original calendar.CalendarEventOccur
 	exception, err := calendar.NewCalendarEventExceptionCommand(exceptionInput)
 	if err != nil { panic(err) }
 	actor := eventInput.OwnerID
-	envelope, err := calendar.NewCalendarInviteOccurrenceCancelledEnvelopeV1(occurrenceEnvelopeID, time.Date(2031, time.January, 20, 1, 2, 3, 0, time.UTC), eventInput.OrganizationID, &actor, eventInput.EventID.String(), calendar.CalendarInviteOccurrenceCancelledPayload{EventID: eventInput.EventID, UID: eventInput.UID, Sequence: eventInput.Sequence, RecurrenceID: exceptionInput.RecurrenceID, AttendeeIDs: []uuid.UUID{occurrenceAttendeeID, occurrenceExternalID}})
+	recurrenceID := exceptionInput.RecurrenceID
+	envelope, err := calendar.NewCalendarInviteDeliveryEnvelopeV2(
+		calendar.CalendarInviteCancelledSubjectV2,
+		occurrenceEnvelopeID,
+		time.Date(2031, time.January, 20, 1, 2, 3, 0, time.UTC),
+		eventInput.OrganizationID,
+		&actor,
+		eventInput.EventID.String(),
+		calendar.CalendarInviteDeliveryEnvelopeV2Input{
+			EventID:       eventInput.EventID,
+			EventSequence: eventInput.Sequence,
+			OrganizerID:   actor,
+			RecurrenceID:  &recurrenceID,
+			AttendeeIDs:   []uuid.UUID{occurrenceAttendeeID, occurrenceExternalID},
+		},
+	)
 	if err != nil { panic(err) }
 	descriptor, err := calendar.NewEventOutboxDescriptor(envelope)
 	if err != nil { panic(err) }
