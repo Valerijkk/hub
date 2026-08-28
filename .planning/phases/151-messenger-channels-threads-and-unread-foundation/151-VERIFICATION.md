@@ -316,7 +316,7 @@ The valid RED retained build PASS and failed vet/unit/race only for old scope-pl
 
 Review evidence only: invalid System.Object[] was rejected; regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
 
-Runtime remains UNBOUND/NOT_RUN: no concrete PG pager/reauthorizer, scheduler/interval owner, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration.
+Runtime remains UNBOUND/NOT_RUN: the pure PG reauthorizer source port exists, but no Ent implementation, PG pager, cross-store scanner, scheduler/interval owner, coordinator/repository production composition, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration exists.
 
 Docker policy permits concurrent branch-isolated Compose projects but only one task-owned container per branch; no --build, pull, image creation, or stopping another branch. Shared layers storage numeric Jitsi disk budget is separately gated.
 
@@ -327,3 +327,9 @@ Commit `b9faba3c920371f182a7416e039a6f2708954fbb` adds `NewCallServiceWithProvid
 Valid RED container `worktree-master-backend-unit-run-e80469df6d84` finished `2026-08-28T18:40:12+03:00` with target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race failure only because the constructor was absent. Final GREEN `worktree-master-backend-unit-run-866fc0b8b37b` finished `2026-08-28T18:49:00+03:00` with target/build/vet/unit/race `PASS`, first exit `0`, and four empty stderr logs. Independent review returned Spec Compliance `PASS` and Task quality `Approved`, with no Critical/Important/Minor findings; root independently read exact raw Docker receipts after the reviewer could not inspect them.
 
 This is compile/unit/race evidence only. No server/runtime construction uses the facade; `JoinCall`, handlers/routes/DTO, participant lifecycle, provider factory/client selection, tenant authorization, self-hosted Jitsi deployment, provider cutover, integration, and browser/media runtime remain `UNBOUND/NOT_RUN`. LiveKit remains active; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## PG recovery-target reauthorizer evidence (2026-08-28)
+
+Commits `326fb23c` and hardening `a57f5da5` (with whitespace-only `67abe088`) add `PGPhase151PendingRecoveryTargetReauthorizer`: singleton tenant, exact target facts, live channel, exact `public|private -> channel` and `dm|group -> dm`, active tenant project for project channels, and tenant creator for projectless channels. Output is closed-principal-only: no actor/sender/bot/integration/Mongo authority.
+
+Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` completed `2026-08-28T19:48:05+03:00`: target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Initial RED `worktree-master-backend-unit-run-996a06b88265` (exit `1`) and first GREEN `971034f37f73` are historical. Independent final review: Spec Compliance `PASS`, Task quality `Approved`, no findings. This is unit/race evidence only; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product readiness not claimed.

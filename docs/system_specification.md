@@ -866,7 +866,7 @@ Completion time must be nonzero, at/after message creation, and strictly before 
 
 `NewPhase151ClaimedRecoveryCoordinatorAdapter(scanner, owner, leaseDuration, clock, repository)` returns nil unless scanner/clock/repository are plain and typed-nonnil, owner is a nonnil UUID, and lease is positive. The value satisfies `Phase151PendingRecoveryRepository`. Every method also rejects a nil receiver/context or corrupted dependency set; a cancelled context is returned before delegation.
 
-`TryAcquirePendingRecoveryInterval`, `ListPendingRecoveryTargets`, `ReauthorizePendingRecoveryTarget`, and `ListPendingPostCreateDocuments` delegate to `Phase151PendingRecoveryScanRepository`. Positive interval/limits and nonempty target tenant/channel/kind are mandatory. Reauthorization output must retain exact target tenant/channel, have a nonnil actor, and pass the closed trusted-producer proof before document listing.
+`TryAcquirePendingRecoveryInterval`, `ListPendingRecoveryTargets`, `ReauthorizePendingRecoveryTarget`, and `ListPendingPostCreateDocuments` delegate to `Phase151PendingRecoveryScanRepository`. Positive interval/limits and nonempty target tenant/channel/kind are mandatory. Reauthorization output must retain the exact target tenant/channel/kind and the closed service principal; no actor is part of this recovery authority.
 
 `ReconcilePendingPostCreateEffects` passes the authorized scope and a value-owned scanned document to the claimed runner with the constructor-frozen worker/lease/clock/repository. Claim miss returns nil so the outer bounded coordinator continues. Runner-stage errors retain identity. The adapter defines no concrete interval store, PG pager, authorization source, Mongo scanner construction, scheduler, lease renewal, or live-writer cutover.
 
@@ -982,3 +982,9 @@ Commit `b9faba3c920371f182a7416e039a6f2708954fbb` adds `NewCallServiceWithProvid
 Valid RED container `worktree-master-backend-unit-run-e80469df6d84` finished `2026-08-28T18:40:12+03:00` with target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race failure only because the constructor was absent. Final GREEN `worktree-master-backend-unit-run-866fc0b8b37b` finished `2026-08-28T18:49:00+03:00` with target/build/vet/unit/race `PASS`, first exit `0`, and four empty stderr logs. Independent review returned Spec Compliance `PASS` and Task quality `Approved`, with no Critical/Important/Minor findings; root independently read exact raw Docker receipts after the reviewer could not inspect them.
 
 This is compile/unit/race evidence only. No server/runtime construction uses the facade; `JoinCall`, handlers/routes/DTO, participant lifecycle, provider factory/client selection, tenant authorization, self-hosted Jitsi deployment, provider cutover, integration, and browser/media runtime remain `UNBOUND/NOT_RUN`. LiveKit remains active; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Phase 151 PG recovery-target reauthorizer contract (2026-08-28)
+
+`PGPhase151PendingRecoveryTargetReauthorizer` consumes fresh singleton-tenant lookup and exact target facts. It fails closed unless tenant and channel match the request, the channel is live, `public|private` maps to `channel` or `dm|group` to `dm`, and project channels have an active tenant project while projectless channels have the tenant creator. It returns only `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}` with the closed recovery principal; actor, sender, bot, integration, and Mongo authority are excluded.
+
+This source-port contract specifies no Ent persistence, PG paging, cross-store scan, scheduler/interval owner, production coordinator/repository composition, writer cutover, service/server wiring, or runtime/API surface. Those remain `UNBOUND/NOT_RUN`.

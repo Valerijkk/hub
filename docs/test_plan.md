@@ -546,3 +546,11 @@ Commit `b9faba3c920371f182a7416e039a6f2708954fbb` is covered at the compile/unit
 Valid RED container `worktree-master-backend-unit-run-e80469df6d84` finished `2026-08-28T18:40:12+03:00` with target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race failure only because the constructor was absent. Final GREEN `worktree-master-backend-unit-run-866fc0b8b37b` finished `2026-08-28T18:49:00+03:00` with target/build/vet/unit/race `PASS`, first exit `0`, and four empty stderr logs. Independent review returned Spec Compliance `PASS` and Task quality `Approved`, with no Critical/Important/Minor findings; root independently read exact raw Docker receipts after the reviewer could not inspect them.
 
 No server/runtime constructor, `JoinCall`, handlers/routes/DTO, participant lifecycle, provider factory/client selection, tenant authorization, self-hosted Jitsi deployment, provider cutover, integration, or browser/media path was exercised. These remain `UNBOUND/NOT_RUN`; LiveKit remains active and Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Phase 151 PG recovery-target reauthorizer evidence (2026-08-28)
+
+Focused unit/race coverage for `326fb23c` and hardening `a57f5da5` verifies singleton-tenant resolution, exact target facts, live-channel requirement, exact `public|private -> channel` and `dm|group -> dm`, active tenant project for project channels, tenant creator for projectless channels, and closed-principal-only output with no actor/sender/bot/integration/Mongo authority. `67abe088` is whitespace-only fixture alignment.
+
+Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` completed `2026-08-28T19:48:05+03:00` with target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Initial RED `worktree-master-backend-unit-run-996a06b88265` (exit `1`) and first GREEN `971034f37f73` are historical. Independent final review: Spec Compliance `PASS`, Task quality `Approved`, no findings.
+
+No API/OpenAPI or runtime claim follows. Ent implementation, PG pager, cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product not ready.
