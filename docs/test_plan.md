@@ -569,6 +569,12 @@ Commit 4b100ee6 is covered only for compile-time Phase151PendingRecoveryTargetFa
 
 Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics remain NOT_RUN. No API, runtime, or readiness conclusion follows.
 
+## Phase 151 Ent pending-recovery target pager coverage (2026-08-28)
+
+Commit `748f4997` adds the narrow `EntRepository.ListPendingRecoveryTargets` pager, not a full scanner. Valid RED `worktree-master-backend-unit-run-35a8f1ba0967` had target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race missing-method failures; retained RED stderr lengths were `0/461/0/0`. Root-read GREEN `worktree-master-backend-unit-run-a95ff242957f` recorded target/build/vet/unit/race `PASS`, first exit `0`, and four stderr lengths `0`. Specification and query reviews are `PASS`/`APPROVED`, `C0/I0/M0`.
+
+The unit cases prove compile/interface satisfaction and fail-closed guards before singleton/query access: dependencies/context, `ctx.Err()`, positive/`MaxInt`-safe limit, and structural cursor. They do not prove cursor-tenant mismatch, singleton cardinality, generated Ent predicates for live `public|private|dm|group` plus active-project or projectless-creator tenant predicates, optional IDGT, ascending order, safe `limit + 1`, query execution, mapping/pagination/Next, error chains, or live PostgreSQL. Those are static-only or `NOT_RUN`; cross-store scanner composition, scheduler, writer cutover, service/server runtime, integration, and product readiness remain `UNBOUND/NOT_RUN`.
+
 ## Messenger standalone pending-recovery interval-gate regression (2026-08-28)
 
 Focused deterministic unit/race tests for `cb995211` and cancellation fix `3632c37` cover narrow-interface satisfaction; valid/nil/typed-nil clock construction and nil receiver; nil/typed-nil/cancelled contexts before any clock read; zero/negative intervals; first admission, below-minimum denial, exact equality admission; zero/backward time without state mutation; cancellation while queued and while `Now()` is channel-blocked (no sleeps); exactly one fixed-time concurrent admission; two independent gates both admitting; and immediate interval consumption.

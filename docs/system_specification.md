@@ -997,6 +997,12 @@ Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 is superse
 
 Evidence proves compile/interface and pre-query guards only. Successful query, NotFound, driver/generated SQL, projection, live PostgreSQL semantics, API/runtime wiring, and readiness remain NOT_RUN or UNBOUND as applicable.
 
+## Phase 151 Ent pending-recovery target pager contract (2026-08-28)
+
+Commit `748f4997` adds only `EntRepository.ListPendingRecoveryTargets(ctx, cursor, limit)` as the concrete pager for the narrow recovery-target port; it does not make `EntRepository` a full recovery scanner. Guard order is fixed: usable dependencies/context, `ctx.Err()`, positive and `MaxInt`-safe limit, structural cursor, singleton tenant resolution, then cursor-tenant equality before the single query. The query admits only live `public|private|dm|group` channels whose tenant is active through the channel project, or whose projectless channel creator is in the singleton tenant; it applies optional channel-ID-greater-than cursor, ascending channel ID, and a safe `limit + 1` fetch.
+
+The pager maps returned channel kind, returns an owned page, and emits `Next` only from the last returned target when the extra row exists. Unit tests prove only compile/interface satisfaction and guards before singleton/query access. Cursor-tenant mismatch, singleton cardinality, generated Ent predicates/order/limit, query execution, mapping/pagination/Next, error-chain behavior, and live PostgreSQL behavior remain static-only or `NOT_RUN`; cross-store scanner composition, scheduler, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`.
+
 ## Phase 151 standalone pending-recovery interval-gate contract (2026-08-28)
 
 `Phase151PendingRecoveryIntervalClock` and `Phase151ProcessLocalPendingRecoveryIntervalGate` (`cb995211`, cancellation correction `3632c37`) define only per-constructed-instance best-effort admission. The clock is distinct from `Phase151PostCreateRecoveryClock`; no scheduler, coordinator, scanner, singleton, distributed/global interval, exactly-once behavior, or recovery I/O ownership follows. Separate instances may both admit. The mutex protects only the gate check, `Now()` read, and timestamp mutation; it never covers recovery I/O.

@@ -350,6 +350,12 @@ Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` 
 
 Pager/scanner/coordinator migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
 
+## Ent pending-recovery target pager evidence (2026-08-28)
+
+Commit `748f4997` implements only the narrow `EntRepository.ListPendingRecoveryTargets` pager, with guards ordered dependencies/context, `ctx.Err()`, positive/`MaxInt`-safe limit, structural cursor, singleton tenant, cursor-tenant match, then one query. The static query contract is live `public|private|dm|group`, active tenant project or projectless creator tenant, optional IDGT, ascending channel ID, and safe `limit + 1`; output mapping and `Next` are owned and `Next` appears only on an extra row.
+
+RED `worktree-master-backend-unit-run-35a8f1ba0967` was target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race missing method, with retained stderr lengths `0/461/0/0`. Root-read GREEN `worktree-master-backend-unit-run-a95ff242957f` is target/build/vet/unit/race `PASS`, first exit `0`, four stderr lengths `0`; specification/query reviews are `PASS`/`APPROVED`, `C0/I0/M0`. Unit proof stops before singleton/query access. Cursor mismatch, singleton cardinality, generated Ent query behavior, execution, mapping/pagination/Next, error chains, and live PostgreSQL are static-only or `NOT_RUN`. Scanner composition, scheduler, writer/runtime cutover, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is partial.
+
 ## Safe-report correction note (2026-08-28)
 
 Review round 1 corrected stale current authority-gap wording. The accepted closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` are present; only PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live execution remain `UNBOUND/NOT_RUN`. This correction preserves the standalone interval-gate evidence and does not claim production recovery.

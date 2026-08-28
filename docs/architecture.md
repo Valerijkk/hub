@@ -528,6 +528,12 @@ EntRepository.ResolvePendingRecoveryTargetFacts (commit 4b100ee6) is the fail-cl
 
 Only compile/interface and pre-query guards are proven. Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics are NOT_RUN; all runtime composition and transport/browser/integration boundaries remain UNBOUND/NOT_RUN.
 
+## Messenger Ent pending-recovery target pager (2026-08-28)
+
+Commit `748f4997` supplies `EntRepository.ListPendingRecoveryTargets` for the narrow pending-recovery target pager only; it is not a complete recovery scanner. The method fails closed in this sequence: dependency/context validation, `ctx.Err()`, positive/`MaxInt`-safe limit, structural cursor, singleton-tenant lookup, cursor tenant equality, then one Ent query. That query restricts to live `public|private|dm|group` channels and requires either an active tenant project or, for a projectless channel, a creator in the singleton tenant. Optional cursor channel ID uses `IDGT`; ordering is ascending channel ID and the fetch is bounded as safe `limit + 1`.
+
+Mapping produces target kind and owned output; `Next` is derived only from the last returned target when the extra row exists. Current tests cover interface satisfaction and pre-singleton/pre-query guards only. Singleton cardinality, cursor tenant mismatch, generated Ent predicates/order/limit, query execution, mapping/pagination/Next, error chains, and live PostgreSQL are static-only or `NOT_RUN`. The cross-store scanner, scheduler/process ownership, production composition, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`.
+
 ## Messenger standalone pending-recovery interval gate (2026-08-28)
 
 `Phase151ProcessLocalPendingRecoveryIntervalGate` (`cb995211`, fixed by `3632c37`) is a best-effort throttle per constructed gate instance with an interval clock distinct from `Phase151PostCreateRecoveryClock`. It is not a scheduler, coordinator, scanner, singleton, distributed/global mechanism, or exactly-once boundary; two instances may admit independently. Its mutex is limited to check/read/write and excludes recovery I/O. Cancellation is rechecked before mutex acquisition, after acquisition, and after `Now()` before state change. Zero/backward timestamps and nonpositive intervals fail closed; below-minimum elapsed denies and equality admits.
