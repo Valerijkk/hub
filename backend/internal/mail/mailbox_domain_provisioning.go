@@ -241,10 +241,9 @@ func (result MailboxDomainProvisioningClaimResult) Valid() bool {
 	}
 }
 
-// MailboxDomainProvisioner is the future worker provider port and owns I/O
-// outside durable transactions. No current implementation is asserted against
-// this interface: MailboxRegistryProvisioningEngine remains an EnsureDomain
-// adapter until it independently implements GetDomain.
+// MailboxDomainProvisioner is the worker provider port and owns I/O outside
+// durable transactions. MailboxRegistryProvisioningEngine satisfies this
+// interface through authoritative Registry local-domain DNS observation.
 type MailboxDomainProvisioner interface {
 	GetDomain(context.Context, string) (EngineDomainState, error)
 	EnsureDomain(context.Context, DomainSpec) (EngineDomainState, error)

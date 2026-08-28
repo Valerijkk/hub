@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/valerii/hub/backend/internal/mail/stalwart"
@@ -15,8 +16,11 @@ type MailboxRegistryProvisioningEngine struct {
 	accounts registryProvisioningAccountClient
 }
 
+var _ MailboxDomainProvisioner = (*MailboxRegistryProvisioningEngine)(nil)
+
 type registryProvisioningDomainController interface {
 	EnsureLocalDomain(context.Context, string) (string, error)
+	ObserveLocalDomainDNS(context.Context, string) (stalwart.LocalDomainDNSObservation, error)
 }
 
 type registryProvisioningAccountClient interface {
@@ -42,13 +46,20 @@ func newMailboxRegistryProvisioningEngine(domains registryProvisioningDomainCont
 // EnsureDomain accepts only the enabled, present, canonical local desired
 // state. Stalwart does not prove public DNS or DKIM verification, so a
 // Registry-confirmed domain is always reported as pending DNS-required state.
-func (engine *MailboxRegistryProvisioningEngine) EnsureDomain(ctx context.Context, spec DomainSpec) (EngineDomainState, error) {
+func (engine *MailboxRegistryProvisioningEngine) EnsureDomain(ctx context.Context, spec DomainSpec) (state EngineDomainState, err error) {
 	if engine == nil || engine.domains == nil || engine.accounts == nil || ctx == nil || !validRegistryProvisioningDomainSpec(spec) {
 		return EngineDomainState{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
 	if err := ctx.Err(); err != nil {
 		return EngineDomainState{}, stalwartEngineError(EngineErrorUnavailable)
 	}
+
+	defer func() {
+		if recover() != nil {
+			state = EngineDomainState{}
+			err = stalwartEngineError(EngineErrorIndeterminate)
+		}
+	}()
 
 	domainID, err := engine.domains.EnsureLocalDomain(ctx, spec.Domain)
 	if err != nil {
@@ -57,14 +68,14 @@ func (engine *MailboxRegistryProvisioningEngine) EnsureDomain(ctx context.Contex
 	if !validOpaqueID(domainID) {
 		return EngineDomainState{}, stalwartEngineError(EngineErrorIndeterminate)
 	}
-	return EngineDomainState{
-		DomainID:     domainID,
-		State:        EngineDomainDNSRequired,
-		Applied:      true,
-		DNSRecords:   []EngineDNSRecord{},
-		Verification: EngineVerificationPending,
-		DKIM:         EngineVerificationPending,
-	}, nil
+	state, err = engine.readRegistryDomain(ctx, spec.Domain)
+	if err != nil {
+		return EngineDomainState{}, registryProvisioningMutationReadbackError(err)
+	}
+	if state.DomainID != domainID || state.State != EngineDomainDNSRequired || !state.Applied || len(state.DNSRecords) == 0 || state.Verification != EngineVerificationPending || state.DKIM != EngineVerificationPending {
+		return EngineDomainState{}, stalwartEngineError(EngineErrorIndeterminate)
+	}
+	return state, nil
 }
 
 // EnsureAccount admits only one enabled canonical primary identity with no
@@ -163,4 +174,91 @@ func validCanonicalRegistryDomain(value string) bool {
 		}
 	}
 	return true
+}
+
+// GetDomain reads the Registry's authoritative local-domain DNS projection.
+// It does not query or infer any public DNS verification state.
+func (engine *MailboxRegistryProvisioningEngine) GetDomain(ctx context.Context, domain string) (EngineDomainState, error) {
+	if engine == nil || engine.domains == nil || engine.accounts == nil || ctx == nil || !validCanonicalRegistryDomain(domain) {
+		return EngineDomainState{}, stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	if err := ctx.Err(); err != nil {
+		return EngineDomainState{}, stalwartEngineError(EngineErrorUnavailable)
+	}
+	state, err := engine.readRegistryDomain(ctx, domain)
+	if err != nil {
+		return EngineDomainState{}, mapStalwartEngineError(err, false)
+	}
+	return state, nil
+}
+
+func (engine *MailboxRegistryProvisioningEngine) readRegistryDomain(ctx context.Context, domain string) (EngineDomainState, error) {
+	observation, err := engine.domains.ObserveLocalDomainDNS(ctx, domain)
+	if err != nil {
+		return EngineDomainState{}, err
+	}
+	zoneFile, present := observation.DNSZoneFile()
+	if !present {
+		return EngineDomainState{
+			State:        EngineDomainAbsent,
+			DNSRecords:   []EngineDNSRecord{},
+			Verification: EngineVerificationUnknown,
+			DKIM:         EngineVerificationUnknown,
+		}, nil
+	}
+	projection, err := zoneFile.ProjectMailCriticalDNS()
+	if err != nil {
+		return EngineDomainState{}, err
+	}
+	domainID := projection.DomainID()
+	if projection.DomainName() != domain || !validOpaqueID(domainID) {
+		return EngineDomainState{}, stalwart.ErrStateMismatch
+	}
+	records, err := registryProvisioningDNSRecords(projection.Records())
+	if err != nil {
+		return EngineDomainState{}, err
+	}
+	return EngineDomainState{
+		DomainID:     domainID,
+		State:        EngineDomainDNSRequired,
+		Applied:      true,
+		DNSRecords:   records,
+		Verification: EngineVerificationPending,
+		DKIM:         EngineVerificationPending,
+	}, nil
+}
+
+func registryProvisioningDNSRecords(projected []stalwart.LocalDomainDNSRecord) ([]EngineDNSRecord, error) {
+	if len(projected) == 0 || len(projected) > MaxEngineDNSRecordItems {
+		return nil, stalwart.ErrProtocol
+	}
+	required := make(RequiredDNSRecords, len(projected))
+	records := make([]EngineDNSRecord, len(projected))
+	for index, record := range projected {
+		var recordType EngineDNSRecordType
+		switch record.Type {
+		case stalwart.LocalDomainDNSRecordTXT:
+			recordType = EngineDNSRecordTXT
+		case stalwart.LocalDomainDNSRecordMX:
+			recordType = EngineDNSRecordMX
+		case stalwart.LocalDomainDNSRecordCNAME:
+			recordType = EngineDNSRecordCNAME
+		default:
+			return nil, stalwart.ErrProtocol
+		}
+		records[index] = EngineDNSRecord{Type: recordType, Name: record.Name, Value: record.Value, TTL: record.TTL}
+		required[index] = RequiredDNSRecord{Type: recordType, Name: record.Name, Value: record.Value, TTL: record.TTL}
+	}
+	if required.Validate() != nil {
+		return nil, stalwart.ErrProtocol
+	}
+	return records, nil
+}
+
+func registryProvisioningMutationReadbackError(err error) error {
+	mapped := mapStalwartEngineError(err, true)
+	if errors.Is(mapped, ErrEngineIndeterminate) {
+		return mapped
+	}
+	return stalwartEngineError(EngineErrorIndeterminate)
 }
