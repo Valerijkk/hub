@@ -156,7 +156,9 @@ func NewCalendarInviteOccurrenceCancelledEnvelopeV1(eventID uuid.UUID, occurredA
 	if eventID == uuid.Nil || organizationID == uuid.Nil || actorID == nil || *actorID == uuid.Nil || !validCalendarEventOccurrenceCancelUTC(occurredAt) || correlationID != payload.EventID.String() || payload.EventID == uuid.Nil || payload.UID != "hub-"+payload.EventID.String() || payload.Sequence == 0 || !validCalendarEventOccurrenceCancelCanonicalKey(payload.RecurrenceID) || payload.AttendeeIDs == nil || len(payload.AttendeeIDs) > calendarCreateMaxAttendees {
 		return events.EnvelopeV1{}, ErrEventInvalid
 	}
-	payload.AttendeeIDs = append([]uuid.UUID(nil), payload.AttendeeIDs...)
+	attendeeIDs := make([]uuid.UUID, len(payload.AttendeeIDs))
+	copy(attendeeIDs, payload.AttendeeIDs)
+	payload.AttendeeIDs = attendeeIDs
 	for index, attendeeID := range payload.AttendeeIDs {
 		if attendeeID == uuid.Nil || (index > 0 && bytes.Compare(payload.AttendeeIDs[index-1][:], attendeeID[:]) >= 0) {
 			return events.EnvelopeV1{}, ErrEventInvalid
