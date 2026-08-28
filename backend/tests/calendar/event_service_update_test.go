@@ -24,6 +24,8 @@ var (
 	cancelApplicationID  = uuid.MustParse("56565656-5656-4565-8565-565656565656")
 )
 
+var updateOrganizerAttendeeID = uuid.MustParse("57575757-5757-4575-8575-575757575757")
+
 func TestCalendarEventUpdateCommand_RejectsAmbiguousPresenceAndFreezesInput(t *testing.T) {
 	guestName := "Guest"
 	attendees := []calendar.CalendarEventCreateAttendeeCandidate{{
@@ -392,7 +394,10 @@ func TestEventServiceUpdateCalendarEvent_RejectsCorruptAuthoritativeCurrentBefor
 						Status: calendar.RSVPNeedsAction, Version: 1,
 					}
 				}
-				backend.authorization.Attendees = attendees
+				backend.authorization.Attendees = append(
+					[]calendar.CalendarEventUpdateAttendeeSnapshot{updateOrganizerAttendeeSnapshot()},
+					attendees...,
+				)
 			},
 		},
 	} {
@@ -909,7 +914,9 @@ func TestCalendarEventUpdateCommand_TemporalPresenceAndAttendeeBounds(t *testing
 func TestEventServiceUpdateCalendarEvent_ReinviteReplacementAndWriteFailureRollback(t *testing.T) {
 	t.Run("inactive reader omitted becomes fresh same email invite", func(t *testing.T) {
 		backend := newUpdateBackendFake()
-		backend.authorization.Attendees = nil
+		backend.authorization.Attendees = []calendar.CalendarEventUpdateAttendeeSnapshot{
+			updateOrganizerAttendeeSnapshot(),
+		}
 		backend.authorization.ResolvedAttendees = []calendar.CalendarEventCreateResolvedAttendee{{Email: "guest@example.test", DisplayName: stringPointer("Guest"), Role: calendar.CalendarEventAttendeeRoleRequired}}
 		freshID := uuid.MustParse("62626262-6262-4262-8262-626262626262")
 		service := calendar.NewEventService(&updateRepositoryFake{backend: backend}, &createClockFake{now: time.Date(2031, time.January, 15, 1, 2, 3, 0, time.UTC)}, &createIDGeneratorFake{ids: []uuid.UUID{freshID, updateApplicationID}}, createSerializerUnused{})
@@ -1062,6 +1069,18 @@ type updateBackendFake struct {
 	completeCalls int
 }
 
+func updateOrganizerAttendeeSnapshot() calendar.CalendarEventUpdateAttendeeSnapshot {
+	return calendar.CalendarEventUpdateAttendeeSnapshot{
+		AttendeeID:  updateOrganizerAttendeeID,
+		UserID:      uuidPointer(updateActorID),
+		Email:       "owner@example.test",
+		DisplayName: "Owner",
+		Role:        calendar.CalendarEventAttendeeRoleOrganizer,
+		Status:      calendar.RSVPAccepted,
+		Version:     1,
+	}
+}
+
 func newUpdateBackendFake() *updateBackendFake {
 	organizer := updateActorID
 	return &updateBackendFake{
@@ -1075,9 +1094,12 @@ func newUpdateBackendFake() *updateBackendFake {
 				Sequence: 7, Version: 3, Source: calendar.CalendarEventSourceHub, Status: calendar.CalendarEventStatusConfirmed,
 				OrganizerID: &organizer, OrganizerEmail: "owner@example.test",
 			},
-			Attendees: []calendar.CalendarEventUpdateAttendeeSnapshot{{
-				AttendeeID: updateAttendeeID, Email: "guest@example.test", DisplayName: "Guest", Role: calendar.CalendarEventAttendeeRoleRequired, Status: calendar.RSVPNeedsAction, Version: 1,
-			}},
+			Attendees: []calendar.CalendarEventUpdateAttendeeSnapshot{
+				{
+					AttendeeID: updateAttendeeID, Email: "guest@example.test", DisplayName: "Guest", Role: calendar.CalendarEventAttendeeRoleRequired, Status: calendar.RSVPNeedsAction, Version: 1,
+				},
+				updateOrganizerAttendeeSnapshot(),
+			},
 		},
 	}
 }
