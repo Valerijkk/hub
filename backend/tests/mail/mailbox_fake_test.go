@@ -1092,6 +1092,7 @@ func testMessage(accountID, messageID, version, body string) mail.EngineMessage 
 			Subject:    "subject",
 			Snippet:    "snippet",
 			ReceivedAt: &when,
+			AuthenticationClass: mail.MailAuthenticationClassUntrusted,
 			SizeBytes:  int64(len(body)),
 			Priority:   mail.EnginePriorityNormal,
 			FolderIDs:  []string{"inbox"},
