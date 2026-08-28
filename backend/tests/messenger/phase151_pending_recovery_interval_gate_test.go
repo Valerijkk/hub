@@ -235,6 +235,40 @@ func TestPhase151ProcessLocalPendingRecoveryIntervalGateRechecksCancellationWhil
 	require.Equal(t, 1, clock.Calls())
 }
 
+func TestPhase151ProcessLocalPendingRecoveryIntervalGateRechecksCancellationAfterClockRead(t *testing.T) {
+	base := time.Date(2026, time.August, 28, 12, 0, 0, 0, time.UTC)
+	clockEntered := make(chan struct{}, 1)
+	clockRelease := make(chan struct{})
+	clock := &phase151PendingRecoveryIntervalGateClock{
+		now: base, entered: clockEntered, release: clockRelease,
+	}
+	gate := messenger.NewPhase151ProcessLocalPendingRecoveryIntervalGate(clock)
+	require.NotNil(t, gate)
+
+	type acquisition struct {
+		admitted bool
+		err      error
+	}
+	cancelledContext, cancel := context.WithCancel(context.Background())
+	result := make(chan acquisition, 1)
+	go func() {
+		admitted, err := gate.TryAcquirePendingRecoveryInterval(cancelledContext, time.Minute)
+		result <- acquisition{admitted: admitted, err: err}
+	}()
+	<-clockEntered
+	cancel()
+	close(clockRelease)
+
+	cancelled := <-result
+	require.False(t, cancelled.admitted)
+	require.Equal(t, context.Canceled, cancelled.err)
+	require.Equal(t, 1, clock.Calls())
+
+	admitted, err := gate.TryAcquirePendingRecoveryInterval(context.Background(), time.Minute)
+	require.True(t, admitted)
+	require.NoError(t, err)
+	require.Equal(t, 2, clock.Calls())
+}
 func TestPhase151ProcessLocalPendingRecoveryIntervalGateAdmitsExactlyOneConcurrentCaller(t *testing.T) {
 	base := time.Date(2026, time.August, 28, 12, 0, 0, 0, time.UTC)
 	clock := &phase151PendingRecoveryIntervalGateClock{now: base}

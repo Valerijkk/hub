@@ -15,7 +15,7 @@ type Phase151PendingRecoveryIntervalGate interface {
 }
 
 // Phase151ProcessLocalPendingRecoveryIntervalGate admits at most one pending
-// recovery attempt per interval within its owning process.
+// recovery attempt per interval per constructed gate instance.
 type Phase151ProcessLocalPendingRecoveryIntervalGate struct {
 	mu             sync.Mutex
 	clock          Phase151PendingRecoveryIntervalClock
@@ -54,6 +54,9 @@ func (g *Phase151ProcessLocalPendingRecoveryIntervalGate) TryAcquirePendingRecov
 		return false, err
 	}
 	now := g.clock.Now()
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	if now.IsZero() {
 		return false, ErrPostCreatePipelineInvalid
 	}
