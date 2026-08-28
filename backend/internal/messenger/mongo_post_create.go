@@ -81,13 +81,39 @@ func ExportPhase151BuildPendingPostCreateScanPlan(
 		scope.TenantID != target.TenantID || scope.ChannelID != target.ChannelID {
 		return Phase151PendingPostCreateScanPlan{}, ErrPostCreatePipelineInvalid
 	}
+	return phase151BuildPendingPostCreateScanPlan(target.ChannelID, limit), nil
+}
+
+func ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(
+	authority Phase151RecoveryTargetAuthority,
+	limit int,
+) (Phase151PendingPostCreateScanPlan, error) {
+	target := Phase151PendingRecoveryTarget{
+		TenantID:  authority.TenantID,
+		ChannelID: authority.ChannelID,
+		Kind:     authority.Kind,
+	}
+	if err := ExportPhase151ValidateRecoveryTargetAuthority(
+		Phase151PostCreateRecoveryServicePrincipal,
+		target,
+		authority,
+	); err != nil || limit <= 0 {
+		return Phase151PendingPostCreateScanPlan{}, ErrPostCreatePipelineInvalid
+	}
+	return phase151BuildPendingPostCreateScanPlan(target.ChannelID, limit), nil
+}
+
+func phase151BuildPendingPostCreateScanPlan(
+	channelID uuid.UUID,
+	limit int,
+) Phase151PendingPostCreateScanPlan {
 	if limit > 500 {
 		limit = 500
 	}
 
 	return Phase151PendingPostCreateScanPlan{
 		Filter: bson.D{
-			{Key: "channel_id", Value: target.ChannelID},
+			{Key: "channel_id", Value: channelID},
 			{Key: "deleted_at", Value: nil},
 			{Key: "post_create_effects_state", Value: PostCreateEffectsStatePending},
 			{Key: "post_create_effects_completed_at", Value: nil},
@@ -98,7 +124,7 @@ func ExportPhase151BuildPendingPostCreateScanPlan(
 			{Key: "_id", Value: 1},
 		},
 		Limit: int64(limit),
-	}, nil
+	}
 }
 
 func ExportPhase151BuildPostCreateCompletionPlan(

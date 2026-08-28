@@ -136,3 +136,113 @@ func TestPhase151PendingPostCreateScanPlanFailsClosedOnInvalidAuthorityOrTarget(
 		})
 	}
 }
+
+func TestPhase151PendingPostCreateScanPlanFromTargetAuthorityBuildsExactPlanWithLegacyParity(t *testing.T) {
+	tenantID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	channelID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	legacyForeignActorID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	authority := messenger.Phase151RecoveryTargetAuthority{
+		Principal: messenger.Phase151PostCreateRecoveryServicePrincipal,
+		TenantID:  tenantID,
+		ChannelID: channelID,
+		Kind:      "channel",
+	}
+	legacyScope := messenger.AuthorizedMessageProducerScope{
+		TenantID:  tenantID,
+		ActorID:   legacyForeignActorID,
+		ChannelID: channelID,
+		Producer:  messenger.TrustedMessageProducerForward,
+	}
+	legacyTarget := messenger.Phase151PendingRecoveryTarget{
+		TenantID:  tenantID,
+		ChannelID: channelID,
+		Kind:      "channel",
+	}
+
+	plan, err := messenger.ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, 501)
+	legacyPlan, legacyErr := messenger.ExportPhase151BuildPendingPostCreateScanPlan(legacyScope, legacyTarget, 501)
+
+	require.NoError(t, err)
+	require.NoError(t, legacyErr)
+	assert.Equal(t, messenger.Phase151PendingPostCreateScanPlan{
+		Filter: bson.D{
+			{Key: "channel_id", Value: channelID},
+			{Key: "deleted_at", Value: nil},
+			{Key: "post_create_effects_state", Value: messenger.PostCreateEffectsStatePending},
+			{Key: "post_create_effects_completed_at", Value: nil},
+			{Key: "post_create_producer_provenance.version", Value: messenger.PostCreateProducerProvenanceVersionV1},
+		},
+		Sort: bson.D{
+			{Key: "created_at", Value: 1},
+			{Key: "_id", Value: 1},
+		},
+		Limit: 500,
+	}, plan)
+	assert.Equal(t, legacyPlan, plan)
+}
+
+func TestPhase151PendingPostCreateScanPlanFromTargetAuthorityFailsClosed(t *testing.T) {
+	validAuthority := messenger.Phase151RecoveryTargetAuthority{
+		Principal: messenger.Phase151PostCreateRecoveryServicePrincipal,
+		TenantID:  uuid.New(),
+		ChannelID: uuid.New(),
+		Kind:      "channel",
+	}
+
+	for _, scenario := range []struct {
+		name            string
+		mutateAuthority func(*messenger.Phase151RecoveryTargetAuthority)
+		limit           int
+	}{
+		{
+			name: "empty principal",
+			mutateAuthority: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+				authority.Principal = ""
+			},
+			limit: 7,
+		},
+		{
+			name: "arbitrary principal",
+			mutateAuthority: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+				authority.Principal = messenger.Phase151RecoveryServicePrincipal("foreign.recovery")
+			},
+			limit: 7,
+		},
+		{
+			name: "zero tenant",
+			mutateAuthority: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+				authority.TenantID = uuid.Nil
+			},
+			limit: 7,
+		},
+		{
+			name: "zero channel",
+			mutateAuthority: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+				authority.ChannelID = uuid.Nil
+			},
+			limit: 7,
+		},
+		{
+			name: "empty kind",
+			mutateAuthority: func(authority *messenger.Phase151RecoveryTargetAuthority) {
+				authority.Kind = ""
+			},
+			limit: 7,
+		},
+		{name: "zero limit", limit: 0},
+		{name: "negative limit", limit: -1},
+	} {
+		scenario := scenario
+		t.Run(scenario.name, func(t *testing.T) {
+			authority := validAuthority
+			if scenario.mutateAuthority != nil {
+				scenario.mutateAuthority(&authority)
+			}
+
+			plan, err := messenger.ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, scenario.limit)
+
+			require.ErrorIs(t, err, messenger.ErrPostCreatePipelineInvalid)
+			assert.Equal(t, messenger.Phase151PendingPostCreateScanPlan{}, plan)
+		})
+	}
+}
