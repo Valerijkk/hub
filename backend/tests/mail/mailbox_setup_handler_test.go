@@ -163,12 +163,7 @@ func TestMailboxSetupHandler_AuthorizeRequiresBootstrapOwnerAndSetsScopedCookie(
 	if fixture.oauth.beginCalls != 1 || fixture.oauth.beginScope != fixture.scope {
 		t.Fatalf("begin calls/scope = %d/%#v, want 1/%#v", fixture.oauth.beginCalls, fixture.oauth.beginScope, fixture.scope)
 	}
-	cookie := response.Header.Get("Set-Cookie")
-	for _, fragment := range []string{fixture.config.BindingCookieName + "=", "Path=/api/mail/setup/oauth", "HttpOnly", "Secure", "SameSite=Lax"} {
-		if !strings.Contains(cookie, fragment) {
-			t.Fatalf("Set-Cookie = %q, missing %q", cookie, fragment)
-		}
-	}
+	mailboxSetupRequireScopedCookie(t, response.Header.Get("Set-Cookie"), fixture.config.BindingCookieName)
 
 	fixture = newMailboxSetupHTTPFixture(t)
 	fixture.ownerRecord.State = mail.MailboxOwnerActive
@@ -320,13 +315,36 @@ func mailboxSetupBody(t *testing.T, response *http.Response) []byte {
 	return body
 }
 
+func mailboxSetupRequireScopedCookie(t *testing.T, cookieHeader, name string) {
+	t.Helper()
+
+	response := http.Response{Header: http.Header{"Set-Cookie": []string{cookieHeader}}}
+	cookies := response.Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("parsed scoped cookie count = %d, want 1", len(cookies))
+	}
+
+	parsed := cookies[0]
+	if parsed.Name != name {
+		t.Fatalf("parsed scoped cookie name = %q, want %q", parsed.Name, name)
+	}
+	if parsed.Path != "/api/mail/setup/oauth" {
+		t.Fatalf("parsed scoped cookie path = %q, want %q", parsed.Path, "/api/mail/setup/oauth")
+	}
+	if !parsed.HttpOnly {
+		t.Fatalf("parsed scoped cookie name=%q path=%q HttpOnly=%t, want true", parsed.Name, parsed.Path, parsed.HttpOnly)
+	}
+	if !parsed.Secure {
+		t.Fatalf("parsed scoped cookie name=%q path=%q Secure=%t, want true", parsed.Name, parsed.Path, parsed.Secure)
+	}
+	if parsed.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("parsed scoped cookie name=%q path=%q SameSite=%d, want %d", parsed.Name, parsed.Path, parsed.SameSite, http.SameSiteLaxMode)
+	}
+}
+
 func mailboxSetupRequireClearingCookie(t *testing.T, cookie, name string) {
 	t.Helper()
-	for _, fragment := range []string{name + "=", "Path=/api/mail/setup/oauth", "HttpOnly", "Secure", "SameSite=Lax"} {
-		if !strings.Contains(cookie, fragment) {
-			t.Fatalf("clearing Set-Cookie = %q, missing %q", cookie, fragment)
-		}
-	}
+	mailboxSetupRequireScopedCookie(t, cookie, name)
 	if !strings.Contains(cookie, "Max-Age=0") && !strings.Contains(cookie, "max-age=0") {
 		t.Fatalf("clearing Set-Cookie = %q, missing Max-Age=0", cookie)
 	}
