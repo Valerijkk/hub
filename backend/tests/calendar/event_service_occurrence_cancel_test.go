@@ -383,7 +383,9 @@ func TestEventServiceCancelCalendarEventOccurrence_ConflictsIdempotenceAndRollba
 		}},
 		{name: "result event echo mismatch", expected: 3, want: calendar.ErrEventInvalid, mutate: func(backend *occurrenceBackendFake) {
 			backend.resultMutator = func(command calendar.CalendarEventOccurrenceCancelPersistenceCommand, result calendar.CalendarEventOccurrenceCancelPersistenceResult) calendar.CalendarEventOccurrenceCancelPersistenceResult {
-				bad, err := calendar.NewCalendarEventCommand(calendar.CalendarEventCommandInput{EventID: occurrenceEventID, OrganizationID: occurrenceOrganizationID, OwnerID: occurrenceActorID, UID: "hub-" + occurrenceEventID.String(), Title: "x", Temporal: occurrenceTemporal(), Version: 5, Source: calendar.CalendarEventSourceHub, Status: calendar.CalendarEventStatusConfirmed, OrganizerID: uuidRef(occurrenceActorID), OrganizerEmail: "owner@example.test"})
+				snapshot := result.Event().Snapshot()
+				snapshot.Title = "echo mismatch"
+				bad, err := calendar.NewCalendarEventCommand(snapshot)
 				if err != nil { panic(err) }
 				changed, err := calendar.NewCalendarEventOccurrenceCancelPersistenceResult(bad, result.Exception(), result.Outbox())
 				if err != nil { panic(err) }
