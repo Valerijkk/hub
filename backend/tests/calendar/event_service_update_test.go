@@ -735,11 +735,7 @@ func TestEventServiceUpdateCalendarEvent_RecurrenceAffectedResetAndExceptionBoun
 		}
 		outbox := backend.persisted[0].Outbox()
 		if len(outbox) != 1 { t.Fatalf("RRULE outbox count = %d, want 1", len(outbox)) }
-		encoded, err := json.Marshal(outbox[0].Envelope())
-		if err != nil { t.Fatalf("json.Marshal(RRULE envelope) error = %v", err) }
-		if !strings.Contains(string(encoded), `"reset_rsvp":true`) || !strings.Contains(string(encoded), `"changed_fields":["rrule"]`) {
-			t.Fatalf("RRULE envelope = %s", encoded)
-		}
+		assertCalendarEventV2Envelope(t, outbox[0].Envelope(), calendar.CalendarInviteUpdatedSubjectV2, updateApplicationID, updateEventID, updateActorID, 8, []uuid.UUID{secondID, updateAttendeeID})
 	})
 
 	t.Run("exception blocks recurrence but permits end duration", func(t *testing.T) {
