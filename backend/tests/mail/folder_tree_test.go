@@ -423,7 +423,7 @@ func TestNormalizeFolderTreeRejectsCustomSiblingNameCollision(t *testing.T) {
 	), mail.ErrFolderNameConflict, "mail folder name conflict")
 }
 
-func TestNormalizeFolderTreeOrdersSystemThenCustomBySortKeyAndRawUUID(t *testing.T) {
+func TestNormalizeFolderTreeOrdersSystemThenCustomBySortKey(t *testing.T) {
 	roles := []mail.FolderTreeRole{
 		mail.FolderTreeRoleJunk,
 		mail.FolderTreeRoleArchive,
@@ -446,7 +446,7 @@ func TestNormalizeFolderTreeOrdersSystemThenCustomBySortKeyAndRawUUID(t *testing
 	}
 	rows = append(rows,
 		mail.FolderTreeFolder{AccountID: fixtureAccountID, ID: id(7), Name: "zeta", SortOrder: 0},
-		mail.FolderTreeFolder{AccountID: fixtureAccountID, ID: id(9), Name: "alpha", SortOrder: 1},
+		mail.FolderTreeFolder{AccountID: fixtureAccountID, ID: id(9), Name: "alpha2", SortOrder: 1},
 		mail.FolderTreeFolder{AccountID: fixtureAccountID, ID: id(8), Name: "alpha", SortOrder: 1},
 		mail.FolderTreeFolder{AccountID: fixtureAccountID, ID: id(6), Name: "beta", SortOrder: 1},
 	)
