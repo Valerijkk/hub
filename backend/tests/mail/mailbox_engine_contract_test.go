@@ -647,12 +647,13 @@ func TestMailEngine_ContentAndSubmissionShapesAreClosed(t *testing.T) {
 		Message         mail.EngineMessageContent
 	}{}))
 	assertExactFields(t, reflect.TypeOf(mail.EngineDraftReconciliation{}), reflect.TypeOf(struct {
-		AccountID       string
-		DraftKey        string
-		MessageID       string
-		PreviousVersion string
-		MutationID      string
-		MaxContentBytes int64
+		AccountID           string
+		DraftKey            string
+		MessageID           string
+		PreviousVersion     string
+		MutationID          string
+		ConfirmedMutationID string
+		MaxContentBytes     int64
 	}{}))
 	assertExactFields(t, reflect.TypeOf(mail.EngineSubmission{}), reflect.TypeOf(struct {
 		AccountID       string
