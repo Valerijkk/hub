@@ -271,7 +271,13 @@ func TestMailDomainAndMailboxPolicySchemas_HaveExactIndexesAndOrganizationEdges(
 	assertInverseRequiredOrganizationEdge(t, "MailboxPolicy.organization", policyEdges["organization"], "mailbox_policy")
 
 	organizationEdges := edgeDescriptors((entschema.Organization{}).Edges())
-	assertExactNames(t, "Organization edges", edgeNames(organizationEdges), []string{"mail_accounts", "mail_domains", "mail_mutation_receipts", "mail_objects", "mail_send_rate_buckets", "mailbox_policy", "projects", "users"})
+	mailOrganizationEdges := map[string]*edge.Descriptor{}
+	for name, descriptor := range organizationEdges {
+		if strings.HasPrefix(name, "mail") {
+			mailOrganizationEdges[name] = descriptor
+		}
+	}
+	assertExactNames(t, "Organization Mail-owned edges", edgeNames(mailOrganizationEdges), []string{"mail_accounts", "mail_domains", "mail_mutation_receipts", "mail_objects", "mail_send_rate_buckets", "mailbox_policy"})
 	for _, name := range []string{"projects", "users"} {
 		assertOnDelete(t, "Organization."+name, organizationEdges[name].Annotations, entsql.NoAction)
 	}

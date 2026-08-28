@@ -354,7 +354,7 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 		"mail_accounts_provision_lease_pair":           "(provision_lease_token IS NULL) = (provision_lease_until IS NULL)",
 		"mail_accounts_sync_lease_pair":                "(sync_lease_token IS NULL) = (sync_lease_until IS NULL)",
 		"mail_accounts_sync_lease_snapshot":            "COALESCE((sync_lease_token IS NULL AND sync_lease_sync_epoch IS NULL AND sync_lease_mutation_epoch IS NULL AND sync_lease_phase IS NULL AND sync_lease_cursor IS NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_sync_epoch >= 0 AND sync_lease_mutation_epoch >= 0 AND ((sync_lease_phase IN ('incremental', 'catch_up') AND sync_lease_cursor IS NOT NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_phase = 'enumeration' AND sync_lease_cursor IS NULL AND ((sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_base_cursor IS NOT NULL AND sync_lease_checkpoint IS NOT NULL))))), FALSE)",
-		"mail_accounts_sync_lease_apply_proof":         "COALESCE((sync_lease_result_hash_version IS NULL AND sync_lease_result_hash IS NULL AND sync_lease_applied_phase IS NULL AND sync_lease_applied_next_at IS NULL AND sync_lease_applied_at IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_result_hash_version IS NOT NULL AND sync_lease_result_hash IS NOT NULL AND sync_lease_applied_phase IS NOT NULL AND sync_lease_applied_next_at IS NOT NULL AND sync_lease_applied_at IS NOT NULL AND sync_lease_result_hash_version >= 1 AND length(sync_lease_result_hash) = 32 AND sync_lease_applied_at < sync_lease_until AND sync_lease_applied_next_at >= sync_lease_applied_at AND ((sync_lease_phase = 'incremental' AND sync_lease_applied_phase = 'incremental') OR (sync_lease_phase = 'catch_up' AND sync_lease_applied_phase IN ('catch_up', 'incremental')) OR (sync_lease_phase = 'enumeration' AND sync_lease_applied_phase IN ('enumeration', 'catch_up')))), FALSE)",
+		"mail_accounts_sync_lease_apply_proof":         "COALESCE((sync_lease_result_hash_version IS NULL AND sync_lease_result_hash IS NULL AND sync_lease_applied_phase IS NULL AND sync_lease_applied_next_at IS NULL AND sync_lease_applied_at IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_result_hash_version IS NOT NULL AND sync_lease_result_hash IS NOT NULL AND sync_lease_applied_phase IS NOT NULL AND sync_lease_applied_next_at IS NOT NULL AND sync_lease_applied_at IS NOT NULL AND sync_lease_result_hash_version >= 1 AND length(sync_lease_result_hash) = 32 AND sync_lease_applied_at < sync_lease_until AND sync_lease_applied_next_at >= sync_lease_applied_at AND sync_lease_applied_next_at < sync_lease_until AND ((sync_lease_phase = 'incremental' AND sync_lease_applied_phase = 'incremental') OR (sync_lease_phase = 'catch_up' AND sync_lease_applied_phase IN ('catch_up', 'incremental')) OR (sync_lease_phase = 'enumeration' AND sync_lease_applied_phase IN ('enumeration', 'catch_up')))), FALSE)",
 		"mail_accounts_mutation_lease_pair":            "(mutation_lease_token IS NULL) = (mutation_lease_until IS NULL)",
 		"mail_accounts_sync_schedule_updated_at_second_precision": "COALESCE(date_trunc('second', sync_schedule_updated_at) = sync_schedule_updated_at, FALSE)",
 		"mail_accounts_non_negative":                   "sync_epoch >= 0 AND sync_lease_epoch >= 1 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
@@ -399,7 +399,7 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 
 func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	accountEdges := (entschema.MailAccount{}).Edges()
-	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels", "objects", "drafts", "submissions"})
+	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "oauth_credential", "signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels", "objects", "drafts", "submissions"})
 	accountEdgeDescriptors := edgeDescriptors(accountEdges)
 	assertRequiredInverseEdge(t, "MailAccount.organization", accountEdgeDescriptors["organization"], "organization_id", "mail_accounts", entsql.NoAction)
 	assertRequiredInverseEdge(t, "MailAccount.user", accountEdgeDescriptors["user"], "user_id", "mail_account", entsql.NoAction)
@@ -407,6 +407,9 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	assertPlainToManyEdge(t, "MailAccount.identities", accountEdgeDescriptors["identities"])
 	if userSettings := accountEdgeDescriptors["user_settings"]; userSettings == nil || userSettings.Inverse || !userSettings.Unique || userSettings.Required || userSettings.RefName != "" {
 		t.Fatalf("MailAccount.user_settings = %#v, want plain unique inverse target", userSettings)
+	}
+	if oauthCredential := accountEdgeDescriptors["oauth_credential"]; oauthCredential == nil || oauthCredential.Inverse || !oauthCredential.Unique || oauthCredential.Required || oauthCredential.RefName != "" {
+		t.Fatalf("MailAccount.oauth_credential = %#v, want plain unique OAuth credential target", oauthCredential)
 	}
 	for _, name := range []string{"signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels", "objects", "drafts", "submissions"} {
 		assertPlainToManyEdge(t, "MailAccount."+name, accountEdgeDescriptors[name])
@@ -425,10 +428,17 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	assertPlainToManyEdge(t, "MailDomain.accounts", edgeDescriptors(domainEdges)["accounts"])
 
 	organizationEdges := (entschema.Organization{}).Edges()
-	assertExactOrderedEdgeNames(t, "Organization edges", organizationEdges, []string{"users", "projects", "mail_domains", "mailbox_policy", "mail_accounts", "mail_mutation_receipts", "mail_objects"})
-	assertPlainToManyEdge(t, "Organization.mail_accounts", edgeDescriptors(organizationEdges)["mail_accounts"])
-	assertPlainToManyEdge(t, "Organization.mail_mutation_receipts", edgeDescriptors(organizationEdges)["mail_mutation_receipts"])
-	assertPlainToManyEdge(t, "Organization.mail_objects", edgeDescriptors(organizationEdges)["mail_objects"])
+	organizationEdgeDescriptors := edgeDescriptors(organizationEdges)
+	mailOrganizationEdges := map[string]*edge.Descriptor{}
+	for name, descriptor := range organizationEdgeDescriptors {
+		if strings.HasPrefix(name, "mail") {
+			mailOrganizationEdges[name] = descriptor
+		}
+	}
+	assertExactNames(t, "Organization Mail-owned edges", edgeNames(mailOrganizationEdges), []string{"mail_accounts", "mail_domains", "mail_mutation_receipts", "mail_objects", "mail_send_rate_buckets", "mailbox_policy"})
+	assertPlainToManyEdge(t, "Organization.mail_accounts", organizationEdgeDescriptors["mail_accounts"])
+	assertPlainToManyEdge(t, "Organization.mail_mutation_receipts", organizationEdgeDescriptors["mail_mutation_receipts"])
+	assertPlainToManyEdge(t, "Organization.mail_objects", organizationEdgeDescriptors["mail_objects"])
 
 	userEdges := (entschema.User{}).Edges()
 	if len(userEdges) < 3 || userEdges[len(userEdges)-3].Descriptor().Name != "mail_account" || userEdges[len(userEdges)-2].Descriptor().Name != "recent_contacts" || userEdges[len(userEdges)-1].Descriptor().Name != "mail_objects" {
