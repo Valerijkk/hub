@@ -44,7 +44,7 @@ func (repository *MailboxEntRepository) PrepareMailboxDraftReconciliation(ctx co
 					return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 				}
 				switch phase := record.PendingCreateAttachmentPhase; {
-				case nil:
+				case phase == nil:
 					if err := draft.Update().SetStatus(maildraft.StatusUnknown).SetUpdatedAt(databaseWallClock).Exec(ctx); err != nil {
 						return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 					}
