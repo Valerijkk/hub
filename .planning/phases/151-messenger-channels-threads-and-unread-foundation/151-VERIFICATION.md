@@ -353,3 +353,11 @@ Pager/scanner/coordinator migration, scheduler/process-lifetime owner/wiring, ru
 ## Safe-report correction note (2026-08-28)
 
 Review round 1 corrected stale current authority-gap wording. The accepted closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` are present; only PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live execution remain `UNBOUND/NOT_RUN`. This correction preserves the standalone interval-gate evidence and does not claim production recovery.
+
+## Coordinator interval-gate composition evidence (2026-08-28)
+
+Commit `a5851053` removes interval admission from `Phase151PendingRecoveryScanRepository` and injects a separate `Phase151PendingRecoveryIntervalGate` after scanner into `Phase151ClaimedRecoveryCoordinatorAdapter`. Nil/typed-nil gate construction fails closed; adapter interval acquisition validates and delegates only to the gate. Gate false/error/invalid input yields no scan, while executor admission-before-scan order remains unchanged. Paging, reauthorization, and pending-document listing remain scanner responsibilities.
+
+Valid RED `worktree-master-backend-unit-run-d0fe21905ddb`: target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race expected narrowed-interface compile mismatch. Root-read GREEN `worktree-master-backend-unit-run-e9844841ebae`: target/build/vet/unit/race `PASS`, first exit `0`, four stderr lengths `0`. Independent specification and quality reviews are final `PASS`/`APPROVED`, `C0/I0/M0`, after removal of an over-broad white-box request.
+
+The result is composition/unit/race evidence only. The standalone gate remains per constructed instance; no process singleton, scheduler/process-lifetime wiring, pager/store/runtime/live transport/browser, distributed, or exactly-once behavior is bound. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

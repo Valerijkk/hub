@@ -537,6 +537,14 @@ Review evidence only: invalid System.Object[] was rejected before the regenerate
 
 Runtime evidence is UNBOUND/NOT_RUN for concrete PG pager/reauthorizer, scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration; Phase 151 is partial.
 
+## Messenger coordinator interval-gate composition coverage (2026-08-28)
+
+Commit `a5851053` narrows `Phase151PendingRecoveryScanRepository` so it no longer owns interval admission. Focused deterministic unit/race coverage proves that `Phase151ClaimedRecoveryCoordinatorAdapter` requires a plain nonnil `Phase151PendingRecoveryIntervalGate`, validates interval input, and delegates only interval acquisition to that gate; false, error, or invalid admission causes no scan. Scanner paging, reauthorization, and document listing remain separate dependencies, and executor admission-before-scan ordering is unchanged.
+
+Valid RED `worktree-master-backend-unit-run-d0fe21905ddb` had target `FAIL`, first exit `1`, build `PASS`, and expected narrowed-interface compile mismatch in vet/unit/race. Root-read GREEN `worktree-master-backend-unit-run-e9844841ebae` has target/build/vet/unit/race `PASS`, first exit `0`, and four stderr lengths `0`. Independent spec and quality reviews are `PASS`/`APPROVED`, with `C0/I0/M0` after removing an over-broad white-box request.
+
+This is composition/unit/race evidence only. The standalone gate remains per constructed instance; no process singleton, scheduler/process-lifetime wiring, pager/store/runtime/live transport/browser, distributed, or exactly-once behavior is claimed. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
 Docker policy allows concurrent branch-isolated Compose projects, one task-owned container per branch, no --build/pull/image creation/stopping another branch, and a separate shared-layer numeric Jitsi disk-budget gate.
 
 ## Calls service credential facade coverage (2026-08-28)
