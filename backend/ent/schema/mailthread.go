@@ -25,14 +25,17 @@ type MailThread struct {
 }
 
 func (MailThread) Fields() []ent.Field {
+	participantAddresses := field.JSON("participant_addresses", MailThreadParticipants{}).
+		SchemaType(map[string]string{dialect.Postgres: "jsonb"})
+	participantAddresses.Descriptor().Validators = append(participantAddresses.Descriptor().Validators, MailThreadParticipants.Validate)
+
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable(),
 		field.UUID("mail_account_id", uuid.UUID{}).Immutable(),
 		field.Int32("thread_key_version").Default(1).Immutable(),
 		field.Bytes("thread_key").MinLen(32).MaxLen(32).Immutable(),
 		field.String("normalized_subject").Validate(validateMailThreadSubject),
-		field.JSON("participant_addresses", MailThreadParticipants{}).
-			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		participantAddresses,
 		field.Time("last_message_at"),
 		field.Int32("message_count").Min(1),
 		field.Int32("unread_count").NonNegative(),
