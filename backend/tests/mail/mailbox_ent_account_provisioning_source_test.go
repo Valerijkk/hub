@@ -82,6 +82,10 @@ func TestMailboxEntAccountProvisioningSourceContract(t *testing.T) {
 		"func mailboxEntAccountProvisioningScanDue",
 		"func mailboxEntAccountProvisioningClaimLocks",
 	)
+	domainRequired := mailboxEntAccountProvisioningSourceSlice(t, source,
+		"func mailboxEntAccountProvisioningSetDomainRequired",
+		"func mailboxEntAccountProvisioningCASPredicates",
+	)
 
 	requireMailboxEntAccountProvisioningSourceOrdered(t, scan,
 		"NormalizeMailboxAccountProvisioningScanRequest(request)",
@@ -145,12 +149,7 @@ func TestMailboxEntAccountProvisioningSourceContract(t *testing.T) {
 		"mailboxEntAccountProvisioningConverged",
 		"mailboxEntAccountProvisioningDue",
 		"mailboxEntAccountProvisioningExactPendingPrimary",
-		"ClearAttemptedControlGeneration()",
-		"ClearAttemptedControlHashVersion()",
-		"ClearAttemptedControlHash()",
-		"ClearProvisionLeaseToken()",
-		"ClearProvisionLeaseUntil()",
-		"SetProvisionErrorCode(mailaccount.ProvisionErrorCode(MailboxAccountProvisioningCodeDomainRequired))",
+		"mailboxEntAccountProvisioningSetDomainRequired(ctx, transaction, account, dueAt, databaseNow)",
 		"SetAttemptedControlGeneration(account.ControlGeneration)",
 		"SetAttemptedControlHashVersion(account.ControlHashVersion)",
 		"SetProvisionLeaseToken(leaseToken)",
@@ -162,6 +161,16 @@ func TestMailboxEntAccountProvisioningSourceContract(t *testing.T) {
 		"MailboxEngineCommandLeaseDuration",
 		"math.MaxInt32",
 		"if updated != 1",
+	)
+	requireMailboxEntAccountProvisioningSourceContains(t, domainRequired,
+		"mailboxEntAccountProvisioningCASPredicates(account)",
+		"ClearAttemptedControlGeneration()",
+		"ClearAttemptedControlHashVersion()",
+		"ClearAttemptedControlHash()",
+		"ClearProvisionLeaseToken()",
+		"ClearProvisionLeaseUntil()",
+		"SetProvisionErrorCode(mailaccount.ProvisionErrorCode(MailboxAccountProvisioningCodeDomainRequired))",
+		"if err != nil || updated != 1",
 	)
 	if strings.Contains(claim, "MailboxAccountProvisioningCodeEngineDisabled") {
 		t.Fatal("claim must not add an engine-disabled local gate")
