@@ -144,9 +144,9 @@ func TestMailboxPasswordEnrollmentService_MapsProviderFailuresToClosedReleaseCod
 		err  error
 		code mail.MailboxPasswordEnrollmentReleaseCode
 	}{
-		{name: "rejected", err: mail.ErrEngineRejectedPolicy, code: mail.MailboxPasswordEnrollmentReleaseCodeRejected},
-		{name: "transient", err: mail.ErrEngineUnavailable, code: mail.MailboxPasswordEnrollmentReleaseCodeTransient},
-		{name: "indeterminate", err: mail.ErrEngineIndeterminate, code: mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate},
+		{name: "rejected", err: &mail.EngineError{Kind: mail.EngineErrorRejectedPolicy}, code: mail.MailboxPasswordEnrollmentReleaseCodeRejected},
+		{name: "transient", err: &mail.EngineError{Kind: mail.EngineErrorUnavailable}, code: mail.MailboxPasswordEnrollmentReleaseCodeTransient},
+		{name: "indeterminate", err: &mail.EngineError{Kind: mail.EngineErrorIndeterminate}, code: mail.MailboxPasswordEnrollmentReleaseCodeIndeterminate},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			claim := mailboxPasswordEnrollmentClaim(t, time.Now().UTC().Add(30*time.Second).Truncate(time.Second))
