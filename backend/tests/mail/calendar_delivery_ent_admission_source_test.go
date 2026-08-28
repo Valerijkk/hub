@@ -76,6 +76,10 @@ func TestCalendarDeliveryEntAdmissionSourceContract(t *testing.T) {
 		"func mailboxEntCalendarInviteDeliveryReplay",
 		"func mailboxEntCalendarInviteDeliveryImmutableMatch",
 	)
+	immutable := calendarDeliveryEntAdmissionSlice(t, source,
+		"func mailboxEntCalendarInviteDeliveryImmutableMatch",
+		"func mailboxEntWakeCalendarReplyDelivery",
+	)
 	wakeRows := calendarDeliveryEntAdmissionSlice(t, source,
 		"func mailboxEntWakeCalendarReplyDelivery",
 		"func mailboxEntCalendarReplyDeliveryCalendarFactsValid",
@@ -131,6 +135,11 @@ func TestCalendarDeliveryEntAdmissionSourceContract(t *testing.T) {
 		"mailboxEntCalendarInviteDeliveryImmutableMatch",
 		"CalendarMailDeliveryRepositoryErrorConflict",
 	)
+	requireCalendarDeliveryEntAdmissionSource(t, immutable,
+		"row.OrganizationID == event.OrganizationID",
+		"row.CalendarEventID == event.ID",
+		"row.CalendarAttendeeID == attendee.ID",
+	)
 	requireCalendarDeliveryEntAdmissionSource(t, wakeRows,
 		"transaction.CalendarReplyDelivery.Query()",
 		"calendarreplydelivery.IDEQ(request.ReplyID.UUID())",
@@ -162,8 +171,6 @@ func TestCalendarDeliveryEntAdmissionSourceContract(t *testing.T) {
 		"return attendee.RemovedAt == nil",
 		"mailboxEntCalendarDeliveryRecurrenceMatches",
 		"delivery.OrganizationID == event.OrganizationID",
-		"delivery.CalendarEventID != event.ID",
-		"delivery.CalendarAttendeeID != attendee.ID",
 		"mailboxEntCalendarDeliveryRecurrencePointersEqual",
 	)
 
