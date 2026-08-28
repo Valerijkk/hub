@@ -317,7 +317,7 @@ services:
     networks: [schema-maintenance-internal]
   backend-unit:
     <<: *qa-common
-    cpus: 4.0
+    cpus: ${HUB_BACKEND_UNIT_CPUS:-4.0}
     mem_limit: 8g
     environment:
       GOFLAGS: "-p=1"
