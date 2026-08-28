@@ -52,6 +52,11 @@ func TestMailboxEntSubmissionDispatchSourceContract(t *testing.T) {
 		"func mailboxEntSubmissionDispatchRequestValid",
 	)
 
+	fence := mailboxEntSubmissionDispatchSourceSlice(t, string(sourceBytes),
+		"func mailboxEntSubmissionDispatchFenceMatches",
+		"\n}",
+	)
+
 	requireMailboxEntSubmissionDispatchOrdered(t, resolve,
 		"transaction.MailAccount.Query()",
 		"transaction.MailSubmission.Query()",
@@ -64,6 +69,12 @@ func TestMailboxEntSubmissionDispatchSourceContract(t *testing.T) {
 		"SetNextReconcileAt(databaseNow)",
 		"SetMutationEpoch(nextEpoch)",
 	)
+	requireMailboxEntSubmissionDispatchOrdered(t, resolve,
+		"mailboxEntSubmissionDispatchFenceMatches(account, submission, draft, authorization, databaseNow)",
+		"submission.Update()",
+		"account.Update()",
+	)
+
 	for _, required := range []string{
 		"subtle.ConstantTimeCompare",
 		"submission.EngineMessageID",
@@ -72,12 +83,15 @@ func TestMailboxEntSubmissionDispatchSourceContract(t *testing.T) {
 		"SetProviderSubmissionID(request.ProviderSubmissionID)",
 		"SetProviderMessageID(request.ProviderMessageID)",
 		"SetLastErrorCode(mailsubmission.LastErrorCode(MailboxSubmissionErrorCodeOutcomeUnknown))",
-		"submission.ReconcileAttempts != 0 || submission.NextReconcileAt != nil",
 	} {
 		if !strings.Contains(resolve, required) {
 			t.Fatalf("dispatch resolution source is missing %q", required)
 		}
 	}
+	if !strings.Contains(fence, "submission.ReconcileAttempts != 0 || submission.NextReconcileAt != nil") {
+		t.Fatal("dispatch fence must reject an already-reconciled submission")
+	}
+
 	if strings.Contains(resolve, "mailboxEntSubmissionClaimRepositoryError(") {
 		t.Fatal("dispatch resolution path uses deprecated submission repository mapper")
 	}
