@@ -47,10 +47,11 @@ type serverDeps struct {
 	integrationCipher *cryptopkg.Cipher
 	traceShutdown     func(context.Context) error
 
-	db    *ent.Client
-	rawDB *sql.DB
-	rdb   *redis.Client
-	nc    *natsclient.Client
+	db                    *ent.Client
+	rawDB                 *sql.DB
+	postgresAdvisoryLocks bool
+	rdb                   *redis.Client
+	nc                    *natsclient.Client
 
 	outboxWorker *outbox.Worker
 	auditRepo    auditmod.Repository

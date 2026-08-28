@@ -24,6 +24,7 @@ func wireInfra(d *serverDeps) {
 	}
 	d.db = db
 	d.rawDB = rawDB
+	d.postgresAdvisoryLocks = true
 	d.addCleanup(func() { db.Close() })
 
 	// Клиент Redis
