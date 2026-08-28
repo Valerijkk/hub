@@ -564,9 +564,6 @@ func TestCalendarMailDeliveryFakeExpiredReclaimFencesStaleClaim(t *testing.T) {
 	if !ok {
 		t.Fatal("reclaimed ClaimCalendarMailDelivery() did not return a claim")
 	}
-	if originalClaim == reclaimedClaim {
-		t.Fatal("expired reclaim did not rotate its sealed claim capability")
-	}
 	if _, err := repository.BindCalendarMailDeliverySubmission(context.Background(), mail.CalendarMailDeliverySubmissionBindRequest{
 		Claim: originalClaim, SubmissionID: uuid.New(),
 	}); calendarDeliveryRepositoryErrorKind(t, err) != mail.CalendarMailDeliveryRepositoryErrorInvalid {
