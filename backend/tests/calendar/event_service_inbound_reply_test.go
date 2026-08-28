@@ -595,7 +595,7 @@ func TestEventServiceApplyInboundITIPReply_DeclinedAcceptedRedeliveryStaysDuplic
 	}{
 		{name: "series", prepare: func(_ *inboundReplyBackendFake, _ *calendar.ITIPMessage) {}},
 		{name: "occurrence", prepare: func(backend *inboundReplyBackendFake, message *calendar.ITIPMessage) {
-			backend.authorization.Current.RRULE = "FREQ=DAILY"
+			backend.authorization.Current.RRULE = "FREQ=DAILY;INTERVAL=1;COUNT=3"
 			backend.authorization.Target.RecurrenceID = stringPointer(recurrence)
 			message.RecurrenceID = &calendar.ITIPRecurrenceID{Time: time.Date(2035, time.April, 6, 9, 0, 0, 0, time.UTC)}
 		}},
@@ -637,7 +637,7 @@ func TestEventServiceApplyInboundITIPReply_DeclinedAcceptedRedeliveryStaysDuplic
 func TestEventServiceApplyInboundITIPReply_OccurrenceRequiresMaterializedActiveMember(t *testing.T) {
 	const recurrence = "2035-04-06T09:00:00Z"
 	configureOccurrence := func(backend *inboundReplyBackendFake) calendar.ITIPMessage {
-		backend.authorization.Current.RRULE = "FREQ=DAILY"
+		backend.authorization.Current.RRULE = "FREQ=DAILY;INTERVAL=1;COUNT=3"
 		backend.authorization.Target.RecurrenceID = stringPointer(recurrence)
 		message := inboundReplyMessage(calendar.RSVPAccepted)
 		message.RecurrenceID = &calendar.ITIPRecurrenceID{Time: time.Date(2035, time.April, 6, 9, 0, 0, 0, time.UTC)}
@@ -652,7 +652,7 @@ func TestEventServiceApplyInboundITIPReply_OccurrenceRequiresMaterializedActiveM
 	}{
 		{name: "materialized active occurrence applies", want: calendar.CalendarInboundReplyApplied, wantWrite: true, wantSequence: 4},
 		{name: "missing occurrence quarantines", mutate: func(backend *inboundReplyBackendFake, _ *calendar.ITIPMessage) { backend.authorization.Target.RecurrenceID = nil }, want: calendar.CalendarInboundReplyQuarantined},
-		{name: "nonmember quarantines", mutate: func(backend *inboundReplyBackendFake, message *calendar.ITIPMessage) { nonmember := "2035-04-07T09:00:00Z"; backend.authorization.Current.RRULE = "FREQ=DAILY;COUNT=1"; backend.authorization.Target.RecurrenceID = &nonmember; message.RecurrenceID = &calendar.ITIPRecurrenceID{Time: time.Date(2035, time.April, 7, 9, 0, 0, 0, time.UTC)} }, want: calendar.CalendarInboundReplyQuarantined},
+		{name: "nonmember quarantines", mutate: func(backend *inboundReplyBackendFake, message *calendar.ITIPMessage) { nonmember := "2035-04-07T09:00:00Z"; backend.authorization.Current.RRULE = "FREQ=DAILY;INTERVAL=1;COUNT=1"; backend.authorization.Target.RecurrenceID = &nonmember; message.RecurrenceID = &calendar.ITIPRecurrenceID{Time: time.Date(2035, time.April, 7, 9, 0, 0, 0, time.UTC)} }, want: calendar.CalendarInboundReplyQuarantined},
 		{name: "exdate quarantines", mutate: func(backend *inboundReplyBackendFake, _ *calendar.ITIPMessage) { backend.authorization.Current.Exdates = []string{recurrence} }, want: calendar.CalendarInboundReplyQuarantined},
 		{name: "cancelled exception quarantines", mutate: func(backend *inboundReplyBackendFake, _ *calendar.ITIPMessage) { backend.authorization.Exception = &calendar.CalendarEventExceptionCommandInput{ExceptionID: uuid.New(), EventID: inboundReplyEventID, RecurrenceID: recurrence, Sequence: 4, Status: calendar.CalendarEventStatusCancelled, Cancelled: true} }, want: calendar.CalendarInboundReplyQuarantined},
 		{name: "active exception supplies effective sequence", mutate: func(backend *inboundReplyBackendFake, message *calendar.ITIPMessage) { backend.authorization.Exception = &calendar.CalendarEventExceptionCommandInput{ExceptionID: uuid.New(), EventID: inboundReplyEventID, RecurrenceID: recurrence, Sequence: 3, Status: calendar.CalendarEventStatusConfirmed}; message.Sequence = 3 }, want: calendar.CalendarInboundReplyApplied, wantWrite: true, wantSequence: 3},
