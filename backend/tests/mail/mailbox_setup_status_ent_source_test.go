@@ -118,6 +118,9 @@ func TestMailboxSetupStatusEntSourceContract(t *testing.T) {
 		"MailboxSetupStageOAuthRequired",
 		"MailboxSetupStageSyncing",
 		"MailboxSetupStageReady",
+		"mailboxSetupStatusActionRequired()",
+	)
+	requireMailboxSetupStatusEntSourceContains(t, public,
 		"MailboxSetupStageActionRequired",
 	)
 	if strings.Contains(source, "ForUpdate()") {
