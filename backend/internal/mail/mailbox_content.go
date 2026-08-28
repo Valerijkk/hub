@@ -277,11 +277,16 @@ func mailboxContentCanonicalize(value string) (string, error) {
 	value = strings.ReplaceAll(value, "\u2029", "\n")
 
 	var whitespaceNormalized strings.Builder
+	previousHorizontalSpace := false
 	for _, character := range value {
 		if mailboxContentHorizontalSpace(character) {
-			whitespaceNormalized.WriteByte(' ')
+			if !previousHorizontalSpace {
+				whitespaceNormalized.WriteByte(' ')
+			}
+			previousHorizontalSpace = true
 			continue
 		}
+		previousHorizontalSpace = false
 		whitespaceNormalized.WriteRune(character)
 	}
 
