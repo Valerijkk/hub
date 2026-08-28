@@ -614,7 +614,9 @@ func mailboxSubmissionFinalizationClaimValid(claim MailboxSubmissionFinalization
 func mailboxSubmissionFinalizationClaimCopy(claim MailboxSubmissionFinalizationClaim) MailboxSubmissionFinalizationClaim {
 	claim.fence = mailboxSubmissionClaimFenceCopy(claim.fence)
 	claim.dispatchAuthorizedAt = claim.dispatchAuthorizedAt.Round(0).UTC()
-	claim.expectedAttachments = append([]mailboxSubmissionFinalizationExpectedAttachment(nil), claim.expectedAttachments...)
+	expectedAttachments := claim.expectedAttachments
+	claim.expectedAttachments = make([]mailboxSubmissionFinalizationExpectedAttachment, len(expectedAttachments))
+	copy(claim.expectedAttachments, expectedAttachments)
 	return claim
 }
 
