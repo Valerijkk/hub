@@ -33,10 +33,10 @@ type callJoinCredentialProjectionSourceFake struct {
 }
 
 type callJoinCredentialProjectionOperation struct {
-	name      string
-	callID    uuid.UUID
-	actorID   uuid.UUID
-	channelID uuid.UUID
+	name                string
+	callID              uuid.UUID
+	channelID           uuid.UUID
+	authenticatedUserID uuid.UUID
 }
 
 func (s *callJoinCredentialProjectionSourceFake) LoadActiveCall(
@@ -52,13 +52,13 @@ func (s *callJoinCredentialProjectionSourceFake) LoadActiveCall(
 
 func (s *callJoinCredentialProjectionSourceFake) IsChannelMember(
 	_ context.Context,
-	actorID uuid.UUID,
 	channelID uuid.UUID,
+	authenticatedUserID uuid.UUID,
 ) (bool, error) {
 	s.operations = append(s.operations, callJoinCredentialProjectionOperation{
-		name:      "is_channel_member",
-		actorID:   actorID,
-		channelID: channelID,
+		name:                "is_channel_member",
+		channelID:           channelID,
+		authenticatedUserID: authenticatedUserID,
 	})
 	return s.member, s.memberErr
 }
@@ -68,8 +68,8 @@ func (s *callJoinCredentialProjectionSourceFake) GetServerKnownCallUserName(
 	actorID uuid.UUID,
 ) (string, error) {
 	s.operations = append(s.operations, callJoinCredentialProjectionOperation{
-		name:    "get_server_known_call_user_name",
-		actorID: actorID,
+		name:                "get_server_known_call_user_name",
+		authenticatedUserID: actorID,
 	})
 	return s.userName, s.nameErr
 }
@@ -235,8 +235,8 @@ func TestCallJoinCredentialProjectorReloadsAuthorizesAndIssuesOnceForChannelMemb
 	assert.Equal(t, want, credential)
 	assert.Equal(t, []callJoinCredentialProjectionOperation{
 		{name: "load_active_call", callID: callID},
-		{name: "is_channel_member", actorID: actorID, channelID: channelID},
-		{name: "get_server_known_call_user_name", actorID: actorID},
+		{name: "is_channel_member", channelID: channelID, authenticatedUserID: actorID},
+		{name: "get_server_known_call_user_name", authenticatedUserID: actorID},
 	}, source.operations)
 	require.Len(t, issuer.operations, 1)
 	assert.Same(t, activeCall, issuer.operations[0].call)
@@ -270,7 +270,7 @@ func TestCallJoinCredentialProjectorAllowsOnlyInstantCallCreator(t *testing.T) {
 	assert.Equal(t, want, credential)
 	assert.Equal(t, []callJoinCredentialProjectionOperation{
 		{name: "load_active_call", callID: callID},
-		{name: "get_server_known_call_user_name", actorID: creatorID},
+		{name: "get_server_known_call_user_name", authenticatedUserID: creatorID},
 	}, source.operations)
 	require.Len(t, issuer.operations, 1)
 	assert.Same(t, activeCall, issuer.operations[0].call)
@@ -302,7 +302,7 @@ func TestCallJoinCredentialProjectorDeniesUnauthorizedActorWithoutNameOrIssuer(t
 			},
 			wantOperations: []callJoinCredentialProjectionOperation{
 				{name: "load_active_call", callID: callID},
-				{name: "is_channel_member", actorID: actorID, channelID: channelID},
+				{name: "is_channel_member", channelID: channelID, authenticatedUserID: actorID},
 			},
 		},
 		{
@@ -381,7 +381,7 @@ func TestCallJoinCredentialProjectorStopsAtSourceErrors(t *testing.T) {
 			wantErr: membershipErr,
 			wantOperations: []callJoinCredentialProjectionOperation{
 				{name: "load_active_call", callID: callID},
-				{name: "is_channel_member", actorID: actorID, channelID: channelID},
+				{name: "is_channel_member", channelID: channelID, authenticatedUserID: actorID},
 			},
 		},
 		{
@@ -394,8 +394,8 @@ func TestCallJoinCredentialProjectorStopsAtSourceErrors(t *testing.T) {
 			wantErr: nameErr,
 			wantOperations: []callJoinCredentialProjectionOperation{
 				{name: "load_active_call", callID: callID},
-				{name: "is_channel_member", actorID: actorID, channelID: channelID},
-				{name: "get_server_known_call_user_name", actorID: actorID},
+				{name: "is_channel_member", channelID: channelID, authenticatedUserID: actorID},
+				{name: "get_server_known_call_user_name", authenticatedUserID: actorID},
 			},
 		},
 	} {
@@ -446,8 +446,8 @@ func TestCallJoinCredentialProjectorPassesBlankPersistedNameToIssuer(t *testing.
 	assert.Equal(t, calls.JoinCredential{}, credential)
 	assert.Equal(t, []callJoinCredentialProjectionOperation{
 		{name: "load_active_call", callID: callID},
-		{name: "is_channel_member", actorID: actorID, channelID: channelID},
-		{name: "get_server_known_call_user_name", actorID: actorID},
+		{name: "is_channel_member", channelID: channelID, authenticatedUserID: actorID},
+		{name: "get_server_known_call_user_name", authenticatedUserID: actorID},
 	}, source.operations)
 	require.Len(t, issuer.operations, 1)
 	assert.Same(t, activeCall, issuer.operations[0].call)
@@ -487,8 +487,8 @@ func TestCallJoinCredentialProjectorReturnsIssuerErrorUnchangedWithZeroCredentia
 	assert.Equal(t, calls.JoinCredential{}, credential)
 	assert.Equal(t, []callJoinCredentialProjectionOperation{
 		{name: "load_active_call", callID: callID},
-		{name: "is_channel_member", actorID: actorID, channelID: channelID},
-		{name: "get_server_known_call_user_name", actorID: actorID},
+		{name: "is_channel_member", channelID: channelID, authenticatedUserID: actorID},
+		{name: "get_server_known_call_user_name", authenticatedUserID: actorID},
 	}, source.operations)
 	require.Len(t, issuer.operations, 1)
 	assert.Same(t, activeCall, issuer.operations[0].call)

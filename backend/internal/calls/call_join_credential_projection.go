@@ -15,7 +15,7 @@ import (
 // display-name, and call facts must not be supplied to the projector.
 type CallJoinCredentialProjectionSource interface {
 	LoadActiveCall(ctx context.Context, callID uuid.UUID) (*ent.Call, error)
-	IsChannelMember(ctx context.Context, authenticatedUserID, channelID uuid.UUID) (bool, error)
+	IsChannelMember(ctx context.Context, channelID, authenticatedUserID uuid.UUID) (bool, error)
 	GetServerKnownCallUserName(ctx context.Context, authenticatedUserID uuid.UUID) (string, error)
 }
 
@@ -68,7 +68,7 @@ func (p *CallJoinCredentialProjector) IssueForAuthenticatedUser(
 	}
 
 	if callEntity.ChannelID != nil {
-		isMember, err := p.source.IsChannelMember(ctx, authenticatedUserID, *callEntity.ChannelID)
+		isMember, err := p.source.IsChannelMember(ctx, *callEntity.ChannelID, authenticatedUserID)
 		if err != nil {
 			return JoinCredential{}, err
 		}
