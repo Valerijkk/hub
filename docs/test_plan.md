@@ -512,3 +512,9 @@ This regression does not execute or prove an Ent/DB source, service/HTTP/factory
 Focused tests require nil and zero-value projectors to return `JoinCredential{}` plus `ErrCallJoinCredentialInvalid` without panic. The malformed server-loaded call table covers blank, whitespace-only, and padded room names, a nonnil zero channel ID, and an instant call with a zero creator; each path permits only `load_active_call` and forbids membership, name, and issuer operations.
 
 RED-1 recorded target `FAIL`, build/vet `PASS`, and unit/race nil-pointer panics. RED-2 recorded target `FAIL`, build/vet `PASS`, and five malformed-call failures while both receiver cases passed. The final isolated Docker `backend-unit --no-deps` run recorded target/build/vet/unit/race `PASS`, first exit `0`; both named suites passed under unit and race and monitoring found no Mail overlap. Ent/DB/service/HTTP/factory/client, self-hosted Jitsi runtime/cutover, and browser/media gates remain `UNBOUND/NOT_RUN`; LiveKit remains active.
+
+## Messenger closed-authority scan-plan regression (2026-08-28)
+
+Focused tests prove an exact plan for the closed recovery authority, legacy parity even when the legacy scope carries an unrelated actor and a valid forward producer, the 500-row cap, and fail-closed empty/arbitrary principal, zero tenant/channel, empty kind, and nonpositive limits. The new API accepts no actor or producer input.
+
+RED recorded target `FAIL`, build `PASS`, and vet/unit/race failures only on the absent export. The first GREEN attempt was stopped and invalidated on Mail overlap. After Mail completed and a new 60-second empty window, the isolated rerun recorded target/build/vet/unit/race `PASS`, first exit `0`; both named suites passed under unit and race without overlap. Mongo repository/port/runner, PG pager, reauthorizer, scheduler, writer, runtime/cutover, and fresh DB/RBAC coverage remain `UNBOUND/NOT_RUN`.

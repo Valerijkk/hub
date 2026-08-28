@@ -291,3 +291,11 @@ under both unit and race.
 The earlier run was stopped because of Mail overlap and remains invalid history;
 no receipt is inherited from it. This is unit/race evidence only. All existing
 UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
+
+## Closed-authority pending scan-plan evidence (2026-08-28)
+
+`ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority` validates only the closed recovery target authority and a positive limit, then produces the exact legacy Mongo candidate filter, deterministic ascending order, and cap 500 through a shared private builder. Its signature contains no actor or producer input.
+
+The valid RED kept build `PASS` and failed vet/unit/race only on the missing export. The first GREEN attempt was stopped and invalidated when Mail overlap appeared. After Mail completed and a fresh 60-second empty Docker window, the isolated `backend-unit --no-deps` rerun recorded target/build/vet/unit/race `PASS`, first exit `0`; the exact parity and fail-closed suites passed under unit and race with no overlap.
+
+This is pure source/unit evidence. `MongoRepository.ListPendingPostCreateDocuments`, the recovery port/runner, PG pager, reauthorizer, scheduler, writer, integration, live PostgreSQL/Mongo, and cutover remain unchanged and `UNBOUND/NOT_RUN`. Fresh DB/RBAC authorization and service-principal-to-actor semantics remain unresolved; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

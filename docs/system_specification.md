@@ -946,3 +946,9 @@ The focused RED demonstrated the former reversal with exact swapped channel/acto
 `CallJoinCredentialProjector.IssueForAuthenticatedUser` returns a zero credential with `ErrCallJoinCredentialInvalid` for a nil or uninitialized projector. A server-loaded call is also invalid when its room name is blank, whitespace-only, or padded; when its nonnil channel pointer contains `uuid.Nil`; or when an instant call has `CreatedBy == uuid.Nil`. These failures occur before membership proof, server-known-name lookup, and credential issuance.
 
 RED-1 proved the previous nil-pointer panic in unit and race; RED-2 proved all five malformed call shapes while the receiver guard was already passing. The final isolated Docker receipt is target/build/vet/unit/race `PASS`, first exit `0`, with no Mail overlap. No public DTO/route/refresh, Ent/DB source, service/factory/client binding, Jitsi runtime, or cutover contract changes; LiveKit remains active.
+
+## Pending post-create scan-plan authority contract (2026-08-28)
+
+`ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, limit)` requires the exact closed `messenger.post_create_recovery` principal, nonzero tenant/channel, nonempty kind, and a positive limit. It returns the legacy candidate filter, ascending `created_at` then `_id` order, and a hard maximum of 500. The API does not accept or derive an actor, producer, bot, or integration identity.
+
+The valid RED failed only on the missing export after build passed. The first GREEN was invalidated by Mail overlap; the fresh isolated rerun passed target/build/vet/unit/race, first exit `0`, without overlap. Persistence, repository/port execution, reauthorization, scheduling, writer cutover, and live DB/RBAC behavior are not specified or proven by this pure builder.

@@ -483,3 +483,9 @@ Behavioral TDD captured the prior reversal as unit/race failures with the two UU
 `CallJoinCredentialProjector` validates its receiver and dependencies before dereference. Its server-loaded call shape is then validated before authorization: the room name is canonical and nonblank, a channel pointer never contains the zero UUID, and an instant call has a nonzero creator. Only after those gates may membership, server-known-name, and typed issuer operations run.
 
 Two behavioral RED receipts isolated the prior nil-pointer panic and the five malformed-call paths; build/vet remained `PASS`. One final isolated Docker `backend-unit --no-deps` run passed target/build/vet/unit/race with first exit `0` and no Mail overlap. This remains an internal unbound seam: no Ent/DB source, service/HTTP/factory/client wiring, tenant claim, Jitsi deployment/cutover, or browser/media runtime is added; LiveKit remains active.
+
+## Messenger closed-authority scan-plan boundary (2026-08-28)
+
+The pure recovery scan-plan builder accepts only `Phase151RecoveryTargetAuthority` and a positive limit. It validates the closed server recovery principal, derives channel identity only from the authority, and shares the existing exact filter/order/cap constructor. Actor and producer identities are intentionally absent from this boundary.
+
+The initial GREEN attempt was invalidated on Mail overlap; the later isolated Docker receipt passed target/build/vet/unit/race with first exit `0` and no Mail overlap. This atom does not bind the Mongo repository, recovery port/runner, PG pager, reauthorizer, scheduler, writer, runtime, or cutover. Fresh database authorization and service-principal-to-actor policy remain `UNBOUND`.
