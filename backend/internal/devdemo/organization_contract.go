@@ -16,11 +16,12 @@ import (
 )
 
 const (
-	demoOrganizationName              = "Hub"
-	demoOrganizationSlug              = "hub"
-	demoProjectKey                    = "DEMO"
-	demoOrganizationMaxAttempts       = 3
-	demoOrganizationAdvisoryKey int64 = 0x48554244454D4F31
+	demoOrganizationName                 = "Hub"
+	demoOrganizationSlug                 = "hub"
+	demoProjectKey                       = "DEMO"
+	demoOrganizationMaxAttempts          = 3
+	demoOrganizationAdvisoryKey    int64 = 0x48554244454D4F31
+	demoOrganizationSlugConstraint       = "organizations_slug_key"
 )
 
 type demoUser struct {
@@ -43,9 +44,16 @@ func validateMailCalendarDemoSeedInput(input devmod.MailCalendarDemoSeedInput) (
 		return nil, errors.New("devdemo organization seed: users are required")
 	}
 
+	rawEmails := make([]string, 0, len(input.UserIDs))
+	for rawEmail := range input.UserIDs {
+		rawEmails = append(rawEmails, rawEmail)
+	}
+	sort.Strings(rawEmails)
+
 	users := make([]demoUser, 0, len(input.UserIDs))
 	seenIDs := make(map[uuid.UUID]struct{}, len(input.UserIDs))
-	for rawEmail, userID := range input.UserIDs {
+	for _, rawEmail := range rawEmails {
+		userID := input.UserIDs[rawEmail]
 		if userID == uuid.Nil {
 			return nil, errors.New("devdemo organization seed: user ID is required")
 		}
@@ -64,9 +72,6 @@ func validateMailCalendarDemoSeedInput(input devmod.MailCalendarDemoSeedInput) (
 		seenIDs[userID] = struct{}{}
 		users = append(users, demoUser{email: canonicalEmail, id: userID})
 	}
-	sort.Slice(users, func(left, right int) bool {
-		return users[left].email < users[right].email
-	})
 	return users, nil
 }
 
@@ -84,7 +89,9 @@ func isRetryableOrganizationError(err error) bool {
 		return false
 	}
 	switch string(postgresError.Code) {
-	case "23505", "40001", "40P01":
+	case "23505":
+		return postgresError.Constraint == demoOrganizationSlugConstraint
+	case "40001", "40P01":
 		return true
 	default:
 		return false
