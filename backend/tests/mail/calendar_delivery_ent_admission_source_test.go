@@ -159,7 +159,7 @@ func TestCalendarDeliveryEntAdmissionSourceContract(t *testing.T) {
 		"event.OrganizerID == nil || *event.OrganizerID != admission.OrganizerID",
 		"event.Sequence < admission.EventSequence",
 		"CalendarInviteDeliveryKindCreated, CalendarInviteDeliveryKindUpdated",
-		"attendee.RemovedAt != nil",
+		"return attendee.RemovedAt == nil",
 		"mailboxEntCalendarDeliveryRecurrenceMatches",
 		"delivery.OrganizationID != event.OrganizationID",
 		"delivery.CalendarEventID != event.ID",

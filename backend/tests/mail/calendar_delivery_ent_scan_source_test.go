@@ -79,7 +79,7 @@ func TestCalendarDeliveryEntDueScanSourceContract(t *testing.T) {
 	if got := strings.Count(scan, "transaction.CalendarReplyDelivery.Query()"); got != 2 {
 		t.Fatalf("CalendarReplyDelivery due query count = %d, want 2", got)
 	}
-	if got := strings.Count(scan, ".Limit(request.Limit)"); got != 4 {
+	if got := strings.Count(scan, "Limit(request.Limit)"); got != 4 {
 		t.Fatalf("bounded stream limit count = %d, want 4", got)
 	}
 	for _, forbidden := range []string{
