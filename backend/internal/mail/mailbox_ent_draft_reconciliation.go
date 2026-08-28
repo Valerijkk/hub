@@ -43,7 +43,7 @@ func (repository *MailboxEntRepository) PrepareMailboxDraftReconciliation(ctx co
 				if record.Revision != 1 || record.PendingSave != nil {
 					return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
 				}
-				switch record.PendingCreateAttachmentPhase {
+				switch phase := record.PendingCreateAttachmentPhase; {
 				case nil:
 					if err := draft.Update().SetStatus(maildraft.StatusUnknown).SetUpdatedAt(databaseWallClock).Exec(ctx); err != nil {
 						return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
@@ -55,7 +55,7 @@ func (repository *MailboxEntRepository) PrepareMailboxDraftReconciliation(ctx co
 					}
 					result = MailboxDraftReconcilePlan{Draft: mailboxEntDraftRecordCopy(record)}
 					return nil
-				case MailboxDraftCreateAttachmentPhaseUpload:
+				case *phase == MailboxDraftCreateAttachmentPhaseUpload:
 					retryAt, exhaustedAt, valid := mailboxEntDraftCreateUnknownUploadRecoverySchedule(record, databaseWallClock)
 					if !valid {
 						return mailboxEntDraftReconciliationLogicalError(ctx, account, request.Fence, databaseWallClock, MailboxDraftRepositoryErrorStateConflict)
