@@ -69,9 +69,9 @@ func TestMailboxEntSyncPrepareSourceContract(t *testing.T) {
 	requireMailboxEntPrepareOrderedFragments(t, entry,
 		"!mailboxEntPrepareRequestValid(request)",
 		"repository.withMailboxEntTransaction",
-		"now, err := repository.mailboxEntNow()",
 		"mailaccount.IDEQ(request.Fence.AccountID)",
 		"ForUpdate()",
+		"databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)",
 		"mailboxEntPrepareInput",
 		"validMailboxSyncPrepareSelection",
 		"ClassifyMailboxSyncPage",
@@ -83,8 +83,8 @@ func TestMailboxEntSyncPrepareSourceContract(t *testing.T) {
 		"account.MutationEpoch != request.Fence.MutationEpoch",
 		"account.SyncLeaseUntil.After(now)",
 	)
-	if got := strings.Count(entry, "repository.mailboxEntNow()"); got != 1 {
-		t.Fatalf("prepare durable clock reads = %d, want 1", got)
+	if got := strings.Count(entry, "mailboxEntDatabaseWallClock(ctx, transaction)"); got != 1 {
+		t.Fatalf("prepare transaction DB clock reads = %d, want 1", got)
 	}
 	prepare := entry + input
 	for _, forbidden := range []string{".Create()", ".Update()", ".Delete()", ".Exec("} {

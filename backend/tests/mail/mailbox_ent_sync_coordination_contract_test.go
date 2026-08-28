@@ -74,14 +74,14 @@ func TestMailboxEntSyncCoordinationClaimAndResolveSourceContract(t *testing.T) {
 		"!mailboxEntValidTime(request.LeaseUntil)",
 		"!request.LeaseUntil.After(request.Now)",
 		"repository.withMailboxEntTransaction",
-		"now, err := repository.mailboxEntNow()",
-		"!request.LeaseUntil.After(now)",
 		"ForUpdate()",
-		"SetSyncScheduleUpdatedAt(now)",
+		"databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)",
+		"!request.LeaseUntil.After(databaseWallClock)",
+		"SetSyncScheduleUpdatedAt(databaseWallClock)",
 		"mailboxEntSyncClaimSnapshot",
 	)
-	if got := strings.Count(claim, "repository.mailboxEntNow()"); got != 1 {
-		t.Fatalf("claim durable clock reads = %d, want 1", got)
+	if got := strings.Count(claim, "mailboxEntDatabaseWallClock(ctx, transaction)"); got != 1 {
+		t.Fatalf("claim transaction DB clock reads = %d, want 1", got)
 	}
 	if !strings.Contains(source, "account.SyncLeaseUntil != nil && !mailboxEntValidTime(*account.SyncLeaseUntil)") {
 		t.Fatal("persisted sync lease expiry must be exact-second UTC before any claim or resolve comparison")
@@ -103,14 +103,14 @@ func TestMailboxEntSyncCoordinationClaimAndResolveSourceContract(t *testing.T) {
 		"ClearMutationLeaseToken()",
 		"ClearMutationLeaseUntil()",
 		"SetMutationEpoch(nextMutationEpoch)",
-		"SetSyncScheduleUpdatedAt(now)",
+		"SetSyncScheduleUpdatedAt(databaseWallClock)",
 		"account.MutationLeaseToken = nil",
 		"account.MutationLeaseUntil = nil",
 		"account.MutationEpoch = nextMutationEpoch",
 	)
 	liveRenewal := mailboxEntCoordinationSourceSlice(t, claim,
-		"if hasLease && account.SyncLeaseUntil.After(now)",
-		"if account.NextSyncAt.After(now)",
+		"if hasLease && account.SyncLeaseUntil.After(databaseWallClock)",
+		"if account.NextSyncAt.After(databaseWallClock)",
 	)
 	requireMailboxEntOrderedFragments(t, liveRenewal,
 		"persistedFence.LeaseID != request.LeaseID",
@@ -119,7 +119,7 @@ func TestMailboxEntSyncCoordinationClaimAndResolveSourceContract(t *testing.T) {
 		"leaseUntil := request.LeaseUntil",
 		"account.SyncLeaseUntil.After(leaseUntil)",
 		"SetSyncLeaseUntil(leaseUntil)",
-		"SetSyncScheduleUpdatedAt(now)",
+		"SetSyncScheduleUpdatedAt(databaseWallClock)",
 	)
 	if !strings.Contains(claim, "result = mailboxEntSyncNonClaim(*account.MutationLeaseUntil)") {
 		t.Fatal("live mutation lease must return its exact persisted expiry")
@@ -136,17 +136,17 @@ func TestMailboxEntSyncCoordinationClaimAndResolveSourceContract(t *testing.T) {
 		"!mailboxEntValidTime(request.NextAttemptAt)",
 		"request.NextAttemptAt.Before(request.Now)",
 		"repository.withMailboxEntTransaction",
-		"now, err := repository.mailboxEntNow()",
 		"ForUpdate()",
+		"databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)",
 		"persistedFence != request.Fence",
-		"account.SyncLeaseUntil.After(now)",
+		"account.SyncLeaseUntil.After(databaseWallClock)",
 		"SetNextSyncAt(request.NextAttemptAt)",
-		"SetSyncScheduleUpdatedAt(now)",
+		"SetSyncScheduleUpdatedAt(databaseWallClock)",
 		"ClearSyncLeaseToken()",
 		"ClearSyncLeaseUntil()",
 	)
-	if got := strings.Count(resolve, "repository.mailboxEntNow()"); got != 1 {
-		t.Fatalf("resolve durable clock reads = %d, want 1", got)
+	if got := strings.Count(resolve, "mailboxEntDatabaseWallClock(ctx, transaction)"); got != 1 {
+		t.Fatalf("resolve transaction DB clock reads = %d, want 1", got)
 	}
 	for _, required := range []string{
 		"MAIL_SYNC_CURSOR_INVALID", "MAIL_SYNC_RESTART_REQUIRED", "MAIL_SYNC_ENGINE_UNAVAILABLE", "MAIL_SYNC_PAGE_REJECTED",
