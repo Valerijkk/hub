@@ -460,7 +460,7 @@ func (fake *bootstrapOAuthStateFake) ConsumeMailboxBootstrapOAuthState(_ context
 	}
 	pending, exists := fake.pending[state]
 	if !exists || pending.BrowserBindingHash != binding {
-		return mail.MailboxBootstrapOAuthPending{}, mail.ErrMailboxOAuthStateInvalid
+		return mail.MailboxBootstrapOAuthPending{}, &mail.MailboxOAuthError{Kind: mail.MailboxOAuthErrorStateInvalid}
 	}
 	delete(fake.pending, state)
 	return pending, nil
