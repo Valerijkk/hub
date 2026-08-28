@@ -358,7 +358,7 @@ RED `worktree-master-backend-unit-run-35a8f1ba0967` was target `FAIL`, first exi
 
 ## Safe-report correction note (2026-08-28)
 
-Review round 1 corrected stale current authority-gap wording. The accepted closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` are present; only PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live execution remain `UNBOUND/NOT_RUN`. This correction preserves the standalone interval-gate evidence and does not claim production recovery.
+Review round 1 corrected stale current authority-gap wording. The accepted closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, `EntRepository.ResolvePendingRecoveryTargetFacts`, and narrow static-only `EntRepository.ListPendingRecoveryTargets` pager are present. Generated/live PostgreSQL paging proof remains `NOT_RUN`; cross-store scanner composition, scheduler/process ownership, writer/server/runtime binding, and live execution remain `UNBOUND/NOT_RUN`. This correction preserves the standalone interval-gate evidence and does not claim production recovery.
 
 ## Coordinator interval-gate composition evidence (2026-08-28)
 
