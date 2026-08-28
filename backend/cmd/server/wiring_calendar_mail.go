@@ -123,7 +123,15 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	if d.cfg.Server.DevMode {
-		mailCalendarDemoSeeder, err := devdemo.NewMailCalendarDemoSeeder(d.db, d.rawDB, d.postgresAdvisoryLocks)
+		calendarDemoAdapter, err := newCalendarDemoAdapter(eventSvc, eventReadSvc)
+		if err != nil {
+			d.fatal("failed to wire Mail/Calendar demo seeder", err)
+		}
+		if calendarDemoAdapter == nil {
+			d.fatal("failed to wire Mail/Calendar demo seeder", errors.New("calendar demo adapter is unavailable"))
+		}
+
+		mailCalendarDemoSeeder, err := devdemo.NewMailCalendarDemoSeeder(d.db, d.rawDB, d.postgresAdvisoryLocks, calendarDemoAdapter)
 		if err != nil {
 			d.fatal("failed to wire Mail/Calendar demo seeder", err)
 		}
