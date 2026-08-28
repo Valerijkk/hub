@@ -1,4 +1,13 @@
 # Hub Mail + Calendar Sync — QA handoff
+
+## Mail backend-unit recovery checkpoint (2026-08-28)
+
+Canonical Docker gate `docker compose -f docker-compose.local.yml run --rm --build backend-unit` ran 2026-08-28 11:54–12:24 UTC and exited `1`. Build/vet exposed a broad MailEngine constructor mismatch; unit and race stages showed identical Mail-only failure clusters. Ignored runtime reports remain in `testframework/reports/backend-unit`.
+
+Accepted recovery packets: narrow sync port `9b079501`, calendar organization marker `ade0a496`, normalized calendar constant `9a94d5b1`, pinned Fiber v3.0.0-beta.3 domain order `2ee0748b`, projection shape `fa998181`, provisioning marker `4123846a`, setup marker `377abddb`, and `DestroyedIDs` presence `612d2883`; prior sync-presence and phase context are `73d1693b` / `24533479`. Every accepted packet has independent static review `C/I/M 0/0/0` (`provenance_source: dispatcher-enforced`).
+
+The next full `backend-unit` rerun is `NOT_RUN`; this checkpoint makes no green or full-readiness claim.
+
 > **2026-08-26 execution-status checkpoint.** DNS isolation `076968f0` is
 > statically accepted: independent Terra/high review `C/I/M 0/0/0`, static
 > import scan/diff `PASS`; JSON/default/validation/error behavior unchanged and

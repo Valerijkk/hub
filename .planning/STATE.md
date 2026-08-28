@@ -1,4 +1,13 @@
 ---
+mail_backend_unit_recovery_checkpoint_2026_08_28: >-
+  Canonical Docker backend-unit ran 2026-08-28 11:54-12:24 UTC and exited 1:
+  build/vet found a broad MailEngine constructor mismatch; unit/race had identical
+  Mail-only failure clusters, with ignored reports in testframework/reports/backend-unit.
+  Accepted static-reviewed C/I/M 0/0/0 recovery packets are 9b079501, ade0a496,
+  9a94d5b1, 2ee0748b, fa998181, 4123846a, 377abddb and 612d2883; preceding sync
+  context is 73d1693b/24533479. provenance_source: dispatcher-enforced. Fresh full
+  backend-unit rerun is NOT_RUN; no green/full-readiness claim. Functional estimate
+  is about 86%, Docker-readiness about 72%.
 mail_qa_materialization_source_checkpoint_2026_08_27: >-
   SOURCE_STATIC_ACCEPTANCE_ONLY / RUNTIME_NOT_RUN. Mail QA materialization is
   recorded as the exact source/static mapping: P1 typed client/models/exports
@@ -712,7 +721,7 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: mail-calendar-development-with-testframework
 stopped_at: origin/master f21e3f77 integrated; Mail and Calendar implementation continues
-last_updated: "2026-08-23T00:00:00+03:00"
+last_updated: "2026-08-28T00:00:00+03:00"
 testframework_master_integration: >-
   origin/master f21e3f77 is integrated into codex/mail-module-20260813. The accepted
   Python QA package, root Compose profile, unit relocation, and retired legacy runner

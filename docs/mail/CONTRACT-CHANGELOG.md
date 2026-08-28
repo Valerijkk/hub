@@ -1,5 +1,12 @@
 # Hub Mail contract changelog
 
+## 2026-08-28 - Mail backend-unit recovery batch
+
+- Recorded the failed canonical Docker `backend-unit` gate (2026-08-28 11:54–12:24 UTC, exit `1`): broad MailEngine constructor mismatch during build/vet and identical Mail-only unit/race clusters; ignored reports are in `testframework/reports/backend-unit`.
+- Accepted narrowly scoped recovery contracts: sync port (`9b079501`), calendar organization marker (`ade0a496`), normalized calendar constant (`9a94d5b1`), Fiber v3.0.0-beta.3 domain-order pin (`2ee0748b`), projection shape (`fa998181`), provisioning/setup markers (`4123846a`, `377abddb`), and `DestroyedIDs` collection presence (`612d2883`).
+- Retained preceding sync projection-presence and resolve-phase context (`73d1693b`, `24533479`). All accepted packets independently static-reviewed `C/I/M 0/0/0` (`provenance_source: dispatcher-enforced`).
+- Fresh full `docker compose -f docker-compose.local.yml run --rm --build backend-unit` evidence is `NOT_RUN`.
+
 ## 2026-08-26 - 147-02C inbound invite resolution
 
 `backend/internal/calendar/event_ent_repository_inbound_invite.go` now
