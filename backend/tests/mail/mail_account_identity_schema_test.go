@@ -416,7 +416,7 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	}
 
 	identityEdges := (entschema.MailIdentity{}).Edges()
-	assertExactOrderedEdgeNames(t, "MailIdentity edges", identityEdges, []string{"account", "default_for_settings"})
+	assertExactOrderedEdgeNames(t, "MailIdentity edges", identityEdges, []string{"account", "default_for_settings", "drafts", "pending_drafts"})
 	identityEdgeDescriptors := edgeDescriptors(identityEdges)
 	assertRequiredInverseEdge(t, "MailIdentity.account", identityEdgeDescriptors["account"], "mail_account_id", "identities", entsql.Cascade)
 	if defaultForSettings := identityEdgeDescriptors["default_for_settings"]; defaultForSettings == nil || defaultForSettings.Inverse || !defaultForSettings.Unique || defaultForSettings.Required || defaultForSettings.RefName != "" {

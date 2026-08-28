@@ -45,10 +45,12 @@ func TestMailUserConfigurationSchemas_HaveExactFieldsDefaultsAndBounds(t *testin
 			t.Fatalf("MailSignature %s must be immutable", name)
 		}
 	}
-	for _, name := range []string{"name", "body_format", "plain_body"} {
+	for _, name := range []string{"name", "plain_body"} {
 		assertFieldType(t, name, signature[name], field.TypeString)
 		assertRequired(t, name, signature[name])
 	}
+	assertFieldType(t, "body_format", signature["body_format"], field.TypeEnum)
+	assertRequired(t, "body_format", signature["body_format"])
 	assertOptionalNillable(t, "rich_body", signature["rich_body"])
 	assertOptionalNillable(t, "deleted_at", signature["deleted_at"])
 	assertExactEnumValues(t, "body_format", signature["body_format"], []string{"rich", "plain"})
