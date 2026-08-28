@@ -459,7 +459,7 @@ func parseSessionURL(value string, client *Client, path, rawQuery string) (*url.
 		return nil, false
 	}
 	parsed, err := url.Parse(value)
-	if err != nil || parsed == nil || parsed.Opaque != "" || parsed.User != nil || parsed.Fragment != "" || parsed.ForceQuery || parsed.RawPath != "" || parsed.Path != path || parsed.RawQuery != rawQuery || !client.sameOrigin(parsed) {
+	if err != nil || parsed == nil || parsed.Opaque != "" || parsed.User != nil || parsed.Fragment != "" || parsed.ForceQuery || (parsed.RawPath != "" && parsed.RawPath != path) || parsed.Path != path || parsed.RawQuery != rawQuery || !client.sameOrigin(parsed) {
 		return nil, false
 	}
 	return &url.URL{Scheme: client.origin.Scheme, Host: client.origin.Host, Path: path, RawQuery: rawQuery}, true
