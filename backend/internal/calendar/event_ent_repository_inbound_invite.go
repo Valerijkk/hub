@@ -1404,7 +1404,7 @@ func (backend *eventEntTransactionBackend) persistCalendarInboundInviteSeriesCan
 		if exception == nil || exception.ID == uuid.Nil {
 			return nil, nil, false, ErrEventInvalid
 		}
-		if exception.Status == calendareventexception.Status(CalendarEventStatusCancelled) {
+		if exception.Status != nil && *exception.Status == calendareventexception.Status(CalendarEventStatusCancelled) {
 			continue
 		}
 		if err := backend.tx.CalendarEventException.UpdateOne(exception).
