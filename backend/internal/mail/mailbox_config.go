@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	maxMailboxEngineConfigBooleanBytes = 16
-	maxMailboxEngineConfigOriginBytes  = 2048
-	maxMailboxEngineConfigDomainBytes  = 253
-	maxMailboxEngineConfigAuthModeBytes = 64
+	maxMailboxEngineConfigBooleanBytes                = 16
+	maxMailboxEngineConfigOriginBytes                 = 2048
+	maxMailboxEngineConfigDomainBytes                 = 253
+	maxMailboxEngineConfigAuthModeBytes               = 64
+	maxMailboxEngineConfigDomainVerificationModeBytes = 64
 )
 
 // MailboxConfigLookup supplies process configuration without coupling the mail domain
@@ -25,11 +26,13 @@ type MailboxConfigLookup func(string) (string, bool)
 type MailboxEngineConfigStatus string
 
 const (
-	MailboxEngineConfigStatusNotConfigured   MailboxEngineConfigStatus = "not_configured"
-	MailboxEngineConfigStatusConfigured      MailboxEngineConfigStatus = "configured"
-	MailboxEngineConfigStatusInvalid         MailboxEngineConfigStatus = "invalid"
-	MailboxEngineConfigStatusAuthModeRequired MailboxEngineConfigStatus = "auth_mode_required"
-	MailboxEngineConfigStatusAuthModeUnsupported MailboxEngineConfigStatus = "auth_mode_unsupported"
+	MailboxEngineConfigStatusNotConfigured                     MailboxEngineConfigStatus = "not_configured"
+	MailboxEngineConfigStatusConfigured                        MailboxEngineConfigStatus = "configured"
+	MailboxEngineConfigStatusInvalid                           MailboxEngineConfigStatus = "invalid"
+	MailboxEngineConfigStatusDomainVerificationModeRequired    MailboxEngineConfigStatus = "domain_verification_mode_required"
+	MailboxEngineConfigStatusDomainVerificationModeUnsupported MailboxEngineConfigStatus = "domain_verification_mode_unsupported"
+	MailboxEngineConfigStatusAuthModeRequired                  MailboxEngineConfigStatus = "auth_mode_required"
+	MailboxEngineConfigStatusAuthModeUnsupported               MailboxEngineConfigStatus = "auth_mode_unsupported"
 )
 
 // MailboxEngineMailAuthMode identifies the credential class for mailbox JMAP calls.
@@ -39,6 +42,15 @@ type MailboxEngineMailAuthMode string
 const (
 	MailboxEngineMailAuthModeDisabled                   MailboxEngineMailAuthMode = "disabled"
 	MailboxEngineMailAuthModeOAuthAuthorizationCodePKCE MailboxEngineMailAuthMode = "oauth_authorization_code_pkce"
+)
+
+// MailboxEngineDomainVerificationMode identifies the accepted public DNS
+// verification strategy for an enabled mailbox engine.
+type MailboxEngineDomainVerificationMode string
+
+const (
+	MailboxEngineDomainVerificationModeDisabled  MailboxEngineDomainVerificationMode = "disabled"
+	MailboxEngineDomainVerificationModePublicDNS MailboxEngineDomainVerificationMode = "public_dns"
 )
 
 // MailboxEngineConfig contains only non-secret, process-owned engine settings. Origin
@@ -52,6 +64,7 @@ type MailboxEngineConfig struct {
 	ExternalDeliveryEnabled bool
 	ExclusiveFolderWriter   bool
 	MailAuthMode            MailboxEngineMailAuthMode
+	DomainVerificationMode  MailboxEngineDomainVerificationMode
 }
 
 var ErrMailboxEngineConfigInvalid = errors.New("mailbox engine configuration invalid")
@@ -61,15 +74,17 @@ var ErrMailboxEngineConfigInvalid = errors.New("mailbox engine configuration inv
 type MailboxEngineConfigErrorKind string
 
 const (
-	MailboxEngineConfigErrorInvalidLookup       MailboxEngineConfigErrorKind = "invalid_lookup"
-	MailboxEngineConfigErrorValueTooLarge       MailboxEngineConfigErrorKind = "value_too_large"
-	MailboxEngineConfigErrorInvalidValue        MailboxEngineConfigErrorKind = "invalid_value"
-	MailboxEngineConfigErrorOriginRequired      MailboxEngineConfigErrorKind = "origin_required"
-	MailboxEngineConfigErrorInvalidOrigin       MailboxEngineConfigErrorKind = "invalid_origin"
-	MailboxEngineConfigErrorDomainRequired      MailboxEngineConfigErrorKind = "domain_required"
-	MailboxEngineConfigErrorInvalidDomain       MailboxEngineConfigErrorKind = "invalid_domain"
-	MailboxEngineConfigErrorAuthModeRequired    MailboxEngineConfigErrorKind = "auth_mode_required"
-	MailboxEngineConfigErrorAuthModeUnsupported MailboxEngineConfigErrorKind = "auth_mode_unsupported"
+	MailboxEngineConfigErrorInvalidLookup                     MailboxEngineConfigErrorKind = "invalid_lookup"
+	MailboxEngineConfigErrorValueTooLarge                     MailboxEngineConfigErrorKind = "value_too_large"
+	MailboxEngineConfigErrorInvalidValue                      MailboxEngineConfigErrorKind = "invalid_value"
+	MailboxEngineConfigErrorOriginRequired                    MailboxEngineConfigErrorKind = "origin_required"
+	MailboxEngineConfigErrorInvalidOrigin                     MailboxEngineConfigErrorKind = "invalid_origin"
+	MailboxEngineConfigErrorDomainRequired                    MailboxEngineConfigErrorKind = "domain_required"
+	MailboxEngineConfigErrorInvalidDomain                     MailboxEngineConfigErrorKind = "invalid_domain"
+	MailboxEngineConfigErrorDomainVerificationModeRequired    MailboxEngineConfigErrorKind = "domain_verification_mode_required"
+	MailboxEngineConfigErrorDomainVerificationModeUnsupported MailboxEngineConfigErrorKind = "domain_verification_mode_unsupported"
+	MailboxEngineConfigErrorAuthModeRequired                  MailboxEngineConfigErrorKind = "auth_mode_required"
+	MailboxEngineConfigErrorAuthModeUnsupported               MailboxEngineConfigErrorKind = "auth_mode_unsupported"
 )
 
 // MailboxEngineConfigError is safe for logs because it includes only a fixed kind.
@@ -104,15 +119,17 @@ func ParseMailboxEngineConfig(lookup MailboxConfigLookup) (MailboxEngineConfig, 
 	}
 	if !enabled {
 		return MailboxEngineConfig{
-			Status:       MailboxEngineConfigStatusNotConfigured,
-			MailAuthMode: MailboxEngineMailAuthModeDisabled,
+			Status:                 MailboxEngineConfigStatusNotConfigured,
+			MailAuthMode:           MailboxEngineMailAuthModeDisabled,
+			DomainVerificationMode: MailboxEngineDomainVerificationModeDisabled,
 		}, nil
 	}
 
 	config := MailboxEngineConfig{
-		Enabled:      true,
-		Status:       MailboxEngineConfigStatusInvalid,
-		MailAuthMode: MailboxEngineMailAuthModeDisabled,
+		Enabled:                true,
+		Status:                 MailboxEngineConfigStatusInvalid,
+		MailAuthMode:           MailboxEngineMailAuthModeDisabled,
+		DomainVerificationMode: MailboxEngineDomainVerificationModeDisabled,
 	}
 
 	rawOrigin, present, err := mailboxEngineConfigValue(lookup, "MAILBOX_ENGINE_ORIGIN", maxMailboxEngineConfigOriginBytes)
@@ -154,6 +171,18 @@ func ParseMailboxEngineConfig(lookup MailboxConfigLookup) (MailboxEngineConfig, 
 	if config.ExternalDeliveryEnabled && config.Domain == "" {
 		return mailboxEngineConfigFailure(config, MailboxEngineConfigStatusInvalid, MailboxEngineConfigErrorDomainRequired)
 	}
+
+	rawDomainVerificationMode, domainVerificationModePresent, err := mailboxEngineConfigValue(lookup, "MAILBOX_DOMAIN_VERIFICATION_MODE", maxMailboxEngineConfigDomainVerificationModeBytes)
+	if err != nil {
+		return mailboxEngineConfigFailure(config, MailboxEngineConfigStatusInvalid, mailboxEngineConfigErrorKind(err))
+	}
+	if !domainVerificationModePresent || rawDomainVerificationMode == "" || rawDomainVerificationMode == string(MailboxEngineDomainVerificationModeDisabled) {
+		return mailboxEngineConfigFailure(config, MailboxEngineConfigStatusDomainVerificationModeRequired, MailboxEngineConfigErrorDomainVerificationModeRequired)
+	}
+	if rawDomainVerificationMode != string(MailboxEngineDomainVerificationModePublicDNS) {
+		return mailboxEngineConfigFailure(config, MailboxEngineConfigStatusDomainVerificationModeUnsupported, MailboxEngineConfigErrorDomainVerificationModeUnsupported)
+	}
+	config.DomainVerificationMode = MailboxEngineDomainVerificationModePublicDNS
 
 	rawAuthMode, authModePresent, err := mailboxEngineConfigValue(lookup, "MAILBOX_ENGINE_MAIL_AUTH_MODE", maxMailboxEngineConfigAuthModeBytes)
 	if err != nil {
