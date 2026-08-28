@@ -441,14 +441,15 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	assertPlainToManyEdge(t, "Organization.mail_objects", organizationEdgeDescriptors["mail_objects"])
 
 	userEdges := (entschema.User{}).Edges()
-	if len(userEdges) < 3 || userEdges[len(userEdges)-3].Descriptor().Name != "mail_account" || userEdges[len(userEdges)-2].Descriptor().Name != "recent_contacts" || userEdges[len(userEdges)-1].Descriptor().Name != "mail_objects" {
-		t.Fatalf("User must append mail_account, recent_contacts, then mail_objects as the A3/02D/02C inverse edges; trailing edges = %#v", userEdges)
+	if len(userEdges) < 4 || userEdges[len(userEdges)-4].Descriptor().Name != "mail_account" || userEdges[len(userEdges)-3].Descriptor().Name != "mail_send_rate_buckets" || userEdges[len(userEdges)-2].Descriptor().Name != "recent_contacts" || userEdges[len(userEdges)-1].Descriptor().Name != "mail_objects" {
+		t.Fatalf("User must append mail_account, mail_send_rate_buckets, recent_contacts, then mail_objects as the A3/02D/02C inverse edges; trailing edges = %#v", userEdges)
 	}
 	mailAccount := edgeDescriptors(userEdges)["mail_account"]
 	if mailAccount == nil || mailAccount.Inverse || !mailAccount.Unique || mailAccount.Required || mailAccount.RefName != "" {
 		t.Fatalf("User.mail_account = %#v, want plain unique inverse target", mailAccount)
 	}
 	assertPlainToManyEdge(t, "User.recent_contacts", edgeDescriptors(userEdges)["recent_contacts"])
+	assertPlainToManyEdge(t, "User.mail_send_rate_buckets", edgeDescriptors(userEdges)["mail_send_rate_buckets"])
 	assertPlainToManyEdge(t, "User.mail_objects", edgeDescriptors(userEdges)["mail_objects"])
 }
 

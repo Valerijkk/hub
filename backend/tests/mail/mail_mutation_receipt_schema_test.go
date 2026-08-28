@@ -84,7 +84,7 @@ func TestMailMutationReceiptSchemas_HaveExactFieldsDefaultsAndImmutability(t *te
 	for _, name := range []string{"request_index", "affected_count", "succeeded_count", "failed_count"} {
 		assertFieldType(t, name, targetFields[name], field.TypeInt32)
 	}
-	assertExactEnumValues(t, "target_type", targetFields["target_type"], []string{"message", "thread"})
+	assertExactEnumValues(t, "target_type", targetFields["target_type"], []string{"message", "thread", "attachment"})
 	assertExactEnumValues(t, "status", targetFields["status"], []string{"succeeded", "partial", "failed", "unknown"})
 	assertExactEnumValues(t, "training_status", targetFields["training_status"], []string{"not_requested", "accepted", "rejected", "unknown"})
 	assertExactEnumValues(t, "safe_code", targetFields["safe_code"], []string{"MAIL_ACTION_REJECTED", "MAIL_CLASSIFIER_REJECTED", "MAIL_TARGET_UNAVAILABLE", "MAIL_FOLDER_UNAVAILABLE", "MAIL_LABEL_UNAVAILABLE", "MAIL_ENGINE_OUTCOME_UNKNOWN", "MAIL_CLASSIFIER_OUTCOME_UNKNOWN"})
