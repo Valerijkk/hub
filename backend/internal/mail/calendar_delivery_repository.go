@@ -519,7 +519,7 @@ func validCalendarMailDeliveryDueScanResult(request CalendarMailDeliveryDueScanR
 }
 
 func calendarMailDeliveryDueScanResultCopy(result CalendarMailDeliveryDueScanResult) CalendarMailDeliveryDueScanResult {
-	result.DeliveryIDs = append([]CalendarMailDeliveryID(nil), result.DeliveryIDs...)
+	result.DeliveryIDs = append(make([]CalendarMailDeliveryID, 0, len(result.DeliveryIDs)), result.DeliveryIDs...)
 	return result
 }
 
