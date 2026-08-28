@@ -954,7 +954,7 @@ func validMailboxSyncInput(t *testing.T) mail.MailboxSyncPolicyInput {
 		AccountID: "engine-account", MessageID: "message-04f", Version: "v1",
 		From: mail.EngineAddress{Email: "sender@example.test"}, To: []mail.EngineAddress{{Email: "owner@example.test"}}, CC: []mail.EngineAddress{}, BCC: []mail.EngineAddress{}, ReplyTo: []mail.EngineAddress{}, References: []string{}, ReservedKeywords: []mail.EngineKeywordMarker{}, Attachments: []mail.EngineProjectionAttachment{},
 		Subject: "Sync policy", ReceivedAt: &receivedAt, Priority: mail.EnginePriorityNormal,
-		FolderIDs: []string{"inbox"}, Flags: mail.EngineMessageFlags{Seen: true}, Origin: mail.EngineProjectionOriginInboundOrUnknown,
+		FolderIDs: []string{"inbox"}, Flags: mail.EngineMessageFlags{Seen: true}, Origin: mail.EngineProjectionOriginInboundOrUnknown, AuthenticationClass: mail.MailAuthenticationClassUntrusted,
 	}
 	identity, err := mail.DeriveThreadIdentity(mail.ThreadingInput{Subject: projection.Subject, From: projection.From, To: projection.To, Ancestors: []mail.ThreadAncestor{}, AncestorLookupComplete: true})
 	if err != nil {
