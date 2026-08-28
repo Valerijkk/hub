@@ -370,6 +370,12 @@ func eventEntRepositorySetScanValue(destination, value any) error {
 			return fmt.Errorf("scan UUID value = %T", value)
 		}
 		target.Set(reflect.ValueOf(id))
+	case target.Type() == reflect.TypeOf(sql.NullString{}):
+		text, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("scan string value = %T", value)
+		}
+		target.Set(reflect.ValueOf(sql.NullString{String: text, Valid: true}))
 	case target.Kind() == reflect.String:
 		text, ok := value.(string)
 		if !ok {
