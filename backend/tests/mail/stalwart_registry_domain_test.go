@@ -52,6 +52,26 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 			wantCalls: 2,
 		},
 		{
+			name:   "present local domain accepts enriched automatic DKIM management",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": map[string]any{
+						"@type":            "Automatic",
+						"algorithms":       map[string]bool{"Dkim1Ed25519Sha256": true, "Dkim1RsaSha256": true},
+						"selectorTemplate": "mail-{n}",
+						"rotateAfter":      int64(2_592_000_000),
+						"retireAfter":      int64(86_400_000),
+						"deleteAfter":      int64(172_800_000),
+					},
+					"dnsManagement": registryDomainManualDNSManagement(),
+				}),
+			},
+			wantID:    "domain-1",
+			wantCalls: 2,
+		},
+		{
 			name:   "absent local domain is created then verified",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{
@@ -156,6 +176,19 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 				registryDomainQueryReply([]string{"domain-1"}),
 				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
 					"dkimManagement": map[string]any{"@type": "Automatic", "algorithms": map[string]bool{"Dkim1Ed25519Sha256": false}},
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "existing domain with malformed optional DKIM selector is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": map[string]any{"@type": "Automatic", "selectorTemplate": true},
 					"dnsManagement":  registryDomainManualDNSManagement(),
 				}),
 			},
@@ -328,6 +361,27 @@ func TestRegistryDomainController_ReadLocalDomainDNSZoneFile(t *testing.T) {
 			wantCalls: 2,
 		},
 		{
+			name:   "zone read accepts enriched automatic DKIM management",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReplyWithManagement("domain-1", localRegistryDomain, true, false, "example.test. IN MX 10 mail.example.test.\n", map[string]any{
+					"dkimManagement": map[string]any{
+						"@type":            "Automatic",
+						"algorithms":       map[string]bool{"Dkim1Ed25519Sha256": true, "Dkim1RsaSha256": true},
+						"selectorTemplate": "mail-{n}",
+						"rotateAfter":      int64(2_592_000_000),
+						"retireAfter":      int64(86_400_000),
+						"deleteAfter":      int64(172_800_000),
+					},
+					"dnsManagement": registryDomainManualDNSManagement(),
+				}),
+			},
+			wantID:    "domain-1",
+			wantName:  localRegistryDomain,
+			wantCalls: 2,
+		},
+		{
 			name:   "zone read rejects drifted DKIM management",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{
@@ -446,6 +500,175 @@ func TestRegistryDomainController_ReadLocalDomainDNSZoneFile(t *testing.T) {
 				t.Fatalf("requests = %d; want %d", calls, testCase.wantCalls)
 			}
 		})
+	}
+}
+
+func TestRegistryDomainController_ObserveLocalDomainDNS(t *testing.T) {
+	const projectionCapableZone = "example.test. IN MX 10 mail.example.test.\n" +
+		"example.test. IN TXT \"v=spf1 -all\"\n" +
+		"_dmarc.example.test. IN TXT \"v=DMARC1; p=none\"\n" +
+		"selector._domainkey.example.test. IN TXT \"v=DKIM1; p=key\"\n"
+
+	for _, testCase := range []struct {
+		name           string
+		domain         string
+		replies        []registryDomainReply
+		cancel         bool
+		wantPresent    bool
+		wantID         string
+		wantName       string
+		wantProjection bool
+		wantErr        error
+		wantCalls      int
+	}{
+		{
+			name:      "confirmed absence requires one query",
+			domain:    " Example.TEST ",
+			replies:   []registryDomainReply{registryDomainQueryReply([]string{})},
+			wantCalls: 1,
+		},
+		{
+			name:   "present authoritative zone remains private and projection capable",
+			domain: " Example.TEST ",
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReply("domain-1", localRegistryDomain, true, false, projectionCapableZone),
+			},
+			wantPresent:    true,
+			wantID:         "domain-1",
+			wantName:       localRegistryDomain,
+			wantProjection: true,
+			wantCalls:      2,
+		},
+		{
+			name:   "duplicate query identifiers are rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1", "domain-1"}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 1,
+		},
+		{
+			name:   "multiple query identifiers are rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1", "domain-2"}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 1,
+		},
+		{
+			name:   "management drift is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReplyWithManagement("domain-1", localRegistryDomain, true, false, projectionCapableZone, map[string]any{
+					"dkimManagement": map[string]any{"@type": "Manual"},
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "malformed query response is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{{
+				want:     registryDomainQueryRequest(localRegistryDomain),
+				response: `{"methodResponses":[["x:Domain/query",{"queryState":"query-state","canCalculateChanges":false,"position":0,"ids":["domain-1"]},"wrong-call"]]}`,
+			}},
+			wantErr:   stalwart.ErrProtocol,
+			wantCalls: 1,
+		},
+		{
+			name:      "cancelled context performs no request",
+			domain:    localRegistryDomain,
+			cancel:    true,
+			wantErr:   stalwart.ErrCancelled,
+			wantCalls: 0,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			var (
+				mu    sync.Mutex
+				calls int
+			)
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
+				calls++
+				if request.Method != http.MethodPost || request.URL.Path != "/jmap" || request.URL.RawQuery != "" || request.Header.Get("Authorization") != "Bearer registry-domain-test-key" || calls > len(testCase.replies) {
+					writer.WriteHeader(http.StatusForbidden)
+					return
+				}
+				var got stalwart.JMAPRequest
+				if err := json.NewDecoder(request.Body).Decode(&got); err != nil || !registryDomainRequestEqual(got, testCase.replies[calls-1].want) {
+					writer.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				writer.Header().Set("Content-Type", "application/json")
+				_, _ = writer.Write([]byte(testCase.replies[calls-1].response))
+			}))
+			defer server.Close()
+
+			client, err := stalwart.NewClient(stalwart.Config{Origin: server.URL, HTTPClient: server.Client(), RegistryAuthorizer: registryDomainTestAuthorizer{}, MailboxAuthorizer: registryDomainTestAuthorizer{}})
+			if err != nil {
+				t.Fatalf("NewClient() error = %v", err)
+			}
+			controller, err := stalwart.NewRegistryDomainController(client)
+			if err != nil {
+				t.Fatalf("NewRegistryDomainController() error = %v", err)
+			}
+
+			ctx := context.Background()
+			if testCase.cancel {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
+			}
+			observation, err := controller.ObserveLocalDomainDNS(ctx, testCase.domain)
+			if !errors.Is(err, testCase.wantErr) {
+				t.Fatalf("ObserveLocalDomainDNS() error = %v; want %v", err, testCase.wantErr)
+			}
+			if err == nil && observation.IsPresent() != testCase.wantPresent {
+				t.Fatalf("IsPresent() = %t; want %t", observation.IsPresent(), testCase.wantPresent)
+			}
+			if err != nil && observation.IsPresent() {
+				t.Fatal("failed observation must not be present")
+			}
+
+			zoneFile, present := observation.DNSZoneFile()
+			if present != (err == nil && testCase.wantPresent) {
+				t.Fatalf("DNSZoneFile() present = %t; want %t", present, err == nil && testCase.wantPresent)
+			}
+			if present && (zoneFile.DomainID() != testCase.wantID || zoneFile.DomainName() != testCase.wantName) {
+				t.Fatalf("DNSZoneFile() identity = %q/%q; want %q/%q", zoneFile.DomainID(), zoneFile.DomainName(), testCase.wantID, testCase.wantName)
+			}
+			if testCase.wantProjection {
+				projection, projectionErr := zoneFile.ProjectMailCriticalDNS()
+				if projectionErr != nil {
+					t.Fatalf("ProjectMailCriticalDNS() error = %v", projectionErr)
+				}
+				if projection.DomainID() != testCase.wantID || projection.DomainName() != testCase.wantName {
+					t.Fatalf("ProjectMailCriticalDNS() identity = %q/%q; want %q/%q", projection.DomainID(), projection.DomainName(), testCase.wantID, testCase.wantName)
+				}
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+			if calls != testCase.wantCalls {
+				t.Fatalf("requests = %d; want %d", calls, testCase.wantCalls)
+			}
+		})
+	}
+
+	var zero stalwart.LocalDomainDNSObservation
+	if zero.IsPresent() {
+		t.Fatal("zero observation must not be present")
+	}
+	if zoneFile, present := zero.DNSZoneFile(); present || zoneFile.DomainID() != "" || zoneFile.DomainName() != "" {
+		t.Fatalf("zero DNSZoneFile() = %#v, %t; want zero, false", zoneFile, present)
 	}
 }
 

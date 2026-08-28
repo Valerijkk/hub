@@ -40,6 +40,32 @@ type LocalDomainDNSZoneFile struct {
 	zoneFile   string
 }
 
+// LocalDomainDNSObservation distinguishes a confirmed absent local domain
+// from an authoritative DNS zone without exposing that provider zone.
+type LocalDomainDNSObservation struct {
+	present  bool
+	zoneFile LocalDomainDNSZoneFile
+}
+
+// IsPresent reports whether the observation has an internally valid
+// authoritative local-domain DNS zone.
+func (observation LocalDomainDNSObservation) IsPresent() bool {
+	return observation.present && validLocalDomainDNSZoneFile(observation.zoneFile)
+}
+
+// DNSZoneFile returns an independent private zone value only for an internally
+// valid present observation. Absent or invalid observations return zero, false.
+func (observation LocalDomainDNSObservation) DNSZoneFile() (LocalDomainDNSZoneFile, bool) {
+	if !observation.IsPresent() {
+		return LocalDomainDNSZoneFile{}, false
+	}
+	return LocalDomainDNSZoneFile{
+		domainID:   strings.Clone(observation.zoneFile.domainID),
+		domainName: strings.Clone(observation.zoneFile.domainName),
+		zoneFile:   strings.Clone(observation.zoneFile.zoneFile),
+	}, true
+}
+
 // DomainID returns the validated opaque Registry domain identifier.
 func (result LocalDomainDNSZoneFile) DomainID() string { return result.domainID }
 
@@ -89,33 +115,60 @@ func (controller *RegistryDomainController) EnsureLocalDomain(ctx context.Contex
 	}
 }
 
-// ReadLocalDomainDNSZoneFile reads only the provider's expected manual-DNS
-// zone for one already-present enabled non-relaying local domain. It neither
-// parses nor verifies DNS and never promotes any local state.
-func (controller *RegistryDomainController) ReadLocalDomainDNSZoneFile(ctx context.Context, name string) (LocalDomainDNSZoneFile, error) {
+// ObserveLocalDomainDNS distinguishes an absent local domain from one
+// authoritative enabled, non-relaying domain with automatic DKIM and manual
+// DNS management. It neither parses nor verifies public DNS.
+func (controller *RegistryDomainController) ObserveLocalDomainDNS(ctx context.Context, name string) (LocalDomainDNSObservation, error) {
 	if controller == nil || controller.client == nil {
-		return LocalDomainDNSZoneFile{}, ErrInvalidConfiguration
+		return LocalDomainDNSObservation{}, ErrInvalidConfiguration
 	}
 	if err := registryDomainContextError(ctx); err != nil {
-		return LocalDomainDNSZoneFile{}, err
+		return LocalDomainDNSObservation{}, err
 	}
 	domainName, ok := canonicalRegistryDomainName(name)
 	if !ok {
-		return LocalDomainDNSZoneFile{}, ErrInvalidRequest
+		return LocalDomainDNSObservation{}, ErrInvalidRequest
 	}
 
 	response, err := controller.client.CallRegistry(ctx, registryDomainQueryRequest(domainName))
 	if err != nil {
-		return LocalDomainDNSZoneFile{}, err
+		return LocalDomainDNSObservation{}, err
 	}
 	ids, err := parseRegistryDomainQuery(response)
 	if err != nil {
+		return LocalDomainDNSObservation{}, err
+	}
+	switch len(ids) {
+	case 0:
+		return LocalDomainDNSObservation{}, nil
+	case 1:
+		zoneFile, err := controller.getAndReadLocalDomainDNSZoneFile(ctx, ids[0], domainName)
+		if err != nil {
+			return LocalDomainDNSObservation{}, err
+		}
+		observation := LocalDomainDNSObservation{present: true, zoneFile: zoneFile}
+		if !observation.IsPresent() {
+			return LocalDomainDNSObservation{}, ErrProtocol
+		}
+		return observation, nil
+	default:
+		return LocalDomainDNSObservation{}, ErrStateMismatch
+	}
+}
+
+// ReadLocalDomainDNSZoneFile reads only the provider's expected manual-DNS
+// zone for one already-present enabled non-relaying local domain. It neither
+// parses nor verifies DNS and never promotes any local state.
+func (controller *RegistryDomainController) ReadLocalDomainDNSZoneFile(ctx context.Context, name string) (LocalDomainDNSZoneFile, error) {
+	observation, err := controller.ObserveLocalDomainDNS(ctx, name)
+	if err != nil {
 		return LocalDomainDNSZoneFile{}, err
 	}
-	if len(ids) != 1 {
+	zoneFile, present := observation.DNSZoneFile()
+	if !present {
 		return LocalDomainDNSZoneFile{}, ErrStateMismatch
 	}
-	return controller.getAndReadLocalDomainDNSZoneFile(ctx, ids[0], domainName)
+	return zoneFile, nil
 }
 
 func (controller *RegistryDomainController) createAndVerifyLocalDomain(ctx context.Context, name string) (string, error) {
@@ -640,4 +693,11 @@ func registryDomainContextError(ctx context.Context) error {
 		return ErrUnavailable
 	}
 	return nil
+}
+
+func validLocalDomainDNSZoneFile(zoneFile LocalDomainDNSZoneFile) bool {
+	canonicalName, validName := canonicalRegistryDomainName(zoneFile.domainName)
+	return validOpaque(zoneFile.domainID) &&
+		validName && canonicalName == zoneFile.domainName &&
+		validRegistryDomainDNSZoneFile(zoneFile.zoneFile)
 }
