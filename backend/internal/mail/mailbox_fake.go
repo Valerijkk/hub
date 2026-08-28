@@ -2359,8 +2359,9 @@ func cloneProjection(projection EngineMessageProjection) EngineMessageProjection
 	projection.ReplyTo = cloneAddresses(projection.ReplyTo)
 	projection.FolderIDs = cloneStrings(projection.FolderIDs)
 	projection.ReservedKeywords = append([]EngineKeywordMarker{}, projection.ReservedKeywords...)
-	projection.Attachments = make([]EngineProjectionAttachment, len(projection.Attachments))
-	for index, attachment := range projection.Attachments {
+	attachments := projection.Attachments
+	projection.Attachments = make([]EngineProjectionAttachment, len(attachments))
+	for index, attachment := range attachments {
 		attachment.SHA256 = append([]byte{}, attachment.SHA256...)
 		projection.Attachments[index] = attachment
 	}
