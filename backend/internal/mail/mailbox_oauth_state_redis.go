@@ -86,7 +86,7 @@ func (store *MailboxOAuthRedisStateStore) SaveMailboxOAuthState(ctx context.Cont
 		return mailboxOAuthError(MailboxOAuthErrorUnavailable)
 	}
 	defer clear(payload)
-	stored, err := store.client.SetNX(ctx, mailboxOAuthStateRedisKey(state), payload, mailboxOAuthStateTTL).Result()
+	stored, err := store.client.SetNX(ctx, mailboxOAuthRedisStateKey(state), payload, mailboxOAuthStateTTL).Result()
 	if err != nil {
 		return mailboxOAuthError(MailboxOAuthErrorUnavailable)
 	}
@@ -101,7 +101,7 @@ func (store *MailboxOAuthRedisStateStore) ConsumeMailboxOAuthState(ctx context.C
 		return MailboxOAuthPendingState{}, mailboxOAuthError(MailboxOAuthErrorStateInvalid)
 	}
 	expected := base64.RawURLEncoding.EncodeToString(expectedBindingHash[:])
-	result, err := consumeMailboxOAuthStateScript.Run(ctx, store.client, []string{mailboxOAuthStateRedisKey(state)}, expected, strconv.Itoa(mailboxOAuthStateJSONMaximum)).Result()
+	result, err := consumeMailboxOAuthStateScript.Run(ctx, store.client, []string{mailboxOAuthRedisStateKey(state)}, expected, strconv.Itoa(mailboxOAuthStateJSONMaximum)).Result()
 	if err != nil {
 		return MailboxOAuthPendingState{}, mailboxOAuthError(MailboxOAuthErrorUnavailable)
 	}
