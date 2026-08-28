@@ -336,6 +336,6 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 
 ## Ent recovery-target facts evidence (2026-08-28)
 
-Commit 4b100ee6 adds EntRepository.ResolvePendingRecoveryTargetFacts and compile-time Phase151PendingRecoveryTargetFactSource satisfaction. Coverage is limited to compile/interface and fail-closed pre-query guards for receiver/client/context/UUID inputs. RED worktree-master-backend-unit-run-e14c5e925814 was missing-method-only; final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00 recorded target/build/vet/unit/race PASS, exit  , and four empty stderr logs. Independent review is PASS/Approved with no findings; separate predicate review is PASS.
+Commit 4b100ee6 adds EntRepository.ResolvePendingRecoveryTargetFacts and compile-time Phase151PendingRecoveryTargetFactSource satisfaction. Coverage is limited to compile/interface and fail-closed pre-query guards for receiver/client/context/UUID inputs. RED worktree-master-backend-unit-run-e14c5e925814 was missing-method-only; final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00 recorded target/build/vet/unit/race PASS, exit 0, and four empty stderr logs. Independent review is PASS/Approved with no findings; separate predicate review is PASS.
 
 Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics remain NOT_RUN; no API or readiness claim follows.

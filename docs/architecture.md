@@ -524,6 +524,6 @@ Commits `326fb23c` and `a57f5da5` have bounded unit/race receipt `worktree-maste
 
 ## Messenger Ent recovery-target facts source (2026-08-28)
 
-EntRepository.ResolvePendingRecoveryTargetFacts (commit 4b100ee6) is the fail-closed Ent implementation of Phase151PendingRecoveryTargetFactSource. It guards receiver/client/context/UUID inputs before Ent access; this is not recovery-worker composition. Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 precedes final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit  , four empty stderr logs; independent review PASS/Approved with no findings and separate predicate review PASS.
+EntRepository.ResolvePendingRecoveryTargetFacts (commit 4b100ee6) is the fail-closed Ent implementation of Phase151PendingRecoveryTargetFactSource. It guards receiver/client/context/UUID inputs before Ent access; this is not recovery-worker composition. Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 precedes final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit 0, four empty stderr logs; independent review PASS/Approved with no findings and separate predicate review PASS.
 
 Only compile/interface and pre-query guards are proven. Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics are NOT_RUN; all runtime composition and transport/browser/integration boundaries remain UNBOUND/NOT_RUN.

@@ -557,6 +557,6 @@ No API/OpenAPI or runtime claim follows. The Ent recovery-target facts source ex
 
 ## Phase 151 Ent recovery-target facts coverage (2026-08-28)
 
-Commit 4b100ee6 is covered only for compile-time Phase151PendingRecoveryTargetFactSource satisfaction and pre-query fail-closed guards in EntRepository.ResolvePendingRecoveryTargetFacts: receiver/client, nil or typed-nil/cancelled context, and tenant/channel UUID inputs. RED worktree-master-backend-unit-run-e14c5e925814 failed only because the method was absent. Final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00 recorded target/build/vet/unit/race PASS, exit  , and four empty stderr logs; independent review is PASS/Approved with no findings and separate predicate review is PASS.
+Commit 4b100ee6 is covered only for compile-time Phase151PendingRecoveryTargetFactSource satisfaction and pre-query fail-closed guards in EntRepository.ResolvePendingRecoveryTargetFacts: receiver/client, nil or typed-nil/cancelled context, and tenant/channel UUID inputs. RED worktree-master-backend-unit-run-e14c5e925814 failed only because the method was absent. Final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00 recorded target/build/vet/unit/race PASS, exit 0, and four empty stderr logs; independent review is PASS/Approved with no findings and separate predicate review is PASS.
 
 Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics remain NOT_RUN. No API, runtime, or readiness conclusion follows.

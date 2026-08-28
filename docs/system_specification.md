@@ -993,6 +993,6 @@ This reauthorizer source-port contract does not itself compose the separately im
 
 Commit 4b100ee6 implements EntRepository.ResolvePendingRecoveryTargetFacts for Phase151PendingRecoveryTargetFactSource. It requires a usable repository/client/context plus nonzero tenant and channel IDs before its Ent query; invalid or cancelled inputs fail closed. The source is not a pager, scanner, scheduler, writer, or production composition.
 
-Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 is superseded by final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit  , four empty stderr logs. Independent review is PASS/Approved without findings; separate predicate review is PASS.
+Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 is superseded by final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit 0, four empty stderr logs. Independent review is PASS/Approved without findings; separate predicate review is PASS.
 
 Evidence proves compile/interface and pre-query guards only. Successful query, NotFound, driver/generated SQL, projection, live PostgreSQL semantics, API/runtime wiring, and readiness remain NOT_RUN or UNBOUND as applicable.

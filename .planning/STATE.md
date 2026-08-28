@@ -1510,5 +1510,5 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 ## Session note - 2026-08-28 (Messenger Ent recovery-target facts source)
 
 - Commit 4b100ee6 adds EntRepository.ResolvePendingRecoveryTargetFacts and compile-time satisfaction of Phase151PendingRecoveryTargetFactSource. Nil receiver/client, nil or typed-nil context, cancelled context, and nil tenant/channel UUIDs fail closed before any Ent query.
-- RED worktree-master-backend-unit-run-e14c5e925814 failed only on the missing method. Final GREEN worktree-master-backend-unit-run-546c91d7105f completed 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit  , four stderr logs empty. Independent review is PASS/Approved with no findings; separate predicate review is PASS.
+- RED worktree-master-backend-unit-run-e14c5e925814 failed only on the missing method. Final GREEN worktree-master-backend-unit-run-546c91d7105f completed 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit 0, four stderr logs empty. Independent review is PASS/Approved with no findings; separate predicate review is PASS.
 - Evidence proves compile/interface and pre-query guards only. Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics are NOT_RUN; the remaining recovery composition and transports stay UNBOUND/NOT_RUN.
