@@ -135,7 +135,7 @@ func mailboxEntFolderProjectionItem(scope MailboxFolderProjectionScope, row *ent
 		UnreadCount:    row.UnreadCount,
 		TotalCount:     row.TotalCount,
 		State:          string(row.ControlState),
-		Version:        row.Version,
+		Version:        int64(row.Version),
 		normalizedName: row.NormalizedName,
 	}, nil
 }
