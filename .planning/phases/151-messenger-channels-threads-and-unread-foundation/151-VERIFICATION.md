@@ -221,7 +221,7 @@ The adapter satisfies the existing five-method bounded recovery repository while
 
 Six top-level groups cover end-to-end bounded scan-to-runner binding, continuation after a claim miss, runner error identity/stop position, nil/typed-nil and owner/lease construction, malformed target plus tenant/channel/actor/producer drift, exact scanner forwarding, nil receiver, and nil context. Initial RED kept build `PASS` and failed vet/unit/race only on absent adapter API. The compilation-preserving reconcile no-op mutant kept build/vet `PASS`; unit/race failed the three binding-sensitive groups. Production was restored to exact SHA-256 `01DB81738F777572EC43601E1E997359EBC0A5DBEA52BA5F9189D8BAC991DB38`.
 
-Final sequential Docker evidence is overall/build/vet/unit/race `PASS`; all six groups pass in unit and race and final `FAIL`/panic/`DATA RACE` search is empty. Root review is `PASS`; independent review is `UNKNOWN` because retained subagents exhaust runtime capacity. Concrete scanner construction, scheduler wiring, live stores/effects, lease renewal, outbox delivery, integration, Swagger, `qa-build`, and browser/WS evidence remain `UNBOUND/NOT_RUN`. Phase remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+Final sequential Docker evidence is overall/build/vet/unit/race `PASS`; all six groups pass in unit and race and final `FAIL`/panic/`DATA RACE` search is empty. Root review is `PASS`; independent review is `UNKNOWN` because retained subagents exhaust runtime capacity. This older receipt does not prove a scanner bound into the coordinator, server, or a production scheduler; live stores/effects, lease renewal, outbox delivery, integration, Swagger, `qa-build`, and browser/WS evidence remain `UNBOUND/NOT_RUN`. Phase remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
 
 ## 2026-08-27 promotion reply chronology atom
 
@@ -231,7 +231,7 @@ Initial RED kept build/vet `PASS` and failed unit/race only in `TestPhase151Prom
 
 Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`. Root chronological rendering, reply chronological rendering, selected-reply retention, and non-descending-page rejection all pass in unit and race; the final logs contain no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because retained agents exhaust runtime capacity. Live Mongo/Ent-PostgreSQL/NATS/WS/browser, integration, Swagger, and `qa-build` remain `NOT_RUN`; cross-store TOCTOU remains open.
 
-Historical 2026-08-27 snapshot (superseded): recovery-scanner mapping was decision-blocked before a closed authority was frozen. `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` now exist and are accepted. Concrete scanner work remains blocked on cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, and writer/server/runtime binding. The later narrow static-only Ent pager is not a scanner and DB-backed paging proof remains absent; arbitrary-member substitution remains forbidden.
+Historical 2026-08-27 snapshot (superseded): recovery-scanner mapping was decision-blocked before a closed authority was frozen. `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` now exist and are accepted. Cross-store scanning and production composition remain blocked on injection, scheduler/process-lifetime ownership, and writer/server/runtime binding. The later narrow static-only Ent pager is not a scanner and DB-backed paging proof remains absent; arbitrary-member substitution remains forbidden.
 
 
 ## 2026-08-27 post-create completion CAS hardening
@@ -240,7 +240,7 @@ Commit `7d248b9829e6419284d8a5e27b306b9962b001c6` freezes the trusted post-creat
 
 A controlled mutation removing the `sender_id` predicate failed as expected (Docker exit `1`); production was restored to SHA-256 `17BA4811635B48E094057B0DBC56A5127CF8858D73A0C33A2784C6CA8D6E027C`. The final sequential Docker `backend-unit` run reported build, vet, unit, and race `PASS` (exit `0`). Independent re-review returned `Ready: yes` with no findings.
 
-This is bounded unit evidence only. The recovery scanner and its authority decision remain unresolved; no phase, module, scheduler, live writer, or runtime-complete claim follows.
+This is bounded historical unit evidence only. At that point the recovery scanner authority decision remained unresolved; no production scanner binding, scheduler, live writer, or runtime-complete claim follows.
 
 ## 2026-08-27 production post-create composition wiring
 
@@ -274,7 +274,7 @@ Focused source tests exist, but current Docker evidence is `NOT_RUN` because Mai
 
 ## Recovery-authority migration and Calls projector boundary (2026-08-28)
 
-Messenger reconciliation accepts the closed recovery target authority; the coordinator builds that service authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner and production composition of the narrow Ent pager/reauthorizer, scheduler, writer, and runtime are `UNBOUND`.
+Messenger reconciliation accepts the closed recovery target authority; the coordinator builds that service authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Production cross-store scanner composition, production composition of the narrow Ent pager/reauthorizer, scheduler, writer, and runtime are `UNBOUND`.
 
 Calls now has an additive service credential facade over the existing unbound `CallJoinCredentialProjector`: `NewCallServiceWithProviderAndCredentialProjector` rejects nil projector input, calls the legacy provider constructor once, and preserves legacy constructors; `IssueJoinCredentialForAuthenticatedUser` delegates exactly once without provider work. Ent source implementation, server/runtime construction, `JoinCall`/HTTP/participant/factory/client/Jitsi cutover/tenant claim remain unbound. LiveKit remains active. Docker evidence is the bounded final GREEN receipt below, not runtime evidence.
 

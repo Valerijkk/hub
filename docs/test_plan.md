@@ -426,7 +426,7 @@ Six focused groups freeze end-to-end bounded scan-to-runner composition, exact w
 
 Initial RED kept production build `PASS` and failed vet/unit/race only on undefined coordinator adapter API. First GREEN passed. A controlled compilation-preserving mutation replaced only `ReconcilePendingPostCreateEffects` runner invocation with a no-op. Build/vet remained `PASS`; unit/race failed exactly `BindsBoundedScanToRunner`, `ContinuesAfterClaimMiss`, and `PreservesRunnerError`. Production was restored to SHA-256 `01DB81738F777572EC43601E1E997359EBC0A5DBEA52BA5F9189D8BAC991DB38`.
 
-Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`; all six groups pass in unit and race and the final logs contain no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because all three retained subagent slots are exhausted. No concrete scanner/scheduler, live store/effect, lease renewal, integration, Swagger, `qa-build`, NATS/WS, or browser evidence is claimed.
+Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`; all six groups pass in unit and race and the final logs contain no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because all three retained subagent slots are exhausted. This older receipt does not prove a scanner bound into the coordinator, server, or a production scheduler; live store/effect, lease renewal, integration, Swagger, `qa-build`, NATS/WS, and browser evidence remain unclaimed.
 
 ## Phase 151 promotion reply chronology evidence (2026-08-27)
 
