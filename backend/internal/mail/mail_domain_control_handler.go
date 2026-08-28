@@ -124,6 +124,9 @@ func (handler *MailDomainControlHandler) preflightSetDefault(ctx fiber.Ctx) erro
 	if err := mailDomainControlHTTPRejectEmptyTransport(ctx); err != nil {
 		return err
 	}
+	if mailDomainControlHTTPInvalidResponseWritten(ctx) {
+		return nil
+	}
 	domainID, err := mailDomainControlHTTPCanonicalUUID(ctx.Params("id"))
 	if err != nil {
 		return mailDomainControlHTTPError(ctx, http.StatusBadRequest, "MAIL_DOMAIN_INVALID")
