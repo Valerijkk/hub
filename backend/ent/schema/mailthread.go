@@ -89,7 +89,7 @@ func (participants MailThreadParticipants) Validate() error {
 		}
 		seen[address] = struct{}{}
 	}
-	encoded, err := json.Marshal(participants)
+	encoded, err := json.Marshal([]string(participants))
 	if err != nil {
 		return err
 	}
