@@ -974,3 +974,11 @@ The claimed runner is the sole recovery layer that reconstructs AuthorizedMessag
 MongoRepository.ListPendingPostCreateDocuments builds from ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, limit), preserving existing filter/order/cap behavior.
 
 Kind must remain nonempty. A stricter concrete PostgreSQL channel-type projection is deferred; no concrete PG pager/reauthorizer, scheduler, writer cutover, service/server wiring, or live integration is specified by this bounded contract.
+
+## Calls service credential facade evidence (2026-08-28)
+
+Commit `b9faba3c920371f182a7416e039a6f2708954fbb` adds `NewCallServiceWithProviderAndCredentialProjector` as an additive facade: a nil projector returns `ErrCallJoinCredentialInvalid`; the unchanged legacy provider constructor is called once; the supplied projector is stored; legacy constructors remain unchanged. `IssueJoinCredentialForAuthenticatedUser` rejects a nil receiver or absent projector, delegates exactly once to `CallJoinCredentialProjector` with exact context, call, and authenticated-user identity, preserves all five typed credential fields on success, and returns a zero credential with exact delegated error identity on failure. The legacy provider performs zero work on this facade path.
+
+Valid RED container `worktree-master-backend-unit-run-e80469df6d84` finished `2026-08-28T18:40:12+03:00` with target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race failure only because the constructor was absent. Final GREEN `worktree-master-backend-unit-run-866fc0b8b37b` finished `2026-08-28T18:49:00+03:00` with target/build/vet/unit/race `PASS`, first exit `0`, and four empty stderr logs. Independent review returned Spec Compliance `PASS` and Task quality `Approved`, with no Critical/Important/Minor findings; root independently read exact raw Docker receipts after the reviewer could not inspect them.
+
+This is compile/unit/race evidence only. No server/runtime construction uses the facade; `JoinCall`, handlers/routes/DTO, participant lifecycle, provider factory/client selection, tenant authorization, self-hosted Jitsi deployment, provider cutover, integration, and browser/media runtime remain `UNBOUND/NOT_RUN`. LiveKit remains active; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

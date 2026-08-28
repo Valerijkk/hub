@@ -538,3 +538,11 @@ Review evidence only: invalid System.Object[] was rejected before the regenerate
 Runtime evidence is UNBOUND/NOT_RUN for concrete PG pager/reauthorizer, scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration; Phase 151 is partial.
 
 Docker policy allows concurrent branch-isolated Compose projects, one task-owned container per branch, no --build/pull/image creation/stopping another branch, and a separate shared-layer numeric Jitsi disk-budget gate.
+
+## Calls service credential facade coverage (2026-08-28)
+
+Commit `b9faba3c920371f182a7416e039a6f2708954fbb` is covered at the compile/unit/race boundary for nil-projector constructor rejection; nil receiver and legacy-constructor fail-closed behavior; exact context/call/authenticated-user forwarding and source order; all five credential fields; one issuer call; zero provider calls; and exact error identity plus zero result for source and issuer failures. The additive constructor calls the legacy provider constructor once and leaves legacy constructors unchanged.
+
+Valid RED container `worktree-master-backend-unit-run-e80469df6d84` finished `2026-08-28T18:40:12+03:00` with target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race failure only because the constructor was absent. Final GREEN `worktree-master-backend-unit-run-866fc0b8b37b` finished `2026-08-28T18:49:00+03:00` with target/build/vet/unit/race `PASS`, first exit `0`, and four empty stderr logs. Independent review returned Spec Compliance `PASS` and Task quality `Approved`, with no Critical/Important/Minor findings; root independently read exact raw Docker receipts after the reviewer could not inspect them.
+
+No server/runtime constructor, `JoinCall`, handlers/routes/DTO, participant lifecycle, provider factory/client selection, tenant authorization, self-hosted Jitsi deployment, provider cutover, integration, or browser/media path was exercised. These remain `UNBOUND/NOT_RUN`; LiveKit remains active and Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

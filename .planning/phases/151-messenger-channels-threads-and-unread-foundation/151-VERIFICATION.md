@@ -276,7 +276,7 @@ Focused source tests exist, but current Docker evidence is `NOT_RUN` because Mai
 
 Messenger reconciliation accepts the closed recovery target authority; the coordinator builds that service authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner/PG pager/reauthorizer/scheduler/writer/runtime are `UNBOUND`.
 
-Calls has only an unbound `CallJoinCredentialProjector` port/constructor/method: active exact server-loaded `Call`, channel-member or instant-creator policy, server-known name, typed issuer exactly once. Ent source implementation, service/`JoinCall`/HTTP/participant/factory/client/Jitsi cutover/tenant claim are absent. LiveKit remains active. Docker is `NOT_RUN` because Mail owns it and the invalidated overlap supplies no inheritable receipt.
+Calls now has an additive service credential facade over the existing unbound `CallJoinCredentialProjector`: `NewCallServiceWithProviderAndCredentialProjector` rejects nil projector input, calls the legacy provider constructor once, and preserves legacy constructors; `IssueJoinCredentialForAuthenticatedUser` delegates exactly once without provider work. Ent source implementation, server/runtime construction, `JoinCall`/HTTP/participant/factory/client/Jitsi cutover/tenant claim remain unbound. LiveKit remains active. Docker evidence is the bounded final GREEN receipt below, not runtime evidence.
 
 ## Fresh isolated Docker unit/race receipt (2026-08-28)
 
@@ -319,3 +319,11 @@ Review evidence only: invalid System.Object[] was rejected; regenerated real dif
 Runtime remains UNBOUND/NOT_RUN: no concrete PG pager/reauthorizer, scheduler/interval owner, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration.
 
 Docker policy permits concurrent branch-isolated Compose projects but only one task-owned container per branch; no --build, pull, image creation, or stopping another branch. Shared layers storage numeric Jitsi disk budget is separately gated.
+
+## Calls service credential facade evidence (2026-08-28)
+
+Commit `b9faba3c920371f182a7416e039a6f2708954fbb` adds `NewCallServiceWithProviderAndCredentialProjector` as an additive facade: a nil projector returns `ErrCallJoinCredentialInvalid`; the unchanged legacy provider constructor is called once; the supplied projector is stored; legacy constructors remain unchanged. `IssueJoinCredentialForAuthenticatedUser` rejects a nil receiver or absent projector, delegates exactly once to `CallJoinCredentialProjector` with exact context, call, and authenticated-user identity, preserves all five typed credential fields on success, and returns a zero credential with exact delegated error identity on failure. The legacy provider performs zero work on this facade path.
+
+Valid RED container `worktree-master-backend-unit-run-e80469df6d84` finished `2026-08-28T18:40:12+03:00` with target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race failure only because the constructor was absent. Final GREEN `worktree-master-backend-unit-run-866fc0b8b37b` finished `2026-08-28T18:49:00+03:00` with target/build/vet/unit/race `PASS`, first exit `0`, and four empty stderr logs. Independent review returned Spec Compliance `PASS` and Task quality `Approved`, with no Critical/Important/Minor findings; root independently read exact raw Docker receipts after the reviewer could not inspect them.
+
+This is compile/unit/race evidence only. No server/runtime construction uses the facade; `JoinCall`, handlers/routes/DTO, participant lifecycle, provider factory/client selection, tenant authorization, self-hosted Jitsi deployment, provider cutover, integration, and browser/media runtime remain `UNBOUND/NOT_RUN`. LiveKit remains active; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
