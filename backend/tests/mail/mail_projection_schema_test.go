@@ -95,7 +95,7 @@ func TestMailProjectionSchemas_HaveFrozenFieldsMixinsAndJSONStorage(t *testing.T
 
 	message := entschema.MailMessage{}
 	assertExactOrderedFieldNames(t, "MailMessage fields", message.Fields(), []string{
-		"id", "mail_account_id", "mail_thread_id", "engine_message_id", "engine_version", "internet_message_id", "in_reply_to", "references", "from", "to", "cc", "bcc", "reply_to", "subject", "snippet", "sent_at", "received_at", "size_bytes", "priority", "has_attachments", "is_draft", "is_seen", "is_answered", "is_flagged", "is_junk", "engine_state", "projection_origin", "flags_synced_at", "calendar_method", "calendar_event_id", "last_seen_sync_epoch", "received_event_id", "created_at", "updated_at", "deleted_at",
+		"id", "mail_account_id", "mail_thread_id", "engine_message_id", "engine_version", "internet_message_id", "in_reply_to", "references", "from", "to", "cc", "bcc", "reply_to", "subject", "snippet", "sent_at", "received_at", "size_bytes", "priority", "has_attachments", "is_draft", "is_seen", "is_answered", "is_flagged", "is_junk", "engine_state", "projection_origin", "flags_synced_at", "calendar_method", "calendar_part_locator_hash", "authentication_class", "calendar_event_id", "last_seen_sync_epoch", "received_event_id", "created_at", "updated_at", "deleted_at",
 	})
 	messageFields := fieldDescriptors(message.Fields())
 	assertNoMixins(t, message.Mixin())
@@ -107,9 +107,17 @@ func TestMailProjectionSchemas_HaveFrozenFieldsMixinsAndJSONStorage(t *testing.T
 			t.Fatalf("MailMessage.%s must be immutable", name)
 		}
 	}
-	for _, name := range []string{"internet_message_id", "in_reply_to", "engine_state", "sent_at", "received_at", "flags_synced_at", "calendar_method", "calendar_event_id", "received_event_id", "deleted_at"} {
+	for _, name := range []string{"internet_message_id", "in_reply_to", "engine_state", "sent_at", "received_at", "flags_synced_at", "calendar_method", "calendar_part_locator_hash", "calendar_event_id", "received_event_id", "deleted_at"} {
 		assertOptionalNillable(t, name, messageFields[name])
 	}
+	assertFieldType(t, "calendar_part_locator_hash", messageFields["calendar_part_locator_hash"], field.TypeBytes)
+	assertBytesValidators(t, "calendar_part_locator_hash", messageFields["calendar_part_locator_hash"], []struct {
+		value []byte
+		want  bool
+	}{{make([]byte, 31), false}, {make([]byte, 32), true}, {make([]byte, 33), false}})
+	assertFieldType(t, "authentication_class", messageFields["authentication_class"], field.TypeEnum)
+	assertRequired(t, "authentication_class", messageFields["authentication_class"])
+	assertExactEnumValues(t, "authentication_class", messageFields["authentication_class"], []string{"trusted_internal", "dmarc_aligned", "untrusted"})
 	internetMessageIDCollation := ""
 	for _, annotation := range messageFields["internet_message_id"].Annotations {
 		switch sqlAnnotation := annotation.(type) {
@@ -134,7 +142,7 @@ func TestMailProjectionSchemas_HaveFrozenFieldsMixinsAndJSONStorage(t *testing.T
 		}
 	}
 	assertExactDefaults(t, messageFields, map[string]any{
-		"references": entschema.MailMessageReferences{}, "to": entschema.MailStoredAddresses{}, "cc": entschema.MailStoredAddresses{}, "bcc": entschema.MailStoredAddresses{}, "reply_to": entschema.MailStoredAddresses{}, "last_seen_sync_epoch": int64(0),
+		"references": entschema.MailMessageReferences{}, "to": entschema.MailStoredAddresses{}, "cc": entschema.MailStoredAddresses{}, "bcc": entschema.MailStoredAddresses{}, "reply_to": entschema.MailStoredAddresses{}, "authentication_class": "untrusted", "last_seen_sync_epoch": int64(0),
 	})
 	if messageFields["from"].Default != nil {
 		t.Fatalf("MailMessage.from default = %#v, want none", messageFields["from"].Default)
@@ -232,16 +240,17 @@ func TestMailProjectionSchemas_HaveExactChecksAndIndexes(t *testing.T) {
 	assertExactChecks(t, (entschema.MailMessage{}).Annotations(), map[string]string{
 		"mail_messages_engine_ids":      "COALESCE(octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_version) BETWEEN 1 AND 1024, FALSE)",
 		"mail_messages_message_ids":     "COALESCE((internet_message_id IS NULL OR octet_length(internet_message_id) BETWEEN 1 AND 998) AND (in_reply_to IS NULL OR octet_length(in_reply_to) BETWEEN 1 AND 998), FALSE)",
-		"mail_messages_references":      "CASE WHEN jsonb_typeof(references) = 'array' THEN COALESCE(jsonb_array_length(references) <= 100 AND NOT jsonb_path_exists(references, '$[*] ? (@.type() != \"string\")'), FALSE) ELSE FALSE END",
+		"mail_messages_references":      "CASE WHEN jsonb_typeof(\"references\") = 'array' THEN COALESCE(jsonb_array_length(\"references\") <= 100 AND NOT jsonb_path_exists(\"references\", '$[*] ? (@.type() != \"string\")'), FALSE) ELSE FALSE END",
 		"mail_messages_from_shape":      "COALESCE(jsonb_typeof(\"from\") = 'object' AND jsonb_typeof(\"from\"->'email') = 'string' AND jsonb_typeof(\"from\"->'name') = 'string', FALSE)",
 		"mail_messages_address_arrays":  "CASE WHEN jsonb_typeof(\"to\") = 'array' AND jsonb_typeof(cc) = 'array' AND jsonb_typeof(bcc) = 'array' AND jsonb_typeof(reply_to) = 'array' THEN COALESCE(jsonb_array_length(\"to\") <= 200 AND jsonb_array_length(cc) <= 200 AND jsonb_array_length(bcc) <= 200 AND jsonb_array_length(reply_to) <= 200 AND NOT jsonb_path_exists(\"to\", '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")') AND NOT jsonb_path_exists(cc, '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")') AND NOT jsonb_path_exists(bcc, '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")') AND NOT jsonb_path_exists(reply_to, '$[*] ? (@.type() != \"object\" || !exists(@.email) || !exists(@.name) || @.email.type() != \"string\" || @.name.type() != \"string\")'), FALSE) ELSE FALSE END",
 		"mail_messages_text":            "COALESCE(octet_length(subject) <= 998 AND char_length(snippet) <= 1200 AND octet_length(snippet) <= 4096 AND (engine_state IS NULL OR octet_length(engine_state) <= 4096), FALSE)",
 		"mail_messages_size":            "COALESCE(size_bytes BETWEEN 0 AND 52428800, FALSE)",
 		"mail_messages_epoch":           "COALESCE(last_seen_sync_epoch BETWEEN 0 AND 2147483647, FALSE)",
 		"mail_messages_priority":        "COALESCE(priority IN ('low','normal','high'), FALSE)",
-		"mail_messages_projection_origin": "COALESCE(projection_origin IN ('inbound_or_unknown','confirmed_owner_submission','confirmed_owner_draft'), FALSE)",
-		"mail_messages_calendar_method": "COALESCE(calendar_method IS NULL OR calendar_method IN ('request','cancel','reply'), FALSE)",
-		"mail_messages_bcc_origin":      "CASE WHEN jsonb_typeof(bcc) = 'array' THEN COALESCE(projection_origin IN ('confirmed_owner_submission','confirmed_owner_draft') OR jsonb_array_length(bcc) = 0, FALSE) ELSE FALSE END",
+		"mail_messages_projection_origin":     "COALESCE(projection_origin IN ('inbound_or_unknown','confirmed_owner_submission','confirmed_owner_draft'), FALSE)",
+		"mail_messages_authentication_class": "COALESCE(authentication_class IN ('trusted_internal','dmarc_aligned','untrusted'), FALSE)",
+		"mail_messages_calendar_part":         "COALESCE((calendar_method IS NULL AND calendar_part_locator_hash IS NULL) OR (calendar_method IS NOT NULL AND calendar_method IN ('request','cancel','reply') AND calendar_part_locator_hash IS NOT NULL AND octet_length(calendar_part_locator_hash) = 32), FALSE)",
+		"mail_messages_bcc_origin":            "CASE WHEN jsonb_typeof(bcc) = 'array' THEN COALESCE(projection_origin IN ('confirmed_owner_submission','confirmed_owner_draft') OR jsonb_array_length(bcc) = 0, FALSE) ELSE FALSE END",
 	})
 	assertExactChecks(t, (entschema.MailMessageFolder{}).Annotations(), map[string]string{
 		"mail_message_folders_engine_state": "COALESCE(engine_state IS NULL OR octet_length(engine_state) <= 4096, FALSE)",
@@ -278,8 +287,9 @@ func TestMailProjectionSchemas_HaveExactChecksAndIndexes(t *testing.T) {
 		{fields: []string{"received_event_id"}, unique: true},
 		{fields: []string{"mail_account_id", "received_at", "sent_at", "id"}, where: "deleted_at IS NULL"},
 		{fields: []string{"mail_thread_id", "received_at", "sent_at", "id"}, where: "deleted_at IS NULL"},
+		{fields: []string{"mail_thread_id", "created_at", "id"}, where: "deleted_at IS NULL"},
 	})
-	assertProjectionIndexStorageKeys(t, "MailMessage", messageIndexes, []string{"mail_messages_account_engine_uidx", "mail_messages_live_internet_message_id_idx", "mail_messages_received_event_uidx", "mail_messages_live_account_date_idx", "mail_messages_live_thread_date_idx"})
+	assertProjectionIndexStorageKeys(t, "MailMessage", messageIndexes, []string{"mail_messages_account_engine_uidx", "mail_messages_live_internet_message_id_idx", "mail_messages_received_event_uidx", "mail_messages_live_account_date_idx", "mail_messages_live_thread_date_idx", "mail_messages_live_thread_created_at_id_idx"})
 
 	messageFolderIndexes := (entschema.MailMessageFolder{}).Indexes()
 	assertExactIndexes(t, messageFolderIndexes, []wantedIndex{{fields: []string{"mail_message_id", "mail_folder_id"}, unique: true}})
@@ -312,7 +322,7 @@ func TestMailProjectionSchemas_HaveOnlyFrozenRelations(t *testing.T) {
 	assertReceiptChildEdge(t, "MailThread.messages", threadEdges["messages"])
 
 	messageEdges := edgeDescriptors((entschema.MailMessage{}).Edges())
-	assertExactNames(t, "MailMessage edges", edgeNames(messageEdges), []string{"account", "attachment_records", "calendar_event", "folders", "forward_drafts", "labels", "reply_drafts", "thread"})
+	assertExactNames(t, "MailMessage edges", edgeNames(messageEdges), []string{"account", "attachment_records", "calendar_event", "folders", "forward_drafts", "labels", "pending_forward_drafts", "pending_reply_drafts", "reply_drafts", "thread"})
 	assertReceiptParentEdge(t, "MailMessage.account", messageEdges["account"], "mail_account_id", "messages", true, entsql.Cascade)
 	assertReceiptParentEdge(t, "MailMessage.thread", messageEdges["thread"], "mail_thread_id", "messages", true, entsql.Cascade)
 	assertReceiptParentEdge(t, "MailMessage.calendar_event", messageEdges["calendar_event"], "calendar_event_id", "mail_messages", false, entsql.SetNull)
@@ -321,6 +331,8 @@ func TestMailProjectionSchemas_HaveOnlyFrozenRelations(t *testing.T) {
 	assertReceiptChildEdge(t, "MailMessage.attachment_records", messageEdges["attachment_records"])
 	assertReceiptChildEdge(t, "MailMessage.reply_drafts", messageEdges["reply_drafts"])
 	assertReceiptChildEdge(t, "MailMessage.forward_drafts", messageEdges["forward_drafts"])
+	assertReceiptChildEdge(t, "MailMessage.pending_reply_drafts", messageEdges["pending_reply_drafts"])
+	assertReceiptChildEdge(t, "MailMessage.pending_forward_drafts", messageEdges["pending_forward_drafts"])
 
 	messageFolderEdges := edgeDescriptors((entschema.MailMessageFolder{}).Edges())
 	assertExactNames(t, "MailMessageFolder edges", edgeNames(messageFolderEdges), []string{"folder", "message"})
