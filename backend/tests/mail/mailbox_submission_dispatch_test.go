@@ -181,7 +181,7 @@ func TestMailboxSubmissionDispatcherSourceContract(t *testing.T) {
 
 	resolve := mailboxSubmissionDispatchSourceSlice(t, dispatcherSource,
 		"func (dispatcher *MailboxSubmissionDispatcher) resolve(ctx",
-		"\\n}",
+		"\n}",
 	)
 	if !strings.Contains(resolve, "context.WithoutCancel(ctx)") || !strings.Contains(resolve, "MailboxSubmissionDispatchErrorReconciliationRequired") {
 		t.Fatal("post-seal resolution must persist with cancellation removed and surface reconciliation_required only")
@@ -190,7 +190,7 @@ func TestMailboxSubmissionDispatcherSourceContract(t *testing.T) {
 	dispatchSource := mailboxSubmissionDispatchSource(t, "../../internal/mail/mailbox_submission_dispatch.go")
 	preflightMapping := mailboxSubmissionDispatchSourceSlice(t, dispatchSource,
 		"func mailboxSubmissionDispatchPreflightFailure",
-		"\\n}",
+		"\n}",
 	)
 	for _, required := range []string{
 		"ErrEngineNotFound", "ErrEngineConflict", "MailboxSubmissionErrorCodeRejected",
@@ -210,7 +210,7 @@ func TestMailboxSubmissionDispatcherSourceContract(t *testing.T) {
 
 	engineInterface := mailboxSubmissionDispatchSourceSlice(t, dispatcherSource,
 		"type mailboxSubmissionEngine interface {",
-		"\\n}",
+		"\n}",
 	)
 	for _, required := range []string{"PreflightSubmission", "submitMailboxSubmission"} {
 		if !strings.Contains(engineInterface, required) {
