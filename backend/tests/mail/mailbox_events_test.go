@@ -2,6 +2,7 @@ package mail_test
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -33,7 +34,7 @@ var (
 func TestMailEventMappers_SerializeExactCompleteEnvelopes(t *testing.T) {
 	calendarMethod := mail.MailCalendarMethodRequest
 	for _, testCase := range []struct {
-		name string
+		name  string
 		mapIt func() ([]byte, error)
 		want  string
 	}{
@@ -46,7 +47,7 @@ func TestMailEventMappers_SerializeExactCompleteEnvelopes(t *testing.T) {
 				}
 				return json.Marshal(envelope)
 			},
-			want: `{"subject":"mail.received.v1","schema_version":1,"event_id":"11111111-1111-4111-8111-111111111111","occurred_at":"2030-05-06T07:08:09.123456789Z","organization_id":"22222222-2222-4222-8222-222222222222","actor_id":"33333333-3333-4333-8333-333333333333","correlation_id":"corr-mail-03d","payload":{"mailbox_id":"55555555-5555-4555-8555-555555555555","message_id":"66666666-6666-4666-8666-666666666666","engine_message_id":"engine-message-03d","thread_id":"77777777-7777-4777-8777-777777777777","from":{"email":"sender@example.test","name":"Sender"},"to":[{"email":"recipient@example.test"}],"received_at":"2030-05-06T07:08:09Z","folder_ids":["99999999-9999-4999-8999-999999999999"],"has_attachments":true,"calendar_method":"request"}}`,
+			want: `{"subject":"mail.received.v1","schema_version":1,"event_id":"11111111-1111-4111-8111-111111111111","occurred_at":"2030-05-06T07:08:09.123456789Z","organization_id":"22222222-2222-4222-8222-222222222222","actor_id":"33333333-3333-4333-8333-333333333333","correlation_id":"corr-mail-03d","payload":{"mailbox_id":"55555555-5555-4555-8555-555555555555","message_id":"66666666-6666-4666-8666-666666666666","engine_message_id":"engine-message-03d","thread_id":"77777777-7777-4777-8777-777777777777","from":{"email":"sender@example.test","name":"Sender"},"to":[{"email":"recipient@example.test"}],"received_at":"2030-05-06T07:08:09Z","folder_ids":["99999999-9999-4999-8999-999999999999"],"has_attachments":true,"calendar_method":"request","authentication_class":"untrusted","calendar_part_locator_sha256":"abababababababababababababababababababababababababababababababab"}}`,
 		},
 		{
 			name: "sent",
@@ -424,25 +425,42 @@ func TestMailReceivedEnvelopeV1_RejectsRequiredBoundsAndUnsafeInputs(t *testing.
 		{"zero thread id", func(payload *mail.MailReceivedEventPayload) { payload.Thread.ID = uuid.Nil }, mail.MailEventErrorInvalid, ""},
 		{"zero thread account", func(payload *mail.MailReceivedEventPayload) { payload.Thread.AccountID = uuid.Nil }, mail.MailEventErrorInvalid, ""},
 		{"empty engine message id", func(payload *mail.MailReceivedEventPayload) { payload.EngineMessage.ID = "" }, mail.MailEventErrorInvalid, ""},
-		{"invalid engine message id", func(payload *mail.MailReceivedEventPayload) { payload.EngineMessage.ID = sensitiveEngineID + string([]byte{0xff}) }, mail.MailEventErrorInvalid, sensitiveEngineID},
-		{"oversize engine message id", func(payload *mail.MailReceivedEventPayload) { payload.EngineMessage.ID = sensitiveEngineID + strings.Repeat("x", 513) }, mail.MailEventErrorTooLarge, sensitiveEngineID},
+		{"invalid engine message id", func(payload *mail.MailReceivedEventPayload) {
+			payload.EngineMessage.ID = sensitiveEngineID + string([]byte{0xff})
+		}, mail.MailEventErrorInvalid, sensitiveEngineID},
+		{"oversize engine message id", func(payload *mail.MailReceivedEventPayload) {
+			payload.EngineMessage.ID = sensitiveEngineID + strings.Repeat("x", 513)
+		}, mail.MailEventErrorTooLarge, sensitiveEngineID},
 		{"zero engine account", func(payload *mail.MailReceivedEventPayload) { payload.EngineMessage.AccountID = uuid.Nil }, mail.MailEventErrorInvalid, ""},
 		{"cross-account engine", func(payload *mail.MailReceivedEventPayload) { payload.EngineMessage.AccountID = foreignAccountID }, mail.MailEventErrorAccountMismatch, ""},
 		{"empty recipients", func(payload *mail.MailReceivedEventPayload) { payload.To = nil }, mail.MailEventErrorInvalid, ""},
 		{"invalid sender email", func(payload *mail.MailReceivedEventPayload) { payload.From.Email = sensitiveEmail }, mail.MailEventErrorInvalid, sensitiveEmail},
-		{"oversize sender email", func(payload *mail.MailReceivedEventPayload) { payload.From.Email = sensitiveEmail + strings.Repeat("a", 400) + "@example.test" }, mail.MailEventErrorTooLarge, sensitiveEmail},
-		{"invalid sender name", func(payload *mail.MailReceivedEventPayload) { value := sensitiveName + "\x00"; payload.From.Name = &value }, mail.MailEventErrorInvalid, sensitiveName},
-		{"oversize sender name", func(payload *mail.MailReceivedEventPayload) { value := sensitiveName + strings.Repeat("a", 700); payload.From.Name = &value }, mail.MailEventErrorTooLarge, sensitiveName},
+		{"oversize sender email", func(payload *mail.MailReceivedEventPayload) {
+			payload.From.Email = sensitiveEmail + strings.Repeat("a", 400) + "@example.test"
+		}, mail.MailEventErrorTooLarge, sensitiveEmail},
+		{"invalid sender name", func(payload *mail.MailReceivedEventPayload) {
+			value := sensitiveName + "\x00"
+			payload.From.Name = &value
+		}, mail.MailEventErrorInvalid, sensitiveName},
+		{"oversize sender name", func(payload *mail.MailReceivedEventPayload) {
+			value := sensitiveName + strings.Repeat("a", 700)
+			payload.From.Name = &value
+		}, mail.MailEventErrorTooLarge, sensitiveName},
 		{"non-normalized sender", func(payload *mail.MailReceivedEventPayload) { payload.From.Email = "SENDER@example.test" }, mail.MailEventErrorInvalid, ""},
 		{"duplicate recipients", func(payload *mail.MailReceivedEventPayload) { payload.To = append(payload.To, payload.To[0]) }, mail.MailEventErrorDuplicate, ""},
 		{"too many recipients", func(payload *mail.MailReceivedEventPayload) { payload.To = eventAddresses(201) }, mail.MailEventErrorTooLarge, ""},
 		{"empty folders", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs = nil }, mail.MailEventErrorInvalid, ""},
-		{"duplicate folders", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs = append(payload.FolderIDs, payload.FolderIDs[0]) }, mail.MailEventErrorDuplicate, ""},
+		{"duplicate folders", func(payload *mail.MailReceivedEventPayload) {
+			payload.FolderIDs = append(payload.FolderIDs, payload.FolderIDs[0])
+		}, mail.MailEventErrorDuplicate, ""},
 		{"zero folder", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs[0].ID = uuid.Nil }, mail.MailEventErrorInvalid, ""},
 		{"zero folder account", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs[0].AccountID = uuid.Nil }, mail.MailEventErrorInvalid, ""},
 		{"cross-account folder", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs[0].AccountID = foreignAccountID }, mail.MailEventErrorAccountMismatch, ""},
 		{"too many folders", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs = eventIDs(101) }, mail.MailEventErrorTooLarge, ""},
-		{"invalid calendar method", func(payload *mail.MailReceivedEventPayload) { value := mail.MailCalendarMethod("unknown"); payload.CalendarMethod = &value }, mail.MailEventErrorInvalid, ""},
+		{"invalid calendar method", func(payload *mail.MailReceivedEventPayload) {
+			value := mail.MailCalendarMethod("unknown")
+			payload.CalendarMethod = &value
+		}, mail.MailEventErrorInvalid, ""},
 		{"zero received at", func(payload *mail.MailReceivedEventPayload) { payload.ReceivedAt = time.Time{} }, mail.MailEventErrorInvalid, ""},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -550,7 +568,7 @@ func TestMailEventMappers_DoNotLeakSentOrChangedInputMarkers(t *testing.T) {
 func TestMailEventMappers_AcceptRecipientSetBoundaries(t *testing.T) {
 	calendarMethod := mail.MailCalendarMethodRequest
 	for _, testCase := range []struct {
-		name string
+		name  string
 		mapIt func([]mail.MailEventAddress) (events.EnvelopeV1, error)
 	}{
 		{
@@ -596,23 +614,41 @@ func TestMailMessageChangedEnvelopeV1_RejectsInvalidAndDeletedLiveState(t *testi
 		{"zero folder", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs[0].ID = uuid.Nil }, mail.MailEventErrorInvalid},
 		{"zero folder account", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs[0].AccountID = uuid.Nil }, mail.MailEventErrorInvalid},
 		{"cross-account folder", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs[0].AccountID = foreignAccountID }, mail.MailEventErrorAccountMismatch},
-		{"duplicate folder", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs = append(payload.FolderIDs, payload.FolderIDs[0]) }, mail.MailEventErrorDuplicate},
+		{"duplicate folder", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.FolderIDs = append(payload.FolderIDs, payload.FolderIDs[0])
+		}, mail.MailEventErrorDuplicate},
 		{"too many folders", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs = eventIDs(101) }, mail.MailEventErrorTooLarge},
 		{"cross-account label", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs[0].AccountID = foreignAccountID }, mail.MailEventErrorAccountMismatch},
 		{"zero label", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs[0].ID = uuid.Nil }, mail.MailEventErrorInvalid},
 		{"zero label account", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs[0].AccountID = uuid.Nil }, mail.MailEventErrorInvalid},
 		{"empty changed fields", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = nil }, mail.MailEventErrorInvalid},
-		{"unknown changed field", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{"unknown"} }, mail.MailEventErrorInvalid},
-		{"duplicate changed field", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldSeen, mail.MailChangedFieldSeen} }, mail.MailEventErrorDuplicate},
+		{"unknown changed field", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.ChangedFields = []mail.MailChangedField{"unknown"}
+		}, mail.MailEventErrorInvalid},
+		{"duplicate changed field", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldSeen, mail.MailChangedFieldSeen}
+		}, mail.MailEventErrorDuplicate},
 		{"too many changed fields", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = repeatedChangedFields(31) }, mail.MailEventErrorTooLarge},
 		{"unknown flag", func(payload *mail.MailMessageChangedEventPayload) { payload.Flags = []mail.MailMessageFlag{"unknown"} }, mail.MailEventErrorInvalid},
-		{"duplicate flag", func(payload *mail.MailMessageChangedEventPayload) { payload.Flags = []mail.MailMessageFlag{mail.MailMessageFlagSeen, mail.MailMessageFlagSeen} }, mail.MailEventErrorDuplicate},
+		{"duplicate flag", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.Flags = []mail.MailMessageFlag{mail.MailMessageFlagSeen, mail.MailMessageFlagSeen}
+		}, mail.MailEventErrorDuplicate},
 		{"too many flags", func(payload *mail.MailMessageChangedEventPayload) { payload.Flags = repeatedFlags(31) }, mail.MailEventErrorTooLarge},
-		{"duplicate labels", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs = append(payload.LabelIDs, payload.LabelIDs[0]) }, mail.MailEventErrorDuplicate},
+		{"duplicate labels", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.LabelIDs = append(payload.LabelIDs, payload.LabelIDs[0])
+		}, mail.MailEventErrorDuplicate},
 		{"too many labels", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs = eventIDs(101) }, mail.MailEventErrorTooLarge},
-		{"deleted with folder state", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted}; payload.FolderIDs = eventIDs(1) }, mail.MailEventErrorInvalid},
-		{"deleted with flag state", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted}; payload.Flags = []mail.MailMessageFlag{mail.MailMessageFlagSeen} }, mail.MailEventErrorInvalid},
-		{"deleted mixed with live change", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted, mail.MailChangedFieldSeen} }, mail.MailEventErrorInvalid},
+		{"deleted with folder state", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted}
+			payload.FolderIDs = eventIDs(1)
+		}, mail.MailEventErrorInvalid},
+		{"deleted with flag state", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted}
+			payload.Flags = []mail.MailMessageFlag{mail.MailMessageFlagSeen}
+		}, mail.MailEventErrorInvalid},
+		{"deleted mixed with live change", func(payload *mail.MailMessageChangedEventPayload) {
+			payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted, mail.MailChangedFieldSeen}
+		}, mail.MailEventErrorInvalid},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			payload := changedPayload()
@@ -643,7 +679,7 @@ func TestMailEventMappers_ExposeOnlySafeBoundedInputShapes(t *testing.T) {
 	assertExactExportedFields(t, reflect.TypeOf(mail.MailboxEventID{}), []string{"AccountID", "ID"})
 	assertExactExportedFields(t, reflect.TypeOf(mail.MailboxEventOpaqueID{}), []string{"AccountID", "ID"})
 	assertExactExportedFields(t, reflect.TypeOf(mail.MailEventAddress{}), []string{"Email", "Name"})
-	assertExactExportedFields(t, reflect.TypeOf(mail.MailReceivedEventPayload{}), []string{"Mailbox", "Message", "EngineMessage", "Thread", "From", "To", "ReceivedAt", "FolderIDs", "HasAttachments", "CalendarMethod"})
+	assertExactExportedFields(t, reflect.TypeOf(mail.MailReceivedEventPayload{}), []string{"Mailbox", "Message", "EngineMessage", "Thread", "From", "To", "ReceivedAt", "FolderIDs", "HasAttachments", "CalendarMethod", "AuthenticationClass", "CalendarPartLocatorHash"})
 	assertExactExportedFields(t, reflect.TypeOf(mail.MailSentEventPayload{}), []string{"Mailbox", "Submission", "Message", "Thread", "From", "To", "SentAt", "DeliveryClass"})
 	assertExactExportedFields(t, reflect.TypeOf(mail.MailMessageChangedEventPayload{}), []string{"Mailbox", "Message", "ChangedFields", "FolderIDs", "Flags", "LabelIDs"})
 	for _, valueType := range []reflect.Type{
@@ -663,17 +699,24 @@ func TestMailEventMappers_ExposeOnlySafeBoundedInputShapes(t *testing.T) {
 }
 
 func receivedPayload(calendarMethod *mail.MailCalendarMethod) mail.MailReceivedEventPayload {
+	calendarPartLocatorHash := []byte(nil)
+	if calendarMethod != nil {
+		calendarPartLocatorHash = bytes.Repeat([]byte{0xab}, sha256.Size)
+	}
+
 	return mail.MailReceivedEventPayload{
-		Mailbox:       scopedID(mailboxID),
-		Message:       scopedID(messageID),
-		EngineMessage: mail.MailboxEventOpaqueID{AccountID: accountID, ID: "engine-message-03d"},
-		Thread:        scopedID(threadID),
-		From:          mail.MailEventAddress{Email: "sender@example.test", Name: stringPointer("Sender")},
-		To:            []mail.MailEventAddress{{Email: "recipient@example.test"}},
-		ReceivedAt:    payloadTime,
-		FolderIDs:     []mail.MailboxEventID{scopedID(folderID)},
-		HasAttachments: true,
-		CalendarMethod: calendarMethod,
+		Mailbox:                 scopedID(mailboxID),
+		Message:                 scopedID(messageID),
+		EngineMessage:           mail.MailboxEventOpaqueID{AccountID: accountID, ID: "engine-message-03d"},
+		Thread:                  scopedID(threadID),
+		From:                    mail.MailEventAddress{Email: "sender@example.test", Name: stringPointer("Sender")},
+		To:                      []mail.MailEventAddress{{Email: "recipient@example.test"}},
+		ReceivedAt:              payloadTime,
+		FolderIDs:               []mail.MailboxEventID{scopedID(folderID)},
+		HasAttachments:          true,
+		CalendarMethod:          calendarMethod,
+		AuthenticationClass:     mail.MailAuthenticationClassUntrusted,
+		CalendarPartLocatorHash: calendarPartLocatorHash,
 	}
 }
 
