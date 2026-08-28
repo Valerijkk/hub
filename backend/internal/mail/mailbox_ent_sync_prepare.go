@@ -353,17 +353,17 @@ func mailboxEntPrepareMessageRows(ctx context.Context, transaction *ent.Tx, acco
 func mailboxEntPrepareProvenance(ctx context.Context, transaction *ent.Tx, account *ent.MailAccount, engineMessageIDs []string) (map[string]MailboxSyncPolicyProvenance, error) {
 	result := make(map[string]MailboxSyncPolicyProvenance, len(engineMessageIDs))
 	if len(engineMessageIDs) == 0 { return result, nil }
-	submissions, err := transaction.MailSubmission.Query().Where(mailsubmission.MailAccountIDEQ(account.ID), mailsubmission.EngineResultMessageIDIn(engineMessageIDs...)).All(ctx)
+	submissions, err := transaction.MailSubmission.Query().Where(mailsubmission.MailAccountIDEQ(account.ID), mailsubmission.ProviderMessageIDIn(engineMessageIDs...)).All(ctx)
 	if err != nil { return nil, mailboxEntSafeError(err) }
 	for _, row := range submissions {
-		if row == nil || row.ID == uuid.Nil || row.MailAccountID != account.ID || string(row.Status) != "sent" || row.EngineSubmissionID == nil || row.EngineResultMessageID == nil || row.ResultMailMessageID == nil || !syncValidOpaque(*row.EngineSubmissionID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(*row.EngineResultMessageID, MaxEngineOpaqueIDBytes) {
+		if row == nil || row.ID == uuid.Nil || row.MailAccountID != account.ID || string(row.Status) != "sent" || row.ProviderSubmissionID == nil || row.ProviderMessageID == nil || row.ResultMailMessageID == nil || !syncValidOpaque(*row.ProviderSubmissionID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(*row.ProviderMessageID, MaxEngineOpaqueIDBytes) {
 			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		current := result[*row.EngineResultMessageID]
+		current := result[*row.ProviderMessageID]
 		if current.ConfirmedSubmission != nil { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
-		current.ConfirmedSubmission = &MailboxSyncPolicyProvenanceProof{Relation: MailboxEventID{AccountID: account.ID, ID: row.ID}, EngineMessageID: *row.EngineResultMessageID}
+		current.ConfirmedSubmission = &MailboxSyncPolicyProvenanceProof{Relation: MailboxEventID{AccountID: account.ID, ID: row.ID}, EngineMessageID: *row.ProviderMessageID}
 		if current.ConfirmedDraft != nil { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
-		result[*row.EngineResultMessageID] = current
+		result[*row.ProviderMessageID] = current
 	}
 	drafts, err := transaction.MailDraft.Query().Where(maildraft.MailAccountIDEQ(account.ID), maildraft.EngineMessageIDIn(engineMessageIDs...)).All(ctx)
 	if err != nil { return nil, mailboxEntSafeError(err) }
