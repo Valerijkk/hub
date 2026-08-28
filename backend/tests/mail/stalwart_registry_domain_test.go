@@ -292,7 +292,7 @@ func TestRegistryDomainController_ReadLocalDomainDNSZoneFile(t *testing.T) {
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{
 				registryDomainQueryReply([]string{"domain-1"}),
-				registryDomainDNSZoneFileReply("domain-other", localRegistryDomain, true, false, "example.test."),
+				registryDomainDNSZoneFileReplyForRequest("domain-1", "domain-other", localRegistryDomain, true, false, "example.test."),
 			},
 			wantErr:   stalwart.ErrStateMismatch,
 			wantCalls: 2,
@@ -392,6 +392,12 @@ func registryDomainDNSZoneFileReply(id, name string, isEnabled, allowRelaying bo
 		}, "domain-zone-get"}},
 	})
 	return registryDomainReply{want: registryDomainDNSZoneFileGetRequest(id), response: string(payload)}
+}
+
+func registryDomainDNSZoneFileReplyForRequest(requestID, responseID, name string, isEnabled, allowRelaying bool, zone any) registryDomainReply {
+	reply := registryDomainDNSZoneFileReply(responseID, name, isEnabled, allowRelaying, zone)
+	reply.want = registryDomainDNSZoneFileGetRequest(requestID)
+	return reply
 }
 
 func registryDomainDNSZoneFileMissingReply(id, name string, isEnabled, allowRelaying bool) registryDomainReply {
