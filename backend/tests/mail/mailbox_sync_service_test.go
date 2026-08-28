@@ -372,7 +372,11 @@ func TestMailboxSyncServiceStep_LeaseLossFailureMappingAndCaps(t *testing.T) {
 			fence := syncServiceFence(mail.MailboxSyncPhaseIncremental)
 			engine := &syncServiceEngineFake{folders: []mail.EngineFolder{{AccountID: "engine-account", FolderID: "inbox", Name: "Inbox", Role: mail.EngineFolderRoleInbox}}, change: *input.Page.Change}
 			trace := &syncServiceCallbackTrace{leaseIDs: []uuid.UUID{syncServiceLeaseID}, eventIDs: []uuid.UUID{syncServiceUUID("received"), syncServiceUUID("changed")}}
-			repository := &syncServiceRepositoryFake{claim: syncServiceClaim(fence, input.EventCutoff), resolveResult: mail.MailboxSyncResolveResult{Resolved: true, Phase: mail.MailboxSyncPhaseEnumeration}}
+			resolvePhase := mail.MailboxSyncPhaseIncremental
+			if testCase.wantResolve == mail.MailboxSyncFailureInvalidCursor {
+				resolvePhase = mail.MailboxSyncPhaseEnumeration
+			}
+			repository := &syncServiceRepositoryFake{claim: syncServiceClaim(fence, input.EventCutoff), resolveResult: mail.MailboxSyncResolveResult{Resolved: true, Phase: resolvePhase}}
 			repository.prepare = func(request mail.MailboxSyncPrepareRequest) (mail.MailboxSyncPreparedPage, error) {
 				prepared := input
 				prepared.Page = request.Page
