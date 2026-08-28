@@ -701,6 +701,7 @@ func TestCalendarEventOccurrenceCancel_RepositoryAndResultBoundariesDetachAliase
 	backend := newOccurrenceBackendFake()
 	reminder := 5
 	scheduledCall := uuid.MustParse("a1414141-1414-4141-8141-141414141414")
+	expectedScheduledCall := scheduledCall
 	backend.authorization.Current.ReminderMinutes = &reminder
 	backend.authorization.Current.ScheduledCallID = &scheduledCall
 	ids := &occurrenceIDs{values: []uuid.UUID{occurrenceExceptionID, occurrenceEnvelopeID}}
@@ -716,7 +717,7 @@ func TestCalendarEventOccurrenceCancel_RepositoryAndResultBoundariesDetachAliase
 	if _, err := service.CancelCalendarEventOccurrence(context.Background(), occurrenceActorID, mustOccurrenceCommand(t, 3)); err != nil { t.Fatalf("alias boundary cancellation error = %v", err) }
 	if len(backend.persisted) != 1 { t.Fatalf("persisted count = %d", len(backend.persisted)) }
 	persisted := backend.persisted[0].Event().Snapshot()
-	if len(persisted.Exdates) != 0 || persisted.ReminderMinutes == nil || *persisted.ReminderMinutes != 5 || persisted.ScheduledCallID == nil || *persisted.ScheduledCallID != scheduledCall {
+	if len(persisted.Exdates) != 0 || persisted.ReminderMinutes == nil || *persisted.ReminderMinutes != 5 || persisted.ScheduledCallID == nil || *persisted.ScheduledCallID != expectedScheduledCall {
 		t.Fatalf("repository alias crossed into command: %#v", persisted)
 	}
 	encoded, err := backend.persisted[0].Outbox().Envelope().MarshalJSON()
@@ -1007,10 +1008,10 @@ func TestCalendarEventOccurrenceCancel_FrozenABIAndRecurrenceBoundaries(t *testi
 			backend.authorization.Current.RRULE = "FREQ=MONTHLY;INTERVAL=12;BYMONTHDAY=31;UNTIL=20320228"
 			return "2032-02-28"
 		}, want: calendar.ErrEventConflict},
-		{name: "multi byday candidate work bound", configure: func(backend *occurrenceBackendFake) string {
+		{name: "multi_byday_unbounded_rule_rejected", configure: func(backend *occurrenceBackendFake) string {
 			backend.authorization.Current.RRULE = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH,FR,SA,SU"
 			return "2050-01-01T09:00:00Z"
-		}, want: calendar.ErrEventConflict},
+		}, want: calendar.ErrEventInvalid},
 		{name: "dst gap skipped", configure: func(backend *occurrenceBackendFake) string {
 			start := time.Date(2031, time.March, 29, 1, 30, 0, 0, time.UTC)
 			backend.authorization.Current.Temporal = calendar.CalendarEvent{StartsAt: start, EndsAt: start.Add(time.Hour), Timezone: "Europe/Berlin"}
