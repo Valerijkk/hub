@@ -126,7 +126,7 @@ func mailboxSubmissionFinalizationFixture(t *testing.T, expected []mail.MailboxS
 		EngineMaxBytes:            1_048_576,
 		EngineBindingHash:         mailboxSubmissionFinalizationHash("binding"),
 		DispatchAuthorizationHash: mailboxSubmissionFinalizationHash("authorization"),
-		DispatchAuthorizedAt:      time.Date(2001, time.February, 3, 4, 5, 0, time.UTC),
+		DispatchAuthorizedAt:      time.Date(2001, time.February, 3, 4, 5, 0, 0, time.UTC),
 		ExpectedAttachments:       expected,
 	}
 	result, err := mail.NewMailboxSubmissionFinalizationClaimedResult(input)
