@@ -235,6 +235,7 @@ func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
 		submissions:  make(map[string]map[string]fakeSubmission),
 		sieves:       make(map[string]EngineSieveState),
 		spamResults:  make(map[fakeAccountCursorKey]EngineSpamTrainingResult),
+		changes:      make(map[string][]fakeChange),
 		changeScript: make(map[fakeAccountCursorKey]FakeMailChangeScript),
 		enumScript:   make(map[fakeEnumerationKey]FakeMailEnumerationScript),
 		overrides:    make(map[fakeAccountCursorKey]EngineMessageProjection),
