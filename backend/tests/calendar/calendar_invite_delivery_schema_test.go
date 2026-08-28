@@ -112,7 +112,7 @@ func calendarInviteAssertPartialIndex(t *testing.T, indexes []ent.Index, wantFie
 			continue
 		}
 		for _, annotation := range descriptor.Annotations {
-			if sqlAnnotation, ok := annotation.(*entsql.Annotation); ok && sqlAnnotation.IndexWhere == wantWhere {
+			if sqlAnnotation, ok := annotation.(*entsql.IndexAnnotation); ok && sqlAnnotation.Where == wantWhere {
 				return
 			}
 		}

@@ -358,7 +358,7 @@ func mailBridgeAssertUniquePartialIndex(t *testing.T, indexes []ent.Index, wantF
 			t.Fatalf("partial index over %v must be unique", wantFields)
 		}
 		for _, annotation := range descriptor.Annotations {
-			if sqlAnnotation, ok := annotation.(*entsql.Annotation); ok && sqlAnnotation.IndexWhere == wantWhere {
+			if sqlAnnotation, ok := annotation.(*entsql.IndexAnnotation); ok && sqlAnnotation.Where == wantWhere {
 				return
 			}
 		}
@@ -375,7 +375,7 @@ func mailBridgeAssertPartialIndex(t *testing.T, indexes []ent.Index, wantFields 
 			continue
 		}
 		for _, annotation := range descriptor.Annotations {
-			if sqlAnnotation, ok := annotation.(*entsql.Annotation); ok && sqlAnnotation.IndexWhere == wantWhere {
+			if sqlAnnotation, ok := annotation.(*entsql.IndexAnnotation); ok && sqlAnnotation.Where == wantWhere {
 				return
 			}
 		}
@@ -398,7 +398,7 @@ func mailBridgeAssertNonUniquePartialIndex(t *testing.T, indexes []ent.Index, wa
 			t.Fatalf("partial index over %v storage key = %q, want %q", wantFields, descriptor.StorageKey, wantStorageKey)
 		}
 		for _, annotation := range descriptor.Annotations {
-			if sqlAnnotation, ok := annotation.(*entsql.Annotation); ok && sqlAnnotation.IndexWhere == wantWhere {
+			if sqlAnnotation, ok := annotation.(*entsql.IndexAnnotation); ok && sqlAnnotation.Where == wantWhere {
 				return
 			}
 		}
