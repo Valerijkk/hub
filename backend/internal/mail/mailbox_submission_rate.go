@@ -1,6 +1,9 @@
 package mail
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const (
 	mailboxSubmissionRateMaximumCapacity int32 = 1_000
@@ -205,6 +208,9 @@ func mailboxSubmissionRateRetryAt(now time.Time, organization MailboxSubmissionR
 		SendRateState{Tokens: int(user.Tokens), RefillRemainder: time.Duration(user.RefillRemainderNanos)}, int(userCapacity),
 	)
 	if seconds < 1 {
+		return nil, mailboxSubmissionRateLimitError()
+	}
+	if now.Unix() > math.MaxInt64-int64(seconds) {
 		return nil, mailboxSubmissionRateLimitError()
 	}
 	retryAt := now.Add(time.Duration(seconds) * time.Second).UTC()
