@@ -25,8 +25,8 @@ func TestMailboxContent_FrozenPublicABI(t *testing.T) {
 	}
 	assertMailboxContentFields(t, reflect.TypeOf(mail.MailboxContentInput{}), []string{"SourceFormat", "Body"})
 	assertMailboxContentFieldTypes(t, reflect.TypeOf(mail.MailboxContentInput{}), []reflect.Type{reflect.TypeOf(mail.MailboxContentFormatPlain), reflect.TypeOf("")})
-	assertMailboxContentFields(t, reflect.TypeOf(mail.MailboxContentResult{}), []string{"Format", "PlainBody", "RemoteImagesBlocked"})
-	assertMailboxContentFieldTypes(t, reflect.TypeOf(mail.MailboxContentResult{}), []reflect.Type{reflect.TypeOf(mail.MailboxContentFormatPlain), reflect.TypeOf(""), reflect.TypeOf(false)})
+	assertMailboxContentFields(t, reflect.TypeOf(mail.MailboxContentResult{}), []string{"SourceFormat", "SanitizerVersion", "PlainBody", "SanitizedHTML", "RemoteImagesBlocked"})
+	assertMailboxContentFieldTypes(t, reflect.TypeOf(mail.MailboxContentResult{}), []reflect.Type{reflect.TypeOf(mail.MailboxContentFormatPlain), reflect.TypeOf(mail.MailboxContentSanitizerVersionV1), reflect.TypeOf(""), reflect.TypeOf(""), reflect.TypeOf(false)})
 	if reflect.TypeOf(mail.MailboxContentErrorKind("")).Kind() != reflect.String ||
 		string(mail.Invalid) != "invalid" || string(mail.TooLarge) != "too_large" ||
 		mail.ErrMailboxContentInvalid.Error() != "mailbox content invalid" ||
@@ -274,7 +274,10 @@ func requireMailboxContentSuccess(t *testing.T, input mail.MailboxContentInput) 
 	if err != nil {
 		t.Fatalf("NormalizeMailboxContent(%#v) error = %v", input, err)
 	}
-	if result.Format != mail.MailboxContentFormatPlain || !result.RemoteImagesBlocked {
+	if result.SourceFormat != input.SourceFormat ||
+		result.SanitizerVersion != mail.MailboxContentSanitizerVersionV1 ||
+		!result.RemoteImagesBlocked ||
+		(input.SourceFormat == mail.MailboxContentFormatPlain && result.SanitizedHTML != "") {
 		t.Fatalf("NormalizeMailboxContent(%#v) result ABI = %#v", input, result)
 	}
 	return result
