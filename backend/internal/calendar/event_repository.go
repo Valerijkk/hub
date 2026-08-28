@@ -2206,6 +2206,13 @@ func (command CalendarEventAttendeeCommand) EventID() uuid.UUID { return command
 // Version возвращает optimistic version attendee.
 func (command CalendarEventAttendeeCommand) Version() uint { return command.input.Version }
 
+// Snapshot returns a defensive copy of the attendee persistence input.
+func (command CalendarEventAttendeeCommand) Snapshot() CalendarEventAttendeeCommandInput {
+	input := command.input
+	input.UserID = copyUUID(command.input.UserID)
+	return input
+}
+
 func (command CalendarEventAttendeeCommand) valid() bool {
 	if command.input.Role == CalendarEventAttendeeRoleOrganizer {
 		_, err := newCalendarEventOrganizerAttendeeCommand(command.input)

@@ -312,8 +312,12 @@ func TestEventServiceCreateCalendarEvent_PersistsAndReturnsExactResolvedSchedule
 	if err := json.Unmarshal(result.Response().JSON(), &response); err != nil {
 		t.Fatalf("json.Unmarshal(create response) error = %v", err)
 	}
-	if response.ScheduledCallID == nil || *response.ScheduledCallID != callID || len(backend.eventSnapshots) != 1 || !strings.Contains(backend.eventSnapshots[0], callID.String()) {
-		t.Fatalf("resolved scheduled-call persistence/response = response:%#v event:%q", response, backend.eventSnapshots)
+	if len(backend.events) != 1 {
+		t.Fatalf("persisted event count = %d, want 1", len(backend.events))
+	}
+	persisted := backend.events[0].Snapshot()
+	if response.ScheduledCallID == nil || *response.ScheduledCallID != callID || persisted.ScheduledCallID == nil || *persisted.ScheduledCallID != callID {
+		t.Fatalf("resolved scheduled-call persistence/response = response:%#v persisted:%#v", response, persisted)
 	}
 }
 
@@ -368,9 +372,27 @@ func TestEventServiceCreateCalendarEvent_UsesAuthoritativeResolvedAttendeeIdenti
 		response.Attendees[0].Email != "identity@example.test" || response.Attendees[0].DisplayName == nil || *response.Attendees[0].DisplayName != resolvedName {
 		t.Fatalf("response did not use resolved attendee = %#v", response.Attendees)
 	}
-	if len(backend.attendeeSnapshots) != 2 || !strings.Contains(backend.attendeeSnapshots[1], resolvedUserID.String()) ||
-		!strings.Contains(backend.attendeeSnapshots[1], resolvedName) || strings.Contains(backend.attendeeSnapshots[1], candidateName) {
-		t.Fatalf("persisted attendee did not use resolver output = %#v", backend.attendeeSnapshots)
+	organizerCount := 0
+	attendeeCount := 0
+	unexpectedRoleCount := 0
+	var persisted calendar.CalendarEventAttendeeCommandInput
+	for _, command := range backend.attendees {
+		snapshot := command.Snapshot()
+		switch snapshot.Role {
+		case calendar.CalendarEventAttendeeRoleOrganizer:
+			organizerCount++
+		case calendar.CalendarEventAttendeeRoleOptional:
+			attendeeCount++
+			persisted = snapshot
+		default:
+			unexpectedRoleCount++
+		}
+	}
+	if organizerCount != 1 || attendeeCount != 1 || unexpectedRoleCount != 0 {
+		t.Fatalf("persisted attendee roles = organizer:%d attendee:%d unexpected:%d, want 1:1:0", organizerCount, attendeeCount, unexpectedRoleCount)
+	}
+	if persisted.UserID == nil || *persisted.UserID != resolvedUserID || persisted.Email != "identity@example.test" || persisted.DisplayName != resolvedName {
+		t.Fatalf("persisted attendee did not use resolver output = %#v", persisted)
 	}
 }
 
