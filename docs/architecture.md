@@ -563,7 +563,7 @@ The mapper accepts no raw event, room, identity, JWT, provider, token, or delive
 
 The accepted `Phase151PostCreateRecoveryScannerAdapter` is an in-memory sequential adapter over exactly three already separate ports: pager, reauthorizer, and document lister. It is a narrow scanner-interface seam, not a recovery worker or a production composition root. It validates receiver/context/dependencies before cancellation, then forwards each valid request once unchanged and preserves exact values/errors/aliases.
 
-The adapter is deliberately unbound from coordinator construction, the interval gate, stores, owner/configuration, scheduler/process lifetime, server wiring, retry semantics, transactions, dedupe, and exactly-once handling. Ent/PostgreSQL and Mongo execution, service/server/runtime, integration, transport, and browser evidence remain `UNBOUND/NOT_RUN`.
+Historical scanner-only boundary: the adapter itself was not a coordinator construction or interval-gate owner. The current passive holder composes reauthorizer -> scanner -> process-local gate -> claimed coordinator, but it is still not a production installer and binds no server, scheduler/executor, process lifetime, live stores, retry semantics, transactions, dedupe, or exactly-once handling. Ent/PostgreSQL and Mongo execution, service/server/runtime, integration, transport, and browser evidence remain `UNBOUND/NOT_RUN`.
 
 ## Calls confirmed participant connection key (2026-08-29)
 
@@ -575,7 +575,7 @@ The value and its pointer intentionally implement no `fmt.Stringer`; tests make 
 
 `Phase151PendingRecoveryRuntimeConfig` is an immutable private-field configuration value, not a runtime owner. It contains only a nonzero owner UUID, positive lease duration, and an existing `Phase151PendingRecoveryConfig` whose `MaxPages`, `MaxTargets`, `PendingScanLimit`, and `MinimumInterval` are all positive. Construction otherwise returns nil. Nil accessors expose zero values; the execution-config accessor returns an isolated copy.
 
-It provides no owner creation, singleton/distributed exclusivity, lease renewal, caps/defaults, environment/deployment parsing, or factory/coordinator/scanner/gate/server/scheduler/process ownership. It is not composed with stores, writer, runtime, or integration. The existing scanner adapter remains unbound; Phase 151 runtime remains `UNBOUND/NOT_RUN`.
+The config value provides no owner creation, singleton/distributed exclusivity, lease renewal, caps/defaults, or environment/deployment parsing. The later passive holder composes reauthorizer -> scanner -> process-local gate -> claimed coordinator, but provides no production factory/installer/server/scheduler/executor/process ownership and binds no live stores, writer, runtime, or integration. Phase 151 runtime remains `UNBOUND/NOT_RUN`.
 
 ## Calls connection-aware refcount reducer (2026-08-29)
 
@@ -587,4 +587,4 @@ This is a calculation boundary only. It does not perform I/O, logging, persisten
 
 `Phase151PendingRecoveryComposition` is a passive holder for one already-composed pending-recovery repository, not the production composition root. It validates immutable runtime configuration, a complete post-create-owned Combined Ent/Mongo graph, and a plain nonnil clock (including typed-nil rejection), then connects the existing PG reauthorizer -> scanner adapter -> process-local interval gate -> claimed coordinator graph. It holds opaque repository identity and an execution-config value copy; owner and lease are forwarded as immutable values.
 
-The holder makes no clock or dependency calls, I/O, recovery execution, executor invocation, `RunOnce`, scheduler/goroutine, process-owner, server/startup, or runtime-installation action. It does not bind live stores or promote recovery. Production installation, live Ent/Mongo behavior, and runtime/integration evidence remain `UNBOUND/NOT_RUN`.
+Apart from exactly three config accessor reads (`OwnerID()`, `LeaseDuration()`, and `ExecutionConfig()`), the holder makes no clock, delegate, persistence, or transport call and performs no I/O, recovery execution, executor invocation, `RunOnce`, scheduler/goroutine, process-owner, server/startup, or runtime-installation action. It does not bind live stores or promote recovery. Production installation, live Ent/Mongo behavior, and runtime/integration evidence remain `UNBOUND/NOT_RUN`.

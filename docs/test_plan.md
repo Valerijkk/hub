@@ -623,7 +623,7 @@ Focused unit/race coverage for commit `75d26e8e` verifies exact acceptance of a 
 
 Valid RED `worktree-master-backend-unit-run-8bc84ea0e92f` recorded target `FAIL`, first exit `1`, build `PASS`, and expected missing-constructor vet/unit/race with stderr lengths `0/248/0/0`. The canonical GREEN receipt `worktree-master-backend-unit-run-8f2a97825507` records target/build/vet/unit/race `PASS`, exit `0`, and four empty stderr logs. Specification review is `PASS`, quality review `APPROVED`, `C0/I0/M0`. Two accidental concurrent containers/receipts are explicitly invalid orchestration evidence and do not constitute a product failure or PASS authority.
 
-The suite does not prove owner generation, lease renewal, singleton/distributed ownership, caps/defaults, environment/deployment parsing, factory/coordinator/scanner/gate/server/scheduler/process binding, stores/writer, runtime, or integration. The scanner adapter is still unbound; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE` and runtime `UNBOUND/NOT_RUN`.
+This config-only suite does not prove owner generation, lease renewal, singleton/distributed ownership, caps/defaults, or environment/deployment parsing. The later passive holder composes reauthorizer -> scanner -> process-local gate -> claimed coordinator, but proves no production factory/installer/server/scheduler/executor/process binding, live stores/writer, runtime, or integration. Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`; runtime is `UNBOUND/NOT_RUN`.
 
 ## Calls connection-aware refcount reducer regression (2026-08-29)
 
@@ -635,7 +635,7 @@ This is unit/race evidence only: it does not prove I/O, logging, persistence, CA
 
 ## Phase 151 pending-recovery composition coverage (2026-08-29)
 
-Focused unit/race coverage for commit `fc80c9e8` verifies passive composition of a valid immutable runtime config with one complete post-create-owned Combined Ent/Mongo graph and a plain nonnil clock; typed-nil clock and every incomplete graph/config shape fail closed. The suite proves the holder returns one opaque repository identity, copies the retained execution config, forwards fixed owner/lease values through construction, and invokes neither clock nor dependency methods.
+Focused unit/race coverage for commit `fc80c9e8` verifies passive composition of a valid immutable runtime config with one complete post-create-owned Combined Ent/Mongo graph and a plain nonnil clock; typed-nil clock and every incomplete graph/config shape fail closed. The suite proves the holder returns one opaque repository identity, copies the retained execution config, and forwards fixed owner/lease values. Apart from exactly `OwnerID()`, `LeaseDuration()`, and `ExecutionConfig()` reads on the config value, it invokes no clock, delegate, persistence, or transport method.
 
 Valid RED `worktree-master-backend-unit-run-e0417e335e61` had target `FAIL`, first exit `1`, build `PASS`, and expected missing-constructor vet/unit/race failures with stderr lengths `0/243/0/0`. `f86bc87afa18` is not canonical because only a test-side typed-nil dereference failed unit/race. Canonical GREEN `worktree-master-backend-unit-run-6dad11197ae4` records target/build/vet/unit/race `PASS`, exit `0`, and four empty stderr logs. Specification review is `PASS`; quality review is `APPROVED`, `C0/I0/M0`.
 
