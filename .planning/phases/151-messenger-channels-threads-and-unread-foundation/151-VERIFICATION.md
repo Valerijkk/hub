@@ -277,3 +277,17 @@ Focused source tests exist, but current Docker evidence is `NOT_RUN` because Mai
 Messenger reconciliation accepts the closed recovery target authority; the coordinator builds that service authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner/PG pager/reauthorizer/scheduler/writer/runtime are `UNBOUND`.
 
 Calls has only an unbound `CallJoinCredentialProjector` port/constructor/method: active exact server-loaded `Call`, channel-member or instant-creator policy, server-known name, typed issuer exactly once. Ent source implementation, service/`JoinCall`/HTTP/participant/factory/client/Jitsi cutover/tenant claim are absent. LiveKit remains active. Docker is `NOT_RUN` because Mail owns it and the invalidated overlap supplies no inheritable receipt.
+
+## Fresh isolated Docker unit/race receipt (2026-08-28)
+
+This entry supersedes the latest NOT_RUN execution status only for the named
+source-test atoms below. After a confirmed 60-second empty Docker window, one
+docker compose -f docker-compose.local.yml run --rm --no-deps backend-unit
+run completed with target PASS, first exit 0, and build/vet/unit/race all PASS;
+monitoring found no Mail overlap. The Calls issuer/projector and Messenger
+authority-reconstruction, claimed-runner, and scan-proof tests each passed
+under both unit and race.
+
+The earlier run was stopped because of Mail overlap and remains invalid history;
+no receipt is inherited from it. This is unit/race evidence only. All existing
+UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.

@@ -1442,3 +1442,17 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - The concrete scanner, PostgreSQL pager, reauthorizer, scheduler, recovery writer, and live recovery runtime remain `UNBOUND`; no Docker receipt is inherited for this atom.
 - Calls now exposes the unbound `CallJoinCredentialProjector` port, constructor, and method. It accepts an active exact server-loaded `Call`, applies channel-member or instant-creator policy, uses the server-known name, and invokes the typed issuer once. There is no Ent source implementation, service/`JoinCall`/HTTP/participant/factory/client/Jitsi cutover/tenant-claim binding. LiveKit remains active.
 - Docker evidence is `NOT_RUN` because Mail owns Docker and the earlier overlap invalidates inheritance. No code, tests, Docker, Git, ROADMAP, or ADR state is asserted beyond these bounded seams.
+
+## Fresh isolated Docker unit/race receipt (2026-08-28)
+
+This entry supersedes the latest NOT_RUN execution status only for the named
+source-test atoms below. After a confirmed 60-second empty Docker window, one
+docker compose -f docker-compose.local.yml run --rm --no-deps backend-unit
+run completed with target PASS, first exit 0, and build/vet/unit/race all PASS;
+monitoring found no Mail overlap. The Calls issuer/projector and Messenger
+authority-reconstruction, claimed-runner, and scan-proof tests each passed
+under both unit and race.
+
+The earlier run was stopped because of Mail overlap and remains invalid history;
+no receipt is inherited from it. This is unit/race evidence only. All existing
+UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.

@@ -920,3 +920,17 @@ Internal `JoinCredential` includes `ExpiresAt`. For Jitsi it is the exact captur
 Recovery reconciliation consumes `Phase151RecoveryTargetAuthority`; the coordinator creates the closed service authority and the runner reconstructs the canonical effect scope both before and after claim. `AuthorizedMessageProducerScope` is restricted to validated Mongo-scan input. This is not a fresh authorization or runtime binding: scanner implementation, PostgreSQL paging, reauthorization, scheduling, writer cutover, and recovery runtime are `UNBOUND`.
 
 `CallJoinCredentialProjector` has only an internal port, constructor, and method. Its required inputs are an active exact server-loaded `Call`, channel-member or instant-creator policy, server-known name, and one typed issuer invocation. Ent source implementation, service/`JoinCall`/HTTP, participant/factory/client, Jitsi cutover, and tenant claim are absent. LiveKit remains active; Docker evidence is `NOT_RUN` because Mail owns Docker and no earlier receipt survives the invalidated overlap.
+
+## Fresh isolated Docker unit/race receipt (2026-08-28)
+
+This entry supersedes the latest NOT_RUN execution status only for the named
+source-test atoms below. After a confirmed 60-second empty Docker window, one
+docker compose -f docker-compose.local.yml run --rm --no-deps backend-unit
+run completed with target PASS, first exit 0, and build/vet/unit/race all PASS;
+monitoring found no Mail overlap. The Calls issuer/projector and Messenger
+authority-reconstruction, claimed-runner, and scan-proof tests each passed
+under both unit and race.
+
+The earlier run was stopped because of Mail overlap and remains invalid history;
+no receipt is inherited from it. This is unit/race evidence only. All existing
+UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.

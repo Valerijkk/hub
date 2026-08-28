@@ -486,3 +486,17 @@ Future execution must keep the boundary explicit: Messenger coverage does not pr
 No Docker result is recorded for the recovery authority migration or Calls projector atom: Mail owns Docker and invalidates the earlier overlap, so no receipt is inherited. Messenger static scope is limited to reconciliation consuming the closed target authority, coordinator construction of the service authority, and runner reconstruction of canonical effect scope before/after claim. `AuthorizedMessageProducerScope` remains scan-only; scanner, PostgreSQL pager, reauthorizer, scheduler, writer, and runtime are `UNBOUND`.
 
 Calls static scope is limited to unbound `CallJoinCredentialProjector` port/constructor/method behavior: active exact server-loaded `Call`, channel-member or instant-creator policy, server-known name, and exactly one typed issuer call. Ent source, service/`JoinCall`/HTTP, participant/factory/client, Jitsi cutover, and tenant claim have no evidence. LiveKit remains active. No code/test/Docker/Git/ROADMAP/ADR outcome is implied beyond these boundaries.
+
+## Fresh isolated Docker unit/race receipt (2026-08-28)
+
+This entry supersedes the latest NOT_RUN execution status only for the named
+source-test atoms below. After a confirmed 60-second empty Docker window, one
+docker compose -f docker-compose.local.yml run --rm --no-deps backend-unit
+run completed with target PASS, first exit 0, and build/vet/unit/race all PASS;
+monitoring found no Mail overlap. The Calls issuer/projector and Messenger
+authority-reconstruction, claimed-runner, and scan-proof tests each passed
+under both unit and race.
+
+The earlier run was stopped because of Mail overlap and remains invalid history;
+no receipt is inherited from it. This is unit/race evidence only. All existing
+UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
