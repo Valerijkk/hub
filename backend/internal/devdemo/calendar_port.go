@@ -9,6 +9,7 @@ import (
 
 // CalendarDemoPort synchronously exposes the Calendar operations required by demo seeding.
 // Implementations must validate all role and status strings exhaustively.
+// The second UUID argument on every method is the nonzero actor Hub UserID.
 type CalendarDemoPort interface {
 	CreateEvent(context.Context, uuid.UUID, CalendarDemoCreateInput) (CalendarDemoCreateResult, error)
 	GetEvent(context.Context, uuid.UUID, uuid.UUID) (CalendarDemoEventState, error)
@@ -17,6 +18,7 @@ type CalendarDemoPort interface {
 }
 
 // CalendarDemoAttendeeCandidate is a resolved internal attendee snapshot.
+// UserID must be a nonzero internal Hub identity; external attendees and uuid.Nil are unsupported.
 type CalendarDemoAttendeeCandidate struct {
 	UserID uuid.UUID
 	Email  string
@@ -24,6 +26,7 @@ type CalendarDemoAttendeeCandidate struct {
 }
 
 // CalendarDemoAttendeeState is a fresh attendee projection returned by the adapter.
+// UserID must be a nonzero internal Hub identity; external attendees and uuid.Nil are unsupported.
 type CalendarDemoAttendeeState struct {
 	UserID     uuid.UUID
 	Email      string
@@ -58,11 +61,12 @@ type CalendarDemoCreateResult struct {
 
 // CalendarDemoEventState is a fresh event projection returned by the adapter.
 type CalendarDemoEventState struct {
-	EventID   uuid.UUID
-	Version   int
-	Sequence  int
-	Status    string
-	RRULE     string
+	EventID  uuid.UUID
+	Version  int
+	Sequence int
+	Status   string
+	RRULE    string
+	// Exdates are master exclusions, not occurrence exception state.
 	Exdates   []time.Time
 	Attendees []CalendarDemoAttendeeState
 }
@@ -84,6 +88,8 @@ type CalendarDemoRSVPResult struct {
 }
 
 // CalendarDemoOccurrenceCancelInput is a caller-owned immutable snapshot and must not be retained.
+// The caller must GetEvent and supply the current master Version before cancellation.
+// RecurrenceID must serialize to the canonical UTC recurrence string.
 type CalendarDemoOccurrenceCancelInput struct {
 	EventID               uuid.UUID
 	RecurrenceID          time.Time
@@ -91,6 +97,9 @@ type CalendarDemoOccurrenceCancelInput struct {
 }
 
 // CalendarDemoOccurrenceCancelResult is a fresh occurrence projection returned by the adapter.
+// An already cancelled exception is a semantic no-op when the current version is supplied.
+// On version conflict the caller performs one bounded GetEvent and CancelOccurrence retry.
+// Cancellation has no receipt or Replayed semantics.
 type CalendarDemoOccurrenceCancelResult struct {
 	EventID      uuid.UUID
 	RecurrenceID time.Time
