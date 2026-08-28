@@ -318,6 +318,9 @@ services:
   backend-unit:
     <<: *qa-common
     mem_limit: 8g
+    environment:
+      GOFLAGS: "-p=1"
+      GOMAXPROCS: "2"
     build:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa

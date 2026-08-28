@@ -10,7 +10,7 @@
 Единственный QA API для test/build/lint/validator jobs —
 `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
 
-`backend-unit` intentionally has a separate 8 GiB ceiling because generated Ent plus race compilation can exceed the shared 2 GiB QA limit. Treat compiler `signal: killed` as an infrastructure/OOM condition to triage, not a product failure. Run QA gates sequentially; do not parallelize them and avoid unnecessary disk churn.
+`backend-unit` intentionally has a separate 8 GiB ceiling because generated Ent plus race compilation can exceed the shared 2 GiB QA limit. It sets `GOFLAGS: "-p=1"` to serialize Go package work and reduce compiler PID/disk churn, and `GOMAXPROCS: "2"` to match the inherited 2-CPU limit. Treat compiler `signal: killed` as an infrastructure/OOM condition to triage, not a product failure. Classify `newosproc` and `EAGAIN` / `resource temporarily unavailable` as infrastructure scheduling triage, distinct from compiler diagnostics; do not report either infrastructure case as a product failure or a QA `PASS`. Run QA gates sequentially; do not parallelize them and avoid unnecessary disk churn.
 
 Допустимы только `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
 `python-integration`, `python-e2e-smoke`, `python-e2e-full` и `python-load`.
