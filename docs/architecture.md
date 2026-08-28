@@ -489,3 +489,9 @@ Two behavioral RED receipts isolated the prior nil-pointer panic and the five ma
 The pure recovery scan-plan builder accepts only `Phase151RecoveryTargetAuthority` and a positive limit. It validates the closed server recovery principal, derives channel identity only from the authority, and shares the existing exact filter/order/cap constructor. Actor and producer identities are intentionally absent from this boundary.
 
 The initial GREEN attempt was invalidated on Mail overlap; the later isolated Docker receipt passed target/build/vet/unit/race with first exit `0` and no Mail overlap. This atom does not bind the Mongo repository, recovery port/runner, PG pager, reauthorizer, scheduler, writer, runtime, or cutover. Fresh database authorization and service-principal-to-actor policy remain `UNBOUND`.
+
+## Calls Ent credential projection source (2026-08-28)
+
+`*EntRepository` implements the server-owned `CallJoinCredentialProjectionSource`. It queries an exact active call, queries an exact active user, and derives the credential name from trimmed `DisplayName` with trimmed `Name` fallback. Invalid receivers, dependencies, plain or typed-nil contexts, and UUIDs fail closed before an Ent query.
+
+This adapter is not part of production composition yet. Live Ent/PostgreSQL semantics remain `NOT_RUN`; service, HTTP, provider factory, provider/client selection, Jitsi deployment/cutover, and browser/media paths are unchanged. LiveKit remains the active provider.

@@ -952,3 +952,9 @@ RED-1 proved the previous nil-pointer panic in unit and race; RED-2 proved all f
 `ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, limit)` requires the exact closed `messenger.post_create_recovery` principal, nonzero tenant/channel, nonempty kind, and a positive limit. It returns the legacy candidate filter, ascending `created_at` then `_id` order, and a hard maximum of 500. The API does not accept or derive an actor, producer, bot, or integration identity.
 
 The valid RED failed only on the missing export after build passed. The first GREEN was invalidated by Mail overlap; the fresh isolated rerun passed target/build/vet/unit/race, first exit `0`, without overlap. Persistence, repository/port execution, reauthorization, scheduling, writer cutover, and live DB/RBAC behavior are not specified or proven by this pure builder.
+
+## Calls Ent projection-source contract (2026-08-28)
+
+`EntRepository.LoadActiveCall(ctx, callID)` accepts a nonnil repository/client/context and nonzero ID, then selects only the exact call with active status. `GetServerKnownCallUserName(ctx, userID)` applies the same structural guards, selects only the exact active user, and returns trimmed `DisplayName`, otherwise trimmed `Name`; an empty result is `ErrCallJoinCredentialInvalid`. Plain and typed-nil contexts fail before Ent access, while Ent query errors propagate unchanged.
+
+The type satisfies `CallJoinCredentialProjectionSource` but is not production-wired. Positive Ent query/fallback semantics and live PostgreSQL remain `NOT_RUN`; no route, DTO, service, factory, provider/client, Jitsi runtime, deployment, or cutover contract changes. LiveKit remains active.

@@ -518,3 +518,9 @@ RED-1 recorded target `FAIL`, build/vet `PASS`, and unit/race nil-pointer panics
 Focused tests prove an exact plan for the closed recovery authority, legacy parity even when the legacy scope carries an unrelated actor and a valid forward producer, the 500-row cap, and fail-closed empty/arbitrary principal, zero tenant/channel, empty kind, and nonpositive limits. The new API accepts no actor or producer input.
 
 RED recorded target `FAIL`, build `PASS`, and vet/unit/race failures only on the absent export. The first GREEN attempt was stopped and invalidated on Mail overlap. After Mail completed and a new 60-second empty window, the isolated rerun recorded target/build/vet/unit/race `PASS`, first exit `0`; both named suites passed under unit and race without overlap. Mongo repository/port/runner, PG pager, reauthorizer, scheduler, writer, runtime/cutover, and fresh DB/RBAC coverage remain `UNBOUND/NOT_RUN`.
+
+## Calls Ent projection-source regression (2026-08-28)
+
+The compile/fail-closed suite covers interface satisfaction plus nil receiver/client/context/UUID inputs. Independent review exposed a typed-nil context gap; its behavioral RED kept build/vet `PASS` and failed unit/race with Ent-client panics for both source methods. The shared typed-nil detector then closed both paths.
+
+The final fresh isolated Docker `backend-unit --no-deps` run passed target/build/vet/unit/race with first exit `0`; the invalid-input and typed-nil suites passed under unit and race, no race warning or Mail overlap was observed. Positive Ent predicates, name fallback against stored rows, and live PostgreSQL remain integration `NOT_RUN`; production wiring and Jitsi cutover remain unchanged.

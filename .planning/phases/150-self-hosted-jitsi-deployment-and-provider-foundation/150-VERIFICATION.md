@@ -62,3 +62,9 @@ No external meeting API, SaaS host, external STUN/TURN, analytics endpoint, Jits
 ## Continuation gate
 
 Any deployment continuation requires explicit infrastructure authority, an authorized Linux discovery packet, and a numeric disk budget. Images may then be handled one immutable digest at a time with disk measurements before and after; parallel pulls and builds remain forbidden.
+
+## Calls Ent projection source evidence - 2026-08-28
+
+`*EntRepository` now satisfies `CallJoinCredentialProjectionSource` through exact active-call and active-user queries, with trimmed `DisplayName` to `Name` fallback and fail-closed receiver/client/plain-or-typed-nil-context/UUID guards. The interface RED kept build `PASS` and failed vet/unit/race only on missing methods. A review-driven typed-nil RED kept build/vet `PASS` and reproduced unit/race Ent-client panics. The final fresh isolated Docker run passed target/build/vet/unit/race with first exit `0`; both named suites passed in unit and race without Mail overlap.
+
+This is source/unit evidence only. The adapter is production-unwired; positive Ent predicate/fallback semantics and live PostgreSQL are `NOT_RUN`. Service/HTTP/factory/provider/client, Jitsi deployment/cutover, browser/media runtime, and the active LiveKit path are unchanged. Calls/Jitsi readiness is not established by this atom.
