@@ -239,9 +239,15 @@ func TestMailboxEntSubmissionTerminalDraftLifecycleSourceContract(t *testing.T) 
 		"submission.Update()",
 		"draft.Update()",
 		"SetStatus(maildraft.Status(\"active\"))",
-		"SetUpdatedAt(databaseNow)",
 		"account.Update()",
 	)
+	draftUpdate := mailboxEntSubmissionClaimSourceSlice(t, terminal,
+		"if err := draft.Update().",
+		"if err := account.Update().",
+	)
+	if !strings.Contains(draftUpdate, "SetUpdatedAt(databaseNow)") {
+		t.Fatal("terminal draft update is missing SetUpdatedAt(databaseNow)")
+	}
 	draftValidator := mailboxEntSubmissionClaimSourceSlice(t, source,
 		"func mailboxEntSubmissionDraftSubmittingMatches",
 		"func mailboxEntSubmissionTerminal",
