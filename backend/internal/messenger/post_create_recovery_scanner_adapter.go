@@ -26,7 +26,7 @@ type phase151PendingPostCreateDocumentLister interface {
 }
 
 // Phase151PostCreateRecoveryScannerAdapter composes independent recovery scan
-// ports without adding validation or recovery lifecycle behavior.
+// ports without adding domain validation or recovery lifecycle behavior.
 type Phase151PostCreateRecoveryScannerAdapter struct {
 	pager        phase151PendingRecoveryTargetPager
 	reauthorizer phase151PendingRecoveryTargetReauthorizer

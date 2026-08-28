@@ -138,15 +138,18 @@ func TestPhase151PostCreateRecoveryScannerAdapterFailsClosedBeforeDependencyAcce
 	assert.Zero(t, documents.calls)
 
 	var nilAdapter *messenger.Phase151PostCreateRecoveryScannerAdapter
-	page, err := nilAdapter.ListPendingRecoveryTargets(context.Background(), nil, 1)
+	page, err := nilAdapter.ListPendingRecoveryTargets(cancelledContext, nil, 1)
 	require.Same(t, messenger.ErrPostCreatePipelineInvalid, err)
 	assert.Equal(t, messenger.Phase151PendingRecoveryTargetPage{}, page)
-	gotAuthority, err := nilAdapter.ReauthorizePendingRecoveryTarget(context.Background(), target)
+	gotAuthority, err := nilAdapter.ReauthorizePendingRecoveryTarget(cancelledContext, target)
 	require.Same(t, messenger.ErrPostCreatePipelineInvalid, err)
 	assert.Equal(t, messenger.Phase151RecoveryTargetAuthority{}, gotAuthority)
-	gotDocuments, err := nilAdapter.ListPendingPostCreateDocuments(context.Background(), authority, 1)
+	gotDocuments, err := nilAdapter.ListPendingPostCreateDocuments(cancelledContext, authority, 1)
 	require.Same(t, messenger.ErrPostCreatePipelineInvalid, err)
 	assert.Nil(t, gotDocuments)
+	assert.Zero(t, pager.calls)
+	assert.Zero(t, reauthorizer.calls)
+	assert.Zero(t, documents.calls)
 }
 
 func TestPhase151PostCreateRecoveryScannerAdapterForwardsOnlyTheMatchingPortUnchanged(t *testing.T) {
