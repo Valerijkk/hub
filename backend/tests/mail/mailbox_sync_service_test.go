@@ -57,7 +57,7 @@ func TestMailboxSyncService_FrozenABIAndSafeErrors(t *testing.T) {
 	requireMailboxSyncMethodType(t, reflect.TypeOf((*mail.MailboxSyncService)(nil)), "Step", reflect.TypeOf((func(*mail.MailboxSyncService, context.Context, uuid.UUID) (mail.MailboxSyncStepResult, error))(nil)))
 	requireMailboxSyncMethodType(t, reflect.TypeOf((*mail.MailboxSyncServiceError)(nil)), "Error", reflect.TypeOf((func(*mail.MailboxSyncServiceError) string)(nil)))
 	requireMailboxSyncMethodType(t, reflect.TypeOf((*mail.MailboxSyncServiceError)(nil)), "Unwrap", reflect.TypeOf((func(*mail.MailboxSyncServiceError) error)(nil)))
-	if signature := reflect.TypeOf(mail.NewMailboxSyncService); signature.NumIn() != 3 || signature.NumOut() != 2 || signature.In(0) != reflect.TypeOf((*mail.MailEngine)(nil)).Elem() || signature.In(1) != reflect.TypeOf((*mail.MailboxSyncRepository)(nil)).Elem() || signature.In(2) != reflect.TypeOf(mail.MailboxSyncServiceConfig{}) || signature.Out(0) != reflect.TypeOf((*mail.MailboxSyncService)(nil)) || signature.Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
+	if signature := reflect.TypeOf(mail.NewMailboxSyncService); signature.NumIn() != 3 || signature.NumOut() != 2 || signature.In(0) != reflect.TypeOf((*mail.MailboxSyncEngine)(nil)).Elem() || signature.In(1) != reflect.TypeOf((*mail.MailboxSyncRepository)(nil)).Elem() || signature.In(2) != reflect.TypeOf(mail.MailboxSyncServiceConfig{}) || signature.Out(0) != reflect.TypeOf((*mail.MailboxSyncService)(nil)) || signature.Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
 		t.Fatalf("NewMailboxSyncService signature changed: %v", signature)
 	}
 
