@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"reflect"
-	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
