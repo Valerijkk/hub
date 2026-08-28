@@ -166,7 +166,7 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	mailboxAttachmentStagingService, err := mailmod.NewMailboxAttachmentStagingService(
-		mailboxRepo,
+		mailboxSvc,
 		mailboxRepo,
 		mailboxRepo,
 		mailboxRepo,
@@ -179,7 +179,7 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	mailboxAttachmentAbandonService, err := mailmod.NewMailboxAttachmentAbandonService(mailboxRepo, mailboxRepo)
+	mailboxAttachmentAbandonService, err := mailmod.NewMailboxAttachmentAbandonService(mailboxSvc, mailboxRepo)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
