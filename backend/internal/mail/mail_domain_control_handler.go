@@ -88,13 +88,22 @@ func (handler *MailDomainControlHandler) preflightCreate(ctx fiber.Ctx) error {
 	if err := mailDomainControlHTTPRejectQuery(ctx); err != nil {
 		return err
 	}
+	if mailDomainControlHTTPInvalidResponseWritten(ctx) {
+		return nil
+	}
 	idempotencyKey, err := mailDomainControlHTTPIdempotencyKey(ctx)
 	if err != nil {
 		return err
 	}
+	if mailDomainControlHTTPInvalidResponseWritten(ctx) {
+		return nil
+	}
 	request, err := mailDomainControlHTTPDecodeCreate(ctx)
 	if err != nil {
 		return err
+	}
+	if mailDomainControlHTTPInvalidResponseWritten(ctx) {
+		return nil
 	}
 	canonicalDomain, ok := canonicalMailDomainControlDomain(request.Domain)
 	if !ok || request.Domain != canonicalDomain {
