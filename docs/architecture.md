@@ -570,3 +570,9 @@ The adapter is deliberately unbound from coordinator construction, the interval 
 Commit `b7695ddc` adds `ConfirmedParticipantConnectionKey`, a pure Hub-owned value for an already trusted upstream connection fact: `(CallID, UserID, Epoch)`. Its canonical grammar is exactly `hub.call-connection.v1/<call>/<user>/<epoch>`. Any zero component is invalid: construction returns `ErrConfirmedParticipantConnectionKeyInvalid` with the zero key, `IsValid` returns `false`, and `Canonical` returns an empty string.
 
 The value and its pointer intentionally implement no `fmt.Stringer`; tests make that an accidental-stringification guard only, not a redaction or security boundary. The exported UUID fields may still be formatted, so operational no-logging remains required. This atom generates no epoch and adds no parser, serializer, provider/webhook, persistence, refcount, service/server/runtime, or Jitsi wiring. Legacy behavior is unchanged; LiveKit remains active and Jitsi remains `UNBOUND/NOT_RUN`.
+
+## Phase 151 pending-recovery runtime-config boundary (2026-08-29)
+
+`Phase151PendingRecoveryRuntimeConfig` is an immutable private-field configuration value, not a runtime owner. It contains only a nonzero owner UUID, positive lease duration, and an existing `Phase151PendingRecoveryConfig` whose `MaxPages`, `MaxTargets`, `PendingScanLimit`, and `MinimumInterval` are all positive. Construction otherwise returns nil. Nil accessors expose zero values; the execution-config accessor returns an isolated copy.
+
+It provides no owner creation, singleton/distributed exclusivity, lease renewal, caps/defaults, environment/deployment parsing, or factory/coordinator/scanner/gate/server/scheduler/process ownership. It is not composed with stores, writer, runtime, or integration. The existing scanner adapter remains unbound; Phase 151 runtime remains `UNBOUND/NOT_RUN`.
