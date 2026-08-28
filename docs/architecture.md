@@ -409,7 +409,7 @@ The adapter treats claim non-acquisition as ordinary contention so the bounded l
 
 ## Phase 151 recovery scanner authority gap (2026-08-27)
 
-Historical 2026-08-27 snapshot (superseded): recovery authority was not yet frozen. The current accepted boundaries are the closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts`; no arbitrary member or channel owner is substituted. Remaining work is a PG pager, cross-store scanner, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live evidence. The standalone per-instance interval gate is not that owner or composition; all remaining boundaries are unbound.
+Historical 2026-08-27 snapshot (superseded): recovery authority was not yet frozen. The current accepted boundaries are the closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts`, plus narrow static-only `EntRepository.ListPendingRecoveryTargets`; no arbitrary member or channel owner is substituted. Remaining work is cross-store scanner composition, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live evidence. The standalone per-instance interval gate is not that owner or composition; all remaining boundaries are unbound.
 
 ## Calls provider seams and Messenger completion CAS (2026-08-27)
 
@@ -432,13 +432,13 @@ The internal Jitsi issuer now exposes `IssueJoinCredential` (`0a332760`): one pr
 
 `JitsiEmbedHost` (`ee0387e5`) is an inert validated mount seam: one empty ref target for valid self-hosted credentials and no credential persistence/exposure, network, script, iframe, provider API, or runtime activation. It is not connected to `CallPanel`, routing, deployment, or cutover; LiveKit remains active.
 
-The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. This does not provide the missing PG pager, cross-store scanner, injection/production composition, process-lifetime interval owner, scheduler, or writer cutover; the closed recovery principal already exists.
+The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. The later narrow Ent pager does not provide cross-store scanner composition, injection/production composition, process-lifetime interval owner, scheduler, or writer cutover; the closed recovery principal already exists.
 
 ## Messenger server-owned recovery authority seam (2026-08-28)
 
 The frozen authority decision is now represented by closed `Phase151RecoveryServicePrincipal` value `messenger.post_create_recovery` and `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}`. The target contract intentionally has no actor/producer/bot/integration identity: exact validation accepts only the closed principal plus a structurally valid exact tenant/channel/kind target and otherwise fails with `ErrPostCreatePipelineInvalid`. This prevents arbitrary-member or channel-owner substitution from silently defining recovery authorization semantics.
 
-The seam is not yet composed into recovery execution. Existing scanner/runner contracts still use `AuthorizedMessageProducerScope`; no PostgreSQL pager, cross-store scanner, injection/production composition of the existing reauthorizer, scheduler, production writer, or live recovery runtime is bound. The next safe atom is pure provenance reconstruction/claimed runner/coordinator contract migration to `Phase151RecoveryTargetAuthority`; all live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
+Historical pre-pager seam: it was not yet composed into recovery execution. The later narrow Ent pager does not change the fact that scanner/runner production composition, cross-store scanner, injection/production composition of the existing reauthorizer, scheduler, production writer, and live recovery runtime remain unbound. All live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
 
 ## Calls signed credential-expiry projection (2026-08-28)
 
@@ -448,13 +448,13 @@ This seam does not activate Jitsi or alter the conference lifecycle. LiveKit rem
 
 ## Closed recovery provenance and call-aware issuer seams (2026-08-28)
 
-Messenger now has a pure `Phase151RecoveryTargetAuthority` to canonical-producer-scope reconstruction seam. It validates the closed exact target tuple, sources tenant/channel only from that authority, and sources sender and producer metadata only from pending canonical-message provenance. It is not a database authorization or recovery-worker migration: scanner, runner, coordinator, PostgreSQL pager, reauthorizer, scheduler, and writer cutover remain `UNBOUND`.
+Messenger now has a pure `Phase151RecoveryTargetAuthority` to canonical-producer-scope reconstruction seam. It validates the closed exact target tuple, sources tenant/channel only from that authority, and sources sender and producer metadata only from pending canonical-message provenance. It is not a database authorization or recovery-worker migration: scanner, runner, coordinator, production composition of the narrow Ent pager and reauthorizer, scheduler, and writer cutover remain `UNBOUND`.
 
 `CallJoinCredentialIssuer` is an internal structural adapter over existing LiveKit and Jitsi issuance. Its shared validation rejects invalid server-loaded call and identity inputs, then delegates without loading calls, authorizing membership/RBAC/invites/guests, mutating state, or binding a service, factory, route, or client. Current Docker evidence for both seams is `NOT_RUN` because Mail owns Docker. LiveKit remains active; Jitsi self-host deployment, public API, client, cutover, and browser/media runtime remain `UNBOUND/NOT_RUN`.
 
 ## Recovery authority migration and Calls projector seam (2026-08-28)
 
-Messenger reconciliation now accepts only the closed recovery target authority; the coordinator constructs the server-owned authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner, PostgreSQL pager, reauthorizer, scheduler, writer, and recovery runtime remain `UNBOUND`.
+Messenger reconciliation now accepts only the closed recovery target authority; the coordinator constructs the server-owned authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner, production composition of the narrow Ent pager and reauthorizer, scheduler, writer, and recovery runtime remain `UNBOUND`.
 
 `CallJoinCredentialProjector` is an unbound service seam: its port/constructor/method accepts an active exact server-loaded `Call`, applies channel-member or instant-creator policy, uses the server-known name, and invokes the typed issuer once. No Ent source, service/`JoinCall`/HTTP/participant/factory/client/Jitsi-cutover/tenant-claim binding exists. LiveKit remains active; Docker evidence is `NOT_RUN` because Mail owns Docker and invalidated overlap cannot be inherited.
 
@@ -488,7 +488,7 @@ Two behavioral RED receipts isolated the prior nil-pointer panic and the five ma
 
 The pure recovery scan-plan builder accepts only `Phase151RecoveryTargetAuthority` and a positive limit. It validates the closed server recovery principal, derives channel identity only from the authority, and shares the existing exact filter/order/cap constructor. Actor and producer identities are intentionally absent from this boundary.
 
-The initial GREEN attempt was invalidated on Mail overlap; the later isolated Docker receipt passed target/build/vet/unit/race with first exit `0` and no Mail overlap. This atom does not bind the Mongo repository, recovery port/runner, PG pager, reauthorizer, scheduler, writer, runtime, or cutover. Fresh database authorization and service-principal-to-actor policy remain `UNBOUND`.
+The initial GREEN attempt was invalidated on Mail overlap; the later isolated Docker receipt passed target/build/vet/unit/race with first exit `0` and no Mail overlap. This atom does not bind the Mongo repository, recovery port/runner, cross-store composition of the narrow Ent pager and pure reauthorizer, scheduler, writer, runtime, or cutover. Fresh database authorization and service-principal-to-actor policy remain `UNBOUND`.
 
 ## Calls Ent credential projection source (2026-08-28)
 
@@ -506,7 +506,7 @@ The coordinator adapter repeats validation and passes the unchanged authority to
 
 MongoRepository.ListPendingPostCreateDocuments derives its plan with ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority, retaining the exact legacy filter, ascending created_at/_id order, and cap. Kind remains nonempty; concrete PostgreSQL channel-type projection is deferred.
 
-This is compiled unit/race evidence, not runtime composition. Concrete PG pager/reauthorizer, scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain UNBOUND/NOT_RUN.
+This is compiled unit/race evidence, not runtime composition. The narrow Ent pager and pure reauthorizer are not composed into a concrete cross-store scanner; scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain UNBOUND/NOT_RUN.
 
 ## Calls service credential facade evidence (2026-08-28)
 
@@ -520,7 +520,7 @@ This is compile/unit/race evidence only. No server/runtime construction uses the
 
 `PGPhase151PendingRecoveryTargetReauthorizer` is a pure fail-closed PostgreSQL source-port boundary, not a composed recovery worker. It resolves the singleton tenant, requires exact target facts, accepts only live channels, maps `public|private` to `channel` and `dm|group` to `dm`, and requires an active tenant project for project channels or a tenant creator for projectless channels. It returns closed `Phase151RecoveryTargetAuthority` only; actor, sender, bot, integration, and Mongo authority are deliberately absent.
 
-Commits `326fb23c` and `a57f5da5` have bounded unit/race receipt `worktree-master-backend-unit-run-4bb4f9e2e610` at `2026-08-28T19:48:05+03:00`: target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. The Ent recovery-target facts source exists; PG pager, cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`.
+Commits `326fb23c` and `a57f5da5` have bounded unit/race receipt `worktree-master-backend-unit-run-4bb4f9e2e610` at `2026-08-28T19:48:05+03:00`: target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. The Ent recovery-target facts source and narrow static-only Ent pager exist; cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`.
 
 ## Messenger Ent recovery-target facts source (2026-08-28)
 
@@ -540,7 +540,7 @@ Mapping produces target kind and owned output; `Next` is derived only from the l
 
 The deterministic unit/race suite covers the narrow interface, nil/typed-nil and cancellation precedence without clock reads, interval/time boundaries and no mutation, channel-coordinated queued/blocked-clock cancellation without sleeps, concurrent one-admission, independent-instance admission, and immediate consumption. Valid RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`; final-fix root-read receipts at `2026-08-28T21:55:49+03:00` show target/build/vet/unit/race PASS, exit 0, four empty stderr logs, and **container ID not retained**. Scoped re-review is ADDRESSED/PASS/APPROVED with 0/0/0 new breakage.
 
-No pager/scanner/coordinator migration, scheduler or process-lifetime owner/wiring, runtime, live-store/transport/browser, or integration behavior is bound; those remain UNBOUND/NOT_RUN and Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+No cross-store scanner/coordinator production migration, scheduler or process-lifetime owner/wiring, runtime, live-store/transport/browser, or integration behavior is bound; those remain UNBOUND/NOT_RUN and Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
 ## Calls configured credential-service composition (2026-08-28)
 
 Commit `07f2fb5c` makes the server's existing Calls composition construct `NewCallServiceWithConfiguredProvider` from `config.Calls` through the provider factory, the typed credential issuer, the credential projector, and the additive service facade. The single `callsRepo` is deliberately supplied both as the Calls repository and as the projector source. A configured-provider/factory/projector error logs and exits before `callsChatRepo.EnsureIndexes`; this is source-level composition, not a successful server-process receipt.

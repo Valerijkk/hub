@@ -872,7 +872,7 @@ Historical 2026-08-27 constructor snapshot (superseded): interval admission is n
 
 ## Phase 151 recovery scanner authority decision (2026-08-27)
 
-Historical 2026-08-27 snapshot (superseded): before authority was frozen, `Phase151PendingRecoveryTarget` carried tenant/channel/kind only and a scanner could not invent member authority. The current accepted boundaries are closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts`. The remaining unbound work is PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, and writer/server/runtime binding. The standalone per-instance interval gate is not a scheduler or production composition.
+Historical 2026-08-27 snapshot (superseded): before authority was frozen, `Phase151PendingRecoveryTarget` carried tenant/channel/kind only and a scanner could not invent member authority. The current accepted boundaries are closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts`, plus narrow static-only `EntRepository.ListPendingRecoveryTargets`. The remaining unbound work is cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, and writer/server/runtime binding. The standalone per-instance interval gate is not a scheduler or production composition.
 
 ## Calls credentials and Messenger completion CAS (2026-08-27)
 
@@ -895,13 +895,13 @@ Messenger pending recovery candidates must match the authorized target channel, 
 
 `JitsiEmbedHost` (`ee0387e5`) accepts only a credential that passes the existing strict self-hosted contract and renders exactly one empty marked mount with a forwarded ref. Invalid/null credentials render nothing. Credential values are not stored or emitted, and the component performs no network, storage, logging, script, iframe, provider API, or runtime work. It is not bound to `CallPanel` or a route; LiveKit remains active.
 
-`Phase151ClaimedRecoveryCoordinatorAdapter` (`ce46a0b2`) validates positive limits and owned input cursors before scanning, then requires an in-limit structurally valid page strictly ordered after the cursor by tenant UUID bytes, channel UUID bytes, and kind. Nonnil `Next` must be valid and equal the last target. Errors return a zero page; valid output is defensively copied. PG pager/principal/scheduler and `SendMessage` remain `UNBOUND`.
+`Phase151ClaimedRecoveryCoordinatorAdapter` (`ce46a0b2`) validates positive limits and owned input cursors before scanning, then requires an in-limit structurally valid page strictly ordered after the cursor by tenant UUID bytes, channel UUID bytes, and kind. Nonnil `Next` must be valid and equal the last target. Errors return a zero page; valid output is defensively copied. The closed principal and narrow Ent pager exist, but cross-store scanner composition, scheduler, and `SendMessage` remain `UNBOUND`.
 
 ## Messenger server-owned recovery authority contract (2026-08-28)
 
 `Phase151RecoveryServicePrincipal` is closed and currently admits only `messenger.post_create_recovery`. `Phase151RecoveryTargetAuthority` consists exactly of `Principal`, `TenantID`, `ChannelID`, and `Kind`; it deliberately does not represent an actor, producer, bot, or integration. Validation accepts only that closed principal and a structurally valid exact target tuple; every invalid principal, malformed target, or identity drift maps to `ErrPostCreatePipelineInvalid`.
 
-This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`, and there is no PG pager, cross-store scanner, injection/production composition of the existing reauthorizer, scheduler, live writer, or external/runtime binding. Those boundaries remain `UNBOUND`.
+This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`; the narrow Ent pager plus pure reauthorizer have no cross-store scanner or injection/production composition. Scheduler, live writer, and external/runtime binding remain `UNBOUND`.
 
 ## Calls truthful join-credential expiry contract (2026-08-28)
 
@@ -911,13 +911,13 @@ Internal `JoinCredential` includes `ExpiresAt`. For Jitsi it is the exact captur
 
 ## Closed recovery reconstruction and call-aware issuer contract (2026-08-28)
 
-`ExportPhase151ReconstructPostCreateRecoveryProducerScopeFromTargetAuthority` accepts only closed `Phase151RecoveryTargetAuthority` facts and a pending canonical message. It validates the authority first, derives tenant/channel only from authority, and derives sender plus producer metadata only from message provenance; invalid canonical data returns `ErrPostCreatePipelineInvalid` and invalid provenance retains `ErrTrustedMessageProducerDenied`. It does not perform fresh database authorization. Runner/scanner/coordinator migration, PG pager, reauthorizer, scheduler, writer cutover, and recovery runtime remain `UNBOUND`.
+`ExportPhase151ReconstructPostCreateRecoveryProducerScopeFromTargetAuthority` accepts only closed `Phase151RecoveryTargetAuthority` facts and a pending canonical message. It validates the authority first, derives tenant/channel only from authority, and derives sender plus producer metadata only from message provenance; invalid canonical data returns `ErrPostCreatePipelineInvalid` and invalid provenance retains `ErrTrustedMessageProducerDenied`. It does not perform fresh database authorization. Runner/scanner/coordinator production migration, composition of the narrow Ent pager and pure reauthorizer, scheduler, writer cutover, and recovery runtime remain `UNBOUND`.
 
 `CallJoinCredentialIssuer` is internal-only: it structurally validates server-loaded active call/identity inputs and delegates to the existing LiveKit or Jitsi issuer. It does not load a call, authorize RBAC/membership/invite/guest policy, mutate state, or expose a service/factory/HTTP/client contract. LiveKit remains active; Jitsi self-host deployment, public route/DTO, client binding, cutover, and browser/media runtime remain `UNBOUND`.
 
 ## Recovery-authority migration and Calls projection contract (2026-08-28)
 
-Recovery reconciliation consumes `Phase151RecoveryTargetAuthority`; the coordinator creates the closed service authority and the runner reconstructs the canonical effect scope both before and after claim. `AuthorizedMessageProducerScope` is restricted to validated Mongo-scan input. This is not a fresh authorization or runtime binding: scanner implementation, PostgreSQL paging, reauthorization, scheduling, writer cutover, and recovery runtime are `UNBOUND`.
+Recovery reconciliation consumes `Phase151RecoveryTargetAuthority`; the coordinator creates the closed service authority and the runner reconstructs the canonical effect scope both before and after claim. `AuthorizedMessageProducerScope` is restricted to validated Mongo-scan input. This is not a fresh authorization or runtime binding: scanner implementation, composition of narrow Ent paging and pure reauthorization, scheduling, writer cutover, and recovery runtime are `UNBOUND`.
 
 `CallJoinCredentialProjector` has only an internal port, constructor, and method. Its required inputs are an active exact server-loaded `Call`, channel-member or instant-creator policy, server-known name, and one typed issuer invocation. Ent source implementation, service/`JoinCall`/HTTP, participant/factory/client, Jitsi cutover, and tenant claim are absent. LiveKit remains active; Docker evidence is `NOT_RUN` because Mail owns Docker and no earlier receipt survives the invalidated overlap.
 
@@ -973,7 +973,7 @@ The claimed runner is the sole recovery layer that reconstructs AuthorizedMessag
 
 MongoRepository.ListPendingPostCreateDocuments builds from ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, limit), preserving existing filter/order/cap behavior.
 
-Kind must remain nonempty. A stricter concrete PostgreSQL channel-type projection is deferred; no concrete PG pager/reauthorizer, scheduler, writer cutover, service/server wiring, or live integration is specified by this bounded contract.
+Kind must remain nonempty. A stricter concrete PostgreSQL channel-type projection is deferred; the narrow Ent pager and pure PG reauthorizer are not composed into a scanner, and no scheduler, writer cutover, service/server wiring, or live integration is specified by this bounded contract.
 
 ## Calls service credential facade evidence (2026-08-28)
 
@@ -987,7 +987,7 @@ This is compile/unit/race evidence only. No server/runtime construction uses the
 
 `PGPhase151PendingRecoveryTargetReauthorizer` consumes fresh singleton-tenant lookup and exact target facts. It fails closed unless tenant and channel match the request, the channel is live, `public|private` maps to `channel` or `dm|group` to `dm`, and project channels have an active tenant project while projectless channels have the tenant creator. It returns only `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}` with the closed recovery principal; actor, sender, bot, integration, and Mongo authority are excluded.
 
-This reauthorizer source-port contract does not itself compose the separately implemented Ent recovery-target facts source, PG paging, cross-store scan, scheduler/interval owner, production coordinator/repository composition, writer cutover, service/server wiring, or runtime/API surface. Those remain `UNBOUND/NOT_RUN`.
+This reauthorizer source-port contract does not itself compose the separately implemented Ent recovery-target facts source or narrow Ent pager into a cross-store scan, scheduler/interval owner, production coordinator/repository composition, writer cutover, service/server wiring, or runtime/API surface. Those remain `UNBOUND/NOT_RUN`.
 
 ## Phase 151 Ent recovery-target facts contract (2026-08-28)
 
@@ -1009,7 +1009,7 @@ The pager maps returned channel kind, returns an owned page, and emits `Next` on
 
 The method checks cancellation before locking, after lock acquisition, and after `Now()` before mutation. Nil/typed-nil dependencies, invalid context, nonpositive interval, zero clock value, or backward time fail closed; below-minimum elapsed returns a denial without mutation, while equality/admission-or-later stores the new timestamp. Deterministic coverage includes every boundary, two channel-coordinated cancellation paths without sleeps, concurrent single admission, independent gates, and immediate admission consumption.
 
-Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`. Final-fix root-read receipts at `2026-08-28T21:55:49+03:00` record target/build/vet/unit/race PASS, exit 0, four stderr lengths 0, and **container ID not retained**; scoped re-review is ADDRESSED/PASS/APPROVED with 0/0/0 new breakage. Pager/scanner/coordinator migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain UNBOUND/NOT_RUN.
+Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`. Final-fix root-read receipts at `2026-08-28T21:55:49+03:00` record target/build/vet/unit/race PASS, exit 0, four stderr lengths 0, and **container ID not retained**; scoped re-review is ADDRESSED/PASS/APPROVED with 0/0/0 new breakage. Cross-store scanner/coordinator production migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain UNBOUND/NOT_RUN.
 ## Calls configured credential-service composition (2026-08-28)
 
 `NewCallServiceWithConfiguredProvider` is the server-composed internal constructor: `CallsConfig` selects the factory provider; that provider must implement the typed `CallJoinCredentialIssuer`; and `NewCallJoinCredentialProjector(source, issuer)` is passed to the additive Calls facade. Server wiring supplies the same `callsRepo` once as the service repository and once as the projection source. Factory or projector construction failure returns an error, so `wireIntegrations` logs and exits before `callsChatRepo.EnsureIndexes`.

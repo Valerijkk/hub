@@ -231,7 +231,7 @@ Initial RED kept build/vet `PASS` and failed unit/race only in `TestPhase151Prom
 
 Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`. Root chronological rendering, reply chronological rendering, selected-reply retention, and non-descending-page rejection all pass in unit and race; the final logs contain no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because retained agents exhaust runtime capacity. Live Mongo/Ent-PostgreSQL/NATS/WS/browser, integration, Swagger, and `qa-build` remain `NOT_RUN`; cross-store TOCTOU remains open.
 
-Historical 2026-08-27 snapshot (superseded): recovery-scanner mapping was decision-blocked before a closed authority was frozen. `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` now exist and are accepted. Concrete scanner work remains blocked only on PG paging, cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, and writer/server/runtime binding; arbitrary-member substitution remains forbidden.
+Historical 2026-08-27 snapshot (superseded): recovery-scanner mapping was decision-blocked before a closed authority was frozen. `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` now exist and are accepted. Concrete scanner work remains blocked on cross-store scanning, injection/production composition, scheduler/process-lifetime ownership, and writer/server/runtime binding. The later narrow static-only Ent pager is not a scanner and DB-backed paging proof remains absent; arbitrary-member substitution remains forbidden.
 
 
 ## 2026-08-27 post-create completion CAS hardening
@@ -258,23 +258,23 @@ A combined isolated Docker `backend-unit` run exited `0`; build, vet, unit, and 
 
 Commit `ce46a0b2` is covered for pre-scanner cursor/limit rejection, post-scanner page size and structural validation, strict tenant/channel/kind tuple ordering, advancement beyond the input cursor, exact `Next` binding, future nonempty kinds, scanner error identity, zero partial results, and defensive cursor/target ownership.
 
-The valid RED recorded backend build/vet `PASS` and unit/race `FAIL` on aliasing and accepted malformed pass-through pages. Final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing. This is adapter/unit evidence only; PG pager, authority principal, scheduler, `SendMessage`, integration, and live recovery remain `UNBOUND/NOT_RUN`.
+The valid RED recorded backend build/vet `PASS` and unit/race `FAIL` on aliasing and accepted malformed pass-through pages. Final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing. This is adapter/unit evidence only; the later narrow Ent pager and closed authority principal do not establish scanner composition, scheduler, `SendMessage`, integration, or live recovery, which remain `UNBOUND/NOT_RUN`.
 
 ## Server-owned recovery principal authority evidence (2026-08-28)
 
 Focused unit/race coverage freezes closed `Phase151RecoveryServicePrincipal` value `messenger.post_create_recovery`, exact `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}` acceptance, and fail-closed mapping of invalid principal or structural/identity drift to `ErrPostCreatePipelineInvalid`. The authority contract intentionally excludes actor, producer, bot, and integration identifiers.
 
-Valid RED: build `PASS`; vet/unit/race failed only on missing authority symbols. The first GREEN required exactly one test-only stale unused `errors` import removal; final sequential Docker `backend-unit --no-deps` is target/build/vet/unit/race `PASS`, with the exact new case passing in unit and race and no Mail overlap. Independent Messenger code/security and test reviews are `Ready`. This remains unit evidence only: scanner/runner still consume `AuthorizedMessageProducerScope`; PG pager, reauthorizer, scheduler, live writer, integration, Swagger, and live PostgreSQL/Mongo/Redis/NATS/WS/browser remain `UNBOUND/NOT_RUN`.
+Valid RED: build `PASS`; vet/unit/race failed only on missing authority symbols. The first GREEN required exactly one test-only stale unused `errors` import removal; final sequential Docker `backend-unit --no-deps` is target/build/vet/unit/race `PASS`, with the exact new case passing in unit and race and no Mail overlap. Independent Messenger code/security and test reviews are `Ready`. This remains unit evidence only: scanner/runner still consume `AuthorizedMessageProducerScope`; the later narrow Ent pager and pure reauthorizer remain uncomposed; scheduler, live writer, integration, Swagger, and live PostgreSQL/Mongo/Redis/NATS/WS/browser remain `UNBOUND/NOT_RUN`.
 
 ## Closed-authority provenance reconstruction evidence (2026-08-28)
 
 `ExportPhase151ReconstructPostCreateRecoveryProducerScopeFromTargetAuthority` is a pure bridge from closed `Phase151RecoveryTargetAuthority` facts to canonical pending-message provenance. It validates the exact closed principal and target tuple first, takes tenant/channel only from that authority, and takes sender plus producer metadata only from the canonical message/provenance. Canonical-shape failures remain `ErrPostCreatePipelineInvalid`; malformed producer provenance remains `ErrTrustedMessageProducerDenied`.
 
-Focused source tests exist, but current Docker evidence is `NOT_RUN` because Mail owns Docker; no earlier receipt is reused for this atom. This is not a fresh database authorization or recovery-worker binding: runner/scanner/coordinator contracts still use `AuthorizedMessageProducerScope`, and PG pager, reauthorizer, scheduler, writer cutover, integration, and live runtime remain `UNBOUND/NOT_RUN`.
+Focused source tests exist, but current Docker evidence is `NOT_RUN` because Mail owns Docker; no earlier receipt is reused for this atom. This is not a fresh database authorization or recovery-worker binding: runner/scanner/coordinator contracts still use `AuthorizedMessageProducerScope`, while the later narrow Ent pager and pure reauthorizer are separate; scheduler, writer cutover, integration, and live runtime remain `UNBOUND/NOT_RUN`.
 
 ## Recovery-authority migration and Calls projector boundary (2026-08-28)
 
-Messenger reconciliation accepts the closed recovery target authority; the coordinator builds that service authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner/PG pager/reauthorizer/scheduler/writer/runtime are `UNBOUND`.
+Messenger reconciliation accepts the closed recovery target authority; the coordinator builds that service authority and the claimed runner reconstructs canonical effect scope before and after claim. `AuthorizedMessageProducerScope` remains only the validated Mongo-scan scope. Concrete scanner and production composition of the narrow Ent pager/reauthorizer, scheduler, writer, and runtime are `UNBOUND`.
 
 Calls now has an additive service credential facade over the existing unbound `CallJoinCredentialProjector`: `NewCallServiceWithProviderAndCredentialProjector` rejects nil projector input, calls the legacy provider constructor once, and preserves legacy constructors; `IssueJoinCredentialForAuthenticatedUser` delegates exactly once without provider work. Ent source implementation, server/runtime construction, `JoinCall`/HTTP/participant/factory/client/Jitsi cutover/tenant claim remain unbound. LiveKit remains active. Docker evidence is the bounded final GREEN receipt below, not runtime evidence.
 
@@ -298,7 +298,7 @@ UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
 
 The valid RED kept build `PASS` and failed vet/unit/race only on the missing export. The first GREEN attempt was stopped and invalidated when Mail overlap appeared. After Mail completed and a fresh 60-second empty Docker window, the isolated `backend-unit --no-deps` rerun recorded target/build/vet/unit/race `PASS`, first exit `0`; the exact parity and fail-closed suites passed under unit and race with no overlap.
 
-This is pure source/unit evidence. `MongoRepository.ListPendingPostCreateDocuments`, the recovery port/runner, PG pager, reauthorizer, scheduler, writer, integration, live PostgreSQL/Mongo, and cutover remain unchanged and `UNBOUND/NOT_RUN`. Fresh DB/RBAC authorization and service-principal-to-actor semantics remain unresolved; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+This is pure source/unit evidence. `MongoRepository.ListPendingPostCreateDocuments`, the recovery port/runner, cross-store composition of the narrow Ent pager and pure reauthorizer, scheduler, writer, integration, live PostgreSQL/Mongo, and cutover remain unchanged and `UNBOUND/NOT_RUN`. Fresh DB/RBAC authorization and service-principal-to-actor semantics remain unresolved; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
 
 ## 2026-08-28 closed recovery authority flow
 
@@ -316,7 +316,7 @@ The valid RED retained build PASS and failed vet/unit/race only for old scope-pl
 
 Review evidence only: invalid System.Object[] was rejected; regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
 
-Runtime remains UNBOUND/NOT_RUN: the pure PG reauthorizer and Ent recovery-target facts source ports exist, but no PG pager, cross-store scanner, scheduler/interval owner, coordinator/repository production composition, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration exists.
+Runtime remains UNBOUND/NOT_RUN: the pure PG reauthorizer and Ent recovery-target facts source ports exist, but no cross-store scanner, scheduler/interval owner, coordinator/repository production composition, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration exists.
 
 Docker policy permits concurrent branch-isolated Compose projects but only one task-owned container per branch; no --build, pull, image creation, or stopping another branch. Shared layers storage numeric Jitsi disk budget is separately gated.
 
@@ -348,7 +348,7 @@ Deterministic focused coverage covers narrow-interface satisfaction; valid/nil/t
 
 Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`. Final-fix root-read receipts at `2026-08-28T21:55:49+03:00` show target/build/vet/unit/race `PASS`, exit `0`, and all four stderr lengths `0`; **container ID not retained**. Scoped re-review: `ADDRESSED` / `PASS` / `APPROVED`; new breakage `0/0/0`.
 
-Pager/scanner/coordinator migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+Cross-store scanner/coordinator production migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
 
 ## Ent pending-recovery target pager evidence (2026-08-28)
 
