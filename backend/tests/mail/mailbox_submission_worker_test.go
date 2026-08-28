@@ -206,14 +206,14 @@ func submissionWorkerIDs(count int) []uuid.UUID {
 }
 
 type submissionWorkerScannerFake struct {
-	mu       sync.Mutex
-	scan     func(context.Context, mail.MailboxSubmissionWorkerDueScanRequest) (mail.MailboxSubmissionWorkerDueScanResult, error)
-	requests []mail.MailboxSubmissionWorkerDueScanRequest
+	mu               sync.Mutex
+	scan             func(context.Context, mail.MailboxSubmissionWorkerDueScanRequest) (mail.MailboxSubmissionWorkerDueScanResult, error)
+	recordedRequests []mail.MailboxSubmissionWorkerDueScanRequest
 }
 
 func (fake *submissionWorkerScannerFake) ScanDueMailboxSubmissionIDs(ctx context.Context, request mail.MailboxSubmissionWorkerDueScanRequest) (mail.MailboxSubmissionWorkerDueScanResult, error) {
 	fake.mu.Lock()
-	fake.requests = append(fake.requests, request)
+	fake.recordedRequests = append(fake.recordedRequests, request)
 	callback := fake.scan
 	fake.mu.Unlock()
 	if callback == nil {
@@ -225,7 +225,7 @@ func (fake *submissionWorkerScannerFake) ScanDueMailboxSubmissionIDs(ctx context
 func (fake *submissionWorkerScannerFake) requests() []mail.MailboxSubmissionWorkerDueScanRequest {
 	fake.mu.Lock()
 	defer fake.mu.Unlock()
-	return append([]mail.MailboxSubmissionWorkerDueScanRequest(nil), fake.requests...)
+	return append([]mail.MailboxSubmissionWorkerDueScanRequest(nil), fake.recordedRequests...)
 }
 
 type submissionWorkerDispatcherFake struct {
