@@ -62,7 +62,8 @@ type CallService struct {
 	repo     *EntRepository
 	provider ConferenceProvider
 	pub      *CallEventPublisher
-	chat     *CallChatService
+	chat                *CallChatService
+	credentialProjector *CallJoinCredentialProjector
 
 	// createCall — hubtest override CreateCall DB (A3W3-A5-001 mutation).
 	createCall func(ctx context.Context, roomName string, channelID, createdBy uuid.UUID) (*ent.Call, error)
@@ -84,6 +85,38 @@ func NewCallServiceWithProvider(provider ConferenceProvider, repo *EntRepository
 		pub:      pub,
 		chat:     NewCallChatService(repo, chatRepo, pub),
 	}
+}
+
+func NewCallServiceWithProviderAndCredentialProjector(
+	provider ConferenceProvider,
+	repo *EntRepository,
+	nc *natsclient.Client,
+	chatRepo *ChatRepository,
+	credentialProjector *CallJoinCredentialProjector,
+) (*CallService, error) {
+	if credentialProjector == nil {
+		return nil, ErrCallJoinCredentialInvalid
+	}
+
+	service := NewCallServiceWithProvider(provider, repo, nc, chatRepo)
+	service.credentialProjector = credentialProjector
+	return service, nil
+}
+
+func (s *CallService) IssueJoinCredentialForAuthenticatedUser(
+	ctx context.Context,
+	callID uuid.UUID,
+	authenticatedUserID uuid.UUID,
+) (JoinCredential, error) {
+	if s == nil || s.credentialProjector == nil {
+		return JoinCredential{}, ErrCallJoinCredentialInvalid
+	}
+
+	credential, err := s.credentialProjector.IssueForAuthenticatedUser(ctx, callID, authenticatedUserID)
+	if err != nil {
+		return JoinCredential{}, err
+	}
+	return credential, nil
 }
 
 // GenerateJoinCredential returns a provider-neutral credential for joining a conference room.
