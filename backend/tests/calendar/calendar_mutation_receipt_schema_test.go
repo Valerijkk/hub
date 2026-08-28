@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"entgo.io/ent"
@@ -41,7 +42,7 @@ func TestCalendarMutationReceipt_HasExactFieldsAndEnumValues(t *testing.T) {
 	}
 	assertExactNames(t, "CalendarMutationReceipt fields", mapsKeys(fields), wantFieldNames)
 
-	assertExactEnumValues(t, fields["operation"], []string{"event_create", "legacy_call_create", "rsvp_series", "rsvp_occurrence"})
+	assertExactEnumValues(t, fields["operation"], []string{"event_create", "legacy_call_create", "rsvp_series", "rsvp_occurrence", "meeting_create", "meeting_update", "meeting_cancel"})
 	assertExactEnumValues(t, fields["state"], []string{"in_progress", "completed"})
 
 	for _, uuidFieldName := range []string{"id", "organization_id", "actor_user_id"} {
@@ -141,23 +142,24 @@ func TestCalendarMutationReceipt_EdgesEncodeActorOwnershipAndOptionalEventRefere
 }
 
 func TestUserAndScheduledCall_PreserveExistingEdgesAndAddOnlyCalendarInverses(t *testing.T) {
-	assertExactNames(t, "User edges", edgeNames((entschema.User{}).Edges()), []string{
-		"activity_logs", "ai_preference", "ai_providers", "ai_usage_daily", "api_keys",
-		"automation_rules", "blocks_created", "blocks_received", "bookmarks", "calendar_attendances",
-		"calendar_events_owned", "calendar_mutation_receipts", "call_participations", "channel_invites",
-		"channel_memberships", "coffee_enrollment", "coffee_pairs_a", "coffee_pairs_b", "coffee_rounds_triggered",
-		"comments", "created_calls", "created_channels", "created_runs", "created_test_cases", "crm_contact_link",
-		"crm_contacts_created", "crm_deals_owned", "dashboard_layouts", "executed_results", "files", "hub_bases",
-		"hub_records", "invoices_created", "invites", "issue_message_links", "journal_entries", "kudos_received",
-		"kudos_sent", "leave_requests", "leave_reviews", "marketplace_listings", "marketplace_reviews", "news_poll_votes",
-		"news_posts", "notification_preferences", "notifications", "organization", "organized_calendar_events", "poll_votes",
-		"polls", "project_members", "project_templates", "push_subscriptions", "reactions", "recordings", "saved_filters",
-		"scheduled_calls", "sessions", "team_members", "test_case_versions", "time_logs", "mail_objects",
+	userEdges := edgeDescriptors((entschema.User{}).Edges())
+	calendarUserEdgeNames := make([]string, 0, 6)
+	for name := range userEdges {
+		if strings.HasPrefix(name, "calendar_") || name == "organized_calendar_events" {
+			calendarUserEdgeNames = append(calendarUserEdgeNames, name)
+		}
+	}
+	assertExactNames(t, "User calendar edges", calendarUserEdgeNames, []string{
+		"calendar_attendances",
+		"calendar_availability_reservations",
+		"calendar_events_owned",
+		"calendar_inbound_object_states",
+		"calendar_mutation_receipts",
+		"organized_calendar_events",
 	})
 	assertExactNames(t, "ScheduledCall edges", edgeNames((entschema.ScheduledCall{}).Edges()), []string{"calendar_event_link", "calendar_event_reference", "channel", "creator", "participants", "project"})
 
-	userEdges := edgeDescriptors((entschema.User{}).Edges())
-	for _, name := range []string{"calendar_events_owned", "organized_calendar_events", "calendar_attendances"} {
+	for _, name := range []string{"calendar_events_owned", "organized_calendar_events", "calendar_attendances", "calendar_availability_reservations", "calendar_inbound_object_states"} {
 		if !userEdges[name].Inverse {
 			t.Fatalf("User.%s must be an inverse calendar edge", name)
 		}

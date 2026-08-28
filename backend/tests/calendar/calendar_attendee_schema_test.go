@@ -55,6 +55,12 @@ func TestCalendarAttendee_LiveUniquenessIndexesAreExact(t *testing.T) {
 			where:      "recurrence_id IS NULL AND removed_at IS NULL",
 		},
 		{
+			fields:     []string{"calendar_event_id", "role"},
+			unique:     true,
+			storageKey: "",
+			where:      "role = 'organizer' AND recurrence_id IS NULL AND removed_at IS NULL",
+		},
+		{
 			fields:     []string{"calendar_event_id", "normalized_email", "recurrence_id"},
 			unique:     true,
 			storageKey: "",
