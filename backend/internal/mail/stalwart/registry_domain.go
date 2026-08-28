@@ -12,15 +12,15 @@ import (
 )
 
 const (
-	registryDomainMaximumBytes                     = 253
-	registryDomainMaximumResponseBytes             = 16 << 10
-	registryDomainMaximumDNSZoneFileResponseBytes  = 64 << 10
-	registryDomainMaximumDNSZoneFileBytes          = 64 << 10
-	registryDomainQueryCallID                      = "domain-query"
-	registryDomainGetCallID                        = "domain-get"
-	registryDomainDNSZoneFileGetCallID             = "domain-zone-get"
-	registryDomainSetCallID                        = "domain-set"
-	registryDomainCreationID                       = "create-local-domain"
+	registryDomainMaximumBytes                    = 253
+	registryDomainMaximumResponseBytes            = 16 << 10
+	registryDomainMaximumDNSZoneFileResponseBytes = 64 << 10
+	registryDomainMaximumDNSZoneFileBytes         = 64 << 10
+	registryDomainQueryCallID                     = "domain-query"
+	registryDomainGetCallID                       = "domain-get"
+	registryDomainDNSZoneFileGetCallID            = "domain-zone-get"
+	registryDomainSetCallID                       = "domain-set"
+	registryDomainCreationID                      = "create-local-domain"
 )
 
 // RegistryDomainController owns the narrow Registry-only domain admission
@@ -56,8 +56,9 @@ func NewRegistryDomainController(client *Client) (*RegistryDomainController, err
 }
 
 // EnsureLocalDomain returns the one enabled, non-relaying local x:Domain for
-// name. A missing domain is created with manual certificate, DKIM and DNS
-// management only; this operation neither verifies DNS nor enables delivery.
+// name. A missing domain is created with manual certificate and DNS
+// management plus automatic DKIM management; this operation neither verifies
+// DNS nor enables delivery.
 func (controller *RegistryDomainController) EnsureLocalDomain(ctx context.Context, name string) (string, error) {
 	if controller == nil || controller.client == nil {
 		return "", ErrInvalidConfiguration
@@ -164,7 +165,7 @@ func registryDomainQueryRequest(name string) JMAPRequest {
 	return JMAPRequest{
 		Using: []string{capabilityCore, capabilityRegistry},
 		MethodCalls: []JMAPMethodCall{{
-			Name:      "x:Domain/query",
+			Name: "x:Domain/query",
 			Arguments: mustRegistryDomainJSON(struct {
 				Filter struct {
 					Name string `json:"name"`
@@ -172,7 +173,9 @@ func registryDomainQueryRequest(name string) JMAPRequest {
 				Position int `json:"position"`
 				Limit    int `json:"limit"`
 			}{
-				Filter:   struct{ Name string `json:"name"` }{Name: name},
+				Filter: struct {
+					Name string `json:"name"`
+				}{Name: name},
 				Position: 0,
 				Limit:    2,
 			}),
@@ -191,7 +194,7 @@ func registryDomainGetRequest(id string) JMAPRequest {
 				Properties []string `json:"properties"`
 			}{
 				IDs:        []string{id},
-				Properties: []string{"name", "isEnabled", "allowRelaying"},
+				Properties: []string{"name", "isEnabled", "allowRelaying", "dkimManagement", "dnsManagement"},
 			}),
 			CallID: registryDomainGetCallID,
 		}},
@@ -208,7 +211,7 @@ func registryDomainDNSZoneFileGetRequest(id string) JMAPRequest {
 				Properties []string `json:"properties"`
 			}{
 				IDs:        []string{id},
-				Properties: []string{"name", "isEnabled", "allowRelaying", "dnsZoneFile"},
+				Properties: []string{"name", "isEnabled", "allowRelaying", "dkimManagement", "dnsManagement", "dnsZoneFile"},
 			}),
 			CallID: registryDomainDNSZoneFileGetCallID,
 		}},
@@ -220,14 +223,14 @@ func registryDomainCreateRequest(name string) JMAPRequest {
 		Type string `json:"@type"`
 	}
 	type createdDomain struct {
-		Name                  string         `json:"name"`
+		Name                  string          `json:"name"`
 		Aliases               map[string]bool `json:"aliases"`
-		IsEnabled             bool           `json:"isEnabled"`
-		AllowRelaying         bool           `json:"allowRelaying"`
-		CertificateManagement managementMode `json:"certificateManagement"`
-		DKIMManagement        managementMode `json:"dkimManagement"`
-		DNSManagement         managementMode `json:"dnsManagement"`
-		SubAddressing         managementMode `json:"subAddressing"`
+		IsEnabled             bool            `json:"isEnabled"`
+		AllowRelaying         bool            `json:"allowRelaying"`
+		CertificateManagement managementMode  `json:"certificateManagement"`
+		DKIMManagement        managementMode  `json:"dkimManagement"`
+		DNSManagement         managementMode  `json:"dnsManagement"`
+		SubAddressing         managementMode  `json:"subAddressing"`
 	}
 	return JMAPRequest{
 		Using: []string{capabilityCore, capabilityRegistry},
@@ -246,7 +249,7 @@ func registryDomainCreateRequest(name string) JMAPRequest {
 							Type: "Manual",
 						},
 						DKIMManagement: managementMode{
-							Type: "Manual",
+							Type: "Automatic",
 						},
 						DNSManagement: managementMode{
 							Type: "Manual",
@@ -304,10 +307,12 @@ func parseRegistryDomainCreate(response JMAPResponse) (string, error) {
 		return "", err
 	}
 	var payload struct {
-		AccountID  string                     `json:"accountId"`
-		OldState   string                     `json:"oldState"`
-		NewState   string                     `json:"newState"`
-		Created    map[string]struct{ ID string `json:"id"` } `json:"created"`
+		AccountID string `json:"accountId"`
+		OldState  string `json:"oldState"`
+		NewState  string `json:"newState"`
+		Created   map[string]struct {
+			ID string `json:"id"`
+		} `json:"created"`
 		NotCreated map[string]json.RawMessage `json:"notCreated"`
 	}
 	if !decodeRegistryDomainArguments(arguments, &payload) || !validOpaque(payload.AccountID) {
@@ -338,10 +343,12 @@ func parseRegistryLocalDomain(response JMAPResponse, id, name string) (string, e
 		AccountID string `json:"accountId"`
 		State     string `json:"state"`
 		List      []struct {
-			ID            string `json:"id"`
-			Name          string `json:"name"`
-			IsEnabled     *bool  `json:"isEnabled"`
-			AllowRelaying *bool  `json:"allowRelaying"`
+			ID             string          `json:"id"`
+			Name           string          `json:"name"`
+			IsEnabled      *bool           `json:"isEnabled"`
+			AllowRelaying  *bool           `json:"allowRelaying"`
+			DKIMManagement json.RawMessage `json:"dkimManagement"`
+			DNSManagement  json.RawMessage `json:"dnsManagement"`
 		} `json:"list"`
 		NotFound []string `json:"notFound"`
 	}
@@ -353,7 +360,7 @@ func parseRegistryLocalDomain(response JMAPResponse, id, name string) (string, e
 	if !validName || !validOpaque(domain.ID) {
 		return "", ErrProtocol
 	}
-	if domain.ID != id || canonicalName != name || domain.IsEnabled == nil || !*domain.IsEnabled || domain.AllowRelaying == nil || *domain.AllowRelaying {
+	if domain.ID != id || canonicalName != name || domain.IsEnabled == nil || !*domain.IsEnabled || domain.AllowRelaying == nil || *domain.AllowRelaying || !validRegistryDomainAutomaticDKIMManagement(domain.DKIMManagement) || !validRegistryDomainManualDNSManagement(domain.DNSManagement) {
 		return "", ErrStateMismatch
 	}
 	return id, nil
@@ -368,11 +375,13 @@ func parseRegistryLocalDomainDNSZoneFile(response JMAPResponse, id, name string)
 		AccountID string `json:"accountId"`
 		State     string `json:"state"`
 		List      []struct {
-			ID            string           `json:"id"`
-			Name          string           `json:"name"`
-			IsEnabled     *bool            `json:"isEnabled"`
-			AllowRelaying *bool            `json:"allowRelaying"`
-			DNSZoneFile   *json.RawMessage `json:"dnsZoneFile"`
+			ID             string           `json:"id"`
+			Name           string           `json:"name"`
+			IsEnabled      *bool            `json:"isEnabled"`
+			AllowRelaying  *bool            `json:"allowRelaying"`
+			DKIMManagement json.RawMessage  `json:"dkimManagement"`
+			DNSManagement  json.RawMessage  `json:"dnsManagement"`
+			DNSZoneFile    *json.RawMessage `json:"dnsZoneFile"`
 		} `json:"list"`
 		NotFound []string `json:"notFound"`
 	}
@@ -384,7 +393,7 @@ func parseRegistryLocalDomainDNSZoneFile(response JMAPResponse, id, name string)
 	if !validName || !validOpaque(domain.ID) || domain.DNSZoneFile == nil {
 		return LocalDomainDNSZoneFile{}, ErrProtocol
 	}
-	if domain.ID != id || canonicalName != name || domain.IsEnabled == nil || !*domain.IsEnabled || domain.AllowRelaying == nil || *domain.AllowRelaying {
+	if domain.ID != id || canonicalName != name || domain.IsEnabled == nil || !*domain.IsEnabled || domain.AllowRelaying == nil || *domain.AllowRelaying || !validRegistryDomainAutomaticDKIMManagement(domain.DKIMManagement) || !validRegistryDomainManualDNSManagement(domain.DNSManagement) {
 		return LocalDomainDNSZoneFile{}, ErrStateMismatch
 	}
 	zoneFile, err := parseRegistryDomainDNSZoneFile(*domain.DNSZoneFile)
@@ -392,6 +401,122 @@ func parseRegistryLocalDomainDNSZoneFile(response JMAPResponse, id, name string)
 		return LocalDomainDNSZoneFile{}, err
 	}
 	return LocalDomainDNSZoneFile{domainID: domain.ID, domainName: canonicalName, zoneFile: zoneFile}, nil
+}
+
+const (
+	registryDomainManagementMaximumBytes                 = 4 << 10
+	registryDomainManagementMaximumSelectorTemplateBytes = 1024
+	registryDomainManagementMaximumDurationMillis        = int64(36_500 * 24 * 60 * 60 * 1000)
+)
+
+func validRegistryDomainAutomaticDKIMManagement(raw json.RawMessage) bool {
+	var management struct {
+		Type             *string         `json:"@type"`
+		Algorithms       json.RawMessage `json:"algorithms"`
+		SelectorTemplate json.RawMessage `json:"selectorTemplate"`
+		RotateAfter      json.RawMessage `json:"rotateAfter"`
+		RetireAfter      json.RawMessage `json:"retireAfter"`
+		DeleteAfter      json.RawMessage `json:"deleteAfter"`
+	}
+	if !decodeRegistryDomainManagementObject(raw, &management) || management.Type == nil || *management.Type != "Automatic" {
+		return false
+	}
+	return validRegistryDomainDKIMAlgorithms(management.Algorithms) &&
+		validRegistryDomainManagementText(management.SelectorTemplate) &&
+		validRegistryDomainManagementDuration(management.RotateAfter) &&
+		validRegistryDomainManagementDuration(management.RetireAfter) &&
+		validRegistryDomainManagementDuration(management.DeleteAfter)
+}
+
+func validRegistryDomainManualDNSManagement(raw json.RawMessage) bool {
+	var management struct {
+		Type *string `json:"@type"`
+	}
+	return decodeRegistryDomainManagementObject(raw, &management) && management.Type != nil && *management.Type == "Manual"
+}
+
+func decodeRegistryDomainManagementObject(raw json.RawMessage, target any) bool {
+	if len(raw) == 0 || len(raw) > registryDomainManagementMaximumBytes || target == nil {
+		return false
+	}
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) < 2 || trimmed[0] != '{' || trimmed[len(trimmed)-1] != '}' {
+		return false
+	}
+	return decodeRegistryDomainManagementValue(trimmed, target)
+}
+
+func decodeRegistryDomainManagementValue(raw json.RawMessage, target any) bool {
+	if len(raw) == 0 || len(raw) > registryDomainManagementMaximumBytes || target == nil {
+		return false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return false
+	}
+	var extra any
+	return errors.Is(decoder.Decode(&extra), io.EOF)
+}
+
+func validRegistryDomainDKIMAlgorithms(raw json.RawMessage) bool {
+	if raw == nil {
+		return true
+	}
+	var algorithms map[string]bool
+	if !decodeRegistryDomainManagementObject(raw, &algorithms) || len(algorithms) == 0 {
+		return false
+	}
+	for algorithm, enabled := range algorithms {
+		if !enabled || !validRegistryDomainDKIMAlgorithm(algorithm) {
+			return false
+		}
+	}
+	return true
+}
+
+func validRegistryDomainDKIMAlgorithm(value string) bool {
+	switch value {
+	case "Dkim1Ed25519Sha256", "Dkim1RsaSha256", "Dkim2Ed25519Sha256", "Dkim2RsaSha256":
+		return true
+	default:
+		return false
+	}
+}
+
+func validRegistryDomainManagementText(raw json.RawMessage) bool {
+	if raw == nil {
+		return true
+	}
+	if !validRegistryDomainManagementNonNull(raw) {
+		return false
+	}
+	var value string
+	if !decodeRegistryDomainManagementValue(raw, &value) || len(value) == 0 || len(value) > registryDomainManagementMaximumSelectorTemplateBytes || !utf8.ValidString(value) {
+		return false
+	}
+	for _, character := range value {
+		if unicode.IsControl(character) {
+			return false
+		}
+	}
+	return true
+}
+
+func validRegistryDomainManagementDuration(raw json.RawMessage) bool {
+	if raw == nil {
+		return true
+	}
+	if !validRegistryDomainManagementNonNull(raw) {
+		return false
+	}
+	var value int64
+	return decodeRegistryDomainManagementValue(raw, &value) && value > 0 && value <= registryDomainManagementMaximumDurationMillis
+}
+
+func validRegistryDomainManagementNonNull(raw json.RawMessage) bool {
+	trimmed := bytes.TrimSpace(raw)
+	return len(trimmed) != 0 && !bytes.Equal(trimmed, []byte("null"))
 }
 
 func registryDomainResponseArguments(response JMAPResponse, name, callID string) (json.RawMessage, error) {

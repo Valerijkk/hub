@@ -1,20 +1,20 @@
 package mail_test
 
 import (
-	`context`
-	`encoding/json`
-	`errors`
-	`io`
-	`net/http`
-	`net/http/httptest`
-	`slices`
-	`strings`
-	`sync`
-	`testing`
-	`time`
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
+	"time"
 
-	`github.com/valerii/hub/backend/internal/mail`
-	`github.com/valerii/hub/backend/internal/mail/stalwart`
+	"github.com/valerii/hub/backend/internal/mail"
+	"github.com/valerii/hub/backend/internal/mail/stalwart"
 )
 
 func TestMailboxRegistryProvisioningEngineProjectsRegistryResponses(t *testing.T) {
@@ -222,7 +222,7 @@ func (reader *registryProvisioningCancelOnEOF) Read(buffer []byte) (int, error) 
 func registryProvisioningHappyReplies() []string {
 	return []string{
 		registryResponse(`x:Domain/query`, map[string]any{`accountId`: `0`, `queryState`: `domain-query-state`, `canCalculateChanges`: false, `position`: 0, `ids`: []string{`domain-1`}}, `domain-query`),
-		registryResponse(`x:Domain/get`, map[string]any{`accountId`: `0`, `state`: `domain-get-state`, `list`: []any{map[string]any{`id`: `domain-1`, `name`: `example.test`, `isEnabled`: true, `allowRelaying`: false}}, `notFound`: []any{}}, `domain-get`),
+		registryResponse(`x:Domain/get`, map[string]any{`accountId`: `0`, `state`: `domain-get-state`, `list`: []any{map[string]any{`id`: `domain-1`, `name`: `example.test`, `isEnabled`: true, `allowRelaying`: false, `dkimManagement`: map[string]any{`@type`: `Automatic`}, `dnsManagement`: map[string]any{`@type`: `Manual`}}}, `notFound`: []any{}}, `domain-get`),
 		registryResponse(`x:Account/query`, map[string]any{`accountId`: `0`, `queryState`: `account-query-state`, `ids`: []string{`account-1`}}, `registry-account-query`),
 		registryResponse(`x:Account/get`, map[string]any{`accountId`: `0`, `list`: []any{map[string]any{`id`: `account-1`, `@type`: `User`, `name`: `ada`, `domainId`: `domain-1`, `emailAddress`: `ada@example.test`}}, `notFound`: []any{}}, `registry-account-get`),
 	}

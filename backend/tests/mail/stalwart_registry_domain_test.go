@@ -27,19 +27,19 @@ func (registryDomainTestAuthorizer) AuthorizeMailbox(context.Context, *http.Requ
 }
 
 type registryDomainReply struct {
-	want    stalwart.JMAPRequest
+	want     stalwart.JMAPRequest
 	response string
 }
 
 func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 	for _, testCase := range []struct {
-		name        string
-		domain      string
-		replies     []registryDomainReply
-		cancel      bool
-		wantID      string
-		wantErr     error
-		wantCalls   int
+		name      string
+		domain    string
+		replies   []registryDomainReply
+		cancel    bool
+		wantID    string
+		wantErr   error
+		wantCalls int
 	}{
 		{
 			name:   "present local domain",
@@ -73,10 +73,100 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 			wantCalls: 2,
 		},
 		{
+			name:   "existing domain without DKIM management is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dnsManagement": registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "existing domain with null DKIM management is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": nil,
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "existing domain with manual DKIM management is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": map[string]any{"@type": "Manual"},
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "existing domain with automatic DNS management is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": registryDomainAutomaticDKIMManagement(),
+					"dnsManagement":  map[string]any{"@type": "Automatic"},
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "existing domain with unknown DKIM management property is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": map[string]any{"@type": "Automatic", "unexpected": true},
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "existing domain with unknown DKIM algorithm is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": map[string]any{"@type": "Automatic", "algorithms": map[string]bool{"DkimUnknown": true}},
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
+			name:   "existing domain with disabled DKIM algorithm is rejected",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainGetReplyWithManagement("domain-1", localRegistryDomain, true, false, map[string]any{
+					"dkimManagement": map[string]any{"@type": "Automatic", "algorithms": map[string]bool{"Dkim1Ed25519Sha256": false}},
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
+			wantCalls: 2,
+		},
+		{
 			name:   "malformed query response is rejected",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{{
-				want: registryDomainQueryRequest(localRegistryDomain),
+				want:     registryDomainQueryRequest(localRegistryDomain),
 				response: `{"methodResponses":[["x:Domain/query",{"queryState":"query-state","canCalculateChanges":false,"position":0,"ids":["domain-1"]},"wrong-call"]]}`,
 			}},
 			wantErr:   stalwart.ErrProtocol,
@@ -86,7 +176,7 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 			name:   "empty registry response account id is rejected",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{{
-				want: registryDomainQueryRequest(localRegistryDomain),
+				want:     registryDomainQueryRequest(localRegistryDomain),
 				response: `{"methodResponses":[["x:Domain/query",{"accountId":"","queryState":"query-state","canCalculateChanges":false,"position":0,"ids":[]},"domain-query"]]}`,
 			}},
 			wantErr:   stalwart.ErrProtocol,
@@ -96,7 +186,7 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 			name:   "oversize registry response account id is rejected",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{{
-				want: registryDomainQueryRequest(localRegistryDomain),
+				want:     registryDomainQueryRequest(localRegistryDomain),
 				response: registryDomainOversizeAccountIDQueryResponse(),
 			}},
 			wantErr:   stalwart.ErrProtocol,
@@ -125,7 +215,7 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 			name:   "oversize method arguments are rejected",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{{
-				want: registryDomainQueryRequest(localRegistryDomain),
+				want:     registryDomainQueryRequest(localRegistryDomain),
 				response: registryDomainOversizeQueryResponse(),
 			}},
 			wantErr:   stalwart.ErrProtocol,
@@ -135,7 +225,7 @@ func TestRegistryDomainController_EnsureLocalDomain(t *testing.T) {
 			name:   "provider method error remains generic",
 			domain: localRegistryDomain,
 			replies: []registryDomainReply{{
-				want: registryDomainQueryRequest(localRegistryDomain),
+				want:     registryDomainQueryRequest(localRegistryDomain),
 				response: `{"methodResponses":[["error",{"type":"serverFail","detail":"must never surface"},"domain-query"]]}`,
 			}},
 			wantErr:   stalwart.ErrUnavailable,
@@ -235,6 +325,19 @@ func TestRegistryDomainController_ReadLocalDomainDNSZoneFile(t *testing.T) {
 			},
 			wantID:    "domain-1",
 			wantName:  localRegistryDomain,
+			wantCalls: 2,
+		},
+		{
+			name:   "zone read rejects drifted DKIM management",
+			domain: localRegistryDomain,
+			replies: []registryDomainReply{
+				registryDomainQueryReply([]string{"domain-1"}),
+				registryDomainDNSZoneFileReplyWithManagement("domain-1", localRegistryDomain, true, false, "example.test.", map[string]any{
+					"dkimManagement": map[string]any{"@type": "Manual"},
+					"dnsManagement":  registryDomainManualDNSManagement(),
+				}),
+			},
+			wantErr:   stalwart.ErrStateMismatch,
 			wantCalls: 2,
 		},
 		{
@@ -360,35 +463,65 @@ func registryDomainQueryReply(ids []string) registryDomainReply {
 }
 
 func registryDomainGetReply(id, name string, isEnabled, allowRelaying bool) registryDomainReply {
+	return registryDomainGetReplyWithManagement(id, name, isEnabled, allowRelaying, map[string]any{
+		"dkimManagement": registryDomainAutomaticDKIMManagement(),
+		"dnsManagement":  registryDomainManualDNSManagement(),
+	})
+}
+
+func registryDomainGetReplyWithManagement(id, name string, isEnabled, allowRelaying bool, management map[string]any) registryDomainReply {
+	domain := map[string]any{
+		"id":            id,
+		"name":          name,
+		"isEnabled":     isEnabled,
+		"allowRelaying": allowRelaying,
+	}
+	for key, value := range management {
+		domain[key] = value
+	}
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/get", map[string]any{
 			"accountId": "0",
-			"state": "get-state",
-			"list": []any{map[string]any{
-				"id":            id,
-				"name":          name,
-				"isEnabled":     isEnabled,
-				"allowRelaying": allowRelaying,
-			}},
-			"notFound": []any{},
+			"state":     "get-state",
+			"list":      []any{domain},
+			"notFound":  []any{},
 		}, "domain-get"}},
 	})
 	return registryDomainReply{want: registryDomainGetRequest(id), response: string(payload)}
 }
 
+func registryDomainAutomaticDKIMManagement() map[string]any {
+	return map[string]any{"@type": "Automatic"}
+}
+
+func registryDomainManualDNSManagement() map[string]any {
+	return map[string]any{"@type": "Manual"}
+}
+
 func registryDomainDNSZoneFileReply(id, name string, isEnabled, allowRelaying bool, zone any) registryDomainReply {
+	return registryDomainDNSZoneFileReplyWithManagement(id, name, isEnabled, allowRelaying, zone, map[string]any{
+		"dkimManagement": registryDomainAutomaticDKIMManagement(),
+		"dnsManagement":  registryDomainManualDNSManagement(),
+	})
+}
+
+func registryDomainDNSZoneFileReplyWithManagement(id, name string, isEnabled, allowRelaying bool, zone any, management map[string]any) registryDomainReply {
+	domain := map[string]any{
+		"id":            id,
+		"name":          name,
+		"isEnabled":     isEnabled,
+		"allowRelaying": allowRelaying,
+		"dnsZoneFile":   zone,
+	}
+	for key, value := range management {
+		domain[key] = value
+	}
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/get", map[string]any{
 			"accountId": "0",
 			"state":     "domain-zone-get-state",
-			"list": []any{map[string]any{
-				"id":            id,
-				"name":          name,
-				"isEnabled":     isEnabled,
-				"allowRelaying": allowRelaying,
-				"dnsZoneFile":   zone,
-			}},
-			"notFound": []any{},
+			"list":      []any{domain},
+			"notFound":  []any{},
 		}, "domain-zone-get"}},
 	})
 	return registryDomainReply{want: registryDomainDNSZoneFileGetRequest(id), response: string(payload)}
@@ -401,29 +534,19 @@ func registryDomainDNSZoneFileReplyForRequest(requestID, responseID, name string
 }
 
 func registryDomainDNSZoneFileMissingReply(id, name string, isEnabled, allowRelaying bool) registryDomainReply {
-	payload, _ := json.Marshal(map[string]any{
-		"methodResponses": []any{[]any{"x:Domain/get", map[string]any{
-			"accountId": "0",
-			"state":     "domain-zone-get-state",
-			"list": []any{map[string]any{
-				"id":            id,
-				"name":          name,
-				"isEnabled":     isEnabled,
-				"allowRelaying": allowRelaying,
-			}},
-			"notFound": []any{},
-		}, "domain-zone-get"}},
+	return registryDomainDNSZoneFileReplyWithManagement(id, name, isEnabled, allowRelaying, nil, map[string]any{
+		"dkimManagement": registryDomainAutomaticDKIMManagement(),
+		"dnsManagement":  registryDomainManualDNSManagement(),
 	})
-	return registryDomainReply{want: registryDomainDNSZoneFileGetRequest(id), response: string(payload)}
 }
 
 func registryDomainCreateReply(id string) registryDomainReply {
 	payload, _ := json.Marshal(map[string]any{
 		"methodResponses": []any{[]any{"x:Domain/set", map[string]any{
 			"accountId": "0",
-			"oldState": "set-state-before",
-			"newState": "set-state-after",
-			"created":  map[string]any{"create-local-domain": map[string]any{"id": id}},
+			"oldState":  "set-state-before",
+			"newState":  "set-state-after",
+			"created":   map[string]any{"create-local-domain": map[string]any{"id": id}},
 		}, "domain-set"}},
 	})
 	return registryDomainReply{want: registryDomainCreateRequest(localRegistryDomain), response: string(payload)}
@@ -431,7 +554,7 @@ func registryDomainCreateReply(id string) registryDomainReply {
 
 func registryDomainNotCreatedReply() registryDomainReply {
 	return registryDomainReply{
-		want: registryDomainCreateRequest(localRegistryDomain),
+		want:     registryDomainCreateRequest(localRegistryDomain),
 		response: `{"methodResponses":[["x:Domain/set",{"accountId":"0","oldState":"set-state-before","newState":"set-state-after","notCreated":{"create-local-domain":{"type":"invalidProperties","detail":"must never surface"}}},"domain-set"]]}`,
 	}
 }
@@ -467,15 +590,15 @@ func registryDomainQueryRequest(name string) stalwart.JMAPRequest {
 }
 
 func registryDomainGetRequest(id string) stalwart.JMAPRequest {
-	return registryDomainRequest("x:Domain/get", json.RawMessage(`{"ids":["`+id+`"],"properties":["name","isEnabled","allowRelaying"]}`), "domain-get")
+	return registryDomainRequest("x:Domain/get", json.RawMessage(`{"ids":["`+id+`"],"properties":["name","isEnabled","allowRelaying","dkimManagement","dnsManagement"]}`), "domain-get")
 }
 
 func registryDomainDNSZoneFileGetRequest(id string) stalwart.JMAPRequest {
-	return registryDomainRequest("x:Domain/get", json.RawMessage(`{"ids":["`+id+`"],"properties":["name","isEnabled","allowRelaying","dnsZoneFile"]}`), "domain-zone-get")
+	return registryDomainRequest("x:Domain/get", json.RawMessage(`{"ids":["`+id+`"],"properties":["name","isEnabled","allowRelaying","dkimManagement","dnsManagement","dnsZoneFile"]}`), "domain-zone-get")
 }
 
 func registryDomainCreateRequest(name string) stalwart.JMAPRequest {
-	return registryDomainRequest("x:Domain/set", json.RawMessage(`{"create":{"create-local-domain":{"name":"`+name+`","aliases":{},"isEnabled":true,"allowRelaying":false,"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Manual"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}`), "domain-set")
+	return registryDomainRequest("x:Domain/set", json.RawMessage(`{"create":{"create-local-domain":{"name":"`+name+`","aliases":{},"isEnabled":true,"allowRelaying":false,"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}`), "domain-set")
 }
 
 func registryDomainRequest(method string, arguments json.RawMessage, callID string) stalwart.JMAPRequest {
