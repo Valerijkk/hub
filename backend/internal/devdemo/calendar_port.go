@@ -36,8 +36,10 @@ type CalendarDemoAttendeeState struct {
 }
 
 // CalendarDemoCreateInput is a caller-owned immutable snapshot and must not be retained.
+// IdempotencyKey is a stable opaque 16..128 byte caller value validated by the adapter and domain.
+// Replay requires the exact same key and payload.
 type CalendarDemoCreateInput struct {
-	IdempotencyKey uuid.UUID
+	IdempotencyKey string
 	Title          string
 	Description    string
 	Location       string
@@ -72,8 +74,10 @@ type CalendarDemoEventState struct {
 }
 
 // CalendarDemoRSVPInput is a caller-owned immutable snapshot and must not be retained.
+// IdempotencyKey is a stable opaque 16..128 byte caller value validated by the adapter and domain.
+// Replay requires the exact same key and payload.
 type CalendarDemoRSVPInput struct {
-	IdempotencyKey          uuid.UUID
+	IdempotencyKey          string
 	EventID                 uuid.UUID
 	ExpectedAttendeeVersion int
 	Status                  string
