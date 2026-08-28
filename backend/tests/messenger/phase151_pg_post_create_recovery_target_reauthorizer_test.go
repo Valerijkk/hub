@@ -14,9 +14,9 @@ import (
 )
 
 type phase151RecoveryTargetFactSource struct {
-	ids      []uuid.UUID
-	orgErr   error
-	facts    messenger.Phase151PendingRecoveryTargetFacts
+	ids              []uuid.UUID
+	orgErr           error
+	facts            messenger.Phase151PendingRecoveryTargetFacts
 	factsErr         error
 	calls            []string
 	organizationCtx  context.Context
