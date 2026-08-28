@@ -409,7 +409,7 @@ The adapter treats claim non-acquisition as ordinary contention so the bounded l
 
 ## Phase 151 recovery scanner authority gap (2026-08-27)
 
-Concrete composition cannot safely choose fresh recovery authority yet. `Phase151PendingRecoveryTarget` identifies tenant/channel/kind but carries no actor or service principal, while production provides no recovery interval gate, stable PostgreSQL target pager, or reauthorizer. The next architecture decision must introduce an explicit server-owned recovery principal or redesign the target-authority facts contract. Selecting an arbitrary current member or channel owner would change audit and authorization semantics and is forbidden. Until the decision is frozen, scanner construction, scheduling, and live writer cutover remain unbound.
+Concrete composition cannot safely choose fresh recovery authority yet. `Phase151PendingRecoveryTarget` identifies tenant/channel/kind but carries no actor or service principal, while production provides no process-lifetime recovery interval owner, stable PostgreSQL target pager, or reauthorizer. The later standalone per-instance interval gate is not production composition. The next architecture decision must introduce an explicit server-owned recovery principal or redesign the target-authority facts contract. Selecting an arbitrary current member or channel owner would change audit and authorization semantics and is forbidden. Until the decision is frozen, scanner construction, scheduling, and live writer cutover remain unbound.
 
 ## Calls provider seams and Messenger completion CAS (2026-08-27)
 
@@ -432,7 +432,7 @@ The internal Jitsi issuer now exposes `IssueJoinCredential` (`0a332760`): one pr
 
 `JitsiEmbedHost` (`ee0387e5`) is an inert validated mount seam: one empty ref target for valid self-hosted credentials and no credential persistence/exposure, network, script, iframe, provider API, or runtime activation. It is not connected to `CallPanel`, routing, deployment, or cutover; LiveKit remains active.
 
-The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. This does not provide the missing PG pager, recovery principal, interval gate, scheduler, or writer cutover.
+The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. This does not provide the missing PG pager, recovery principal, process-lifetime interval owner, scheduler, or writer cutover.
 
 ## Messenger server-owned recovery authority seam (2026-08-28)
 
@@ -527,3 +527,11 @@ Commits `326fb23c` and `a57f5da5` have bounded unit/race receipt `worktree-maste
 EntRepository.ResolvePendingRecoveryTargetFacts (commit 4b100ee6) is the fail-closed Ent implementation of Phase151PendingRecoveryTargetFactSource. It guards receiver/client/context/UUID inputs before Ent access; this is not recovery-worker composition. Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 precedes final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit 0, four empty stderr logs; independent review PASS/Approved with no findings and separate predicate review PASS.
 
 Only compile/interface and pre-query guards are proven. Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics are NOT_RUN; all runtime composition and transport/browser/integration boundaries remain UNBOUND/NOT_RUN.
+
+## Messenger standalone pending-recovery interval gate (2026-08-28)
+
+`Phase151ProcessLocalPendingRecoveryIntervalGate` (`cb995211`, fixed by `3632c37`) is a best-effort throttle per constructed gate instance with an interval clock distinct from `Phase151PostCreateRecoveryClock`. It is not a scheduler, coordinator, scanner, singleton, distributed/global mechanism, or exactly-once boundary; two instances may admit independently. Its mutex is limited to check/read/write and excludes recovery I/O. Cancellation is rechecked before mutex acquisition, after acquisition, and after `Now()` before state change. Zero/backward timestamps and nonpositive intervals fail closed; below-minimum elapsed denies and equality admits.
+
+The deterministic unit/race suite covers the narrow interface, nil/typed-nil and cancellation precedence without clock reads, interval/time boundaries and no mutation, channel-coordinated queued/blocked-clock cancellation without sleeps, concurrent one-admission, independent-instance admission, and immediate consumption. Valid RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`; final-fix root-read receipts at `2026-08-28T21:55:49+03:00` show target/build/vet/unit/race PASS, exit 0, four empty stderr logs, and **container ID not retained**. Scoped re-review is ADDRESSED/PASS/APPROVED with 0/0/0 new breakage.
+
+No pager/scanner/coordinator migration, scheduler or process-lifetime owner/wiring, runtime, live-store/transport/browser, or integration behavior is bound; those remain UNBOUND/NOT_RUN and Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

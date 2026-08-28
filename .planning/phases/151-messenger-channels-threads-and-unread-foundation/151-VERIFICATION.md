@@ -231,7 +231,7 @@ Initial RED kept build/vet `PASS` and failed unit/race only in `TestPhase151Prom
 
 Final sequential Docker `backend-unit` records overall/build/vet/unit/race `PASS`. Root chronological rendering, reply chronological rendering, selected-reply retention, and non-descending-page rejection all pass in unit and race; the final logs contain no `FAIL`, panic, or `DATA RACE` marker. Root review is `PASS`; independent review is `UNKNOWN` because retained agents exhaust runtime capacity. Live Mongo/Ent-PostgreSQL/NATS/WS/browser, integration, Swagger, and `qa-build` remain `NOT_RUN`; cross-store TOCTOU remains open.
 
-Recovery-scanner mapping is decision-blocked rather than code-complete: no production interval gate, PG pager, or recovery reauthorizer exists, and `Phase151PendingRecoveryTarget` has no actor/service-principal identity. A server-owned recovery principal or redesigned authority-facts contract must be frozen before concrete scanner implementation; arbitrary-member substitution is forbidden.
+Recovery-scanner mapping is decision-blocked rather than code-complete: no production-composed interval owner, PG pager, or recovery reauthorizer exists, and `Phase151PendingRecoveryTarget` has no actor/service-principal identity; the later standalone per-instance gate is not that owner. A server-owned recovery principal or redesigned authority-facts contract must be frozen before concrete scanner implementation; arbitrary-member substitution is forbidden.
 
 
 ## 2026-08-27 post-create completion CAS hardening
@@ -339,3 +339,13 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 Commit 4b100ee6 adds EntRepository.ResolvePendingRecoveryTargetFacts and compile-time Phase151PendingRecoveryTargetFactSource satisfaction. Coverage is limited to compile/interface and fail-closed pre-query guards for receiver/client/context/UUID inputs. RED worktree-master-backend-unit-run-e14c5e925814 was missing-method-only; final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00 recorded target/build/vet/unit/race PASS, exit 0, and four empty stderr logs. Independent review is PASS/Approved with no findings; separate predicate review is PASS.
 
 Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQL semantics remain NOT_RUN; no API or readiness claim follows.
+
+## Standalone pending-recovery interval-gate evidence (2026-08-28)
+
+Commits `cb995211` and `3632c37` are limited to `Phase151ProcessLocalPendingRecoveryIntervalGate`: a per-constructed-instance, best-effort throttle using a clock distinct from `Phase151PostCreateRecoveryClock`. It provides no scheduler, coordinator, scanner, singleton, distributed/global, exactly-once, or recovery-I/O guarantee; two independent instances may admit. The mutex protects only gate check/read/write. Cancellation is checked before the mutex, after it, and after `Now()` before mutation; nonpositive intervals plus zero/backward timestamps fail closed, below-minimum elapsed denies, and equality admits.
+
+Deterministic focused coverage covers narrow-interface satisfaction; valid/nil/typed-nil constructors and nil receiver; nil/typed-nil/cancelled context precedence and no clock access; zero/negative intervals; first/below/equality behavior; zero/backward no-mutation; queued and blocked-clock cancellation with channels and no sleeps; exactly one concurrent admission; two independent gate admissions; and immediate interval consumption.
+
+Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`. Final-fix root-read receipts at `2026-08-28T21:55:49+03:00` show target/build/vet/unit/race `PASS`, exit `0`, and all four stderr lengths `0`; **container ID not retained**. Scoped re-review: `ADDRESSED` / `PASS` / `APPROVED`; new breakage `0/0/0`.
+
+Pager/scanner/coordinator migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.

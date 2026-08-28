@@ -872,7 +872,7 @@ Completion time must be nonzero, at/after message creation, and strictly before 
 
 ## Phase 151 recovery scanner authority decision (2026-08-27)
 
-`Phase151PendingRecoveryTarget` currently carries tenant, channel, and kind only. Because it has no actor or service-principal identity and production has no interval gate, PostgreSQL target pager, or recovery reauthorizer, a concrete scanner must not invent member authority. Before implementation, freeze either an explicit server-owned recovery principal with auditable authorization semantics or a redesigned target-authority facts contract. The concrete scanner, scheduler, and live writer cutover remain `UNBOUND` until that decision.
+`Phase151PendingRecoveryTarget` currently carries tenant, channel, and kind only. Because it has no actor or service-principal identity and production has no process-lifetime interval owner, PostgreSQL target pager, or recovery reauthorizer, a concrete scanner must not invent member authority. The later standalone per-instance interval gate is not a scheduler or production composition. Before implementation, freeze either an explicit server-owned recovery principal with auditable authorization semantics or a redesigned target-authority facts contract. The concrete scanner, scheduler, and live writer cutover remain `UNBOUND` until that decision.
 
 ## Calls credentials and Messenger completion CAS (2026-08-27)
 
@@ -996,3 +996,11 @@ Commit 4b100ee6 implements EntRepository.ResolvePendingRecoveryTargetFacts for P
 Missing-method-only RED worktree-master-backend-unit-run-e14c5e925814 is superseded by final GREEN worktree-master-backend-unit-run-546c91d7105f at 2026-08-28T20:26:28+03:00: target/build/vet/unit/race PASS, exit 0, four empty stderr logs. Independent review is PASS/Approved without findings; separate predicate review is PASS.
 
 Evidence proves compile/interface and pre-query guards only. Successful query, NotFound, driver/generated SQL, projection, live PostgreSQL semantics, API/runtime wiring, and readiness remain NOT_RUN or UNBOUND as applicable.
+
+## Phase 151 standalone pending-recovery interval-gate contract (2026-08-28)
+
+`Phase151PendingRecoveryIntervalClock` and `Phase151ProcessLocalPendingRecoveryIntervalGate` (`cb995211`, cancellation correction `3632c37`) define only per-constructed-instance best-effort admission. The clock is distinct from `Phase151PostCreateRecoveryClock`; no scheduler, coordinator, scanner, singleton, distributed/global interval, exactly-once behavior, or recovery I/O ownership follows. Separate instances may both admit. The mutex protects only the gate check, `Now()` read, and timestamp mutation; it never covers recovery I/O.
+
+The method checks cancellation before locking, after lock acquisition, and after `Now()` before mutation. Nil/typed-nil dependencies, invalid context, nonpositive interval, zero clock value, or backward time fail closed; below-minimum elapsed returns a denial without mutation, while equality/admission-or-later stores the new timestamp. Deterministic coverage includes every boundary, two channel-coordinated cancellation paths without sleeps, concurrent single admission, independent gates, and immediate admission consumption.
+
+Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` at `2026-08-28T21:01:26+03:00`. Final-fix root-read receipts at `2026-08-28T21:55:49+03:00` record target/build/vet/unit/race PASS, exit 0, four stderr lengths 0, and **container ID not retained**; scoped re-review is ADDRESSED/PASS/APPROVED with 0/0/0 new breakage. Pager/scanner/coordinator migration, scheduler/process-lifetime owner/wiring, runtime/live stores/transports/browser, and integration remain UNBOUND/NOT_RUN.
