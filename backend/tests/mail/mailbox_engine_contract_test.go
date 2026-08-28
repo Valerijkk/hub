@@ -561,13 +561,14 @@ func TestMailEngine_ContentAndSubmissionShapesAreClosed(t *testing.T) {
 		Junk     bool
 	}{}))
 	assertExactFields(t, reflect.TypeOf(mail.EngineProjectionAttachment{}), reflect.TypeOf(struct {
-		BlobID      string
-		ContentID   string
-		Filename    string
-		MediaType   string
-		SizeBytes   int64
-		Disposition mail.EngineAttachmentDisposition
-		SHA256      []byte
+		BlobID        string
+		AttachmentKey string
+		ContentID     string
+		Filename      string
+		MediaType     string
+		SizeBytes     int64
+		Disposition   mail.EngineAttachmentDisposition
+		SHA256        []byte
 	}{}))
 	assertExactFields(t, reflect.TypeOf(mail.EngineMessageProjection{}), reflect.TypeOf(struct {
 		AccountID         string
