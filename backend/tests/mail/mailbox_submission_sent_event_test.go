@@ -285,7 +285,7 @@ func TestMailboxSubmissionSentEventSource_IsPureAndDeterministic(t *testing.T) {
 		t.Fatalf("read source %s: %v", sourcePath, err)
 	}
 	for _, forbidden := range []string{
-		"time.Now(", "uuid.New(", "os.", "http.", "nats.", "ent.", "MailEngine", "GetMessage(", "GetBlob(", "Submit(", "ReconcileSubmission(",
+		"time.Now(", "uuid.New(", "os.", "http.", "nats.", "github.com/valerii/hub/backend/ent", "MailEngine", "GetMessage(", "GetBlob(", "Submit(", "ReconcileSubmission(",
 	} {
 		if strings.Contains(string(source), forbidden) {
 			t.Fatalf("source contains forbidden nondeterministic or I/O marker %q", forbidden)

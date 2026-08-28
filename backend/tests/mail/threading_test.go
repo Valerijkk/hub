@@ -260,11 +260,14 @@ func TestDeriveThreadIdentity_PreflightsExactRawCountsAndByteBounds(t *testing.T
 	requireAddressFailure(t, input, mail.AddressErrorTooLarge, mail.ErrAddressTooLarge, "mail address exceeds bounds")
 
 	input = cloneThreadingInput(base)
-	input.From.Name = strings.Repeat("a", 640)
-	if _, err := deriveThreadIdentity(t, input); err != nil {
-		t.Fatalf("DeriveThreadIdentity(640-byte name) error = %v", err)
+	input.From.Name = strings.Repeat("\U0001f600", 160)
+	if len(input.From.Name) != mail.MaxEngineAddressNameBytes {
+		t.Fatalf("160-rune name bytes = %d", len(input.From.Name))
 	}
-	input.From.Name = strings.Repeat("a", 641)
+	if _, err := deriveThreadIdentity(t, input); err != nil {
+		t.Fatalf("DeriveThreadIdentity(160-rune name) error = %v", err)
+	}
+	input.From.Name = strings.Repeat("\U0001f600", 161)
 	requireAddressFailure(t, input, mail.AddressErrorTooLarge, mail.ErrAddressTooLarge, "mail address exceeds bounds")
 }
 

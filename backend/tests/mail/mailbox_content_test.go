@@ -82,14 +82,16 @@ func TestNormalizeMailboxContent_PlainRejectsRawControlsAndNeverLeaks(t *testing
 }
 
 func TestNormalizeMailboxContent_PreflightAndCanonicalBoundsAreExact(t *testing.T) {
-	maxBytes := strings.Repeat("x", mail.MailboxContentMaxInputBytes)
-	if len(maxBytes) != mail.MailboxContentMaxInputBytes {
-		t.Fatalf("max byte fixture = %d", len(maxBytes))
+	invalidAtInputLimit := strings.Repeat("x", mail.MailboxContentMaxInputBytes-1) + string([]byte{0xff})
+	if len(invalidAtInputLimit) != mail.MailboxContentMaxInputBytes {
+		t.Fatalf("invalid input-limit fixture = %d", len(invalidAtInputLimit))
 	}
-	if result := requireMailboxContentSuccess(t, mail.MailboxContentInput{SourceFormat: mail.MailboxContentFormatPlain, Body: maxBytes}); len(result.PlainBody) != mail.MailboxContentMaxPlainBytes {
-		t.Fatalf("max byte plain output = %d", len(result.PlainBody))
+	requireMailboxContentFailure(t, mail.MailboxContentInput{SourceFormat: mail.MailboxContentFormatPlain, Body: invalidAtInputLimit}, mail.Invalid, mail.ErrMailboxContentInvalid)
+	tooLarge := invalidAtInputLimit + "x"
+	if len(tooLarge) != mail.MailboxContentMaxInputBytes+1 {
+		t.Fatalf("too-large input fixture = %d", len(tooLarge))
 	}
-	requireMailboxContentFailure(t, mail.MailboxContentInput{SourceFormat: mail.MailboxContentFormatPlain, Body: maxBytes + "x"}, mail.TooLarge, mail.ErrMailboxContentTooLarge)
+	requireMailboxContentFailure(t, mail.MailboxContentInput{SourceFormat: mail.MailboxContentFormatPlain, Body: tooLarge}, mail.TooLarge, mail.ErrMailboxContentTooLarge)
 
 	maxRunes := strings.Repeat("a", mail.MailboxContentMaxRunes)
 	if utf8.RuneCountInString(maxRunes) != mail.MailboxContentMaxRunes {
