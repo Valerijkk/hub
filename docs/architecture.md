@@ -477,3 +477,9 @@ UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
 The `CallJoinCredentialProjectionSource` membership contract is explicitly `(channelID, authenticatedUserID)`, matching repository semantics. `CallJoinCredentialProjector` supplies the persisted channel before the authenticated actor, so a future same-signature Ent adapter cannot accidentally reverse the authorization proof. This remains an unbound port contract: no Ent/DB source, service/HTTP/factory/client wiring, tenant claim, Jitsi deployment/cutover, or browser/media runtime is added, and LiveKit remains active.
 
 Behavioral TDD captured the prior reversal as unit/race failures with the two UUIDs swapped while build/vet passed. The corrected atom then passed one isolated Docker `backend-unit --no-deps` run with target/build/vet/unit/race `PASS`, first exit `0`, and no Mail overlap; independent review reported no findings.
+
+## Calls projector structural fail-closed boundary (2026-08-28)
+
+`CallJoinCredentialProjector` validates its receiver and dependencies before dereference. Its server-loaded call shape is then validated before authorization: the room name is canonical and nonblank, a channel pointer never contains the zero UUID, and an instant call has a nonzero creator. Only after those gates may membership, server-known-name, and typed issuer operations run.
+
+Two behavioral RED receipts isolated the prior nil-pointer panic and the five malformed-call paths; build/vet remained `PASS`. One final isolated Docker `backend-unit --no-deps` run passed target/build/vet/unit/race with first exit `0` and no Mail overlap. This remains an internal unbound seam: no Ent/DB source, service/HTTP/factory/client wiring, tenant claim, Jitsi deployment/cutover, or browser/media runtime is added; LiveKit remains active.

@@ -940,3 +940,9 @@ UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
 `CallJoinCredentialProjectionSource.IsChannelMember(ctx, channelID, authenticatedUserID)` uses channel-first repository ordering. For a channel call, `CallJoinCredentialProjector` must pass the server-loaded call channel as `channelID` and the authenticated caller as `authenticatedUserID`; denial or source error still short-circuits name lookup and credential issuance. This signature clarification does not bind an Ent/DB source, service, HTTP route, factory, client, tenant claim, Jitsi deployment, or provider cutover. LiveKit remains active.
 
 The focused RED demonstrated the former reversal with exact swapped channel/actor UUID observations in unit and race while build/vet passed. The corrected atom has isolated Docker evidence: target/build/vet/unit/race `PASS`, first exit `0`, no Mail overlap. Browser, media, deployment, integration, and cutover execution remain `UNBOUND/NOT_RUN`.
+
+## Calls projector structural validity contract (2026-08-28)
+
+`CallJoinCredentialProjector.IssueForAuthenticatedUser` returns a zero credential with `ErrCallJoinCredentialInvalid` for a nil or uninitialized projector. A server-loaded call is also invalid when its room name is blank, whitespace-only, or padded; when its nonnil channel pointer contains `uuid.Nil`; or when an instant call has `CreatedBy == uuid.Nil`. These failures occur before membership proof, server-known-name lookup, and credential issuance.
+
+RED-1 proved the previous nil-pointer panic in unit and race; RED-2 proved all five malformed call shapes while the receiver guard was already passing. The final isolated Docker receipt is target/build/vet/unit/race `PASS`, first exit `0`, with no Mail overlap. No public DTO/route/refresh, Ent/DB source, service/factory/client binding, Jitsi runtime, or cutover contract changes; LiveKit remains active.
