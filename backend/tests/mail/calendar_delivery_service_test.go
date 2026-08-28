@@ -350,11 +350,11 @@ func TestCalendarInviteDeliveryAdmissionRequiresKindSourceEnvelopeAndCopies(t *t
 	}
 	wantSourceEnvelopeID := request.Invites[0].SourceEnvelopeID
 	request.Invites[0].SourceEnvelopeID = uuid.New()
-	if recorded[0].SourceEnvelopeID != wantSourceEnvelopeID {
+	if recorded[0].Invites[0].SourceEnvelopeID != wantSourceEnvelopeID {
 		t.Fatalf("recorded admissions = %#v, want copied source envelope %s", recorded, wantSourceEnvelopeID)
 	}
-	recorded[0].SourceEnvelopeID = uuid.New()
-	if again := repository.Admissions(); len(again) != 3 || again[0].SourceEnvelopeID != wantSourceEnvelopeID {
+	recorded[0].Invites[0].SourceEnvelopeID = uuid.New()
+	if again := repository.Admissions(); len(again) != 3 || again[0].Invites[0].SourceEnvelopeID != wantSourceEnvelopeID {
 		t.Fatalf("Admissions() returned aliased source envelope: %#v", again)
 	}
 }
