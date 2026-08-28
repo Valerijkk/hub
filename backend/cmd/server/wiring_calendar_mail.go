@@ -153,7 +153,8 @@ func wireCalendarMail(d *serverDeps) {
 		return
 	}
 	if mailboxEngineConfig.Status != mailmod.MailboxEngineConfigStatusConfigured ||
-		mailboxEngineConfig.MailAuthMode != mailmod.MailboxEngineMailAuthModeOAuthAuthorizationCodePKCE {
+		mailboxEngineConfig.MailAuthMode != mailmod.MailboxEngineMailAuthModeOAuthAuthorizationCodePKCE ||
+		mailboxEngineConfig.DomainVerificationMode != mailmod.MailboxEngineDomainVerificationModePublicDNS {
 		d.fatal("failed to wire calendar and mail routes", mailmod.ErrMailboxEngineConfigInvalid)
 	}
 
@@ -242,6 +243,27 @@ func wireCalendarMail(d *serverDeps) {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
 	provisioningEngine, err := mailmod.NewMailboxRegistryProvisioningEngine(registryDomainController, registryAccountClient)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	publicDNSLookup, err := newMailboxPublicDNSLookup()
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	publicDNSVerifier, err := mailmod.NewPublicDNSVerifier(publicDNSLookup)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	publicDNSDomainProvisioner, err := mailmod.NewPublicDNSDomainProvisioner(provisioningEngine, publicDNSVerifier)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxDomainProvisioningWorker, err := mailmod.NewMailboxDomainProvisioningWorker(
+		mailboxRepo,
+		publicDNSDomainProvisioner,
+		mailmod.NewMailboxDomainProvisioningWorkerTimer(),
+		mailmod.DefaultMailboxDomainProvisioningWorkerOptions(),
+	)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
@@ -589,6 +611,21 @@ func wireCalendarMail(d *serverDeps) {
 			slog.Error("background worker stopped", "error", err)
 		}
 	}()
+	mailboxDomainProvisioningWorkerCtx, mailboxDomainProvisioningWorkerCancel := context.WithCancel(d.rootCtx)
+	mailboxDomainProvisioningWorkerDone := make(chan struct{})
+	go func() {
+		defer close(mailboxDomainProvisioningWorkerDone)
+		if err := mailboxDomainProvisioningWorker.Run(mailboxDomainProvisioningWorkerCtx); err != nil && mailboxDomainProvisioningWorkerCtx.Err() == nil {
+			slog.Error("background worker stopped")
+		}
+	}()
+	var mailboxDomainProvisioningWorkerCleanup sync.Once
+	d.addCleanup(func() {
+		mailboxDomainProvisioningWorkerCleanup.Do(func() {
+			mailboxDomainProvisioningWorkerCancel()
+			<-mailboxDomainProvisioningWorkerDone
+		})
+	})
 	mailboxAccountProvisioningWorkerCtx, mailboxAccountProvisioningWorkerCancel := context.WithCancel(d.rootCtx)
 	mailboxAccountProvisioningWorkerDone := make(chan struct{})
 	go func() {

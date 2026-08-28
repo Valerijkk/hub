@@ -40,6 +40,24 @@ func requireMailboxCalendarMailWiringExactlyOnce(t *testing.T, source, fragment 
 	}
 }
 
+func requireMailboxCalendarMailWorkerContentFreeLog(t *testing.T, source, done string) {
+	t.Helper()
+
+	workerRunStart := strings.Index(source, "go func() {\n\t\tdefer close("+done+")")
+	if workerRunStart < 0 {
+		t.Fatalf("production wiring is missing worker goroutine for %q", done)
+	}
+	workerRunEnd := strings.Index(source[workerRunStart:], "\n\t}()")
+	if workerRunEnd < 0 {
+		t.Fatalf("production wiring does not close worker goroutine for %q", done)
+	}
+	workerRun := source[workerRunStart : workerRunStart+workerRunEnd]
+	if strings.Count(workerRun, "slog.Error(\"background worker stopped\")") != 1 ||
+		strings.Contains(workerRun, "slog.Error(\"background worker stopped\",") {
+		t.Fatalf("worker logging is not fixed and content-free for %q", done)
+	}
+}
+
 func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 	source := mailboxCalendarMailWiringSource(t)
 
@@ -61,9 +79,18 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		"stalwartmod.NewRegistryDomainController(managementRegistryClient)",
 		"stalwartmod.NewRegistryAccountClient(managementRegistryClient)",
 		"mailmod.NewMailboxRegistryProvisioningEngine(registryDomainController, registryAccountClient)",
+		"newMailboxPublicDNSLookup()",
+		"mailmod.NewPublicDNSVerifier(publicDNSLookup)",
+		"mailmod.NewPublicDNSDomainProvisioner(provisioningEngine, publicDNSVerifier)",
+		"mailmod.NewMailboxDomainProvisioningWorker(",
+		"mailmod.NewMailboxDomainProvisioningWorkerTimer()",
+		"mailmod.DefaultMailboxDomainProvisioningWorkerOptions()",
 		"mailmod.NewMailboxAccountProvisioningWorker(",
 		"mailmod.NewMailboxAccountProvisioningWorkerTimer()",
 		"mailmod.DefaultMailboxAccountProvisioningWorkerOptions()",
+		"mailboxEngineConfig.DomainVerificationMode != mailmod.MailboxEngineDomainVerificationModePublicDNS",
+		"mailboxDomainProvisioningWorker, err := mailmod.NewMailboxDomainProvisioningWorker(\n\t\tmailboxRepo,\n\t\tpublicDNSDomainProvisioner,",
+		"mailboxAccountProvisioningWorker, err := mailmod.NewMailboxAccountProvisioningWorker(\n\t\tmailboxRepo,\n\t\tprovisioningEngine,",
 		"stalwartmod.NewRegistryPasswordClient(managementRegistryClient)",
 		"mailmod.NewMailboxPasswordEnrollmentService(mailboxRepo, managementPasswordClient)",
 		"mailmod.NewStalwartMailboxRegistryAuthorizer()",
@@ -89,7 +116,6 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 	}
 	for _, forbidden := range []string{
 		"stalwartPublicURL != mailboxEngineConfig.Origin",
-		"mailmod.NewMailboxDomainProvisioningWorker",
 	} {
 		if strings.Contains(source, forbidden) {
 			t.Fatalf("production setup wiring contains forbidden %q", forbidden)
@@ -110,6 +136,10 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		"registryDomainController, err := stalwartmod.NewRegistryDomainController(managementRegistryClient)",
 		"registryAccountClient, err := stalwartmod.NewRegistryAccountClient(managementRegistryClient)",
 		"provisioningEngine, err := mailmod.NewMailboxRegistryProvisioningEngine(registryDomainController, registryAccountClient)",
+		"publicDNSLookup, err := newMailboxPublicDNSLookup()",
+		"publicDNSVerifier, err := mailmod.NewPublicDNSVerifier(publicDNSLookup)",
+		"publicDNSDomainProvisioner, err := mailmod.NewPublicDNSDomainProvisioner(provisioningEngine, publicDNSVerifier)",
+		"mailboxDomainProvisioningWorker, err := mailmod.NewMailboxDomainProvisioningWorker(",
 		"mailboxAccountProvisioningWorker, err := mailmod.NewMailboxAccountProvisioningWorker(",
 		"managementPasswordClient, err := stalwartmod.NewRegistryPasswordClient",
 		"managementPasswordService, err := mailmod.NewMailboxPasswordEnrollmentService",
@@ -126,11 +156,18 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		"stalwartmod.NewRegistryDomainController(managementRegistryClient)",
 		"stalwartmod.NewRegistryAccountClient(managementRegistryClient)",
 		"mailmod.NewMailboxRegistryProvisioningEngine(registryDomainController, registryAccountClient)",
+		"newMailboxPublicDNSLookup()",
+		"mailmod.NewPublicDNSVerifier(publicDNSLookup)",
+		"mailmod.NewPublicDNSDomainProvisioner(provisioningEngine, publicDNSVerifier)",
+		"mailmod.NewMailboxDomainProvisioningWorker(",
 		"mailmod.NewMailboxAccountProvisioningWorker(",
+		"mailboxDomainProvisioningWorker.Run(mailboxDomainProvisioningWorkerCtx)",
 		"mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningWorkerCtx)",
-		"slog.Error(\"background worker stopped\")",
+		"var mailboxDomainProvisioningWorkerCleanup sync.Once",
 		"var mailboxAccountProvisioningWorkerCleanup sync.Once",
+		"mailboxDomainProvisioningWorkerCancel()",
 		"mailboxAccountProvisioningWorkerCancel()",
+		"<-mailboxDomainProvisioningWorkerDone",
 		"<-mailboxAccountProvisioningWorkerDone",
 	} {
 		requireMailboxCalendarMailWiringExactlyOnce(t, source, exactlyOnce)
@@ -144,32 +181,29 @@ func TestCalendarMailProductionSetupWiringSourceContract(t *testing.T) {
 		"mailboxSubmissionStaleWorker.Run(d.rootCtx)",
 		"mailboxSubmissionReconciliationWorker.Run(d.rootCtx)",
 		"mailboxSubmissionFinalizationWorker.Run(d.rootCtx)",
+		"mailboxDomainProvisioningWorkerCtx, mailboxDomainProvisioningWorkerCancel := context.WithCancel(d.rootCtx)",
+		"mailboxDomainProvisioningWorkerDone := make(chan struct{})",
+		"defer close(mailboxDomainProvisioningWorkerDone)",
+		"mailboxDomainProvisioningWorker.Run(mailboxDomainProvisioningWorkerCtx)",
+		"var mailboxDomainProvisioningWorkerCleanup sync.Once",
+		"mailboxDomainProvisioningWorkerCleanup.Do(func() {",
+		"mailboxDomainProvisioningWorkerCancel()",
+		"<-mailboxDomainProvisioningWorkerDone",
 		"mailboxAccountProvisioningWorkerCtx, mailboxAccountProvisioningWorkerCancel := context.WithCancel(d.rootCtx)",
 		"mailboxAccountProvisioningWorkerDone := make(chan struct{})",
 		"defer close(mailboxAccountProvisioningWorkerDone)",
 		"mailboxAccountProvisioningWorker.Run(mailboxAccountProvisioningWorkerCtx)",
-		"slog.Error(\"background worker stopped\")",
 		"var mailboxAccountProvisioningWorkerCleanup sync.Once",
 		"mailboxAccountProvisioningWorkerCleanup.Do(func() {",
 		"mailboxAccountProvisioningWorkerCancel()",
 		"<-mailboxAccountProvisioningWorkerDone",
 	)
-	accountWorkerRunStart := strings.Index(source, "go func() {\n\t\tdefer close(mailboxAccountProvisioningWorkerDone)")
-	if accountWorkerRunStart < 0 {
-		t.Fatal("production wiring is missing the account provisioning worker goroutine")
-	}
-	accountWorkerRunEnd := strings.Index(source[accountWorkerRunStart:], "\n\t}()")
-	if accountWorkerRunEnd < 0 {
-		t.Fatal("production wiring does not close the account provisioning worker goroutine")
-	}
-	accountWorkerRun := source[accountWorkerRunStart : accountWorkerRunStart+accountWorkerRunEnd]
-	if !strings.Contains(accountWorkerRun, "slog.Error(\"background worker stopped\")") || strings.Contains(accountWorkerRun, "slog.Error(\"background worker stopped\",") {
-		t.Fatal("account provisioning worker logging is not fixed and content-free")
-	}
+	requireMailboxCalendarMailWorkerContentFreeLog(t, source, "mailboxDomainProvisioningWorkerDone")
+	requireMailboxCalendarMailWorkerContentFreeLog(t, source, "mailboxAccountProvisioningWorkerDone")
 	requireMailboxCalendarMailWiringOrdered(t, source,
 		"d.addCleanup(mailboxHTTPClient.CloseIdleConnections)",
-		"var mailboxAccountProvisioningWorkerCleanup sync.Once",
-		"d.addCleanup(func() {",
+		"d.addCleanup(func() {\n\t\tmailboxDomainProvisioningWorkerCleanup.Do(func() {",
+		"d.addCleanup(func() {\n\t\tmailboxAccountProvisioningWorkerCleanup.Do(func() {",
 	)
 	for _, retained := range []string{
 		"mailboxOAuthHandler.RegisterRoutes(d.api, d.requireAuth)",
