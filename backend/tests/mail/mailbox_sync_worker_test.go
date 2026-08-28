@@ -492,6 +492,7 @@ func TestMailboxSyncWorker_HostileParentContextsAndReuse(t *testing.T) {
 	timer.wait = func(context.Context, time.Duration) error { cancel(); return context.Canceled }
 	if err := worker.Run(ctx); err != nil { t.Fatalf("first reusable Run() = %v", err) }
 	ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
 	if err := worker.Run(ctx); err != nil { t.Fatalf("second reusable Run() = %v", err) }
 }
 
