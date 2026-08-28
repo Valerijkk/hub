@@ -78,7 +78,7 @@ func TestMailboxSetupStatusEntSourceContract(t *testing.T) {
 	)
 
 	requireMailboxSetupStatusEntSourceOrdered(t, resolve,
-		"repository == nil || repository.client == nil || ctx == nil || actorID == uuid.Nil",
+		"repository == nil || repository.client == nil || ctx == nil || ctx.Err() != nil || actorID == uuid.Nil",
 		"repository.withMailboxEntReadSnapshot",
 		"mailboxEntResolveMailboxSetupStatus",
 		"mailboxSetupStatusCopy(status)",
