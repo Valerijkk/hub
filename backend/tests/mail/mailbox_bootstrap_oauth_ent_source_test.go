@@ -150,13 +150,16 @@ func TestMailboxBootstrapOAuthEntSourceContract(t *testing.T) {
 		"account.PasswordEnrollmentLeaseUntil != nil",
 	)
 	requireMailboxBootstrapOAuthEntContains(t, domainReady,
-		"domain.DesiredGeneration < 1",
-		"domain.DesiredHashVersion < 1",
-		"len(domain.DesiredHash) != sha256.Size",
-		"domain.DeployedGeneration == nil",
-		"*domain.DeployedGeneration != domain.DesiredGeneration",
-		"*domain.DeployedHashVersion != domain.DesiredHashVersion",
-		"subtle.ConstantTimeCompare(*domain.DeployedHash, domain.DesiredHash) != 1",
+		"domain.DesiredGeneration >= 1",
+		"domain.DesiredHashVersion >= 1",
+		"len(domain.DesiredHash) == sha256.Size",
+		"domain.DeployedGeneration != nil",
+		"domain.DeployedHashVersion != nil",
+		"domain.DeployedHash != nil",
+		"*domain.DeployedGeneration == domain.DesiredGeneration",
+		"*domain.DeployedHashVersion == domain.DesiredHashVersion",
+		"len(*domain.DeployedHash) == sha256.Size",
+		"subtle.ConstantTimeCompare(*domain.DeployedHash, domain.DesiredHash) == 1",
 	)
 
 	requireMailboxBootstrapOAuthEntOrdered(t, finalize,
