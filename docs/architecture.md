@@ -564,3 +564,9 @@ The mapper accepts no raw event, room, identity, JWT, provider, token, or delive
 The accepted `Phase151PostCreateRecoveryScannerAdapter` is an in-memory sequential adapter over exactly three already separate ports: pager, reauthorizer, and document lister. It is a narrow scanner-interface seam, not a recovery worker or a production composition root. It validates receiver/context/dependencies before cancellation, then forwards each valid request once unchanged and preserves exact values/errors/aliases.
 
 The adapter is deliberately unbound from coordinator construction, the interval gate, stores, owner/configuration, scheduler/process lifetime, server wiring, retry semantics, transactions, dedupe, and exactly-once handling. Ent/PostgreSQL and Mongo execution, service/server/runtime, integration, transport, and browser evidence remain `UNBOUND/NOT_RUN`.
+
+## Calls confirmed participant connection key (2026-08-29)
+
+Commit `b7695ddc` adds `ConfirmedParticipantConnectionKey`, a pure Hub-owned value for an already trusted upstream connection fact: `(CallID, UserID, Epoch)`. Its canonical grammar is exactly `hub.call-connection.v1/<call>/<user>/<epoch>`. Any zero component is invalid: construction and validity return `ErrConfirmedParticipantConnectionKeyInvalid` with the zero key, and `Canonical` returns an empty string.
+
+The value and its pointer intentionally implement no `fmt.Stringer`; tests make that an accidental-stringification guard only, not a redaction or security boundary. The exported UUID fields may still be formatted, so operational no-logging remains required. This atom generates no epoch and adds no parser, serializer, provider/webhook, persistence, refcount, service/server/runtime, or Jitsi wiring. Legacy behavior is unchanged; LiveKit remains active and Jitsi remains `UNBOUND/NOT_RUN`.

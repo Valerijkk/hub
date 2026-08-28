@@ -76,6 +76,7 @@ Valid RED `46b078978d66` preceded GREEN `4d2f71546884` at `2026-08-28T22:39:54+0
 
 This does not change public `JoinCall`, routes, DTOs, frontend, recording, or the legacy token path. `cmd/server` runtime is `NOT_RUN`; Jitsi deployment/media/browser and provider cutover remain `UNBOUND/NOT_RUN`. LiveKit remains active and Jitsi remains rejected before Phase 152; this atom does not advance the Phase 150 verdict.
 
+
 ## Calls confirmed participant-presence reducer evidence - 2026-08-28
 
 Commit `f405304f` adds a pure future canonical presence reducer for already authenticated, provider-normalized connection observations. Canonical lifecycle remains `authorized -> credential_issued -> connected -> left`; issuance is not presence and never publishes joined. `Unknown|Left -> Connected` persist/publish joined, duplicate connected is a no-op; `Connected -> Left` persists/publishes left, while `Unknown -> Left` and duplicate left are no-ops. An unrecognized/out-of-range previous enum, zero IDs, and invalid observation kind return `ErrConfirmedParticipantObservationInvalid` plus zero transition. It provides state-based idempotence only, not durable dedupe or exactly-once behavior.
@@ -91,3 +92,11 @@ Commits `2b63761c` and `a0d3c832` add the pure `NormalizeTrustedProviderParticip
 RED `worktree-master-backend-unit-run-e8e44e800277` was target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race missing exports; retained stderr lengths were `0/222/0/0`. Root-read GREEN `worktree-master-backend-unit-run-72b909a17791`, followed by fresh Godoc-fix GREEN `worktree-master-backend-unit-run-80fe0c688984`, records target/build/vet/unit/race `PASS`, first exit `0`, and four empty stderr logs. Final specification and quality review is `PASS/APPROVED`, `C0/I0/M0`.
 
 The mapper does not accept raw events, room, identity, JWT, provider, token, or delivery ID; invoke the reducer; verify webhooks; apply/publish presence; or use context, clock, network, repository, NATS, membership, provider selection, or session identity. It creates no wiring or side effects. Legacy `/join`, DTO/token/frontend/recording are unchanged. LiveKit remains active; mapper runtime/wiring, reducer invocation, webhook application, persistence/NATS, durable identity/order/dedupe, and Jitsi deployment/media/browser/cutover remain `UNBOUND/NOT_RUN`; the Phase 150 verdict is unchanged.
+
+## Calls confirmed participant connection key evidence - 2026-08-29
+
+Commit `b7695ddc` adds only pure `ConfirmedParticipantConnectionKey`, the Hub-owned `(CallID, UserID, Epoch)` value for a connection fact already trusted upstream. Its exact canonical grammar is `hub.call-connection.v1/<call>/<user>/<epoch>`. A zero component yields `ErrConfirmedParticipantConnectionKeyInvalid` plus the zero key; an invalid key has an empty canonical value. No epoch generator, parser, serializer, provider/webhook, persistence/refcount, service/server/runtime, or Jitsi wiring is included.
+
+Tests assert that neither the value nor its pointer implements `fmt.Stringer`. This is an accidental-stringification guard rather than redaction/security coverage: the UUID fields are exported and still formattable, so operational no-logging remains required. Historical missing-symbol RED `worktree-master-backend-unit-run-01f901840085` had exit `1` and stderr length `972`; intermediate failures were contaminated by a concurrent Messenger RED and are not product failures. The canonical final run under that receipt records target/build/vet/unit/race `PASS`, exit `0`, and four empty stderr logs; stdout was not inspected. Specification review is `PASS` and quality review `APPROVED`, `C0/I0/M0`.
+
+This is bounded unit/race evidence only. Legacy behavior is unchanged. LiveKit remains active; Jitsi deployment/media/browser/cutover and all runtime claims remain `UNBOUND/NOT_RUN`; the Phase 150 verdict is unchanged.

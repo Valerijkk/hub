@@ -1016,6 +1016,7 @@ Valid missing-contract RED `9611a72a031b` preceded initial GREEN `323c19983456` 
 
 This does not alter the public `JoinCall` contract, routes, DTOs, frontend, recording, or legacy token path. Server runtime is `NOT_RUN`; tenant authorization, Jitsi deployment, provider cutover, integration, and browser/media behavior remain `UNBOUND/NOT_RUN`. LiveKit remains active; Jitsi is rejected before Phase 152.
 
+
 ## Calls confirmed participant-presence contract (2026-08-28)
 
 `ReduceConfirmedParticipantObservation(previous, observation)` is a pure future canonical lifecycle contract for an observation already authenticated and provider-normalized. `ParticipantPresenceUnknown`, `ParticipantPresenceConnected`, and `ParticipantPresenceLeft` are its only valid previous states; `CallID` and `UserID` are nonzero and observation kind is only `Connected` or `Left`. Any other previous/kind or zero ID returns exact `ErrConfirmedParticipantObservationInvalid` and the zero `ParticipantPresenceTransition`.
@@ -1035,3 +1036,9 @@ It is not a reducer invocation, webhook verifier, presence writer/publisher, or 
 `Phase151PostCreateRecoveryScannerAdapter` is an unbound in-memory sequential composition of exactly a pending-recovery target pager, reauthorizer, and pending-document lister. It satisfies only the existing scanner interface. A nil receiver/context/dependency shape returns `ErrPostCreatePipelineInvalid` and a zero result before consulting `ctx.Err()`; after structural validation, a cancelled context returns that exact error and zero result. Valid calls delegate exactly once to their matching port with original inputs, preserving the exact returned value, error, and aliases, including a nonzero value together with an error. It adds no domain validation, synthesized result, retry, copying, logging, network, concurrency, or I/O.
 
 No Ent/Mongo execution, coordinator or interval-gate construction, owner/config/scheduler/server/runtime binding, transaction, dedupe, exactly-once semantics, or live-store behavior is implied. The existing in-memory scanner adapter is not bound into the coordinator or server; production cross-store scanner composition remains `UNBOUND`, and all runtime and integration evidence is `NOT_RUN`.
+
+## Calls confirmed participant connection key (2026-08-29)
+
+`ConfirmedParticipantConnectionKey` is a pure future internal Hub value containing `(CallID, UserID, Epoch)` for a connection fact already trusted upstream. Its only canonical rendering is `hub.call-connection.v1/<call>/<user>/<epoch>`. Every component must be nonzero; invalid construction or validity yields `ErrConfirmedParticipantConnectionKeyInvalid` and the zero key, while `Canonical` is empty.
+
+Neither the value nor pointer implements `fmt.Stringer`. Tests prevent accidental default stringification only: this is not redaction or a security guarantee, because exported UUID fields remain formattable; runtime operations must continue not to log connection keys. The value neither creates epochs nor parses/serializes data, selects a provider, accepts webhooks, persists/refcounts connections, or binds service/server/runtime/Jitsi code. Existing legacy behavior remains unchanged. LiveKit remains active; Jitsi is `UNBOUND/NOT_RUN`.
