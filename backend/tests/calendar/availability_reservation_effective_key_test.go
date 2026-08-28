@@ -47,7 +47,7 @@ func TestCalendarAvailabilityReservationOccurrencesMatchUsesEffectiveStartKey(t 
 	effectiveEnd := effectiveStart.Add(time.Hour)
 	_, err = calendar.NewCalendarAvailabilityReservationSet(
 		uuid.MustParse("a1111111-1111-4111-8111-111111111111"),
-		uuid.MustParse("a2222222-2222-4222-822222222222"),
+		uuid.MustParse("a2222222-2222-4222-8222-222222222222"),
 		uuid.MustParse("a3333333-3333-4333-833333333333"),
 		nil,
 		[]calendar.CalendarAvailabilityReservationOccurrence{{
@@ -62,7 +62,7 @@ func TestCalendarAvailabilityReservationOccurrencesMatchUsesEffectiveStartKey(t 
 
 	_, err = calendar.NewCalendarAvailabilityReservationSet(
 		uuid.MustParse("a1111111-1111-4111-8111-111111111111"),
-		uuid.MustParse("a2222222-2222-4222-822222222222"),
+		uuid.MustParse("a2222222-2222-4222-8222-222222222222"),
 		uuid.MustParse("a3333333-3333-4333-833333333333"),
 		nil,
 		[]calendar.CalendarAvailabilityReservationOccurrence{{
