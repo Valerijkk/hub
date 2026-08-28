@@ -728,8 +728,10 @@ func TestFakeMailEngineSerializesInjectedSourcesAndPermitsHealthReentry(t *testi
 	var active int32
 	var overlap int32
 	var healthFailure int32
+	var sourceCalls uint64
 	var sequence uint64
 	enter := func() {
+		atomic.AddUint64(&sourceCalls, 1)
 		if atomic.AddInt32(&active, 1) != 1 {
 			atomic.StoreInt32(&overlap, 1)
 		}
@@ -770,8 +772,8 @@ func TestFakeMailEngineSerializesInjectedSourcesAndPermitsHealthReentry(t *testi
 	for err := range errorsByWorker {
 		t.Fatalf("SaveDraft with reentrant source: %v", err)
 	}
-	if atomic.LoadInt32(&overlap) != 0 || atomic.LoadInt32(&active) != 0 || atomic.LoadInt32(&healthFailure) != 0 || atomic.LoadUint64(&sequence) != workers*3 {
-		t.Fatalf("injected source serialization overlap:%d active:%d health:%d calls:%d, want 0:0:0:%d", overlap, active, healthFailure, sequence, workers*3)
+	if atomic.LoadInt32(&overlap) != 0 || atomic.LoadInt32(&active) != 0 || atomic.LoadInt32(&healthFailure) != 0 || atomic.LoadUint64(&sourceCalls) != workers*3 || atomic.LoadUint64(&sequence) != workers*2 {
+		t.Fatalf("injected source serialization overlap:%d active:%d health:%d source calls:%d id calls:%d, want 0:0:0:%d:%d", overlap, active, healthFailure, sourceCalls, sequence, workers*3, workers*2)
 	}
 }
 
