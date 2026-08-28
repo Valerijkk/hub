@@ -50,7 +50,19 @@ func TestCalendarInboundObjectState_SchemaContract(t *testing.T) {
 	mailBridgeAssertUniquePartialIndex(t, (entschema.CalendarInboundObjectState{}).Indexes(), []string{"calendar_owner_id", "uid", "recurrence_id"}, "recurrence_id IS NOT NULL")
 
 	edges := mailBridgeEdgeDescriptors((entschema.CalendarInboundObjectState{}).Edges())
-	mailBridgeAssertExactNames(t, "CalendarInboundObjectState edges", mailBridgeMapKeys(edges), []string{"calendar_owner", "event", "organization"})
+	mailBridgeAssertExactNames(t, "CalendarInboundObjectState edges", mailBridgeMapKeys(edges), []string{"calendar_owner", "deferred_message_receipts", "event", "organization"})
+	deferredMessageReceipts, ok := edges["deferred_message_receipts"]
+	if !ok {
+		t.Fatalf("CalendarInboundObjectState deferred_message_receipts edge is missing")
+	}
+	if !deferredMessageReceipts.Inverse ||
+		deferredMessageReceipts.Unique ||
+		deferredMessageReceipts.Required ||
+		deferredMessageReceipts.Field != "" ||
+		deferredMessageReceipts.RefName != "deferred_object_state" ||
+		len(deferredMessageReceipts.Annotations) != 0 {
+		t.Fatalf("CalendarInboundObjectState deferred_message_receipts edge descriptor = %#v, want inverse non-unique optional ref deferred_object_state without field or annotations", deferredMessageReceipts)
+	}
 	mailBridgeAssertEdge(t, "organization", edges["organization"], false, true, true, "organization_id", "", entsql.NoAction)
 	mailBridgeAssertEdge(t, "calendar_owner", edges["calendar_owner"], false, true, true, "calendar_owner_id", "", entsql.NoAction)
 	mailBridgeAssertEdge(t, "event", edges["event"], false, true, false, "calendar_event_id", "", entsql.SetNull)
@@ -59,11 +71,12 @@ func TestCalendarInboundObjectState_SchemaContract(t *testing.T) {
 func TestCalendarInboundMessageReceipt_SchemaContract(t *testing.T) {
 	fields := mailBridgeFieldDescriptors((entschema.CalendarInboundMessageReceipt{}).Fields())
 	mailBridgeAssertExactNames(t, "CalendarInboundMessageReceipt fields", mailBridgeMapKeys(fields), []string{
-		"attempts", "calendar_event_id", "created_at", "error_code", "event_envelope_id", "id", "lease_until",
-		"mail_message_id", "next_attempt_at", "part_locator_hash", "state", "updated_at",
+		"attempts", "calendar_event_id", "created_at", "deferred_expires_at", "deferred_object_state_id", "error_code",
+		"event_envelope_id", "id", "lease_generation", "lease_token", "lease_until", "mail_message_id", "mailbox_id",
+		"next_attempt_at", "organization_id", "part_locator_hash", "state", "updated_at",
 	})
 
-	for _, name := range []string{"id", "mail_message_id", "event_envelope_id"} {
+	for _, name := range []string{"id", "organization_id", "mailbox_id", "mail_message_id", "event_envelope_id"} {
 		mailBridgeAssertRequiredUUID(t, name, fields[name])
 		mailBridgeAssertImmutable(t, name, fields[name])
 	}
@@ -77,20 +90,37 @@ func TestCalendarInboundMessageReceipt_SchemaContract(t *testing.T) {
 		"organizer_mismatch", "equal_sequence_conflict", "missing_master_expired", "resource_limit", "retry_exhausted",
 		"engine_unavailable", "database_unavailable", "internal_error",
 	})
-	mailBridgeAssertIntMinimum(t, "attempts", fields["attempts"], 0)
-	for _, name := range []string{"lease_until", "next_attempt_at", "error_code", "calendar_event_id"} {
+	mailBridgeAssertIntBounds(t, "attempts", fields["attempts"], 0, 8)
+	mailBridgeAssertFieldType(t, "lease_generation", fields["lease_generation"], field.TypeInt64)
+	mailBridgeAssertInt64Minimum(t, "lease_generation", fields["lease_generation"], 0)
+	mailBridgeAssertDefault(t, "lease_generation", fields["lease_generation"], int64(0))
+	for _, name := range []string{"lease_token", "lease_until", "next_attempt_at", "error_code", "calendar_event_id", "deferred_object_state_id", "deferred_expires_at"} {
 		mailBridgeAssertOptionalNillable(t, name, fields[name])
 	}
 	mailBridgeAssertImmutable(t, "created_at", fields["created_at"])
 
 	mailBridgeAssertChecks(t, (entschema.CalendarInboundMessageReceipt{}).Annotations(), map[string]string{
 		"calendar_inbound_message_receipts_part_locator_hash_length": "octet_length(part_locator_hash) = 32",
+		"calendar_inbound_message_receipts_attempts_bounds": "attempts >= 0 AND attempts <= 8",
+		"calendar_inbound_message_receipts_organization_id_nonzero": "organization_id <> '00000000-0000-0000-0000-000000000000'::uuid",
+		"calendar_inbound_message_receipts_mailbox_id_nonzero": "mailbox_id <> '00000000-0000-0000-0000-000000000000'::uuid",
+		"calendar_inbound_message_receipts_deferred_pair": "(deferred_object_state_id IS NULL) = (deferred_expires_at IS NULL)",
+		"calendar_inbound_message_receipts_deferred_expiry_second": "deferred_expires_at IS NULL OR date_trunc('second', deferred_expires_at) = deferred_expires_at",
+		"calendar_inbound_message_receipts_deferred_state": "state <> 'deferred_missing_master' OR (deferred_object_state_id IS NOT NULL AND deferred_expires_at IS NOT NULL)",
+		"calendar_inbound_message_receipts_deferred_retry": "deferred_object_state_id IS NULL OR next_attempt_at IS NULL OR next_attempt_at <= deferred_expires_at",
+		"calendar_inbound_message_receipts_state_shape": "COALESCE((state = 'pending' AND lease_token IS NULL AND lease_until IS NULL AND ((attempts = 0 AND next_attempt_at IS NULL) OR (attempts > 0 AND next_attempt_at IS NOT NULL))) OR (state = 'processing' AND lease_token IS NOT NULL AND lease_until IS NOT NULL AND lease_generation >= 1 AND attempts >= 1 AND next_attempt_at IS NULL AND error_code IS NULL) OR (state IN ('applied','ignored_stale','duplicate','quarantined','dead_letter') AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NULL) OR (state = 'deferred_missing_master' AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NOT NULL), FALSE)",
 	})
-	mailBridgeAssertUniqueIndex(t, (entschema.CalendarInboundMessageReceipt{}).Indexes(), []string{"mail_message_id", "part_locator_hash"})
+	indexes := (entschema.CalendarInboundMessageReceipt{}).Indexes()
+	mailBridgeAssertUniqueIndex(t, indexes, []string{"mail_message_id", "part_locator_hash"})
+	mailBridgeAssertUniqueIndex(t, indexes, []string{"event_envelope_id"})
+	mailBridgeAssertNonUniquePartialIndex(t, indexes, []string{"state", "next_attempt_at", "id"}, "calendar_inbound_message_receipts_due_idx", "state IN ('pending','deferred_missing_master') AND next_attempt_at IS NOT NULL")
+	mailBridgeAssertNonUniquePartialIndex(t, indexes, []string{"calendar_event_id", "mail_message_id"}, "calendar_inbound_message_receipts_event_message_idx", "calendar_event_id IS NOT NULL AND state IN ('applied','ignored_stale','duplicate')")
+	mailBridgeAssertNonUniqueStorageKeyIndex(t, indexes, []string{"deferred_object_state_id"}, "calendar_inbound_message_receipts_deferred_object_state_idx")
 
 	edges := mailBridgeEdgeDescriptors((entschema.CalendarInboundMessageReceipt{}).Edges())
-	mailBridgeAssertExactNames(t, "CalendarInboundMessageReceipt edges", mailBridgeMapKeys(edges), []string{"event"})
+	mailBridgeAssertExactNames(t, "CalendarInboundMessageReceipt edges", mailBridgeMapKeys(edges), []string{"deferred_object_state", "event"})
 	mailBridgeAssertEdge(t, "event", edges["event"], false, true, false, "calendar_event_id", "", entsql.SetNull)
+	mailBridgeAssertEdge(t, "deferred_object_state", edges["deferred_object_state"], false, true, false, "deferred_object_state_id", "", entsql.NoAction)
 }
 
 func TestCalendarReplyDelivery_SchemaContract(t *testing.T) {
@@ -244,6 +274,47 @@ func mailBridgeAssertIntBounds(t *testing.T, name string, descriptor *field.Desc
 			t.Fatalf("%s accepts %d = %t, want %t", name, value, got, want)
 		}
 	}
+}
+
+func mailBridgeAssertInt64Minimum(t *testing.T, name string, descriptor *field.Descriptor, minimum int64) {
+	t.Helper()
+	for _, candidate := range []int64{minimum - 1, minimum} {
+		valid := true
+		for _, validator := range descriptor.Validators {
+			validate, ok := validator.(func(int64) error)
+			if !ok {
+				continue
+			}
+			if err := validate(candidate); err != nil {
+				valid = false
+				break
+			}
+		}
+		if want := candidate >= minimum; valid != want {
+			t.Fatalf("%s validators accept %d = %t, want %t", name, candidate, valid, want)
+		}
+	}
+}
+
+func mailBridgeAssertNonUniqueStorageKeyIndex(t *testing.T, indexes []ent.Index, wantFields []string, wantStorageKey string) {
+	t.Helper()
+	for _, schemaIndex := range indexes {
+		descriptor := schemaIndex.Descriptor()
+		if descriptor.Unique || descriptor.StorageKey != wantStorageKey || len(descriptor.Fields) != len(wantFields) || len(descriptor.Annotations) != 0 || len(descriptor.Edges) != 0 {
+			continue
+		}
+		match := true
+		for position, wantField := range wantFields {
+			if descriptor.Fields[position] != wantField {
+				match = false
+				break
+			}
+		}
+		if match {
+			return
+		}
+	}
+	t.Fatalf("non-unique index fields=%v storageKey=%q without annotations or edges is missing", wantFields, wantStorageKey)
 }
 
 func mailBridgeAssertInt64Bounds(t *testing.T, name string, descriptor *field.Descriptor, minimum, maximum int64) {
