@@ -854,8 +854,6 @@ func inboundReplyMessage(status calendar.RSVPStatus) calendar.ITIPMessage {
 	}
 }
 
-func stringPointer(value string) *string { return &value }
-
 type inboundReplyHostileError struct{}
 
 func (inboundReplyHostileError) Error() string { return "raw-inbound-secret" }
