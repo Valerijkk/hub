@@ -45,17 +45,23 @@ func wireIntegrations(d *serverDeps) {
 	d.aiBot.SetCodeReview(review)
 
 	// Calls routes (голосовые звонки через LiveKit)
-	callsProvider, err := callsmod.NewConferenceProvider(cfg.Calls, cfg.LiveKit)
-	if err != nil {
-		slog.Error("failed to configure calls conference provider", "provider", cfg.Calls.ActiveProvider, "error", err)
-		os.Exit(1)
-	}
 	callsRepo := callsmod.NewEntRepository(d.db)
 	callsChatRepo := callsmod.NewChatRepository(d.mongoDB)
+	callsSvc, err := callsmod.NewCallServiceWithConfiguredProvider(
+		cfg.Calls,
+		cfg.LiveKit,
+		callsRepo,
+		d.nc,
+		callsChatRepo,
+		callsRepo,
+	)
+	if err != nil {
+		slog.Error("failed to configure calls service", "provider", cfg.Calls.ActiveProvider, "error", err)
+		os.Exit(1)
+	}
 	if err := callsChatRepo.EnsureIndexes(d.ctx); err != nil {
 		slog.Error("failed to ensure calls chat indexes", "error", err)
 	}
-	callsSvc := callsmod.NewCallServiceWithProvider(callsProvider, callsRepo, d.nc, callsChatRepo)
 	recordingSvc := callsmod.NewRecordingService(cfg.LiveKit, cfg.S3, callsRepo, d.nc)
 	scheduledCallSvc := callsmod.NewScheduledCallService(callsRepo, d.nc)
 	callsHandler := callsmod.NewHandler(callsSvc, recordingSvc, scheduledCallSvc, cfg.LiveKit, rbacSvc)
