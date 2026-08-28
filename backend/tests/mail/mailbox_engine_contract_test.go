@@ -82,6 +82,14 @@ func (consumerStub) ReconcileDraft(context.Context, mail.EngineDraftReconciliati
 	return mail.EngineDraftAbsent{}, nil
 }
 
+func (consumerStub) DeleteDraft(context.Context, mail.EngineDraftDeletion) error {
+	return nil
+}
+
+func (consumerStub) ReconcileDraftDeletion(context.Context, mail.EngineDraftDeletion) (mail.EngineDraftDeletionResult, error) {
+	return mail.EngineDraftDeleted{}, nil
+}
+
 func (consumerStub) PreflightSubmission(context.Context, mail.EngineSubmissionPreflightRequest) (mail.EngineSubmissionPreflight, error) {
 	return mail.EngineSubmissionPreflight{}, nil
 }
