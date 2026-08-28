@@ -238,7 +238,7 @@ func (repository *MailboxEntRepository) AbortMailboxDraftReservation(ctx context
 						return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 					}
 				}
-				if err := draft.Delete().Exec(ctx); err != nil {
+				if err := transaction.MailDraft.DeleteOne(draft).Exec(ctx); err != nil {
 					return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorUnavailable)
 				}
 				if err := mailboxEntDraftCreateRelease(ctx, account, request.Fence, databaseWallClock); err != nil {
