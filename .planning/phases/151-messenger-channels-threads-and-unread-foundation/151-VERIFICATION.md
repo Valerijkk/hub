@@ -259,3 +259,9 @@ A combined isolated Docker `backend-unit` run exited `0`; build, vet, unit, and 
 Commit `ce46a0b2` is covered for pre-scanner cursor/limit rejection, post-scanner page size and structural validation, strict tenant/channel/kind tuple ordering, advancement beyond the input cursor, exact `Next` binding, future nonempty kinds, scanner error identity, zero partial results, and defensive cursor/target ownership.
 
 The valid RED recorded backend build/vet `PASS` and unit/race `FAIL` on aliasing and accepted malformed pass-through pages. Final isolated Docker `backend-unit` exited `0` with build, vet, unit, and race passing. This is adapter/unit evidence only; PG pager, authority principal, scheduler, `SendMessage`, integration, and live recovery remain `UNBOUND/NOT_RUN`.
+
+## Server-owned recovery principal authority evidence (2026-08-28)
+
+Focused unit/race coverage freezes closed `Phase151RecoveryServicePrincipal` value `messenger.post_create_recovery`, exact `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}` acceptance, and fail-closed mapping of invalid principal or structural/identity drift to `ErrPostCreatePipelineInvalid`. The authority contract intentionally excludes actor, producer, bot, and integration identifiers.
+
+Valid RED: build `PASS`; vet/unit/race failed only on missing authority symbols. The first GREEN required exactly one test-only stale unused `errors` import removal; final sequential Docker `backend-unit --no-deps` is target/build/vet/unit/race `PASS`, with the exact new case passing in unit and race and no Mail overlap. Independent Messenger code/security and test reviews are `Ready`. This remains unit evidence only: scanner/runner still consume `AuthorizedMessageProducerScope`; PG pager, reauthorizer, scheduler, live writer, integration, Swagger, and live PostgreSQL/Mongo/Redis/NATS/WS/browser remain `UNBOUND/NOT_RUN`.

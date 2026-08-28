@@ -896,3 +896,9 @@ Messenger pending recovery candidates must match the authorized target channel, 
 `JitsiEmbedHost` (`ee0387e5`) accepts only a credential that passes the existing strict self-hosted contract and renders exactly one empty marked mount with a forwarded ref. Invalid/null credentials render nothing. Credential values are not stored or emitted, and the component performs no network, storage, logging, script, iframe, provider API, or runtime work. It is not bound to `CallPanel` or a route; LiveKit remains active.
 
 `Phase151ClaimedRecoveryCoordinatorAdapter` (`ce46a0b2`) validates positive limits and owned input cursors before scanning, then requires an in-limit structurally valid page strictly ordered after the cursor by tenant UUID bytes, channel UUID bytes, and kind. Nonnil `Next` must be valid and equal the last target. Errors return a zero page; valid output is defensively copied. PG pager/principal/scheduler and `SendMessage` remain `UNBOUND`.
+
+## Messenger server-owned recovery authority contract (2026-08-28)
+
+`Phase151RecoveryServicePrincipal` is closed and currently admits only `messenger.post_create_recovery`. `Phase151RecoveryTargetAuthority` consists exactly of `Principal`, `TenantID`, `ChannelID`, and `Kind`; it deliberately does not represent an actor, producer, bot, or integration. Validation accepts only that closed principal and a structurally valid exact target tuple; every invalid principal, malformed target, or identity drift maps to `ErrPostCreatePipelineInvalid`.
+
+This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`, and there is no PG pager, reauthorizer, scheduler, live writer, or external/runtime binding. Those boundaries remain `UNBOUND`.

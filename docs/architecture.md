@@ -433,3 +433,9 @@ The internal Jitsi issuer now exposes `IssueJoinCredential` (`0a332760`): one pr
 `JitsiEmbedHost` (`ee0387e5`) is an inert validated mount seam: one empty ref target for valid self-hosted credentials and no credential persistence/exposure, network, script, iframe, provider API, or runtime activation. It is not connected to `CallPanel`, routing, deployment, or cutover; LiveKit remains active.
 
 The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner cursors/pages, enforces strict tenant/channel/kind tuple progression and exact last-row `Next`, and suppresses partial results on scanner or validation failure. This does not provide the missing PG pager, recovery principal, interval gate, scheduler, or writer cutover.
+
+## Messenger server-owned recovery authority seam (2026-08-28)
+
+The frozen authority decision is now represented by closed `Phase151RecoveryServicePrincipal` value `messenger.post_create_recovery` and `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}`. The target contract intentionally has no actor/producer/bot/integration identity: exact validation accepts only the closed principal plus a structurally valid exact tenant/channel/kind target and otherwise fails with `ErrPostCreatePipelineInvalid`. This prevents arbitrary-member or channel-owner substitution from silently defining recovery authorization semantics.
+
+The seam is not yet composed into recovery execution. Existing scanner/runner contracts still use `AuthorizedMessageProducerScope`; no PostgreSQL pager, reauthorizer, scheduler, production writer, or live recovery runtime is bound. The next safe atom is pure provenance reconstruction/claimed runner/coordinator contract migration to `Phase151RecoveryTargetAuthority`; all live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
