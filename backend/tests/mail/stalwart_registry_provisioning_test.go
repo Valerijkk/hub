@@ -7,7 +7,7 @@ import (
 	`io`
 	`net/http`
 	`net/http/httptest`
-	`reflect`
+	`slices`
 	`strings`
 	`sync`
 	`testing`
@@ -148,7 +148,7 @@ func (fixture *registryProvisioningFixture) requireMethods(t *testing.T, want ..
 		}
 		got = append(got, request.MethodCalls[0].Name)
 	}
-	if !reflect.DeepEqual(got, want) || fixture.registryCalls != len(want) {
+	if !slices.Equal(got, want) || fixture.registryCalls != len(want) {
 		t.Fatalf(`Registry methods = %#v with %d authorizations, want %#v`, got, fixture.registryCalls, want)
 	}
 }
