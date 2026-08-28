@@ -190,7 +190,7 @@ func TestMailboxEntAccountProvisioningSourceContract(t *testing.T) {
 		"mailboxEntAccountProvisioningFinalizeFenceMatches",
 	)
 	requireMailboxEntAccountProvisioningSourceContains(t, finalize,
-		"mailboxEntAccountProvisioningRetryDelay(int(account.ProvisionAttempts))",
+		"MailboxAccountProvisioningRetryDelay(int(account.ProvisionAttempts))",
 		"SetEngineAccountID(request.EngineAccountID)",
 		"SetDeployedGeneration(fence.ControlGeneration)",
 		"SetDeployedHashVersion(fence.ControlHashVersion)",
