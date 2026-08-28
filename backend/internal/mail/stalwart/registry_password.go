@@ -88,7 +88,7 @@ func makeRegistryPasswordArguments(accountID string, secret []byte) []byte {
 	arguments = append(arguments, registryPasswordSlot...)
 	arguments = append(arguments, `":{"@type":"Password","secret":`...)
 	arguments = appendRegistryJSONString(arguments, secret)
-	arguments = append(arguments, `}}}}`...)
+	arguments = append(arguments, `}}}}}`...)
 	return arguments
 }
 
