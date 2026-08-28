@@ -135,10 +135,10 @@ func TestEventServiceUpdateCalendarEvent_PersistsOneAtomicSafeIntentAndTombstone
 		Email: "new@example.test", DisplayName: stringPointer("New attendee"), Role: calendar.CalendarEventAttendeeRoleOptional,
 	}}
 	clock := &createClockFake{now: time.Date(2031, time.January, 11, 12, 13, 14, 0, time.FixedZone("UTC+3", 3*60*60))}
-	ids := &createIDGeneratorFake{ids: []uuid.UUID{uuid.MustParse("57575757-5757-4575-8575-575757575757"), updateApplicationID, cancelApplicationID}}
+	ids := &createIDGeneratorFake{ids: []uuid.UUID{uuid.MustParse("58585858-5858-4585-8585-585858585858"), updateApplicationID, cancelApplicationID}}
 	service := calendar.NewEventService(&updateRepositoryFake{backend: backend}, clock, ids, createSerializerUnused{})
 
-	start := updateStart().Add(2 * time.Hour)
+	start := updateStart().Add(30 * time.Minute)
 	command := mustUpdateCommand(t, calendar.CalendarEventUpdateInput{
 		EventID: updateEventID, ExpectedVersion: 3, NotifyAttendees: true,
 		Title: calendar.CalendarEventUpdateString{Present: true, Value: "Replanned review"},
@@ -216,7 +216,7 @@ func TestEventServiceUpdateCalendarEvent_RejectsCollidingNotificationIDsBeforePe
 }
 
 func TestEventServiceUpdateCalendarEvent_NonDisclosureRecurrenceNoopAndConflictOrdering(t *testing.T) {
-	sameRRULE := "FREQ=DAILY;COUNT=2"
+	sameRRULE := "FREQ=DAILY;INTERVAL=1;COUNT=2"
 	sameExdate := "2031-01-21T09:00:00Z"
 	sameStartDate := "2031-01-20"
 	for _, testCase := range []struct {
@@ -713,7 +713,7 @@ func TestEventServiceUpdateCalendarEvent_RecurrenceAffectedResetAndExceptionBoun
 		backend.authorization.Attendees = append(backend.authorization.Attendees, calendar.CalendarEventUpdateAttendeeSnapshot{
 			AttendeeID: secondID, Email: "second@example.test", DisplayName: "Second", Role: calendar.CalendarEventAttendeeRoleOptional, Status: calendar.RSVPTentative, RespondedAt: &responded, Version: 4,
 		})
-		rrule := "FREQ=WEEKLY;COUNT=2"
+	rrule := "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;COUNT=2"
 		result, err := newUpdateService(backend).UpdateCalendarEvent(context.Background(), updateActorID, mustUpdateCommand(t, calendar.CalendarEventUpdateInput{
 			EventID: updateEventID, ExpectedVersion: 3, RRULE: calendar.CalendarEventUpdateRRULE{Present: true, Value: &rrule},
 		}))
@@ -765,7 +765,7 @@ func TestEventServiceUpdateCalendarEvent_ResetAndSilentPolicyMapping(t *testing.
 	}{
 		{
 			name: "time resets all",
-			input: calendar.CalendarEventUpdateInput{EventID: updateEventID, ExpectedVersion: 3, StartsAt: calendar.CalendarEventUpdateTime{Present: true, Value: timePointer(updateStart().Add(time.Hour))}},
+			input: calendar.CalendarEventUpdateInput{EventID: updateEventID, ExpectedVersion: 3, StartsAt: calendar.CalendarEventUpdateTime{Present: true, Value: timePointer(updateStart().Add(-time.Hour))}},
 			wantSequence: 8, wantOutbox: 1, wantReset: true,
 		},
 		{
