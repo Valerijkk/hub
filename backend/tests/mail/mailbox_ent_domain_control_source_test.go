@@ -46,6 +46,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 	actorOrganization := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlResolveActorOrganizationForUpdate", "func mailDomainControlReplayCreate")
 	fresh := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlCreateFresh", "func mailDomainControlReceiptReplayKind")
 	replay := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlReplayCreate", "func mailDomainControlCreateFresh")
+	replayKind := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlReceiptReplayKind", "func mailDomainControlPendingReplayRowValid")
 	replayTarget := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlReplayTargetValid", "func mailDomainControlVerifiedEntRowValid")
 	verified := mailboxEntDomainControlSourceSlice(t, source, "func mailDomainControlVerifiedEntRowValid", "func mailDomainControlEntRowValid")
 
@@ -84,14 +85,21 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
-		"!bytes.Equal(receipt.RequestHash, request.RequestHash[:])",
-		"MailDomainControlErrorConflict",
+		"mailDomainControlReceiptReplayKind",
 		"mailDomainControlReplayTargetValid",
 		"maildomain.IDEQ(*receipt.TargetID)",
 		"maildomain.OrganizationIDEQ(organizationID)",
 	} {
 		if !strings.Contains(replay, required) {
 			t.Fatalf("receipt replay is missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"!bytes.Equal(receipt.RequestHash, request.RequestHash[:])",
+		"MailDomainControlErrorConflict",
+	} {
+		if !strings.Contains(replayKind, required) {
+			t.Fatalf("receipt replay classification is missing %q", required)
 		}
 	}
 	for _, required := range []string{
@@ -105,6 +113,7 @@ func TestMailboxEntDomainControlSourceContract(t *testing.T) {
 			t.Fatalf("advanced replay target validation is missing %q", required)
 		}
 	}
+	mailboxEntDomainControlRequireOrdered(t, replay, "mailDomainControlReceiptReplayKind", "mailDomainControlReplayTargetValid")
 	for _, forbidden := range []string{"mailDomainControlPendingReplayRowValid", "domain.CreatedAt.Equal(domain.UpdatedAt)", "domain.State !="} {
 		if strings.Contains(replayTarget, forbidden) {
 			t.Fatalf("advanced replay target validation must not require %q", forbidden)
