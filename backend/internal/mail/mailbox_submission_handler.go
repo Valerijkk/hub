@@ -132,7 +132,7 @@ func mailboxSubmissionHTTPExactlyOneHeaderValue(ctx fiber.Ctx, name string) ([]b
 		value []byte
 		count int
 	)
-	ctx.Request().Header.VisitAll(func(key, headerValue []byte) {
+	ctx.Request().Header.VisitAllInOrder(func(key, headerValue []byte) {
 		if !bytes.EqualFold(key, []byte(name)) {
 			return
 		}
