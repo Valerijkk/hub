@@ -709,7 +709,10 @@ func cloneMailboxSyncChangePage(value *EngineChangePage) *EngineChangePage {
 	if value == nil { return nil }
 	result := *value
 	result.CreatedOrUpdated = cloneMailboxSyncProjections(value.CreatedOrUpdated)
-	result.DestroyedIDs = append([]string(nil), value.DestroyedIDs...)
+	if value.DestroyedIDs != nil {
+		result.DestroyedIDs = make([]string, len(value.DestroyedIDs))
+		copy(result.DestroyedIDs, value.DestroyedIDs)
+	}
 	return &result
 }
 
