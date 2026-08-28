@@ -1269,7 +1269,7 @@ func TestEventTransactionOccurrenceRSVP_PersistsOnlyExactActorBoundEcho(t *testi
 			t.Fatalf("result:%#v persist calls:%d commands:%d", result, backend.persistCalls, len(backend.persisted))
 		}
 		persisted := backend.persisted[0]
-		if persisted.SeriesAttendee().AttendeeID != series.AttendeeID || persisted.SeriesAttendee().Version != 2 || prior, found := persisted.Prior(); found || prior.AttendeeID != uuid.Nil {
+		if prior, found := persisted.Prior(); persisted.SeriesAttendee().AttendeeID != series.AttendeeID || persisted.SeriesAttendee().Version != 2 || found || prior.AttendeeID != uuid.Nil {
 			t.Fatalf("persistence changed series or invented prior: %#v", persisted)
 		}
 		reply, found := persisted.Reply()
