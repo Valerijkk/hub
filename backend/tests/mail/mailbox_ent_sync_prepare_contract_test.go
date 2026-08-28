@@ -113,7 +113,11 @@ func TestMailboxEntSyncPrepareTombstoneSourceContract(t *testing.T) {
 		"func mailboxEntPrepareInput",
 		"func mailboxEntStableSyncID",
 	)
-	requireMailboxEntPrepareOrderedFragments(t, input,
+	stateRows := mailboxEntPrepareSourceSlice(t, input,
+		"stateRows := make(map[string]*ent.MailMessage, len(messageRows))",
+		"threads, err := mailboxEntPrepareThreads",
+	)
+	requireMailboxEntPrepareOrderedFragments(t, stateRows,
 		"stateRows := make(map[string]*ent.MailMessage, len(messageRows))",
 		"for _, projection := range projections {",
 		"if row, ok := messageRows[projection.MessageID]; ok {",
