@@ -137,6 +137,9 @@ func (adapter *calendarDemoAdapter) CancelOccurrence(
 
 	serviceResult, err := adapter.eventService.CancelCalendarEventOccurrence(ctx, actorID, command)
 	if err != nil {
+		if conflict, found := calendarDemoOccurrenceCancelConflict(err); found && conflict.Kind() == calendarmod.CalendarEventOccurrenceCancelVersionConflict {
+			return devdemo.CalendarDemoOccurrenceCancelResult{}, newCalendarDemoReconcileError(stage, errors.Join(devdemo.ErrCalendarDemoVersionConflict, err))
+		}
 		return devdemo.CalendarDemoOccurrenceCancelResult{}, newCalendarDemoReconcileError(stage, err)
 	}
 	if serviceResult.EventID() != input.EventID || serviceResult.RecurrenceID() != recurrenceID || serviceResult.Status() != calendarmod.CalendarEventStatusCancelled || serviceResult.Sequence() == 0 || serviceResult.EventVersion() == 0 {
@@ -167,6 +170,18 @@ func (adapter *calendarDemoAdapter) CancelOccurrence(
 		Sequence:       sequence,
 		EventVersion:   eventVersion,
 	}, nil
+}
+
+func calendarDemoOccurrenceCancelConflict(err error) (calendarmod.CalendarEventOccurrenceCancelConflictError, bool) {
+	var value calendarmod.CalendarEventOccurrenceCancelConflictError
+	if errors.As(err, &value) {
+		return value, true
+	}
+	var pointer *calendarmod.CalendarEventOccurrenceCancelConflictError
+	if errors.As(err, &pointer) && pointer != nil {
+		return *pointer, true
+	}
+	return calendarmod.CalendarEventOccurrenceCancelConflictError{}, false
 }
 
 func calendarDemoPositiveIntToUint(stage calendarDemoStage, value int) (uint, error) {

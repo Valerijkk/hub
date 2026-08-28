@@ -12,6 +12,10 @@ import (
 // HTTP responses remain generic; this sentinel does not mirror the Calendar error taxonomy.
 var ErrCalendarDemoReconcile = errors.New("calendar demo reconciliation failed")
 
+// ErrCalendarDemoVersionConflict is a narrow errors.Is target only for an occurrence master-version conflict.
+// It is always returned underneath ErrCalendarDemoReconcile and exposes neither a Calendar error type nor a current version.
+var ErrCalendarDemoVersionConflict = errors.New("calendar demo version conflict")
+
 // CalendarDemoPort synchronously exposes the Calendar operations required by demo seeding.
 // Implementations must validate all role and status strings exhaustively.
 // The second UUID argument on every method is the nonzero actor Hub UserID.
