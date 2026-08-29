@@ -27,10 +27,11 @@ readonly PASSWORD_ENROLLMENT_FILENAME=20260827000000_mail_account_password_enrol
 readonly DELIVERY_MATERIALIZATION_INVALID_FILENAME=20260827000001_calendar_delivery_materialization_invalid.sql
 readonly INVITE_SEQUENCE_NON_NEGATIVE_FILENAME=20260827000002_calendar_invite_sequence_non_negative.sql
 readonly ROUNDTRIP_RECONCILIATION_FILENAME=20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql
-readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=8
-readonly EXPECTED_LINEAGE_ENTRY_COUNT=9
-readonly EXPECTED_LATEST_VERSION=20260829000000
-readonly SNAPSHOT_FILENAME=20260829000000_current_snapshot.sql
+readonly CHECK_ROUNDTRIP_FLATTENING_FILENAME=20260829000001_mail_calendar_check_roundtrip_flattening.sql
+readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=9
+readonly EXPECTED_LINEAGE_ENTRY_COUNT=10
+readonly EXPECTED_LATEST_VERSION=20260829000001
+readonly SNAPSHOT_FILENAME=20260829000001_current_snapshot.sql
 readonly EXPECTED_DATABASE_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public'
 readonly EXPECTED_PREFEATURE_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar'
 readonly EXPECTED_CURRENT_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar'
@@ -104,7 +105,7 @@ require_exact_files() {
   done
 }
 
-require_eight_sql_lineage_inputs() {
+require_nine_sql_lineage_inputs() {
   require_exact_files "$EXPECTED_LINEAGE_ENTRY_COUNT" \
     "$BASELINE_FILENAME" \
     "$CORE_FILENAME" \
@@ -114,10 +115,11 @@ require_eight_sql_lineage_inputs() {
     "$DELIVERY_MATERIALIZATION_INVALID_FILENAME" \
     "$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" \
     "$ROUNDTRIP_RECONCILIATION_FILENAME" \
+    "$CHECK_ROUNDTRIP_FLATTENING_FILENAME" \
     atlas.sum
 }
 
-copy_eight_sql_lineage_inputs() {
+copy_nine_sql_lineage_inputs() {
   destination="$1"
 
   cp "$LINEAGE_DIR/$BASELINE_FILENAME" "$destination/$BASELINE_FILENAME" ||
@@ -136,6 +138,8 @@ copy_eight_sql_lineage_inputs() {
     fail 'schema-maintenance: cannot copy invite sequence lineage input for hashing' "$EX_CONFIG"
   cp "$LINEAGE_DIR/$ROUNDTRIP_RECONCILIATION_FILENAME" "$destination/$ROUNDTRIP_RECONCILIATION_FILENAME" ||
     fail 'schema-maintenance: cannot copy roundtrip reconciliation lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$CHECK_ROUNDTRIP_FLATTENING_FILENAME" "$destination/$CHECK_ROUNDTRIP_FLATTENING_FILENAME" ||
+    fail 'schema-maintenance: cannot copy check roundtrip flattening lineage input for hashing' "$EX_CONFIG"
 }
 
 require_exact_candidate_files() {
@@ -759,7 +763,7 @@ run_diff() {
 
 run_hash() {
   require_exact_atlas_cli
-  require_eight_sql_lineage_inputs
+  require_nine_sql_lineage_inputs
 
   [ ! -e "$WORK_ROOT" ] && [ ! -L "$WORK_ROOT" ] ||
     fail 'schema-maintenance: hash work root already exists' "$EX_CONFIG"
@@ -771,7 +775,7 @@ run_hash() {
   mkdir "$candidate_dir" ||
     fail 'schema-maintenance: cannot create hash candidate directory' "$EX_CONFIG"
 
-  copy_eight_sql_lineage_inputs "$candidate_dir"
+  copy_nine_sql_lineage_inputs "$candidate_dir"
   "$ATLAS_CLI" migrate hash --dir "file://$candidate_dir" > /dev/null ||
     fail 'schema-maintenance: cannot hash reviewed Mail/Calendar lineage inputs' "$EX_CONFIG"
   require_exact_candidate_files "$candidate_dir" "$EXPECTED_LINEAGE_ENTRY_COUNT" \
@@ -783,6 +787,7 @@ run_hash() {
     "$DELIVERY_MATERIALIZATION_INVALID_FILENAME" \
     "$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" \
     "$ROUNDTRIP_RECONCILIATION_FILENAME" \
+    "$CHECK_ROUNDTRIP_FLATTENING_FILENAME" \
     atlas.sum
 
   emit_review_file "$candidate_dir/atlas.sum"
@@ -791,7 +796,7 @@ run_hash() {
 run_verify() {
   require_exact_atlas_cli
   require_internal_database_urls
-  require_eight_sql_lineage_inputs
+  require_nine_sql_lineage_inputs
   start_materializer_job
 
   run_materializer materialize current || fail 'schema-maintenance: cannot materialize current schema' "$EX_CONFIG"
