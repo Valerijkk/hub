@@ -147,8 +147,16 @@ source correction, not a deployment or compatibility claim.
 |---|---|
 | `docs/mail/openapi.yaml` | Remove `/mail/search` GET and `searchMail` from operations. Add optional `search` with `minLength: 1` plus `x-hub-max-utf8-bytes: 128`, and the already-wired optional `starred` boolean, to `/mail/threads`; retain `operationId: listMailThreads`, existing list filters/responses, and state live owner-scoped subject/snippet token semantics. Do not add OAS `maxLength: 128`. |
 | `backend/internal/mail/mailbox_ent_projection_repository.go` | Replace only `mailboxThreadProjectionSearchPredicate` and private helper required for the frozen bound FTS predicate. Do not alter scope, filters, mapping, cursor, response or ordering. |
-| `testframework/tests/integration/mail/test_mail_threads_fts.py` | PostgreSQL DB boundary, FTS catalogue/index, and token membership; no planner-use assertion. |
+| `testframework/tests/integration/mail/test_mail_threads_fts.py` | Real PostgreSQL-backed token membership through the authenticated public list route and deterministic QA fixture; no direct database connection and no planner-use assertion. |
 | `testframework/tests/api/mail/test_list_mail_threads_search.py` | `GET /mail/threads` search owner scope, starred conjunction, stable order, and absence of `/mail/search`. |
+| `backend/internal/qamailcalendar/config.go` | Admit one QA-only `thread-search-v1` scenario under the existing build tags and control-token boundary. |
+| `backend/internal/qamailcalendar/http.go` | Route create/delete by the stored scenario and return a dedicated exact search-fixture response; do not weaken the existing closed request parser or expose a release route. |
+| `backend/internal/qamailcalendar/controller_thread_search.go` | Own the isolated in-memory lifecycle and exact transaction boundary for the deterministic search fixture. |
+| `backend/internal/qamailcalendar/fixture_thread_search_plan.go` | Derive all IDs and values from the reserved nonce and freeze three same-owner live threads plus their messages/folder relations. |
+| `backend/internal/qamailcalendar/fixture_thread_search_persist.go` | Persist and verify only that scenario's organization, owner, domain, account, folder, three threads, three messages and three folder relations. |
+| `backend/internal/qamailcalendar/controller_thread_search_delete.go` | Delete exactly the three folder relations, messages and threads, then the fixture folder/account/domain/user/organization in one transaction; retain a retryable record on failure. |
+| `testframework/src/hub_testkit/domains/mail_calendar_qa/models.py` | Add one strict immutable search-fixture snapshot and strict thread-list projection models; do not relax existing exact payload validation. |
+| `testframework/src/hub_testkit/domains/mail_calendar_qa/client.py` | Add create/delete search fixture, authenticated thread-list query, and raw status observation for the absent legacy route; retain bounded no-leak response parsing. |
 | `backend/migrations/atlas/mail-calendar-v1/20260829000002_mail_threads_live_subject_snippet_fts.sql` | New forward-only migration containing exactly the frozen single `CREATE INDEX` statement. |
 | `backend/migrations/atlas/mail-calendar-v1/atlas.sum` | Add only the accepted FTS migration hash after its approved schema-maintenance operation, on top of the accepted nine-migration R2 state. |
 | `backend/docker/entrypoints/mail-calendar-schema.sh` | Explicit FTS transition: 10 SQL / 11 entries / latest `20260829000002` / `20260829000002_current_snapshot.sql` / membership in `run_hash` and `run_verify`; `run_diff` unchanged. |
@@ -158,10 +166,94 @@ source correction, not a deployment or compatibility claim.
 
 Both Python tests are source-authored before production mutation. Executable
 RED/GREEN evidence is Docker-only after candidate infrastructure is available.
-The integration test owns the PostgreSQL catalogue/index and token membership
-without a planner-use assertion. The API test owns route scope, starred
+The accepted schema-maintenance `run_hash`/`run_verify` path owns the exact
+migration/index catalogue receipt. The integration test owns real
+PostgreSQL-backed token membership through the public API without a direct DB
+driver or planner-use assertion. The API test owns route scope, starred
 conjunction, stable order, and absence of `/mail/search`. Static
 OAS-parser/wiring/client consistency is a review receipt only.
+
+### Frozen `thread-search-v1` QA fixture
+
+The FTS tests use a dedicated QA-only scenario rather than widening
+`inbound-request-v1`. It reuses only the existing token-guarded
+`POST /api/_qa/mail-calendar/fixtures` and
+`DELETE /api/_qa/mail-calendar/fixtures/:nonce` lifecycle. The scenario owns
+its own controller map and never creates a fake-engine message, publishes
+NATS, materializes Calendar data, or mutates the inbound invitation fixture.
+
+One creation produces exactly one organization, owner, mail domain, account,
+folder and these six live single-message threads in the same account. Values
+are deterministic from the returned 32-hex nonce. The two equal-time pinned
+IDs are assigned `high` and `low` only after comparing their UUID bytes, so
+the expected PostgreSQL `id DESC` order is independent of insertion order:
+
+| Role | normalized subject | snippet | pinned | last message time |
+|---|---|---|---:|---|
+| pinned-high | `qa <nonce> pinned-high` | `calendar alpha schedule token` | true | fixed base + 2 minutes |
+| pinned-low | `calendar <nonce> pinned-low` | `qa beta schedule token` | true | fixed base + 2 minutes |
+| recent | `qa <nonce> recent calendar` | `gamma schedule token` | false | fixed base + 3 minutes |
+| older | `qa <nonce> older calendar` | `delta schedule token` | false | fixed base |
+| qa-only decoy | `qa <nonce> only` | `epsilon schedule token` | false | fixed base + 5 minutes |
+| calendar-only decoy | `calendar <nonce> only` | `zeta schedule token` | false | fixed base + 4 minutes |
+
+The response exposes the nonce, scenario, created state, owner email,
+organization/owner/account/folder IDs, the four matching thread IDs in exact
+order `pinned-high`, `pinned-low`, `recent`, `older`, and the two decoy IDs.
+Each message and message-folder ID remains
+private to cleanup. Each thread has one live message owned by the same account
+and organization; no label, attachment, deletion or Calendar correlation is
+created.
+
+The source-first RED query is exactly `search=qa calendar`: no individual
+subject or snippet contains that contiguous substring, while `simple`
+`plainto_tsquery` matches both tokens across the frozen subject-plus-snippet
+document. The `qa`-only and `calendar`-only decoys must be absent, rejecting
+token-OR and split-ILIKE fallbacks. The unfiltered search must return the four
+matching fixture thread IDs in response order `pinned-high`, `pinned-low`,
+`recent`, `older` under the unchanged
+`is_pinned DESC, last_message_at DESC, id DESC` contract. The unpinned
+`recent` row is newer than both pinned rows, so the assertion also detects a
+lost pinned ordering clause. Adding `starred=true` must return exactly the
+two pinned IDs in descending UUID order. A second independently
+created fixture must not appear in the first owner's authenticated results.
+The API route `/api/mail/search` must return `404`; redirects and another
+success status are failures.
+
+The existing QA control token is the sole principal for fixture creation and
+cleanup; an end-user session is intentionally not a second control-plane
+credential. The nonce is generated server-side from `crypto/rand`, encoded as
+exactly 32 lower-hex characters, and reserved under one mutex across all three
+fixture maps before persistence. The reservation is recorded as `creating`;
+a failed create transaction rolls back and removes that exact reservation
+under the same mutex before returning the error, while a successful commit
+atomically publishes the complete immutable manifest as `created`. It is never
+accepted from a create request.
+Every route, registration and implementation file remains compiled only under
+`qa && !release`; missing/invalid QA configuration registers no surface.
+
+Creation and deletion are fail-closed transactions. The in-memory record owns
+an immutable exact-ID manifest and explicit
+`creating -> created -> deleting -> deleted` lifecycle. Because this scenario
+has no external engine or broker side effect, it has no `cleanup_failed`
+state: any database deletion failure rolls the single transaction back and
+returns the retained manifest and record to `created` for caller retry;
+successful commit removes the record. Unknown nonce, duplicate nonce, partial
+persisted set, mismatched plan or wrong state returns conflict/internal error,
+never false success. A completed deletion removes the map record; replay then
+returns conflict, matching the existing fixture seam rather than hiding a bad
+nonce. The controller mutex admits only one mutation per record at a time.
+
+The immutable manifest therefore contains exactly 18 child-row IDs: six
+message-folder IDs, six message IDs and six thread IDs. Cleanup deletes only
+those recorded IDs in FK-safe order, followed by the exact recorded
+folder/account/domain/user/organization IDs, all in one DB transaction. It
+never reconstructs scope from nonce, email, subject, folder name or a broad
+organization predicate. Delete dispatches by the immutable stored scenario;
+it cannot accidentally invoke inbound or account-materialization cleanup.
+Because the QA DB and controller are disposable and process-owned, this atom
+does not add a persistent lifecycle ledger, TTL service, quota system or
+production recovery protocol.
 
 The 10/11 transition is a future conditional obligation after the FTS packet is
 accepted; it is not performed, verified, or accepted by this amendment.
@@ -236,7 +328,7 @@ user data or mutate the historical root migration collection.
 | Nine-file R2 lineage/guard reconciliation | `PASS (b939553c; Docker schema roundtrip accepted)` |
 | Contract rebase | `STATIC_AUTHORED` |
 | OAS/backend/wiring/client receipt | `PENDING` |
-| Independent Contract/Security/Lifecycle review | `PENDING` |
+| Independent Contract/Security/Lifecycle review | `PASS (2026-08-29; 0 critical / 0 important / 0 minor after scoped re-review)` |
 | FTS Atlas checksum/verification | `NOT_RUN` |
 | FTS Docker schema maintenance, DB apply and plan | `NOT_RUN` |
 | Compile, tests, format/lint and runtime | `NOT_RUN` |
