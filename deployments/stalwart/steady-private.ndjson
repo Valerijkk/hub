@@ -1,0 +1,3 @@
+{"@type":"update","object":"SystemSettings","value":{"maxConnections":512,"proxyTrustedNetworks":{}}}
+{"@type":"update","object":"Http","value":{"allowedEndpoints":{"match":{"0":{"if":"listener == 'hub-jmap' && ((path == '/jmap' && method == 'POST') || (path == '/jmap/session' && method == 'GET') || (path == '/healthz/live' && method == 'GET') || (path == '/healthz/ready' && method == 'GET'))","then":"200"}},"else":"404"},"usePermissiveCors":false,"useXForwarded":false}}
+{"@type":"reconcile","object":"NetworkListener","matchOn":["name"],"value":{"hub-jmap":{"name":"hub-jmap","protocol":"http","bind":{"[::]:8081":true},"useTls":false,"tlsImplicit":false,"maxConnections":256,"socketBacklog":128,"overrideProxyTrustedNetworks":{}}}}

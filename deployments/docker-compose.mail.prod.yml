@@ -1,6 +1,6 @@
-# Internal disabled Stalwart candidate. Apply after docker-compose.prod.yml.
-# It has no host ports and does not establish health or production acceptance.
-# Public ingress, external delivery, and OAuth activation require separate gates.
+# Registry-owned private steady-state Stalwart service. Apply the reviewed
+# steady-private.ndjson plan through the operator-only bootstrap flow first.
+# It has no host ports; public ingress and external delivery require separate gates.
 services:
   stalwart:
     image: stalwartlabs/stalwart:v0.16.18@sha256:0df5900cab389a8ec47b7521ef0681ec93598caf72a09097685845211861f6c2
@@ -13,10 +13,12 @@ services:
       - "no-new-privileges:true"
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    environment:
+      STALWART_HEALTHCHECK_URL: "http://127.0.0.1:8081/healthz/ready"
     networks:
       - mail_engine_internal
     expose:
-      - "8080"
+      - "8081"
     volumes:
       - ./stalwart/config.json:/etc/stalwart/config.json:ro
       - stalwart_data:/var/lib/stalwart
@@ -99,8 +101,8 @@ services:
 
   backend:
     environment:
-      # Disabled-only static candidate. Backend must fail closed if an explicitly
-      # enabled profile lacks required values; enabled health remains UNBOUND.
+      # Private Registry-owned profile only. Backend must fail closed if an explicitly
+      # enabled profile lacks required values; runtime acceptance remains NOT_RUN.
       MAILBOX_ENGINE_ENABLED: "${MAILBOX_ENGINE_ENABLED:-false}"
       MAILBOX_ENGINE_ORIGIN: "${MAILBOX_ENGINE_ORIGIN:-}"
       STALWART_PUBLIC_URL: "${STALWART_PUBLIC_URL:-}"
@@ -115,11 +117,11 @@ services:
       MAILBOX_S3_PRESIGN_ORIGIN: "${MAILBOX_S3_PRESIGN_ORIGIN:-}"
       MAILBOX_CLAMAV_INSTREAM_ADDRESS: "${MAILBOX_CLAMAV_INSTREAM_ADDRESS:-clamav:3310}"
       MAILBOX_ENGINE_REGISTRY_API_KEY: "${MAILBOX_ENGINE_REGISTRY_API_KEY:-}"
-    # Static disabled-candidate ordering only. An enabled profile remains UNBOUND
-    # until the image-specific Stalwart health contract is independently accepted.
+    # Wait for the pinned image's inherited private-profile readiness only; no Docker
+    # or runtime acceptance follows from this source contract.
     depends_on:
       stalwart:
-        condition: service_started
+        condition: service_healthy
       clamav:
         condition: service_healthy
       mail-dns-resolver:
