@@ -535,7 +535,7 @@ Regression coverage proves valid authority reaches scan/reconcile once unchanged
 
 Review evidence only: invalid System.Object[] was rejected before the regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
 
-Runtime evidence is UNBOUND/NOT_RUN: the narrow Ent pager and pure PG reauthorizer are not composed into a concrete cross-store scanner. Scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain absent; Phase 151 is partial.
+Historical 2026-08-28 composition evidence is superseded: passive `NewPhase151PendingRecoveryComposition` now composes reauthorizer -> scanner -> process-local gate -> claimed coordinator, and a callable once adapter reaches the existing executor. Runtime evidence remains `UNBOUND/NOT_RUN`: no scheduler/process owner, production installer, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration has run; Phase 151 is partial.
 
 ## Messenger coordinator interval-gate composition coverage (2026-08-28)
 
@@ -561,7 +561,7 @@ Focused unit/race coverage for `326fb23c` and hardening `a57f5da5` verifies sing
 
 Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` completed `2026-08-28T19:48:05+03:00` with target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Initial RED `worktree-master-backend-unit-run-996a06b88265` (exit `1`) and first GREEN `971034f37f73` are historical. Independent final review: Spec Compliance `PASS`, Task quality `Approved`, no findings.
 
-No API/OpenAPI or runtime claim follows. The Ent recovery-target facts source and narrow static-only Ent pager exist; cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product not ready.
+No API/OpenAPI or runtime claim follows. The Ent recovery-target facts source and narrow static-only Ent pager exist and later participate in the passive recovery graph; interval scheduling/process ownership, coordinator/repository production installation, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product not ready.
 
 ## Phase 151 Ent recovery-target facts coverage (2026-08-28)
 
@@ -573,7 +573,7 @@ Successful query, NotFound, driver/generated SQL, projection, and live PostgreSQ
 
 Commit `748f4997` adds the narrow `EntRepository.ListPendingRecoveryTargets` pager, not a full scanner. Valid RED `worktree-master-backend-unit-run-35a8f1ba0967` had target `FAIL`, first exit `1`, build `PASS`, and vet/unit/race missing-method failures; retained RED stderr lengths were `0/461/0/0`. Root-read GREEN `worktree-master-backend-unit-run-a95ff242957f` recorded target/build/vet/unit/race `PASS`, first exit `0`, and four stderr lengths `0`. Specification and query reviews are `PASS`/`APPROVED`, `C0/I0/M0`.
 
-The unit cases prove compile/interface satisfaction and fail-closed guards before singleton/query access: dependencies/context, `ctx.Err()`, positive/`MaxInt`-safe limit, and structural cursor. They do not prove cursor-tenant mismatch, singleton cardinality, generated Ent predicates for live `public|private|dm|group` plus active-project or projectless-creator tenant predicates, optional IDGT, ascending order, safe `limit + 1`, query execution, mapping/pagination/Next, error chains, or live PostgreSQL. Those are static-only or `NOT_RUN`; cross-store scanner composition, scheduler, writer cutover, service/server runtime, integration, and product readiness remain `UNBOUND/NOT_RUN`.
+The unit cases prove compile/interface satisfaction and fail-closed guards before singleton/query access: dependencies/context, `ctx.Err()`, positive/`MaxInt`-safe limit, and structural cursor. They do not prove cursor-tenant mismatch, singleton cardinality, generated Ent predicates for live `public|private|dm|group` plus active-project or projectless-creator tenant predicates, optional IDGT, ascending order, safe `limit + 1`, query execution, mapping/pagination/Next, error chains, or live PostgreSQL. Those are static-only or `NOT_RUN`. The later passive holder composes the pager path into the recovery graph, but scheduler/process ownership, production installation, writer cutover, service/server runtime, integration, and product readiness remain `UNBOUND/NOT_RUN`.
 
 ## Messenger standalone pending-recovery interval-gate regression (2026-08-28)
 

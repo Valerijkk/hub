@@ -316,7 +316,7 @@ The valid RED retained build PASS and failed vet/unit/race only for old scope-pl
 
 Review evidence only: invalid System.Object[] was rejected; regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
 
-Runtime remains UNBOUND/NOT_RUN: the pure PG reauthorizer and Ent recovery-target facts source ports exist, but no cross-store scanner, scheduler/interval owner, coordinator/repository production composition, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration exists.
+Historical port-only boundary is superseded by the passive holder: the pure PG reauthorizer and Ent recovery-target pager path now compose through scanner -> process-local gate -> claimed coordinator, and the once adapter exposes a callable capability. Runtime remains `UNBOUND/NOT_RUN`: no scheduler/process owner, coordinator/repository production installer, writer cutover, service/server wiring, or live PostgreSQL/Mongo/NATS/WS/browser/integration exists.
 
 Docker policy permits concurrent branch-isolated Compose projects but only one task-owned container per branch; no --build, pull, image creation, or stopping another branch. Shared layers storage numeric Jitsi disk budget is separately gated.
 
@@ -358,7 +358,7 @@ RED `worktree-master-backend-unit-run-35a8f1ba0967` was target `FAIL`, first exi
 
 ## Safe-report correction note (2026-08-28)
 
-Review round 1 corrected stale current authority-gap wording. The accepted closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, `EntRepository.ResolvePendingRecoveryTargetFacts`, and narrow static-only `EntRepository.ListPendingRecoveryTargets` pager are present. Generated/live PostgreSQL paging proof remains `NOT_RUN`; cross-store scanner composition, scheduler/process ownership, writer/server/runtime binding, and live execution remain `UNBOUND/NOT_RUN`. This correction preserves the standalone interval-gate evidence and does not claim production recovery.
+Review round 1 corrected stale current authority-gap wording. The accepted closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, `EntRepository.ResolvePendingRecoveryTargetFacts`, and narrow static-only `EntRepository.ListPendingRecoveryTargets` pager are present. The later passive holder composes reauthorizer -> scanner -> process-local gate -> claimed coordinator and the once adapter exposes callable execution. Generated/live PostgreSQL paging proof remains `NOT_RUN`; scheduler/process ownership, production installation, writer/server/runtime binding, and live execution remain `UNBOUND/NOT_RUN`. This correction preserves the standalone interval-gate evidence and does not claim production recovery.
 
 ## Coordinator interval-gate composition evidence (2026-08-28)
 

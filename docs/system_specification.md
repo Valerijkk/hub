@@ -895,13 +895,13 @@ Messenger pending recovery candidates must match the authorized target channel, 
 
 `JitsiEmbedHost` (`ee0387e5`) accepts only a credential that passes the existing strict self-hosted contract and renders exactly one empty marked mount with a forwarded ref. Invalid/null credentials render nothing. Credential values are not stored or emitted, and the component performs no network, storage, logging, script, iframe, provider API, or runtime work. It is not bound to `CallPanel` or a route; LiveKit remains active.
 
-`Phase151ClaimedRecoveryCoordinatorAdapter` (`ce46a0b2`) validates positive limits and owned input cursors before scanning, then requires an in-limit structurally valid page strictly ordered after the cursor by tenant UUID bytes, channel UUID bytes, and kind. Nonnil `Next` must be valid and equal the last target. Errors return a zero page; valid output is defensively copied. The closed principal and narrow Ent pager exist, but cross-store scanner composition, scheduler, and `SendMessage` remain `UNBOUND`.
+`Phase151ClaimedRecoveryCoordinatorAdapter` (`ce46a0b2`) validates positive limits and owned input cursors before scanning, then requires an in-limit structurally valid page strictly ordered after the cursor by tenant UUID bytes, channel UUID bytes, and kind. Nonnil `Next` must be valid and equal the last target. Errors return a zero page; valid output is defensively copied. The closed principal and narrow Ent pager exist, and the current passive holder composes reauthorizer -> scanner -> process-local gate -> claimed coordinator; production scheduler/process ownership, runtime installation, and `SendMessage` remain `UNBOUND`.
 
 ## Messenger server-owned recovery authority contract (2026-08-28)
 
 `Phase151RecoveryServicePrincipal` is closed and currently admits only `messenger.post_create_recovery`. `Phase151RecoveryTargetAuthority` consists exactly of `Principal`, `TenantID`, `ChannelID`, and `Kind`; it deliberately does not represent an actor, producer, bot, or integration. Validation accepts only that closed principal and a structurally valid exact target tuple; every invalid principal, malformed target, or identity drift maps to `ErrPostCreatePipelineInvalid`.
 
-This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`; the narrow Ent pager plus pure reauthorizer have no cross-store scanner or injection/production composition. Scheduler, live writer, and external/runtime binding remain `UNBOUND`.
+This is a prerequisite contract, not a production recovery API: scanner/runner still consume `AuthorizedMessageProducerScope`. Historical lack of cross-store composition is superseded by the passive holder, which composes the narrow Ent pager path and pure reauthorizer through scanner -> process-local gate -> claimed coordinator, plus the callable once adapter; it installs no production runtime. Scheduler/process ownership, live writer, and external/runtime binding remain `UNBOUND`.
 
 ## Calls truthful join-credential expiry contract (2026-08-28)
 
@@ -973,7 +973,7 @@ The claimed runner is the sole recovery layer that reconstructs AuthorizedMessag
 
 MongoRepository.ListPendingPostCreateDocuments builds from ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority(authority, limit), preserving existing filter/order/cap behavior.
 
-Kind must remain nonempty. A stricter concrete PostgreSQL channel-type projection is deferred; the narrow Ent pager and pure PG reauthorizer are not composed into a scanner, and no scheduler, writer cutover, service/server wiring, or live integration is specified by this bounded contract.
+Kind must remain nonempty. A stricter concrete PostgreSQL channel-type projection is deferred. The passive holder now composes the narrow Ent pager path and pure PG reauthorizer into its scanner graph, but no scheduler/process owner, production installer, writer cutover, service/server wiring, or live integration is specified by this bounded contract.
 
 ## Calls service credential facade evidence (2026-08-28)
 
@@ -1001,7 +1001,7 @@ Evidence proves compile/interface and pre-query guards only. Successful query, N
 
 Commit `748f4997` adds only `EntRepository.ListPendingRecoveryTargets(ctx, cursor, limit)` as the concrete pager for the narrow recovery-target port; it does not make `EntRepository` a full recovery scanner. Guard order is fixed: usable dependencies/context, `ctx.Err()`, positive and `MaxInt`-safe limit, structural cursor, singleton tenant resolution, then cursor-tenant equality before the single query. The query admits only live `public|private|dm|group` channels whose tenant is active through the channel project, or whose projectless channel creator is in the singleton tenant; it applies optional channel-ID-greater-than cursor, ascending channel ID, and a safe `limit + 1` fetch.
 
-The pager maps returned channel kind, returns an owned page, and emits `Next` only from the last returned target when the extra row exists. Unit tests prove only compile/interface satisfaction and guards before singleton/query access. Cursor-tenant mismatch, singleton cardinality, generated Ent predicates/order/limit, query execution, mapping/pagination/Next, error-chain behavior, and live PostgreSQL behavior remain static-only or `NOT_RUN`; cross-store scanner composition, scheduler, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`.
+The pager maps returned channel kind, returns an owned page, and emits `Next` only from the last returned target when the extra row exists. Unit tests prove only compile/interface satisfaction and guards before singleton/query access. Cursor-tenant mismatch, singleton cardinality, generated Ent predicates/order/limit, query execution, mapping/pagination/Next, error-chain behavior, and live PostgreSQL behavior remain static-only or `NOT_RUN`. The passive holder composes the pager path through reauthorizer -> scanner -> process-local gate -> claimed coordinator, but scheduler/process ownership, production installation, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`.
 
 ## Phase 151 standalone pending-recovery interval-gate contract (2026-08-28)
 

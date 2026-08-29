@@ -379,7 +379,7 @@ This layer changes no live writer. Its unit contract proves interface satisfacti
 
 Pending canonical messages now have a bounded ownership model: server-owned worker UUID, monotonic fence, and UTC lease deadline. An atomic claim predicate is scoped to exact message/channel/sender, live `pending` state, no completion/deletion, and either no prior lease or an expired lease. Its update sets owner/deadline and increments the fence. Completion binds the same trusted tenant/channel/sender plus exact owner/fence/lease, requires a deadline later than completion time, transitions to `complete`, records completion, and clears owner/deadline while retaining the fence.
 
-This atom emits BSON plans only. The separate Mongo adapter applies them, the claimed runner validates claim tokens and durable provenance, and the coordinator adapter can compose that runner behind the bounded scan loop. No scanner is bound into the coordinator/runner path or a production scheduler, so production recovery is not yet fenced. Lease renewal is absent. Crash takeover may replay idempotent effects and unread publication remains at-least-once/best-effort without a transactional outbox.
+This atom emits BSON plans only. The separate Mongo adapter applies them, the claimed runner validates claim tokens and durable provenance, and the coordinator adapter composes that runner behind the bounded scan loop. Historical scanner-binding absence is superseded by passive `NewPhase151PendingRecoveryComposition`, which composes reauthorizer -> scanner -> process-local gate -> claimed coordinator, plus a callable once adapter; neither installs a production scheduler or runtime. Production recovery therefore remains unbound. Lease renewal is absent. Crash takeover may replay idempotent effects and unread publication remains at-least-once/best-effort without a transactional outbox.
 
 ## Phase 151 Mongo post-create recovery claim/completion adapter (2026-08-27)
 
@@ -399,7 +399,7 @@ The claimed runner now connects provenance reconstruction, the claim adapter, an
 
 The standalone runner accepts fresh target authority, one scanned pending canonical message, an injected clock, worker identity, and the composed recovery repository. It reconstructs the original producer scope, calculates the expected lease, atomically claims, validates the exact post-update message plus owner/fence/lease and provenance, reconstructs authority again, then executes automatic follows and optional reply-count reconciliation before fenced completion. Best-effort unread invalidation is deliberately last. A clean miss performs nothing; every failure after acquisition is reported with `acquired=true` so an outer loop can distinguish contention from owned work that needs observation/retry.
 
-This is orchestration evidence, not a bound worker. A coordinator adapter now supplies the runner seam behind the existing bounded loop interface, but no scanner is bound into that coordinator/runner path or a production scheduler and no writer is changed. Effects are designed to be replay-safe but are not transactional with Mongo completion, no lease renewal protects a long-running effect sequence, and a crash between completion and unread publication can lose that notification until authoritative refetch. Live-store and integration behavior remain unverified.
+This is orchestration evidence, not a bound worker. A coordinator adapter supplies the runner seam behind the existing bounded loop interface; the later passive holder composes reauthorizer -> scanner -> process-local gate -> claimed coordinator and the once adapter exposes callable execution. No production scheduler/process owner is installed and no writer is changed. Effects are designed to be replay-safe but are not transactional with Mongo completion, no lease renewal protects a long-running effect sequence, and a crash between completion and unread publication can lose that notification until authoritative refetch. Live-store and integration behavior remain unverified.
 
 ## Phase 151 recovery coordinator-to-runner adapter (2026-08-27)
 
@@ -409,7 +409,7 @@ The adapter treats claim non-acquisition as ordinary contention so the bounded l
 
 ## Phase 151 recovery scanner authority gap (2026-08-27)
 
-Historical 2026-08-27 snapshot (superseded): recovery authority was not yet frozen. The current accepted boundaries are the closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts`, plus narrow static-only `EntRepository.ListPendingRecoveryTargets`; no arbitrary member or channel owner is substituted. Remaining work is cross-store scanner composition, injection/production composition, scheduler/process-lifetime ownership, writer/server/runtime binding, and live evidence. The standalone per-instance interval gate is not that owner or composition; all remaining boundaries are unbound.
+Historical 2026-08-27 snapshot (superseded): recovery authority was not yet frozen. The current accepted boundaries are the closed `Phase151PostCreateRecoveryServicePrincipal`, pure `PGPhase151PendingRecoveryTargetReauthorizer`, `EntRepository.ResolvePendingRecoveryTargetFacts`, narrow static-only `EntRepository.ListPendingRecoveryTargets`, passive recovery composition, and callable once adapter; no arbitrary member or channel owner is substituted. Remaining work is production installation, scheduler/process-lifetime ownership, writer/server/runtime binding, and live evidence. The standalone per-instance interval gate is not that owner; all remaining production boundaries are unbound.
 
 ## Calls provider seams and Messenger completion CAS (2026-08-27)
 
@@ -438,7 +438,7 @@ The Messenger recovery adapter (`ce46a0b2`) now owns and validates scanner curso
 
 The frozen authority decision is now represented by closed `Phase151RecoveryServicePrincipal` value `messenger.post_create_recovery` and `Phase151RecoveryTargetAuthority{Principal,TenantID,ChannelID,Kind}`. The target contract intentionally has no actor/producer/bot/integration identity: exact validation accepts only the closed principal plus a structurally valid exact tenant/channel/kind target and otherwise fails with `ErrPostCreatePipelineInvalid`. This prevents arbitrary-member or channel-owner substitution from silently defining recovery authorization semantics.
 
-Historical pre-pager seam: it was not yet composed into recovery execution. The later narrow Ent pager does not change the fact that scanner/runner production composition, cross-store scanner, injection/production composition of the existing reauthorizer, scheduler, production writer, and live recovery runtime remain unbound. All live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
+Historical pre-pager seam: it was not yet composed into recovery execution. The later passive holder now composes the narrow Ent pager path and existing reauthorizer through scanner -> process-local gate -> claimed coordinator, and the once adapter exposes callable execution. Production installation, scheduler/process ownership, production writer, and live recovery runtime remain unbound. All live-store/event/browser and integration evidence remains `UNBOUND/NOT_RUN`.
 
 ## Calls signed credential-expiry projection (2026-08-28)
 
@@ -506,7 +506,7 @@ The coordinator adapter repeats validation and passes the unchanged authority to
 
 MongoRepository.ListPendingPostCreateDocuments derives its plan with ExportPhase151BuildPendingPostCreateScanPlanFromTargetAuthority, retaining the exact legacy filter, ascending created_at/_id order, and cap. Kind remains nonempty; concrete PostgreSQL channel-type projection is deferred.
 
-This is compiled unit/race evidence, not runtime composition. The narrow Ent pager and pure reauthorizer are not composed into a concrete cross-store scanner; scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain UNBOUND/NOT_RUN.
+This is compiled unit/race evidence, not live runtime evidence. Historical lack of cross-store composition is superseded by the passive holder, which composes narrow Ent pager path -> pure reauthorizer -> scanner -> process-local gate -> claimed coordinator, plus the callable once adapter. No scheduler/process owner or production installer exists; writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`.
 
 ## Calls service credential facade evidence (2026-08-28)
 
@@ -520,7 +520,7 @@ This is compile/unit/race evidence only. No server/runtime construction uses the
 
 `PGPhase151PendingRecoveryTargetReauthorizer` is a pure fail-closed PostgreSQL source-port boundary, not a composed recovery worker. It resolves the singleton tenant, requires exact target facts, accepts only live channels, maps `public|private` to `channel` and `dm|group` to `dm`, and requires an active tenant project for project channels or a tenant creator for projectless channels. It returns closed `Phase151RecoveryTargetAuthority` only; actor, sender, bot, integration, and Mongo authority are deliberately absent.
 
-Commits `326fb23c` and `a57f5da5` have bounded unit/race receipt `worktree-master-backend-unit-run-4bb4f9e2e610` at `2026-08-28T19:48:05+03:00`: target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. The Ent recovery-target facts source and narrow static-only Ent pager exist; cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`.
+Commits `326fb23c` and `a57f5da5` have bounded unit/race receipt `worktree-master-backend-unit-run-4bb4f9e2e610` at `2026-08-28T19:48:05+03:00`: target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. The Ent recovery-target facts source and narrow static-only Ent pager exist. The later passive holder composes the recovery graph and the once adapter exposes a callable capability, but interval scheduling/process ownership, coordinator/repository production installation, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`.
 
 ## Messenger Ent recovery-target facts source (2026-08-28)
 
@@ -532,7 +532,7 @@ Only compile/interface and pre-query guards are proven. Successful query, NotFou
 
 Commit `748f4997` supplies `EntRepository.ListPendingRecoveryTargets` for the narrow pending-recovery target pager only; it is not a complete recovery scanner. The method fails closed in this sequence: dependency/context validation, `ctx.Err()`, positive/`MaxInt`-safe limit, structural cursor, singleton-tenant lookup, cursor tenant equality, then one Ent query. That query restricts to live `public|private|dm|group` channels and requires either an active tenant project or, for a projectless channel, a creator in the singleton tenant. Optional cursor channel ID uses `IDGT`; ordering is ascending channel ID and the fetch is bounded as safe `limit + 1`.
 
-Mapping produces target kind and owned output; `Next` is derived only from the last returned target when the extra row exists. Current tests cover interface satisfaction and pre-singleton/pre-query guards only. Singleton cardinality, cursor tenant mismatch, generated Ent predicates/order/limit, query execution, mapping/pagination/Next, error chains, and live PostgreSQL are static-only or `NOT_RUN`. The cross-store scanner, scheduler/process ownership, production composition, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`.
+Mapping produces target kind and owned output; `Next` is derived only from the last returned target when the extra row exists. Current tests cover interface satisfaction and pre-singleton/pre-query guards only. Singleton cardinality, cursor tenant mismatch, generated Ent predicates/order/limit, query execution, mapping/pagination/Next, error chains, and live PostgreSQL are static-only or `NOT_RUN`. The passive holder now composes the pager path into the cross-store recovery graph, but scheduler/process ownership, production installation, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`.
 
 ## Messenger standalone pending-recovery interval gate (2026-08-28)
 

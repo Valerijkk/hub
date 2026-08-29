@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-minimal-merge-candidate
 stopped_at: final Git audit and remote fast-forward publication
 last_updated: "2026-08-29T00:00:00.000+03:00"
-last_activity: 2026-08-29 · pending-recovery composition documented; unit/race evidence accepted; runtime remains unbound
+last_activity: 2026-08-29 · pending-recovery composition and once-adapter capability documented; unit/race evidence accepted; runtime remains unbound
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -1140,7 +1140,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-27 (Phase 151 - bounded Messenger hardening continues)
+**Last session:** 2026-08-29 (Phase 151 - bounded Messenger hardening continues)
 **Stopped at:** bounded Phase 151 units are green through the passive recovery composition and the callable `Phase151PendingRecoveryOnceAdapter` capability. Production/cross-store recovery-scanner binding, scheduler, recovery-loop construction, executor installation, and all live writers remain unbound.
 **Resume:** the recovery-authority decision is closed: `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` exist and are accepted. The narrow static-only `EntRepository.ListPendingRecoveryTargets` pager, in-memory scanner, interval gate, claimed coordinator, passive holder, and once adapter are bounded units only; do not start a scheduler, install an executor, or route live writers. Lease renewal, completion-versus-unread-publication loss, outbox, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
@@ -1416,7 +1416,7 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - The valid RED failed on the missing host module. Final isolated Docker `frontend-unit` exited `0`; TypeScript and Vitest passed.
 - Messenger commit `ce46a0b2` validates recovery target pages at the adapter boundary: the input cursor is copied, targets must be structurally valid and strictly ascending after the cursor by tenant UUID bytes, channel UUID bytes, then kind, and a nonnil `Next` must equal the last tuple. Scanner errors retain identity with a zero page; valid targets and cursor are returned as owned copies.
 - Its valid RED kept backend build/vet passing and failed unit/race on the prior pass-through behavior. Final isolated Docker `backend-unit` exited `0`; build, vet, unit, and race passed.
-- Both atoms remain bounded. LiveKit is active; Jitsi `CallPanel`/route/deployment/cutover and live/browser E2E are `UNBOUND/NOT_RUN`. Messenger has a closed recovery principal and narrow static-only Ent pager, but no cross-store scanner composition, scheduler, or `SendMessage` cutover.
+- Both atoms remain bounded. LiveKit is active; Jitsi `CallPanel`/route/deployment/cutover and live/browser E2E are `UNBOUND/NOT_RUN`. Messenger has a closed recovery principal, narrow static-only Ent pager, passive recovery composition, and callable once adapter, but no scheduler/process owner, production runtime installation, or `SendMessage` cutover.
 
 ## Session note - 2026-08-28 (Messenger server-owned recovery principal authority)
 
@@ -1491,7 +1491,7 @@ UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
 - Valid RED: build PASS; vet/unit/race failed only on prior scope-plus-target signatures.
 - Final root Docker receipt 2026-08-28T17:42:08.0869425+03:00 is target/build/vet/unit/race PASS, first exit 0, four stderr logs empty, and named authority/coordinator tests pass in unit and race.
 - Independent task review rejected invalid System.Object[]; the regenerated real diff received Spec Compliance PASS, Task quality Approved, and no Critical/Important breakage.
-- Runtime is UNBOUND/NOT_RUN: the narrow Ent pager and pure PG reauthorizer are not composed into a concrete cross-store scanner. Scheduler/interval ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain absent; Phase 151 remains partial.
+- Historical 2026-08-28 runtime boundary (superseded in composition only): the narrow Ent pager and pure PG reauthorizer were not yet composed into a concrete cross-store scanner. The current passive `NewPhase151PendingRecoveryComposition` does compose reauthorizer -> scanner -> process-local gate -> claimed coordinator, and the callable once adapter reaches the existing executor; neither installs production runtime. Scheduler/process ownership, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains partial.
 - Separate branch-isolated Compose projects may run concurrently; this branch owns at most one task container and forbids --build, pull, image creation, or stopping another branch. Shared layer storage keeps Jitsi pull/build blocked pending numeric disk-budget authority.
 
 ## Session note - 2026-08-28 (Calls service credential facade)
@@ -1505,7 +1505,7 @@ UNBOUND, runtime, deployment, browser, and cutover statements remain unchanged.
 
 Commits `326fb23c`, `a57f5da5`, and whitespace-only `67abe088` add the pure fail-closed `PGPhase151PendingRecoveryTargetReauthorizer` source-port boundary. It resolves the singleton tenant; requires exact target facts; accepts only live channels; maps `public|private` to `channel` and `dm|group` to `dm`; and requires an active tenant project for project channels or the tenant creator for projectless channels. It returns only the closed service principal authority: no actor, sender, bot, integration, or Mongo authority.
 
-Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` completed `2026-08-28T19:48:05+03:00` with target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Initial RED `worktree-master-backend-unit-run-996a06b88265` (exit `1`) and first GREEN `971034f37f73` are historical. Independent final review: Spec Compliance `PASS`, Task quality `Approved`, no findings. The Ent recovery-target facts source and narrow static-only Ent pager now exist; cross-store scanner, interval/scheduler, coordinator/repository production composition, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product not ready.
+Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` completed `2026-08-28T19:48:05+03:00` with target/build/vet/unit/race `PASS`, exit `0`, four empty stderr logs. Initial RED `worktree-master-backend-unit-run-996a06b88265` (exit `1`) and first GREEN `971034f37f73` are historical. Independent final review: Spec Compliance `PASS`, Task quality `Approved`, no findings. The Ent recovery-target facts source and narrow static-only Ent pager now exist and later participate in the passive recovery graph; interval scheduling/process ownership, coordinator/repository production installation, writer cutover, service/server wiring, and live PostgreSQL/Mongo/NATS/WS/browser/integration remain `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`, product not ready.
 
 ## Session note - 2026-08-28 (Messenger Ent recovery-target facts source)
 
@@ -1524,7 +1524,7 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 - Commit `748f4997` adds only the narrow `EntRepository.ListPendingRecoveryTargets` pager, never a full recovery scanner. It guards dependencies/context, `ctx.Err()`, positive/`MaxInt`-safe limit, structural cursor, singleton tenant, and cursor tenant equality before a single query.
 - Static query intent: live `public|private|dm|group`; active tenant project or projectless creator in the singleton tenant; optional IDGT; ascending channel ID; safe `limit + 1`; map target kinds; derive owned `Next` only from the last returned target when an extra row exists.
 - RED `worktree-master-backend-unit-run-35a8f1ba0967`: target `FAIL`, exit `1`, build `PASS`, vet/unit/race missing method, retained stderr lengths `0/461/0/0`. Root-read GREEN `worktree-master-backend-unit-run-a95ff242957f`: target/build/vet/unit/race `PASS`, exit `0`, four stderr lengths `0`. Specification/query reviews `PASS`/`APPROVED`, `C0/I0/M0`.
-- Unit evidence proves only compile/interface and pre-singleton/pre-query guards. Cursor mismatch, singleton cardinality, generated predicates/order/limit, execution, mapping/pagination/Next, error chains, and live PostgreSQL are static-only or `NOT_RUN`. Cross-store scanner, scheduler/process ownership, production composition, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is partial and product readiness is not claimed.
+- Unit evidence proves only compile/interface and pre-singleton/pre-query guards. Cursor mismatch, singleton cardinality, generated predicates/order/limit, execution, mapping/pagination/Next, error chains, and live PostgreSQL are static-only or `NOT_RUN`. The later passive holder composes the pager path into the recovery graph, but scheduler/process ownership, production installation, writer cutover, service/server runtime, and integration remain `UNBOUND/NOT_RUN`; Phase 151 is partial and product readiness is not claimed.
 
 ## Session note - 2026-08-28 (Calls configured credential-service composition)
 
