@@ -223,8 +223,8 @@ command, and no persistent Mail↔Calendar correlation added by this bridge.
 | A1 | `backend/internal/mail/mailbox_schedule_participants.go` | Closed DTO, ports, service, generic safe errors. |
 | A2 | `backend/internal/mail/mailbox_ent_schedule_participants.go` | Owner/message/header/identity set resolver under the P0 order. |
 | A3 | `backend/internal/mail/mailbox_schedule_participants_handler.go` | Authenticated route and exact HTTP mapping. |
-| B1 | `backend/internal/calendar/availability_check.go` | Redacting availability wrapper only. |
-| B2 | `backend/cmd/server/wiring_calendar_mail.go` | Instantiate/register A3 and B1; no behavior changes elsewhere. |
+| B1 | `backend/internal/calendar/availability_check.go`, `backend/internal/calendar/availability_handler.go`, `backend/internal/calendar/event_handler.go`, `docs/mail/openapi.yaml`, `frontend/src/api/calendar.ts` | Public three-way redacting availability receipt. It uses the existing `AvailabilityHandler.RegisterRoutes` and requires no `backend/cmd/server/wiring_calendar_mail.go` edit. |
+| B2 | `backend/cmd/server/wiring_calendar_mail.go` only if A3 needs a new server construction | B1 supersedes B2's former Calendar availability registration/wiring portion. B2 later owns only Mail A3 instantiation/registration if still needed; it owns no Calendar availability route or handler registration. |
 | C1a | `frontend/src/api/mail.ts` | Typed Mail scheduling-participant resolver client and DTOs. |
 | C1b | `frontend/src/api/calendar.ts` | Typed redacted availability-check client and DTOs; retain existing generic-event and meeting-creation clients. |
 | C2 | `frontend/src/modules/mail/mail-scheduling-dialog.tsx` (new), `frontend/src/modules/mail/mail-message-actions.tsx`, `frontend/src/routes/_authenticated/mail/$folderKey/thread/$threadId.tsx` | The new dialog owns client orchestration: select header candidates, resolve, check redacted availability, then create a generic event or authoritative meeting. `mail-message-actions.tsx` opens it; the thread route supplies the visible message header projection. |
