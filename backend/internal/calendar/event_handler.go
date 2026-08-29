@@ -613,6 +613,8 @@ func calendarHTTPValidateExactKeys(data []byte, target any) error {
 		allowed = calendarHTTPRSVPKeyAllowed
 	case *calendarHTTPAvailabilityRequest:
 		allowed = calendarHTTPAvailabilityKeyAllowed
+	case *calendarHTTPAvailabilityCheckRequest:
+		allowed = calendarHTTPAvailabilityCheckKeyAllowed
 	case *calendarHTTPMeetingCreateRequest:
 		allowed = calendarHTTPMeetingCreateKeyAllowed
 	default:

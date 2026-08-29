@@ -49,6 +49,17 @@ export interface CalendarAvailabilityResponse {
 	users: CalendarAvailabilityUserResponse[];
 }
 
+export interface CalendarAvailabilityCheckRequest {
+	attendee_user_ids: string[];
+	from: string;
+	to: string;
+	timezone: string;
+}
+
+export interface CalendarAvailabilityCheckResponse {
+	all_available: boolean;
+}
+
 export interface CalendarMeetingCreateRequest {
 	title: string;
 	description: string;
@@ -93,6 +104,15 @@ export function getCalendarAvailability(
 ): Promise<CalendarAvailabilityResponse> {
 	return api.post<CalendarAvailabilityResponse>(
 		"/calendar/v2/availability",
+		request,
+	);
+}
+
+export function checkCalendarAvailability(
+	request: CalendarAvailabilityCheckRequest,
+): Promise<CalendarAvailabilityCheckResponse> {
+	return api.post<CalendarAvailabilityCheckResponse>(
+		"/calendar/v2/availability/check",
 		request,
 	);
 }

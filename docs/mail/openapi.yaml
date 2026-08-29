@@ -1645,6 +1645,56 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "422": {$ref: "#/components/responses/AvailabilityUnprocessable"}
         default: {$ref: "#/components/responses/Error"}
+  /calendar/v2/availability/check:
+    post:
+      tags: [CalendarEvents]
+      operationId: checkCalendarAvailability
+      x-hub-authz: calendar-availability-shared
+      description: >-
+        Returns only whether the authenticated actor and every requested eligible attendee have no
+        busy intervals in the proposed range. The actor is injected by the server and no user IDs,
+        intervals, free slots, sources, or slot size are returned or accepted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [attendee_user_ids, from, to, timezone]
+              properties:
+                attendee_user_ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 49
+                  uniqueItems: true
+                  items: {type: string, format: uuid}
+                from:
+                  type: string
+                  format: date-time
+                to:
+                  type: string
+                  format: date-time
+                timezone:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  x-hub-validation: iana-timezone
+      responses:
+        "200":
+          description: Every privately resolved busy list is empty
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [all_available]
+                properties:
+                  all_available: {type: boolean}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/AvailabilityUnprocessable"}
+        default: {$ref: "#/components/responses/Error"}
   /crm/deals/{dealId}/mail-compose-context:
     parameters:
       - {$ref: "#/components/parameters/DealId"}

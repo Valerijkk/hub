@@ -24,6 +24,7 @@ func (handler *AvailabilityHandler) RegisterRoutes(api fiber.Router, authMw fibe
 	}
 	calendarV2 := api.Group("/calendar/v2", authMw)
 	calendarV2.Post("/availability", handler.QueryAvailability)
+	calendarV2.Post("/availability/check", handler.CheckAvailability)
 }
 
 // QueryAvailability returns source-redacted availability for one complete
