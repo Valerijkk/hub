@@ -86,6 +86,17 @@ func wireCalendarMail(d *serverDeps) {
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
+	mailboxScheduleParticipantsService, err := mailmod.NewMailboxScheduleParticipantsService(mailboxSvc, mailboxRepo)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	mailboxScheduleParticipantsHandler, err := mailmod.NewMailboxScheduleParticipantsHandler(mailboxScheduleParticipantsService)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
+	if err := mailboxScheduleParticipantsHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+	}
 	mailboxSetupStatusHandler, err := mailmod.NewMailboxSetupStatusHandler(mailboxRepo)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
