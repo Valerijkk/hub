@@ -626,6 +626,32 @@ export function getMailMessage(
 	);
 }
 
+export interface MailSchedulingParticipantsRequest {
+	readonly addresses: readonly string[];
+}
+
+export interface MailSchedulingParticipant {
+	readonly email: string;
+	readonly user_id: string | null;
+}
+
+export interface MailSchedulingParticipantsResult {
+	readonly participants: readonly MailSchedulingParticipant[];
+}
+
+export async function resolveMailSchedulingParticipants(
+	messageId: string,
+	request: MailSchedulingParticipantsRequest,
+	options: ApiRequestOptions = {},
+): Promise<MailSchedulingParticipantsResult> {
+	const normalizedMessageID = normalizeMailMessageID(messageId);
+	return api.post<MailSchedulingParticipantsResult>(
+		`/mail/messages/${encodeURIComponent(normalizedMessageID)}/scheduling-participants`,
+		{ addresses: [...request.addresses] },
+		options,
+	);
+}
+
 function normalizeMailDraftID(draftId: string): string {
 	const normalized = normalizeMailUUID(draftId);
 	if (normalized === null) {
