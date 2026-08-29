@@ -1,4 +1,17 @@
 ---
+mail_calendar_schema_roundtrip_r2_checkpoint_2026_08_29: >-
+  DOCKER_SCHEMA_ROUNDTRIP_PASS / RETAINED_AND_PRODUCT_RUNTIME_NOT_RUN.
+  `schema-maintenance-verify` exited 0: lint9; nine applied at current
+  20260829000001 with zero pending; one current snapshot with one executed and
+  zero pending; and empty forward/reverse Atlas semantic diffs. Both raw
+  inspections were 242505 bytes; SHA-256 values
+  ad14eff7a0e6754425176a3d867698cea80c5abeaca3bab052ba8cf45654cf4a and
+  66762ca84e296884592f0408f9b055f1c06f96f3adc7d0458cc23c90cc034e7d differ
+  only by column ordering in calendar_inbound_message_receipts, mail_accounts,
+  and scheduled_calls, so raw SHA is diagnostic-only under equal size plus
+  empty bidirectional semantic diffs. Provenance: dispatcher-enforced;
+  independent Terra/high analysis. This is not retained/shared/production
+  upgrade, backend build, product-test, delivery, merge, or deployment evidence.
 mail_backend_unit_recovery_checkpoint_2026_08_28: >-
   Canonical Docker backend-unit ran 2026-08-28 11:54-12:24 UTC and exited 1:
   build/vet found a broad MailEngine constructor mismatch; unit/race had identical

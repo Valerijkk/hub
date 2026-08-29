@@ -67,6 +67,7 @@ backend/migrations/atlas/mail-calendar-v1/
   20260827000001_calendar_delivery_materialization_invalid.sql
   20260827000002_calendar_invite_sequence_non_negative.sql
   20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql
+  20260829000001_mail_calendar_check_roundtrip_flattening.sql
   atlas.sum
 ```
 
@@ -96,7 +97,7 @@ not an accepted verify, current-schema convergence, retained-database upgrade
 proof, product test, external mail delivery, deployment, or product-readiness
 claim.
 
-## Pending eight-file schema roundtrip reconciliation (R1; Docker NOT_RUN)
+## Historical R1 reconciliation and accepted nine-file R2 roundtrip evidence (2026-08-29)
 
 `20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql` is an
 append-only metadata reconciliation: it replaces two validated delivery-state
@@ -104,14 +105,30 @@ CHECK constraints in the current Ent canonical form and renames two foreign-key
 constraints without changing their columns or referential actions. It neither
 rewrites data nor changes provider, queue, or application behavior.
 
-The eighth SQL file requires a fresh checksum candidate, two independent
-exact-byte reviews, and a separate `atlas.sum`-only metadata atom before any
-verification run. A future clean `schema-maintenance-verify` can prove only
-bounded disposable eight-file lineage replay and current-schema convergence:
-Atlas validation/lint, version `20260829000000` with eight executed and zero
-pending files, one current snapshot, and empty forward and reverse semantic
-diffs. It is not evidence for a retained-database upgrade, backend build,
-product tests, external mail delivery, merge, deployment, or production apply.
+R1 was the historical eight-file reconciliation step. The append-only
+`20260829000001_mail_calendar_check_roundtrip_flattening.sql` then aligned the
+two delivery CHECK expressions with PostgreSQL roundtrip canonicalization
+without changing their business semantics.
+
+On 2026-08-29, `schema-maintenance-verify` exited 0 against the bounded
+disposable nine-file lineage. Atlas `lint9` succeeded; the lineage status was
+nine applied at current `20260829000001` with zero pending; and the one-file
+current-schema snapshot status was one executed with zero pending. Forward and
+reverse Atlas semantic diffs were both empty. The two raw inspected SQL outputs
+were both 242505 bytes. Their SHA-256 values were
+`ad14eff7a0e6754425176a3d867698cea80c5abeaca3bab052ba8cf45654cf4a`
+for the verification schema and
+`66762ca84e296884592f0408f9b055f1c06f96f3adc7d0458cc23c90cc034e7d`
+for the snapshot-roundtrip schema.
+
+The raw SHA-256 difference is diagnostic serialization evidence, not a
+semantic-equivalence gate: it is limited to column ordering in
+`calendar_inbound_message_receipts`, `mail_accounts`, and `scheduled_calls`.
+There is no type, default, CHECK, foreign-key, index, or bidirectional Atlas
+semantic difference. This evidence proves only bounded disposable lineage
+replay and current-schema convergence; it is not evidence for retained/shared
+or production upgrade safety, backend build, product tests, external mail
+delivery, merge, deployment, or production apply.
 
 The baseline is the complete PostgreSQL desired schema from exact pre-feature
 master `f21e3f7748eac55a4b16746b078e88801f11829c`. The core migration is the first

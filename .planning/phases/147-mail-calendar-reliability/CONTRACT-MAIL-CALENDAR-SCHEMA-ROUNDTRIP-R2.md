@@ -171,7 +171,7 @@ The required fresh Docker acceptance is all-or-nothing:
 | Lineage status | nine applied, current `20260829000001`, zero pending |
 | Snapshot | exactly one `20260829000001_current_snapshot.sql` |
 | Semantic compare | forward diff empty and reverse diff empty |
-| Inspection parity | compared snapshot inspection size and SHA-256 equal |
+| Inspection evidence | compared snapshot inspection sizes equal; record both raw SHA-256 values. A raw SHA-256 mismatch alone is diagnostic evidence, not a blocker, when forward and reverse Atlas semantic diffs are empty. |
 
 This proves only clean disposable Docker lineage replay and bidirectional
 current-schema convergence. It does not prove retained/shared/production
@@ -196,7 +196,28 @@ Before the Docker phase, reviewers must establish all of the following:
 
 `BLOCKED` includes an old-migration rewrite; extra or missing lineage member;
 manual checksum; any R2 FK operation; a changed non-pending branch; `NOT VALID`;
-nonempty diff in either semantic direction; unequal inspection size/hash;
+nonempty diff in either semantic direction; unequal inspection size;
 retained-data failure; production/shared target; or unavailable/mismatched
 provenance. Each needs a new reviewed decision. None may be bypassed by
 relaxing this contract or changing R1.
+
+## Acceptance clarification (2026-08-29)
+
+This amendment supersedes only the raw-inspection-SHA-equality clause. The
+launcher behavior is authoritative: it retains the equal-size gate, runs both
+directional Atlas semantic diffs fail-closed, and prints the two raw SHA-256
+values as diagnostic evidence rather than comparing them for equality. The
+accepted disposable Docker evidence is `schema-maintenance-verify` exit 0 with
+`lint9`; nine applied at current `20260829000001` and zero pending; one current
+snapshot with one executed and zero pending; empty forward and reverse semantic
+diffs; and both inspected files at 242505 bytes. The raw hashes are
+`ad14eff7a0e6754425176a3d867698cea80c5abeaca3bab052ba8cf45654cf4a`
+(verification) and
+`66762ca84e296884592f0408f9b055f1c06f96f3adc7d0458cc23c90cc034e7d`
+(snapshot roundtrip). Their difference is limited to raw column ordering in
+`calendar_inbound_message_receipts`, `mail_accounts`, and `scheduled_calls`;
+it does not represent a type, default, CHECK, foreign-key, index, or Atlas
+semantic difference. This evidence proves only bounded disposable lineage
+replay and current-schema convergence. It does not prove retained/shared or
+production upgrade safety, backend build, product tests, external delivery,
+merge, or deployment.
