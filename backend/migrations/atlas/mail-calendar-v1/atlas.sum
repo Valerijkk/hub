@@ -1,4 +1,4 @@
-h1:AUvOsspq4u7jgEDEj+v6NPJcTBNB8AR9ubuEOW1J+6k=
+h1:qVB52V90gIRnvxTWPaxZCn7d4JhDcpRcvEXsfFzyR8A=
 20260823000000_mail_calendar_baseline.sql h1:Jf9vXvkWkI5Y5zv8Yrr3q4dR152ITiOJdrsJQoxhzLg=
 20260823000001_mail_calendar_core.sql h1:CPJ4yTbbHFYi8Ou2nZoRNBQh+CGVVXTMXbVuZfVGI50=
 20260826000000_calendar_deferred_receipt_expiry.sql h1:veGVSspk/vYPDlKLSykG7XUfnflp+NUNhf3pcAkVGjs=
@@ -6,3 +6,4 @@ h1:AUvOsspq4u7jgEDEj+v6NPJcTBNB8AR9ubuEOW1J+6k=
 20260827000000_mail_account_password_enrollment.sql h1:5ttVyEeX/ThtYmOEv1fU/UVKcCjdn6mSYwHOpZtd3VU=
 20260827000001_calendar_delivery_materialization_invalid.sql h1:tJRM+GUM5v7fpaAXTvCERLPSU1dpX75ablSF7qDDaTw=
 20260827000002_calendar_invite_sequence_non_negative.sql h1:E1H9WUH5cfatM3ASDtPo/r+vs/sPp11Zs+APzQaGRa0=
+20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql h1:L4BRPqEp5uMIpy8MbJB8POG0Akz5FMrR0xGvrSh8r9Y=
