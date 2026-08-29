@@ -3,7 +3,29 @@ info:
   title: Hub Mail and Calendar Sync API
   version: 0.1.8
   x-hub-task-4-api-authority: >-
-    Task-4 authority gate: this document is the sole normative schema, route, authz, error, compatibility, and operation contract for the bounded public Mail/Calendar HTTP surface. `operationId`, `x-hub-authz`, and components in this document are the required contract inputs for each later atom. `backend/docs/swagger.yaml` and `backend/docs/swagger.json` are legacy/general Hub Swag outputs and are non-authoritative for this bounded surface pending separately approved migration. Frontend clients remain handwritten domain adapters in `frontend/src/api/mail.ts` and `frontend/src/api/calendar.ts`; do not add code generation or a third route manifest. Each future Task-4 HTTP atom requires one reviewed change set containing its normative OAS operation/schema, authenticated owner-scoped backend handler and wiring, and matching handwritten typed client wrapper. This authority declaration changes no operation or schema and does not assert that declared routes exist or pass: implementation evidence is static-only and runtime is NOT_RUN; executable behavior belongs later in `testframework/tests/api/**`.
+    Task-4 authority gate: this document is the sole normative schema, route, authz, error,
+    compatibility, and operation contract for the bounded public Mail/Calendar HTTP surface.
+    `operationId`, `x-hub-authz`, and components in this document are the required contract
+    inputs for each later atom. `backend/docs/swagger.yaml` and `backend/docs/swagger.json`
+    are legacy/general Hub Swag outputs and are non-authoritative for this bounded surface
+    pending separately approved migration. Frontend clients remain handwritten domain adapters
+    in `frontend/src/api/mail.ts` and `frontend/src/api/calendar.ts`; do not add code generation
+    or a third route manifest. Each future Task-4 HTTP atom requires one reviewed change set
+    containing its normative OAS operation/schema, authenticated owner-scoped backend handler
+    and wiring, and matching handwritten typed client wrapper, except for the scoped
+    single-operation exception below. This authority declaration changes no operation or schema
+    and does not assert that declared routes exist or pass: implementation evidence is
+    static-only and runtime is NOT_RUN; executable behavior belongs later in
+    `testframework/tests/api/**`. Scoped exception only for
+    POST /mail/messages/{messageId}/scheduling-participants: D1, C1a, and B2 remain three
+    separate, independently reviewed commits; this `docs/mail/openapi.yaml` document remains
+    the sole semantic authority for the operation, schemas, authz, errors, compatibility, and
+    operation identity; landing or accepting D1 alone does not make the public endpoint
+    accepted; public acceptance remains incomplete until D1, C1a, and B2 have all landed and
+    one final joint receipt confirms their exact cross-commit alignment; and this exception
+    applies to no other Task-4 operation or future atom. Until that final joint receipt passes,
+    the route may be individually source-accepted but its public acceptance and runtime
+    evidence remain incomplete/NOT_RUN.
   x-hub-calendar-143-04h-source-receipt-sync: >-
     Status metadata only: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN. This dirty exact16 grants no API, source or runtime authority and changes no OpenAPI semantics. Source 73940810046bb3186f2746705a83565ab29368c5 (parent 9a638f75745aa0fb516a1177a33cbd1c657432fe, tree 9f994a8805b43a84c00ed50b8e5544739425edaa, subject feat(calendar): add occurrence cancellation service) has authored-first test blob 80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713, repository e0da66bf95d4b8193eb5d4034053a353bd154b66, service 2b500e5cdda34d7d80d0ccc0ba9c94427167716f. Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high precommit plus immutable exact-SHA PASS C/I/M 0/0/0; author Terra/xhigh; dispatcher-enforced/no fallback; telemetry UNKNOWN. Only atomic exact16 manifest commit plus immutable triple PASS marks source STATIC_ACCEPTED / EXACT_SHA_PASS; lower 04H authority/precommit/source-unaccepted/current-next routes then are CONSUMED/HISTORICAL. No next packet or handler/runtime authority; 04J/04K, 04F-H, Ent/adapters/handlers/generation/migration/raw iTIP/launcher/runtime blocks persist.
   x-hub-calendar-143-04h-authority-acceptance-sync: >-
@@ -405,6 +427,130 @@ paths:
               schema: {$ref: "#/components/schemas/MailMessageDetail"}
         "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
+  /mail/messages/{messageId}/scheduling-participants:
+    post:
+      tags: [MailMessages]
+      operationId: resolveMailSchedulingParticipants
+      x-hub-authz: mailbox-owner
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          description: Canonical lower-case RFC 4122 Mail message UUID; A3 rejects every noncanonical form before the service call
+          schema:
+            type: string
+            format: uuid
+            minLength: 36
+            maxLength: 36
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            not: {const: 00000000-0000-0000-0000-000000000000}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [addresses]
+              properties:
+                addresses:
+                  type: array
+                  minItems: 1
+                  maxItems: 200
+                  uniqueItems: true
+                  description: Ordered caller-selected canonical email addresses; exact canonical-byte validation and the UTF-8 byte ceiling are server-authoritative
+                  items:
+                    type: string
+                    format: email
+                    minLength: 3
+                    maxLength: 320
+                    x-hub-max-utf8-bytes: 320
+      responses:
+        "200":
+          description: Ordered owner-scoped scheduling participant receipt
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [participants]
+                properties:
+                  participants:
+                    type: array
+                    minItems: 1
+                    maxItems: 200
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [email, user_id]
+                      properties:
+                        email:
+                          type: string
+                          format: email
+                          minLength: 3
+                          maxLength: 320
+                          x-hub-max-utf8-bytes: 320
+                        user_id:
+                          type: [string, "null"]
+                          format: uuid
+                          minLength: 36
+                          maxLength: 36
+                          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                          not: {const: 00000000-0000-0000-0000-000000000000}
+        "400":
+          description: invalid mail scheduling request
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/ErrorEnvelope"}
+                  - type: object
+                    properties:
+                      error: {const: invalid mail scheduling request}
+        "404":
+          description: mail message not found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/ErrorEnvelope"}
+                  - type: object
+                    properties:
+                      error: {const: mail message not found}
+        "409":
+          description: mailbox account deleting
+          headers:
+            X-Hub-Error-Code:
+              required: true
+              schema: {const: MAIL_ACCOUNT_DELETING}
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/ErrorEnvelope"}
+                  - type: object
+                    properties:
+                      error: {const: mailbox account deleting}
+        "503":
+          description: mail message unavailable
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/ErrorEnvelope"}
+                  - type: object
+                    properties:
+                      error: {const: mail message unavailable}
+        "500":
+          description: mail message unavailable
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/ErrorEnvelope"}
+                  - type: object
+                    properties:
+                      error: {const: mail message unavailable}
   /mail/messages/{messageId}/attachments/{attachmentId}/download:
     get:
       tags: [MailAttachments]
