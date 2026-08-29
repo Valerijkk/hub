@@ -66,29 +66,62 @@ backend/migrations/atlas/mail-calendar-v1/
   20260827000000_mail_account_password_enrollment.sql
   20260827000001_calendar_delivery_materialization_invalid.sql
   20260827000002_calendar_invite_sequence_non_negative.sql
+  20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql
   atlas.sum
 ```
 
-## Checksum reconciliation (Packet A capability; Docker NOT_RUN)
+## Historical seven-file checksum and partial replay evidence (2026-08-29)
 
 `schema-maintenance-hash` is an offline, no-database, pinned-Atlas candidate
-generator. It copies only the reviewed seven SQL files, never source `atlas.sum`,
-and emits only the bounded candidate checksum review file.
+generator. The pre-R1 checksum packet copied only the reviewed seven SQL files,
+never source `atlas.sum`, and emitted only the bounded candidate checksum review
+file. That seven-file packet ended at `20260827000002`; it is not evidence for
+the pending eight-file reconciliation.
 
 A candidate checksum is not migration authority until independent exact-byte
-review and Packet B apply; a successful hash alone is not schema-verification or
-database-apply evidence. After Packet B, `schema-maintenance-verify` is expected
-to lint seven versions and converge at `20260827000002` with seven executed and
-zero pending files. Until that Docker run, this is an expectation, not evidence.
+review and its separate metadata-only apply; a successful hash alone is not
+schema-verification or database-apply evidence.
+
+On 2026-08-29, the rebuilt schema-maintenance image and a fresh disposable
+database provided bounded seven-file evidence: Atlas analyzed and linted all
+seven versions through current version `20260827000002`, and the fresh lineage
+apply reached seven executed files with zero pending.
+
+The full `schema-maintenance-verify` operation did not pass. Its final
+roundtrip comparison failed because the current Ent snapshot still differed by
+exactly four changes: two canonical delivery CHECK replacements and two
+foreign-key constraint-name drifts. This evidence proves only bounded
+seven-file checksum handling, lint, and fresh disposable lineage replay. It is
+not an accepted verify, current-schema convergence, retained-database upgrade
+proof, product test, external mail delivery, deployment, or product-readiness
+claim.
+
+## Pending eight-file schema roundtrip reconciliation (R1; Docker NOT_RUN)
+
+`20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql` is an
+append-only metadata reconciliation: it replaces two validated delivery-state
+CHECK constraints in the current Ent canonical form and renames two foreign-key
+constraints without changing their columns or referential actions. It neither
+rewrites data nor changes provider, queue, or application behavior.
+
+The eighth SQL file requires a fresh checksum candidate, two independent
+exact-byte reviews, and a separate `atlas.sum`-only metadata atom before any
+verification run. A future clean `schema-maintenance-verify` can prove only
+bounded disposable eight-file lineage replay and current-schema convergence:
+Atlas validation/lint, version `20260829000000` with eight executed and zero
+pending files, one current snapshot, and empty forward and reverse semantic
+diffs. It is not evidence for a retained-database upgrade, backend build,
+product tests, external mail delivery, merge, deployment, or production apply.
 
 The baseline is the complete PostgreSQL desired schema from exact pre-feature
 master `f21e3f7748eac55a4b16746b078e88801f11829c`. The core migration is the first
 additive, allowlisted delta to the reviewed Mail/Calendar Ent schemas. The five
 later migrations are separately reviewed forward-only additions; their reviewed
 semantics, including any intentional constraint replacement, are not restated by
-the core-delta guard. All seven SQL files and `atlas.sum` require independent
-exact-byte review and authority appropriate to their packet before they become
-apply authority.
+the core-delta guard. The seven historical SQL files, pending eighth
+reconciliation SQL file, and `atlas.sum` each require independent exact-byte
+review and authority appropriate to their packet before they become apply
+authority.
 
 An empty database applies the baseline normally. An existing database may mark
 the baseline as applied only after a separate schema-equivalence report proves it
