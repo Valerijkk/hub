@@ -98,6 +98,22 @@ core. It does not authorize production/test code under the wrong model, an unrev
 migration, direct Docker/Compose execution, network access, or L1 feed implementation
 before its founder gate.
 
+## Task-4 API authority gate (2026-08-29)
+
+For bounded public Task-4 Mail/Calendar HTTP atoms, `docs/mail/openapi.yaml` is the sole
+normative schema, route, authz, error, and compatibility contract. Later atoms must use its
+`operationId`, `x-hub-authz`, and components. `backend/docs/swagger.yaml` and
+`backend/docs/swagger.json` remain legacy/general Hub Swag outputs and are non-authoritative
+for this bounded surface until a separately approved migration. Frontend clients remain the
+handwritten domain adapters in `frontend/src/api/mail.ts` and `frontend/src/api/calendar.ts`;
+immediate Swag backfill, frontend code generation, and a third route manifest are rejected.
+
+Each future HTTP atom requires one reviewed three-way receipt in one change set: normative OAS
+operation/schema, authenticated owner-scoped backend handler plus wiring, and matching
+handwritten typed client wrapper. This is an authority gate only: it does not claim any declared
+route exists or passes. Implementation evidence remains static-only and runtime is `NOT_RUN`;
+executable public-behavior evidence is deferred to `testframework/tests/api/**`.
+
 ## 1. Non-negotiable invariants
 
 1. A received calendar part is never state-changing merely because it parses. The engine

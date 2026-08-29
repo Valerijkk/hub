@@ -115,6 +115,22 @@ Phase 145 founder auth/gateway gates and inaccessible private engine interfaces,
 launcher/framework cutover, build, test, generation, migration, Docker, runtime, and merge
 acceptance remain `NOT_READY`/`NOT_RUN` as applicable.
 
+## Task-4 API authority gate (2026-08-29)
+
+`docs/mail/openapi.yaml` is the sole normative schema, route, authz, error, and compatibility
+contract for the bounded public Task-4 Mail/Calendar HTTP surface. Future atoms use its
+`operationId`, `x-hub-authz`, and components. `backend/docs/swagger.yaml` and
+`backend/docs/swagger.json` remain legacy/general Hub Swag outputs and are non-authoritative
+for this surface until a separately approved migration. Do not backfill Swag now, introduce
+frontend code generation, or create a third route manifest.
+
+The required reviewed receipt for every future Task-4 HTTP atom is exactly: (1) the normative
+OAS operation/schema, (2) an authenticated owner-scoped backend handler and its wiring, and
+(3) a matching handwritten typed wrapper in `frontend/src/api/mail.ts` or
+`frontend/src/api/calendar.ts`. The OAS declaration and this handoff do not claim that any
+declared route exists or passes. Current implementation evidence is static-only and runtime is
+`NOT_RUN`; later executable public-behavior evidence belongs only in `testframework/tests/api/**`.
+
 ## Task 6B Ent sync prepare immutable source receipt (2026-08-22)
 
 `STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN` at effective HEAD `431022ed`, after source

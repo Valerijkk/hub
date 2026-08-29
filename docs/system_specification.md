@@ -162,7 +162,18 @@ the live route inventory below. In particular, legacy `GET /api/calendar/events`
 Future folder/thread/search pages expose projection state and last committed freshness.
 One leased bounded backend worker owns L0 Inbox ingestion; invalid cursors preserve current
 owner rows, rebuild through base-state/ID-anchored enumeration, catch up incrementally, then finalize. This
-is a frozen contract, not current route or runtime evidence.
+is a frozen contract, not current route or runtime evidence. For bounded Task-4 Mail/Calendar
+HTTP work, `docs/mail/openapi.yaml` is the sole normative schema, route, authz, error, and
+compatibility authority; its `operationId`, `x-hub-authz`, and components govern later atoms.
+`backend/docs/swagger.yaml` and `backend/docs/swagger.json` remain legacy/general Hub Swag
+outputs and are non-authoritative for that bounded surface until a separately approved
+migration. The Mail and Calendar frontend clients remain handwritten adapters in
+`frontend/src/api/mail.ts` and `frontend/src/api/calendar.ts`: no immediate Swag backfill,
+frontend code generator, or third route manifest is authorized. Every future Task-4 HTTP atom
+must be one reviewed three-way receipt: normative OAS operation/schema, authenticated
+owner-scoped backend handler plus wiring, and a matching handwritten typed client wrapper.
+This gate does not assert that a declared route already exists or passes; executable behavior is
+later evidence in `testframework/tests/api/**`, and runtime remains `NOT_RUN`.
 
 ### Endpoint inventory (2026-06-21)
 
