@@ -1,8 +1,8 @@
 # Migration artifacts
 
-## Mail/Calendar deferred-receipt expiry checkpoint (2026-08-26)
+## Historical three-file deferred-receipt expiry checkpoint (2026-08-26)
 
-The accepted mail-calendar-v1 lineage now contains
+At the time of this checkpoint, the accepted mail-calendar-v1 lineage contained
 20260826000000_calendar_deferred_receipt_expiry.sql after the baseline and
 core migrations. A broad Atlas-generated candidate was rejected because it
 included unrelated Mail constraint/index drop-and-recreate noise. The accepted
@@ -12,11 +12,13 @@ deferred_missing_master rows exist, and then adds the nullable object-state
 link, exact expiry, four checks, NO ACTION foreign key, and traversal index in
 the same transaction.
 
-schema-maintenance-verify passed in Docker on 2026-08-26: Atlas lint covered
-three versions and 260 schema changes; all three migrations (555 statements)
+During that historical three-file checkpoint, schema-maintenance-verify passed
+in Docker on 2026-08-26: Atlas lint covered three versions and 260 schema changes;
+all three migrations (555 statements)
 applied at version 20260826000000 with zero pending files; the one-file
 current-schema snapshot converged to the same version; forward and reverse
-semantic comparisons were empty. This proves this schema lineage only. The
+semantic comparisons were empty. This proves the historical three-file schema
+lineage only; it is not evidence for the seven-file lineage. The
 run used the disposable schema-maintenance PostgreSQL instance; it is not
 evidence of an upgrade over retained production receipts. A live rollout still
 requires a verified backup and successful execution of the same fail-closed
@@ -59,15 +61,33 @@ The sole future Atlas lineage for this workstream is:
 backend/migrations/atlas/mail-calendar-v1/
   20260823000000_mail_calendar_baseline.sql
   20260823000001_mail_calendar_core.sql
+  20260826000000_calendar_deferred_receipt_expiry.sql
+  20260826000001_calendar_inbound_message_receipt_event_message_idx.sql
+  20260827000000_mail_account_password_enrollment.sql
+  20260827000001_calendar_delivery_materialization_invalid.sql
+  20260827000002_calendar_invite_sequence_non_negative.sql
   atlas.sum
 ```
 
+## Checksum reconciliation (Packet A capability; Docker NOT_RUN)
+
+`schema-maintenance-hash` is an offline, no-database, pinned-Atlas candidate
+generator. It copies only the reviewed seven SQL files, never source `atlas.sum`,
+and emits only the bounded candidate checksum review file.
+
+A candidate checksum is not migration authority until independent exact-byte
+review and Packet B apply; a successful hash alone is not schema-verification or
+database-apply evidence. After Packet B, `schema-maintenance-verify` is expected
+to lint seven versions and converge at `20260827000002` with seven executed and
+zero pending files. Until that Docker run, this is an expectation, not evidence.
+
 The baseline is the complete PostgreSQL desired schema from exact pre-feature
-master `f21e3f7748eac55a4b16746b078e88801f11829c`. The second file is an additive,
-allowlisted delta to the reviewed Mail/Calendar Ent schemas. It may not contain
-`DROP`, `TRUNCATE`, implicit data deletion, destructive type conversion,
-constraint weakening, an unreviewed cascade, or unrelated schema change. Both SQL
-files and `atlas.sum` require independent exact-byte review before they become
+master `f21e3f7748eac55a4b16746b078e88801f11829c`. The core migration is the first
+additive, allowlisted delta to the reviewed Mail/Calendar Ent schemas. The five
+later migrations are separately reviewed forward-only additions; their reviewed
+semantics, including any intentional constraint replacement, are not restated by
+the core-delta guard. All seven SQL files and `atlas.sum` require independent
+exact-byte review and authority appropriate to their packet before they become
 apply authority.
 
 An empty database applies the baseline normally. An existing database may mark
@@ -101,12 +121,13 @@ canonical recurrence semantics.
 ## Execution boundary
 
 The future execution API is an isolated non-QA Compose profile named
-`schema-maintenance`. Its fixed baseline/diff/generate/verify operations use pinned tool and
+`schema-maintenance`. Its fixed baseline/diff/generate/hash/verify operations use pinned tool and
 image digests, non-root read-only containers, CPU/RAM/PID/tmpfs/time limits, no published ports,
 no Docker socket, no host or named volumes, no persistent runtime cache, and unconditional
-container cleanup. Baseline/diff/verify alone use an internal-only disposable PostgreSQL peer;
-generate has `network_mode: none`, no database environment or dependency, and only a separate
-256 MiB RAM TMPDIR/GOTMPDIR is executable while `/work`, `/tmp`, source, HOME, XDG and GOCACHE
+container cleanup. Baseline/diff/verify use an internal-only disposable PostgreSQL peer; generate
+and hash use `network_mode: none` with no database environment or dependency. Only generate has
+a separate 256 MiB RAM executable TMPDIR/GOTMPDIR; hash retains the common noexec `/work` and
+`/tmp` tmpfs mounts and has no executable `/run/go-run-exec`. Source, HOME, XDG and GOCACHE
 remain noexec. It does not extend the closed testframework QA catalog.
 
 `client.Schema.Create(ctx)` remains development-only and may run only with
@@ -117,9 +138,11 @@ forward-only and never deletes user data automatically.
 
 Direct host Atlas, Ent, database, build, validator and test commands are forbidden.
 
-## Docker evidence (2026-08-26)
+## Historical Docker evidence for the pre-reconciliation lineage (2026-08-26)
 
-The bounded schema-maintenance operation is accepted for this feature lineage only:
+This dated execution covered only the baseline and core migrations. It is
+historical two-file evidence and not three-file or seven-file reconciliation
+evidence:
 
 - double offline Ent generation produced 837 image-local files with identical manifest
   SHA-256 `9baabd28f85b00e3c8a808f11773e24e5b56ae37b4d599f68efdcdb9c63e8b83`;

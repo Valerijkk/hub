@@ -22,7 +22,14 @@ readonly GENERATE_SECOND_EXEC_DIR="$GO_RUN_EXEC_ROOT/generate-second"
 readonly BASELINE_FILENAME=20260823000000_mail_calendar_baseline.sql
 readonly CORE_FILENAME=20260823000001_mail_calendar_core.sql
 readonly DEFERRED_RECEIPT_EXPIRY_FILENAME=20260826000000_calendar_deferred_receipt_expiry.sql
-readonly SNAPSHOT_FILENAME=20260826000000_current_snapshot.sql
+readonly INBOUND_MESSAGE_RECEIPT_EVENT_MESSAGE_IDX_FILENAME=20260826000001_calendar_inbound_message_receipt_event_message_idx.sql
+readonly PASSWORD_ENROLLMENT_FILENAME=20260827000000_mail_account_password_enrollment.sql
+readonly DELIVERY_MATERIALIZATION_INVALID_FILENAME=20260827000001_calendar_delivery_materialization_invalid.sql
+readonly INVITE_SEQUENCE_NON_NEGATIVE_FILENAME=20260827000002_calendar_invite_sequence_non_negative.sql
+readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=7
+readonly EXPECTED_LINEAGE_ENTRY_COUNT=8
+readonly EXPECTED_LATEST_VERSION=20260827000002
+readonly SNAPSHOT_FILENAME=20260827000002_current_snapshot.sql
 readonly EXPECTED_DATABASE_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public'
 readonly EXPECTED_PREFEATURE_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar'
 readonly EXPECTED_CURRENT_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar'
@@ -94,6 +101,37 @@ require_exact_files() {
   for required_name in "$@"; do
     [ -f "$LINEAGE_DIR/$required_name" ] || fail 'schema-maintenance: required reviewed lineage input is absent' "$EX_CONFIG"
   done
+}
+
+require_seven_sql_lineage_inputs() {
+  require_exact_files "$EXPECTED_LINEAGE_ENTRY_COUNT" \
+    "$BASELINE_FILENAME" \
+    "$CORE_FILENAME" \
+    "$DEFERRED_RECEIPT_EXPIRY_FILENAME" \
+    "$INBOUND_MESSAGE_RECEIPT_EVENT_MESSAGE_IDX_FILENAME" \
+    "$PASSWORD_ENROLLMENT_FILENAME" \
+    "$DELIVERY_MATERIALIZATION_INVALID_FILENAME" \
+    "$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" \
+    atlas.sum
+}
+
+copy_seven_sql_lineage_inputs() {
+  destination="$1"
+
+  cp "$LINEAGE_DIR/$BASELINE_FILENAME" "$destination/$BASELINE_FILENAME" ||
+    fail 'schema-maintenance: cannot copy baseline lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$CORE_FILENAME" "$destination/$CORE_FILENAME" ||
+    fail 'schema-maintenance: cannot copy core lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$DEFERRED_RECEIPT_EXPIRY_FILENAME" "$destination/$DEFERRED_RECEIPT_EXPIRY_FILENAME" ||
+    fail 'schema-maintenance: cannot copy deferred receipt expiry lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$INBOUND_MESSAGE_RECEIPT_EVENT_MESSAGE_IDX_FILENAME" "$destination/$INBOUND_MESSAGE_RECEIPT_EVENT_MESSAGE_IDX_FILENAME" ||
+    fail 'schema-maintenance: cannot copy inbound receipt event index lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$PASSWORD_ENROLLMENT_FILENAME" "$destination/$PASSWORD_ENROLLMENT_FILENAME" ||
+    fail 'schema-maintenance: cannot copy password enrollment lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$DELIVERY_MATERIALIZATION_INVALID_FILENAME" "$destination/$DELIVERY_MATERIALIZATION_INVALID_FILENAME" ||
+    fail 'schema-maintenance: cannot copy delivery materialization lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" "$destination/$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" ||
+    fail 'schema-maintenance: cannot copy invite sequence lineage input for hashing' "$EX_CONFIG"
 }
 
 require_exact_candidate_files() {
@@ -715,10 +753,40 @@ run_diff() {
   emit_review_file "$candidate_dir/atlas.sum"
 }
 
+run_hash() {
+  require_exact_atlas_cli
+  require_seven_sql_lineage_inputs
+
+  [ ! -e "$WORK_ROOT" ] && [ ! -L "$WORK_ROOT" ] ||
+    fail 'schema-maintenance: hash work root already exists' "$EX_CONFIG"
+  mkdir "$WORK_ROOT" ||
+    fail 'schema-maintenance: cannot create hash work root' "$EX_CONFIG"
+  candidate_dir="$WORK_ROOT/lineage-hash"
+  [ ! -e "$candidate_dir" ] && [ ! -L "$candidate_dir" ] ||
+    fail 'schema-maintenance: hash candidate directory already exists' "$EX_CONFIG"
+  mkdir "$candidate_dir" ||
+    fail 'schema-maintenance: cannot create hash candidate directory' "$EX_CONFIG"
+
+  copy_seven_sql_lineage_inputs "$candidate_dir"
+  "$ATLAS_CLI" migrate hash --dir "file://$candidate_dir" > /dev/null ||
+    fail 'schema-maintenance: cannot hash reviewed Mail/Calendar lineage inputs' "$EX_CONFIG"
+  require_exact_candidate_files "$candidate_dir" "$EXPECTED_LINEAGE_ENTRY_COUNT" \
+    "$BASELINE_FILENAME" \
+    "$CORE_FILENAME" \
+    "$DEFERRED_RECEIPT_EXPIRY_FILENAME" \
+    "$INBOUND_MESSAGE_RECEIPT_EVENT_MESSAGE_IDX_FILENAME" \
+    "$PASSWORD_ENROLLMENT_FILENAME" \
+    "$DELIVERY_MATERIALIZATION_INVALID_FILENAME" \
+    "$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" \
+    atlas.sum
+
+  emit_review_file "$candidate_dir/atlas.sum"
+}
+
 run_verify() {
   require_exact_atlas_cli
   require_internal_database_urls
-  require_exact_files 4 "$BASELINE_FILENAME" "$CORE_FILENAME" "$DEFERRED_RECEIPT_EXPIRY_FILENAME" atlas.sum
+  require_seven_sql_lineage_inputs
   start_materializer_job
 
   run_materializer materialize current || fail 'schema-maintenance: cannot materialize current schema' "$EX_CONFIG"
@@ -729,7 +797,7 @@ run_verify() {
   "$ATLAS_CLI" migrate lint \
     --dir "file://$LINEAGE_DIR" \
     --dev-url "$ATLAS_LINT_DEV_URL" \
-    --latest 3 ||
+    --latest "$EXPECTED_LINEAGE_SQL_FILE_COUNT" ||
     fail 'schema-maintenance: Mail/Calendar lineage lint failed' "$EX_CONFIG"
   "$ATLAS_CLI" migrate apply \
     --dir "file://$LINEAGE_DIR" \
@@ -752,9 +820,9 @@ run_verify() {
   [ "$materializer_verification_status_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
     fail 'schema-maintenance: verification migration status exceeds review size limit' "$EX_CONFIG"
   if ! grep -Eq '^[[:space:]]*Migration Status:[[:space:]]*OK[[:space:]]*$' "$materializer_verification_status" ||
-    ! grep -Eq '^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*20260826000000[[:space:]]*$' "$materializer_verification_status" ||
+    ! grep -Eq "^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*$EXPECTED_LATEST_VERSION[[:space:]]*\$" "$materializer_verification_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Next Version:[[:space:]]*Already at latest version[[:space:]]*$' "$materializer_verification_status" ||
-    ! grep -Eq '^[[:space:]]*--[[:space:]]+Executed Files:[[:space:]]*3[[:space:]]*$' "$materializer_verification_status" ||
+    ! grep -Eq "^[[:space:]]*--[[:space:]]+Executed Files:[[:space:]]*$EXPECTED_LINEAGE_SQL_FILE_COUNT[[:space:]]*\$" "$materializer_verification_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Pending Files:[[:space:]]*0[[:space:]]*$' "$materializer_verification_status"; then
     emit_review_file "$materializer_verification_status" >&2
     fail 'schema-maintenance: verification migration status did not converge' "$EX_CONFIG"
@@ -835,7 +903,7 @@ run_verify() {
   [ "$materializer_snapshot_status_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
     fail 'schema-maintenance: current schema snapshot migration status exceeds review size limit' "$EX_CONFIG"
   if ! grep -Eq '^[[:space:]]*Migration Status:[[:space:]]*OK[[:space:]]*$' "$materializer_snapshot_status" ||
-    ! grep -Eq '^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*20260826000000[[:space:]]*$' "$materializer_snapshot_status" ||
+    ! grep -Eq "^[[:space:]]*--[[:space:]]+Current Version:[[:space:]]*$EXPECTED_LATEST_VERSION[[:space:]]*\$" "$materializer_snapshot_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Next Version:[[:space:]]*Already at latest version[[:space:]]*$' "$materializer_snapshot_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Executed Files:[[:space:]]*1[[:space:]]*$' "$materializer_snapshot_status" ||
     ! grep -Eq '^[[:space:]]*--[[:space:]]+Pending Files:[[:space:]]*0[[:space:]]*$' "$materializer_snapshot_status"; then
@@ -904,7 +972,7 @@ run_verify() {
   printf '%s\n' "schema-maintenance: verification_schema_sha256=$materializer_verification_schema_sha256 compare_schema_sha256=$materializer_compare_roundtrip_schema_sha256 bytes=$materializer_verification_schema_size"
 }
 
-[ "$#" -eq 1 ] || fail 'usage: mail-calendar-schema {baseline|diff|generate|verify}' "$EX_USAGE"
+[ "$#" -eq 1 ] || fail 'usage: mail-calendar-schema {baseline|diff|generate|hash|verify}' "$EX_USAGE"
 
 case "$1" in
   baseline)
@@ -916,10 +984,13 @@ case "$1" in
   generate)
     run_generate
     ;;
+  hash)
+    run_hash
+    ;;
   verify)
     run_verify
     ;;
   *)
-    fail 'usage: mail-calendar-schema {baseline|diff|generate|verify}' "$EX_USAGE"
+    fail 'usage: mail-calendar-schema {baseline|diff|generate|hash|verify}' "$EX_USAGE"
     ;;
 esac

@@ -282,6 +282,11 @@ services:
       - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"
       - "/run/go-run-exec:rw,exec,nosuid,nodev,size=256m,uid=10001,gid=10001,mode=0700"
 
+  schema-maintenance-hash:
+    <<: *schema-maintenance-common
+    command: ["hash"]
+    network_mode: none
+
   schema-maintenance-verify:
     <<: *schema-maintenance-tool
     command: ["verify"]
