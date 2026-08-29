@@ -1,14 +1,14 @@
 # Contract 144-05C — live mail-thread PostgreSQL FTS
 
-**Status:** `ROOT_AUTHORITY_CONTRACT / SCHEMA_LINEAGE_BLOCKED / RUNTIME_NOT_RUN`.
+**Status:** `ROOT_AUTHORITY_CONTRACT / R2_SCHEMA_ACCEPTED / FTS_PENDING / RUNTIME_NOT_RUN`.
 
 This document is the sole authority for the first Mail thread FTS atom and its
-OpenAPI correction. It first blocks all FTS/OAS/repository implementation on
-the Mail/Calendar Atlas-lineage reconciliation below. It is docs-only; it is
-not source acceptance, schema-apply authority, a compatibility claim, product
-readiness, or runtime evidence.
+OpenAPI correction. The historical schema-lineage blocker is closed; this
+amendment authorizes source-first tests and review plus bounded future
+implementation. It grants no behavior, runtime, retained-database, or product
+acceptance.
 
-## Mandatory prerequisite — repair the authoritative lineage
+## Historical prerequisite diagnosis — superseded by accepted R2
 
 The current `mail-calendar-v1` lineage is internally inconsistent: seven SQL
 migrations are tracked, but `atlas.sum` contains only the three entries through
@@ -48,9 +48,25 @@ maintenance that proves Atlas hash/validate/apply/status convergence. It must
 not relabel `run_diff` as seven-file verification or recovery. Until then all such
 evidence is `NOT_RUN`, and the FTS route is `BLOCKED`.
 
+## Prerequisite acceptance amendment (2026-08-29)
+
+This amendment fully supersedes that historical blocker. R2 is accepted at
+`b939553c` by the documentation receipt: exactly nine SQL migrations plus
+`atlas.sum`, latest `20260829000001`; `lint9`; 9 applied / 0 pending;
+snapshot 1 executed / 0 pending; both semantic diffs empty; equal 242505-byte
+artifacts; and a raw SHA mismatch that is diagnostic-only. It authorizes only
+subsequent FTS migration, tests, repository, OAS, checksum, and verification
+atoms. R1 and R2 are immutable. No retained, production, or product-runtime
+authority follows.
+
+The prior seven-file diagnosis is historical only and is superseded in full for
+current scope, inventory, and acceptance by this amendment's `b939553c` facts.
+No historical file count, migration identifier, or conclusion is a current
+acceptance input.
+
 ## Frozen eventual decision and narrow scope
 
-Only after the prerequisite is accepted may root select an atomic FTS packet.
+With the R2 prerequisite accepted, root may select the following atomic FTS packets.
 Its public surface remains existing authenticated
 `GET /mail/threads?search=`, existing
 `MailboxThreadProjectionRepository.ListMailboxThreadProjection`, and existing
@@ -91,7 +107,7 @@ In scope after prerequisite acceptance:
    reconciliation of already-wired optional `search` and `starred` on
    existing `GET /mail/threads` / `listMailThreads`.
 4. A static OAS ↔ existing backend parser/wiring ↔ handwritten-client receipt.
-5. Focused contract tests for the frozen SQL/binding/scope/order/exclusions.
+5. Docker-only Python integration and API tests for the DB and public behavior boundaries frozen below.
 
 The OAS `search` is optional, named exactly `search`, with `minLength: 1`
 and `x-hub-max-utf8-bytes: 128`. That extension documents the existing
@@ -108,8 +124,8 @@ Forbidden: Meilisearch or another search store; NATS consumer/checkpoint/replay;
 secondary projection; hydration; plain/rich body, HTML, MIME, raw data, BCC,
 URL, attachment bytes, names or filenames; remote images; data backfill; new
 route/handler, DTO, service, port, client method, OAS endpoint or cursor ABI;
-and any host/Docker/runtime execution outside the prerequisite's separately
-authorized schema-maintenance allowance.
+and any host execution. Docker execution remains limited to the accepted exact
+Compose services and separately reviewed schema-maintenance operations.
 
 The old `DISPATCH-REMAINING.md` `144-05C-Search` is non-authoritative wherever
 it requires a typed search port, body/filename index document, consumer
@@ -131,12 +147,24 @@ source correction, not a deployment or compatibility claim.
 |---|---|
 | `docs/mail/openapi.yaml` | Remove `/mail/search` GET and `searchMail` from operations. Add optional `search` with `minLength: 1` plus `x-hub-max-utf8-bytes: 128`, and the already-wired optional `starred` boolean, to `/mail/threads`; retain `operationId: listMailThreads`, existing list filters/responses, and state live owner-scoped subject/snippet token semantics. Do not add OAS `maxLength: 128`. |
 | `backend/internal/mail/mailbox_ent_projection_repository.go` | Replace only `mailboxThreadProjectionSearchPredicate` and private helper required for the frozen bound FTS predicate. Do not alter scope, filters, mapping, cursor, response or ordering. |
-| `backend/tests/mail/mailbox_ent_projection_repository_fts_contract_test.go` | New focused source/contract test: exact structural expression and bound parameter; no `ILIKE`/`COALESCE`/`CONCURRENTLY`/rank or prohibited data/capability expansion; preserved scope/order. |
-| `backend/migrations/atlas/mail-calendar-v1/20260829000000_mail_threads_live_subject_snippet_fts.sql` | New forward-only migration containing exactly the frozen single `CREATE INDEX` statement. |
-| `backend/migrations/atlas/mail-calendar-v1/atlas.sum` | Add only the accepted FTS migration hash after its approved schema-maintenance operation, on top of the accepted seven-entry prerequisite state. |
+| `testframework/tests/integration/mail/test_mail_threads_fts.py` | PostgreSQL DB boundary, FTS catalogue/index, and token membership; no planner-use assertion. |
+| `testframework/tests/api/mail/test_list_mail_threads_search.py` | `GET /mail/threads` search owner scope, starred conjunction, stable order, and absence of `/mail/search`. |
+| `backend/migrations/atlas/mail-calendar-v1/20260829000002_mail_threads_live_subject_snippet_fts.sql` | New forward-only migration containing exactly the frozen single `CREATE INDEX` statement. |
+| `backend/migrations/atlas/mail-calendar-v1/atlas.sum` | Add only the accepted FTS migration hash after its approved schema-maintenance operation, on top of the accepted nine-migration R2 state. |
+| `backend/docker/entrypoints/mail-calendar-schema.sh` | Explicit FTS transition: 10 SQL / 11 entries / latest `20260829000002` / `20260829000002_current_snapshot.sql` / membership in `run_hash` and `run_verify`; `run_diff` unchanged. |
 | `backend/internal/mail/mailbox_projection_handler.go` | Read-only receipt: existing parser accepts one `search`, normalizes via `mailboxThreadProjectionNormalizeSearch`, rejects unknown/duplicate fields. No handler/route mutation. |
 | `backend/cmd/server/wiring_calendar_mail.go` | Read-only receipt: existing projection handler registers `/mail/threads` once under authenticated API wiring. No wiring mutation. |
 | `frontend/src/api/mail.ts` | Read-only receipt: existing `getMailThreads` emits normalized optional `search` on `/mail/threads`. No new method/endpoint/DTO/field. |
+
+Both Python tests are source-authored before production mutation. Executable
+RED/GREEN evidence is Docker-only after candidate infrastructure is available.
+The integration test owns the PostgreSQL catalogue/index and token membership
+without a planner-use assertion. The API test owns route scope, starred
+conjunction, stable order, and absence of `/mail/search`. Static
+OAS-parser/wiring/client consistency is a review receipt only.
+
+The 10/11 transition is a future conditional obligation after the FTS packet is
+accepted; it is not performed, verified, or accepted by this amendment.
 
 `backend/internal/mail/mailbox_projection_repository.go` is unchanged: it owns
 the existing 128-byte normalized/case-folded Search validation and cursor
@@ -175,18 +203,22 @@ logging, output or error leakage.
 
 ## Acceptance, rollback and evidence
 
-Hard gate zero is the prerequisite: seven-entry `atlas.sum`, exact
-seven-file `run_hash`/`run_verify` guard/status, independent byte review,
-and authorized Docker-only semantic schema maintenance must all pass before the
-eventual FTS source packet exists. `run_diff` remains its baseline/core
-bootstrap-and-diff-only mode and is not this verification/recovery evidence.
+Hard gate zero is accepted R2 at `b939553c`: exactly nine SQL migrations plus
+`atlas.sum`, latest `20260829000001`, `lint9`, 9 applied / 0 pending, snapshot
+1 executed / 0 pending, both semantic diffs empty, equal 242505-byte artifacts,
+and a diagnostic-only raw SHA mismatch. This permits the FTS atoms; `run_diff`
+remains unchanged. The ten-file FTS transition, checksum and verification
+remain pending/not run.
 
 After that gate, static acceptance requires the exact migration/path/index
 statement; structural identical bound repository predicate; unchanged scope,
 optional filters (including already-wired `starred`), `limit + 1` and stable
-order; OAS/client/parser/wiring three-way receipt; focused exclusion tests;
-updated checksum; and independent Contract, Security and Lifecycle review.
-Every requirement remains `PENDING`.
+order; a four-surface static receipt covering OAS, client, parser, and wiring;
+Docker-only integration/API acceptance; updated checksum; and independent Contract, Security and Lifecycle review.
+R2 schema reconciliation is accepted on the recorded evidence. Every FTS-dependent
+requirement, including migration application, repository/query behavior,
+OAS/client exposure, and Docker integration/API execution, remains
+`PENDING/NOT_RUN`.
 
 The existing route, DTO, result shape and cursor ABI are retained. Search
 matching intentionally changes from substring `ILIKE` to simple FTS under the
@@ -201,13 +233,15 @@ user data or mutate the historical root migration collection.
 
 | Evidence | Status |
 |---|---|
-| Seven-file lineage/guard reconciliation | `BLOCKED / NOT_RUN` |
-| Contract/source inspection | `STATIC_AUTHORED` |
+| Nine-file R2 lineage/guard reconciliation | `PASS (b939553c; Docker schema roundtrip accepted)` |
+| Contract rebase | `STATIC_AUTHORED` |
 | OAS/backend/wiring/client receipt | `PENDING` |
 | Independent Contract/Security/Lifecycle review | `PENDING` |
-| Atlas/Ent generation and checksum verification | `NOT_RUN` |
-| Docker schema maintenance, DB apply and plan | `NOT_RUN` |
+| FTS Atlas checksum/verification | `NOT_RUN` |
+| FTS Docker schema maintenance, DB apply and plan | `NOT_RUN` |
 | Compile, tests, format/lint and runtime | `NOT_RUN` |
 
-The accepted launcher remains `NOT_READY`. No host tool, Docker, Ent
-generation, SQL apply or runtime authority follows from this document.
+The nine-file R2 launcher is accepted for its bounded schema-roundtrip gate.
+The ten-file FTS transition, checksum and verification remain `PENDING/NOT_RUN`.
+No host tool, retained/shared/production SQL apply, product runtime, merge,
+push or deploy authority follows from this document.
