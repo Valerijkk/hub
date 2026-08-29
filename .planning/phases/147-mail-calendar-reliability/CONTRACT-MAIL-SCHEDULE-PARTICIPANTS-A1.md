@@ -240,23 +240,62 @@ A2 must implement its opaque port in
    persisted `From`, `To`, and `Cc` address projections. Do not select, decode,
    load, or derive candidates from Bcc, body, raw/provider/engine snapshot,
    Reply-To, contacts, or client-supplied headers.
-4. In that same trusted scope, derive the self set from every active mailbox
-   identity (primary plus aliases) and the actor's canonical stored `User.email`.
-   Remove self addresses from the `From + To + Cc` canonical candidate set.
-   If the message is absent/foreign or any requested address is absent after
-   this subtraction, return the single `not_found` result **before any User
-   lookup**.
-5. Only after all requested addresses pass membership, execute one bounded set
-   lookup for active users in the exact organization. Emit a non-nil UUID only
-   where the requested canonical address exactly equals both
-   `NormalizeAddress(EngineAddress{Email: user.Email}).Email` and the stored
-   `user.Email` bytes. Every other case is `nil`; do not expose why.
+4. In that same trusted scope, derive the pre-User self set from every active
+   mailbox identity (primary plus aliases) only. Remove those addresses from
+   the `From + To + Cc` canonical candidate set. If the message is
+   absent/foreign or any requested address is absent after this subtraction,
+   return the single `not_found` result **before any User lookup**. This
+   gate deliberately does not try to infer `User.email` from an identity.
+5. Only after all requested addresses pass that pre-User gate, execute exactly
+   one bounded combined User lookup for active users in the exact organization:
+   `user.ID == ActorID OR user.Email IN Addresses`. Project only User
+   ID/email/status and the exact organization proof. The actor must appear
+   exactly once as active and same-org; any absent, inactive, cross-org,
+   malformed, noncanonical, or duplicate actor result is `internal`. Its
+   stored email must itself satisfy
+   `NormalizeAddress(EngineAddress{Email: user.Email}).Email == user.Email`.
+   If any requested address exactly equals that actor email, return the same
+   generic `not_found` result, without a partial mapping. For every other
+   requested address, emit a non-nil UUID only where the requested bytes equal
+   both that exact normalized user email and the stored `user.Email` bytes;
+   every missing/inactive/cross-org/ambiguous/legacy-noncanonical candidate is
+   `nil`, with no exposed reason.
 6. Return the complete aligned closed result with copied values. A2 must not
    start engine I/O, Calendar work, or a Mail-to-Calendar import/correlation.
 
-This split proves the bridge's required statement: no User lookup precedes a
-source-selection `not_found`, while raw headers and identities never cross the
-A2-to-A1 port.
+This split proves the bridge's required statement: no User lookup precedes the
+pre-User source-selection `not_found`; the one post-gate combined lookup may
+return only the same generic `not_found` for an actor-self match, while raw
+headers and identities never cross the A2-to-A1 port.
+
+### A2 combined User-query authority
+
+The one A2 file must use the existing read-only repeatable-read Mail Ent
+snapshot. Its only User query is bounded by `len(Addresses) + 2`, ordered by
+stable User ID, constrained to active users having the exact request
+organization, and has the logical predicate:
+
+```text
+(user.id == ActorID OR user.email IN Addresses)
+AND user.status == active
+AND user.organization == OrganizationID
+```
+
+It projects only `id`, `email`, `status`, and the organization ID proof;
+it must not query User before the complete active-identity/header membership
+gate. The returned set must contain exactly one valid actor row. Candidate rows
+whose stored email is not byte-for-byte canonical are deliberately ignored for
+participant mapping, but a noncanonical actor row is `internal`. An actor
+self match is `not_found`; all other absent candidate mappings remain
+`nil`. Query failure is `unavailable`; malformed durable rows, an overflow,
+or an impossible duplicate result is `internal`.
+
+The A2 file selects the message's `id`, `mail_account_id`, `from`, `to`,
+and `cc` fields only, with live owner/account predicates. It must not select,
+decode, or materialize Bcc, Reply-To, body, engine/provider snapshots, contacts,
+or Calendar data. It returns a fresh ordered participant slice, cloned address
+strings, and fresh nullable UUID pointers. It imports neither Calendar nor a
+provider engine and creates no correlation or side effect.
 
 ## 8. Copy and validation invariants
 
@@ -313,10 +352,12 @@ May use:    MailboxEntRepository private Ent read machinery and only minimal
             fields required by Section 7
 Must not:   edit A1; add handler/wiring/OAS/frontend/tests; read Bcc/body/raw
             engine data/Reply-To; call Calendar or provider engine; perform a
-            User lookup before complete source-membership proof
+            User lookup before the complete header/active-identity membership
+            proof
 Acceptance: one bounded owner/org/account-scoped read, exact all-address
-            pre-lookup membership gate, exact-byte user-email mapping, aligned
-            copied nullable result, and closed error mapping
+            pre-User membership gate, exactly one combined actor/candidate
+            User lookup, actor-self generic not_found, exact-byte user-email
+            mapping, aligned copied nullable result, and closed error mapping
 Evidence:   static only; Docker/runtime remain NOT_RUN
 ```
 

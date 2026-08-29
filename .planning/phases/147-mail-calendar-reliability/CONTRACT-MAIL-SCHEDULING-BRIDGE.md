@@ -24,25 +24,40 @@ production/test code. The client orchestrates the three independent API calls.
    body text, Reply-To, contacts, directory search, and client-supplied header
    values are never candidates.
 2. A self address is every active Mail identity (primary and aliases) for the
-   owner account **and** the actor's canonical `User.email`. Self addresses are
-   removed from the server-derived candidate set before client selection.
+   owner account **and** the actor's canonical `User.email`. Before the
+   single User query, the resolver can prove and subtract active identity
+   addresses only. The actor-email part is proved by that same single query and
+   is rejected with the identical generic `not_found` result if selected; a
+   self address never appears in resolver output.
 3. The request supplies 1..200 address strings. Each must already equal the
    byte-for-byte output of `mail.NormalizeAddress(EngineAddress{Email: value})`;
    normalization is validation, not a rewrite. The set is unique by those exact
    canonical bytes.
 4. Before any `User` lookup, the service rejects with one identical generic 404
-   only when the message is absent or foreign, or a selected address fails
-   source-selection membership: self, Bcc-only, non-header, or absent from the
-   server-derived candidate set. It must not reveal which rule failed.
+   only when the message is absent or foreign, or a selected address fails the
+   pre-User source-selection membership gate: an active owner identity, Bcc-only,
+   non-header, or absent from the persisted From/To/Cc candidate set. The
+   actor-email self check is deliberately deferred to rule 6's combined lookup
+   because `User.email` is not present in the Mail projection. It must not
+   reveal which rule failed.
 5. A deleting Mail account remains the existing `409` case; a temporary
    projection/repository failure remains the existing generic `503` case. They
    are not folded into the pre-lookup `404`.
-6. The resolver performs one bounded set lookup for active users in the actor's
-   exact organization. A mapping is emitted only where the requested canonical
-   address exactly equals `NormalizeAddress(user.Email).Email` **and** exactly
-   equals the stored `user.Email` bytes. Any legacy/noncanonical user row maps
-   to `null`, never through `LOWER`, IDNA-only, fuzzy, display-name, CRM, or
-   directory matching.
+6. Only after every requested address passes rule 4, the resolver performs
+   exactly one bounded combined User lookup in the actor's exact organization:
+   active rows where `user.id == actorID OR user.email IN requestedCanonicalAddresses`.
+   It selects only the User ID, email, status, and organization proof. The
+   actor result must be exactly one active same-organization row with a
+   non-empty exact-canonical stored email; a missing, inactive, cross-org,
+   noncanonical, malformed, or duplicate actor result is `internal`.
+   If any requested canonical address exactly equals that actor email, the
+   resolver returns the same generic `not_found` as rule 4, with no result.
+   For every other requested address, a mapping is emitted only where the
+   requested canonical address exactly equals
+   `NormalizeAddress(user.Email).Email` **and** exactly equals the stored
+   `user.Email` bytes. A missing, inactive, cross-organization, ambiguous, or
+   legacy/noncanonical candidate row maps to `null`, never through `LOWER`,
+   IDNA-only, fuzzy, display-name, CRM, or directory matching.
 7. Resolver output conveys neither project/channel membership nor availability.
    It has no per-address error/status/reason, match count, organization, name,
    role, source, or timing detail.
@@ -111,8 +126,9 @@ legacy-noncanonical addresses.
 
 The handler obtains actor identity solely from auth context, resolves the active
 mailbox owner and organization, and reads the message only under that exact
-owner/account/organization scope. It derives candidates from stored headers and
-only then makes the bounded active same-organization lookup.
+owner/account/organization scope. It derives and enforces pre-User candidates
+from stored headers and active Mail identities, then makes the sole combined
+active same-organization User lookup that also proves the actor email.
 
 | Condition | HTTP response |
 |---|---|
@@ -122,8 +138,10 @@ only then makes the bounded active same-organization lookup.
 | Mail projection/repository temporarily unavailable | `503` generic `mail message unavailable` |
 | Unexpected safe failure | `500` generic `mail message unavailable` |
 
-No User lookup occurs in the 404 path. The endpoint never returns `403`,
-`USER_NOT_FOUND`, `CROSS_ORG`, `NOT_MEMBER`, a per-address failure, or a timing
+No User lookup occurs before the pre-User source-selection 404. A post-lookup
+actor-self match also returns that exact same 404 body, with no result or
+secondary detail. The endpoint never returns `403`, `USER_NOT_FOUND`,
+`CROSS_ORG`, `NOT_MEMBER`, a per-address failure, or a timing
 classification.
 
 ## 4. Endpoint B — Calendar availability predicate
@@ -241,9 +259,11 @@ or Docker execution authority.
 Static acceptance must prove:
 
 - no candidate path reads Bcc/raw snapshot/body or accepts client headers;
-- all active mailbox identities/aliases plus actor canonical user email are
-  excluded before User lookup;
-- every invalid source-selection case reaches the identical pre-lookup 404;
+- all active mailbox identities/aliases are excluded before the sole combined
+  User lookup; that query proves the actor's canonical stored User email, and
+  any selected actor-self address returns the identical generic `not_found`;
+- every invalid pre-User header/active-identity membership case reaches the
+  identical pre-lookup 404;
 - exact canonical-byte User email equality is enforced and legacy rows yield
   only `null`;
 - availability request accepts no slot field and the private wrapper sets
