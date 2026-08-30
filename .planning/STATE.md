@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-minimal-merge-candidate
 stopped_at: final Git audit and remote fast-forward publication
 last_updated: "2026-08-31T00:00:00.000+03:00"
-last_activity: 2026-08-31 - MPR-01 resource gate deferred; reviewed JITSI-02A RED kept outside test discovery
+last_activity: 2026-08-31 - CALL-DUR-03 exact correlation-identity contract frozen while Docker gate remains deferred
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -1610,3 +1610,4 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 - JITSI-02A is now a dispatchable two-file TDD contract only: a Calls-package exact-raw-byte HMAC-SHA256 verifier plus its external unit oracle. It deliberately leaves header decoding, pre-allocation streaming limits, mTLS, JSON/event parsing, delivery-ID replay authority, durable enqueue and Calls mutation to C1/C2/D. No JITSI-02A file exists under `backend/tests/**` or `backend/internal/**`, and no runtime evidence is claimed.
 - A bounded 20-check low-frequency resource monitor kept finding `buildx_buildkit_default`; available physical memory stayed below the `12 GiB` gate, while C: remained above `250 GiB` free and no `backend-unit` container appeared. The exact MPR-01 Docker RED therefore remains `NOT_RUN/DEFER`; the adjacent builder was not stopped and no production implementation was dispatched.
 - The complete JITSI-02A external RED oracle is preserved as git-ignored SDD draft `.superpowers/sdd/150-PLAN/phase150_provider_event_hmac_contract_test.go.draft`, with behavior, compile-plausibility and scope/security reviews each `C0/I0/M0`. It is intentionally outside Go test discovery until MPR-01 RED/GREEN is accepted because the approved `backend-unit` launcher has no selector; restoring it earlier would make both focused missing-symbol RED receipts ambiguous. JITSI-02A Docker RED and production remain `NOT_RUN/ABSENT`.
+- CALL-DUR-03 is now frozen as a two-file future atom over the existing `ConfirmedParticipantConnectionKey`: an opaque provider participant identity accepts an already valid key or parses only the exact lowercase canonical three-UUID language, exposes correlation accessors, collapses every invalid input to one exact sentinel/zero value, and is explicitly not authentication or authorization evidence. Three independent API, grammar/security and TDD/scope analyses converged on this boundary; executable RED, implementation and runtime evidence remain `NOT_RUN/ABSENT` behind the ordered MPR-01 -> JITSI-02A -> CALL-DUR-03 evidence queue.
