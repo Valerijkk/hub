@@ -45,7 +45,30 @@ later Task 10.
 | Caddy / TLS | NOT_RUN |
 | Hub-to-Jitsi JWT integration | UNBOUND |
 | JVB advertise address, UDP, and media | NOT_RUN |
+| Five-secret mapping and no-default validation | STATIC CONTRACT ONLY |
+| Public STUN disabled by selected image | UNVERIFIED_FOR_SELECTED_DIGEST |
+| Custom Prosody lifecycle hooks / stock durable egress | UNVERIFIED_FOR_SELECTED_DIGEST |
+| Provider-side persistent event spool | BLOCKED_NONDISPATCHABLE |
+| Private mTLS sidecar and byte-identical relay | BLOCKED_NONDISPATCHABLE |
 | Restart and rollback | NOT_RUN |
+
+## Frozen static configuration policy
+
+- Hub `JITSI_APP_SECRET` maps only to upstream `JWT_APP_SECRET`.
+- `JITSI_APP_SECRET`, `JICOFO_COMPONENT_SECRET`, `JICOFO_AUTH_PASSWORD`,
+  `JVB_AUTH_PASSWORD`, and `JITSI_EVENT_HMAC_SECRET` are separate required
+  secrets with no usable default or reuse.
+- The default public boundary is Caddy `443/tcp` plus JVB `10000/udp`.
+  Port 80/ACME requires a separate accepted certificate-provisioning contract.
+- `JVB_ADVERTISE_IPS` is mandatory and public STUN must be disabled. The exact
+  selected-image mapping remains unaccepted until Linux discovery.
+- Tagged-template rootless/read-only metadata does not prove the effective
+  per-image user, host ownership, mounts, or accepted Compose `read_only`
+  settings; those remain blocked by the per-digest receipt.
+- Provider-side event module/spool/sidecar atoms remain blocked until
+  JITSI-D1, a non-memory persistent-store contract, and a separately
+  founder-authorized task-owned Docker QA launcher exist. No stock event
+  facility is accepted as durable authority without selected-digest proof.
 
 ## Authorized continuation gate
 

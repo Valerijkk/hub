@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-minimal-merge-candidate
 stopped_at: final Git audit and remote fast-forward publication
-last_updated: "2026-08-30T00:00:00.000+03:00"
-last_activity: 2026-08-30 - communications ADR and Phase 150/151 specs and plans synchronized; runtime remains unbound
+last_updated: "2026-08-31T00:00:00.000+03:00"
+last_activity: 2026-08-31 - Jitsi static operator contract synchronized; MPR-01 RED test accepted but Docker blocked by active BuildKit
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -1594,9 +1594,15 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 
 ## Session note - 2026-08-30 (Communications architecture and execution plans)
 
-- The accepted communications ADR now freezes immutable per-Call provider/presence mode, `Call.RoomName` as the provider/Jitsi room, Hub-owned connection epochs, provider-issued delivery dedupe, transactional Calls inbox/CAS/outbox, and a fully self-hosted Jitsi bridge over private mTLS plus independent raw-body HMAC. LiveKit remains the active provider and rollback path.
+- The accepted communications ADR now freezes immutable per-Call provider/presence mode, `Call.RoomName` as the provider/Jitsi room, Hub-owned connection epochs, provider-side delivery dedupe, transactional Calls inbox/CAS/outbox, and a fully self-hosted Jitsi event path with private mTLS plus independent raw-body HMAC. LiveKit remains the active provider and rollback path.
 - Phase 150 now has a bounded SPEC amendment plus Calls/Jitsi TDD atoms: immutable provider/presence identity, authenticated durable event authority, one later-gated Hub-native Jitsi surface, exact first test oracles, discovery-before-overlay, one-digest/low-disk ceilings, provider-pinned rollback and an honest `STATIC_FOUNDATION_ONLY / RUNTIME_UNBOUND` boundary.
 - Phase 151 now has a tracked bounded SPEC amendment plus an execution plan for the dedicated recovery worker: global PostgreSQL leader fence/checkpoint, Mongo message fence, replayable intent, current-audience planner, PostgreSQL ledger/outbox and isolated legacy-to-canonical tenant cutover.
 - Scoped independent Phase-150 and Phase-151 plan reviews are `PASS C0/I0/M0`. The final whole-diff Hub/GSD/Superpowers gate is mandatory before commit and its final verdict is the commit authority; no review result is executable runtime evidence.
 - No Docker test/build/pull/render/start, migration, live store, network, server, deployment, push, fetch or merge was performed in this planning packet. Mail/Calendar and `pro-qa-ai/**` were not changed.
 - Selected next executable gate is MPR-01: add `backend/tests/messenger/phase151_pending_recovery_leader_lease_contract_test.go`, run the exact Docker `backend-unit` RED after the recorded resource preflight, implement only the private leader-lease port/value contract, then run GREEN and independent review. `CALL-DUR-01` and `CALL-DUR-03` are also bounded but queued; all later recovery atoms remain blocked until the MPR-01 receipt.
+
+## Session note - 2026-08-31 (Jitsi official discovery and MPR-01 RED oracle)
+
+- The MPR-01 external RED oracle now exists as the sole untracked file and passed three independent static reviews at `C0/I0/M0`. Production remains absent and forbidden until the exact Docker RED is observed. Two read-only preflights found adequate disk and marginally adequate RAM but an active `buildx_buildkit_default`; therefore Docker RED remains `NOT_RUN/BLOCKED_ACTIVE_BUILDKIT` and the adjacent builder was not stopped.
+- Official Jitsi discovery confirms release `stable-11146-2` / commit `738058b`, upstream `JWT_APP_SECRET`, Hub's separate required `JICOFO_COMPONENT_SECRET` policy, the tagged-template rootless/read-only layout, and the need to disable public STUN explicitly. Effective per-image user/ownership/mount and any Compose `read_only` setting remain `UNBOUND` until per-digest Linux evidence. The tagged template proves the custom plugin/MUC-module path; exact lifecycle hooks/order and any stock durable egress remain `UNVERIFIED_FOR_SELECTED_DIGEST`.
+- The candidate Jitsi event design is now explicit but blocked: JITSI-02B0 must select a non-memory persistent provider store before a custom module may append a provider-deployment delivery ID plus exact envelope bytes; a separately verified private transport adapter/sidecar supplies mTLS; Hub verifies peer identity and raw-body HMAC before parse/apply. B/C/D also require a separate founder-authorized Docker QA launcher. These are `STATIC_DISCOVERY_ONLY / BLOCKED_NONDISPATCHABLE`; no plugin, spool, overlay, image, network, runtime, or media evidence exists.

@@ -44,7 +44,7 @@ A provider connection is identified by `(CallID, UserID, Epoch)`. Credential iss
 
 ### CALL150-09 Authenticated durable event authority
 
-Durable deduplication accepts only a verified provider-issued `(provider, delivery_id)`; timestamps, payload hashes, room or participant values, browser events, and Hub-generated IDs are not delivery identities. LiveKit durable ingress remains disabled until the pinned version proves a signed, nonempty delivery ID stable across retries. Jitsi authority is limited to a Hub-owned self-hosted bridge that persists its stable delivery ID before delivery. Before parse/apply, Hub verifies the bridge's mutually authenticated TLS identity and an independent HMAC-SHA256 signature over the exact raw envelope. Browser iframe events, public Jitsi, JaaS, and other provider APIs are not state authority. Hub/Jitsi application secrets, mTLS identities, and event-signing credentials remain distinct.
+Durable deduplication accepts only a verified provider-side `(provider, delivery_id)`; timestamps, payload hashes, room or participant values, browser events, and Hub-generated ingress IDs are not delivery identities. LiveKit durable ingress remains disabled until the pinned version proves a signed, nonempty delivery ID stable across retries. Jitsi authority is limited to a Hub-owned custom Prosody module loaded through the selected release's supported custom-plugin/MUC-module path. Exact lifecycle hooks/order and any equivalent stock durable egress are `UNVERIFIED_FOR_SELECTED_DIGEST`; no stock facility is accepted without JITSI-D1 proof. Before send, the custom module persists a provider-deployment delivery ID and exact envelope in an independently accepted durable source store that survives restart; memory/null storage, Hub application databases, MUC state, and unverified container filesystems are forbidden. A separately verified private transport adapter/sidecar provides mutually authenticated TLS because direct Prosody client-certificate support is not assumed. Before parse/apply, Hub verifies that peer identity and an independent HMAC-SHA256 signature over the exact stored raw envelope. Browser iframe events, public Jitsi, JaaS, and other provider APIs are not state authority. Hub/Jitsi JWT, XMPP component/auth, mTLS, and event-signing credentials remain distinct.
 
 ### CALL150-10 Bounded Hub-native Jitsi surface
 
@@ -53,6 +53,7 @@ The only Phase-150 Jitsi UI allowance is one later-gated provider-aware Hub conf
 ## Security requirements
 
 - Service secrets remain server-side and use existing Hub secret handling patterns.
+- Hub `JITSI_APP_SECRET` maps explicitly to upstream `JWT_APP_SECRET`; `JICOFO_COMPONENT_SECRET`, `JICOFO_AUTH_PASSWORD`, `JVB_AUTH_PASSWORD`, event HMAC, and mTLS identities are separate required secret domains with no usable defaults.
 - Component networks and administrative endpoints are least-exposed.
 - Provider callbacks/events must satisfy `CALL150-09` authentication, replay, stable-delivery-identity, and atomic-application rules before they mutate Hub call state.
 - Default-deny egress and explicit ingress/media port documentation are required.
@@ -71,6 +72,8 @@ The only Phase-150 Jitsi UI allowance is one later-gated provider-aware Hub conf
 - Provider configuration and adapter contract unit tests run in Docker `backend-unit`.
 - Provider/presence identity, connection/refcount edges, authenticated replay handling, and ordered outbox effects require focused Docker evidence before their corresponding roadmap atoms can pass.
 - Missing, tampered, replayed, stale, oversized, wrong-content-type, or wrong-credential Jitsi bridge envelopes must fail closed without mutation or credential leakage at the applicable atom boundary.
+- Source-spool crash/retry tests must prove that a delivery ID and exact envelope bytes are durable before first send and identical across retries; stock-hook observation alone is not accepted as at-least-once evidence.
+- Source tests must reject focus/system/recorder/bridge identities, anonymous/guest principals, unmapped rooms, and unaccepted breakout semantics. Room destruction never ends a Hub Call without the separate CALL-DUR-09 decision.
 - Docker `frontend-unit` must prove the single-surface provider selection, exact self-hosted-origin validation, anonymous-Jitsi denial, token non-disclosure, and dispose/unmount cleanup. Browser/media parity remains a separate future gate.
 - Compose/config static validation and a task-owned isolated Jitsi smoke are separate evidence classes.
 - A successful container start is not labelled product parity.
