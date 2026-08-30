@@ -49,6 +49,8 @@ later Task 10.
 | Public STUN disabled by selected image | UNVERIFIED_FOR_SELECTED_DIGEST |
 | Custom Prosody lifecycle hooks / stock durable egress | UNVERIFIED_FOR_SELECTED_DIGEST |
 | Provider-side persistent event spool | BLOCKED_NONDISPATCHABLE |
+| Dedicated provider PostgreSQL / Prosody SQL driver | TARGET_SELECTED / UNVERIFIED_FOR_SELECTED_DIGEST |
+| Append acknowledgement / durable DB commit fault injection | BLOCKED_NONDISPATCHABLE |
 | Private mTLS sidecar and byte-identical relay | BLOCKED_NONDISPATCHABLE |
 | Restart and rollback | NOT_RUN |
 
@@ -69,6 +71,16 @@ later Task 10.
   JITSI-D1, a non-memory persistent-store contract, and a separately
   founder-authorized task-owned Docker QA launcher exist. No stock event
   facility is accepted as durable authority without selected-digest proof.
+- The B0 target is a dedicated self-hosted provider-side PostgreSQL database
+  through a Prosody named SQL store, isolated from every Hub application
+  database/schema/role/credential. D1 proves only selected-image SQL/archive
+  driver and hook/config capability; separate founder-authorized JITSI-02D
+  fault injection proves append acknowledgement follows durable commit. There
+  is no internal-file or SQLite fallback.
+- Target production semantics are at-least-once only after successful durable
+  enqueue and B1/B2/D evidence. Reconciliation or a separately proven pre-event
+  fail-closed gate must close the pre-append and database-outage observation
+  gap before production acceptance.
 
 ## Authorized continuation gate
 
