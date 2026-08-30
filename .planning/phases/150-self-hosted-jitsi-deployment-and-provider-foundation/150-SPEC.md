@@ -24,17 +24,37 @@ Every upstream Jitsi image uses an accepted release and immutable digest. The re
 
 ### CALL150-05 Local authentication and room policy
 
-Room creation/join depends on a locally verified Hub-issued credential or an explicitly allowed guest token. No public anonymous room creation, JaaS token, or `meet.jit.si` fallback exists.
+Jitsi join is limited to an authenticated Hub principal after Hub ACL/membership authorization and a short-lived Hub-issued credential. Guest and anonymous/public rooms, JaaS, `meet.jit.si`, and external provider/API fallback are forbidden.
 
 ### CALL150-06 Operability and rollback
 
 Configuration documents resource expectations, health/readiness, logging/metrics, restart behavior, backup scope, upgrade, and rollback. LiveKit remains intact and selectable throughout this phase.
 
+## 2026-08-30 bounded durable-calls amendment
+
+This amendment makes the accepted provider, presence, event-authority, and single-surface contracts explicit. It supersedes only conflicting Phase-150 scope wording; it does not claim that any roadmap atom, runtime path, provider cutover, media smoke, or product-parity gate has passed.
+
+### CALL150-07 Immutable provider and presence identity
+
+`Call.ID` remains the Hub business identity. Persisted, Hub-generated `Call.RoomName` is the opaque provider session and the exact Jitsi JWT `room`; it is never accepted from a client as authorization. Every Call records immutable `provider=livekit|jitsi` and `presence_mode=legacy|durable`. Existing Calls remain `livekit/legacy`, and the active-provider selector affects new Calls only. An active Call never changes provider or presence writer.
+
+### CALL150-08 Durable connection, presence edges, and publication
+
+A provider connection is identified by `(CallID, UserID, Epoch)`. Credential issuance creates a new nonzero epoch in unknown state but does not create presence. Public `joined` is emitted only for aggregate refcount `0 -> 1`, public `left` only for `1 -> 0`, and ending a Call emits one ended event without a per-user left storm; an unknown or reconciled leave never creates a public presence edge. Public durable event payloads contain only event ID, Call ID, User ID, and presence sequence; they never expose epoch, provider/delivery identity, token, or raw envelope. Durable identities and counts are unique and nonnegative; historical `CallParticipant` rows never imply durable connection or presence state. A verified provider delivery is applied by one PostgreSQL transaction owning inbox insertion, connection/refcount and compatibility projection updates, and platform-outbox insertion. Publication is post-commit and at-least-once; within an ordered Call stream an earlier leased or failed row blocks later rows.
+
+### CALL150-09 Authenticated durable event authority
+
+Durable deduplication accepts only a verified provider-issued `(provider, delivery_id)`; timestamps, payload hashes, room or participant values, browser events, and Hub-generated IDs are not delivery identities. LiveKit durable ingress remains disabled until the pinned version proves a signed, nonempty delivery ID stable across retries. Jitsi authority is limited to a Hub-owned self-hosted bridge that persists its stable delivery ID before delivery. Before parse/apply, Hub verifies the bridge's mutually authenticated TLS identity and an independent HMAC-SHA256 signature over the exact raw envelope. Browser iframe events, public Jitsi, JaaS, and other provider APIs are not state authority. Hub/Jitsi application secrets, mTLS identities, and event-signing credentials remain distinct.
+
+### CALL150-10 Bounded Hub-native Jitsi surface
+
+The only Phase-150 Jitsi UI allowance is one later-gated provider-aware Hub conference surface driven by a typed join DTO. It accepts only the exact validated self-hosted `JITSI_PUBLIC_URL`, renders the provider persisted on the Call, creates and disposes provider resources within the Call room lifecycle, never logs or exposes tokens, and never enables anonymous Jitsi guests or an external-origin fallback. This allowance does not authorize a broad Calls redesign, provider parity claim, UI activation, or default provider cutover before its separate acceptance gates pass.
+
 ## Security requirements
 
 - Service secrets remain server-side and use existing Hub secret handling patterns.
 - Component networks and administrative endpoints are least-exposed.
-- Provider callbacks/events must have an authentication and replay/idempotency design before they mutate Hub call state.
+- Provider callbacks/events must satisfy `CALL150-09` authentication, replay, stable-delivery-identity, and atomic-application rules before they mutate Hub call state.
 - Default-deny egress and explicit ingress/media port documentation are required.
 - Supply-chain evidence includes license notice, source provenance, and digest verification.
 
@@ -43,12 +63,16 @@ Configuration documents resource expectations, health/readiness, logging/metrics
 - No production provider cutover.
 - No LiveKit dependency/config deletion.
 - No Jibri recording implementation.
-- No final Jitsi conference UI or broad Calls redesign.
+- No broad Calls redesign, custom reimplementation of the upstream Jitsi conference feature set, multi-surface Jitsi experience, or final provider-parity UI beyond the single bounded surface in `CALL150-10`.
 - No Mail/Calendar edits and no change to `frontend/src/modules/calls/create-call-dialog.tsx`.
 
 ## Verification
 
 - Provider configuration and adapter contract unit tests run in Docker `backend-unit`.
+- Provider/presence identity, connection/refcount edges, authenticated replay handling, and ordered outbox effects require focused Docker evidence before their corresponding roadmap atoms can pass.
+- Missing, tampered, replayed, stale, oversized, wrong-content-type, or wrong-credential Jitsi bridge envelopes must fail closed without mutation or credential leakage at the applicable atom boundary.
+- Docker `frontend-unit` must prove the single-surface provider selection, exact self-hosted-origin validation, anonymous-Jitsi denial, token non-disclosure, and dispose/unmount cleanup. Browser/media parity remains a separate future gate.
 - Compose/config static validation and a task-owned isolated Jitsi smoke are separate evidence classes.
 - A successful container start is not labelled product parity.
+- A typed DTO, static manifest, source diff, or iframe render does not establish provider cutover, deployment readiness, or product parity.
 - Anything requiring registry/network/media infrastructure that is unavailable remains `NOT_RUN` or `BLOCKED` with the exact continuation command.

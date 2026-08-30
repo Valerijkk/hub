@@ -20,7 +20,7 @@ Define the tenant-safe behavioural and API foundation for Messenger channels, on
 | Unread | The server persists forward-only position `(created_at, message_id)`; Redis/cache is never the authority. Joining a channel and a cutover establish the then-current-head baseline rather than retroactively marking history unread. Categories are independent and may overlap. |
 | Reconnect | Client subscribes first, then refetches server state. It performs no local unread arithmetic. |
 | Durable storage | PostgreSQL/Ent remains the authority for tenant, channel, membership, project membership, and roles. MongoDB stores messages plus durable `read_states` and `thread_follows`; Redis is not authoritative. Phase 151 adds no Ent schema, generated code, or migration. Every Mongo message, state, or count read/write is preceded by fresh PostgreSQL authorization. |
-| Recovery | Persist/refetch is recovery-safe. No transactional outbox is introduced; its residual delivery risk remains explicitly documented. |
+| Recovery | The original channel/thread/unread feature slice introduces no transactional outbox. The bounded 2026-08-30 amendment below permits the existing platform outbox only for canonical/recovery delivery types; residual delivery risk remains explicit. |
 
 ## Resource and capability contract
 
@@ -67,4 +67,24 @@ The frontend must render a Browse path for public channels and project-channel o
 
 ## Integration and residuals
 
-Phase 149 integration is a planning dependency/residual only: `NOT_RUN`. The Phase 151 plan must explicitly bind its resource/capability and reconnect assumptions to the Phase 149 boundary before implementation acceptance. Archive/retention delivery is deferred to Phase 153; Phase 151 must only preserve no-leak behaviour when archived/retained/deleted state is encountered. The lack of a transactional outbox is an accepted residual, not an implied guarantee of exactly-once or lossless delivery.
+Phase 149 integration is a planning dependency/residual only: `NOT_RUN`. The Phase 151 plan must explicitly bind its resource/capability and reconnect assumptions to the Phase 149 boundary before implementation acceptance. Archive/retention delivery is deferred to Phase 153; Phase 151 must only preserve no-leak behaviour when archived/retained/deleted state is encountered. Until bounded MPR-05A-D lands, the original feature slice still lacks transactional outbox delivery; after it lands, delivery remains at-least-once and never implies exactly-once.
+
+## 2026-08-30 bounded recovery-runtime amendment
+
+This tracked amendment is controlled by `.planning/decisions/ADR-COMMS-OSS-REPLACEMENT-2026-08-24.md` and overrides only the Phase-151 recovery-runtime storage/delivery prohibitions above. All channel, thread, unread, follow, authorization, tenant, no-leak and protected-path rules remain unchanged.
+
+- The original feature tasks still add no Ent schema, generated code or migration. Only the separately frozen MPR-03A/B and MPR-05A recovery sub-atoms may add `MessengerRecoveryLease`, `MessengerPostCreateDelivery`, the optional unique OutboxEvent `delivery_key`, their reviewed expand migrations, and the mechanically frozen generated Ent manifest.
+- Recovery uses one global PostgreSQL leader lease/fence/checkpoint plus the independent Mongo per-message owner/fence/lease. Neither guard grants user/channel authority or replaces fresh PostgreSQL reauthorization.
+- Mongo completion writes a replayable delivery intent. Current audience is re-resolved before creating a per-recipient delivery plan. A PostgreSQL materializer writes the deterministic delivery ledger row and platform `OutboxEvent` in one transaction.
+- For canonical/recovery delivery types, the existing outbox worker is the sole NATS publisher. The isolated legacy publisher may coexist only before a tenant cutover, never for the same request, and must retire before default canonical enablement.
+- Delivery is at-least-once. Cross-store atomicity and exactly-once are forbidden claims; unique delivery keys, idempotent consumers, checkpointing and refetch/reconciliation close the supported recovery model.
+- The dedicated recovery worker is a separate self-hosted process, not a `cmd/server` goroutine. Writer cutover is allowlisted per tenant with exactly one writer; rollback changes future writes only and drains already canonical intents/outbox rows.
+
+Additional acceptance requirements:
+
+| ID | Requirement | Evidence boundary |
+|---|---|---|
+| `MSG151-REC-01` | Fence global recovery ownership and each Mongo message independently. | Focused Docker RED/GREEN units for MPR-01 and later lease adapters; live PostgreSQL/Mongo contention remains `NOT_RUN` until Python integration. |
+| `MSG151-REC-02` | Recover Mongo completion through current-audience planning and one PostgreSQL ledger/outbox transaction. | Transaction/idempotency units plus later crash-boundary, NATS outage, revoke-before-fanout and rollback integration matrix. |
+
+This amendment is planning authority only. Runtime, Docker, migration application, live PostgreSQL/Mongo, NATS, WebSocket, browser, canary and rollback evidence remain `UNBOUND/NOT_RUN`.

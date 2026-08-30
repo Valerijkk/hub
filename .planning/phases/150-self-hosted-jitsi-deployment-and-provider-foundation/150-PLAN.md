@@ -17,7 +17,7 @@
 - `JITSI_HOST` is required when enabled and follows exact ASCII DNS grammar: total length 1–253; regex `^meet\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$`; every label is 1–63 characters. IP literals, underscore, wildcard, uppercase, leading/trailing hyphen, trailing dot, `meet.jit.si`, any value ending `.meet.jit.si`, explicit port, scheme, path, query, fragment, and userinfo are rejected. Canonical origin is exact string equality `JITSI_PUBLIC_URL="https://" + JITSI_HOST`; URL normalization must not hide a mismatch.
 - One XMPP subject source exists: backend `JITSI_XMPP_DOMAIN`; eventual overlay passes `XMPP_DOMAIN=${JITSI_XMPP_DOMAIN:?required}`; JWT `sub` equals the same value. An independent `XMPP_DOMAIN` input is forbidden.
 - `JITSI_ISSUER` and `JITSI_AUDIENCE` are deprecated/forbidden inputs: when either environment variable is nonempty, configuration fails closed instead of ignoring it. JWT `iss=JITSI_APP_ID`; `aud` is exactly the JSON array `["jitsi"]`.
-- `JITSI_APP_SECRET`, `JICOFO_AUTH_PASSWORD`, and `JVB_AUTH_PASSWORD` are separate required secrets with no usable default. Examples contain only an explicitly rejected marker such as `__REQUIRED_UNUSABLE_NO_DEFAULT__`; empty, example, marker, reused, short, or known dev values fail acceptance. `JITSI_APP_SECRET` is at least 32 bytes and is rejected when equal to Hub `JWT_SECRET` or the LiveKit API secret.
+- `JITSI_APP_SECRET`, `JICOFO_AUTH_PASSWORD`, `JVB_AUTH_PASSWORD`, and `JITSI_EVENT_HMAC_SECRET` are separate required secrets with no usable default. Private mTLS identities are separately provisioned and scoped. Examples contain only an explicitly rejected marker such as `__REQUIRED_UNUSABLE_NO_DEFAULT__`; empty, example, marker, reused, short, or known dev values fail acceptance. `JITSI_APP_SECRET` and `JITSI_EVENT_HMAC_SECRET` are each at least 32 bytes and are rejected when reused with Hub, LiveKit, XMPP, mTLS or each other.
 - Do not edit Mail/Calendar, `frontend/src/modules/calls/create-call-dialog.tsx`, or `pro-qa-ai/**`.
 - All tests/build/typecheck/lint are Docker-only through accepted exact services. No host tests or validators. No Jitsi image pull, Compose render, build, or container start before explicit infrastructure authorization.
 - No invented container `user`, numeric UID/GID, `read_only`, `tmpfs`, writable path, or branding mount. Each must be backed by the selected-image Linux discovery receipt before it enters accepted YAML.
@@ -75,7 +75,11 @@ Issue(call *ent.Call, authenticatedUserID uuid.UUID, serverKnownUserName string)
 
 This issuer is unreachable in Phase 150: no HTTP route, WebSocket subject, Handler method, public DTO, frontend token request, or active-provider wiring. Its existence does not prove foreign-call membership. Caller-to-call membership, rate limiting, replay policy, and the public credential endpoint are Phase 152 gates.
 
+The historical `call.ID.String()` room sentence above is superseded. The accepted and executable issuer contract requires a nonblank persisted `call.RoomName` and places exactly that value in the JWT `room`; `Call.ID` remains Hub business identity. All issuer RED assertions must use `call.RoomName`.
+
 ## Low-disk test cadence
+
+The historical Tasks 0-6 batched cadence below is superseded as implementation acceptance authority. It is retained only as an old receipt description; every new atom follows the per-atom RED/GREEN rule in the 2026-08-30 amendment.
 
 1. Write the complete backend RED contract packet once.
 2. Run exactly one sequential `docker compose -f docker-compose.local.yml run --rm backend-unit` RED receipt.
@@ -149,7 +153,7 @@ Create a factory which constructs LiveKit only. `jitsi` returns the frozen Phase
 
 Implement the exact `Issue(*ent.Call, uuid.UUID, string)` boundary and claims above using `github.com/golang-jwt/jwt/v5`. `export_hooks.go` has sequential, nonconcurrent ownership: Task 3 first lands the service-provider exports, then Task 6 may reopen the same file only for the issuer hook. If the external `hubtest` package needs a hook, its exact name is `ExportNewJitsiCredentialIssuerForTest`. It exists only in the build-tagged test export surface, returns the concrete unexported issuer type, and that type exposes only the exported `Issue` method required by the test. The hook is not a transport or public product API and must not wire the issuer to server startup, handlers, routes, WebSocket, DTOs, or frontend.
 
-After independent review, run the single batched backend GREEN gate. Record PASS/FAIL from the Docker receipt only. Membership authorization and Jitsi activation remain unimplemented by design.
+After independent review, run the atom's exact backend GREEN gate. Record PASS/FAIL from the Docker receipt only. Membership authorization and Jitsi activation remain unimplemented by design.
 
 ## Task 7: Deployment preflight and static env contract
 
@@ -158,7 +162,9 @@ After independent review, run the single batched backend GREEN gate. Record PASS
 - `deployments/jitsi/.env.example`
 - `deployments/jitsi/DEPLOYMENT-PREFLIGHT.md`
 
-Create only the preflight/static contract. It lists required dedicated lowercase `JITSI_HOST`, exact `JITSI_PUBLIC_URL=https://${JITSI_HOST}`, `JITSI_XMPP_DOMAIN`, `JITSI_APP_ID`, mandatory `JVB_ADVERTISE_IPS`, XMPP component domains, and the three separate required secret inputs. Secret examples use only the rejected `__REQUIRED_UNUSABLE_NO_DEFAULT__` marker and state `required/no default`.
+Create only the preflight/static contract. It lists required dedicated lowercase `JITSI_HOST`, exact `JITSI_PUBLIC_URL=https://${JITSI_HOST}`, `JITSI_XMPP_DOMAIN`, `JITSI_APP_ID`, mandatory `JVB_ADVERTISE_IPS`, XMPP component domains, and four separate required secrets: `JITSI_APP_SECRET`, `JICOFO_AUTH_PASSWORD`, `JVB_AUTH_PASSWORD`, and `JITSI_EVENT_HMAC_SECRET`. Private mTLS identities are separately provisioned and scoped. Secret examples use only the rejected `__REQUIRED_UNUSABLE_NO_DEFAULT__` marker and state `required/no default`.
+
+Event signing, JWT, XMPP, mTLS, Hub and LiveKit credentials are never reused.
 
 Record exact equality: overlay `XMPP_DOMAIN` is populated from `JITSI_XMPP_DOMAIN`, and issuer JWT `sub` uses the same backend value. Freeze the four digest receipts by reference to immutable `150-RESEARCH.md` without editing it.
 
@@ -176,7 +182,7 @@ The preflight matrix must leave these rows `UNBOUND / NOT_RUN`: effective image 
 
 Required gate input is an authorized task-owned Linux receipt for the exact four digest-pinned images proving effective users, required UID/GID handling, writable config directories, ownership transition, branding/static-asset path, healthcheck commands, and effective self-hosted `external_api.js`. Discovery must obey an explicit low-disk budget. Until that receipt exists, overlay YAML is `NOT_CREATED / UNBOUND`; a speculative file may only be labelled `DRAFT_NON_ACCEPTED` and cannot satisfy Phase 150.
 
-After the gate opens, map `XMPP_DOMAIN=${JITSI_XMPP_DOMAIN:?required}` and all three secrets with `${VAR:?required}` and no fallback. Preserve Caddy ports 80 and 443 for ACME HTTP-01/HTTPS. The only extra published port is JVB `10000:10000/udp`, with `JVB_ADVERTISE_IPS=${JVB_ADVERTISE_IPS:?required}`. Use explicit control/edge/media networks and the four frozen digests. Do not add `user`, `read_only`, `tmpfs`, config/branding mounts, or healthchecks unless each exact setting is proven by the discovery receipt.
+After the gate opens, map `XMPP_DOMAIN=${JITSI_XMPP_DOMAIN:?required}` and all four secrets with `${VAR:?required}` and no fallback. Preserve Caddy ports 80 and 443 for ACME HTTP-01/HTTPS. The only extra published port is JVB `10000:10000/udp`, with `JVB_ADVERTISE_IPS=${JVB_ADVERTISE_IPS:?required}`. Use explicit control/edge/media networks and the four frozen digests. Do not add `user`, `read_only`, `tmpfs`, config/branding mounts, or healthchecks unless each exact setting is proven by the discovery receipt.
 
 Static YAML review after discovery still does not establish runtime readiness. Compose render, start, TLS, local JWT accept/reject, browser media, UDP, restart, rollback, effective asset, and SBOM remain `NOT_RUN` until separately authorized runtime execution.
 
@@ -212,3 +218,95 @@ Do not edit immutable `150-RESEARCH.md`. Document the active LiveKit rollback co
 - After Task 7, the honest verdict is `PARTIAL — STATIC_FOUNDATION_ONLY`; overlay is `NOT_CREATED / UNBOUND`; runtime is `NOT_RUN`. Phase 150 cannot be called complete, production-ready, self-hosted Jitsi deployed, or media-ready.
 - Even if Task 8 later creates statically reviewed YAML, production readiness does not advance until authorized Linux render/start/security/media/rollback/SBOM evidence passes. Planning/static artifacts alone must not increase the deployment percentage beyond the static-foundation baseline.
 - Any floating image, external SaaS/API/STUN/TURN/analytics, divergent XMPP subject, usable secret default, guessed user/UID/GID/writable/read-only/tmpfs setting, exposed internal component, active `jitsi` provider, issuer transport exposure, secret leak, or false runtime PASS is a critical blocker.
+
+## 2026-08-30 durable Calls and self-hosted Jitsi execution amendment
+
+This amendment supersedes conflicting future-work prose but preserves every existing Phase-150 receipt and `NOT_RUN/UNBOUND` boundary. The tracked communications ADR amendment is canonical authority and this section is self-contained.
+
+### Frozen identity, provider and transaction rules
+
+- `Call.ID` is the Hub business identity. Persisted `Call.RoomName` is the opaque Hub-generated provider session and exact Jitsi JWT `room`; it is never client input or authorization.
+- Every Call records immutable `provider=livekit|jitsi` and `presence_mode=legacy|durable`. Existing rows are `livekit/legacy`; the active-provider setting selects only new Calls. No active Call changes provider or writer.
+- A Hub-issued connection is `(CallID, UserID, Epoch)`; a new credential receives a new nonzero epoch. Credential issuance creates unknown state but is not presence.
+- Public `joined` is only aggregate `0 -> 1`, `left` only `1 -> 0`; ended Calls produce one ended event and no per-user left storm.
+- Dedupe accepts only a verified provider-issued `(provider, delivery_id)`. One PostgreSQL transaction owns `inbox -> connection/refcount/compatibility projection -> platform outbox`; publication is post-commit and at-least-once.
+- LiveKit durable ingress remains disabled until its pinned version proves a signed nonempty delivery ID stable over retry. The current legacy LiveKit path stays active.
+- Jitsi authoritative events come only from a Hub-owned self-hosted bridge. It persists a stable delivery ID before delivery and signs the exact raw envelope with distinct HMAC-SHA256 credentials over private mTLS. Browser iframe events, SaaS, JaaS and public provider APIs are not authority.
+
+Private TLS in this plan means mutually authenticated TLS for the bridge-to-Hub route plus independent raw-body HMAC-SHA256 verification.
+
+### Atomic TDD sequence
+
+| Atom | Exclusive ownership and exact outcome | Acceptance focus |
+| --- | --- | --- |
+| CALL-DUR-01 | modify `backend/ent/schema/call.go`; add `backend/migrations/20260830_calls_durable_presence_expand.sql`; add focused `backend/tests/calls/` schema contract | additive immutable provider/presence declarations; historical `livekit/legacy`; no runtime/router change or inferred durable backfill |
+| CALL-DUR-02 | add Ent schemas `CallParticipantConnection`, `CallParticipantPresence`, `CallProviderDelivery`, their generated output and focused tests | unique business keys, nonnegative counts, cascade/retention shape, no adapter |
+| CALL-DUR-03 | create `backend/internal/calls/provider_participant_identity.go` and its unit test | canonical `hub.call-participant.v1/<call>/<user>/<epoch>`; every zero/malformed component rejects; no `Stringer` or logging |
+| CALL-DUR-04 | add pure durable delivery/result and v1 event payload builders | payload contains event ID/call/user/presence sequence but never epoch/provider/delivery ID/token/raw body |
+| CALL-DUR-05 | add `durable_presence_repository.go` behind the accepted CAS port | inbox duplicate, fixed lock order, exact expected-state/count CAS, 0->1/1->0 compatibility/count/outbox effects, rollback/no partial commit |
+| CALL-DUR-06 | evolve `backend/ent/schema/outboxevent.go`, publisher and worker for nullable ordering key/sequence | same-key earliest-row claim, failed/leased earlier row blocks later, unordered non-regression, stable event ID, no exactly-once claim |
+| CALL-DUR-07 | add LiveKit verifier/parser only after delivery-ID proof | signature before parse/apply; stable signed provider ID only; malformed/replay/duplicate fail closed; no legacy mutation |
+| CALL-DUR-08 | add provider registry, immutable mode router and durable credential allocation | selector affects new Calls only; legacy stays LiveKit; unknown row exists before token; no dual writer/public DTO regression |
+| CALL-DUR-09 | durable room-finish and unknown-left reconciliation request | one ended event, no left fanout, unknown-left no public edge |
+| JITSI-01 | correct all issuer/plan contracts to persisted `Call.RoomName`; split credential issuance from optional provisioning capability | Jitsi does not fake LiveKit provision/delete/metadata and remains fail-closed |
+| JITSI-02 | define and implement the private bridge envelope/ingress after exact supported hook discovery | durable source delivery ID, HMAC raw-body verification, private route, replay/skew/size/content-type/tamper negatives |
+| JITSI-03 | add provider-aware typed join DTO and one frontend Jitsi surface | exact validated self-hosted origin, one provider rendered, dispose/unmount cleanup, no token logging, no anonymous Jitsi guest |
+| JITSI-04 | create discovery-backed Compose/Caddy/monitoring overlay | exact digests/users/mounts/health/assets/JWT/event hook only; private control plane; public Caddy HTTPS plus JVB UDP 10000 |
+| JITSI-05 | operator shadow, two-user media/reconnect, rollback-new-call, coordinated load | immutable per-call provider, LiveKit regression-free rollback, capacity evidence before default selection |
+| JITSI-06 | Phase-154 Jibri/importer and eventual LiveKit retirement | separate disk/capacity gate, least-privilege SeaweedFS import, historic recording compatibility, exact deletion manifest after drain |
+
+The table above is a dependency roadmap, not authority to dispatch a broad row. Only `CALL-DUR-01` and `CALL-DUR-03` have frozen implementation inputs below; documentation-only `JITSI-01` is fulfilled by this reviewed plan correction. Every other row stays non-dispatchable until root creates a separate exact TaskContract; the decompositions below are current frozen examples, not an exhaustive claim for every future row.
+
+Exact `CALL-DUR-01` ownership is `backend/ent/schema/call.go`, `backend/migrations/20260830_calls_durable_presence_expand.sql`, and `backend/tests/calls/phase150_call_provider_presence_schema_test.go`. RED and GREEN both run `docker compose -f docker-compose.local.yml run --rm backend-unit`; the approved entrypoint accepts no selector. Expected RED is only missing `provider`/`presence_mode` schema descriptors; expected GREEN is target/build/vet/unit/race PASS. The unit proves descriptors/defaults/immutability intent only; SQL application/backfill remains `NOT_RUN` until integration.
+
+Exact `CALL-DUR-03` ownership is `backend/internal/calls/provider_participant_identity.go` and `backend/tests/calls/phase150_provider_participant_identity_test.go`. The same exact launcher is used. Expected RED is only the missing canonical identity type/parser symbols; expected GREEN is target/build/vet/unit/race PASS with valid round-trip, zero/malformed rejection and no `Stringer`.
+
+Every CALL-DUR implementation dispatch must state `model: gpt-5.6-terra`, `reasoning_effort: xhigh`; its independent reviewer must state `model: gpt-5.6-terra`, `reasoning_effort: high`. Each receipt records `actual_model: UNKNOWN` and `actual_reasoning_effort: UNKNOWN` unless trustworthy runtime telemetry is available. Omission, inheritance, Sol downstream use or silent fallback blocks dispatch.
+
+#### Exact provider-routing decomposition
+
+- `CALL-DUR-08A` owns only `backend/internal/calls/models.go`, `repository.go`, and `backend/tests/calls/call_provider_repository_test.go`: provider enum and `(provider, room_name)` lookup. It proves a persisted LiveKit Call remains LiveKit after the default changes.
+- `CALL-DUR-08B` owns only `provider.go`, `provider_factory.go`, `livekit_provider.go`, new `jitsi_provider.go`, and `backend/tests/calls/provider_registry_capability_test.go`: registry plus credential-only base capability. Jitsi cannot satisfy provision/delete/participant-metadata capabilities.
+- `CALL-DUR-08C` owns only `call_join_credential_issuer.go`, `call_join_credential_projection.go`, `call_join_credential_projection_ent.go`, `jitsi_credential_issuer.go`, and its focused credential-allocation test: new Hub epoch, unknown connection before token, persisted provider/room, server-loaded identity, no public event.
+- `CALL-DUR-08D` owns only `service.go`, `service_room.go`, `repository.go`, `handler.go`, and `backend/tests/calls/call_presence_mode_router_test.go`: create/join/end/callback routing by persisted mode, exactly one writer, legacy LiveKit parity and no provider flip for active Calls.
+
+#### Exact ordered-outbox decomposition
+
+`CALL-DUR-06A` owns `backend/ent/schema/outboxevent.go`, the Calls expand migration clauses, generated Ent output and `backend/tests/platform/outbox_ordering_schema_test.go`. It requires all-or-nothing `ordering_key/ordering_seq`, a partial unique keyed sequence and a status/key/sequence claim index. `CALL-DUR-06B` then owns only `backend/internal/platform/outbox/publisher.go`, `worker.go`, and `backend/tests/platform/outbox_ordered_delivery_test.go`: null-pair rejection, duplicate keyed sequence, concurrent claim, leased/failed-earlier blocking and unordered-event non-regression.
+
+#### Exact schema contract
+
+`CALL-DUR-02` must be decomposed into one schema file plus one focused test per dispatch. Connection rows carry call/user/epoch/state/timestamps/version and unique `(call_id,user_id,epoch)`; presence rows carry call/user/nonnegative count/nonnegative sequence and unique `(call_id,user_id)`; delivery rows carry provider-issued ID/kind/resolved identities/timestamps/result and unique `(provider,delivery_id)`. Retention is 30 days after terminal state. The expand migration adds nonnegative checks and cascade policy. No connection, presence, epoch, delivery or refcount is inferred from historic `CallParticipant`.
+
+Generated Ent output is a mechanical exception only. After the approved Docker generator runs, root freezes the observed `git diff --name-only -- backend/ent` list into that sub-atom TaskContract before review/staging. No generated path outside the accepted manifest may be staged; absent an approved generator receipt, schema/codegen atoms remain blocked.
+
+The normal `backend-unit` run overlays only `backend/ent/schema`; it neither regenerates nor proves checked-in host `backend/ent/**`. Therefore `CALL-DUR-02` and `CALL-DUR-06A` are `BLOCKED_GENERATOR`. Their gate requires a separate founder-authorized Docker generator handoff/launcher that updates host generated files, freezes the exact generated manifest, records before/after disk and rebuilt image identity, and then permits the normal approved `run --rm backend-unit` verification against the refreshed image. No generator/rebuild command is authorized or invented by this packet; no generated atom may use an old-image unit GREEN.
+
+#### Jitsi discovery and surface ordering
+
+- `JITSI-D1` is a hard prerequisite for any provider-hook attachment or executable overlay. It inspects one exact digest at a time and freezes the supported hook, image user, mounts, writable paths, health, JWT component, effective assets, SBOM and license data.
+- `JITSI-02A` may define only the provider-neutral envelope/HMAC verifier and negative unit tests before D1; it attaches to no Jitsi image or route. `JITSI-02B`, after D1, owns the discovered supported bridge hook, durable source ID, private mTLS route and replay/skew/size/content-type/tamper integration tests.
+- `JITSI-03A` owns the backend provider-aware typed join DTO and authenticated handler/service tests while leaving LiveKit compatibility fields intact and Jitsi guests denied. `JITSI-03B` later owns `frontend/src/api/calls.ts`, `frontend/src/stores/call-store.ts`, one new `JitsiCallSurface.tsx`, `CallRoom.tsx`, and focused frontend tests for exact self-hosted origin, one-provider rendering, dispose/unmount and token non-disclosure.
+
+Each production atom starts with one focused Docker RED for the expected missing behavior, then the minimum implementation, one focused Docker GREEN, independent review, docs sync and exact-path commit. The commands below are runners, not an accumulated substitute for per-atom RED/GREEN; no additional broad rerun occurs until a coherent milestone packet. No atom may silently pull a later schema, adapter, server wiring, provider activation or deployment change forward.
+
+Planned accumulated unit gates are:
+
+```powershell
+docker compose -f docker-compose.local.yml run --rm backend-unit
+docker compose -f docker-compose.local.yml run --rm frontend-unit
+```
+
+They are `NOT_RUN` here. For each atom the applicable runner executes sequentially, without `--build`, only when no Mail/Calendar build/container is active. API/integration/e2e/load use only their exact named Docker services after the relevant self-hosted dependencies exist.
+
+### Low-disk discovery and runtime gate
+
+No Jitsi pull/build/render/start occurs while another buildx builder or adjacent branch service is active. Before each exact digest, record free disk and active containers; inspect/pull one image at a time; stop if task-owned Docker growth would exceed 8 GiB or free space would fall below 250 GiB. Sample `Win32_PerfFormattedData_PerfDisk_PhysicalDisk` three times, two seconds apart; defer when two readings show `PercentDiskTime >= 70` or `CurrentDiskQueueLength >= 2`. Initial task limits are at most 4 CPUs and 8 GiB RAM for the Jitsi contour, one build/pull at a time, and no floating tag or `--build` during discovery. These are safety ceilings, not capacity acceptance.
+
+The selected `stable-11146-2` digests remain registry metadata until discovery proves Linux users, writable/config/branding paths, effective `external_api.js`, health commands, supported JWT/event hook, SBOM and license inputs. YAML cannot guess these values. Runtime acceptance separately proves TLS, JWT positive/negative, UDP media, restart, observability, secret rotation, rollback and no vendor host.
+
+### Rollback and exit
+
+On Jitsi degradation, selection returns to LiveKit for future Calls only; existing Jitsi Calls drain on Jitsi. Expand-only schema stays, ingress/outbox continue for already durable Calls, and neither provider's active Calls or recordings are rewritten. LiveKit removal requires conference and recording parity, zero active/pending LiveKit work, retained historical reads, completed rollback window, operational sign-off and a separately reviewed exact deletion manifest.
+
+Until all runtime gates pass the honest status remains `DESIGN_FROZEN / STATIC_FOUNDATION_ONLY / RUNTIME_UNBOUND`; a plan, source diff, image pull, container start or iframe render cannot increase deployment readiness.

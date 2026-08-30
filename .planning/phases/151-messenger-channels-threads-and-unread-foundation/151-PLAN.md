@@ -1,6 +1,6 @@
 # Phase 151 — Messenger Channels, Threads, and Unread Foundation Implementation Plan
 
-> One task has one current writer. A task touching a shared file starts only after its numbered predecessor. The only Docker execution gates are four unconditional unit gates plus conditional integration Task 160; all run strictly sequentially.
+> One task has one current writer. A task touching a shared file starts only after its numbered predecessor. The original channel/thread/unread feature work retains four unconditional unit gates plus conditional integration Task 160. The 2026-08-30 recovery amendment adds one focused RED/GREEN gate per recovery atom, beginning with mandatory MPR-01; every gate runs strictly sequentially.
 
 **Goal:** Safe workplace channels, one-level native threads, durable unread/follow state, and recipient-only invalidation. Redis and client arithmetic are never unread authority.
 
@@ -10,7 +10,7 @@
 
 ## Frozen contracts
 
-- No Ent schema/codegen/migration; do not touch `pro-qa-ai/**`, Mail/Calendar, Jitsi, or `frontend/src/modules/calls/create-call-dialog.tsx`. Docker-only QA; no Jitsi pull/build/render/start.
+- No Ent schema/codegen/migration in the original feature tasks. The only exceptions are the separately frozen recovery sub-atoms MPR-03A/B and MPR-05A below; no other task may use that exception. Do not touch `pro-qa-ai/**`, Mail/Calendar, Jitsi, or `frontend/src/modules/calls/create-call-dialog.tsx`. Docker-only QA; no Jitsi pull/build/render/start.
 - `ResolveInstanceOrganizationID(ctx)` is the singleton Ent proof; zero/multiple fails closed. Tenant never derives from HTTP, WS, cache, Mongo, or a DTO. Active account is fresh immediately before Mongo/NATS/bridge use; after status commit and before revoker hook, disabled actor has zero Mongo (test race).
 - `ChannelAccess{TenantID,Channel,IsMember,Role,HasActiveProjectMembership,CanRead,CanPost,CanReply,CanJoin,CanFollow,CanUnfollow,CanViewUnread,CanDeleteMessage,CanPin,CanListPins}` in `backend/internal/messenger/channel_access.go`. Actions: `ReadTimeline`, `ReadThread`, `ReadParent`, `Send`, `Reply`, `Typing`, `EditMessage`, `ForwardSource`, `ForwardTarget`, `DeleteMessage`, `Pin`, `ListPins`, `React`, `Bookmark`, `Promote`, `ReceiveEvent`.
 - `MessengerService` receives a mandatory production PG `ChannelAccessResolver` before any consumer is constructed; tests pass an explicit fail-closed fixture and no constructor permits nil fallback. `AuthorizedBotChannelScope{TenantID,BotKind,ChannelID,IntegrationID,IsProjectChannel}` is fresh singleton/active-bot/channel/project/integration proof, emitted only for an allowlisted system `BotKind`; it grants only one stated bot operation and never becomes a generic Mongo bypass.
@@ -229,3 +229,91 @@ No gate runs parallel. Unit green proves neither live Mongo/NATS/WS/browser, cut
 - **Atomicity:** each implementation row changes one behavior/small module and names at most four production files; shared files are numeric-order single writer.
 - **Coverage:** all six grants; ordinary reads/mutations/search; all five canonical producers plus explicit bot callsites; Redis retirement; durable Dashboard summary; four unread categories/receipts; external Search/promotion/OpenAPI/bookmarks/GDPR/bot/typing/delete/WS/sidebar callers; frontend state/UI have RED oracle plus implementation.
 - **Evidence:** exactly four sequential Docker unit gates. Runtime/integration stays NOT_BOUND/NOT_RUN without exact evidence.
+
+## 2026-08-30 recovery-runtime execution amendment
+
+This amendment is additive to the channel/thread/unread feature plan above and supersedes only conflicting recovery-runtime assumptions. The tracked 2026-08-30 communications ADR amendment is canonical authority and this section is self-contained.
+
+### Evidence and fixed boundary
+
+- Current status remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`; runtime, live PostgreSQL/Mongo, NATS, WebSocket, browser, canary and rollback are `UNBOUND/NOT_RUN`.
+- Phase 149 unit/static acceptance is an allowed dependency. Its Mongo/NATS/WebSocket/browser and cross-store residuals are not inherited as PASS and must close here or in Phase 155.
+- Recovery is a dedicated self-hosted process in the existing backend image. It is not a server goroutine and it does not publish NATS.
+- One global PostgreSQL leader lease/fence owns the process loop and target checkpoint. The existing Mongo owner/fence/lease remains the independent per-message guard.
+- Mongo completion writes a replayable delivery intent. A materializer writes one deterministic delivery ledger row and one platform `OutboxEvent` in a single PostgreSQL transaction. For canonical/recovery delivery types, the existing outbox worker is the only NATS publisher and current audience is re-resolved before fanout. The isolated legacy publisher may coexist only before tenant cutover and never for the same request.
+- Semantics are at-least-once. Exactly-once, cross-store atomicity and dual-write are forbidden claims.
+- Frozen launch values are `run_timeout=20s`, `leader_lease=90s`, `leader_renew=30s`, `message_lease=30s`, `message_renew_before=10s`, `max_pages=5`, `max_targets=100`, `pending_scan_limit=25`. Validation rejects non-positive bounds, `leader_renew >= leader_lease`, and `run_timeout + 5s >= message_lease`; the selected values are valid.
+
+### Atomic TDD sequence
+
+| Atom | Exclusive production ownership | Exact RED/GREEN focus | Hard dependency |
+| --- | --- | --- | --- |
+| MPR-01 | create `backend/internal/messenger/pending_recovery_leader_lease.go` only | external unit contract in `backend/tests/messenger/phase151_pending_recovery_leader_lease_contract_test.go`: nil/typed-nil, acquire denial, holder/fence identity, renew/release loss, cancellation precedence and checkpoint copy isolation. This atom defines the private port/value contract only; no schema, adapter, goroutine or config parser. | frozen architecture |
+| MPR-02 | create `backend/internal/messenger/pending_recovery_scheduler.go` only | deterministic fake-clock state machine: initial jitter, run-after-finish/no overlap, success reset, bounded backoff, lease-loss stop, shutdown deadline and no queued tick | MPR-01 |
+| MPR-03 | roadmap group for the exact MPR-03A/B/C sub-atoms below; migration is `backend/migrations/20260830_messenger_recovery_leader_expand.sql` | database-time conditional acquire/renew/release/checkpoint, monotonic fence, stale-owner rejection and forward-compatible migration | MPR-01 |
+| MPR-04 | extend only Mongo claim/renew/retry/completion-intent plans and adapter | exact owner+fence+unexpired predicate, renewal loss stop, deterministic pending intent, retry state, no NATS/PG write | MPR-01 |
+| MPR-05 | evolve `backend/ent/schema/outboxevent.go`; add delivery-ledger schema/migration and a materializer | duplicate-key idempotency, ledger+outbox transaction rollback, redacted payload, crash replay, no direct publish | MPR-03, MPR-04 |
+| MPR-06 | add the checkpoint-aware recovery executor/coordinator only | bounded cursor fairness, denied target never reaches Mongo, infra failure does not advance checkpoint, deferred retry, leader/message fence loss stop | MPR-02 through MPR-05 |
+| MPR-07 | add `backend/cmd/messenger-recovery/` plus narrow config/wiring/lifecycle | compose the accepted graph, health/readiness/metrics, cancellation and release; do not attach to `cmd/server` | MPR-06 |
+| MPR-08 | modify `MessengerService` writer selection and `SendMessage` branch only | tenant allowlist, nonce-required enrollment, exactly one writer per request, `Created=false` zero repeated effects and future-write-only rollback | MPR-07 plus side-effect equivalence matrix |
+| MPR-09 | deployment/runbook/monitoring plus Python integration/e2e evidence | leader contention, lease expiry, crash at both store boundaries, duplicate materialization, PubAck/mark crash, NATS outage, auth revoke before fanout, shutdown and canary rollback | MPR-08 |
+
+The roadmap rows MPR-03 through MPR-09 are not directly dispatchable. Root must create a separate exact TaskContract before any sub-atom starts; broad row ownership is never delegated. The decompositions below cover the next known seams and are not an exhaustive claim for every later row.
+
+#### Durable schema and adapter sub-atoms
+
+- `MPR-03A` owns only `backend/ent/schema/messengerrecoverylease.go` and `backend/tests/messenger/phase151_recovery_leader_schema_test.go`.
+- `MPR-03B` owns only generated Ent output plus `backend/migrations/20260830_messenger_recovery_leader_expand.sql`; code generation runs in the approved Docker generator path and the migration is expand-only with explicit rollback policy.
+- `MPR-03C` owns only `backend/internal/messenger/pg_pending_recovery_leader_lease.go` and `backend/tests/messenger/phase151_pg_recovery_leader_lease_test.go`.
+- `MPR-05A` owns `backend/ent/schema/messengerpostcreatedelivery.go`, the optional unique `delivery_key` evolution in `backend/ent/schema/outboxevent.go`, generated Ent output, `backend/migrations/20260830_messenger_post_create_delivery_expand.sql`, and focused schema tests.
+
+Generated Ent output is a mechanical ownership exception: after the approved Docker generator runs, root records `git diff --name-only -- backend/ent` and freezes that observed generated-file manifest into the sub-atom TaskContract before review/staging. No generated path outside that accepted manifest may be staged. If the manifest cannot be produced through the approved Docker flow, MPR-03B/MPR-05A remain blocked.
+
+The normal `backend-unit` service overlays only `backend/ent/schema`; it cannot regenerate or prove checked-in host `backend/ent/**`. MPR-03B and MPR-05A are therefore `BLOCKED_GENERATOR` until a separate founder-authorized Docker generator handoff/launcher updates the host generated manifest and records before/after disk, rebuilt image identity, exact generated paths and the subsequent approved `run --rm backend-unit` receipt. No generator/rebuild command is authorized or invented here; an old-image GREEN is invalid for a generated atom.
+
+#### Current-audience and outbox ownership
+
+- `MPR-05B` owns only new `backend/internal/messenger/pending_recovery_delivery_audience.go` plus `backend/tests/messenger/phase151_pending_recovery_delivery_audience_test.go`. It re-resolves the current singleton tenant, active account, channel/project eligibility and recipient projection immediately before producing per-recipient delivery plans. A denied/stale recipient produces no plan and no identifier-bearing payload.
+- `MPR-05C` owns only `backend/internal/messenger/pending_recovery_delivery.go`, `pg_pending_recovery_delivery.go`, platform `PublishOnceInTx`, and focused transaction tests. For each fresh recipient plan it writes one deterministic ledger key and one per-user `OutboxEvent` in one PostgreSQL transaction. The generic outbox worker publishes only the stored event type/payload; it performs no audience authorization and is the sole NATS publisher for canonical/recovery delivery types.
+- `MPR-05D` owns only `post_create_pipeline.go`, `post_create_recovery_runner.go`, `post_create_unread_invalidation.go`, and their focused tests. It removes direct `PublishUnreadInvalidation` from canonical/recovery paths and routes them through Mongo intent -> fresh audience plan -> PG ledger/outbox. The still-selected legacy writer retains its old path until MPR-08; no request invokes both.
+
+Each atom receives its own full Hub TaskContract, one `gpt-5.6-terra/xhigh` implementation writer and a separate `gpt-5.6-terra/high` reviewer. Production code is forbidden before that atom's focused test has failed for the expected missing behavior. A test failure is triaged against the specification before code or test changes.
+
+Every dispatch records requested model/effort explicitly and records `actual_model: UNKNOWN` plus `actual_reasoning_effort: UNKNOWN` unless trustworthy telemetry exists. Inheritance, omission, Sol downstream use and silent fallback block the atom.
+
+`MPR-01` is an explicit gate: run its exact Docker RED, implement only its port/value contract, run exact Docker GREEN, complete independent review and exact-path commit. MPR-02 and every later recovery atom remain blocked until that receipt is accepted. The later broad backend gate is additional regression evidence, never a substitute for MPR-01 or another atom's own RED/GREEN.
+
+Exact MPR-01 oracle is `backend/tests/messenger/phase151_pending_recovery_leader_lease_contract_test.go`. The sole approved launcher accepts no test selector and its entrypoint exits 64 on arguments, so RED and GREEN both use exactly:
+
+```powershell
+docker compose -f docker-compose.local.yml run --rm backend-unit
+```
+
+Expected RED: target FAIL with build PASS and vet/unit/race failing only on the missing MPR-01 symbols from that exact new test file. Expected GREEN: target/build/vet/unit/race PASS, first exit 0, and empty stderr receipts. Any unrelated failure is triaged and cannot serve as the MPR-01 RED.
+
+The accumulated backend gate is planned only:
+
+```powershell
+docker compose -f docker-compose.local.yml run --rm backend-unit
+```
+
+It is `NOT_RUN` here. Before each exact run, confirm no buildx builder, Mail/Calendar build container or other `backend-unit` is active, C: has at least 250 GiB free, and at least 12 GiB RAM is available. Run only the exact service command above, with no pull/build and existing Compose CPU/RAM limits; defer immediately when any preflight fails. Live-store acceptance later uses only the exact `python-integration` and `python-e2e-smoke` services; no host test/build/lint/validator is permitted.
+
+The 12 GiB host threshold is intentional: the service may consume its 10 GiB container limit and the extra 2 GiB is reserved for Docker/host overhead; it is not a claim that the tests normally use 10 GiB.
+
+Read-only preflight receipt uses exact host commands and records raw units:
+
+```powershell
+docker ps --format '{{.Names}}	{{.Image}}	{{.Status}}'
+Get-PSDrive -Name C | Select-Object Used,Free
+Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize
+Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object Name -EQ '_Total' | Select-Object PercentDiskTime,CurrentDiskQueueLength
+```
+
+Defer when any running name/image contains `buildx_buildkit` or `moby/buildkit`, another `backend-unit` exists, free bytes are below 250 GiB, free physical memory is below 12 GiB, or two of three readings taken two seconds apart show `PercentDiskTime >= 70` or `CurrentDiskQueueLength >= 2`. The preflight itself performs no pull/build/test.
+
+### Rollout, rollback and acceptance
+
+Deploy disabled, migrate expand-only, enable one tenant, and expand only after bounded telemetry shows leader renewal, checkpoint progress, intent lag, ledger dedupe, outbox lag, audience changes and zero dual-writer anomalies. Rollback disables future canonical writes and recovery acquisition but never deletes or rewrites intents, ledger/checkpoints or outbox rows; already canonical records continue through the idempotent drain path.
+
+Every implementation atom synchronizes the affected architecture/spec/test/runbook/STATE files in the same session, stages exact paths, uses no AI attribution, and records executable evidence separately from static review. Phase 151 cannot become runtime PASS before MPR-09 and a future Phase-155 cross-domain acceptance matrix, currently `NOT_CREATED`.

@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-minimal-merge-candidate
 stopped_at: final Git audit and remote fast-forward publication
-last_updated: "2026-08-29T00:00:00.000+03:00"
-last_activity: 2026-08-29 · pending-recovery composition and once-adapter capability documented; unit/race evidence accepted; runtime remains unbound
+last_updated: "2026-08-30T00:00:00.000+03:00"
+last_activity: 2026-08-30 - communications ADR and Phase 150/151 specs and plans synchronized; runtime remains unbound
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -1591,3 +1591,12 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 - Commit `8ba30eed` adds `Phase151PendingRecoveryOnceAdapter` as a callable capability only. Its constructor accepts a plain or typed-nonnil existing pending-recovery repository and positive bounded config, retaining a value copy. `Execute` returns `ErrPostCreatePipelineInvalid` with zero output for structural receiver/context/dependency invalidity before cancellation; a structurally valid cancelled context returns exact `ctx.Err()` before delegation; valid input makes one direct call to the existing executor with no wrapper or retry. Gate denial stops before scanning, and gate errors remain discoverable through `errors.Is` via existing executor wrapping.
 - RED `worktree-master-backend-unit-run-8aa008302863`: target `FAIL`, first exit `1`, build `PASS`, expected missing-constructor vet/unit/race failures, retained stderr `0/245/0/0`. Initial GREEN `worktree-master-backend-unit-run-74986c6628b2` preceded review test hardening. Final GREEN `worktree-master-backend-unit-run-ea5443e146bf` records target/build/vet/unit/race `PASS`, exit `0`, and four empty stderr logs. Final specification and quality reviews are `PASS`/`APPROVED`, `C0/I0/M0`.
 - The adapter creates no scheduler, ticker, goroutine, process owner, server/startup/shutdown, wiring, live-store runtime, or integration behavior. Production installation remains `UNBOUND/NOT_RUN`; Phase 151 is `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Session note - 2026-08-30 (Communications architecture and execution plans)
+
+- The accepted communications ADR now freezes immutable per-Call provider/presence mode, `Call.RoomName` as the provider/Jitsi room, Hub-owned connection epochs, provider-issued delivery dedupe, transactional Calls inbox/CAS/outbox, and a fully self-hosted Jitsi bridge over private mTLS plus independent raw-body HMAC. LiveKit remains the active provider and rollback path.
+- Phase 150 now has a bounded SPEC amendment plus Calls/Jitsi TDD atoms: immutable provider/presence identity, authenticated durable event authority, one later-gated Hub-native Jitsi surface, exact first test oracles, discovery-before-overlay, one-digest/low-disk ceilings, provider-pinned rollback and an honest `STATIC_FOUNDATION_ONLY / RUNTIME_UNBOUND` boundary.
+- Phase 151 now has a tracked bounded SPEC amendment plus an execution plan for the dedicated recovery worker: global PostgreSQL leader fence/checkpoint, Mongo message fence, replayable intent, current-audience planner, PostgreSQL ledger/outbox and isolated legacy-to-canonical tenant cutover.
+- Scoped independent Phase-150 and Phase-151 plan reviews are `PASS C0/I0/M0`. The final whole-diff Hub/GSD/Superpowers gate is mandatory before commit and its final verdict is the commit authority; no review result is executable runtime evidence.
+- No Docker test/build/pull/render/start, migration, live store, network, server, deployment, push, fetch or merge was performed in this planning packet. Mail/Calendar and `pro-qa-ai/**` were not changed.
+- Selected next executable gate is MPR-01: add `backend/tests/messenger/phase151_pending_recovery_leader_lease_contract_test.go`, run the exact Docker `backend-unit` RED after the recorded resource preflight, implement only the private leader-lease port/value contract, then run GREEN and independent review. `CALL-DUR-01` and `CALL-DUR-03` are also bounded but queued; all later recovery atoms remain blocked until the MPR-01 receipt.
