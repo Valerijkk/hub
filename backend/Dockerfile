@@ -33,7 +33,7 @@ RUN CGO_ENABLED=0 GOOS=linux sh -c '\
 RUN CGO_ENABLED=0 GOOS=linux go build -tags release -o /hub-mail ./cmd/hub-mail
 
 # --- Финальный образ ---
-FROM alpine:3.21
+FROM alpine:3.21 AS runtime
 
 RUN apk add --no-cache ca-certificates tzdata
 
@@ -58,3 +58,7 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/api/live || exit 1
 
 ENTRYPOINT ["./hub-server"]
+
+FROM runtime AS qa-runtime
+COPY --chmod=0555 docker/entrypoints/qa-backend-supervisor.sh /usr/local/bin/qa-backend-supervisor
+ENTRYPOINT ["/usr/local/bin/qa-backend-supervisor"]

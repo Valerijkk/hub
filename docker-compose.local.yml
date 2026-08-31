@@ -463,9 +463,11 @@ services:
 
   qa-backend:
     <<: *qa-common
+    init: false
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: qa-runtime
       args:
         GO_BUILD_TAGS: qa
     user: "10001:10001"
