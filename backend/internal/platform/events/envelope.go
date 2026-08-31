@@ -3,6 +3,7 @@ package events
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -125,6 +126,108 @@ func (envelope EnvelopeV1) EventID() uuid.UUID {
 // MarshalJSON returns a fresh copy of the complete frozen envelope bytes.
 func (envelope EnvelopeV1) MarshalJSON() ([]byte, error) {
 	return []byte(envelope.frozenJSON), nil
+}
+
+// DecodeEnvelopeV1 accepts only one canonical, fully validated version-one envelope.
+func DecodeEnvelopeV1(encoded []byte) (EnvelopeV1, error) {
+	if !validSingleJSONObject(encoded) {
+		return EnvelopeV1{}, ErrInvalidPayload
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(encoded))
+	decoder.DisallowUnknownFields()
+	var decoded envelopeJSONV1
+	if err := decoder.Decode(&decoded); err != nil {
+		return EnvelopeV1{}, ErrInvalidPayload
+	}
+	if decoded.SchemaVersion != envelopeSchemaVersionV1 {
+		return EnvelopeV1{}, ErrInvalidPayload
+	}
+
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return EnvelopeV1{}, ErrInvalidPayload
+	}
+
+	envelope, err := NewEnvelopeV1(
+		decoded.Subject,
+		decoded.EventID,
+		decoded.OccurredAt,
+		decoded.OrganizationID,
+		decoded.ActorID,
+		decoded.CorrelationID,
+		decoded.Payload,
+	)
+	if err != nil {
+		return EnvelopeV1{}, err
+	}
+	canonical, err := envelope.MarshalJSON()
+	if err != nil || !bytes.Equal(canonical, encoded) {
+		return EnvelopeV1{}, ErrInvalidPayload
+	}
+	return envelope, nil
+}
+
+func validSingleJSONObject(encoded []byte) bool {
+	decoder := json.NewDecoder(bytes.NewReader(encoded))
+	token, err := decoder.Token()
+	if err != nil {
+		return false
+	}
+	opening, ok := token.(json.Delim)
+	if !ok || opening != '{' || !consumeJSONObject(decoder) {
+		return false
+	}
+	_, err = decoder.Token()
+	return err == io.EOF
+}
+
+func consumeJSONObject(decoder *json.Decoder) bool {
+	seen := make(map[string]struct{})
+	for decoder.More() {
+		token, err := decoder.Token()
+		if err != nil {
+			return false
+		}
+		key, ok := token.(string)
+		if !ok {
+			return false
+		}
+		if _, exists := seen[key]; exists {
+			return false
+		}
+		seen[key] = struct{}{}
+		if !consumeJSONValue(decoder) {
+			return false
+		}
+	}
+	closing, err := decoder.Token()
+	return err == nil && closing == json.Delim('}')
+}
+
+func consumeJSONValue(decoder *json.Decoder) bool {
+	token, err := decoder.Token()
+	if err != nil {
+		return false
+	}
+	opening, ok := token.(json.Delim)
+	if !ok {
+		return true
+	}
+	switch opening {
+	case '{':
+		return consumeJSONObject(decoder)
+	case '[':
+		for decoder.More() {
+			if !consumeJSONValue(decoder) {
+				return false
+			}
+		}
+		closing, err := decoder.Token()
+		return err == nil && closing == json.Delim(']')
+	default:
+		return false
+	}
 }
 
 func validSubject(subject string) bool {

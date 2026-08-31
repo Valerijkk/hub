@@ -1817,6 +1817,35 @@ func (backend *eventEntTransactionBackend) appendCalendarInboundInviteOutbox(
 	if err != nil || !descriptor.valid() || descriptor.Envelope().Subject() != envelope.Subject() {
 		return ErrEventInvalid
 	}
+	if command.Outcome() == CalendarInboundIngestApplyRequest {
+		const eventType = "calendar.invite.updated.v1"
+		descriptorEnvelope := descriptor.Envelope()
+		if descriptorEnvelope.Subject() != eventType {
+			return ErrEventInvalid
+		}
+		receipt, publishErr := outbox.NewPublisher().PublishInTxWithReceipt(
+			ctx,
+			backend.tx,
+			eventType,
+			descriptorEnvelope,
+			&outbox.OutboxOrigin{
+				Kind: outbox.OutboxOriginKindCalendarEvent,
+				ID:   calendarEventID,
+			},
+		)
+		if publishErr != nil {
+			return calendarEntSafeError(publishErr)
+		}
+		if receipt.OutboxEventID == uuid.Nil ||
+			receipt.EventType != eventType ||
+			receipt.EnvelopeEventID != descriptorEnvelope.EventID() ||
+			receipt.Origin == nil ||
+			receipt.Origin.Kind != outbox.OutboxOriginKindCalendarEvent ||
+			receipt.Origin.ID != calendarEventID {
+			return ErrEventInvalid
+		}
+		return nil
+	}
 	if err := outbox.NewPublisher().PublishInTx(ctx, backend.tx, envelope.Subject(), descriptor.Envelope()); err != nil {
 		return calendarEntSafeError(err)
 	}

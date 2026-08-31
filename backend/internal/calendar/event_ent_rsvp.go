@@ -11,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent/calendarevent"
 	"github.com/valerii/hub/backend/ent/calendareventexception"
 	"github.com/valerii/hub/backend/ent/calendarreplydelivery"
+	"github.com/valerii/hub/backend/internal/platform/outbox"
 )
 
 var _ CalendarEventSeriesRSVPTransactionBackend = (*eventEntTransactionBackend)(nil)
@@ -129,7 +130,7 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventSeriesRSVP(ctx co
 			return CalendarEventSeriesRSVPPersistenceResult{}, err
 		}
 	}
-	if err := backend.AppendOutbox(ctx, scope, command.Outbox()); err != nil {
+	if err := backend.appendCalendarRSVPOutbox(ctx, command.Outbox(), attendee.ID); err != nil {
 		return CalendarEventSeriesRSVPPersistenceResult{}, err
 	}
 	return NewCalendarEventSeriesRSVPPersistenceResult(requested, command.EventSequence(), command.Outbox(), eventEntSeriesReplyPointer(reply, hasReply))
@@ -295,7 +296,7 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventOccurrenceRSVP(ct
 			return CalendarEventOccurrenceRSVPPersistenceResult{}, err
 		}
 	}
-	if err := backend.AppendOutbox(ctx, scope, command.Outbox()); err != nil {
+	if err := backend.appendCalendarRSVPOutbox(ctx, command.Outbox(), appliedAttendeeID); err != nil {
 		return CalendarEventOccurrenceRSVPPersistenceResult{}, err
 	}
 	return NewCalendarEventOccurrenceRSVPPersistenceResult(requested, command.EventSequence(), command.Outbox(), eventEntOccurrenceReplyPointer(reply, hasReply))
@@ -443,6 +444,43 @@ func (backend *eventEntTransactionBackend) persistCalendarOccurrenceRSVPAttendee
 	}
 	if err := update.Exec(ctx); err != nil {
 		return calendarEntCASFailure(err)
+	}
+	return nil
+}
+
+func (backend *eventEntTransactionBackend) appendCalendarRSVPOutbox(
+	ctx context.Context,
+	descriptor EventOutboxDescriptor,
+	attendeeID uuid.UUID,
+) error {
+	const eventType = "calendar.rsvp.changed.v1"
+	if backend == nil || backend.tx == nil || attendeeID == uuid.Nil || !descriptor.valid() {
+		return ErrEventInvalid
+	}
+	envelope := descriptor.Envelope()
+	if envelope.Subject() != eventType || envelope.EventID() == uuid.Nil {
+		return ErrEventInvalid
+	}
+	receipt, err := outbox.NewPublisher().PublishInTxWithReceipt(
+		ctx,
+		backend.tx,
+		eventType,
+		envelope,
+		&outbox.OutboxOrigin{
+			Kind: outbox.OutboxOriginKindCalendarAttendee,
+			ID:   attendeeID,
+		},
+	)
+	if err != nil {
+		return calendarEntSafeError(err)
+	}
+	if receipt.OutboxEventID == uuid.Nil ||
+		receipt.EventType != eventType ||
+		receipt.EnvelopeEventID != envelope.EventID() ||
+		receipt.Origin == nil ||
+		receipt.Origin.Kind != outbox.OutboxOriginKindCalendarAttendee ||
+		receipt.Origin.ID != attendeeID {
+		return ErrEventInvalid
 	}
 	return nil
 }
