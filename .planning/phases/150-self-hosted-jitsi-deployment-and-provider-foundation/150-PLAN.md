@@ -286,6 +286,80 @@ After that receipt, `CALL-DUR-08A` still requires a separate exact TaskContract 
 
 The 08A oracle is a genuine isolated `hubtest` unit using an in-test fake Ent Postgres dialect driver: no real/SQLite database, filesystem, network, `enttest`, or new dependency. It proves exact conjunctive provider/room SQL and args, generated row mapping, no-row `ent.IsNotFound`, multi-row `ent.IsNotSingular`, unwrapped driver-error identity, exact invalid-input sentinel with no query, and closed provider values. It does not prove CALL-DUR-01 PostgreSQL migration/default/backfill, DB-trigger immutability, planner/index behavior, callbacks, authentication, tenant isolation, provider selection, routing or runtime; those remain integration/08B-08D `NOT_RUN`. Existing room-only callback methods are unchanged by 08A. The later trusted ingress must authenticate source/mTLS/HMAC and delivery identity before this resolver; the tuple itself is never authn/authz.
 
+#### CALL-DUR-08B immutable capability registry implementation plan
+
+**Spec:** `150-SPEC.md` CALL150-13. **Goal:** add a dormant immutable registry that exposes only capabilities a provider truly implements, while current factory/config/server wiring keep Jitsi unavailable. **Exact files:** modify `backend/internal/calls/provider.go`, `provider_factory.go`, `livekit_provider.go`; create `jitsi_provider.go` and `backend/tests/calls/provider_registry_capability_test.go`. No other production, test, config, wiring, service, handler, Ent, deployment or frontend path is owned.
+
+The exact additive API is:
+
+```go
+const ProviderJitsi = `jitsi`
+
+type ConferenceProviderID string
+type ConferenceProviderCapability uint8
+type ConferenceProviderCapabilities uint8
+
+func (c ConferenceProviderCapabilities) Has(ConferenceProviderCapability) bool
+
+const (
+    CapabilityIssueCallJoinCredential ConferenceProviderCapability = 1 << iota
+    CapabilityProvisionRoom
+    CapabilityDeleteRoom
+    CapabilityIssueGuestCredential
+    CapabilityUpdateParticipantMetadata
+)
+
+type ConferenceRoomProvisioner interface {
+    Provision(context.Context, string, uint32) error
+}
+type ConferenceRoomDeleter interface {
+    Delete(context.Context, string) error
+}
+type ConferenceGuestCredentialIssuer interface {
+    IssueGuestCredential(string, string) (GuestJoinCredential, error)
+}
+type ConferenceParticipantMetadataUpdater interface {
+    UpdateParticipantState(context.Context, string, string, string) error
+}
+
+type RegisteredConferenceProvider interface {
+    CallJoinCredentialIssuer
+    ProviderID() ConferenceProviderID
+    Capabilities() ConferenceProviderCapabilities
+}
+
+var (
+    ErrConferenceProviderRegistryInvalid = errors.New(`invalid conference provider registry`)
+    ErrConferenceProviderRegistryDuplicate = errors.New(`duplicate conference provider registration`)
+    ErrConferenceProviderUnknown = errors.New(`unknown conference provider`)
+    ErrConferenceProviderNotRegistered = errors.New(`conference provider is not registered`)
+    ErrConferenceProviderCapabilityUnavailable = errors.New(`conference provider capability is unavailable`)
+)
+
+type ConferenceProviderRegistry struct {
+    providers map[ConferenceProviderID]RegisteredConferenceProvider
+}
+
+func NewConferenceProviderRegistry(...RegisteredConferenceProvider) (*ConferenceProviderRegistry, error)
+func (r *ConferenceProviderRegistry) Lookup(ConferenceProviderID) (RegisteredConferenceProvider, error)
+func (r *ConferenceProviderRegistry) Require(ConferenceProviderID, ConferenceProviderCapability) (RegisteredConferenceProvider, error)
+func NewJitsiConferenceProvider(config.JitsiConfig) (*JitsiConferenceProvider, error)
+```
+
+`ConferenceProvider` retains its exact legacy five-method reflection contract. `ConferenceProviderID` is adapter-registry identity, not the future 08A persisted-call type and not `JoinCredential.Provider string`; 08D owns their explicit fail-closed mapping. Registration is construction-time only: there is no mutating `Register`. The closed IDs are exact lowercase `livekit|jitsi`. Constructor input rejects empty registry, nil/typed-nil provider, zero/unknown/padded/case-drift ID, missing credential bit, unknown capability bits, duplicate ID, and capability/interface mismatch in either direction. It returns exact unwrapped sentinels `ErrConferenceProviderRegistryInvalid` or `ErrConferenceProviderRegistryDuplicate`. Before ID or capability validation, `Lookup` and `Require` return exact `ErrConferenceProviderRegistryInvalid` when `r == nil` or `r.providers == nil`; the zero-value registry is invalid. On a valid constructed registry, `Require` resolves and validates the provider ID before validating capability, so an invalid ID returns exact `ErrConferenceProviderUnknown` even when the capability is also invalid. A valid omitted ID returns `ErrConferenceProviderNotRegistered`, never LiveKit fallback. `Require` otherwise accepts exactly one known bit and returns `ErrConferenceProviderCapabilityUnavailable` when the registered provider lacks it; lookup/require perform no provider method call.
+
+`LiveKitConferenceProvider` advertises all five bits and already implements all narrow interfaces plus `CallJoinCredentialIssuer`. `JitsiConferenceProvider` validates `JitsiConfig`, composes the existing `jitsiCredentialIssuer` with the server clock, delegates only `IssueCallJoinCredential`, advertises only `CapabilityIssueCallJoinCredential`, and deliberately has no legacy provision/delete/room-string join/guest/participant-state method. Constructor/registry errors and logs contain no secret, token, room, service URL, identity or raw config. They create no client, network call, goroutine, room, participant, event or runtime binding.
+
+- [ ] **Step 1 - restore the sole oracle.** After the accepted dependency queue and a fresh resource preflight, move the reviewed ignored draft to exactly `backend/tests/calls/provider_registry_capability_test.go`. Confirm no other missing-symbol oracle is discoverable.
+- [ ] **Step 2 - prove RED once.** Run only `docker compose -f docker-compose.local.yml run --rm backend-unit`. Valid RED has build PASS and vet/unit/race failure solely for the frozen missing 08B symbols; any unrelated or stale-generator failure requires triage and no production dispatch.
+- [ ] **Step 3 - add provider contracts.** In `provider.go`, add the exact IDs, narrow interfaces, capability bits, `Has`, registered interface and five exact non-diagnostic sentinels. Keep `ConferenceProvider` and `JoinCredential` unchanged.
+- [ ] **Step 4 - add honest adapters.** In `livekit_provider.go`, add only `ProviderID` and all-capability reporting. In new `jitsi_provider.go`, compose the existing issuer and implement only provider ID, credential capability and exact credential delegation.
+- [ ] **Step 5 - add immutable registry.** In `provider_factory.go`, add constructor, `Lookup`, `Require`, typed-nil detection and exact capability/interface congruence. Preserve the existing `NewConferenceProvider` branches and stable Jitsi-unavailable error byte-for-byte.
+- [ ] **Step 6 - prove GREEN once.** Run the same canonical backend-unit command. Require build/vet/unit/race PASS and no Mail/Calendar overlap; this proves only isolated compile/unit/race behavior.
+- [ ] **Step 7 - accept and commit.** Require a conclusion-blind `be-ver` spec/diff/oracle review and an independent `security-auditor` no-disclosure/no-activation/no-fallback review, both with `C0/I0/M0`; the implementer cannot self-set `verified`. Then sync these five canonical docs without changing readiness, exact-stage only the five 08B code/test files plus owned docs, and commit `feat(calls): add immutable provider capability registry`.
+
+The sole oracle covers constructor validation, duplicate no-overwrite, order-independent deterministic lookup, known-omitted versus unknown identity, nil registry, exact sentinel identity, no fallback, no issuer invocation, capability/interface congruence, LiveKit full capability, Jitsi credential-only structure, and returned-error non-disclosure. It uses no database, filesystem, network, generated Call provider field or credential issuance. It does not prove config loading, activation, persisted routing, Ent migration, epoch allocation, guest HTTP denial, media, deployment or runtime.
+
 #### Exact ordered-outbox decomposition
 
 `CALL-DUR-06A` owns `backend/ent/schema/outboxevent.go`, the Calls expand migration clauses, generated Ent output and `backend/tests/platform/outbox_ordering_schema_test.go`. It requires all-or-nothing `ordering_key/ordering_seq`, a partial unique keyed sequence and a status/key/sequence claim index. `CALL-DUR-06B` then owns only `backend/internal/platform/outbox/publisher.go`, `worker.go`, and `backend/tests/platform/outbox_ordered_delivery_test.go`: null-pair rejection, duplicate keyed sequence, concurrent claim, leased/failed-earlier blocking and unordered-event non-regression.
