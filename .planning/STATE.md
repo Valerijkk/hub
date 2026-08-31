@@ -1,4 +1,15 @@
 ---
+inbound_published_cleanup_execution_2026_08_31: >-
+  STATIC_ACCEPTED: current source-static receipt accepts the full inbound
+  published-cleanup and supervised QA-recovery chain (C8e/C9e included), from
+  f6a0b681, 18ef33e3, b010d39a, ad1f1231, b94da019, 772b11ec, 93d68a84,
+  ed630813, 8ef3985c and c171158e. Recovery is QA-only (`qa && !release`),
+  token-authenticated and supervisor-mediated; it is neither public API nor
+  product-readiness evidence. Compile, Docker, integration, product runtime,
+  merge, push and deployment remain NOT_RUN / unclaimed.
+  External manifest is frozen at 82 lines, 4767 canonical bytes, SHA-256
+  889c14127f47bdb73108bfef07573ff4b0bde7fd3b78b47122718a1f5b0a36b7.
+  No merge or push was performed.
 mail_calendar_schema_roundtrip_r2_checkpoint_2026_08_29: >-
   DOCKER_SCHEMA_ROUNDTRIP_PASS / RETAINED_AND_PRODUCT_RUNTIME_NOT_RUN.
   `schema-maintenance-verify` exited 0: lint9; nine applied at current
