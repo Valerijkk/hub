@@ -656,6 +656,14 @@ RED `worktree-master-backend-unit-run-8aa008302863` had target `FAIL`, first exi
 
 This is bounded unit/race evidence only. No scheduler/ticker/goroutine, process owner, server lifecycle, production wiring, live-store runtime, or integration was run or added. Production installation remains `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
 
+## Phase 151 pending-recovery leader lease evidence (MPR-01, 2026-08-31)
+
+Commit `9c2019fc` binds the external oracle `backend/tests/messenger/phase151_pending_recovery_leader_lease_contract_test.go` (SHA-256 `07F7B07B1344ADD91B34741E02507BBDE07E2210BCAA3677CB20A6E366911C6E`) to the single production file `backend/internal/messenger/pending_recovery_leader_lease.go`. The exact Docker launcher was `docker compose -f docker-compose.local.yml run --rm backend-unit`; no selector, pull or build flag was used.
+
+Canonical RED container `worktree-master-backend-unit-run-15ae2c7f6e17` exited `1`: build passed and vet/unit/race failed only on the four absent MPR-01 symbols; there was no product assertion failure, panic, data race or unrelated package build failure. Canonical GREEN container `worktree-master-backend-unit-run-97be80074322` exited `0`: target/build/vet/unit/race are all `PASS`, `first_exit=0`, and all four stderr logs are empty. Both used local image `sha256:51a4cc1bf7302a4632d0e71a5bec7cb177dc8744f993b1f52b13f138f7b03035` with no RepoDigest; the disposable GREEN container was removed. Independent post-GREEN acceptance is `PASS C0/I0/M0`.
+
+This is package-level unit/race evidence for the private port/value contract only. Receipt-to-index binding is temporal rather than cryptographic because ignored report files contain no staged blob digest. PostgreSQL/Mongo durability, scheduler/process lifecycle, migration, adapter, NATS/WS, integration, deployment and product/runtime behavior remain `NOT_RUN/UNBOUND`.
+
 ## Phase 151 MPR-09 deployment and live-acceptance matrix (2026-08-31)
 
 This section freezes future evidence; every row is `NOT_RUN`. It does not supersede the sole queued MPR-01 oracle or turn static review into product acceptance. Host and ad-hoc execution are forbidden. Applicable product evidence may use only `backend-unit`, `frontend-unit`, `python-api`, `python-integration`, `python-e2e-smoke` and `python-e2e-full`. `python-contract` remains package/framework-only.

@@ -656,6 +656,12 @@ The private future store port requires an atomic comparison and joint update of 
 
 The adapter introduces no ticker, goroutine, process ownership, server startup/shutdown, production wiring, live-store behavior, or integration. It does not install a recovery loop; production installation and all runtime evidence remain `UNBOUND/NOT_RUN`.
 
+## Phase 151 pending-recovery leader lease boundary (MPR-01, 2026-08-31)
+
+`Phase151PendingRecoveryLeaderLeaseRepository` is a private fail-closed port/value boundary for acquire, renew, release and checkpoint advance. Its wrappers reject nil and typed-nil dependencies before cancellation, give a valid cancelled context precedence before value validation and again after the single repository delegation, preserve repository errors, treat ownership loss as a zero-value normal result, and validate successful holder/fence identity without consulting a local clock. Checkpoints retain a forward-compatible non-empty kind and cross the port through defensive cursor copies.
+
+MPR-01 adds no schema, adapter, timer, goroutine, process owner, configuration, persistence or runtime wiring. It therefore does not establish distributed leadership or PostgreSQL/Mongo behavior: MPR-03 owns durable leader truth, later atoms own scheduling/execution and all live/runtime evidence remains `UNBOUND/NOT_RUN`.
+
 ## Phase 151 deterministic pending-recovery scheduler boundary (2026-08-31)
 
 MPR-02 is a process-local controller over one opaque scheduled attempt, not a distributed-lock adapter. Its only attempt result is closed `standby|success|retryable_failure|leadership_lost`; it never receives a repository, owner, lease, fence, checkpoint, raw error or audience identity. MPR-06 later composes PostgreSQL leadership and the recovery executor into that attempt. MPR-07 later constructs the process, binds configuration, calls `Run` and owns health/readiness/metrics. The existing local interval gate/composition/once adapter are neither modified nor production-bound here.

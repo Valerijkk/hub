@@ -1138,6 +1138,12 @@ This is not an adapter or persistence implementation: it adds no schema, databas
 
 This contract adds no scheduler, ticker, goroutine, process owner, server startup/shutdown, production composition/wiring, live-store execution, or integration. It is a callable capability only; production installation remains `UNBOUND/NOT_RUN`.
 
+## Phase 151 pending-recovery leader lease contract (MPR-01, 2026-08-31)
+
+`Phase151PendingRecoveryLeaderLeaseRepository` exposes acquire, renew, release and checkpoint-advance operations over value contracts. The exported wrappers fail closed for nil/typed-nil context or repository before cancellation and value validation, then reject invalid holder/duration/lease/checkpoint values and malformed owned results. A valid pre-cancelled context prevents delegation; cancellation observed after the one repository call wins over returned values/errors. Repository errors retain identity, denied ownership returns zero values without validating denied payloads, acquire preserves the requested holder, renew preserves holder/fence, and cursor ownership is isolated on acquire return and advance input. A lease timestamp must be nonzero but is never compared with local time; any non-empty checkpoint kind remains forward-compatible.
+
+This is only the private port/value contract. It creates no schema, adapter, scheduler, process, config, endpoint, persistence or distributed-lock claim. MPR-03 owns PostgreSQL database-time authority and later atoms own composition/runtime; PostgreSQL, Mongo, NATS, WebSocket, deployment and product behavior remain `UNBOUND/NOT_RUN`.
+
 ## Phase 151 deterministic pending-recovery scheduler contract (2026-08-31)
 
 Future MPR-02 owns only `backend/internal/messenger/pending_recovery_scheduler.go` and external `messenger_test` oracle `backend/tests/messenger/phase151_pending_recovery_scheduler_test.go`. Its exact exported types/signatures are frozen in the Phase-151 PLAN: closed result-kind constants, private-field result plus validating `(value,error)` constructor and Kind accessor, Attempt, Timer, Clock and Jitter interfaces, private-field policy plus validating `(value,error)` constructor, scheduler constructor, `Run(ctx) error` and stable read-only `Done() <-chan struct{}`. Concurrent or repeated Run returns exact `ErrPhase151PendingRecoverySchedulerAlreadyRun` before any dependency call.
