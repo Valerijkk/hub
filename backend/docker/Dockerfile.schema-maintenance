@@ -64,6 +64,21 @@ RUN GOTOOLCHAIN=local \
     GOMODCACHE=/go/pkg/mod \
     go list -mod=readonly -deps ./docker/schema-maintenance/materializer >/dev/null
 
+FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS schema-root-fk-builder
+
+WORKDIR /src
+COPY --from=module-cache /go/pkg/mod/ /go/pkg/mod/
+COPY go.mod go.sum ./
+COPY docker/schema-maintenance/rootfk/main.go ./docker/schema-maintenance/rootfk/main.go
+COPY internal/schemamaintenance/rootfk/rootfk.go ./internal/schemamaintenance/rootfk/rootfk.go
+RUN GOTOOLCHAIN=local \
+    GOWORK=off \
+    GOPROXY=off \
+    GOSUMDB=off \
+    GOFLAGS=-mod=readonly \
+    GOMODCACHE=/go/pkg/mod \
+    go build -trimpath -o /schema-root-fk ./docker/schema-maintenance/rootfk
+
 FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS prefeature-source
 
 WORKDIR /carrier
@@ -107,11 +122,20 @@ RUN mkdir -p /opt/hub/backend/migrations/atlas/mail-calendar-v1 && \
 COPY --chown=10001:10001 docker/schema-tool.lock.json ./docker/schema-tool.lock.json
 COPY --chown=10001:10001 docker/schema-materializer.lock.json ./docker/schema-materializer.lock.json
 COPY --from=prefeature-source --chown=10001:10001 /opt/hub/prefeature/backend/ /opt/hub/prefeature/backend/
+COPY --from=schema-root-fk-builder /schema-root-fk /usr/local/bin/schema-root-fk
+COPY docker/schema-maintenance/rootfk/frozen-external-closure.manifest ./docker/schema-maintenance/rootfk/frozen-external-closure.manifest
 COPY docker/entrypoints/mail-calendar-schema.sh /usr/local/bin/mail-calendar-schema
 RUN sed -i 's/\r$//' /usr/local/bin/mail-calendar-schema && \
     ! grep -q "$(printf '\r')" /usr/local/bin/mail-calendar-schema && \
-    chmod 0555 /usr/local/bin/atlas /usr/local/bin/mail-calendar-schema && \
+    chmod 0555 /usr/local/bin/atlas /usr/local/bin/mail-calendar-schema /usr/local/bin/schema-root-fk && \
+    chmod 0444 /opt/hub/backend/docker/schema-maintenance/rootfk/frozen-external-closure.manifest && \
     test "$(stat -c '%U:%G:%a' /usr/local/bin/mail-calendar-schema)" = 'root:root:555' && \
+    test "$(stat -c '%U:%G:%a' /usr/local/bin/schema-root-fk)" = 'root:root:555' && \
+    test -f /opt/hub/backend/docker/schema-maintenance/rootfk/frozen-external-closure.manifest && \
+    test ! -L /opt/hub/backend/docker/schema-maintenance/rootfk/frozen-external-closure.manifest && \
+    test "$(wc -c < /opt/hub/backend/docker/schema-maintenance/rootfk/frozen-external-closure.manifest | tr -d '[:space:]')" = '4767' && \
+    test "$(sha256sum /opt/hub/backend/docker/schema-maintenance/rootfk/frozen-external-closure.manifest | awk '{print $1}')" = '889c14127f47bdb73108bfef07573ff4b0bde7fd3b78b47122718a1f5b0a36b7' && \
+    test "$(stat -c '%U:%G:%a' /opt/hub/backend/docker/schema-maintenance/rootfk/frozen-external-closure.manifest)" = 'root:root:444' && \
     test "$(sed -n '1p' /usr/local/bin/mail-calendar-schema)" = '#!/bin/sh' && \
     test "$(/usr/local/bin/atlas version 2>&1 | sed -n '1p')" = 'atlas community version v1.3.2' && \
     test "$(sha256sum /usr/local/bin/atlas | awk '{print $1}')" = 'bdae7d2b6b903fdc4c40313fedfdf87f8a08ce1f2a4fd5c62fea2308419d526e' && \

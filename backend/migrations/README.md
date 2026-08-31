@@ -68,8 +68,57 @@ backend/migrations/atlas/mail-calendar-v1/
   20260827000002_calendar_invite_sequence_non_negative.sql
   20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql
   20260829000001_mail_calendar_check_roundtrip_flattening.sql
+  20260831000000_qa_project_outbox_authority.sql
+  20260831000001_outbox_event_origin.sql
   atlas.sum
 ```
+
+## P1a project-outbox authority addition (2026-08-31)
+
+The append-only P1a migration creates only qa_project_outbox_manifests and
+qa_project_outbox_effects. It records exact UUID authority and 32-byte hashed
+control material; it contains no raw nonce, payload, name, key, email, or
+discovery field. The only foreign key is immutable effect.manifest_id to the
+manifest with ON DELETE NO ACTION. No foreign key or Ent edge targets User,
+Organization, Session, Project, ProjectMember, or OutboxEvent.
+
+P1a advances the bounded mail-calendar-v1 lineage from nine SQL migrations and
+ten total entries to ten SQL migrations and eleven total entries, ending at
+20260831000000. The schema-maintenance launcher copies and allowlists that
+exact file, uses the new version for its current-schema snapshot, and hashes
+the complete ten-file SQL input.
+
+## O1 OutboxEvent origin addition (2026-08-31)
+
+The append-only O1 migration adds nullable immutable origin_kind and origin_id
+columns to outbox_events, a both-null-or-both-set check, and the non-unique
+origin_kind/origin_id/event_type lookup index. It adds no foreign key, Ent edge,
+domain enum database constraint, trigger, backfill, data scan, or QA table.
+
+O1 advances the bounded mail-calendar-v1 lineage from ten SQL migrations and
+eleven total entries to eleven SQL migrations and twelve total entries, ending
+at 20260831000001. The schema-maintenance launcher copies and allowlists that
+exact file, uses the new version for its current-schema snapshot, and hashes
+the complete eleven-file SQL input.
+
+## P1a/O1 Docker evidence (2026-09-01)
+
+All commands used the current source through `docker-compose.local.yml` and
+completed serially:
+
+- `schema-maintenance-generate --build`: PASS; two isolated Ent generations
+  matched, generated manifest 79671 bytes with SHA-256
+  `49602e8cf48d5e5682c0076e4f4202fbe2163f4997b329867ba1ce2ae3388b43`.
+- `schema-maintenance-hash --build`: PASS; the candidate `atlas.sum` is 1159
+  bytes with SHA-256
+  `8c4aff6c69e2aa555a89e11859d83f4a939a9341c8e68880791a24fc6823a481`
+  and header `h1:HK2ODb264K0k6PtJPE4xmiifzOprM5H3JUxiWA04z5Y=`.
+- `schema-maintenance-verify --build`: PASS; 11/11 migrations applied, desired
+  and replay root-FK projections both contained 82 rows at SHA-256
+  `d594dbcd8308675a89875ab8e6ff3a0f60e97c8ecd7696aebf6a562c5341876c`,
+  and both bounded Atlas semantic diffs were empty.
+- `backend-unit --build`: PASS; build, vet, unit, and race receipts all exited
+  zero.
 
 ## Historical seven-file checksum and partial replay evidence (2026-08-29)
 

@@ -4,3 +4,7 @@ backend/docker/schema-tool.lock.json text eol=lf
 backend/docker/schema-maintenance/materializer/main.go text eol=lf
 backend/atlas.hcl text eol=lf
 backend/docker/schema-materializer.lock.json text eol=lf
+backend/docker/schema-maintenance/rootfk/frozen-external-closure.manifest text eol=lf
+backend/tests/schemamaintenance/testdata/frozen_rootfk_projection.txt text eol=lf
+backend/migrations/atlas/mail-calendar-v1/20260831000000_qa_project_outbox_authority.sql text eol=lf
+backend/migrations/atlas/mail-calendar-v1/20260831000001_outbox_event_origin.sql text eol=lf

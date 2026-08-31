@@ -273,19 +273,12 @@ services:
     command: ["diff"]
 
   schema-maintenance-generate:
-    <<: *schema-maintenance-common
+    <<: *schema-maintenance-tool
     command: ["generate"]
-    network_mode: none
-    mem_limit: 4g
-    tmpfs:
-      - "/work:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
-      - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"
-      - "/run/go-run-exec:rw,exec,nosuid,nodev,size=256m,uid=10001,gid=10001,mode=0700"
 
   schema-maintenance-hash:
-    <<: *schema-maintenance-common
+    <<: *schema-maintenance-tool
     command: ["hash"]
-    network_mode: none
 
   schema-maintenance-verify:
     <<: *schema-maintenance-tool

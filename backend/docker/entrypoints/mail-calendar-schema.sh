@@ -28,10 +28,12 @@ readonly DELIVERY_MATERIALIZATION_INVALID_FILENAME=20260827000001_calendar_deliv
 readonly INVITE_SEQUENCE_NON_NEGATIVE_FILENAME=20260827000002_calendar_invite_sequence_non_negative.sql
 readonly ROUNDTRIP_RECONCILIATION_FILENAME=20260829000000_mail_calendar_schema_roundtrip_reconciliation.sql
 readonly CHECK_ROUNDTRIP_FLATTENING_FILENAME=20260829000001_mail_calendar_check_roundtrip_flattening.sql
-readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=9
-readonly EXPECTED_LINEAGE_ENTRY_COUNT=10
-readonly EXPECTED_LATEST_VERSION=20260829000001
-readonly SNAPSHOT_FILENAME=20260829000001_current_snapshot.sql
+readonly PROJECT_OUTBOX_AUTHORITY_FILENAME=20260831000000_qa_project_outbox_authority.sql
+readonly OUTBOX_EVENT_ORIGIN_FILENAME=20260831000001_outbox_event_origin.sql
+readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=11
+readonly EXPECTED_LINEAGE_ENTRY_COUNT=12
+readonly EXPECTED_LATEST_VERSION=20260831000001
+readonly SNAPSHOT_FILENAME=20260831000001_current_snapshot.sql
 readonly EXPECTED_DATABASE_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public'
 readonly EXPECTED_PREFEATURE_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar'
 readonly EXPECTED_CURRENT_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar'
@@ -47,6 +49,10 @@ readonly MATERIALIZER_BIN="$GO_RUN_EXEC_ROOT/schema-materializer"
 readonly MATERIALIZER_READY_FILE="$WORK_ROOT/materializer.lock.ready"
 readonly MATERIALIZER_SOURCE_MANIFEST="$WORK_ROOT/materializer.sources.manifest"
 readonly MATERIALIZER_NORMALIZED_SHA256='e9158d05c2795216fbd7d60ffb179b46946bb38167585d80be669ecc3a3e7ae3'
+readonly ROOT_FK_CLI='/usr/local/bin/schema-root-fk'
+readonly ROOT_FK_MANIFEST="$SOURCE_ROOT/docker/schema-maintenance/rootfk/frozen-external-closure.manifest"
+readonly ROOT_FK_MANIFEST_BYTES=4767
+readonly ROOT_FK_MANIFEST_SHA256='889c14127f47bdb73108bfef07573ff4b0bde7fd3b78b47122718a1f5b0a36b7'
 MATERIALIZER_PID=''
 readonly ATLAS_MODULE='ariga.io/atlas'
 readonly ATLAS_MODULE_VERSION='v0.19.1-0.20240203083654-5948b60a8e43'
@@ -105,7 +111,7 @@ require_exact_files() {
   done
 }
 
-require_nine_sql_lineage_inputs() {
+require_eleven_sql_lineage_inputs() {
   require_exact_files "$EXPECTED_LINEAGE_ENTRY_COUNT" \
     "$BASELINE_FILENAME" \
     "$CORE_FILENAME" \
@@ -116,10 +122,12 @@ require_nine_sql_lineage_inputs() {
     "$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" \
     "$ROUNDTRIP_RECONCILIATION_FILENAME" \
     "$CHECK_ROUNDTRIP_FLATTENING_FILENAME" \
+    "$PROJECT_OUTBOX_AUTHORITY_FILENAME" \
+    "$OUTBOX_EVENT_ORIGIN_FILENAME" \
     atlas.sum
 }
 
-copy_nine_sql_lineage_inputs() {
+copy_eleven_sql_lineage_inputs() {
   destination="$1"
 
   cp "$LINEAGE_DIR/$BASELINE_FILENAME" "$destination/$BASELINE_FILENAME" ||
@@ -140,6 +148,10 @@ copy_nine_sql_lineage_inputs() {
     fail 'schema-maintenance: cannot copy roundtrip reconciliation lineage input for hashing' "$EX_CONFIG"
   cp "$LINEAGE_DIR/$CHECK_ROUNDTRIP_FLATTENING_FILENAME" "$destination/$CHECK_ROUNDTRIP_FLATTENING_FILENAME" ||
     fail 'schema-maintenance: cannot copy check roundtrip flattening lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$PROJECT_OUTBOX_AUTHORITY_FILENAME" "$destination/$PROJECT_OUTBOX_AUTHORITY_FILENAME" ||
+    fail 'schema-maintenance: cannot copy project outbox authority lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$OUTBOX_EVENT_ORIGIN_FILENAME" "$destination/$OUTBOX_EVENT_ORIGIN_FILENAME" ||
+    fail 'schema-maintenance: cannot copy outbox event origin lineage input for hashing' "$EX_CONFIG"
 }
 
 require_exact_candidate_files() {
@@ -459,10 +471,14 @@ write_generate_manifest() {
 
 run_generate() {
   require_generate_source_files
-  trap 'rm -rf "$WORK_ROOT" "$GENERATE_FIRST_EXEC_DIR" "$GENERATE_SECOND_EXEC_DIR"' EXIT HUP INT TERM
+  require_exact_atlas_cli
+  require_internal_database_urls
+  trap cleanup_generate_job 0 HUP INT TERM
   rm -rf "$WORK_ROOT"
-  mkdir -p "$WORK_ROOT"
-  umask 077
+  start_materializer_job
+  trap cleanup_generate_job 0 HUP INT TERM
+  run_root_fk_desired_replay_gate
+  rm -rf "$WORK_ROOT/gocache" || fail "cannot remove materializer build cache" "$EX_CONFIG"
 
   prepare_generate_module_root "$GENERATE_FIRST_ROOT"
   prepare_generate_module_root "$GENERATE_SECOND_ROOT"
@@ -678,6 +694,15 @@ cleanup_materializer_job() {
   exit "$materializer_cleanup_status"
 }
 
+cleanup_generate_job() {
+  generate_cleanup_status=$?
+  trap - 0 HUP INT TERM
+  set +e
+  stop_materializer_lock
+  rm -rf "$WORK_ROOT" "$GENERATE_FIRST_EXEC_DIR" "$GENERATE_SECOND_EXEC_DIR"
+  exit "$generate_cleanup_status"
+}
+
 start_materializer_job() {
   require_materializer_source
   [ ! -e "$WORK_ROOT" ] && [ ! -L "$WORK_ROOT" ] ||
@@ -696,6 +721,76 @@ start_materializer_job() {
   acquire_materializer_lock
   trap cleanup_materializer_job 0 HUP INT TERM
   run_materializer initialize || fail "cannot initialize materializer schemas" "$EX_CONFIG"
+}
+
+require_root_fk_inputs() {
+  [ ! -L "$ROOT_FK_CLI" ] ||
+    fail 'schema-maintenance: root-FK checker must not be a symlink' "$EX_CONFIG"
+  [ -f "$ROOT_FK_CLI" ] ||
+    fail 'schema-maintenance: root-FK checker must be a regular file' "$EX_CONFIG"
+  [ -x "$ROOT_FK_CLI" ] ||
+    fail 'schema-maintenance: root-FK checker must be executable' "$EX_CONFIG"
+  [ "$(stat -c '%U:%G:%a' "$ROOT_FK_CLI")" = 'root:root:555' ] ||
+    fail 'schema-maintenance: root-FK checker ownership or mode does not match the reviewed image' "$EX_CONFIG"
+
+  [ ! -L "$ROOT_FK_MANIFEST" ] ||
+    fail 'schema-maintenance: root-FK manifest must not be a symlink' "$EX_CONFIG"
+  [ -f "$ROOT_FK_MANIFEST" ] ||
+    fail 'schema-maintenance: root-FK manifest must be a regular file' "$EX_CONFIG"
+  [ "$(stat -c '%U:%G:%a' "$ROOT_FK_MANIFEST")" = 'root:root:444' ] ||
+    fail 'schema-maintenance: root-FK manifest ownership or mode does not match the reviewed image' "$EX_CONFIG"
+  root_fk_manifest_bytes="$(wc -c < "$ROOT_FK_MANIFEST" | tr -d '[:space:]')"
+  [ "$root_fk_manifest_bytes" = "$ROOT_FK_MANIFEST_BYTES" ] ||
+    fail 'schema-maintenance: root-FK manifest byte count does not match the reviewed closure' "$EX_CONFIG"
+  root_fk_manifest_sha256="$(sha256sum "$ROOT_FK_MANIFEST" | awk '{print $1}')"
+  [ "$root_fk_manifest_sha256" = "$ROOT_FK_MANIFEST_SHA256" ] ||
+    fail 'schema-maintenance: root-FK manifest hash does not match the reviewed closure' "$EX_CONFIG"
+}
+
+write_bounded_schema_inspect() {
+  root_fk_schema_url="$1"
+  root_fk_inspect_file="$2"
+  root_fk_inspect_label="$3"
+
+  [ ! -e "$root_fk_inspect_file" ] && [ ! -L "$root_fk_inspect_file" ] ||
+    fail "schema-maintenance: root-FK $root_fk_inspect_label inspection path already exists" "$EX_CONFIG"
+  "$ATLAS_CLI" schema inspect \
+    --url "$root_fk_schema_url" \
+    --format '{{ sql . }}' > "$root_fk_inspect_file" ||
+    fail "schema-maintenance: cannot inspect root-FK $root_fk_inspect_label schema" "$EX_CONFIG"
+  [ ! -L "$root_fk_inspect_file" ] ||
+    fail "schema-maintenance: root-FK $root_fk_inspect_label inspection must not be a symlink" "$EX_CONFIG"
+  [ -f "$root_fk_inspect_file" ] ||
+    fail "schema-maintenance: root-FK $root_fk_inspect_label inspection is not regular" "$EX_CONFIG"
+  [ -s "$root_fk_inspect_file" ] ||
+    fail "schema-maintenance: root-FK $root_fk_inspect_label inspection is empty" "$EX_CONFIG"
+  root_fk_inspect_bytes="$(wc -c < "$root_fk_inspect_file" | tr -d '[:space:]')"
+  [ "$root_fk_inspect_bytes" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
+    fail "schema-maintenance: root-FK $root_fk_inspect_label inspection exceeds review size limit" "$EX_CONFIG"
+}
+
+run_root_fk_desired_replay_gate() {
+  root_fk_desired_schema="$WORK_ROOT/root-fk.desired.schema.sql"
+  root_fk_replay_schema="$WORK_ROOT/root-fk.replay.schema.sql"
+
+  require_exact_atlas_cli
+  require_internal_database_urls
+  require_root_fk_inputs
+  require_eleven_sql_lineage_inputs
+  run_materializer materialize current ||
+    fail 'schema-maintenance: cannot materialize current desired schema for root-FK verification' "$EX_CONFIG"
+  write_bounded_schema_inspect "$CURRENT_SCHEMA_URL" "$root_fk_desired_schema" desired
+  "$ATLAS_CLI" migrate apply \
+    --dir "file://$LINEAGE_DIR" \
+    --url "$VERIFICATION_SCHEMA_URL" \
+    --revisions-schema atlas_revisions ||
+    fail 'schema-maintenance: cannot replay reviewed Mail/Calendar lineage for root-FK verification' "$EX_CONFIG"
+  write_bounded_schema_inspect "$VERIFICATION_SCHEMA_URL" "$root_fk_replay_schema" replay
+  "$ROOT_FK_CLI" \
+    --expected "$ROOT_FK_MANIFEST" \
+    --desired "$root_fk_desired_schema" \
+    --replay "$root_fk_replay_schema" ||
+    fail 'schema-maintenance: root-FK desired/replay verification failed' "$EX_CONFIG"
 }
 
 run_baseline() {
@@ -733,6 +828,7 @@ run_diff() {
   require_exact_candidate_files "$candidate_dir" 2 "$BASELINE_FILENAME" atlas.sum
 
   run_materializer materialize current || fail 'schema-maintenance: cannot materialize current schema' "$EX_CONFIG"
+
   "$ATLAS_CLI" migrate diff mail_calendar_core \
     --dev-url "$ATLAS_DIFF_DEV_URL" \
     --to "$CURRENT_SCHEMA_URL" \
@@ -763,19 +859,18 @@ run_diff() {
 
 run_hash() {
   require_exact_atlas_cli
-  require_nine_sql_lineage_inputs
+  require_internal_database_urls
+  require_eleven_sql_lineage_inputs
+  start_materializer_job
+  run_root_fk_desired_replay_gate
 
-  [ ! -e "$WORK_ROOT" ] && [ ! -L "$WORK_ROOT" ] ||
-    fail 'schema-maintenance: hash work root already exists' "$EX_CONFIG"
-  mkdir "$WORK_ROOT" ||
-    fail 'schema-maintenance: cannot create hash work root' "$EX_CONFIG"
   candidate_dir="$WORK_ROOT/lineage-hash"
   [ ! -e "$candidate_dir" ] && [ ! -L "$candidate_dir" ] ||
     fail 'schema-maintenance: hash candidate directory already exists' "$EX_CONFIG"
   mkdir "$candidate_dir" ||
     fail 'schema-maintenance: cannot create hash candidate directory' "$EX_CONFIG"
 
-  copy_nine_sql_lineage_inputs "$candidate_dir"
+  copy_eleven_sql_lineage_inputs "$candidate_dir"
   "$ATLAS_CLI" migrate hash --dir "file://$candidate_dir" > /dev/null ||
     fail 'schema-maintenance: cannot hash reviewed Mail/Calendar lineage inputs' "$EX_CONFIG"
   require_exact_candidate_files "$candidate_dir" "$EXPECTED_LINEAGE_ENTRY_COUNT" \
@@ -788,6 +883,8 @@ run_hash() {
     "$INVITE_SEQUENCE_NON_NEGATIVE_FILENAME" \
     "$ROUNDTRIP_RECONCILIATION_FILENAME" \
     "$CHECK_ROUNDTRIP_FLATTENING_FILENAME" \
+    "$PROJECT_OUTBOX_AUTHORITY_FILENAME" \
+    "$OUTBOX_EVENT_ORIGIN_FILENAME" \
     atlas.sum
 
   emit_review_file "$candidate_dir/atlas.sum"
@@ -796,10 +893,9 @@ run_hash() {
 run_verify() {
   require_exact_atlas_cli
   require_internal_database_urls
-  require_nine_sql_lineage_inputs
+  require_eleven_sql_lineage_inputs
   start_materializer_job
 
-  run_materializer materialize current || fail 'schema-maintenance: cannot materialize current schema' "$EX_CONFIG"
   "$ATLAS_CLI" migrate validate \
     --dir "file://$LINEAGE_DIR" \
     --dev-url "$ATLAS_VALIDATE_DEV_URL" ||
@@ -809,11 +905,7 @@ run_verify() {
     --dev-url "$ATLAS_LINT_DEV_URL" \
     --latest "$EXPECTED_LINEAGE_SQL_FILE_COUNT" ||
     fail 'schema-maintenance: Mail/Calendar lineage lint failed' "$EX_CONFIG"
-  "$ATLAS_CLI" migrate apply \
-    --dir "file://$LINEAGE_DIR" \
-    --url "$VERIFICATION_SCHEMA_URL" \
-    --revisions-schema atlas_revisions ||
-    fail 'schema-maintenance: cannot apply Mail/Calendar lineage to verification schema' "$EX_CONFIG"
+  run_root_fk_desired_replay_gate
 
   materializer_verification_status="$WORK_ROOT/verification.status"
   "$ATLAS_CLI" migrate status \
@@ -935,12 +1027,6 @@ run_verify() {
   [ "$materializer_compare_roundtrip_schema_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
     fail 'schema-maintenance: comparison schema inspection exceeds review size limit' "$EX_CONFIG"
 
-  if [ "$materializer_verification_schema_size" -ne "$materializer_compare_roundtrip_schema_size" ]; then
-    emit_review_file "$materializer_verification_schema" >&2
-    emit_review_file "$materializer_compare_roundtrip_schema" >&2
-    fail 'schema-maintenance: verification and snapshot roundtrip schema inspection sizes differ' "$EX_CONFIG"
-  fi
-
   materializer_verification_to_compare_diff="$WORK_ROOT/verification-to-compare.diff"
   materializer_compare_to_verification_diff="$WORK_ROOT/compare-to-verification.diff"
   "$ATLAS_CLI" schema diff \
@@ -979,7 +1065,7 @@ run_verify() {
 
   materializer_verification_schema_sha256="$(sha256sum "$materializer_verification_schema" | awk '{print $1}')"
   materializer_compare_roundtrip_schema_sha256="$(sha256sum "$materializer_compare_roundtrip_schema" | awk '{print $1}')"
-  printf '%s\n' "schema-maintenance: verification_schema_sha256=$materializer_verification_schema_sha256 compare_schema_sha256=$materializer_compare_roundtrip_schema_sha256 bytes=$materializer_verification_schema_size"
+  printf '%s\n' "schema-maintenance: verification_schema_sha256=$materializer_verification_schema_sha256 compare_schema_sha256=$materializer_compare_roundtrip_schema_sha256 verification_bytes=$materializer_verification_schema_size compare_bytes=$materializer_compare_roundtrip_schema_size"
 }
 
 [ "$#" -eq 1 ] || fail 'usage: mail-calendar-schema {baseline|diff|generate|hash|verify}' "$EX_USAGE"
