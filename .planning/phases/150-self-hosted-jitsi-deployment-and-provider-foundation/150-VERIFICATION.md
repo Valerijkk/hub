@@ -2,6 +2,9 @@
 
 **Date:** 2026-08-25
 
+**Ledger updated:** 2026-08-31. Underlying receipts retain their exact dates;
+this metadata update is not new executable or runtime evidence.
+
 **Verdict:** `PARTIAL — STATIC_FOUNDATION_ONLY`
 
 Phase 150 is not complete, production-ready, a deployed self-hosted Jitsi stack, or media-ready. LiveKit remains the only active and rollback provider.

@@ -1140,7 +1140,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-29 (Phase 151 - bounded Messenger hardening continues)
+**Historical continuity snapshot (superseded by the 2026-08-31 notes below):** 2026-08-29 (Phase 151 - bounded Messenger hardening continues)
 **Stopped at:** bounded Phase 151 units are green through the passive recovery composition and the callable `Phase151PendingRecoveryOnceAdapter` capability. Production/cross-store recovery-scanner binding, scheduler, recovery-loop construction, executor installation, and all live writers remain unbound.
 **Resume:** the recovery-authority decision is closed: `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` exist and are accepted. The narrow static-only `EntRepository.ListPendingRecoveryTargets` pager, in-memory scanner, interval gate, claimed coordinator, passive holder, and once adapter are bounded units only; do not start a scheduler, install an executor, or route live writers. Lease renewal, completion-versus-unread-publication loss, outbox, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
 **Resume file:** `.planning/phases/151-messenger-channels-threads-and-unread-foundation/.continue-here.md`.
