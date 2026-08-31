@@ -5,6 +5,7 @@ set -f
 umask 077
 
 FIRST_CHILD_TIMEOUT_SECONDS=30
+FAILURE_TERM_GRACE_SECONDS=5
 current_pid=''
 current_dir=''
 current_fifo=''
@@ -12,44 +13,74 @@ control_open=0
 control_record=''
 record_token=''
 child_exit_status=0
+launch_in_progress=0
+recovery_forbidden=0
+cleanup_failed=0
 
 close_control_fd() {
   if [ "$control_open" -eq 1 ]; then
-    exec 4<&-
+    if ! { exec 4<&-; } 2>/dev/null; then
+      return 1
+    fi
     control_open=0
   fi
+  return 0
 }
 
 cleanup_owned_dir() {
-  close_control_fd
+  cleanup_status=0
+  if ! close_control_fd; then
+    cleanup_status=1
+  fi
 
   if [ -n "$current_fifo" ]; then
-    rm -f -- "$current_fifo" || :
-    current_fifo=''
+    if ! rm -f -- "$current_fifo" 2>/dev/null; then
+      cleanup_status=1
+    else
+      current_fifo=''
+    fi
   fi
 
   if [ -n "$current_dir" ]; then
     case "$current_dir" in
       /tmp/qa-backend-supervisor.??????)
-        if ! rmdir "$current_dir"; then
-          printf '%s\n' 'qa-backend-supervisor: cleanup failure' >&2
+        if ! rmdir "$current_dir" 2>/dev/null; then
+          cleanup_status=1
+        else
+          current_dir=''
         fi
         ;;
       *)
-        printf '%s\n' 'qa-backend-supervisor: cleanup failure' >&2
+        cleanup_status=1
         ;;
     esac
-    current_dir=''
+  fi
+
+  if [ "$cleanup_status" -ne 0 ]; then
+    cleanup_failed=1
+    printf '%s\n' 'qa-backend-supervisor: cleanup failure' >&2
+    return 1
+  fi
+  return 0
+}
+
+reap_failed_child() {
+  if [ -n "$current_pid" ]; then
+    kill -TERM "$current_pid" 2>/dev/null || :
+    # A failed child gets a bounded TERM grace period before forced reap.
+    sleep "$FAILURE_TERM_GRACE_SECONDS" 2>/dev/null || :
+    if kill -0 "$current_pid" 2>/dev/null; then
+      kill -KILL "$current_pid" 2>/dev/null || :
+    fi
+    wait "$current_pid" 2>/dev/null || :
+    current_pid=''
   fi
 }
 
 terminate_and_reap_current() {
-  close_control_fd
-  if [ -n "$current_pid" ]; then
-    kill -TERM "$current_pid" 2>/dev/null || :
-    wait "$current_pid" 2>/dev/null || :
-    current_pid=''
-  fi
+  recovery_forbidden=1
+  close_control_fd || :
+  reap_failed_child
   cleanup_owned_dir
 }
 
@@ -67,8 +98,14 @@ fail_protocol() {
 
 forward_signal() {
   signal_name=$1
+  recovery_forbidden=1
+  # BusyBox ash dispatches pending traps at command boundaries; after `)&`,
+  # `$!` is the wrapper PID until the parent records it below.
+  if [ -z "$current_pid" ] && [ "$launch_in_progress" -eq 1 ]; then
+    current_pid=$!
+  fi
   printf '%s\n' 'qa-backend-supervisor: signal received' >&2
-  close_control_fd
+  close_control_fd || :
   if [ -n "$current_pid" ]; then
     case "$signal_name" in
       TERM) kill -TERM "$current_pid" 2>/dev/null || : ;;
@@ -77,12 +114,22 @@ forward_signal() {
     wait "$current_pid" 2>/dev/null || :
     current_pid=''
   fi
-  cleanup_owned_dir
+  cleanup_owned_dir || :
   trap - EXIT
   exit 128
 }
 
-trap 'cleanup_owned_dir' EXIT
+finish_exit() {
+  final_status=$?
+  if [ "$cleanup_failed" -ne 0 ] || ! cleanup_owned_dir; then
+    trap - EXIT
+    exit 1
+  fi
+  trap - EXIT
+  exit "$final_status"
+}
+
+trap 'finish_exit' EXIT
 trap 'forward_signal TERM' TERM
 trap 'forward_signal INT' INT
 
@@ -94,7 +141,9 @@ launch_child() {
   launch_generation=$1
   launch_mode=$2
 
-  current_dir=$(mktemp -d /tmp/qa-backend-supervisor.XXXXXX) || fail_launch
+  if ! current_dir=$(mktemp -d /tmp/qa-backend-supervisor.XXXXXX 2>/dev/null); then
+    fail_launch
+  fi
   case "$current_dir" in
     /tmp/qa-backend-supervisor.??????) ;;
     *) fail_launch ;;
@@ -102,25 +151,33 @@ launch_child() {
   [ -d "$current_dir" ] || fail_launch
 
   current_fifo="$current_dir/control"
-  mkfifo "$current_fifo" || fail_launch
-  chmod 0600 "$current_fifo" || fail_launch
+  if ! mkfifo "$current_fifo" 2>/dev/null; then
+    fail_launch
+  fi
+  if ! chmod 0600 "$current_fifo" 2>/dev/null; then
+    fail_launch
+  fi
   [ -p "$current_fifo" ] || fail_launch
 
+  launch_in_progress=1
   (
     HUB_QA_CHILD_CONTROL_FD=3
     HUB_QA_CHILD_GENERATION="$launch_generation"
     HUB_QA_CHILD_MODE="$launch_mode"
     export HUB_QA_CHILD_CONTROL_FD HUB_QA_CHILD_GENERATION HUB_QA_CHILD_MODE
-    exec 3>"$current_fifo"
+    if ! { exec 3>"$current_fifo"; } 2>/dev/null; then
+      exit 125
+    fi
     exec /app/hub-server
   ) &
   current_pid=$!
+  launch_in_progress=0
 
-  if ! exec 4<"$current_fifo"; then
+  if ! { exec 4<"$current_fifo"; } 2>/dev/null; then
     fail_launch
   fi
   control_open=1
-  if ! rm -f -- "$current_fifo"; then
+  if ! rm -f -- "$current_fifo" 2>/dev/null; then
     fail_launch
   fi
   current_fifo=''
@@ -246,7 +303,9 @@ consume_recovery_stream() {
 }
 
 wait_for_current_child() {
-  close_control_fd
+  if ! close_control_fd; then
+    fail_protocol
+  fi
   if wait "$current_pid"; then
     child_exit_status=0
   else
@@ -275,9 +334,11 @@ else
   fi
 fi
 wait_for_current_child
-cleanup_owned_dir
+if ! cleanup_owned_dir; then
+  exit 1
+fi
 
-if [ "$normal_restart_seen" -ne 1 ] || [ "$child_exit_status" -ne 0 ]; then
+if [ "$recovery_forbidden" -ne 0 ] || [ "$normal_restart_seen" -ne 1 ] || [ "$child_exit_status" -ne 0 ]; then
   exit "$child_exit_status"
 fi
 
@@ -297,5 +358,7 @@ if ! consume_recovery_stream; then
   fail_protocol
 fi
 wait_for_current_child
-cleanup_owned_dir
+if ! cleanup_owned_dir; then
+  exit 1
+fi
 exit "$child_exit_status"
