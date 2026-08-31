@@ -249,7 +249,7 @@ This amendment is additive to the channel/thread/unread feature plan above and s
 | Atom | Exclusive production ownership | Exact RED/GREEN focus | Hard dependency |
 | --- | --- | --- | --- |
 | MPR-01 | create `backend/internal/messenger/pending_recovery_leader_lease.go` only | external unit contract in `backend/tests/messenger/phase151_pending_recovery_leader_lease_contract_test.go`: nil/typed-nil, acquire denial, holder/fence identity, renew/release loss, cancellation precedence and checkpoint copy isolation. This atom defines the private port/value contract only; no schema, adapter, goroutine or config parser. | frozen architecture |
-| MPR-02 | create `backend/internal/messenger/pending_recovery_scheduler.go` only | deterministic fake-clock state machine: initial jitter, run-after-finish/no overlap, success reset, bounded backoff, lease-loss stop, shutdown deadline and no queued tick | MPR-01 |
+| MPR-02 | create `backend/internal/messenger/pending_recovery_scheduler.go` and `backend/tests/messenger/phase151_pending_recovery_scheduler_test.go` only | deterministic fake-clock state machine over one opaque attempt: initial jitter, run-after-finish/no overlap, success reset, bounded backoff, leadership-loss stop, shutdown deadline and no queued tick | accepted MPR-01 RED/GREEN/review/commit |
 | MPR-03 | roadmap group for the exact MPR-03A/B/C sub-atoms below; migration is `backend/migrations/20260830_messenger_recovery_leader_expand.sql` | database-time conditional acquire/renew/release/checkpoint, monotonic fence, stale-owner rejection and forward-compatible migration | MPR-01 |
 | MPR-04 | extend only Mongo claim/renew/retry/completion-intent plans and adapter | exact owner+fence+unexpired predicate, renewal loss stop, deterministic pending intent, retry state, no NATS/PG write | MPR-01 |
 | MPR-05 | evolve `backend/ent/schema/outboxevent.go`; add delivery-ledger schema/migration and a materializer | duplicate-key idempotency, ledger+outbox transaction rollback, redacted payload, crash replay, no direct publish | MPR-03, MPR-04 |
@@ -290,6 +290,44 @@ docker compose -f docker-compose.local.yml run --rm backend-unit
 ```
 
 Expected RED: target FAIL with build PASS and vet/unit/race failing only on the missing MPR-01 symbols from that exact new test file. Expected GREEN: target/build/vet/unit/race PASS, first exit 0, and empty stderr receipts. Any unrelated failure is triaged and cannot serve as the MPR-01 RED.
+
+#### MPR-02 frozen scheduler TaskContract
+
+MPR-02 remains non-dispatchable until the accepted MPR-01 RED/GREEN/review/commit receipt. Its exact future ownership is only new `backend/internal/messenger/pending_recovery_scheduler.go` and new external oracle `backend/tests/messenger/phase151_pending_recovery_scheduler_test.go`. It adds no schema, migration, generated code, database adapter, runtime-config parser/default, process command, wiring, health/readiness, metric, log or deployment. It does not modify or bind the existing process-local interval gate, composition, runtime config or once adapter.
+
+The exact exported internal-package surface is:
+
+```go
+type Phase151PendingRecoverySchedulerAttemptResultKind string
+const (
+    Phase151PendingRecoverySchedulerAttemptStandby Phase151PendingRecoverySchedulerAttemptResultKind = "standby"
+    Phase151PendingRecoverySchedulerAttemptSuccess Phase151PendingRecoverySchedulerAttemptResultKind = "success"
+    Phase151PendingRecoverySchedulerAttemptRetryableFailure Phase151PendingRecoverySchedulerAttemptResultKind = "retryable_failure"
+    Phase151PendingRecoverySchedulerAttemptLeadershipLost Phase151PendingRecoverySchedulerAttemptResultKind = "leadership_lost"
+)
+func NewPhase151PendingRecoverySchedulerAttemptResult(kind Phase151PendingRecoverySchedulerAttemptResultKind) (Phase151PendingRecoverySchedulerAttemptResult, error)
+func (Phase151PendingRecoverySchedulerAttemptResult) Kind() Phase151PendingRecoverySchedulerAttemptResultKind
+type Phase151PendingRecoverySchedulerAttempt interface { ExecutePhase151PendingRecoveryAttempt(context.Context) Phase151PendingRecoverySchedulerAttemptResult }
+type Phase151PendingRecoverySchedulerTimer interface { C() <-chan time.Time; Stop() bool }
+type Phase151PendingRecoverySchedulerClock interface { NewTimer(time.Duration) Phase151PendingRecoverySchedulerTimer }
+type Phase151PendingRecoverySchedulerJitter interface { InitialDelay(time.Duration) time.Duration }
+func NewPhase151PendingRecoverySchedulerPolicy(runTimeout, initialJitterMax, cycleInterval, backoffBase, backoffCap time.Duration, backoffMultiplier uint, shutdownGrace time.Duration) (Phase151PendingRecoverySchedulerPolicy, error)
+func NewPhase151PendingRecoveryScheduler(attempt Phase151PendingRecoverySchedulerAttempt, policy Phase151PendingRecoverySchedulerPolicy, clock Phase151PendingRecoverySchedulerClock, jitter Phase151PendingRecoverySchedulerJitter) *Phase151PendingRecoveryScheduler
+func (*Phase151PendingRecoveryScheduler) Run(context.Context) error
+func (*Phase151PendingRecoveryScheduler) Done() <-chan struct{}
+```
+
+The attempt result and policy have private fields. Zero/unknown result is invalid. The result carries no raw error, holder, fence, checkpoint, tenant, channel or message fact. MPR-06 later owns acquisition/renewal/release, global fence/checkpoint and executor composition and maps acquisition denial to standby; only loss after previously held leadership may map to leadership lost. MPR-07 later owns configuration binding, process lifecycle, metrics/readiness and calls `Run`.
+
+Time is fully injected: the clock creates one-shot timers with one stable channel, and the pure non-blocking jitter source returns the initial delay. Nil/typed-nil dependencies, timer or channel, invalid policy or jitter outside `[0,InitialJitterMax]` fail closed with exact `ErrPhase151PendingRecoverySchedulerInvalid` before any attempt. The result and policy constructors return their zero value plus that exact sentinel for invalid input. An invalid result returned by the one running attempt yields the same exact sentinel, stops current control timers and schedules no successor. Policy accepts positive durations, `BackoffBase <= BackoffCap`, and integer multiplier at least two; backoff checks the cap before multiplication so overflow is impossible. No ticker, sleep, real deadline, global random, timer reset/reuse or catch-up is allowed.
+
+Frozen policy inputs are `run_timeout=20s`, `initial_jitter_max=5s`, `cycle_interval=30s`, `backoff_base=1s`, `backoff_cap=30s`, multiplier `2`, and `shutdown_grace=10s`. Initial jitter is selected exactly once per scheduler. `standby` and `success` reset failures and arm the cycle interval. Retry failures use overflow-safe `1s,2s,4s,8s,16s,30s,30s...`. Every next timer is created only after the prior attempt has returned, so delay is finish-anchored and no elapsed tick is queued. `leadership_lost` is terminal and returns exact `ErrPhase151PendingRecoverySchedulerLeadershipLost`.
+
+`Run` is single-use and permits one active caller, at most one cadence timer and one attempt. While an attempt runs there is no cadence timer and at most one per-attempt control timer: run timeout, then grace if needed. A concurrent or repeated call returns exact `ErrPhase151PendingRecoverySchedulerAlreadyRun` without timer or attempt. Parent cancellation is checked before and after every select and wins every ready timer/result event. Without parent cancellation, leadership loss wins over run timeout; run timeout wins other simultaneous completion; once grace is selected, grace expiry wins a simultaneous completion. A late leadership-loss result observed before grace expiry remains terminal; other valid late results after run timeout become one retryable failure.
+
+The attempt runs once in a goroutine and sends exactly one result to a capacity-one channel. Timeout/cancellation cancels it and waits on an injected grace timer. If it does not return, `Run` returns exact `ErrPhase151PendingRecoverySchedulerShutdownTimeout`, arms nothing else and makes no claim that the external attempt stopped. `Done()` is one stable read-only lifecycle signal: it closes only after `Run` is terminal and every attempt goroutine has exited, including a late return after shutdown timeout. MPR-07 must treat an open Done after Run returns as fatal/not-ready and cannot create an in-process replacement until it closes.
+
+Every timer is stopped on transition/exit and its channel is consumed or safely drained as applicable. The external `messenger_test` fake-clock oracle uses manual buffered timers and no real sleeps. It covers the exact exported API; constructor/nil/typed-nil, result and policy rejection; jitter once, zero and bounds; cancellation priority across cadence, result, timeout and grace ties; one attempt/no overlap; finish-anchored cycle; standby/success reset; exact saturated backoff; timeout with late leadership loss; cooperative/non-cooperative shutdown; buffered late completion plus Done closure; single-use/concurrent Run; stale fired timers; no successor cadence timer during attempt/control timers; and no raw error or distributed-lease claim. Production remains absent until its own expected Docker RED is observed after MPR-01.
 
 The accumulated backend gate is planned only:
 
