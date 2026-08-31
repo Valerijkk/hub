@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-minimal-merge-candidate
 stopped_at: final Git audit and remote fast-forward publication
-last_updated: "2026-08-31T00:00:00.000+03:00"
-last_activity: 2026-08-31 - reviewed CALL-DUR-01 RED kept outside discovery; Mail backend-unit keeps Docker gate deferred
+last_updated: "2026-09-01T00:00:00.000+03:00"
+last_activity: 2026-09-01 - CALL-DUR-01 schema source accepted at 374c1dd6; generated Ent and SQL runtime remain NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -1742,3 +1742,10 @@ Final accepted Docker container `worktree-master-backend-unit-run-4bb4f9e2e610` 
 - The two exact runs were serialized behind Mail/Calendar under the founder-amended `2 GiB` free-RAM preflight for this execution; disk and single-`backend-unit` guards remained active and idle BuildKit was left untouched. Three independent post-implementation static reviews passed `C0/I0/M0`.
 - This proves only the local in-process integrity primitive. Ingress/routes/config, provider compatibility, delivery ID, replay/durability, Jitsi deployment/images/media/SSO/branding/recording/load and product runtime remain `NOT_RUN/UNBOUND`; LiveKit remains active. The sole-oracle queue may advance to `CALL-DUR-01`, which has not started.
 - The founder directive keeps a `2 GiB` free-physical-RAM floor for the current serialized backend-unit series, including the next `CALL-DUR-01` RED/GREEN. The `250 GiB` free-disk floor, three disk-time/queue samples, no concurrent Mail/Calendar build or other `backend-unit`, and idle-BuildKit-only rule remain unchanged. This does not rewrite historical resource receipts or deployment/image capacity gates.
+
+## Session note - 2026-09-01 (CALL-DUR-01 accepted schema-source atom)
+
+- Commit `374c1dd6` adds two required immutable `Call` enum descriptors: `provider=livekit|jitsi` with historical default `livekit`, and `presence_mode=legacy|durable` with historical default `legacy`. It also adds the owner-applied one-shot PostgreSQL expansion `20260830_calls_durable_presence_expand.sql`: one `BEGIN`/`COMMIT`, two columns and two `CHECK` constraints, with no existence guard, destructive statement or data rewrite. Schema, migration and oracle SHA-256 are `E5C45C4DC2CB9336D21BDF5E300B9CE305BFD3D411E009CCD315090968BE6F5A`, `AE7F670E06C24130994653298CBE3EEE35DE86316D7AE1356A0F19529B0D69D4` and `56CB8686C9C42D5579723454825AE176B96B19D177D40362A82444E0764E032A`.
+- Canonical RED `worktree-master-backend-unit-run-3edf91c8ac59` exited `1`: build/vet passed and unit/race failed only because the frozen descriptors were absent. First GREEN `worktree-master-backend-unit-run-70a339f09db9` is rejected evidence: insertion in the middle of `Call.Fields()` shifted indices against the image-contained generated Ent runtime and caused broad `ent.init.0` panics. Moving the unchanged descriptors to the tail preserved historical indices. Final canonical GREEN `worktree-master-backend-unit-run-2cbaf3f11662` exited `0`: target/build/vet/unit/race passed, four launcher-owned stderr logs were empty, and the named oracle passed once in unit and once in race. The image is `sha256:51a4cc1bf7302a4632d0e71a5bec7cb177dc8744f993b1f52b13f138f7b03035` with no RepoDigest.
+- Runs were serialized under the founder-approved `2 GiB` free-RAM floor, `250 GiB` C: floor, three disk samples and no concurrent Mail/Calendar build or other `backend-unit`; idle BuildKit was left untouched. Independent source/spec/quality classification is `SOURCE_ACCEPTED / CLEAR_TO_COMMIT`, `C0/I0/M0`.
+- Generated Ent API/runtime parity, image refresh, SQL parse/apply/rollback atomicity, defaults/backfill/old-insert compatibility, provider routing, durable presence behavior and all live integration/runtime claims remain `NOT_RUN/BLOCKED_GENERATOR/UNBOUND`. The ordered source queue may advance to `CALL-DUR-03`; it has not started.

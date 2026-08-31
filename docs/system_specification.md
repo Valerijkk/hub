@@ -1233,3 +1233,11 @@ Canonical product services are `backend-unit`, `frontend-unit`, `python-api`, `p
 `ExportPhase150VerifyProviderEventEnvelopeHMACSHA256` is a provider-neutral in-process trust-boundary primitive. It accepts an already decoded MAC and authenticates the exact opaque `rawEnvelope` bytes with HMAC-SHA256. Validation is fail closed and ordered: `len(secret) >= 32`, `1 <= len(rawEnvelope) <= 65536`, then `len(receivedMAC) == sha256.Size`; only then is the digest computed and compared with `hmac.Equal`. Every validation or authentication failure returns the exact non-nil `ErrPhase150ProviderEventEnvelopeInvalid` and a zero `Phase150VerifiedProviderEventEnvelope`.
 
 The verified value stores bytes privately. Success copies the caller input, and each `Bytes()` call returns a fresh copy; the zero value returns nil. The primitive neither trims nor parses, decodes, decompresses, logs or persists the envelope. It has no delivery-ID, clock, replay, route, configuration, mTLS, provider-selection or Calls-mutation responsibility. Provider compatibility, durable ingress/application and all Jitsi deployment/media/runtime behavior remain separate `NOT_RUN/UNBOUND` work.
+
+## CALL-DUR-01 Calls provider/presence schema source (2026-09-01)
+
+`Call` has exactly two new required immutable Ent enum fields: `provider=livekit|jitsi` with historical default `livekit`, and `presence_mode=legacy|durable` with historical default `legacy`. Both are non-nillable, non-unique and have no update default. This is a source-level descriptor contract only; generated Ent API/runtime parity remains `NOT_RUN/BLOCKED_GENERATOR`.
+
+Owner-applied migration `20260830_calls_durable_presence_expand.sql` is one fail-closed `BEGIN`/`COMMIT` transaction with four plain additive operations: two columns and two `CHECK` constraints. It contains no existence/catalog guard, `IF NOT EXISTS`, drop, trigger, index or data rewrite; a same-name object must fail the transaction for owner triage. SQL parse/application/rollback atomicity, defaults/backfill and old/new application compatibility remain `NOT_RUN`.
+
+The schema and migration are accepted only as `SOURCE_ACCEPTED` in commit `374c1dd6`. This permits `CALL-DUR-03` to become the next source atom; it does not bind provider selection/routing, durable ingress or presence behavior, Jitsi deployment/media, or any product runtime.
