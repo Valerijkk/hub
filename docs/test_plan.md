@@ -655,3 +655,24 @@ Focused units for commit `8ba30eed` cover plain and typed-nil repository rejecti
 RED `worktree-master-backend-unit-run-8aa008302863` had target `FAIL`, first exit `1`, build `PASS`, expected missing-constructor vet/unit/race failures, and retained stderr lengths `0/245/0/0`. Initial GREEN `worktree-master-backend-unit-run-74986c6628b2` preceded review hardening. Final GREEN `worktree-master-backend-unit-run-ea5443e146bf` is target/build/vet/unit/race `PASS`, exit `0`, with four empty stderr logs. Final specification/quality review is `PASS`/`APPROVED`, `C0/I0/M0`.
 
 This is bounded unit/race evidence only. No scheduler/ticker/goroutine, process owner, server lifecycle, production wiring, live-store runtime, or integration was run or added. Production installation remains `UNBOUND/NOT_RUN`; Phase 151 remains `IN_PROGRESS_PARTIAL_UNIT_EVIDENCE`.
+
+## Phase 151 MPR-09 deployment and live-acceptance matrix (2026-08-31)
+
+This section freezes future evidence; every row is `NOT_RUN`. It does not supersede the sole queued MPR-01 oracle or turn static review into product acceptance. Host and ad-hoc execution are forbidden. Applicable product evidence may use only `backend-unit`, `frontend-unit`, `python-api`, `python-integration`, `python-e2e-smoke` and `python-e2e-full`. `python-contract` remains package/framework-only.
+
+| ID | Required behavior | Canonical service/evidence | Current |
+|---|---|---|---|
+| `M09-01` | Recovery config, PG/Mongo TLS fail-start/session truth, secret-file resolution, CIDR, non-root process, liveness/readiness/standby/shutdown and accepted OCI/running `RepoDigest` identity | `backend-unit` plus authorized immutable image/Compose receipt | `NOT_RUN/UNBOUND_IMAGE` |
+| `M09-02` | Expand migration once, constraints/indexes/seed, nullable legacy compatibility, old server/mail behavior, no down migration | `python-integration` | `NOT_RUN` |
+| `M09-03` | Enrolled canonical create/retry/conflict, one message, exact reply/follow, one PG receipt/outbox set before Mongo completion, `Created=false` zero effects | `python-api` + `python-integration` | `NOT_RUN` |
+| `M09-04` | Exact nested channel event, identifier-only unread, authoritative refetch, durable ordinary-user hook and excluded producer matrix | `frontend-unit` + `python-integration` + `python-e2e-full` | `NOT_RUN` |
+| `M09-05` | Crash before/after PG commit, PG/Mongo ACK unknown, two materializers, receipt corruption, authorized empty and revoke-before-first-commit | `python-integration` | `NOT_RUN` |
+| `M09-06` | NATS outage, publish/mark and consumer/ACK-loss windows, deterministic delivery headers, dead-letter and bounded redrive without exactly-once claim | `python-integration` | `NOT_RUN` |
+| `M09-07` | Poison identity/redelivery/quarantine, invalid metadata retry, immutable mismatch rejection and content-free artifacts | `python-integration` | `NOT_RUN` |
+| `M09-08` | Fresh recipient/provider/hook authorization, no stored preview, provider closed states and honest `outcome_unknown` duplicate risk | `python-integration` | `NOT_RUN` |
+| `M09-09` | Two recovery processes, stale fence rejection, server-time takeover, two epochs with insertion/wrap/hot target, restart and bounded weak fairness | `python-integration` | `NOT_RUN` |
+| `M09-10` | Enrollment-generation race, one-writer/no-bypass, sticky canonical history, normal rollback drain and separate emergency-stop report | `backend-unit` + `python-api` + `python-integration` | `NOT_RUN` |
+| `M09-11` | Real API/WS/browser send/reply/unread/reconnect convergence with no duplicate visible effects | `python-e2e-smoke` then `python-e2e-full` | `NOT_RUN` |
+| `M09-12` | Messenger recovery has no Mail/Calendar or Calls/Jitsi/LiveKit dependency, config mutation, subject traffic or container lifecycle effect | static manifest diff + `python-integration` | `NOT_RUN` |
+
+Every executable receipt records Git SHA and dirty state, exact Compose digest, service/command, start/end/exit, accepted OCI manifest/platform-child digest and running `RepoDigest` when available, sanitized enrollment generation, before/after PostgreSQL/Mongo state, NATS stream sequence/delivery count, fixed-label metrics, exact fault boundary and cleanup. URL userinfo/query credentials are redacted before persistence; raw DSNs, tokens, message content, provider payloads and persistent unsalted user identifiers are forbidden. Fault injection is limited to task-owned QA databases, streams and processes; real providers, production redrive, store corruption, container kill, restore and K3s apply require separate authority. Missing evidence stays `BLOCKED` or `NOT_RUN`.

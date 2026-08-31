@@ -111,3 +111,13 @@ kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
 - Telegram — только уведомления; вход в Hub — Magic Link (email).
 
 Подробнее: `docs/wiki/DEPLOY.md`, `docs/security_guidelines.md`.
+
+## Messenger recovery deployment status (MPR-09)
+
+As of 2026-08-31, recovery deployment is a frozen plan, not a runnable service. `backend/Dockerfile` copies only `hub-server` and `hub-mail`, production Compose has no `messenger-recovery` service, and the K3s tree has no application Deployment/Service baseline. Docker Compose is the current self-host deployment authority; K3s work is optional static manifest parity until separate cluster authority and evidence exist.
+
+Future recovery binding is profile-disabled with empty tenant enrollment, internal-only control port and PostgreSQL/Mongo-only dependencies. Existing non-TLS internal production Compose stores are unsupported recovery endpoints. Production must provide independently named TLS-capable PostgreSQL and Mongo endpoints: PostgreSQL `require|verify-ca|verify-full` and Mongo `mongodb+srv` TLS or `mongodb://...?tls=true` with hostname/CA verification. DSNs come only from least-readable mounted secret files/platform Secret references; manifests, environment values, arguments, annotations, logs and evidence cannot contain literals. No Caddy, Mail/Calendar, Calls/Jitsi/LiveKit, Redis, NATS, S3 or product-route dependency is added.
+
+Shared Dockerfile/Compose/workflow edits wait for the planned Mail/Calendar merge and preserve `hub-mail`. One accepted build records OCI manifest/platform-child digests, provenance, SBOM and base-image digests. Compose/K3s pin that digest; mutable tags and runtime rebuild drift are forbidden. The manual workflow pulls the digest, starts only explicitly enabled recovery with dependency recreation disabled and verifies running `RepoDigest` equality; it does not add recovery to the current backend/mail/calls force-recreate group.
+
+Image build, Compose runtime, migration, monitoring, canary, rollback, redrive and K3s execution are `NOT_RUN/UNBOUND`. The current agent launcher authorizes product evidence only through the root QA services documented in `AGENTS.md`; static manifests cannot be promoted to production PASS.
