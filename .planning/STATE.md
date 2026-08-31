@@ -23,6 +23,19 @@ mail_calendar_schema_roundtrip_r2_checkpoint_2026_08_29: >-
   empty bidirectional semantic diffs. Provenance: dispatcher-enforced;
   independent Terra/high analysis. This is not retained/shared/production
   upgrade, backend build, product-test, delivery, merge, or deployment evidence.
+mail_backend_unit_static_nonunit_triage_2026_08_31: >-
+  ROOT=test. The two repository-filesystem static source contracts
+  `backend/tests/mail/mailbox_production_dns_overlay_source_test.go` and
+  `backend/tests/mail/stalwart_production_profile_source_test.go` were removed:
+  they read `deployments/**`, which is intentionally absent from the
+  `backend-unit` image, and are not genuine isolated Go units permitted in
+  `backend/tests/**` by the founder greenfield cutover. The current-source
+  Docker `backend-unit --build` run on 2026-09-01 completed with build, vet,
+  unit, and race receipts all PASS at exit zero. This establishes no
+  production-source defect. The composed production
+  Mail/Stalwart profile remains runtime `NOT_RUN`; risk-designed Python
+  integration/E2E coverage of its composed behavior is `NOT_READY`, not a
+  textual-port obligation.
 mail_backend_unit_recovery_checkpoint_2026_08_28: >-
   Canonical Docker backend-unit ran 2026-08-28 11:54-12:24 UTC and exited 1:
   build/vet found a broad MailEngine constructor mismatch; unit/race had identical
