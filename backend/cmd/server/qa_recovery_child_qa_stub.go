@@ -8,7 +8,10 @@ import (
 	"sync"
 )
 
-var errQARecoveryChildUnsupportedPlatform = errors.New("qa recovery child is unsupported on this platform")
+var (
+	errQARecoveryChildUnsupportedPlatform = errors.New("qa recovery child is unsupported on this platform")
+	errQARecoveryChildRestart             = errors.New("qa recovery child restart request failed")
+)
 
 type qaRecoveryChildMode uint8
 

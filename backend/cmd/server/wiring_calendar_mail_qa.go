@@ -40,19 +40,20 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 		recoverySession = newQARecoveryChildSession(evidence)
 	}
 
-	var fakeBootEntropy [32]byte
-	if _, err := rand.Read(fakeBootEntropy[:]); err != nil {
-		d.fatal("failed to wire calendar and mail routes", err)
-		return true
-	}
-	fakeBootPrefix := "qa-fake-" + hex.EncodeToString(fakeBootEntropy[:])
-	var fakeIDSequence uint64
-	mailboxEngine := mailmod.NewFakeMailEngine(mailmod.FakeMailEngineConfig{
-		NextID: func() string {
+	mailboxEngineConfig := mailmod.FakeMailEngineConfig{Now: serverUTCClock{}.Now}
+	if child.supervised() {
+		var fakeBootEntropy [32]byte
+		if _, err := rand.Read(fakeBootEntropy[:]); err != nil {
+			d.fatal("failed to wire calendar and mail routes", err)
+			return true
+		}
+		fakeBootPrefix := "qa-fake-" + hex.EncodeToString(fakeBootEntropy[:])
+		var fakeIDSequence uint64
+		mailboxEngineConfig.NextID = func() string {
 			return fakeBootPrefix + "-" + strconv.FormatUint(atomic.AddUint64(&fakeIDSequence, 1), 10)
-		},
-		Now: serverUTCClock{}.Now,
-	})
+		}
+	}
+	mailboxEngine := mailmod.NewFakeMailEngine(mailboxEngineConfig)
 	controller, err := qamailcalendar.NewController(d.db, mailboxEngine, config)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
