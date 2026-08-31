@@ -72,3 +72,56 @@ func (c *Controller) installInboundRequestFixturePublishedMaplessAdmission(
 	c.publishedRecoveryRouteInstalled = true
 	return &inboundRequestFixturePublishedMaplessAdmission{evidence: evidence}, true
 }
+
+func (c *Controller) installInboundRequestFixturePublishedRestartRoute() bool {
+	if c == nil {
+		return false
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.publishedRecoveryRouteInstalled {
+		return false
+	}
+
+	c.publishedRecoveryRouteInstalled = true
+	return true
+}
+
+func (c *Controller) canRestartInboundRequestFixturePublishedRecovery(nonce string) bool {
+	if c == nil ||
+		c.client == nil ||
+		c.engine == nil ||
+		!validToken(string(c.config.token)) {
+		return false
+	}
+
+	canonicalPlan, err := newInboundRequestFixturePlan(nonce)
+	if err != nil {
+		return false
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.fixtures == nil {
+		return false
+	}
+	record, found := c.fixtures[nonce]
+	if !found ||
+		record.nonce != nonce ||
+		record.plan != canonicalPlan ||
+		!inboundRequestFixturePersistedMatchesPlan(record.persisted, record.plan) ||
+		record.state != inboundRequestFixtureStateCleanupCommitUnknown ||
+		!inboundRequestFixtureStateAcceptsCleanupDomainProof(record.state, record.cleanupProof) ||
+		!record.cleanupProof.present {
+		return false
+	}
+
+	authority, valid := newInboundRequestFixturePublishedMappedEngineAuthority(
+		record.plan,
+		record.engineFixture,
+	)
+	return valid && authority.mappedMode()
+}
