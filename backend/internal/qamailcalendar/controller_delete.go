@@ -21,6 +21,42 @@ func (c *Controller) deleteInboundRequestFixture(ctx context.Context, nonce stri
 		return errInboundRequestFixtureControllerInput
 	}
 
+	c.mu.Lock()
+	record, found := c.fixtures[nonce]
+	c.mu.Unlock()
+	if !found || record.nonce != nonce {
+		return errInboundRequestFixtureLifecycle
+	}
+
+	switch record.state {
+	case inboundRequestFixtureStateCreated:
+		return c.deleteInboundRequestFixtureCreated(ctx, nonce)
+	case inboundRequestFixtureStatePublished:
+		return c.deleteInboundRequestFixturePublished(ctx, nonce)
+	case inboundRequestFixtureStateCleanupCommitUnknown:
+		return c.reconcileInboundRequestFixturePublishedCleanupCommitUnknown(ctx, record)
+	case inboundRequestFixtureStateCleaned:
+		return nil
+	case inboundRequestFixtureStateCleanupClaimed,
+		inboundRequestFixtureStateCleanupEngineFailed:
+		return errInboundRequestFixtureLifecycle
+	default:
+		return errInboundRequestFixtureLifecycle
+	}
+}
+
+func (c *Controller) deleteInboundRequestFixtureCreated(ctx context.Context, nonce string) error {
+	if c == nil ||
+		ctx == nil ||
+		c.client == nil ||
+		c.engine == nil ||
+		c.random == nil ||
+		c.fixtures == nil ||
+		!validToken(string(c.config.token)) ||
+		!ValidNonce(nonce) {
+		return errInboundRequestFixtureControllerInput
+	}
+
 	plan, err := newInboundRequestFixturePlan(nonce)
 	if err != nil {
 		return errInboundRequestFixtureLifecycle
