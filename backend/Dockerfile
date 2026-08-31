@@ -62,3 +62,7 @@ ENTRYPOINT ["./hub-server"]
 FROM runtime AS qa-runtime
 COPY --chmod=0555 docker/entrypoints/qa-backend-supervisor.sh /usr/local/bin/qa-backend-supervisor
 ENTRYPOINT ["/usr/local/bin/qa-backend-supervisor"]
+
+# Default no-target backend runtime.
+# qa-backend explicitly selects qa-runtime.
+FROM runtime AS default-runtime
