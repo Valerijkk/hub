@@ -177,6 +177,11 @@ launch_child() {
   fi
   [ -p "$current_fifo" ] || fail_launch
 
+  # Immutable image preflight keeps launch validation on fixed diagnostics.
+  if [ ! -e /app/hub-server ] || [ ! -x /app/hub-server ]; then
+    fail_launch
+  fi
+
   launch_in_progress=1
   (
     HUB_QA_CHILD_CONTROL_FD=3
@@ -186,12 +191,7 @@ launch_child() {
     if ! { exec 3>"$current_fifo"; } 2>/dev/null; then
       exit 125
     fi
-    # ash cannot suppress only a failed exec diagnostic while preserving the
-    # successor's stderr; this QA-only boundary keeps stdout and fails closed.
-    if ! exec /app/hub-server 2>/dev/null; then
-      printf '%s\n' 'qa-backend-supervisor: child exec failure' >&2
-      exit 125
-    fi
+    exec /app/hub-server
   ) &
   current_pid=$!
   launch_in_progress=0
