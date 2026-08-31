@@ -59,6 +59,14 @@ func (Call) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		field.Enum("provider").
+			Values("livekit", "jitsi").
+			Default("livekit").
+			Immutable(),
+		field.Enum("presence_mode").
+			Values("legacy", "durable").
+			Default("legacy").
+			Immutable(),
 	}
 }
 
