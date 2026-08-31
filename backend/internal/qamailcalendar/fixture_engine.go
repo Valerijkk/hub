@@ -19,10 +19,11 @@ var (
 )
 
 type inboundRequestEngineFixture struct {
-	accountID string
-	folderID  string
-	messageID string
-	version   string
+	accountID         string
+	primaryIdentityID string
+	folderID          string
+	messageID         string
+	version           string
 }
 
 func seedInboundRequestFixtureEngine(
@@ -187,10 +188,11 @@ func seedInboundRequestFixtureEngine(
 	}
 
 	return inboundRequestEngineFixture{
-		accountID: account.AccountID,
-		folderID:  folder.FolderID,
-		messageID: messageID,
-		version:   version,
+		accountID:         account.AccountID,
+		primaryIdentityID: account.PrimaryIdentityID,
+		folderID:          folder.FolderID,
+		messageID:         messageID,
+		version:           version,
 	}, nil
 }
 

@@ -15,6 +15,7 @@ const (
 	qaFixtureHTTPErrorBadRequest   = "invalid request"
 	qaFixtureHTTPErrorInternal     = "internal server error"
 	qaFixtureHTTPErrorConflict     = "fixture lifecycle conflict"
+	qaFixtureHTTPDeleteGuardHeader = "X-Hub-QA-Fixture-Delete-Guard"
 )
 
 type qaFixtureHTTPErrorResponse struct {
@@ -33,6 +34,19 @@ type qaFixtureHTTPResponse struct {
 	MailThreadID    string `json:"mail_thread_id"`
 	MailMessageID   string `json:"mail_message_id"`
 	EnvelopeEventID string `json:"envelope_event_id"`
+}
+
+type qaFixtureHTTPThreadSearchResponse struct {
+	Nonce             string    `json:"nonce"`
+	Scenario          string    `json:"scenario"`
+	State             string    `json:"state"`
+	OwnerEmail        string    `json:"owner_email"`
+	OrganizationID    string    `json:"organization_id"`
+	OwnerUserID       string    `json:"owner_user_id"`
+	MailAccountID     string    `json:"mail_account_id"`
+	MailFolderID      string    `json:"mail_folder_id"`
+	MatchingThreadIDs [4]string `json:"matching_thread_ids"`
+	DecoyThreadIDs    [2]string `json:"decoy_thread_ids"`
 }
 
 type qaFixtureHTTPAccountMaterializationResponse struct {
@@ -62,6 +76,10 @@ func (c *Controller) RegisterRoutes(api fiber.Router) error {
 
 	api.Post("/_qa/mail-calendar/fixtures", c.create)
 	api.Post("/_qa/mail-calendar/fixtures/:nonce/publish", c.publish)
+	api.Post("/_qa/mail-calendar/fixtures/:nonce/thread-search-delete-blocker/:kind", c.armThreadSearchDeleteBlockerHTTP)
+	api.Delete("/_qa/mail-calendar/fixtures/:nonce/thread-search-delete-blocker/:kind", c.disarmThreadSearchDeleteBlockerHTTP)
+	api.Post("/_qa/mail-calendar/fixtures/:nonce/thread-search-delete-blocker/:kind/peer/:peer_nonce", c.armThreadSearchDeletePeerBlockerHTTP)
+	api.Delete("/_qa/mail-calendar/fixtures/:nonce/thread-search-delete-blocker/:kind/peer/:peer_nonce", c.disarmThreadSearchDeletePeerBlockerHTTP)
 	api.Delete("/_qa/mail-calendar/fixtures/:nonce", c.delete)
 	api.Get("/_qa/mail-calendar/fixtures/:nonce/account-materialization", c.observeAccountMaterialization)
 	api.Post("/_qa/mail-calendar/fixtures/:nonce/account-materialization/quiesce", c.quiesceAccountMaterialization)
@@ -89,7 +107,7 @@ func (c *Controller) observeAccountMaterialization(ctx fiber.Ctx) error {
 		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(qaAccountMaterializationHTTPSnapshot(snapshot))
+	return ctx.Status(fiber.StatusOK).JSON(qaFixtureHTTPAccountMaterializationSnapshot(snapshot))
 }
 
 func (c *Controller) quiesceAccountMaterialization(ctx fiber.Ctx) error {
@@ -175,6 +193,12 @@ func (c *Controller) create(ctx fiber.Ctx) error {
 			return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
 		}
 		return ctx.Status(fiber.StatusCreated).JSON(qaFixtureHTTPAccountMaterializationSnapshot(snapshot))
+	case ScenarioThreadSearchV1:
+		snapshot, err := c.createThreadSearchFixture(ctx.Context())
+		if err != nil {
+			return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+		}
+		return ctx.Status(fiber.StatusCreated).JSON(qaFixtureHTTPThreadSearchSnapshot(snapshot))
 	default:
 		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
 	}
@@ -207,9 +231,134 @@ func (c *Controller) delete(ctx fiber.Ctx) error {
 		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
 	}
 
-	if err := c.deleteInboundRequestFixture(ctx.Context(), nonce); err != nil {
+	if err := c.deleteFixture(ctx.Context(), nonce); err != nil {
+		if err == errThreadSearchFixtureDeleteGuardDependent {
+			ctx.Set(qaFixtureHTTPDeleteGuardHeader, "predelete")
+		}
 		return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
 	}
+	return ctx.Status(fiber.StatusNoContent).Send(nil)
+}
+
+func (c *Controller) armThreadSearchDeleteBlockerHTTP(ctx fiber.Ctx) error {
+	if !c.authorized(ctx) {
+		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
+	}
+
+	nonce, ok := qaFixtureMutationNonce(ctx)
+	if !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	kind := ctx.Params("kind")
+	if _, ok := threadSearchDeleteBlockerSingleKind(kind); !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	if err := c.armThreadSearchDeleteBlocker(ctx.Context(), nonce, kind); err != nil {
+		if err == errThreadSearchDeleteBlockerInput {
+			return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+		}
+		if err == errThreadSearchDeleteBlockerLifecycle {
+			return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
+		}
+		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	}
+
+	return ctx.Status(fiber.StatusNoContent).Send(nil)
+}
+
+func (c *Controller) disarmThreadSearchDeleteBlockerHTTP(ctx fiber.Ctx) error {
+	if !c.authorized(ctx) {
+		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
+	}
+
+	nonce, ok := qaFixtureMutationNonce(ctx)
+	if !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	kind := ctx.Params("kind")
+	if _, ok := threadSearchDeleteBlockerSingleKind(kind); !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	if err := c.disarmThreadSearchDeleteBlocker(ctx.Context(), nonce, kind); err != nil {
+		if err == errThreadSearchDeleteBlockerInput {
+			return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+		}
+		if err == errThreadSearchDeleteBlockerLifecycle {
+			return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
+		}
+		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	}
+
+	return ctx.Status(fiber.StatusNoContent).Send(nil)
+}
+
+func (c *Controller) armThreadSearchDeletePeerBlockerHTTP(ctx fiber.Ctx) error {
+	if !c.authorized(ctx) {
+		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
+	}
+
+	nonce, ok := qaFixtureMutationNonce(ctx)
+	if !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	kind := ctx.Params("kind")
+	if _, ok := threadSearchDeleteBlockerPeerKind(kind); !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	peerNonce := ctx.Params("peer_nonce")
+	if !ValidNonce(peerNonce) || peerNonce == nonce {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	if err := c.armThreadSearchDeletePeerBlocker(ctx.Context(), nonce, peerNonce, kind); err != nil {
+		if err == errThreadSearchDeleteBlockerInput {
+			return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+		}
+		if err == errThreadSearchDeleteBlockerLifecycle {
+			return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
+		}
+		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	}
+
+	return ctx.Status(fiber.StatusNoContent).Send(nil)
+}
+
+func (c *Controller) disarmThreadSearchDeletePeerBlockerHTTP(ctx fiber.Ctx) error {
+	if !c.authorized(ctx) {
+		return qaFixtureHTTPError(ctx, fiber.StatusUnauthorized, qaFixtureHTTPErrorUnauthorized)
+	}
+
+	nonce, ok := qaFixtureMutationNonce(ctx)
+	if !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	kind := ctx.Params("kind")
+	if _, ok := threadSearchDeleteBlockerPeerKind(kind); !ok {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	peerNonce := ctx.Params("peer_nonce")
+	if !ValidNonce(peerNonce) || peerNonce == nonce {
+		return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+	}
+
+	if err := c.disarmThreadSearchDeletePeerBlocker(ctx.Context(), nonce, peerNonce, kind); err != nil {
+		if err == errThreadSearchDeleteBlockerInput {
+			return qaFixtureHTTPError(ctx, fiber.StatusBadRequest, qaFixtureHTTPErrorBadRequest)
+		}
+		if err == errThreadSearchDeleteBlockerLifecycle {
+			return qaFixtureHTTPError(ctx, fiber.StatusConflict, qaFixtureHTTPErrorConflict)
+		}
+		return qaFixtureHTTPError(ctx, fiber.StatusInternalServerError, qaFixtureHTTPErrorInternal)
+	}
+
 	return ctx.Status(fiber.StatusNoContent).Send(nil)
 }
 
@@ -274,7 +423,7 @@ func qaFixtureCreateScenario(ctx fiber.Ctx) (Scenario, bool) {
 func qaFixtureMutationNonce(ctx fiber.Ctx) (string, bool) {
 	if len(ctx.Request().URI().QueryString()) != 0 ||
 		len(ctx.BodyRaw()) != 0 ||
-		ctx.Request().Header.Peek(fiber.HeaderContentType) != nil {
+		len(ctx.Request().Header.Peek(fiber.HeaderContentType)) != 0 {
 		return "", false
 	}
 
@@ -299,6 +448,26 @@ func qaFixtureHTTPSnapshot(snapshot inboundRequestFixtureSnapshot) qaFixtureHTTP
 		MailMessageID:   snapshot.mailMessageID.String(),
 		EnvelopeEventID: snapshot.envelopeEventID.String(),
 	}
+}
+
+func qaFixtureHTTPThreadSearchSnapshot(snapshot threadSearchFixtureSnapshot) qaFixtureHTTPThreadSearchResponse {
+	response := qaFixtureHTTPThreadSearchResponse{
+		Nonce:          snapshot.nonce,
+		Scenario:       string(snapshot.scenario),
+		State:          string(snapshot.state),
+		OwnerEmail:     snapshot.ownerEmail,
+		OrganizationID: snapshot.organizationID.String(),
+		OwnerUserID:    snapshot.ownerUserID.String(),
+		MailAccountID:  snapshot.mailAccountID.String(),
+		MailFolderID:   snapshot.mailFolderID.String(),
+	}
+	for index, id := range snapshot.matchingThreadIDs {
+		response.MatchingThreadIDs[index] = id.String()
+	}
+	for index, id := range snapshot.decoyThreadIDs {
+		response.DecoyThreadIDs[index] = id.String()
+	}
+	return response
 }
 
 func qaFixtureHTTPAccountMaterializationSnapshot(snapshot accountMaterializationFixtureSnapshot) qaFixtureHTTPAccountMaterializationResponse {

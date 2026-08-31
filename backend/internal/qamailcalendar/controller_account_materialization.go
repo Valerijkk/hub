@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,6 +28,36 @@ var (
 )
 
 const accountMaterializationFixtureScenario Scenario = "account-materialization-v1"
+
+type accountMaterializationFixtureObserveStage string
+
+const (
+	accountMaterializationFixtureObserveStagePlan             accountMaterializationFixtureObserveStage = "plan"
+	accountMaterializationFixtureObserveStageRecord           accountMaterializationFixtureObserveStage = "record"
+	accountMaterializationFixtureObserveStageTransaction      accountMaterializationFixtureObserveStage = "transaction"
+	accountMaterializationFixtureObserveStageOrganizationRead accountMaterializationFixtureObserveStage = "organization_read"
+	accountMaterializationFixtureObserveStageOwnerRead        accountMaterializationFixtureObserveStage = "owner_read"
+	accountMaterializationFixtureObserveStageDomainRead       accountMaterializationFixtureObserveStage = "domain_read"
+	accountMaterializationFixtureObserveStageAccountRead      accountMaterializationFixtureObserveStage = "account_read"
+	accountMaterializationFixtureObserveStageIdentityRead     accountMaterializationFixtureObserveStage = "identity_read"
+	accountMaterializationFixtureObserveStageClassify         accountMaterializationFixtureObserveStage = "classify"
+	accountMaterializationFixtureObserveStageCommit           accountMaterializationFixtureObserveStage = "commit"
+)
+
+type accountMaterializationFixtureObserveCode string
+
+func accountMaterializationFixtureObserveLogFailure(
+	ctx context.Context,
+	stage accountMaterializationFixtureObserveStage,
+	code accountMaterializationFixtureObserveCode,
+) {
+	slog.ErrorContext(
+		ctx,
+		"qa mail account materialization fixture observation failed",
+		"stage", string(stage),
+		"reason_code", string(code),
+	)
+}
 
 type accountMaterializationFixtureState string
 
@@ -87,6 +118,7 @@ func (c *Controller) createAccountMaterializationFixture(
 		c.random == nil ||
 		c.fixtures == nil ||
 		c.accountMaterializationFixtures == nil ||
+		c.threadSearchFixtures == nil ||
 		!validToken(string(c.config.token)) {
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureControllerInput
 	}
@@ -140,22 +172,33 @@ func (c *Controller) observeAccountMaterializationFixture(
 
 	canonicalPlan, err := newAccountMaterializationFixturePlan(nonce)
 	if err != nil {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStagePlan,
+			"canonical_plan",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureControllerInput
 	}
 
 	c.mu.Lock()
 	record, found := c.accountMaterializationFixtures[nonce]
 	c.mu.Unlock()
-	if !found ||
-		record.nonce != nonce ||
-		record.state != accountMaterializationFixtureStateCreated ||
-		record.plan != canonicalPlan ||
-		!accountMaterializationFixturePersistedMatchesPlan(record.persisted, canonicalPlan) {
+	if code := accountMaterializationFixtureObserveRecordMismatchCode(record, found, nonce, canonicalPlan); code != "" {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageRecord,
+			code,
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 
 	tx, err := c.client.Tx(ctx)
 	if err != nil || tx == nil {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageTransaction,
+			"open_failed",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	committed := false
@@ -166,21 +209,39 @@ func (c *Controller) observeAccountMaterializationFixture(
 	}()
 
 	organizationRow, err := tx.Organization.Query().
-		Where(organization.IDEQ(record.persisted.organizationID)).
+		Where(
+			organization.IDEQ(record.persisted.organizationID),
+			organization.HasUsersWith(user.IDEQ(record.persisted.ownerUserID)),
+		).
 		Only(ctx)
 	if err != nil {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageOrganizationRead,
+			"lookup_failed",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	ownerRow, err := tx.User.Query().
 		Where(user.IDEQ(record.persisted.ownerUserID)).
 		Only(ctx)
 	if err != nil {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageOwnerRead,
+			"lookup_failed",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	domainRow, err := tx.MailDomain.Query().
 		Where(maildomain.IDEQ(record.persisted.mailDomainID)).
 		Only(ctx)
 	if err != nil {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageDomainRead,
+			"lookup_failed",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	accounts, err := tx.MailAccount.Query().
@@ -188,7 +249,20 @@ func (c *Controller) observeAccountMaterializationFixture(
 		Order(mailaccount.ByID()).
 		Limit(2).
 		All(ctx)
-	if err != nil || len(accounts) > 1 {
+	if err != nil {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageAccountRead,
+			"lookup_failed",
+		)
+		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
+	}
+	if len(accounts) > 1 {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageAccountRead,
+			"multiple_rows",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 
@@ -200,11 +274,16 @@ func (c *Controller) observeAccountMaterializationFixture(
 			Limit(2).
 			All(ctx)
 		if err != nil {
+			accountMaterializationFixtureObserveLogFailure(
+				ctx,
+				accountMaterializationFixtureObserveStageIdentityRead,
+				"lookup_failed",
+			)
 			return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 		}
 	}
 
-	snapshot, valid := accountMaterializationFixtureClassifyRows(
+	snapshot, code := accountMaterializationFixtureClassifyRowsCode(
 		record,
 		organizationRow,
 		ownerRow,
@@ -212,10 +291,20 @@ func (c *Controller) observeAccountMaterializationFixture(
 		accounts,
 		identities,
 	)
-	if !valid {
+	if code != "" {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageClassify,
+			code,
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	if err := tx.Commit(); err != nil {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageCommit,
+			"failed",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	committed = true
@@ -226,12 +315,47 @@ func (c *Controller) observeAccountMaterializationFixture(
 	if !found ||
 		current != record ||
 		current.state != accountMaterializationFixtureStateCreated {
+		accountMaterializationFixtureObserveLogFailure(
+			ctx,
+			accountMaterializationFixtureObserveStageRecord,
+			"changed_after_commit",
+		)
 		return accountMaterializationFixtureSnapshot{}, errAccountMaterializationFixtureLifecycle
 	}
 	return snapshot, nil
 }
 
+func accountMaterializationFixtureObserveRecordMismatchCode(
+	record accountMaterializationFixtureRecord,
+	found bool,
+	nonce string,
+	canonicalPlan accountMaterializationFixturePlan,
+) accountMaterializationFixtureObserveCode {
+	switch {
+	case !found:
+		return "missing"
+	case record.nonce != nonce:
+		return "nonce"
+	case record.state != accountMaterializationFixtureStateCreated:
+		return "state"
+	case record.plan != canonicalPlan:
+		return "plan"
+	case !accountMaterializationFixturePersistedMatchesPlan(record.persisted, canonicalPlan):
+		return "persisted_roots"
+	default:
+		return ""
+	}
+}
+
 func (c *Controller) reserveAccountMaterializationFixture() (string, bool) {
+	if c == nil ||
+		c.random == nil ||
+		c.fixtures == nil ||
+		c.accountMaterializationFixtures == nil ||
+		c.threadSearchFixtures == nil {
+		return "", false
+	}
+
 	for attempt := 0; attempt < 4; attempt++ {
 		var randomBytes [16]byte
 		if _, err := io.ReadFull(c.random, randomBytes[:]); err != nil {
@@ -242,7 +366,8 @@ func (c *Controller) reserveAccountMaterializationFixture() (string, bool) {
 		c.mu.Lock()
 		_, inboundExists := c.fixtures[nonce]
 		_, accountMaterializationExists := c.accountMaterializationFixtures[nonce]
-		if !inboundExists && !accountMaterializationExists {
+		_, threadSearchExists := c.threadSearchFixtures[nonce]
+		if !inboundExists && !accountMaterializationExists && !threadSearchExists {
 			c.accountMaterializationFixtures[nonce] = accountMaterializationFixtureRecord{
 				nonce: nonce,
 				state: accountMaterializationFixtureStateCreating,
@@ -334,7 +459,7 @@ func accountMaterializationFixturePersistedMatchesPlan(
 }
 
 func accountMaterializationFixtureValidTime(value time.Time) bool {
-	return !value.IsZero() && value.Location() == time.UTC && value.Nanosecond() == 0
+	return !value.IsZero() && value.Nanosecond() == 0
 }
 
 func accountMaterializationFixtureHashEqual(actual, expected []byte) bool {
@@ -392,7 +517,6 @@ func accountMaterializationFixtureExactRootsValid(
 		owner == nil ||
 		owner.ID != plan.ownerUserID ||
 		owner.Email != plan.ownerAddress ||
-		owner.OrganizationID != plan.organizationID ||
 		owner.SystemRole != user.SystemRoleMember ||
 		owner.Status != user.StatusActive ||
 		owner.Timezone != "UTC" ||
@@ -557,6 +681,265 @@ func accountMaterializationFixtureClassifyRows(
 		primaryIdentityID:     &primaryIdentityID,
 		primaryIdentityStatus: &primaryIdentityStatus,
 	}, true
+}
+
+func accountMaterializationFixtureClassifyRowsCode(
+	record accountMaterializationFixtureRecord,
+	organization *ent.Organization,
+	owner *ent.User,
+	domain *ent.MailDomain,
+	accounts []*ent.MailAccount,
+	identities []*ent.MailIdentity,
+) (accountMaterializationFixtureSnapshot, accountMaterializationFixtureObserveCode) {
+	snapshot, valid := accountMaterializationFixtureClassifyRows(
+		record,
+		organization,
+		owner,
+		domain,
+		accounts,
+		identities,
+	)
+	if valid {
+		return snapshot, ""
+	}
+	if code := accountMaterializationFixtureExactRootsFailureCode(record, organization, owner, domain); code != "" {
+		return accountMaterializationFixtureSnapshot{}, code
+	}
+	switch {
+	case len(accounts) == 0 && len(identities) != 0:
+		return accountMaterializationFixtureSnapshot{}, "identity_rows_without_account"
+	case len(accounts) != 1:
+		return accountMaterializationFixtureSnapshot{}, "mail_account_cardinality"
+	case len(identities) != 1:
+		return accountMaterializationFixtureSnapshot{}, "mail_identity_cardinality"
+	case !accountMaterializationFixtureCommonAccountIdentityValid(record.plan, accounts[0], identities[0]):
+		return accountMaterializationFixtureSnapshot{}, accountMaterializationFixtureCommonAccountIdentityFailureCode(
+			record.plan,
+			accounts[0],
+			identities[0],
+		)
+	default:
+		return accountMaterializationFixtureSnapshot{}, "mail_account_materialization_state"
+	}
+}
+
+func accountMaterializationFixtureExactRootsFailureCode(
+	record accountMaterializationFixtureRecord,
+	organization *ent.Organization,
+	owner *ent.User,
+	domain *ent.MailDomain,
+) accountMaterializationFixtureObserveCode {
+	plan := record.plan
+	switch {
+	case record.nonce != plan.nonce:
+		return "record_nonce"
+	case record.state != accountMaterializationFixtureStateCreated:
+		return "record_state"
+	case !accountMaterializationFixturePlanMatchesCanonical(plan):
+		return "plan_canonical"
+	case !accountMaterializationFixturePersistedMatchesPlan(record.persisted, plan):
+		return "persisted_roots"
+	case organization == nil:
+		return "organization_missing"
+	case organization.ID != plan.organizationID:
+		return "organization_id"
+	case organization.Slug != plan.organizationSlug:
+		return "organization_slug"
+	case organization.Name != "QA Mail Materialization "+plan.nonce:
+		return "organization_name"
+	case organization.InviteToken != "qa-mail-materialization-invite-"+plan.nonce:
+		return "organization_invite_token"
+	case !accountMaterializationFixtureValidTime(organization.CreatedAt):
+		return "organization_created_at_shape"
+	case !accountMaterializationFixtureValidTime(organization.UpdatedAt):
+		return "organization_updated_at_shape"
+	case !organization.CreatedAt.Equal(plan.fixedAt):
+		return "organization_created_at"
+	case !organization.UpdatedAt.Equal(plan.fixedAt):
+		return "organization_updated_at"
+	case owner == nil:
+		return "owner_missing"
+	case owner.ID != plan.ownerUserID:
+		return "owner_id"
+	case owner.Email != plan.ownerAddress:
+		return "owner_email"
+	case owner.SystemRole != user.SystemRoleMember:
+		return "owner_system_role"
+	case owner.Status != user.StatusActive:
+		return "owner_status"
+	case owner.Timezone != "UTC":
+		return "owner_timezone"
+	case owner.Language != "ru":
+		return "owner_language"
+	case !owner.OnboardingCompleted:
+		return "owner_onboarding_completed"
+	case owner.Name != "QA Owner":
+		return "owner_name"
+	case owner.DisplayName != "QA Owner":
+		return "owner_display_name"
+	case !accountMaterializationFixtureValidTime(owner.CreatedAt):
+		return "owner_created_at_shape"
+	case !accountMaterializationFixtureValidTime(owner.UpdatedAt):
+		return "owner_updated_at_shape"
+	case !owner.CreatedAt.Equal(plan.fixedAt):
+		return "owner_created_at"
+	case !owner.UpdatedAt.Equal(plan.fixedAt):
+		return "owner_updated_at"
+	case domain == nil:
+		return "domain_missing"
+	case domain.ID != plan.mailDomainID:
+		return "domain_id"
+	case domain.OrganizationID != plan.organizationID:
+		return "domain_organization_id"
+	case domain.Domain != plan.domain:
+		return "domain_name"
+	case domain.EngineProvisioningKey != plan.domainProvisioningKey:
+		return "domain_engine_provisioning_key"
+	case domain.EngineDomainID == nil || *domain.EngineDomainID != plan.engineDomainID:
+		return "domain_engine_id"
+	case !domain.DesiredPresent:
+		return "domain_desired_present"
+	case !domain.Enabled:
+		return "domain_enabled"
+	case !domain.IsDefault:
+		return "domain_default"
+	case domain.State != maildomain.State("verified"):
+		return "domain_state"
+	case domain.VerificationStatus != maildomain.VerificationStatus("verified"):
+		return "domain_verification_status"
+	case domain.DkimStatus != maildomain.DkimStatus("valid"):
+		return "domain_dkim_status"
+	case domain.RequiredDNSRecords == nil || len(domain.RequiredDNSRecords) != 0:
+		return "domain_required_dns_records"
+	case domain.DesiredGeneration != 1:
+		return "domain_desired_generation"
+	case domain.DesiredHashVersion != 1:
+		return "domain_desired_hash_version"
+	case !accountMaterializationFixtureHashEqual(domain.DesiredHash, plan.domainControlHash[:]):
+		return "domain_desired_hash"
+	case !accountMaterializationFixtureOptionalTupleValid(domain.AttemptedGeneration, domain.AttemptedHashVersion, domain.AttemptedHash):
+		return "domain_attempted_tuple_shape"
+	case domain.AttemptedGeneration != nil:
+		return "domain_attempted_generation"
+	case !accountMaterializationFixtureOptionalTupleMatches(
+		domain.DeployedGeneration,
+		domain.DeployedHashVersion,
+		domain.DeployedHash,
+		1,
+		1,
+		plan.domainControlHash[:],
+	):
+		return "domain_deployed_tuple"
+	case domain.LastErrorCode != nil:
+		return "domain_last_error_code"
+	case domain.NextRetryAt != nil:
+		return "domain_next_retry_at"
+	case domain.AttemptCount != 0:
+		return "domain_attempt_count"
+	case domain.LeaseToken != nil:
+		return "domain_lease_token"
+	case domain.LeaseUntil != nil:
+		return "domain_lease_until"
+	case domain.DeletedAt != nil:
+		return "domain_deleted_at"
+	case !accountMaterializationFixtureValidTime(domain.CreatedAt):
+		return "domain_created_at_shape"
+	case !accountMaterializationFixtureValidTime(domain.UpdatedAt):
+		return "domain_updated_at_shape"
+	case !domain.CreatedAt.Equal(plan.fixedAt):
+		return "domain_created_at"
+	case !domain.UpdatedAt.Equal(plan.fixedAt):
+		return "domain_updated_at"
+	default:
+		return ""
+	}
+}
+
+func accountMaterializationFixtureCommonAccountIdentityFailureCode(
+	plan accountMaterializationFixturePlan,
+	account *ent.MailAccount,
+	identity *ent.MailIdentity,
+) accountMaterializationFixtureObserveCode {
+	switch {
+	case !accountMaterializationFixturePlanMatchesCanonical(plan):
+		return "plan_canonical"
+	case account == nil:
+		return "mail_account_missing"
+	case account.ID != plan.expectedAccountIntentID:
+		return "mail_account_id"
+	case account.OrganizationID != plan.organizationID:
+		return "mail_account_organization_id"
+	case account.UserID != plan.ownerUserID:
+		return "mail_account_user_id"
+	case account.MailDomainID != plan.mailDomainID:
+		return "mail_account_domain_id"
+	case account.EngineProvisioningKey != plan.expectedAccountProvisioningKey:
+		return "mail_account_engine_provisioning_key"
+	case account.LocalPart != plan.ownerLocalPart:
+		return "mail_account_local_part"
+	case !account.DesiredEnabled:
+		return "mail_account_desired_enabled"
+	case account.Status != mailaccount.Status("provisioning"):
+		return "mail_account_status"
+	case account.ControlGeneration != 1:
+		return "mail_account_control_generation"
+	case account.ControlHashVersion != 1:
+		return "mail_account_control_hash_version"
+	case !accountMaterializationFixtureHashEqual(account.ControlHash, plan.expectedAccountControlHash[:]):
+		return "mail_account_control_hash"
+	case account.ProjectionState != mailaccount.ProjectionState("bootstrapping"):
+		return "mail_account_projection_state"
+	case !accountMaterializationFixtureValidTime(account.EventCutoffAt):
+		return "mail_account_event_cutoff_at"
+	case !accountMaterializationFixtureValidTime(account.SyncScheduleUpdatedAt):
+		return "mail_account_sync_schedule_updated_at"
+	case !accountMaterializationFixtureValidTime(account.CreatedAt):
+		return "mail_account_created_at"
+	case !accountMaterializationFixtureValidTime(account.UpdatedAt):
+		return "mail_account_updated_at"
+	case account.ProvisionAttempts < 0:
+		return "mail_account_provision_attempts"
+	case account.PasswordEnrollmentGeneration != 0:
+		return "mail_account_password_enrollment_generation"
+	case account.PasswordEnrolledEngineAccountID != nil:
+		return "mail_account_password_enrolled_engine_account_id"
+	case account.PasswordEnrolledAt != nil:
+		return "mail_account_password_enrolled_at"
+	case account.PasswordEnrollmentLeaseToken != nil:
+		return "mail_account_password_enrollment_lease_token"
+	case account.PasswordEnrollmentLeaseUntil != nil:
+		return "mail_account_password_enrollment_lease_until"
+	case !accountMaterializationFixtureOptionalTupleValid(
+		account.AttemptedControlGeneration,
+		account.AttemptedControlHashVersion,
+		account.AttemptedControlHash,
+	):
+		return "mail_account_attempted_control_tuple"
+	case !accountMaterializationFixtureOptionalTupleValid(
+		account.DeployedGeneration,
+		account.DeployedHashVersion,
+		account.DeployedHash,
+	):
+		return "mail_account_deployed_tuple"
+	case identity == nil:
+		return "mail_identity_missing"
+	case identity.ID == uuid.Nil:
+		return "mail_identity_id"
+	case identity.MailAccountID != account.ID:
+		return "mail_identity_account_id"
+	case identity.NormalizedAddress != plan.ownerAddress:
+		return "mail_identity_normalized_address"
+	case identity.Kind != mailidentity.KindPrimary:
+		return "mail_identity_kind"
+	case identity.Status != mailidentity.Status("pending"):
+		return "mail_identity_status"
+	case identity.SendAllowed:
+		return "mail_identity_send_allowed"
+	case identity.EngineIdentityID != nil:
+		return "mail_identity_engine_id"
+	default:
+		return "mail_account_identity_classifier"
+	}
 }
 
 func accountMaterializationFixtureClassifyAccountState(

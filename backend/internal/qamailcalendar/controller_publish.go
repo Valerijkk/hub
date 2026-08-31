@@ -5,6 +5,7 @@ package qamailcalendar
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/mail"
 	"github.com/valerii/hub/backend/internal/platform/outbox"
 )
@@ -119,7 +120,20 @@ func (c *Controller) publishInboundRequestFixture(
 		}
 	}()
 
-	if err := outbox.NewPublisher().PublishInTx(ctx, tx, envelope.Subject(), envelope); err != nil {
+	origin := outbox.OutboxOrigin{
+		Kind: outbox.OutboxOriginKindMailMessage,
+		ID:   record.persisted.mailMessageID,
+	}
+	receipt, err := outbox.NewPublisher().PublishInTxWithReceipt(ctx, tx, envelope.Subject(), envelope, &origin)
+	if err != nil ||
+		receipt.OutboxEventID == uuid.Nil ||
+		receipt.EventType != "mail.received.v1" ||
+		receipt.EnvelopeEventID != envelope.EventID() ||
+		receipt.EnvelopeEventID != record.persisted.envelopeEventID ||
+		receipt.Origin == nil ||
+		receipt.Origin == &origin ||
+		receipt.Origin.Kind != origin.Kind ||
+		receipt.Origin.ID != origin.ID {
 		_ = tx.Rollback()
 		finished = true
 		if _, restored := transition(inboundRequestFixtureStateCreated); !restored {

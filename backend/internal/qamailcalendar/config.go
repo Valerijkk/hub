@@ -16,6 +16,7 @@ const (
 const (
 	ScenarioInboundRequestV1         Scenario = "inbound-request-v1"
 	ScenarioAccountMaterializationV1 Scenario = "account-materialization-v1"
+	ScenarioThreadSearchV1           Scenario = "thread-search-v1"
 )
 
 var (
@@ -73,6 +74,8 @@ func ParseScenario(value string) (Scenario, error) {
 		return ScenarioInboundRequestV1, nil
 	case ScenarioAccountMaterializationV1:
 		return ScenarioAccountMaterializationV1, nil
+	case ScenarioThreadSearchV1:
+		return ScenarioThreadSearchV1, nil
 	default:
 		return "", errInvalidScenario
 	}

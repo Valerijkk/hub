@@ -13,6 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailaccount"
 	"github.com/valerii/hub/backend/ent/mailfolder"
+	"github.com/valerii/hub/backend/ent/mailidentity"
 	"github.com/valerii/hub/backend/ent/mailmessage"
 	"github.com/valerii/hub/backend/ent/schema"
 	"github.com/valerii/hub/backend/ent/user"
@@ -24,6 +25,7 @@ type inboundRequestFixturePersisted struct {
 	organizationID       uuid.UUID
 	ownerUserID          uuid.UUID
 	mailAccountID        uuid.UUID
+	mailIdentityID       uuid.UUID
 	mailFolderID         uuid.UUID
 	mailThreadID         uuid.UUID
 	mailMessageID        uuid.UUID
@@ -45,6 +47,7 @@ func persistInboundRequestFixture(
 		return inboundRequestFixturePersisted{}, errInvalidFixtureNonce
 	}
 	if engineFixture.accountID == "" ||
+		engineFixture.primaryIdentityID == "" ||
 		engineFixture.folderID == "" ||
 		engineFixture.messageID != "qa-message-"+plan.nonce ||
 		engineFixture.version != "qa-version-"+plan.nonce {
@@ -125,6 +128,20 @@ func persistInboundRequestFixture(
 		SetUpdatedAt(plan.fixedAt).
 		Save(ctx); err != nil {
 		return inboundRequestFixturePersisted{}, fmt.Errorf("create inbound request fixture account: %w", err)
+	}
+
+	if _, err := tx.MailIdentity.Create().
+		SetID(plan.mailIdentityID).
+		SetMailAccountID(plan.mailAccountID).
+		SetNormalizedAddress(plan.ownerAddress).
+		SetKind(mailidentity.KindPrimary).
+		SetStatus(mailidentity.StatusActive).
+		SetSendAllowed(true).
+		SetEngineIdentityID(engineFixture.primaryIdentityID).
+		SetCreatedAt(plan.fixedAt).
+		SetUpdatedAt(plan.fixedAt).
+		Save(ctx); err != nil {
+		return inboundRequestFixturePersisted{}, fmt.Errorf("create inbound request fixture primary identity: %w", err)
 	}
 
 	if _, err := tx.MailFolder.Create().
@@ -220,6 +237,7 @@ func persistInboundRequestFixture(
 		organizationID:      plan.organizationID,
 		ownerUserID:         plan.ownerUserID,
 		mailAccountID:       plan.mailAccountID,
+		mailIdentityID:      plan.mailIdentityID,
 		mailFolderID:        plan.mailFolderID,
 		mailThreadID:        plan.mailThreadID,
 		mailMessageID:       plan.mailMessageID,

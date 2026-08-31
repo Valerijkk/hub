@@ -24,6 +24,7 @@ type inboundRequestFixturePlan struct {
 	ownerUserID            uuid.UUID
 	mailDomainID           uuid.UUID
 	mailAccountID          uuid.UUID
+	mailIdentityID         uuid.UUID
 	mailFolderID           uuid.UUID
 	mailThreadID           uuid.UUID
 	mailMessageID          uuid.UUID
@@ -71,6 +72,7 @@ func newInboundRequestFixturePlan(nonce string) (inboundRequestFixturePlan, erro
 		ownerUserID:            inboundRequestFixtureUUID("owner-user", nonce),
 		mailDomainID:           inboundRequestFixtureUUID("mail-domain", nonce),
 		mailAccountID:          inboundRequestFixtureUUID("mail-account", nonce),
+		mailIdentityID:         inboundRequestFixtureUUID("mail-identity", nonce),
 		mailFolderID:           inboundRequestFixtureUUID("mail-folder", nonce),
 		mailThreadID:           inboundRequestFixtureUUID("mail-thread", nonce),
 		mailMessageID:          inboundRequestFixtureUUID("mail-message", nonce),

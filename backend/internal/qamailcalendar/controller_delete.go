@@ -2,7 +2,12 @@
 
 package qamailcalendar
 
-import "context"
+import (
+	"context"
+
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/mailidentity"
+)
 
 func (c *Controller) deleteInboundRequestFixture(ctx context.Context, nonce string) error {
 	if c == nil ||
@@ -29,6 +34,7 @@ func (c *Controller) deleteInboundRequestFixture(ctx context.Context, nonce stri
 		record.plan != plan ||
 		!inboundRequestFixturePersistedMatchesPlan(record.persisted, plan) ||
 		record.engineFixture.accountID == "" ||
+		record.engineFixture.primaryIdentityID == "" ||
 		record.engineFixture.folderID == "" ||
 		record.engineFixture.messageID != "qa-message-"+nonce ||
 		record.engineFixture.version != "qa-version-"+nonce {
@@ -66,6 +72,39 @@ func (c *Controller) deleteInboundRequestFixture(ctx context.Context, nonce stri
 		}
 	}()
 
+	identities, err := tx.MailIdentity.Query().
+		Where(mailidentity.MailAccountIDEQ(record.persisted.mailAccountID)).
+		Order(ent.Asc(mailidentity.FieldID)).
+		ForUpdate().
+		All(ctx)
+	if err != nil || len(identities) != 1 {
+		_ = tx.Rollback()
+		finished = true
+		if !transition(inboundRequestFixtureStateCreated) {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
+	identity := identities[0]
+	if identity == nil ||
+		identity.ID != record.persisted.mailIdentityID ||
+		identity.MailAccountID != record.persisted.mailAccountID ||
+		identity.NormalizedAddress != plan.ownerAddress ||
+		identity.Kind != mailidentity.KindPrimary ||
+		identity.Status != mailidentity.StatusActive ||
+		!identity.SendAllowed ||
+		identity.EngineIdentityID == nil ||
+		*identity.EngineIdentityID != record.engineFixture.primaryIdentityID ||
+		!identity.CreatedAt.Equal(plan.fixedAt) ||
+		!identity.UpdatedAt.Equal(plan.fixedAt) {
+		_ = tx.Rollback()
+		finished = true
+		if !transition(inboundRequestFixtureStateCreated) {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
+
 	messageFolderID := inboundRequestFixtureUUID("mail-message-folder", nonce)
 	if err := tx.MailMessageFolder.DeleteOneID(messageFolderID).Exec(ctx); err != nil {
 		_ = tx.Rollback()
@@ -92,6 +131,14 @@ func (c *Controller) deleteInboundRequestFixture(ctx context.Context, nonce stri
 		return errInboundRequestFixtureLifecycle
 	}
 	if err := tx.MailFolder.DeleteOneID(record.persisted.mailFolderID).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		finished = true
+		if !transition(inboundRequestFixtureStateCreated) {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
+	if err := tx.MailIdentity.DeleteOneID(record.persisted.mailIdentityID).Exec(ctx); err != nil {
 		_ = tx.Rollback()
 		finished = true
 		if !transition(inboundRequestFixtureStateCreated) {

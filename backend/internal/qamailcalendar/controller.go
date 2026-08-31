@@ -32,6 +32,10 @@ const (
 	inboundRequestFixtureStatePublished      inboundRequestFixtureState = "published"
 	inboundRequestFixtureStatePublishUnknown inboundRequestFixtureState = "publish_unknown"
 	inboundRequestFixtureStateCleanupFailed  inboundRequestFixtureState = "cleanup_failed"
+	inboundRequestFixtureStateCleanupClaimed       inboundRequestFixtureState = "cleanup_claimed"
+	inboundRequestFixtureStateCleanupCommitUnknown inboundRequestFixtureState = "cleanup_commit_unknown"
+	inboundRequestFixtureStateCleanupEngineFailed  inboundRequestFixtureState = "cleanup_engine_failed"
+	inboundRequestFixtureStateCleaned               inboundRequestFixtureState = "cleaned"
 )
 
 type inboundRequestFixtureRecord struct {
@@ -40,6 +44,7 @@ type inboundRequestFixtureRecord struct {
 	engineFixture inboundRequestEngineFixture
 	persisted     inboundRequestFixturePersisted
 	state         inboundRequestFixtureState
+	cleanupProof  cleanupDomainProof
 }
 
 type inboundRequestFixtureSnapshot struct {
@@ -65,6 +70,8 @@ type Controller struct {
 	mu      sync.Mutex
 	fixtures                       map[string]inboundRequestFixtureRecord
 	accountMaterializationFixtures map[string]accountMaterializationFixtureRecord
+	threadSearchFixtures           map[string]ThreadSearchFixtureLifecycleRecord
+	publishedRecoveryRouteInstalled bool
 }
 
 func NewController(client *ent.Client, engine *mail.FakeMailEngine, config Config) (*Controller, error) {
@@ -84,6 +91,7 @@ func NewController(client *ent.Client, engine *mail.FakeMailEngine, config Confi
 		random:   cryptorand.Reader,
 		fixtures:                       make(map[string]inboundRequestFixtureRecord),
 		accountMaterializationFixtures: make(map[string]accountMaterializationFixtureRecord),
+		threadSearchFixtures:           make(map[string]ThreadSearchFixtureLifecycleRecord),
 	}, nil
 }
 
@@ -97,6 +105,7 @@ func (c *Controller) createInboundRequestFixture(
 		c.random == nil ||
 		c.fixtures == nil ||
 		c.accountMaterializationFixtures == nil ||
+		c.threadSearchFixtures == nil ||
 		!validToken(string(c.config.token)) {
 		return inboundRequestFixtureSnapshot{}, errInboundRequestFixtureControllerInput
 	}
@@ -157,6 +166,14 @@ func (c *Controller) createInboundRequestFixture(
 }
 
 func (c *Controller) reserveInboundRequestFixture() (string, bool) {
+	if c == nil ||
+		c.random == nil ||
+		c.fixtures == nil ||
+		c.accountMaterializationFixtures == nil ||
+		c.threadSearchFixtures == nil {
+		return "", false
+	}
+
 	for attempt := 0; attempt < 4; attempt++ {
 		var randomBytes [16]byte
 		if _, err := io.ReadFull(c.random, randomBytes[:]); err != nil {
@@ -167,7 +184,8 @@ func (c *Controller) reserveInboundRequestFixture() (string, bool) {
 		c.mu.Lock()
 		_, inboundExists := c.fixtures[nonce]
 		_, accountMaterializationExists := c.accountMaterializationFixtures[nonce]
-		if !inboundExists && !accountMaterializationExists {
+		_, threadSearchExists := c.threadSearchFixtures[nonce]
+		if !inboundExists && !accountMaterializationExists && !threadSearchExists {
 			c.fixtures[nonce] = inboundRequestFixtureRecord{
 				nonce: nonce,
 				state: inboundRequestFixtureStateCreating,
@@ -293,6 +311,7 @@ func inboundRequestFixturePersistedMatchesPlan(
 	return persisted.organizationID == plan.organizationID &&
 		persisted.ownerUserID == plan.ownerUserID &&
 		persisted.mailAccountID == plan.mailAccountID &&
+		persisted.mailIdentityID == plan.mailIdentityID &&
 		persisted.mailFolderID == plan.mailFolderID &&
 		persisted.mailThreadID == plan.mailThreadID &&
 		persisted.mailMessageID == plan.mailMessageID &&

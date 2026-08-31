@@ -144,7 +144,6 @@ func accountMaterializationFixtureQuiesceRootsValid(
 		ownerRow != nil &&
 		ownerRow.ID == plan.ownerUserID &&
 		ownerRow.Email == plan.ownerAddress &&
-		ownerRow.OrganizationID == organizationRow.ID &&
 		ownerRow.SystemRole == user.SystemRoleMember &&
 		ownerRow.Status == user.StatusActive &&
 		ownerRow.Timezone == "UTC" &&

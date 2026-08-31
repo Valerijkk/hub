@@ -132,6 +132,7 @@ func (c *Controller) deleteAccountMaterializationFixture(ctx context.Context, no
 	organizationRow, err := tx.Organization.Query().
 		Where(
 			organization.IDEQ(record.persisted.organizationID),
+			organization.HasUsersWith(user.IDEQ(record.persisted.ownerUserID)),
 			accountMaterializationFixtureOrganizationNoWait(),
 		).
 		Only(ctx)
