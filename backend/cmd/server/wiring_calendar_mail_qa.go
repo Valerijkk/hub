@@ -4,9 +4,14 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
 	"log/slog"
 	"os"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	calendarmod "github.com/valerii/hub/backend/internal/calendar"
@@ -20,8 +25,32 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 		d.fatal("failed to wire calendar and mail routes", err)
 		return true
 	}
+	child, err := newQARecoveryChild(os.LookupEnv)
+	if err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+		return true
+	}
+	var recoverySession qamailcalendar.PublishedRecoveryRouteSession
+	if child.supervised() {
+		evidence, ok := child.routeEvidence()
+		if !ok {
+			d.fatal("failed to wire calendar and mail routes", errQARecoveryChildInput)
+			return true
+		}
+		recoverySession = newQARecoveryChildSession(evidence)
+	}
 
+	var fakeBootEntropy [32]byte
+	if _, err := rand.Read(fakeBootEntropy[:]); err != nil {
+		d.fatal("failed to wire calendar and mail routes", err)
+		return true
+	}
+	fakeBootPrefix := "qa-fake-" + hex.EncodeToString(fakeBootEntropy[:])
+	var fakeIDSequence uint64
 	mailboxEngine := mailmod.NewFakeMailEngine(mailmod.FakeMailEngineConfig{
+		NextID: func() string {
+			return fakeBootPrefix + "-" + strconv.FormatUint(atomic.AddUint64(&fakeIDSequence, 1), 10)
+		},
 		Now: serverUTCClock{}.Now,
 	})
 	controller, err := qamailcalendar.NewController(d.db, mailboxEngine, config)
@@ -29,9 +58,38 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 		d.fatal("failed to wire calendar and mail routes", err)
 		return true
 	}
+	if child.recovery() {
+		if err := controller.RegisterPublishedRecoveryRoute(d.api, recoverySession, nil); err != nil {
+			d.fatal("failed to wire calendar and mail routes", err)
+			return true
+		}
+		if err := child.announce(); err != nil {
+			d.fatal("failed to wire calendar and mail routes", err)
+			return true
+		}
+		return true
+	}
 	if err := controller.RegisterRoutes(d.api); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 		return true
+	}
+	if child.normal() {
+		if err := controller.RegisterPublishedRecoveryRoute(d.api, recoverySession, func() error {
+			err := child.requestRestart(d.rootCancel)
+			if errors.Is(err, errQARecoveryChildRestart) {
+				d.rootCancel()
+			}
+			return err
+		}); err != nil {
+			d.fatal("failed to wire calendar and mail routes", err)
+			return true
+		}
+	}
+	if child.supervised() {
+		if err := child.announce(); err != nil {
+			d.fatal("failed to wire calendar and mail routes", err)
+			return true
+		}
 	}
 	mailboxSubmissionService, err := mailmod.NewMailboxSubmissionService(mailboxSvc, mailboxRepo)
 	if err != nil {
@@ -149,4 +207,20 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 	wireMailboxMessageDetail(d, mailboxSvc, mailboxRepo, mailboxEngine)
 	wireCalendarInboundRuntime(d, mailboxRepo, mailboxEngine, eventRepo, eventSvc)
 	return true
+}
+
+type qaRecoveryChildSession struct {
+	evidence qamailcalendar.PublishedRecoveryChildEvidence
+}
+
+func newQARecoveryChildSession(evidence qaRecoveryChildEvidence) qaRecoveryChildSession {
+	return qaRecoveryChildSession{evidence: qamailcalendar.PublishedRecoveryChildEvidence{
+		ChildPID:   evidence.pid,
+		Generation: evidence.generation,
+		BootSHA256: evidence.bootSHA256,
+	}}
+}
+
+func (session qaRecoveryChildSession) PublishedRecoveryChildEvidence() qamailcalendar.PublishedRecoveryChildEvidence {
+	return session.evidence
 }
