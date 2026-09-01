@@ -326,7 +326,7 @@ func (finalizer *MailboxSubmissionFinalizer) Finalize(ctx context.Context, submi
 		return finalizer.release(ctx, claim)
 	}
 	if err := finalizer.repository.CompleteAcceptedMailboxSubmission(ctx, mailboxSubmissionFinalizationCompletionCopy(completion)); err != nil {
-		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		return finalizer.release(ctx, claim)
 	}
 	return nil
 }

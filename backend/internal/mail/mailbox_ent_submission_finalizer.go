@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -29,6 +30,43 @@ import (
 )
 
 var _ MailboxSubmissionFinalizationRepository = (*MailboxEntRepository)(nil)
+
+type mailboxSubmissionFinalizationStage string
+
+const (
+	mailboxSubmissionFinalizationStageInput              mailboxSubmissionFinalizationStage = "input"
+	mailboxSubmissionFinalizationStageMessageID          mailboxSubmissionFinalizationStage = "message_id"
+	mailboxSubmissionFinalizationStageTxBegin            mailboxSubmissionFinalizationStage = "tx_begin"
+	mailboxSubmissionFinalizationStageAccountLock        mailboxSubmissionFinalizationStage = "account_lock"
+	mailboxSubmissionFinalizationStageSubmissionLock     mailboxSubmissionFinalizationStage = "submission_lock"
+	mailboxSubmissionFinalizationStageDraftLock          mailboxSubmissionFinalizationStage = "draft_lock"
+	mailboxSubmissionFinalizationStageTerminalReplay     mailboxSubmissionFinalizationStage = "terminal_replay"
+	mailboxSubmissionFinalizationStageDBClock            mailboxSubmissionFinalizationStage = "db_clock"
+	mailboxSubmissionFinalizationStageClaimFence         mailboxSubmissionFinalizationStage = "claim_fence"
+	mailboxSubmissionFinalizationStageAncestorPreRead    mailboxSubmissionFinalizationStage = "ancestor_preread"
+	mailboxSubmissionFinalizationStageThreadIdentity     mailboxSubmissionFinalizationStage = "thread_identity"
+	mailboxSubmissionFinalizationStageThreadID           mailboxSubmissionFinalizationStage = "thread_id"
+	mailboxSubmissionFinalizationStageThreadLock         mailboxSubmissionFinalizationStage = "thread_lock"
+	mailboxSubmissionFinalizationStageThreadResolve      mailboxSubmissionFinalizationStage = "thread_resolve"
+	mailboxSubmissionFinalizationStageMessageLock        mailboxSubmissionFinalizationStage = "message_lock"
+	mailboxSubmissionFinalizationStageAncestorRevalidate mailboxSubmissionFinalizationStage = "ancestor_revalidate"
+	mailboxSubmissionFinalizationStageAttachmentLock     mailboxSubmissionFinalizationStage = "attachment_lock"
+	mailboxSubmissionFinalizationStageMessageUpsert      mailboxSubmissionFinalizationStage = "message_upsert"
+	mailboxSubmissionFinalizationStageAttachmentTransfer mailboxSubmissionFinalizationStage = "attachment_transfer"
+	mailboxSubmissionFinalizationStageMessageUpdate      mailboxSubmissionFinalizationStage = "message_update"
+	mailboxSubmissionFinalizationStageFolderLabelResolve mailboxSubmissionFinalizationStage = "folder_label_resolve"
+	mailboxSubmissionFinalizationStageFolderLinks        mailboxSubmissionFinalizationStage = "folder_links"
+	mailboxSubmissionFinalizationStageLabelLinks         mailboxSubmissionFinalizationStage = "label_links"
+	mailboxSubmissionFinalizationStageThreadAggregate    mailboxSubmissionFinalizationStage = "thread_aggregate"
+	mailboxSubmissionFinalizationStageRouteResolve       mailboxSubmissionFinalizationStage = "route_resolve"
+	mailboxSubmissionFinalizationStageEventConstruct     mailboxSubmissionFinalizationStage = "event_construct"
+	mailboxSubmissionFinalizationStageOutboxAppend       mailboxSubmissionFinalizationStage = "outbox_append"
+	mailboxSubmissionFinalizationStageEpoch              mailboxSubmissionFinalizationStage = "epoch"
+	mailboxSubmissionFinalizationStageSubmissionSent     mailboxSubmissionFinalizationStage = "submission_sent"
+	mailboxSubmissionFinalizationStageDraftSubmitted     mailboxSubmissionFinalizationStage = "draft_submitted"
+	mailboxSubmissionFinalizationStageAccountFinalize    mailboxSubmissionFinalizationStage = "account_finalize"
+	mailboxSubmissionFinalizationStageCommit             mailboxSubmissionFinalizationStage = "commit"
+)
 
 // ScanAcceptedMailboxSubmissions returns only stable, unleased accepted identities.
 // The selection is advisory: ClaimAcceptedMailboxSubmission rechecks every row.
@@ -149,7 +187,7 @@ func (repository *MailboxEntRepository) ClaimAcceptedMailboxSubmission(ctx conte
 		if MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusAccepted {
 			return nil
 		}
-		if busyUntil, busy, valid := mailboxEntSubmissionClaimBusyUntil(account); !valid {
+		if busyUntil, busy, valid := mailboxEntSubmissionClaimBusyUntil(account, databaseNow); !valid {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
 		} else if busy {
 			busyResult, err := NewMailboxSubmissionFinalizationBusyResult(busyUntil)
@@ -160,6 +198,10 @@ func (repository *MailboxEntRepository) ClaimAcceptedMailboxSubmission(ctx conte
 			return nil
 		}
 		if !mailboxEntSubmissionFinalizationAcceptedShape(submission, draft, account.ID, databaseNow) {
+			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
+		}
+		dispatchAuthorizedAt, ok := mailboxEntSubmissionFinalizationDispatchAuthorizedAt(submission)
+		if !ok {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
 		}
 		expected, err := mailboxEntSubmissionFinalizationLockExpectedAttachments(ctx, transaction, account, draft)
@@ -206,7 +248,7 @@ func (repository *MailboxEntRepository) ClaimAcceptedMailboxSubmission(ctx conte
 			EngineMaxBytes:            submission.EngineMaxMessageBytes,
 			EngineBindingHash:         append([]byte(nil), submission.EngineBindingHash...),
 			DispatchAuthorizationHash: append([]byte(nil), (*submission.DispatchAuthorizationHash)...),
-			DispatchAuthorizedAt:      *submission.DispatchAuthorizedAt,
+			DispatchAuthorizedAt:      dispatchAuthorizedAt,
 			ExpectedAttachments:       expected,
 		})
 		if err != nil {
@@ -227,24 +269,35 @@ func (repository *MailboxEntRepository) ClaimAcceptedMailboxSubmission(ctx conte
 // CompleteAcceptedMailboxSubmission persists the hydrated confirmed projection,
 // transfers the pre-sealed durable attachments, and records mail.sent.v1 in the
 // same transaction as the sent terminal state.
-func (repository *MailboxEntRepository) CompleteAcceptedMailboxSubmission(ctx context.Context, completion MailboxSubmissionFinalizationCompletion) error {
+func (repository *MailboxEntRepository) CompleteAcceptedMailboxSubmission(ctx context.Context, completion MailboxSubmissionFinalizationCompletion) (resultErr error) {
+	stage := mailboxSubmissionFinalizationStageInput
+	defer func() {
+		if resultErr != nil {
+			slog.Warn("mailbox submission finalization failed", "stage", string(stage))
+		}
+	}()
+
 	if repository == nil || repository.client == nil || ctx == nil || !mailboxSubmissionFinalizationCompletionValid(completion) {
 		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
 	}
 	completion = mailboxSubmissionFinalizationCompletionCopy(completion)
+	stage = mailboxSubmissionFinalizationStageMessageID
 	messageID, err := mailboxEntStableSyncID(completion.claim.fence.AccountID, "message", []byte(completion.message.Projection.MessageID))
 	if err != nil {
 		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
 	}
 
+	stage = mailboxSubmissionFinalizationStageTxBegin
 	err = repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		// Lock order: MailAccount -> MailSubmission -> MailDraft -> all candidate MailThread IDs
 		// (sorted) -> all target/ancestor MailMessage rows (sorted) -> MailAttachment -> MailObject
 		// -> folder/label links -> OutboxEvent.
+		stage = mailboxSubmissionFinalizationStageAccountLock
 		account, err := transaction.MailAccount.Query().Where(mailaccount.IDEQ(completion.claim.fence.AccountID)).ForUpdate().Only(ctx)
 		if err != nil {
 			return mailboxEntSubmissionFinalizationCompletionLookupError(err)
 		}
+		stage = mailboxSubmissionFinalizationStageSubmissionLock
 		submission, err := transaction.MailSubmission.Query().
 			Where(mailsubmission.IDEQ(completion.claim.submissionID), mailsubmission.MailAccountIDEQ(account.ID)).
 			ForUpdate().
@@ -255,6 +308,7 @@ func (repository *MailboxEntRepository) CompleteAcceptedMailboxSubmission(ctx co
 		if submission.MailDraftID == nil || *submission.MailDraftID != completion.claim.draftID {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
+		stage = mailboxSubmissionFinalizationStageDraftLock
 		draft, err := transaction.MailDraft.Query().
 			Where(maildraft.IDEQ(completion.claim.draftID), maildraft.MailAccountIDEQ(account.ID)).
 			ForUpdate().
@@ -262,25 +316,31 @@ func (repository *MailboxEntRepository) CompleteAcceptedMailboxSubmission(ctx co
 		if err != nil {
 			return mailboxEntSubmissionFinalizationCompletionLookupError(err)
 		}
+		stage = mailboxSubmissionFinalizationStageTerminalReplay
 		terminal, err := mailboxEntSubmissionFinalizationTerminalReplayNoop(ctx, transaction, account, submission, draft, completion, messageID)
 		if err != nil {
 			return err
 		}
 		if terminal {
+			stage = mailboxSubmissionFinalizationStageCommit
 			return nil
 		}
+		stage = mailboxSubmissionFinalizationStageDBClock
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
 		}
+		stage = mailboxSubmissionFinalizationStageClaimFence
 		if !mailboxEntSubmissionFinalizationClaimFenceMatches(account, submission, draft, completion.claim, databaseNow) {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
 
+		stage = mailboxSubmissionFinalizationStageAncestorPreRead
 		ancestors, err := mailboxEntSubmissionFinalizationPreReadAncestors(ctx, transaction, account.ID, completion.message.Projection)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageThreadIdentity
 		threadIdentity, err := DeriveThreadIdentity(ThreadingInput{
 			References: completion.message.Projection.References, InReplyTo: completion.message.Projection.InReplyTo,
 			Subject: completion.message.Projection.Subject, From: completion.message.Projection.From,
@@ -290,72 +350,90 @@ func (repository *MailboxEntRepository) CompleteAcceptedMailboxSubmission(ctx co
 		if err != nil || threadIdentity.KeyVersion != ThreadKeyVersionV1 || threadKeyIsZero(threadIdentity.Key) {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
-		threadID, err := mailboxEntStableSyncID(account.ID, "thread", threadIdentity.Key[:])
+		stage = mailboxSubmissionFinalizationStageThreadID
+		threadID, err := mailboxEntStableThreadID(account.ID, threadIdentity)
 		if err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
 		}
+		stage = mailboxSubmissionFinalizationStageThreadLock
 		lockedThreads, err := mailboxEntSubmissionFinalizationLockThreads(ctx, transaction, account, ancestors, threadID)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageThreadResolve
 		thread, err := mailboxEntSubmissionFinalizationResolveLockedThread(ctx, transaction, account, threadID, threadIdentity, completion.message.Projection, databaseNow, lockedThreads)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageMessageLock
 		messages, candidateMessages, err := mailboxEntSubmissionFinalizationLockMessages(ctx, transaction, account, messageID, completion.message.Projection)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageAncestorRevalidate
 		if err := mailboxEntSubmissionFinalizationRevalidateAncestors(account.ID, completion.message.Projection, ancestors, lockedThreads, messages); err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageAttachmentLock
 		attachments, err := mailboxEntSubmissionFinalizationLockAttachments(ctx, transaction, account, draft, completion.claim)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageMessageUpsert
 		message, err := mailboxEntSubmissionFinalizationUpsertMessage(ctx, transaction, account, thread, messageID, candidateMessages, completion.message.Projection, databaseNow)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageAttachmentTransfer
 		if err := mailboxEntSubmissionFinalizationTransferAttachments(ctx, message.ID, attachments, databaseNow); err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageMessageUpdate
 		if err := message.Update().SetHasAttachments(len(attachments) != 0).SetUpdatedAt(databaseNow).Exec(ctx); err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
 		}
+		stage = mailboxSubmissionFinalizationStageFolderLabelResolve
 		folders, labels, err := mailboxEntSubmissionFinalizationResolveFoldersAndLabels(ctx, transaction, account.ID, completion.message.Projection)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageFolderLinks
 		if _, err := mailboxEntApplyMessageFolderLinks(ctx, transaction, account.ID, message.ID, folders, account.SyncEpoch, databaseNow); err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
+		stage = mailboxSubmissionFinalizationStageLabelLinks
 		if _, err := mailboxEntApplyMessageLabelLinks(ctx, transaction, account.ID, message.ID, labels, databaseNow); err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
+		stage = mailboxSubmissionFinalizationStageThreadAggregate
 		if err := mailboxEntApplySyncThreadAggregates(ctx, transaction, account.ID, account.SyncEpoch, []uuid.UUID{thread.ID}, databaseNow); err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
+		stage = mailboxSubmissionFinalizationStageRouteResolve
 		routes, err := mailboxEntSubmissionFinalizationResolveRoutes(ctx, transaction, account, completion.message.Projection)
 		if err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageEventConstruct
 		event, err := NewMailboxSubmissionSentEnvelopeV1(MailboxSubmissionSentEventInput{
 			AccountID: account.ID, OrganizationID: account.OrganizationID, ActorID: account.UserID,
 			SubmissionID: submission.ID, MessageID: message.ID, ThreadID: thread.ID,
 			DispatchAuthorizedAt: completion.claim.dispatchAuthorizedAt,
-			Projection: completion.message.Projection, RecipientResolutions: routes,
+			Projection:           completion.message.Projection, RecipientResolutions: routes,
 		})
 		if err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
+		stage = mailboxSubmissionFinalizationStageOutboxAppend
 		if err := mailboxEntSubmissionFinalizationAppendOutbox(ctx, transaction, event, databaseNow); err != nil {
 			return err
 		}
+		stage = mailboxSubmissionFinalizationStageEpoch
 		nextEpoch, ok := mailboxEntNextEpoch(account.MutationEpoch)
 		if !ok {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
 		}
+		stage = mailboxSubmissionFinalizationStageSubmissionSent
 		if err := submission.Update().
 			SetStatus(mailsubmission.Status("sent")).
 			ClearCommandLeaseToken().
@@ -368,9 +446,11 @@ func (repository *MailboxEntRepository) CompleteAcceptedMailboxSubmission(ctx co
 			Exec(ctx); err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
 		}
+		stage = mailboxSubmissionFinalizationStageDraftSubmitted
 		if err := draft.Update().SetStatus(maildraft.Status("submitted")).SetUpdatedAt(databaseNow).Exec(ctx); err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
 		}
+		stage = mailboxSubmissionFinalizationStageAccountFinalize
 		if err := account.Update().
 			ClearMutationLeaseToken().
 			ClearMutationLeaseUntil().
@@ -379,6 +459,7 @@ func (repository *MailboxEntRepository) CompleteAcceptedMailboxSubmission(ctx co
 			Exec(ctx); err != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
 		}
+		stage = mailboxSubmissionFinalizationStageCommit
 		return nil
 	})
 	if err != nil {
@@ -627,17 +708,26 @@ func mailboxEntSubmissionFinalizationTerminalOutbox(ctx context.Context, transac
 }
 
 func mailboxEntSubmissionFinalizationScanRowValid(submission *ent.MailSubmission, databaseNow time.Time) bool {
+	_, dispatchAuthorizedAtValid := mailboxEntSubmissionFinalizationDispatchAuthorizedAt(submission)
 	return submission != nil && submission.ID != uuid.Nil && submission.MailAccountID != uuid.Nil &&
 		mailboxEntValidTime(databaseNow) && mailboxEntSubmissionRowValid(submission, submission.MailAccountID) &&
 		!submission.UpdatedAt.After(databaseNow) &&
 		MailboxSubmissionStatus(submission.Status) == MailboxSubmissionStatusAccepted && submission.MailDraftID != nil && *submission.MailDraftID != uuid.Nil &&
 		submission.CommandLeaseToken == nil && submission.CommandLeaseExpiresAt == nil && submission.DispatchAuthorizedAt != nil &&
-		mailboxSubmissionClaimExactTimeValid(*submission.DispatchAuthorizedAt) && len(*submission.DispatchAuthorizationHash) == sha256.Size &&
+		dispatchAuthorizedAtValid && len(*submission.DispatchAuthorizationHash) == sha256.Size &&
 		submission.ProviderSubmissionID != nil && syncValidOpaque(*submission.ProviderSubmissionID, MaxEngineOpaqueIDBytes) &&
 		submission.ProviderMessageID != nil && syncValidOpaque(*submission.ProviderMessageID, MaxEngineOpaqueIDBytes) &&
 		submission.ResultMailMessageID == nil && submission.LastErrorCode == nil && submission.NextAttemptAt == nil &&
 		submission.NextReconcileAt == nil && submission.AttemptCount >= 1 && submission.AttemptCount <= 8 &&
 		submission.ReconcileAttempts >= 0 && submission.ReconcileAttempts <= 10
+}
+
+func mailboxEntSubmissionFinalizationDispatchAuthorizedAt(submission *ent.MailSubmission) (time.Time, bool) {
+	if submission == nil || submission.DispatchAuthorizedAt == nil {
+		return time.Time{}, false
+	}
+	dispatchAuthorizedAt := submission.DispatchAuthorizedAt.Round(0).UTC()
+	return dispatchAuthorizedAt, mailboxSubmissionClaimExactTimeValid(dispatchAuthorizedAt)
 }
 
 func mailboxEntSubmissionFinalizationAcceptedShape(submission *ent.MailSubmission, draft *ent.MailDraft, accountID uuid.UUID, databaseNow time.Time) bool {
@@ -687,7 +777,10 @@ func mailboxEntSubmissionFinalizationLockExpectedAttachments(ctx context.Context
 	return result, nil
 }
 
-type mailboxEntSubmissionFinalizationAttachment struct { attachment *ent.MailAttachment; object *ent.MailObject }
+type mailboxEntSubmissionFinalizationAttachment struct {
+	attachment *ent.MailAttachment
+	object     *ent.MailObject
+}
 
 func mailboxEntSubmissionFinalizationLockedCleanAttachments(ctx context.Context, transaction *ent.Tx, account *ent.MailAccount, draft *ent.MailDraft) ([]mailboxEntSubmissionFinalizationAttachment, error) {
 	if ctx == nil || transaction == nil || account == nil || draft == nil || account.ID == uuid.Nil || draft.ID == uuid.Nil {
@@ -804,10 +897,18 @@ func mailboxEntSubmissionFinalizationPreReadAncestors(ctx context.Context, trans
 
 func mailboxEntSubmissionFinalizationAncestorCandidates(projection EngineMessageProjection) []string {
 	values := make(map[string]struct{}, len(projection.References)+1)
-	for _, value := range projection.References { if validThreadMessageID(value) { values[value] = struct{}{} } }
-	if validThreadMessageID(projection.InReplyTo) { values[projection.InReplyTo] = struct{}{} }
+	for _, value := range projection.References {
+		if validThreadMessageID(value) {
+			values[value] = struct{}{}
+		}
+	}
+	if validThreadMessageID(projection.InReplyTo) {
+		values[projection.InReplyTo] = struct{}{}
+	}
 	result := make([]string, 0, len(values))
-	for value := range values { result = append(result, value) }
+	for value := range values {
+		result = append(result, value)
+	}
 	sort.Strings(result)
 	return result
 }
@@ -837,7 +938,9 @@ func mailboxEntSubmissionFinalizationLoadThreads(ctx context.Context, transactio
 	}
 	ordered := mailboxEntApplySortedUUIDs(threadIDs)
 	query := transaction.MailThread.Query().Where(mailthread.MailAccountIDEQ(accountID), mailthread.IDIn(ordered...)).Order(ent.Asc(mailthread.FieldID))
-	if locked { query = query.ForUpdate() }
+	if locked {
+		query = query.ForUpdate()
+	}
 	rows, err := query.All(ctx)
 	if err != nil {
 		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
@@ -882,7 +985,9 @@ func mailboxEntSubmissionFinalizationAncestorsFromLockedRows(accountID uuid.UUID
 		result.ancestors = append(result.ancestors, ThreadAncestor{MessageID: *message.InternetMessageID, KeyVersion: ThreadKeyVersion(key.version), Key: key.key})
 		result.messages = append(result.messages, mailboxEntSubmissionFinalizationAncestorMessage{id: message.ID, threadID: message.MailThreadID, internetMessageID: *message.InternetMessageID})
 	}
-	sort.Slice(result.ancestors, func(left, right int) bool { return result.ancestors[left].MessageID < result.ancestors[right].MessageID })
+	sort.Slice(result.ancestors, func(left, right int) bool {
+		return result.ancestors[left].MessageID < result.ancestors[right].MessageID
+	})
 	return result, nil
 }
 
@@ -931,9 +1036,13 @@ func mailboxEntSubmissionFinalizationResolveLockedThread(ctx context.Context, tr
 	}
 	thread := lockedThreads[threadID]
 	if thread == nil {
-		if identity.Source != ThreadIdentitySourceFallback { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+		if identity.Source != ThreadIdentitySourceFallback {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
 		participants := schema.MailThreadParticipants(append([]string(nil), identity.CanonicalParticipants...))
-		if participants.Validate() != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+		if participants.Validate() != nil {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
 		created, createErr := transaction.MailThread.Create().
 			SetID(threadID).SetMailAccountID(account.ID).SetThreadKeyVersion(int32(identity.KeyVersion)).SetThreadKey(identity.Key[:]).
 			SetNormalizedSubject(identity.NormalizedSubject).SetParticipantAddresses(participants).
@@ -941,7 +1050,9 @@ func mailboxEntSubmissionFinalizationResolveLockedThread(ctx context.Context, tr
 			SetUnreadCount(mailboxEntSubmissionFinalizationUnread(projection)).SetIsPinned(false).
 			SetHasAttachments(len(projection.Attachments) != 0).SetSnippet(projection.Snippet).
 			SetLastSeenSyncEpoch(account.SyncEpoch).SetCreatedAt(databaseNow).SetUpdatedAt(databaseNow).Save(ctx)
-		if createErr != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
+		if createErr != nil {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+		}
 		return created, nil
 	}
 	if !mailboxEntApplyThreadRowValid(thread, account.ID) || thread.ID != threadID || thread.ThreadKeyVersion != int32(identity.KeyVersion) || subtle.ConstantTimeCompare(thread.ThreadKey, identity.Key[:]) != 1 {
@@ -987,11 +1098,15 @@ func mailboxEntSubmissionFinalizationLockMessages(ctx context.Context, transacti
 func mailboxEntSubmissionFinalizationRevalidateAncestors(accountID uuid.UUID, projection EngineMessageProjection, expected mailboxEntSubmissionFinalizationAncestorSnapshot, threads map[uuid.UUID]*ent.MailThread, lockedMessages []*ent.MailMessage) error {
 	candidates := mailboxEntSubmissionFinalizationAncestorCandidates(projection)
 	if len(candidates) == 0 {
-		if len(expected.ancestors) == 0 && len(expected.messages) == 0 { return nil }
+		if len(expected.ancestors) == 0 && len(expected.messages) == 0 {
+			return nil
+		}
 		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 	}
 	candidateSet := make(map[string]struct{}, len(candidates))
-	for _, candidate := range candidates { candidateSet[candidate] = struct{}{} }
+	for _, candidate := range candidates {
+		candidateSet[candidate] = struct{}{}
+	}
 	ancestorRows := make([]*ent.MailMessage, 0, len(expected.messages))
 	for _, message := range lockedMessages {
 		if message == nil {
@@ -1024,25 +1139,63 @@ func mailboxEntSubmissionFinalizationRevalidateAncestors(accountID uuid.UUID, pr
 	return nil
 }
 
-func mailboxEntSubmissionFinalizationUnread(projection EngineMessageProjection) int32 { if projection.Flags.Seen { return 0 }; return 1 }
+func mailboxEntSubmissionFinalizationUnread(projection EngineMessageProjection) int32 {
+	if projection.Flags.Seen {
+		return 0
+	}
+	return 1
+}
 
 func mailboxEntSubmissionFinalizationMessageTime(projection EngineMessageProjection, fallback time.Time) time.Time {
-	if projection.SentAt != nil { return *projection.SentAt }
-	if projection.ReceivedAt != nil { return *projection.ReceivedAt }
+	if projection.SentAt != nil {
+		return *projection.SentAt
+	}
+	if projection.ReceivedAt != nil {
+		return *projection.ReceivedAt
+	}
 	return fallback
+}
+
+func mailboxEntSubmissionFinalizationReferences(values []string) (schema.MailMessageReferences, error) {
+	if values == nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	references := make(schema.MailMessageReferences, len(values))
+	copy(references, values)
+	if err := references.Validate(); err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	return references, nil
 }
 
 func mailboxEntSubmissionFinalizationUpsertMessage(ctx context.Context, transaction *ent.Tx, account *ent.MailAccount, thread *ent.MailThread, messageID uuid.UUID, rows []*ent.MailMessage, projection EngineMessageProjection, databaseNow time.Time) (*ent.MailMessage, error) {
 	if account == nil || thread == nil || messageID == uuid.Nil || syncValidateProjection(projection) != nil || projection.Origin != EngineProjectionOriginConfirmedOwnerSubmission || projection.Flags.Draft {
 		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 	}
-	references := schema.MailMessageReferences(append([]string(nil), projection.References...))
+	references, err := mailboxEntSubmissionFinalizationReferences(projection.References)
+	if err != nil {
+		return nil, err
+	}
 	from := schema.MailStoredAddress{Email: projection.From.Email, Name: projection.From.Name}
-	to, err := mailboxEntApplyStoredAddresses(projection.To); if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-	cc, err := mailboxEntApplyStoredAddresses(projection.CC); if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-	bcc, err := mailboxEntApplyStoredAddresses(projection.BCC); if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-	replyTo, err := mailboxEntApplyStoredAddresses(projection.ReplyTo); if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-	if references.Validate() != nil || from.Validate() != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+	to, err := mailboxEntApplyStoredAddresses(projection.To)
+	if err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	cc, err := mailboxEntApplyStoredAddresses(projection.CC)
+	if err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	bcc, err := mailboxEntApplyStoredAddresses(projection.BCC)
+	if err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	replyTo, err := mailboxEntApplyStoredAddresses(projection.ReplyTo)
+	if err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	if from.Validate() != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
 	var existing *ent.MailMessage
 	for _, row := range rows {
 		if !mailboxEntApplyMessageRowValid(row, account.ID) || row.DeletedAt != nil || (row.ID != messageID && row.EngineMessageID != projection.MessageID) || existing != nil {
@@ -1060,7 +1213,9 @@ func mailboxEntSubmissionFinalizationUpsertMessage(ctx context.Context, transact
 			SetFlagsSyncedAt(databaseNow).SetLastSeenSyncEpoch(account.SyncEpoch).SetCreatedAt(databaseNow).SetUpdatedAt(databaseNow)
 		mailboxEntSubmissionFinalizationSetMessageOptionalsCreate(create, projection)
 		created, err := create.Save(ctx)
-		if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
+		if err != nil {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+		}
 		return created, nil
 	}
 	if existing.ID != messageID || existing.EngineMessageID != projection.MessageID || existing.ReceivedEventID != nil {
@@ -1070,28 +1225,65 @@ func mailboxEntSubmissionFinalizationUpsertMessage(ctx context.Context, transact
 		SetSizeBytes(projection.SizeBytes).SetPriority(mailmessage.Priority(projection.Priority)).SetIsDraft(false).SetIsSeen(projection.Flags.Seen).SetIsAnswered(projection.Flags.Answered).SetIsFlagged(projection.Flags.Flagged).SetIsJunk(projection.Flags.Junk).
 		SetProjectionOrigin(mailmessage.ProjectionOrigin(EngineProjectionOriginConfirmedOwnerSubmission)).SetAuthenticationClass(mailmessage.AuthenticationClass(projection.AuthenticationClass)).SetFlagsSyncedAt(databaseNow).SetLastSeenSyncEpoch(account.SyncEpoch).SetUpdatedAt(databaseNow)
 	mailboxEntSubmissionFinalizationSetMessageOptionalsUpdate(update, projection)
-	if err := update.Exec(ctx); err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
+	if err := update.Exec(ctx); err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+	}
 	return existing, nil
 }
 
 func mailboxEntSubmissionFinalizationSetMessageOptionalsCreate(create *ent.MailMessageCreate, projection EngineMessageProjection) {
-	if projection.InternetMessageID != "" { create.SetInternetMessageID(projection.InternetMessageID) }
-	if projection.InReplyTo != "" { create.SetInReplyTo(projection.InReplyTo) }
-	if projection.SentAt != nil { create.SetSentAt(*projection.SentAt) }
-	if projection.ReceivedAt != nil { create.SetReceivedAt(*projection.ReceivedAt) }
-	if projection.CalendarMethod != nil { create.SetCalendarMethod(mailmessage.CalendarMethod(*projection.CalendarMethod)); create.SetCalendarPartLocatorHash(syncCloneBytes(projection.CalendarPartLocatorHash)) }
+	if projection.InternetMessageID != "" {
+		create.SetInternetMessageID(projection.InternetMessageID)
+	}
+	if projection.InReplyTo != "" {
+		create.SetInReplyTo(projection.InReplyTo)
+	}
+	if projection.SentAt != nil {
+		create.SetSentAt(*projection.SentAt)
+	}
+	if projection.ReceivedAt != nil {
+		create.SetReceivedAt(*projection.ReceivedAt)
+	}
+	if projection.CalendarMethod != nil {
+		create.SetCalendarMethod(mailmessage.CalendarMethod(*projection.CalendarMethod))
+		create.SetCalendarPartLocatorHash(syncCloneBytes(projection.CalendarPartLocatorHash))
+	}
 }
 
 func mailboxEntSubmissionFinalizationSetMessageOptionalsUpdate(update *ent.MailMessageUpdateOne, projection EngineMessageProjection) {
-	if projection.InternetMessageID == "" { update.ClearInternetMessageID() } else { update.SetInternetMessageID(projection.InternetMessageID) }
-	if projection.InReplyTo == "" { update.ClearInReplyTo() } else { update.SetInReplyTo(projection.InReplyTo) }
-	if projection.SentAt == nil { update.ClearSentAt() } else { update.SetSentAt(*projection.SentAt) }
-	if projection.ReceivedAt == nil { update.ClearReceivedAt() } else { update.SetReceivedAt(*projection.ReceivedAt) }
-	if projection.CalendarMethod == nil { update.ClearCalendarMethod(); update.ClearCalendarPartLocatorHash() } else { update.SetCalendarMethod(mailmessage.CalendarMethod(*projection.CalendarMethod)); update.SetCalendarPartLocatorHash(syncCloneBytes(projection.CalendarPartLocatorHash)) }
+	if projection.InternetMessageID == "" {
+		update.ClearInternetMessageID()
+	} else {
+		update.SetInternetMessageID(projection.InternetMessageID)
+	}
+	if projection.InReplyTo == "" {
+		update.ClearInReplyTo()
+	} else {
+		update.SetInReplyTo(projection.InReplyTo)
+	}
+	if projection.SentAt == nil {
+		update.ClearSentAt()
+	} else {
+		update.SetSentAt(*projection.SentAt)
+	}
+	if projection.ReceivedAt == nil {
+		update.ClearReceivedAt()
+	} else {
+		update.SetReceivedAt(*projection.ReceivedAt)
+	}
+	if projection.CalendarMethod == nil {
+		update.ClearCalendarMethod()
+		update.ClearCalendarPartLocatorHash()
+	} else {
+		update.SetCalendarMethod(mailmessage.CalendarMethod(*projection.CalendarMethod))
+		update.SetCalendarPartLocatorHash(syncCloneBytes(projection.CalendarPartLocatorHash))
+	}
 }
 
 func mailboxEntSubmissionFinalizationTransferAttachments(ctx context.Context, messageID uuid.UUID, attachments []mailboxEntSubmissionFinalizationAttachment, databaseNow time.Time) error {
-	if messageID == uuid.Nil || attachments == nil { return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid) }
+	if messageID == uuid.Nil || attachments == nil {
+		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
+	}
 	for _, value := range attachments {
 		if value.attachment == nil || value.object == nil || value.attachment.StorageObjectID == nil || *value.attachment.StorageObjectID != value.object.ID || value.attachment.EngineBlobID != nil {
 			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
@@ -1104,34 +1296,66 @@ func mailboxEntSubmissionFinalizationTransferAttachments(ctx context.Context, me
 }
 
 func mailboxEntSubmissionFinalizationResolveFoldersAndLabels(ctx context.Context, transaction *ent.Tx, accountID uuid.UUID, projection EngineMessageProjection) ([]MailboxEventID, []MailboxSyncPolicyLabelState, error) {
-	if projection.FolderIDs == nil || projection.ReservedKeywords == nil { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-	folderKeys := append([]string(nil), projection.FolderIDs...); sort.Strings(folderKeys)
-	for index, value := range folderKeys { if !syncValidOpaque(value, MaxEngineOpaqueIDBytes) || (index > 0 && folderKeys[index-1] == value) { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) } }
+	if projection.FolderIDs == nil || projection.ReservedKeywords == nil {
+		return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	folderKeys := append([]string(nil), projection.FolderIDs...)
+	sort.Strings(folderKeys)
+	for index, value := range folderKeys {
+		if !syncValidOpaque(value, MaxEngineOpaqueIDBytes) || (index > 0 && folderKeys[index-1] == value) {
+			return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+	}
 	folders := make([]MailboxEventID, 0, len(folderKeys))
 	if len(folderKeys) != 0 {
 		rows, err := transaction.MailFolder.Query().Where(mailfolder.MailAccountIDEQ(accountID), mailfolder.EngineFolderIDIn(folderKeys...), mailfolder.ControlStateEQ(mailfolder.ControlStateActive), mailfolder.DeletedAtIsNil()).Order(ent.Asc(mailfolder.FieldID)).ForUpdate().All(ctx)
-		if err != nil { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
-		if len(rows) != len(folderKeys) { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-		for _, row := range rows { if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.EngineFolderID == nil || row.DeletedAt != nil || row.ControlState != mailfolder.ControlStateActive { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; folders = append(folders, MailboxEventID{AccountID: accountID, ID: row.ID}) }
+		if err != nil {
+			return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+		}
+		if len(rows) != len(folderKeys) {
+			return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		for _, row := range rows {
+			if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.EngineFolderID == nil || row.DeletedAt != nil || row.ControlState != mailfolder.ControlStateActive {
+				return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			folders = append(folders, MailboxEventID{AccountID: accountID, ID: row.ID})
+		}
 		sort.Slice(folders, func(left, right int) bool { return syncLessUUID(folders[left].ID, folders[right].ID) })
 	}
-	keywords := make([]string, len(projection.ReservedKeywords)); for index, value := range projection.ReservedKeywords { keywords[index] = string(value) }; sort.Strings(keywords)
+	keywords := make([]string, len(projection.ReservedKeywords))
+	for index, value := range projection.ReservedKeywords {
+		keywords[index] = string(value)
+	}
+	sort.Strings(keywords)
 	keywordSet := make(map[string]struct{}, len(keywords))
 	for index, value := range keywords {
-		if !syncValidOpaque(value, MaxEngineOpaqueIDBytes) || (index > 0 && keywords[index-1] == value) { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+		if !syncValidOpaque(value, MaxEngineOpaqueIDBytes) || (index > 0 && keywords[index-1] == value) {
+			return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
 		keywordSet[value] = struct{}{}
 	}
 	labels := make([]MailboxSyncPolicyLabelState, 0, len(keywords))
 	if len(keywords) != 0 {
 		rows, err := transaction.MailLabel.Query().Where(maillabel.MailAccountIDEQ(accountID), maillabel.EngineKeywordIn(keywords...), maillabel.DeletedAtIsNil()).Order(ent.Asc(maillabel.FieldID)).ForUpdate().All(ctx)
-		if err != nil { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
+		if err != nil {
+			return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+		}
 		seenLabels := make(map[uuid.UUID]struct{}, len(rows))
 		seenKeywords := make(map[string]struct{}, len(rows))
 		for _, row := range rows {
-			if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.DeletedAt != nil || !syncValidOpaque(row.EngineKeyword, MaxEngineOpaqueIDBytes) { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-			if _, known := keywordSet[row.EngineKeyword]; !known { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-			if _, duplicate := seenLabels[row.ID]; duplicate { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-			if _, duplicate := seenKeywords[row.EngineKeyword]; duplicate { return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+			if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.DeletedAt != nil || !syncValidOpaque(row.EngineKeyword, MaxEngineOpaqueIDBytes) {
+				return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			if _, known := keywordSet[row.EngineKeyword]; !known {
+				return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			if _, duplicate := seenLabels[row.ID]; duplicate {
+				return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			if _, duplicate := seenKeywords[row.EngineKeyword]; duplicate {
+				return nil, nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
 			seenLabels[row.ID] = struct{}{}
 			seenKeywords[row.EngineKeyword] = struct{}{}
 			labels = append(labels, MailboxSyncPolicyLabelState{Label: MailboxEventID{AccountID: accountID, ID: row.ID}, EngineRule: true})
@@ -1142,23 +1366,95 @@ func mailboxEntSubmissionFinalizationResolveFoldersAndLabels(ctx context.Context
 }
 
 func mailboxEntSubmissionFinalizationResolveRoutes(ctx context.Context, transaction *ent.Tx, sender *ent.MailAccount, projection EngineMessageProjection) ([]MailboxSubmissionSentRecipientResolution, error) {
-	if sender == nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid) }
+	if sender == nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
+	}
 	emails := make([]string, 0, len(projection.To)+len(projection.CC)+len(projection.BCC))
 	seen := make(map[string]struct{}, cap(emails))
 	domainNameSet := make(map[string]struct{}, cap(emails))
-	for _, group := range [][]EngineAddress{projection.To, projection.CC, projection.BCC} { for _, recipient := range group { normalized, err := NormalizeAddress(recipient); if err != nil || normalized.Email != recipient.Email { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; if _, duplicate := seen[recipient.Email]; duplicate { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; at := strings.LastIndexByte(recipient.Email, '@'); if at <= 0 || at == len(recipient.Email)-1 { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; seen[recipient.Email] = struct{}{}; domainNameSet[recipient.Email[at+1:]] = struct{}{}; emails = append(emails, recipient.Email) } }
-	if len(emails) == 0 { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+	for _, group := range [][]EngineAddress{projection.To, projection.CC, projection.BCC} {
+		for _, recipient := range group {
+			normalized, err := NormalizeAddress(recipient)
+			if err != nil || normalized.Email != recipient.Email {
+				return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			if _, duplicate := seen[recipient.Email]; duplicate {
+				return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			at := strings.LastIndexByte(recipient.Email, '@')
+			if at <= 0 || at == len(recipient.Email)-1 {
+				return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			seen[recipient.Email] = struct{}{}
+			domainNameSet[recipient.Email[at+1:]] = struct{}{}
+			emails = append(emails, recipient.Email)
+		}
+	}
+	if len(emails) == 0 {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
 	sort.Strings(emails)
-	domainNames := make([]string, 0, len(domainNameSet)); for domainName := range domainNameSet { domainNames = append(domainNames, domainName) }; sort.Strings(domainNames)
+	domainNames := make([]string, 0, len(domainNameSet))
+	for domainName := range domainNameSet {
+		domainNames = append(domainNames, domainName)
+	}
+	sort.Strings(domainNames)
 	identities, err := transaction.MailIdentity.Query().Where(mailidentity.NormalizedAddressIn(emails...), mailidentity.StatusEQ(mailidentity.Status("active"))).Order(ent.Asc(mailidentity.FieldID)).All(ctx)
-	if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
-	identityByEmail := make(map[string]*ent.MailIdentity, len(identities)); accountIDs := make(map[uuid.UUID]struct{}, len(identities))
-	for _, identity := range identities { if identity == nil || identity.ID == uuid.Nil || identity.MailAccountID == uuid.Nil || identity.Status != mailidentity.Status("active") { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; if _, requested := seen[identity.NormalizedAddress]; !requested { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; if _, duplicate := identityByEmail[identity.NormalizedAddress]; duplicate { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; identityByEmail[identity.NormalizedAddress] = identity; accountIDs[identity.MailAccountID] = struct{}{} }
+	if err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+	}
+	identityByEmail := make(map[string]*ent.MailIdentity, len(identities))
+	accountIDs := make(map[uuid.UUID]struct{}, len(identities))
+	for _, identity := range identities {
+		if identity == nil || identity.ID == uuid.Nil || identity.MailAccountID == uuid.Nil || identity.Status != mailidentity.Status("active") {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		if _, requested := seen[identity.NormalizedAddress]; !requested {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		if _, duplicate := identityByEmail[identity.NormalizedAddress]; duplicate {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		identityByEmail[identity.NormalizedAddress] = identity
+		accountIDs[identity.MailAccountID] = struct{}{}
+	}
 	recipientAccounts := map[uuid.UUID]*ent.MailAccount{}
-	if len(accountIDs) != 0 { ids := mailboxEntApplySortedUUIDs(accountIDs); rows, err := transaction.MailAccount.Query().Where(mailaccount.IDIn(ids...), mailaccount.StatusEQ(mailaccount.StatusActive), mailaccount.DesiredEnabledEQ(true)).Order(ent.Asc(mailaccount.FieldID)).All(ctx); if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }; if len(rows) != len(ids) { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; for _, row := range rows { if row == nil || row.ID == uuid.Nil || row.OrganizationID == uuid.Nil || row.MailDomainID == uuid.Nil || row.Status != mailaccount.StatusActive || !row.DesiredEnabled { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; if _, duplicate := recipientAccounts[row.ID]; duplicate { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; recipientAccounts[row.ID] = row } }
+	if len(accountIDs) != 0 {
+		ids := mailboxEntApplySortedUUIDs(accountIDs)
+		rows, err := transaction.MailAccount.Query().Where(mailaccount.IDIn(ids...), mailaccount.StatusEQ(mailaccount.StatusActive), mailaccount.DesiredEnabledEQ(true)).Order(ent.Asc(mailaccount.FieldID)).All(ctx)
+		if err != nil {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+		}
+		if len(rows) != len(ids) {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		for _, row := range rows {
+			if row == nil || row.ID == uuid.Nil || row.OrganizationID == uuid.Nil || row.MailDomainID == uuid.Nil || row.Status != mailaccount.StatusActive || !row.DesiredEnabled {
+				return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			if _, duplicate := recipientAccounts[row.ID]; duplicate {
+				return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
+			recipientAccounts[row.ID] = row
+		}
+	}
 	domains, err := transaction.MailDomain.Query().Where(maildomain.DomainIn(domainNames...), maildomain.DesiredPresentEQ(true), maildomain.EnabledEQ(true), maildomain.StateEQ(maildomain.State("verified")), maildomain.VerificationStatusEQ(maildomain.VerificationStatus("verified")), maildomain.DeletedAtIsNil()).Order(ent.Asc(maildomain.FieldID)).All(ctx)
-	if err != nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
-	domainByName := make(map[string]*ent.MailDomain, len(domains)); for _, domain := range domains { if domain == nil || domain.ID == uuid.Nil || domain.OrganizationID == uuid.Nil || domain.DeletedAt != nil || !domain.DesiredPresent || !domain.Enabled || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; if _, requested := domainNameSet[domain.Domain]; !requested { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; if _, duplicate := domainByName[domain.Domain]; duplicate { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }; domainByName[domain.Domain] = domain }
+	if err != nil {
+		return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+	}
+	domainByName := make(map[string]*ent.MailDomain, len(domains))
+	for _, domain := range domains {
+		if domain == nil || domain.ID == uuid.Nil || domain.OrganizationID == uuid.Nil || domain.DeletedAt != nil || !domain.DesiredPresent || !domain.Enabled || domain.State != maildomain.State("verified") || domain.VerificationStatus != maildomain.VerificationStatus("verified") {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		if _, requested := domainNameSet[domain.Domain]; !requested {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		if _, duplicate := domainByName[domain.Domain]; duplicate {
+			return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		}
+		domainByName[domain.Domain] = domain
+	}
 	result := make([]MailboxSubmissionSentRecipientResolution, 0, len(emails))
 	for _, email := range emails {
 		domain := domainByName[email[strings.LastIndexByte(email, '@')+1:]]
@@ -1166,26 +1462,45 @@ func mailboxEntSubmissionFinalizationResolveRoutes(ctx context.Context, transact
 		class := MailDeliveryClassExternal
 		if identity != nil {
 			recipient := recipientAccounts[identity.MailAccountID]
-			if recipient == nil { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+			if recipient == nil {
+				return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+			}
 			if recipient.OrganizationID == sender.OrganizationID {
-				if domain == nil || domain.OrganizationID != sender.OrganizationID || recipient.MailDomainID != domain.ID { return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+				if domain == nil || domain.OrganizationID != sender.OrganizationID || recipient.MailDomainID != domain.ID {
+					return nil, newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+				}
 				class = MailDeliveryClassInternal
 			} else {
 				class = MailDeliveryClassInstanceDomain
 			}
-		} else if domain != nil { class = MailDeliveryClassInstanceDomain }
+		} else if domain != nil {
+			class = MailDeliveryClassInstanceDomain
+		}
 		result = append(result, MailboxSubmissionSentRecipientResolution{Email: email, DeliveryClass: class})
 	}
 	return result, nil
 }
 
 func mailboxEntSubmissionFinalizationAppendOutbox(ctx context.Context, transaction *ent.Tx, event any, databaseNow time.Time) error {
-	envelope, ok := event.(interface { EventID() uuid.UUID; Subject() string; MarshalJSON() ([]byte, error) })
-	if !ok || envelope.EventID() == uuid.Nil || envelope.Subject() == "" { return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid) }
+	envelope, ok := event.(interface {
+		EventID() uuid.UUID
+		Subject() string
+		MarshalJSON() ([]byte, error)
+	})
+	if !ok || envelope.EventID() == uuid.Nil || envelope.Subject() == "" {
+		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
+	}
 	rows, err := transaction.OutboxEvent.Query().Where(outboxevent.IDEQ(envelope.EventID())).All(ctx)
-	if err != nil { return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable) }
-	if len(rows) != 0 { return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
-	payload, err := envelope.MarshalJSON(); if err != nil || len(payload) == 0 || !json.Valid(payload) { return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+	if err != nil {
+		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
+	}
+	if len(rows) != 0 {
+		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
+	payload, err := envelope.MarshalJSON()
+	if err != nil || len(payload) == 0 || !json.Valid(payload) {
+		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
 	if _, err := transaction.OutboxEvent.Create().SetID(envelope.EventID()).SetEventType(envelope.Subject()).SetPayload(append([]byte(nil), payload...)).SetCreatedAt(databaseNow).Save(ctx); err != nil {
 		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
 	}
@@ -1193,18 +1508,24 @@ func mailboxEntSubmissionFinalizationAppendOutbox(ctx context.Context, transacti
 }
 
 func mailboxEntSubmissionFinalizationCompletionLookupError(err error) error {
-	if ent.IsNotFound(err) { return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired) }
+	if ent.IsNotFound(err) {
+		return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+	}
 	return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)
 }
 
 func mailboxEntSubmissionFinalizationRepositoryError(err error) error {
 	var finalization *MailboxSubmissionFinalizationError
-	if errors.As(err, &finalization) && finalization != nil { return newMailboxSubmissionFinalizationError(finalization.Kind()) }
+	if errors.As(err, &finalization) && finalization != nil {
+		return newMailboxSubmissionFinalizationError(finalization.Kind())
+	}
 	var repositoryError *MailboxSubmissionRepositoryError
 	if errors.As(err, &repositoryError) && repositoryError != nil {
 		switch repositoryError.Kind() {
-		case MailboxSubmissionRepositoryErrorInvalid: return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
-		case MailboxSubmissionRepositoryErrorVersionConflict: return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
+		case MailboxSubmissionRepositoryErrorInvalid:
+			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorInvalid)
+		case MailboxSubmissionRepositoryErrorVersionConflict:
+			return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorFinalizationRequired)
 		}
 	}
 	return newMailboxSubmissionFinalizationError(MailboxSubmissionFinalizationErrorRepositoryUnavailable)

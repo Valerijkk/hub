@@ -31,6 +31,83 @@ var (
 
 var _ devdemo.MailDemoPort = (*devMailDemoAdapter)(nil)
 
+type devMailDemoPrepareStage string
+
+const (
+	devMailDemoPrepareStageControlPlane devMailDemoPrepareStage = "control-plane"
+	devMailDemoPrepareStageSource       devMailDemoPrepareStage = "source"
+	devMailDemoPrepareStageRuntime      devMailDemoPrepareStage = "runtime"
+)
+
+// devMailDemoPrepareError exposes only the closed Mail control-plane enum
+// values; provider and database errors never become part of the dev endpoint
+// response.
+type devMailDemoPrepareError struct {
+	stage          devMailDemoPrepareStage
+	controlStage   devMailControlStage
+	controlFailure devMailControlFailure
+}
+
+func (err devMailDemoPrepareError) Error() string {
+	switch err.stage {
+	case devMailDemoPrepareStageControlPlane:
+		return "dev mail demo control-plane preparation failed: stage=" + devMailDemoControlStageText(err.controlStage) + " failure=" + devMailDemoControlFailureText(err.controlFailure)
+	case devMailDemoPrepareStageSource:
+		return "dev mail demo source preparation failed"
+	case devMailDemoPrepareStageRuntime:
+		return "dev mail demo runtime preparation failed"
+	default:
+		return "dev mail demo preparation failed"
+	}
+}
+
+func (err devMailDemoPrepareError) Unwrap() error {
+	return errDevMailDemoUnavailable
+}
+
+func devMailDemoControlStageText(stage devMailControlStage) string {
+	switch stage {
+	case devMailControlStageInput:
+		return "input"
+	case devMailControlStageProvider:
+		return "provider"
+	case devMailControlStageUsers:
+		return "users"
+	case devMailControlStageDomain:
+		return "domain"
+	case devMailControlStagePolicy:
+		return "policy"
+	case devMailControlStageAccount:
+		return "account"
+	case devMailControlStageIdentity:
+		return "identity"
+	case devMailControlStageSettings:
+		return "settings"
+	case devMailControlStageCommit:
+		return "commit"
+	case devMailControlStageResult:
+		return "result"
+	default:
+		return "unknown"
+	}
+}
+
+func devMailDemoControlFailureText(failure devMailControlFailure) string {
+	switch failure {
+	case devMailControlFailureInvalid:
+		return "invalid"
+	case devMailControlFailureConflict:
+		return "conflict"
+	case devMailControlFailureUnavailable:
+		return "unavailable"
+	default:
+		return "unknown"
+	}
+}
+
+// devMailDemoControlDetailText is a deliberate allow-list for the small,
+// value-free domain conflict classifier. No provider or database data may
+// cross the adapter boundary.
 // devMailDemoPrepared is private immutable first-load state. It contains no
 // caller-owned scope map or provider/message payload.
 type devMailDemoPrepared struct {
@@ -50,6 +127,7 @@ type devMailDemoAdapter struct {
 	mailboxSvc     *mailmod.MailboxService
 	mailboxRepo    *mailmod.MailboxEntRepository
 	eventReadSvc   *calendarmod.EventReadService
+	startRuntime   func() error
 	projectionSvc  *mailmod.MailboxFolderProjectionService
 	now            func() time.Time
 
@@ -68,8 +146,9 @@ func newDevMailDemoAdapter(
 	mailboxRepo *mailmod.MailboxEntRepository,
 	eventReadSvc *calendarmod.EventReadService,
 	now func() time.Time,
+	startRuntime func() error,
 ) (*devMailDemoAdapter, error) {
-	if devMailDemoNil(client) || devMailDemoNil(engine) || devMailDemoNil(mailboxSvc) || devMailDemoNil(mailboxRepo) || devMailDemoNil(eventReadSvc) || now == nil || !validDevMailControlNow(now()) {
+	if devMailDemoNil(client) || devMailDemoNil(engine) || devMailDemoNil(mailboxSvc) || devMailDemoNil(mailboxRepo) || devMailDemoNil(eventReadSvc) || now == nil || startRuntime == nil || !validDevMailControlNow(now()) {
 		return nil, errDevMailDemoInvalid
 	}
 	projectionSvc, err := mailmod.NewMailboxFolderProjectionService(mailboxSvc, mailboxRepo)
@@ -82,6 +161,7 @@ func newDevMailDemoAdapter(
 		mailboxSvc:    mailboxSvc,
 		mailboxRepo:   mailboxRepo,
 		eventReadSvc:  eventReadSvc,
+		startRuntime:  startRuntime,
 		projectionSvc: projectionSvc,
 		now:           now,
 	}, nil
@@ -107,6 +187,9 @@ func (adapter *devMailDemoAdapter) PrepareMailDemo(ctx context.Context, input de
 
 	if adapter.prepared != nil {
 		if adapter.prepared.matches(input.OrganizationID, pmUserID, dev1UserID) {
+			if err := adapter.startRuntime(); err != nil {
+				return devMailDemoPrepareError{stage: devMailDemoPrepareStageRuntime}
+			}
 			return nil
 		}
 		return errDevMailDemoInvalid
@@ -120,12 +203,28 @@ func (adapter *devMailDemoAdapter) PrepareMailDemo(ctx context.Context, input de
 		devMailSourceDev1Email: dev1UserID,
 	}
 	control, err := reconcileDevMailControlPlane(ctx, adapter.client, adapter.engine, input.OrganizationID, users, now)
-	if err != nil || !validDevMailControlResult(control) {
-		return errDevMailDemoUnavailable
+	if err != nil {
+		prepareErr := devMailDemoPrepareError{stage: devMailDemoPrepareStageControlPlane}
+		var controlErr *devMailControlError
+		if errors.As(err, &controlErr) && controlErr != nil {
+			prepareErr.controlStage = controlErr.stage
+			prepareErr.controlFailure = controlErr.failure
+		}
+		return prepareErr
+	}
+	if !validDevMailControlResult(control) {
+		return devMailDemoPrepareError{
+			stage:          devMailDemoPrepareStageControlPlane,
+			controlStage:   devMailControlStageResult,
+			controlFailure: devMailControlFailureUnavailable,
+		}
 	}
 	source, err := seedDevMailSource(ctx, adapter.engine, control)
-	if err != nil || !validDevMailSourceResult(source) {
-		return errDevMailDemoUnavailable
+	if err != nil {
+		return devMailDemoPrepareError{stage: devMailDemoPrepareStageSource}
+	}
+	if !validDevMailSourceResult(source) {
+		return devMailDemoPrepareError{stage: devMailDemoPrepareStageSource}
 	}
 	adapter.prepared = &devMailDemoPrepared{
 		organizationID: input.OrganizationID,
@@ -133,6 +232,9 @@ func (adapter *devMailDemoAdapter) PrepareMailDemo(ctx context.Context, input de
 		dev1UserID:     dev1UserID,
 		control:        cloneDevMailControlResult(control),
 		source:         cloneDevMailSourceResult(source),
+	}
+	if err := adapter.startRuntime(); err != nil {
+		return devMailDemoPrepareError{stage: devMailDemoPrepareStageRuntime}
 	}
 	return nil
 }
@@ -234,7 +336,7 @@ func (adapter *devMailDemoAdapter) ready() bool {
 	return adapter != nil && !devMailDemoNil(adapter.client) && !devMailDemoNil(adapter.engine) &&
 		!devMailDemoNil(adapter.mailboxSvc) && !devMailDemoNil(adapter.mailboxRepo) &&
 		!devMailDemoNil(adapter.eventReadSvc) && !devMailDemoNil(adapter.projectionSvc) &&
-		adapter.now != nil
+		adapter.now != nil && adapter.startRuntime != nil
 }
 
 func (prepared devMailDemoPrepared) matches(organizationID, pmUserID, dev1UserID uuid.UUID) bool {

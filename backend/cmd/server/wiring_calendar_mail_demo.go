@@ -3,12 +3,13 @@
 package main
 
 import (
+	"crypto/rand"
 	"errors"
 	"os"
-	"strconv"
-	"sync/atomic"
+	"sync"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	calendarmod "github.com/valerii/hub/backend/internal/calendar"
 	"github.com/valerii/hub/backend/internal/devdemo"
 	mailmod "github.com/valerii/hub/backend/internal/mail"
@@ -53,20 +54,34 @@ func wireDevMailCalendarRuntime(
 			return false
 		}
 
-		var fakeIDSequence uint64
 		fakeNow := func() time.Time {
-			return time.Date(2026, time.September, 1, 12, 0, 0, 0, time.UTC)
+			return time.Date(2026, time.September, 1, 12, 1, 0, 0, time.UTC)
 		}
+		mailFakeIDSource := devdemo.NewMailFakeIDSource()
 		mailboxEngine := mailmod.NewFakeMailEngine(mailmod.FakeMailEngineConfig{
 			LocalDelivery: true,
-			NextID: func() string {
-				return "dev-mail-fake-v1-" + strconv.FormatUint(atomic.AddUint64(&fakeIDSequence, 1), 10)
-			},
+			NextID:        mailFakeIDSource.NextID,
 			Now: fakeNow,
 		})
 		if mailboxEngine == nil {
 			d.fatal("failed to wire calendar and mail routes", errors.New("dev mail engine is unavailable"))
 			return true
+		}
+		runtimeStart := make(chan struct{})
+		var runtimeStartGuard sync.Mutex
+		runtimeStarted := false
+		startRuntime := func() error {
+			runtimeStartGuard.Lock()
+			defer runtimeStartGuard.Unlock()
+			if runtimeStarted {
+				return nil
+			}
+			if err := mailFakeIDSource.ActivateRuntime(rand.Reader); err != nil {
+				return err
+			}
+			close(runtimeStart)
+			runtimeStarted = true
+			return nil
 		}
 
 		calendarMailDeliveryDraftCreator, err := mailmod.NewCalendarMailDeliveryDraftCreator(mailboxSvc, mailboxRepo, mailboxEngine)
@@ -102,7 +117,7 @@ func wireDevMailCalendarRuntime(
 			d.fatal("failed to wire calendar and mail routes", err)
 			return true
 		}
-		mailAdapter, err := newDevMailDemoAdapter(d.db, mailboxEngine, mailboxSvc, mailboxRepo, eventReadSvc, fakeNow)
+		mailAdapter, err := newDevMailDemoAdapter(d.db, mailboxEngine, mailboxSvc, mailboxRepo, eventReadSvc, serverUTCClock{}.Now, startRuntime)
 		if err != nil {
 			d.fatal("failed to wire Mail/Calendar demo seeder", err)
 			return true
@@ -121,6 +136,14 @@ func wireDevMailCalendarRuntime(
 			return true
 		}
 
+		d.api.Use("/mail", d.requireAuth, func(ctx fiber.Ctx) error {
+			if !mailFakeIDSource.RuntimeReady() {
+				ctx.Set("X-Hub-Error-Code", "MAIL_RUNTIME_NOT_READY")
+				ctx.Set("Retry-After", "1")
+				return fiber.NewError(fiber.StatusServiceUnavailable, "mail runtime is not ready")
+			}
+			return ctx.Next()
+		})
 		wireMailboxEngineRuntime(d, mailboxEngineRuntimeInputs{
 			mailboxService:                  mailboxSvc,
 			mailboxRepository:               mailboxRepo,
@@ -135,6 +158,7 @@ func wireDevMailCalendarRuntime(
 			submissionDispatcher:            mailboxSubmissionDispatcher,
 			submissionReconciler:            mailboxSubmissionReconciler,
 			submissionFinalizer:             mailboxSubmissionFinalizer,
+			startGate:                       runtimeStart,
 		})
 		d.mailCalendarDemoSeeder = mailCalendarDemoSeeder
 		return true

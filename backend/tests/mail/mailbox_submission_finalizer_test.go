@@ -397,12 +397,25 @@ func TestMailboxSubmissionFinalizerCancellationAndCompleteFailureAreClosed(t *te
 		if !mailboxSubmissionFinalizationErrorIs(err, mail.MailboxSubmissionFinalizationErrorFinalizationRequired) || repository.releaseCalls != 1 || engine.messageCalls != 0 { t.Fatalf("Finalize()=%v release/message=%d/%d, want finalization_required/1/0", err, repository.releaseCalls, engine.messageCalls) }
 	})
 
-	t.Run("complete failure does not release", func(t *testing.T) {
+	t.Run("complete failure releases detached", func(t *testing.T) {
 		submissionID, claim := mailboxSubmissionFinalizationFixture(t, []mail.MailboxSubmissionFinalizationExpectedAttachment{})
-		repository := &mailboxSubmissionFinalizationRepositorySpy{claimFn: func(context.Context, mail.MailboxSubmissionFinalizationClaimRequest) (mail.MailboxSubmissionFinalizationClaimResult, error) { return claim, nil }, completeFn: func(context.Context, mail.MailboxSubmissionFinalizationCompletion) error { return errors.New("raw completion failure recipient@example.test") }}
+		originalClaim, claimed := claim.Claim()
+		if !claimed {
+			t.Fatal("fixture claim was not claimed")
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		released := false
+		repository := &mailboxSubmissionFinalizationRepositorySpy{claimFn: func(context.Context, mail.MailboxSubmissionFinalizationClaimRequest) (mail.MailboxSubmissionFinalizationClaimResult, error) { return claim, nil }, completeFn: func(context.Context, mail.MailboxSubmissionFinalizationCompletion) error { cancel(); return errors.New("raw completion failure recipient@example.test") }, releaseFn: func(releaseCtx context.Context, releasedClaim mail.MailboxSubmissionFinalizationClaim) error {
+			if releaseCtx.Err() != nil || releasedClaim.SubmissionID() != originalClaim.SubmissionID() || !reflect.DeepEqual(releasedClaim.Fence(), originalClaim.Fence()) {
+				t.Fatalf("release ctx/claim = %v/%s/%#v, want detached/original", releaseCtx.Err(), releasedClaim.SubmissionID(), releasedClaim.Fence())
+			}
+			released = true
+			return nil
+		}}
 		engine := &mailboxSubmissionFinalizationEngineSpy{messageFn: func(context.Context, mail.EngineMessageReadRequest) (mail.EngineMessage, error) { return mailboxSubmissionFinalizationMessage([]mail.EngineProjectionAttachment{}), nil }}
-		err := mailboxSubmissionFinalizer(t, repository, engine).Finalize(context.Background(), submissionID)
-		if !mailboxSubmissionFinalizationErrorIs(err, mail.MailboxSubmissionFinalizationErrorFinalizationRequired) || repository.completeCalls != 1 || repository.releaseCalls != 0 || strings.Contains(err.Error(), "recipient@example.test") { t.Fatalf("Finalize()=%v complete/release=%d/%d, want closed error/1/0", err, repository.completeCalls, repository.releaseCalls) }
+		err := mailboxSubmissionFinalizer(t, repository, engine).Finalize(ctx, submissionID)
+		if !mailboxSubmissionFinalizationErrorIs(err, mail.MailboxSubmissionFinalizationErrorFinalizationRequired) || repository.completeCalls != 1 || repository.releaseCalls != 1 || !released || strings.Contains(err.Error(), "recipient@example.test") { t.Fatalf("Finalize()=%v complete/release/released=%d/%d/%t, want closed error/1/1/true", err, repository.completeCalls, repository.releaseCalls, released) }
 	})
 }
 
