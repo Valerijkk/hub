@@ -15,7 +15,7 @@ cleanup = "The published fixture is not individually deleted because the QA endp
 [automation]
 kind = "pytest"
 layer = "e2e"
-node_id = "testframework/tests/e2e/mail-calendar/test_mail_calendar_rsvp_smoke.py::test_mail_origin_invite_opens_event_updates_rsvp_and_returns_to_mail"
+node_id = "testframework/tests/e2e/smoke/mail-calendar/test_mail_calendar_rsvp_smoke.py::test_mail_origin_invite_opens_event_updates_rsvp_and_returns_to_mail"
 +++
 # Mail-origin Calendar RSVP journey
 

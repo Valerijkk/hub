@@ -9,7 +9,7 @@ risk = "RISK-MAIL-ACCOUNT-MATERIALIZATION-CONTROL-PLANE-LEAK"
 scenario = "authn"
 subject = "QA-only Mail account-materialization fixture lifecycle"
 preconditions = ["The Docker-only python-api profile provides the fixed internal QA backend URL and control-plane capability token"]
-oracle = "A wrong fixed-length token receives only the generic client failure; the authorized client creates one typed account-materialization-v1 fixture with a nonce-bound owner root, a closed initial public materialization shape, then accepts its exact quiesce and delete acknowledgements"
+oracle = "An invalid fixed-length token receives only the generic client failure; the authorized client creates a nonce-bound owner-root account-materialization-v1 fixture with closed initial state and accepts quiesce and delete acknowledgements"
 cleanup = "After a successful create, finally quiesces then deletes only that fixture nonce; a cleanup failure never masks a primary test failure and otherwise fails the test"
 
 [automation]

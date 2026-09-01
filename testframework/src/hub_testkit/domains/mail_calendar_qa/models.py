@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 from math import isfinite
 from re import fullmatch
 from types import MappingProxyType
 from typing import Final, Self, TypeAlias
+from unicodedata import category
 from uuid import UUID
 
 
@@ -25,6 +27,11 @@ _ACCOUNT_MATERIALIZATION_STATES: Final = frozenset(
     {"not_materialized", "materialized_pending", "finalized"}
 )
 _ACCOUNT_MATERIALIZATION_PRIMARY_IDENTITY_STATUS: Final = "pending"
+_THREAD_SEARCH_FIXTURE_SCENARIO: Final = "thread-search-v1"
+_THREAD_SEARCH_FIXTURE_STATE: Final = "created"
+_MAIL_THREAD_PROJECTION_STATES: Final = frozenset(
+    {"bootstrapping", "ready", "degraded", "rebuilding"}
+)
 _RSVP_STATUSES: Final = frozenset({"needs_action", "accepted", "declined", "tentative"})
 _MAX_TOKEN_LENGTH: Final = 8_192
 _MAX_JSON_DEPTH: Final = 12
@@ -63,7 +70,40 @@ _ACCOUNT_MATERIALIZATION_FIXTURE_KEYS: Final = frozenset(
         "primary_identity_status",
     }
 )
+_THREAD_SEARCH_FIXTURE_KEYS: Final = frozenset(
+    {
+        "nonce",
+        "scenario",
+        "state",
+        "owner_email",
+        "organization_id",
+        "owner_user_id",
+        "mail_account_id",
+        "mail_folder_id",
+        "matching_thread_ids",
+        "decoy_thread_ids",
+    }
+)
 _DEV_SESSION_KEYS: Final = frozenset({"access_token", "refresh_token", "expires_in", "user"})
+_MAIL_THREAD_PROJECTION_ITEM_KEYS: Final = frozenset(
+    {
+        "id",
+        "subject",
+        "participants",
+        "message_count",
+        "unread_count",
+        "last_message_at",
+        "snippet",
+        "is_pinned",
+        "has_attachments",
+        "labels",
+    }
+)
+_MAIL_THREAD_PROJECTION_PARTICIPANT_KEYS: Final = frozenset({"email"})
+_MAIL_THREAD_PROJECTION_LABEL_KEYS: Final = frozenset({"id", "name", "color", "version"})
+_MAIL_THREAD_PROJECTION_PAGE_KEYS: Final = frozenset(
+    {"items", "next_cursor", "projection_state", "projection_as_of"}
+)
 _MAIL_DETAIL_KEYS: Final = frozenset(
     {
         "id",
@@ -180,8 +220,37 @@ def _email(value: object) -> str:
     return address
 
 
+def _thread_text(value: object, *, maximum: int, allow_empty: bool) -> str:
+    if type(value) is not str or (not allow_empty and not value):
+        raise _invalid()
+    if len(value.encode("utf-8")) > maximum or any(category(character) == "Cc" for character in value):
+        raise _invalid()
+    return value
+
+
+def _thread_datetime(value: object, *, whole_seconds: bool = False) -> str:
+    text = _thread_text(value, maximum=64, allow_empty=False)
+    if fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z", text) is None:
+        raise _invalid()
+    if whole_seconds and "." in text:
+        raise _invalid()
+    try:
+        parsed = datetime.fromisoformat(text[:-1] + "+00:00")
+    except ValueError:
+        raise _invalid() from None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise _invalid()
+    return text
+
+
 def _positive_int(value: object) -> int:
     if type(value) is not int or value <= 0 or value > 2_147_483_647:
+        raise _invalid()
+    return value
+
+
+def _positive_int64(value: object) -> int:
+    if type(value) is not int or value <= 0 or value > 9_223_372_036_854_775_807:
         raise _invalid()
     return value
 
@@ -367,6 +436,69 @@ class AccountMaterializationFixtureSnapshot:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class ThreadSearchFixtureSnapshot:
+    """One immutable owner-scoped fixture for the Mail thread FTS boundary."""
+
+    nonce: str
+    scenario: str
+    state: str
+    owner_email: str = field(repr=False)
+    organization_id: str
+    owner_user_id: str
+    mail_account_id: str
+    mail_folder_id: str
+    matching_thread_ids: tuple[str, ...]
+    decoy_thread_ids: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        _nonce(self.nonce)
+        if self.scenario != _THREAD_SEARCH_FIXTURE_SCENARIO or self.state != _THREAD_SEARCH_FIXTURE_STATE:
+            raise _invalid()
+        _email(self.owner_email)
+        for identifier in (
+            self.organization_id,
+            self.owner_user_id,
+            self.mail_account_id,
+            self.mail_folder_id,
+        ):
+            _canonical_uuid(identifier)
+        if type(self.matching_thread_ids) is not tuple or type(self.decoy_thread_ids) is not tuple:
+            raise _invalid()
+        if len(self.matching_thread_ids) != 4 or len(self.decoy_thread_ids) != 2:
+            raise _invalid()
+        all_thread_ids = (*self.matching_thread_ids, *self.decoy_thread_ids)
+        for thread_id in all_thread_ids:
+            _canonical_uuid(thread_id)
+        if len(set(all_thread_ids)) != len(all_thread_ids):
+            raise _invalid()
+
+    @classmethod
+    def from_payload(cls, payload: object) -> Self:
+        value = _exact_object(payload, _THREAD_SEARCH_FIXTURE_KEYS)
+        return cls(
+            nonce=value["nonce"],
+            scenario=value["scenario"],
+            state=value["state"],
+            owner_email=value["owner_email"],
+            organization_id=value["organization_id"],
+            owner_user_id=value["owner_user_id"],
+            mail_account_id=value["mail_account_id"],
+            mail_folder_id=value["mail_folder_id"],
+            matching_thread_ids=_thread_search_thread_ids(value["matching_thread_ids"], expected=4),
+            decoy_thread_ids=_thread_search_thread_ids(value["decoy_thread_ids"], expected=2),
+        )
+
+
+def _thread_search_thread_ids(value: object, *, expected: int) -> tuple[str, ...]:
+    if type(value) is not list or len(value) != expected:
+        raise _invalid()
+    copied = tuple(_canonical_uuid(identifier) for identifier in value)
+    if len(set(copied)) != len(copied):
+        raise _invalid()
+    return copied
+
+
 def _nonce(value: object) -> str:
     if type(value) is not str or fullmatch(r"[0-9a-f]{32}", value) is None:
         raise _invalid()
@@ -389,14 +521,116 @@ class DevSession:
         object.__setattr__(self, "user", _user_payload(self.user))
 
     @classmethod
-    def from_payload(cls, payload: object, fixture: FixtureSnapshot) -> Self:
+    def from_payload(cls, payload: object, fixture: FixtureSnapshot | ThreadSearchFixtureSnapshot) -> Self:
         value = _exact_object(payload, _DEV_SESSION_KEYS)
-        if type(fixture) is not FixtureSnapshot:
+        if type(fixture) not in {FixtureSnapshot, ThreadSearchFixtureSnapshot}:
             raise _invalid()
         session = cls(**value)  # type: ignore[arg-type]
         if session.user["id"] != fixture.owner_user_id or session.user["email"] != fixture.owner_email:
             raise _invalid()
         return session
+
+
+@dataclass(frozen=True, slots=True)
+class MailThreadProjectionItem:
+    """The non-sensitive thread fields asserted by the FTS boundary tests."""
+
+    thread_id: str
+    is_pinned: bool
+
+    def __post_init__(self) -> None:
+        _canonical_uuid(self.thread_id)
+        if type(self.is_pinned) is not bool:
+            raise _invalid()
+
+    @classmethod
+    def from_payload(cls, payload: object) -> Self:
+        value = _exact_object(payload, _MAIL_THREAD_PROJECTION_ITEM_KEYS)
+        _thread_text(value["subject"], maximum=998, allow_empty=True)
+        _thread_projection_participants(value["participants"])
+        message_count = _positive_int(value["message_count"])
+        unread_count = _nonnegative_thread_int(value["unread_count"])
+        if unread_count > message_count:
+            raise _invalid()
+        _thread_datetime(value["last_message_at"])
+        _thread_text(value["snippet"], maximum=4_096, allow_empty=True)
+        if type(value["has_attachments"]) is not bool:
+            raise _invalid()
+        _thread_projection_labels(value["labels"])
+        return cls(thread_id=value["id"], is_pinned=value["is_pinned"])
+
+
+def _nonnegative_thread_int(value: object) -> int:
+    if type(value) is not int or value < 0 or value > 2_147_483_647:
+        raise _invalid()
+    return value
+
+
+def _thread_projection_participants(value: object) -> None:
+    if type(value) is not list or not 1 <= len(value) <= 401:
+        raise _invalid()
+    seen: set[str] = set()
+    for participant in value:
+        item = _exact_object(participant, _MAIL_THREAD_PROJECTION_PARTICIPANT_KEYS)
+        email = _email(item["email"])
+        if email in seen:
+            raise _invalid()
+        seen.add(email)
+
+
+def _thread_projection_labels(value: object) -> None:
+    if type(value) is not list or len(value) > 100:
+        raise _invalid()
+    seen: set[str] = set()
+    for label in value:
+        item = _exact_object(label, _MAIL_THREAD_PROJECTION_LABEL_KEYS)
+        identifier = _canonical_uuid(item["id"])
+        name = _thread_text(item["name"], maximum=240, allow_empty=False)
+        color = _thread_text(item["color"], maximum=128, allow_empty=False)
+        if len(name) > 60 or len(color) > 32:
+            raise _invalid()
+        _positive_int64(item["version"])
+        if identifier in seen:
+            raise _invalid()
+        seen.add(identifier)
+
+
+@dataclass(frozen=True, slots=True)
+class MailThreadProjectionPage:
+    """Validated list-page envelope without retaining irrelevant response fields."""
+
+    items: tuple[MailThreadProjectionItem, ...]
+    next_cursor: str | None
+
+    def __post_init__(self) -> None:
+        if type(self.items) is not tuple or len(self.items) > 100:
+            raise _invalid()
+        if any(type(item) is not MailThreadProjectionItem for item in self.items):
+            raise _invalid()
+        if len({item.thread_id for item in self.items}) != len(self.items):
+            raise _invalid()
+        if self.next_cursor is not None:
+            _safe_text(self.next_cursor, maximum=512)
+
+    @classmethod
+    def from_payload(cls, payload: object) -> Self:
+        value = _exact_object(payload, _MAIL_THREAD_PROJECTION_PAGE_KEYS)
+        if type(value["items"]) is not list or len(value["items"]) > 100:
+            raise _invalid()
+        if value["next_cursor"] is not None:
+            _safe_text(value["next_cursor"], maximum=512)
+        state = value["projection_state"]
+        if type(state) is not str or state not in _MAIL_THREAD_PROJECTION_STATES:
+            raise _invalid()
+        as_of = value["projection_as_of"]
+        if as_of is not None:
+            _thread_datetime(as_of, whole_seconds=True)
+        if state == "ready" and as_of is None:
+            raise _invalid()
+        return cls(
+            items=tuple(MailThreadProjectionItem.from_payload(item) for item in value["items"]),
+            next_cursor=value["next_cursor"],
+        )
 
 
 def _session_token(value: object) -> str:
