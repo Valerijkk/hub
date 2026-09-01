@@ -79,6 +79,10 @@ func (mailDemoCalendarPortFake) CancelOccurrence(context.Context, uuid.UUID, dev
 
 type mailDemoPortFake struct{}
 
+func (*mailDemoPortFake) PrepareMailDemo(context.Context, devdemo.MailDemoPrepareInput) error {
+	return nil
+}
+
 func (*mailDemoPortFake) ReconcileMailDemo(context.Context, devdemo.MailDemoInput) (devdemo.MailDemoResult, error) {
 	return devdemo.MailDemoResult{}, nil
 }

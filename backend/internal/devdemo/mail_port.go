@@ -26,6 +26,14 @@ type MailDemoInput struct {
 	CalendarEvent MailDemoCalendarEvent
 }
 
+// MailDemoPrepareInput is the Mail precondition scope that is available only
+// after the demo organization has been reconciled. Implementations must not
+// retain Scope.UserIDs after the call.
+type MailDemoPrepareInput struct {
+	Scope          devmod.MailCalendarDemoSeedInput
+	OrganizationID uuid.UUID
+}
+
 // MailDemoResult reports only aggregate reconciliation counts and no raw Mail
 // identifiers, provider state, message content, or credentials.
 type MailDemoResult struct {
@@ -42,5 +50,6 @@ type MailDemoResult struct {
 // MailDemoPort keeps Mail demo reconciliation provider-neutral. The server
 // adapter owns every concrete engine, Ent, and worker dependency.
 type MailDemoPort interface {
+	PrepareMailDemo(context.Context, MailDemoPrepareInput) error
 	ReconcileMailDemo(context.Context, MailDemoInput) (MailDemoResult, error)
 }

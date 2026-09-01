@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"github.com/valerii/hub/backend/ent"
 	devmod "github.com/valerii/hub/backend/internal/dev"
 )
@@ -60,6 +62,17 @@ func (seeder *MailCalendarDemoSeeder) SeedMailCalendar(ctx context.Context, inpu
 	organization, err := seeder.organization.seed(ctx, scopedInput)
 	if err != nil {
 		return nil, fmt.Errorf("seed mail calendar demo: %w", err)
+	}
+	if seeder.mail != nil {
+		if organization.organizationID == uuid.Nil {
+			return nil, errors.New("seed mail calendar demo: organization result is invalid")
+		}
+		if err := seeder.mail.PrepareMailDemo(ctx, MailDemoPrepareInput{
+			Scope:          scopeMailCalendarDemoSeedInput(scopedInput),
+			OrganizationID: organization.organizationID,
+		}); err != nil {
+			return nil, fmt.Errorf("seed mail calendar demo: prepare mail demo: %w", err)
+		}
 	}
 	calendar, err := seeder.calendar.seed(ctx, scopedInput.UserIDs)
 	if err != nil {
