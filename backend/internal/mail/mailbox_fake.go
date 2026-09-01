@@ -21,6 +21,9 @@ type FakeMailEngineConfig struct {
 	NextID func() string
 	// Now follows the same serialized callback and re-entry contract as NextID.
 	Now func() time.Time
+	// LocalDelivery enables Fake-only recipient delivery between active local
+	// accounts. The default false preserves sender-only submission behavior.
+	LocalDelivery bool
 }
 
 // FakeMailOperation identifies one dispatch point which can be scripted to fail.
@@ -125,8 +128,9 @@ type fakeCalendarDraftCreateKey struct {
 }
 
 // fakeCalendarDraftCreateStage retains only the proof and draft metadata
-// required by the later import. The calendar part's serialized bytes are not
-// retained after the bounded MIME plan has been hashed.
+// required by the later import. Its sealed calendar payload remains in this
+// Fake instance only so optional local delivery can expose a verified inbound
+// calendar part without creating Calendar or durable Mail state.
 type fakeCalendarDraftCreateStage struct {
 	draft                 EngineDraft
 	blobID                string
@@ -134,6 +138,7 @@ type fakeCalendarDraftCreateStage struct {
 	bindingDigest         [sha256.Size]byte
 	calendarContentDigest [sha256.Size]byte
 	contentDigest         [sha256.Size]byte
+	calendar              calendarMIMEPart
 }
 
 type fakeSubmission struct {
@@ -177,6 +182,7 @@ type FakeMailEngine struct {
 
 	nextID func() string
 	now    func() time.Time
+	localDelivery bool
 	serial int
 
 	domains      map[string]EngineDomainState
@@ -221,6 +227,7 @@ func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
 	return &FakeMailEngine{
 		nextID:       nextID,
 		now:          now,
+		localDelivery: config.LocalDelivery,
 		domains:      make(map[string]EngineDomainState),
 		domainKeys:   make(map[string]string),
 		accounts:     make(map[string]EngineAccount),
@@ -981,6 +988,9 @@ func (f *FakeMailEngine) SaveDraft(ctx context.Context, draft EngineDraft) (Engi
 	if err := validateDraftRequest(draft); err != nil {
 		return EngineMessage{}, err
 	}
+	if f.localDelivery {
+		return f.saveDraftWithLocalFolder(draft)
+	}
 	if draftMinimumBytes(draft) > draft.MaxContentBytes {
 		return EngineMessage{}, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
@@ -1143,6 +1153,7 @@ func (f *FakeMailEngine) uploadCalendarDraftCreateMIME(
 		bindingDigest:         bindingDigest,
 		calendarContentDigest: calendarContentDigest,
 		contentDigest:         contentDigest,
+		calendar:              fakeCalendarMIMEPartCopy(*calendar),
 	}
 	if !fakeCalendarDraftCreateStageValid(stage) {
 		return mailboxDraftCalendarCreateUpload{}, fakeEngineError(EngineErrorRejectedPolicy)
@@ -1200,8 +1211,17 @@ func (f *FakeMailEngine) importCalendarDraftCreateMIME(
 		f.mu.Unlock()
 		return EngineMessage{}, fakeEngineError(EngineErrorConflict)
 	}
+	draftFolderID := "drafts"
+	if f.localDelivery {
+		var folderErr error
+		draftFolderID, folderErr = f.fakeLocalDeliverySystemFolderIDLocked(request.accountID, EngineFolderRoleDrafts)
+		if folderErr != nil {
+			f.mu.Unlock()
+			return EngineMessage{}, folderErr
+		}
+	}
 	if existing, exists := f.drafts[request.accountID][request.draftKey]; exists {
-		if !fakeCalendarDraftCreateImportedMessageMatches(existing, stage, request) {
+		if !fakeCalendarDraftCreateImportedMessageMatches(existing, stage, request, draftFolderID) {
 			f.mu.Unlock()
 			return EngineMessage{}, fakeEngineError(EngineErrorConflict)
 		}
@@ -1223,7 +1243,7 @@ func (f *FakeMailEngine) importCalendarDraftCreateMIME(
 		return EngineMessage{}, err
 	}
 	messageID := candidateMessageID
-	message := messageFromDraft(stage.draft, messageID, candidateVersion, request.receivedAt)
+	message := messageFromDraftInFolder(stage.draft, messageID, candidateVersion, request.receivedAt, draftFolderID)
 	message.Projection.SizeBytes = stage.sizeBytes
 	if message.Projection.Origin != EngineProjectionOriginConfirmedOwnerDraft ||
 		!message.Projection.Flags.Draft ||
@@ -1240,8 +1260,17 @@ func (f *FakeMailEngine) importCalendarDraftCreateMIME(
 	if !fakeCalendarDraftCreateImportMatches(stage, request) {
 		return EngineMessage{}, fakeEngineError(EngineErrorConflict)
 	}
+	if f.localDelivery {
+		currentDraftFolderID, folderErr := f.fakeLocalDeliverySystemFolderIDLocked(request.accountID, EngineFolderRoleDrafts)
+		if folderErr != nil {
+			return EngineMessage{}, folderErr
+		}
+		if currentDraftFolderID != draftFolderID {
+			return EngineMessage{}, fakeEngineError(EngineErrorConflict)
+		}
+	}
 	if existing, exists := f.drafts[request.accountID][request.draftKey]; exists {
-		if !fakeCalendarDraftCreateImportedMessageMatches(existing, stage, request) {
+		if !fakeCalendarDraftCreateImportedMessageMatches(existing, stage, request, draftFolderID) {
 			return EngineMessage{}, fakeEngineError(EngineErrorConflict)
 		}
 		if faulted && fault.AfterDispatch {
@@ -1272,10 +1301,14 @@ func fakeCalendarDraftCreateStageValid(stage fakeCalendarDraftCreateStage) bool 
 		stage.draft.MessageID == "" &&
 		stage.draft.PreviousVersion == "" &&
 		len(stage.draft.Message.Attachments) == 0 &&
+		stage.calendar.valid() &&
+		mailboxDraftMIMECalendarRecipientValid(stage.draft, stage.calendar) &&
 		validMailboxDraftCalendarCreateUpload(mailboxDraftCalendarCreateUpload{blobID: stage.blobID, sizeBytes: stage.sizeBytes}) &&
 		stage.bindingDigest != zeroDigest &&
 		stage.calendarContentDigest != zeroDigest &&
-		stage.contentDigest != zeroDigest
+		stage.contentDigest != zeroDigest &&
+		stage.bindingDigest == stage.calendar.bindingDigest() &&
+		stage.calendarContentDigest == stage.calendar.contentDigest()
 }
 
 func fakeCalendarDraftCreateStageMatches(
@@ -1301,9 +1334,11 @@ func fakeCalendarDraftCreateImportedMessageMatches(
 	stored fakeDraft,
 	stage fakeCalendarDraftCreateStage,
 	request mailboxDraftCalendarCreateImport,
+	draftFolderID string,
 ) bool {
 	message := stored.message
 	if !fakeCalendarDraftCreateImportMatches(stage, request) ||
+		!validOpaqueID(draftFolderID) ||
 		stored.identity.messageID != "" ||
 		stored.identity.previousVersion != "" ||
 		stored.identity.mutationID != request.mutationID ||
@@ -1315,7 +1350,7 @@ func fakeCalendarDraftCreateImportedMessageMatches(
 		!message.Projection.ReceivedAt.Equal(request.receivedAt) {
 		return false
 	}
-	expected := messageFromDraft(stage.draft, message.Projection.MessageID, message.Projection.Version, request.receivedAt)
+	expected := messageFromDraftInFolder(stage.draft, message.Projection.MessageID, message.Projection.Version, request.receivedAt, draftFolderID)
 	expected.Projection.SizeBytes = stage.sizeBytes
 	return reflect.DeepEqual(cloneMessage(message), cloneMessage(expected))
 }
@@ -1349,10 +1384,20 @@ func (f *FakeMailEngine) ReconcileDraft(_ context.Context, request EngineDraftRe
 		}
 		return EngineDraftIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
+	draftFolderID := "drafts"
+	if f.localDelivery {
+		var folderErr error
+		draftFolderID, folderErr = f.fakeLocalDeliverySystemFolderIDLocked(request.AccountID, EngineFolderRoleDrafts)
+		if folderErr != nil {
+			return nil, folderErr
+		}
+	}
 	if draft.identity.mutationID == request.MutationID &&
 		(request.MessageID == "" ||
 			draft.message.Projection.MessageID != request.MessageID ||
-			draft.message.Projection.Version != request.PreviousVersion) {
+			draft.message.Projection.Version != request.PreviousVersion) &&
+		len(draft.message.Projection.FolderIDs) == 1 &&
+		draft.message.Projection.FolderIDs[0] == draftFolderID {
 		if int64(messageVariableBytes(draft.message)) > request.MaxContentBytes {
 			return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 		}
@@ -1362,7 +1407,7 @@ func (f *FakeMailEngine) ReconcileDraft(_ context.Context, request EngineDraftRe
 		return EngineDraftIndeterminate{Code: EngineIndeterminateTimeout}, nil
 	}
 	message, exists := f.messages[request.AccountID][request.MessageID]
-	if !exists || !fakeExactRetainedDraft(request, draft, message) {
+	if !exists || !fakeExactRetainedDraft(request, draft, message, draftFolderID) {
 		return EngineDraftIndeterminate{Code: EngineIndeterminateTimeout}, nil
 	}
 	if int64(messageVariableBytes(message)) > request.MaxContentBytes {
@@ -1388,8 +1433,16 @@ func (f *FakeMailEngine) DeleteDraft(_ context.Context, request EngineDraftDelet
 	if draft.message.Projection.MessageID != request.MessageID || draft.message.Projection.Version != request.ExpectedVersion {
 		return fakeEngineError(EngineErrorConflict)
 	}
+	draftFolderID := "drafts"
+	if f.localDelivery {
+		var folderErr error
+		draftFolderID, folderErr = f.fakeLocalDeliverySystemFolderIDLocked(request.AccountID, EngineFolderRoleDrafts)
+		if folderErr != nil {
+			return folderErr
+		}
+	}
 	message, exists := f.messages[request.AccountID][request.MessageID]
-	if !exists || !fakeExactDraftDeletion(request, draft, message) {
+	if !exists || !fakeExactDraftDeletion(request, draft, message, draftFolderID) {
 		return fakeEngineError(EngineErrorIndeterminate)
 	}
 	delete(f.drafts[request.AccountID], request.DraftKey)
@@ -1419,8 +1472,16 @@ func (f *FakeMailEngine) ReconcileDraftDeletion(_ context.Context, request Engin
 	if !exists {
 		return EngineDraftDeleted{}, nil
 	}
+	draftFolderID := "drafts"
+	if f.localDelivery {
+		var folderErr error
+		draftFolderID, folderErr = f.fakeLocalDeliverySystemFolderIDLocked(request.AccountID, EngineFolderRoleDrafts)
+		if folderErr != nil {
+			return nil, folderErr
+		}
+	}
 	message, exists := f.messages[request.AccountID][request.MessageID]
-	if !exists || !fakeExactDraftDeletion(request, draft, message) {
+	if !exists || !fakeExactDraftDeletion(request, draft, message, draftFolderID) {
 		return EngineDraftDeletionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
 	}
 	return EngineDraftRetainedUnchanged{}, nil
@@ -1429,6 +1490,9 @@ func (f *FakeMailEngine) ReconcileDraftDeletion(_ context.Context, request Engin
 func (f *FakeMailEngine) submitMailboxSubmission(_ context.Context, submission EngineSubmission) (EngineSubmissionResult, error) {
 	if err := validateSubmission(submission); err != nil {
 		return nil, err
+	}
+	if f.localDelivery {
+		return f.submitMailboxSubmissionWithLocalDelivery(submission)
 	}
 	f.mu.Lock()
 	fault, faulted := f.takeFaultLocked(FakeMailOperationSubmit)
@@ -1673,6 +1737,14 @@ func (f *FakeMailEngine) DeleteMessages(_ context.Context, accountID string, mes
 	if faulted && !fault.AfterDispatch {
 		return fakeEngineError(fault.Kind)
 	}
+	trashFolderID := "trash"
+	if !permanent && f.localDelivery {
+		var folderErr error
+		trashFolderID, folderErr = f.fakeLocalDeliverySystemFolderIDLocked(accountID, EngineFolderRoleTrash)
+		if folderErr != nil {
+			return folderErr
+		}
+	}
 	for _, messageID := range messageIDs {
 		if _, ok := f.messages[accountID][messageID]; !ok {
 			return fakeEngineError(EngineErrorNotFound)
@@ -1685,7 +1757,7 @@ func (f *FakeMailEngine) DeleteMessages(_ context.Context, accountID string, mes
 			continue
 		}
 		message := f.messages[accountID][messageID]
-		message.Projection.FolderIDs = []string{"trash"}
+		message.Projection.FolderIDs = []string{trashFolderID}
 		f.putMessageLocked(message, true)
 	}
 	if faulted && fault.AfterDispatch {
@@ -1818,13 +1890,17 @@ func (f *FakeMailEngine) enumerationPageLocked(request EngineEnumerationRequest,
 }
 
 func messageFromDraft(draft EngineDraft, messageID, version string, now time.Time) EngineMessage {
+	return messageFromDraftInFolder(draft, messageID, version, now, "drafts")
+}
+
+func messageFromDraftInFolder(draft EngineDraft, messageID, version string, now time.Time, folderID string) EngineMessage {
 	attachments := make([]EngineProjectionAttachment, 0, len(draft.Message.Attachments))
 	for _, attachment := range draft.Message.Attachments {
 		blobID := attachment.AttachmentKey
 		attachments = append(attachments, EngineProjectionAttachment{BlobID: blobID, AttachmentKey: attachment.AttachmentKey, ContentID: attachment.ContentID, Filename: attachment.Filename, MediaType: attachment.MediaType, SizeBytes: int64(len(attachment.Bytes)), Disposition: attachment.Disposition, SHA256: append([]byte(nil), attachment.SHA256[:]...)})
 	}
 	now = now.UTC()
-	return EngineMessage{Projection: EngineMessageProjection{AccountID: draft.AccountID, MessageID: messageID, Version: version, From: draft.Message.From, To: cloneAddresses(draft.Message.To), CC: cloneAddresses(draft.Message.CC), BCC: cloneAddresses(draft.Message.BCC), ReplyTo: cloneAddresses(draft.Message.ReplyTo), Subject: draft.Message.Subject, InReplyTo: draft.Message.InReplyTo, References: cloneStrings(draft.Message.References), ReceivedAt: &now, AuthenticationClass: MailAuthenticationClassUntrusted, SizeBytes: int64(len(draft.Message.PlainBody) + len(draft.Message.RichBody)), Priority: draft.Message.Priority, FolderIDs: []string{"drafts"}, Flags: EngineMessageFlags{Draft: true}, Attachments: attachments, Origin: EngineProjectionOriginConfirmedOwnerDraft}, Body: EngineMessageBody{Format: draft.Message.Format, PlainBody: draft.Message.PlainBody, RichBody: draft.Message.RichBody}}
+	return EngineMessage{Projection: EngineMessageProjection{AccountID: draft.AccountID, MessageID: messageID, Version: version, From: draft.Message.From, To: cloneAddresses(draft.Message.To), CC: cloneAddresses(draft.Message.CC), BCC: cloneAddresses(draft.Message.BCC), ReplyTo: cloneAddresses(draft.Message.ReplyTo), Subject: draft.Message.Subject, InReplyTo: draft.Message.InReplyTo, References: cloneStrings(draft.Message.References), ReceivedAt: &now, AuthenticationClass: MailAuthenticationClassUntrusted, SizeBytes: int64(len(draft.Message.PlainBody) + len(draft.Message.RichBody)), Priority: draft.Message.Priority, FolderIDs: []string{folderID}, Flags: EngineMessageFlags{Draft: true}, Attachments: attachments, Origin: EngineProjectionOriginConfirmedOwnerDraft}, Body: EngineMessageBody{Format: draft.Message.Format, PlainBody: draft.Message.PlainBody, RichBody: draft.Message.RichBody}}
 }
 
 func (f *FakeMailEngine) retainDraftBlobsLocked(draft EngineDraft) {
@@ -1916,6 +1992,12 @@ func draftMinimumBytes(draft EngineDraft) int64 {
 	return int64(messageVariableBytes(minimum))
 }
 
+func draftMinimumBytesInFolder(draft EngineDraft, folderID string) int64 {
+	messageID := draft.MessageID
+	minimum := messageFromDraftInFolder(draft, messageID, "", time.Time{}, folderID)
+	return int64(messageVariableBytes(minimum))
+}
+
 func (f *FakeMailEngine) reserveOpaqueIDsLocked(ids ...string) error {
 	seen := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
@@ -1982,7 +2064,7 @@ func validateDraftDeletion(request EngineDraftDeletion) error {
 	return nil
 }
 
-func fakeExactDraftDeletion(request EngineDraftDeletion, draft fakeDraft, message EngineMessage) bool {
+func fakeExactDraftDeletion(request EngineDraftDeletion, draft fakeDraft, message EngineMessage, draftFolderID string) bool {
 	draftProjection := draft.message.Projection
 	projection := message.Projection
 	return validateEngineMessage(draft.message) == nil &&
@@ -1993,10 +2075,11 @@ func fakeExactDraftDeletion(request EngineDraftDeletion, draft fakeDraft, messag
 		draftProjection.Version == request.ExpectedVersion &&
 		draftProjection.Origin == EngineProjectionOriginConfirmedOwnerDraft &&
 		draftProjection.Flags.Draft &&
-		reflect.DeepEqual(draftProjection.FolderIDs, []string{"drafts"})
+		validOpaqueID(draftFolderID) &&
+		reflect.DeepEqual(draftProjection.FolderIDs, []string{draftFolderID})
 }
 
-func fakeExactRetainedDraft(request EngineDraftReconciliation, draft fakeDraft, message EngineMessage) bool {
+func fakeExactRetainedDraft(request EngineDraftReconciliation, draft fakeDraft, message EngineMessage, draftFolderID string) bool {
 	draftProjection := draft.message.Projection
 	return request.MessageID != "" &&
 		request.PreviousVersion != "" &&
@@ -2011,7 +2094,8 @@ func fakeExactRetainedDraft(request EngineDraftReconciliation, draft fakeDraft, 
 		draftProjection.Version == request.PreviousVersion &&
 		draftProjection.Origin == EngineProjectionOriginConfirmedOwnerDraft &&
 		draftProjection.Flags.Draft &&
-		reflect.DeepEqual(draftProjection.FolderIDs, []string{"drafts"})
+		validOpaqueID(draftFolderID) &&
+		reflect.DeepEqual(draftProjection.FolderIDs, []string{draftFolderID})
 }
 
 func validateSubmission(submission EngineSubmission) error {
