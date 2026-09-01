@@ -696,10 +696,41 @@ export function CreateCallDialog({
 		);
 	}, [currentUserId]);
 
+	// Сбрасываем форму при открытии с переданными default-значениями
+	useEffect(() => {
+		const nextSession = dialogSessionRef.current + 1;
+		dialogSessionRef.current = nextSession;
+		setDialogSession(nextSession);
+		initialParticipantsSessionRef.current = null;
+		setParticipantIds([]);
+		if (!open) return;
+
+		setTitle(initialTitle ?? "");
+		setDescription("");
+		setDate(defaultDate ?? "");
+		setTime(defaultTime ?? "10:00");
+		setDuration("60");
+		setRecurrence("");
+		setTimezone(defaultTimezone);
+		setChannelId("");
+		setProjectId("");
+		setParticipantSearch("");
+		idempotencyRef.current = null;
+		availabilityToastRef.current = "";
+	}, [
+		open,
+		defaultDate,
+		defaultTime,
+		defaultTimezone,
+		initialParticipantKey,
+		initialTitle,
+	]);
+
 	useEffect(() => {
 		if (
 			!open ||
 			!membersLoaded ||
+			dialogSession !== dialogSessionRef.current ||
 			initialParticipantsSessionRef.current === dialogSession
 		) {
 			return;
@@ -725,36 +756,6 @@ export function CreateCallDialog({
 		membersLoaded,
 		normalizedInitialParticipantIds,
 		open,
-	]);
-
-	// Сбрасываем форму при открытии с переданными default-значениями
-	useEffect(() => {
-		const nextSession = dialogSessionRef.current + 1;
-		dialogSessionRef.current = nextSession;
-		setDialogSession(nextSession);
-		initialParticipantsSessionRef.current = null;
-		if (!open) return;
-
-		setTitle(initialTitle ?? "");
-		setDescription("");
-		setDate(defaultDate ?? "");
-		setTime(defaultTime ?? "10:00");
-		setDuration("60");
-		setRecurrence("");
-		setTimezone(defaultTimezone);
-		setChannelId("");
-		setProjectId("");
-		setParticipantIds([]);
-		setParticipantSearch("");
-		idempotencyRef.current = null;
-		availabilityToastRef.current = "";
-	}, [
-		open,
-		defaultDate,
-		defaultTime,
-		defaultTimezone,
-		initialParticipantKey,
-		initialTitle,
 	]);
 
 	const invalidateDialogSession = () => {
