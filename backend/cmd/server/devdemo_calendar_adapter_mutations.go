@@ -1,3 +1,5 @@
+//go:build !qa && !release
+
 package main
 
 import (

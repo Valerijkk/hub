@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"os"
 	"sync"
@@ -11,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	calendarmod "github.com/valerii/hub/backend/internal/calendar"
-	"github.com/valerii/hub/backend/internal/devdemo"
 	mailmod "github.com/valerii/hub/backend/internal/mail"
 	stalwartmod "github.com/valerii/hub/backend/internal/mail/stalwart"
 )
@@ -133,26 +131,10 @@ func wireCalendarMail(d *serverDeps) {
 	if err := mailboxIdentityHandler.RegisterRoutes(d.api, d.requireAuth); err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	if d.cfg.Server.DevMode {
-		calendarDemoAdapter, err := newCalendarDemoAdapter(eventSvc, eventReadSvc)
-		if err != nil {
-			d.fatal("failed to wire Mail/Calendar demo seeder", err)
-		}
-		if calendarDemoAdapter == nil {
-			d.fatal("failed to wire Mail/Calendar demo seeder", errors.New("calendar demo adapter is unavailable"))
-		}
-
-		mailCalendarDemoSeeder, err := devdemo.NewMailCalendarDemoSeeder(d.db, d.rawDB, d.postgresAdvisoryLocks, calendarDemoAdapter)
-		if err != nil {
-			d.fatal("failed to wire Mail/Calendar demo seeder", err)
-		}
-		if mailCalendarDemoSeeder == nil {
-			d.fatal("failed to wire Mail/Calendar demo seeder", errors.New("demo seeder is unavailable"))
-		}
-		d.mailCalendarDemoSeeder = mailCalendarDemoSeeder
-	}
-
 	if wireQAMailCalendarRuntime(d, mailboxSvc, mailboxRepo, eventRepo, eventSvc) {
+		return
+	}
+	if wireDevMailCalendarRuntime(d, mailboxSvc, mailboxRepo, eventRepo, eventSvc, eventReadSvc) {
 		return
 	}
 
