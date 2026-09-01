@@ -7,7 +7,6 @@ import (
 	"context"
 	"time"
 
-	entgo "entgo.io/ent"
 	"github.com/google/uuid"
 
 	appent "github.com/valerii/hub/backend/ent"
@@ -134,12 +133,12 @@ func verifyDevMailControlUser(ctx context.Context, client *appent.Client, plan d
 
 func reconcileDevMailControlDomain(ctx context.Context, client *appent.Client, plan devMailControlDomainPlan, engineDomainID string, now time.Time) (*appent.MailDomain, bool, error) {
 	rows, err := client.MailDomain.Query().
-		Where(entgo.Or(
+		Where(maildomain.Or(
 			maildomain.IDEQ(plan.id),
 			maildomain.DomainEQ(plan.domain),
 			maildomain.EngineProvisioningKeyEQ(plan.provisioningKey),
 		)).
-		Order(entgo.Asc(maildomain.FieldID)).
+		Order(appent.Asc(maildomain.FieldID)).
 		ForUpdate().
 		All(ctx)
 	if err != nil {
@@ -193,7 +192,7 @@ func verifyDevMailControlDefaultDomain(ctx context.Context, client *appent.Clien
 			maildomain.IsDefaultEQ(true),
 			maildomain.DeletedAtIsNil(),
 		).
-		Order(entgo.Asc(maildomain.FieldID)).
+		Order(appent.Asc(maildomain.FieldID)).
 		ForUpdate().
 		All(ctx)
 	if err != nil {
@@ -207,11 +206,11 @@ func verifyDevMailControlDefaultDomain(ctx context.Context, client *appent.Clien
 
 func reconcileDevMailControlPolicy(ctx context.Context, client *appent.Client, plan devMailControlPolicyPlan, now time.Time) (bool, error) {
 	rows, err := client.MailboxPolicy.Query().
-		Where(entgo.Or(
+		Where(mailboxpolicy.Or(
 			mailboxpolicy.IDEQ(plan.id),
 			mailboxpolicy.OrganizationIDEQ(plan.organizationID),
 		)).
-		Order(entgo.Asc(mailboxpolicy.FieldID)).
+		Order(appent.Asc(mailboxpolicy.FieldID)).
 		ForUpdate().
 		All(ctx)
 	if err != nil {
@@ -252,14 +251,14 @@ func reconcileDevMailControlPolicy(ctx context.Context, client *appent.Client, p
 
 func reconcileDevMailControlAccount(ctx context.Context, client *appent.Client, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) (*appent.MailAccount, bool, error) {
 	rows, err := client.MailAccount.Query().
-		Where(entgo.Or(
+		Where(mailaccount.Or(
 			mailaccount.IDEQ(plan.id),
 			mailaccount.UserIDEQ(plan.userID),
 			mailaccount.EngineProvisioningKeyEQ(plan.provisioningKey),
 			mailaccount.EngineAccountIDEQ(engineAccountID),
-			entgo.And(mailaccount.MailDomainIDEQ(domain.id), mailaccount.LocalPartEQ(plan.localPart)),
+			mailaccount.And(mailaccount.MailDomainIDEQ(domain.id), mailaccount.LocalPartEQ(plan.localPart)),
 		)).
-		Order(entgo.Asc(mailaccount.FieldID)).
+		Order(appent.Asc(mailaccount.FieldID)).
 		ForUpdate().
 		All(ctx)
 	if err != nil {
@@ -312,13 +311,13 @@ func reconcileDevMailControlIdentity(ctx context.Context, client *appent.Client,
 		return nil, false, newDevMailControlError(devMailControlStageIdentity, devMailControlFailureInvalid)
 	}
 	rows, err := client.MailIdentity.Query().
-		Where(entgo.Or(
+		Where(mailidentity.Or(
 			mailidentity.IDEQ(plan.identityID),
 			mailidentity.NormalizedAddressEQ(plan.email),
-			entgo.And(mailidentity.MailAccountIDEQ(account.ID), mailidentity.KindEQ(mailidentity.Kind("primary"))),
-			entgo.And(mailidentity.MailAccountIDEQ(account.ID), mailidentity.EngineIdentityIDEQ(engineIdentityID)),
+			mailidentity.And(mailidentity.MailAccountIDEQ(account.ID), mailidentity.KindEQ(mailidentity.Kind("primary"))),
+			mailidentity.And(mailidentity.MailAccountIDEQ(account.ID), mailidentity.EngineIdentityIDEQ(engineIdentityID)),
 		)).
-		Order(entgo.Asc(mailidentity.FieldID)).
+		Order(appent.Asc(mailidentity.FieldID)).
 		ForUpdate().
 		All(ctx)
 	if err != nil {
@@ -359,12 +358,12 @@ func reconcileDevMailControlSettings(ctx context.Context, client *appent.Client,
 		return false, newDevMailControlError(devMailControlStageSettings, devMailControlFailureInvalid)
 	}
 	rows, err := client.MailUserSettings.Query().
-		Where(entgo.Or(
+		Where(mailusersettings.Or(
 			mailusersettings.IDEQ(plan.settingsID),
 			mailusersettings.MailAccountIDEQ(account.ID),
 			mailusersettings.DefaultIdentityIDEQ(identity.ID),
 		)).
-		Order(entgo.Asc(mailusersettings.FieldID)).
+		Order(appent.Asc(mailusersettings.FieldID)).
 		ForUpdate().
 		All(ctx)
 	if err != nil {
