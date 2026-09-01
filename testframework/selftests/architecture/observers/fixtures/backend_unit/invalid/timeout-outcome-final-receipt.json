@@ -1,0 +1,14 @@
+{
+  "schema": "hub.qa.backend-unit-final-receipt/v1",
+  "target": "backend-unit",
+  "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
+  "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+  "container_receipt_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "observer_receipt_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "container_id": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "backend_image_id": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "canonical_build_input_manifest_sha256": "sha256:1e2a0dd1b39b2f458735f3c4ac7ce40fee7371be51013da108da568e9b885dba",
+  "classification": "SEALED_EXECUTABLE_FAIL_STAGE",
+  "immutable_outcome": "TIMEOUT_UNTRIAGED",
+  "seal_timestamp": "2026-09-01T18:00:00Z"
+}

@@ -1,0 +1,20 @@
+{
+  "schema": "hub.qa.backend-unit-package-plan/v1",
+  "target": "backend-unit",
+  "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
+  "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+  "stage": "build",
+  "discovery_argv": ["go", "list", "-f", "{{printf \"%s\\t%s\" .ImportPath .Name}}", "./..."],
+  "go_environment_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "rows": [
+    {"ordinal": 1, "import_path": "example.com/hub/backend/cmd/hub", "package_name": "main"},
+    {"ordinal": 2, "import_path": "example.com/hub/backend/internal/calls", "package_name": "calls"}
+  ],
+  "row_count": 2,
+  "row_set_sha256": "sha256:98891821a1f03a247ec17337e98a72873d00abde799cc861b1d9b6975abdb9a3",
+  "result_partition": [
+    {"ordinal": 1, "import_path": "example.com/hub/backend/cmd/hub", "result": "PASS"},
+    {"ordinal": 2, "import_path": "example.com/hub/backend/internal/calls", "result": "PASS"}
+  ],
+  "unexpected": "closed-schema mutation"
+}
