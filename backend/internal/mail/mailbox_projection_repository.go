@@ -456,6 +456,20 @@ func mailboxThreadProjectionSearchSignature(value *string) string {
 	return *value
 }
 
+// NormalizeMailboxThreadProjectionSubjectSearch is the sole canonical
+// subject-to-FTS-query boundary for in-process consumers.
+func NormalizeMailboxThreadProjectionSubjectSearch(subject string) (string, error) {
+	normalizedSubject, err := normalizeThreadSubject(subject)
+	if err != nil || normalizedSubject == "" {
+		return "", errMailboxThreadProjectionRequestInvalid
+	}
+	search, err := mailboxThreadProjectionNormalizeSearch(normalizedSubject)
+	if err != nil || search == "" {
+		return "", errMailboxThreadProjectionRequestInvalid
+	}
+	return search, nil
+}
+
 func mailboxThreadProjectionNormalizeSearch(value string) (string, error) {
 	if !syncValidSafeText(value, maxMailboxThreadProjectionSearch, false) {
 		return "", errMailboxThreadProjectionRequestInvalid
