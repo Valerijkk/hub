@@ -138,7 +138,6 @@ func (a *calendarDemoAdapter) CreateEvent(
 
 	seen := make(map[uuid.UUID]struct{}, len(receipt.Attendees))
 	attendees := make([]devdemo.CalendarDemoAttendeeState, 0, len(receipt.Attendees))
-	organizerSeen := false
 	for _, attendee := range receipt.Attendees {
 		if attendee.UserID == nil || *attendee.UserID == uuid.Nil || attendee.Version == 0 || strings.TrimSpace(attendee.Email) == "" {
 			return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("invalid calendar demo create receipt attendee"))
@@ -161,17 +160,14 @@ func (a *calendarDemoAdapter) CreateEvent(
 			return zero, err
 		}
 
-		if expected, exists := requested[userID]; exists {
-			if attendee.Email != expected.email || attendee.Role != expected.role || attendee.RSVPStatus != calendarmod.RSVPNeedsAction {
-				return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("mismatched calendar demo create receipt attendee"))
-			}
-			delete(requested, userID)
-		} else {
-			if userID != actorID || attendee.Role != calendarmod.CalendarEventAttendeeRoleOrganizer || attendee.RSVPStatus != calendarmod.RSVPAccepted || organizerSeen {
-				return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("invalid calendar demo create receipt organizer"))
-			}
-			organizerSeen = true
+		expected, exists := requested[userID]
+		if !exists {
+			return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("unexpected calendar demo create receipt attendee"))
 		}
+		if attendee.Email != expected.email || attendee.Role != expected.role || attendee.RSVPStatus != calendarmod.RSVPNeedsAction {
+			return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("mismatched calendar demo create receipt attendee"))
+		}
+		delete(requested, userID)
 
 		attendees = append(attendees, devdemo.CalendarDemoAttendeeState{
 			UserID:     userID,
@@ -181,7 +177,7 @@ func (a *calendarDemoAdapter) CreateEvent(
 			Version:    attendeeVersion,
 		})
 	}
-	if len(requested) != 0 || !organizerSeen {
+	if len(requested) != 0 {
 		return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("incomplete calendar demo create receipt"))
 	}
 
