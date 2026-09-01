@@ -85,6 +85,14 @@ func (*mockAuditRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.System
 	return user.SystemRole("member"), nil
 }
 
+func (*mockAuditRepo) LockUserForGDPR(context.Context, uuid.UUID) (user.SystemRole, error) {
+	return user.SystemRole("member"), nil
+}
+
+func (*mockAuditRepo) EraseUserDurableCallData(context.Context, uuid.UUID, time.Time) error {
+	return nil
+}
+
 func (*mockAuditRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error) {
 	return false, nil
 }

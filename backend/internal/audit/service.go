@@ -576,6 +576,18 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 	}
 
 	if err := s.repo.WithTx(ctx, func(txRepo Repository) error {
+		lockedRole, err := txRepo.LockUserForGDPR(ctx, userID)
+		if err != nil {
+			return fmt.Errorf("lock user for GDPR: %w", err)
+		}
+		if lockedRole == user.SystemRoleFounder {
+			return ErrCannotDeleteFounder
+		}
+		terminalAt := time.Now().UTC()
+		if err := txRepo.EraseUserDurableCallData(ctx, userID, terminalAt); err != nil {
+			return fmt.Errorf("erase durable call data (GDPR): %w", err)
+		}
+
 		// 1. Переназначаем или очищаем задачи
 		if reassignTo != nil {
 			if _, err := txRepo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {

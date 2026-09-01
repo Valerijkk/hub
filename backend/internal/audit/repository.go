@@ -10,6 +10,9 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/activitylog"
 	"github.com/valerii/hub/backend/ent/auditlog"
+	"github.com/valerii/hub/backend/ent/callparticipantconnection"
+	"github.com/valerii/hub/backend/ent/callparticipantpresence"
+	"github.com/valerii/hub/backend/ent/callproviderdelivery"
 	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/comment"
 	"github.com/valerii/hub/backend/ent/crmcontact"
@@ -23,6 +26,7 @@ import (
 	"github.com/valerii/hub/backend/ent/newspost"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
+	"github.com/valerii/hub/backend/ent/predicate"
 	"github.com/valerii/hub/backend/ent/reaction"
 	"github.com/valerii/hub/backend/ent/scheduledcall"
 	"github.com/valerii/hub/backend/ent/session"
@@ -114,6 +118,8 @@ type Repository interface {
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	// GetUserSystemRole — для GDPR founder-guard (A1-004).
 	GetUserSystemRole(ctx context.Context, userID uuid.UUID) (user.SystemRole, error)
+	LockUserForGDPR(ctx context.Context, userID uuid.UUID) (user.SystemRole, error)
+	EraseUserDurableCallData(ctx context.Context, userID uuid.UUID, terminalAt time.Time) error
 
 	// WithTx выполняет fn в одной Ent-транзакции (A2W6-A4-003 GDPR cascade).
 	// txRepo разделяет те же методы Repository, но пишет через tx.Client().
@@ -1026,4 +1032,65 @@ func (r *entRepository) GetUserSystemRole(ctx context.Context, userID uuid.UUID)
 		return "", err
 	}
 	return u.SystemRole, nil
+}
+
+func (r *entRepository) LockUserForGDPR(ctx context.Context, userID uuid.UUID) (user.SystemRole, error) {
+	roles, err := r.client.User.Query().
+		Where(
+			user.IDEQ(userID),
+			predicate.User(func(selector *sql.Selector) {
+				selector.ForUpdate()
+			}),
+		).
+		Select(user.FieldSystemRole).
+		Strings(ctx)
+	if err != nil {
+		return "", err
+	}
+	if len(roles) != 1 {
+		return "", fmt.Errorf("GDPR user lock role cardinality: expected 1, got %d", len(roles))
+	}
+	return user.SystemRole(roles[0]), nil
+}
+
+func (r *entRepository) EraseUserDurableCallData(
+	ctx context.Context,
+	userID uuid.UUID,
+	terminalAt time.Time,
+) error {
+	if _, err := r.client.CallParticipantConnection.Delete().
+		Where(callparticipantconnection.UserIDEQ(userID)).
+		Exec(ctx); err != nil {
+		return err
+	}
+	if _, err := r.client.CallParticipantPresence.Delete().
+		Where(callparticipantpresence.UserIDEQ(userID)).
+		Exec(ctx); err != nil {
+		return err
+	}
+	if _, err := r.client.CallProviderDelivery.Update().
+		Where(
+			callproviderdelivery.UserIDEQ(userID),
+			callproviderdelivery.ResultIn(
+				callproviderdelivery.ResultPending,
+				callproviderdelivery.ResultReconcile,
+			),
+		).
+		SetResult(callproviderdelivery.ResultIgnored).
+		SetTerminalAt(terminalAt).
+		ClearUserID().
+		Save(ctx); err != nil {
+		return err
+	}
+	_, err := r.client.CallProviderDelivery.Update().
+		Where(
+			callproviderdelivery.UserIDEQ(userID),
+			callproviderdelivery.ResultIn(
+				callproviderdelivery.ResultApplied,
+				callproviderdelivery.ResultIgnored,
+			),
+		).
+		ClearUserID().
+		Save(ctx)
+	return err
 }
