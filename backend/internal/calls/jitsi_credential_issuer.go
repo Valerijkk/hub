@@ -83,6 +83,32 @@ func (i *jitsiCredentialIssuer) IssueJoinCredential(call *ent.Call, authenticate
 		ExpiresAt:  issued.ExpiresAt,
 	}, nil
 }
+
+// IssueDurableCallJoinCredential signs one allocated provider participant
+// identity without changing the legacy UUID-based issuer.
+func (i *jitsiCredentialIssuer) IssueDurableCallJoinCredential(
+	call *ent.Call,
+	identity ProviderParticipantIdentity,
+	serverKnownUserName string,
+) (JoinCredential, error) {
+	if err := validateDurableCallJoinCredentialInput(call, identity, serverKnownUserName); err != nil {
+		return JoinCredential{}, err
+	}
+
+	issued, err := i.issueCredentialForIdentity(call, identity.Canonical(), serverKnownUserName)
+	if err != nil {
+		return JoinCredential{}, err
+	}
+
+	return JoinCredential{
+		Provider:   ProviderJitsi,
+		RoomName:   call.RoomName,
+		ServiceURL: i.publicURL,
+		Token:      issued.Token,
+		ExpiresAt:  issued.ExpiresAt,
+	}, nil
+}
+
 func (i *jitsiCredentialIssuer) issueCredential(call *ent.Call, authenticatedUserID uuid.UUID, serverKnownUserName string) (jitsiIssuedCredential, error) {
 	if call == nil {
 		return jitsiIssuedCredential{}, errors.New("cannot issue Jitsi credential without a call")
@@ -103,6 +129,14 @@ func (i *jitsiCredentialIssuer) issueCredential(call *ent.Call, authenticatedUse
 		return jitsiIssuedCredential{}, errors.New("cannot issue Jitsi credential without a server-known user name")
 	}
 
+	return i.issueCredentialForIdentity(call, authenticatedUserID.String(), serverKnownUserName)
+}
+
+func (i *jitsiCredentialIssuer) issueCredentialForIdentity(
+	call *ent.Call,
+	providerIdentity string,
+	serverKnownUserName string,
+) (jitsiIssuedCredential, error) {
 	issuedAt := i.now().UTC().Truncate(time.Second)
 	expiresAt := issuedAt.Add(jitsiCredentialTTL)
 	claims := jitsiCredentialClaims{
@@ -115,7 +149,7 @@ func (i *jitsiCredentialIssuer) issueCredential(call *ent.Call, authenticatedUse
 		},
 		Context: jitsiCredentialContext{
 			User: jitsiCredentialUser{
-				ID:   authenticatedUserID.String(),
+				ID:   providerIdentity,
 				Name: serverKnownUserName,
 			},
 		},

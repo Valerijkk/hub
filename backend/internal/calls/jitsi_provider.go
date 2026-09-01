@@ -15,6 +15,7 @@ type JitsiConferenceProvider struct {
 }
 
 var _ RegisteredConferenceProvider = (*JitsiConferenceProvider)(nil)
+var _ DurableCallJoinCredentialIssuer = (*JitsiConferenceProvider)(nil)
 
 // NewJitsiConferenceProvider validates self-hosted config without activating Jitsi.
 func NewJitsiConferenceProvider(cfg config.JitsiConfig) (*JitsiConferenceProvider, error) {
@@ -42,4 +43,13 @@ func (p *JitsiConferenceProvider) IssueCallJoinCredential(
 	serverKnownUserName string,
 ) (JoinCredential, error) {
 	return p.issuer.IssueCallJoinCredential(call, authenticatedUserID, serverKnownUserName)
+}
+
+// IssueDurableCallJoinCredential delegates one trusted allocated identity.
+func (p *JitsiConferenceProvider) IssueDurableCallJoinCredential(
+	call *ent.Call,
+	identity ProviderParticipantIdentity,
+	serverKnownUserName string,
+) (JoinCredential, error) {
+	return p.issuer.IssueDurableCallJoinCredential(call, identity, serverKnownUserName)
 }

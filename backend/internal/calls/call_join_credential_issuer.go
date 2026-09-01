@@ -19,8 +19,19 @@ type CallJoinCredentialIssuer interface {
 	IssueCallJoinCredential(call *ent.Call, authenticatedUserID uuid.UUID, serverKnownUserName string) (JoinCredential, error)
 }
 
+// DurableCallJoinCredentialIssuer issues a credential for one allocated
+// provider-neutral connection epoch.
+type DurableCallJoinCredentialIssuer interface {
+	IssueDurableCallJoinCredential(
+		call *ent.Call,
+		identity ProviderParticipantIdentity,
+		serverKnownUserName string,
+	) (JoinCredential, error)
+}
+
 var _ CallJoinCredentialIssuer = (*LiveKitConferenceProvider)(nil)
 var _ CallJoinCredentialIssuer = (*jitsiCredentialIssuer)(nil)
+var _ DurableCallJoinCredentialIssuer = (*jitsiCredentialIssuer)(nil)
 
 // IssueCallJoinCredential validates trusted inputs then delegates credential
 // construction to the legacy LiveKit issuer exactly once.
@@ -62,6 +73,27 @@ func validateCallJoinCredentialInput(
 		call.RoomName != strings.TrimSpace(call.RoomName) ||
 		authenticatedUserID == uuid.Nil ||
 		strings.TrimSpace(serverKnownUserName) == "" {
+		return ErrCallJoinCredentialInvalid
+	}
+
+	return nil
+}
+
+func validateDurableCallJoinCredentialInput(
+	call *ent.Call,
+	identity ProviderParticipantIdentity,
+	serverKnownUserName string,
+) error {
+	trimmedUserName := strings.TrimSpace(serverKnownUserName)
+	if call == nil ||
+		call.ID == uuid.Nil ||
+		call.Status != entcall.StatusActive ||
+		strings.TrimSpace(call.RoomName) == "" ||
+		call.RoomName != strings.TrimSpace(call.RoomName) ||
+		!identity.IsValid() ||
+		identity.ConnectionKey().CallID() != call.ID ||
+		trimmedUserName == "" ||
+		serverKnownUserName != trimmedUserName {
 		return ErrCallJoinCredentialInvalid
 	}
 
