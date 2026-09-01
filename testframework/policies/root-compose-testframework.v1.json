@@ -14,6 +14,10 @@
   "retained_docker_paths": [
     "testframework/docker/Dockerfile.qa",
     "testframework/docker/README.md",
+    "testframework/docker/backend_unit/execute.sh",
+    "testframework/docker/backend_unit/plan.sh",
+    "testframework/docker/backend_unit/receipt.sh",
+    "testframework/docker/backend_unit/runtime.sh",
     "testframework/docker/entrypoints/backend-unit.sh",
     "testframework/docker/entrypoints/frontend-unit.sh",
     "testframework/docker/entrypoints/python-qa.sh",

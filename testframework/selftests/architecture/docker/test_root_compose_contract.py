@@ -51,6 +51,10 @@ _QA_INFRASTRUCTURE = (
 _RETAINED_DOCKER_PATHS = (
     "testframework/docker/Dockerfile.qa",
     "testframework/docker/README.md",
+    "testframework/docker/backend_unit/execute.sh",
+    "testframework/docker/backend_unit/plan.sh",
+    "testframework/docker/backend_unit/receipt.sh",
+    "testframework/docker/backend_unit/runtime.sh",
     "testframework/docker/entrypoints/backend-unit.sh",
     "testframework/docker/entrypoints/frontend-unit.sh",
     "testframework/docker/entrypoints/python-qa.sh",
@@ -112,6 +116,64 @@ _FIXED_COMMANDS = MappingProxyType(
         "python-e2e-smoke": ("e2e-smoke",),
         "python-e2e-full": ("e2e-full",),
         "python-load": ("load",),
+    }
+)
+_HARD2G_IMAGE_INSPECT_ARGVS = (
+    (
+        "docker",
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "worktree-master-python-contract",
+    ),
+    (
+        "docker",
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "worktree-master-backend-unit",
+    ),
+)
+_HARD2G_BUILD_INPUT_PATHS = (
+    "docker-compose.local.yml",
+    "testframework/docker/Dockerfile.qa",
+    "testframework/docker/entrypoints/backend-unit.sh",
+    "testframework/docker/backend_unit/runtime.sh",
+    "testframework/docker/backend_unit/plan.sh",
+    "testframework/docker/backend_unit/execute.sh",
+    "testframework/docker/backend_unit/receipt.sh",
+    "testframework/observers/**",
+    "testframework/schemas/backend-unit-package-plan.schema.v1.json",
+    "testframework/schemas/backend-unit-container-receipt.schema.v1.json",
+    "testframework/schemas/backend-unit-observer-receipt.schema.v1.json",
+    "testframework/policies/backend-unit-observer.v1.json",
+    "testframework/policies/backend-unit-phase150-08c2-subject.v1.json",
+    "testframework/policies/root-compose-testframework.v1.json",
+    "testframework/selftests/architecture/docker/**",
+    "testframework/selftests/architecture/observers/**",
+)
+_HARD2G_REPORT_BUDGET = MappingProxyType(
+    {
+        "total_bytes": 64 * 1024 * 1024,
+        "reserved_metadata_bytes": 8 * 1024 * 1024,
+        "streams": MappingProxyType(
+            {
+                "build": MappingProxyType(
+                    {"stdout": 2 * 1024 * 1024, "stderr": 2 * 1024 * 1024}
+                ),
+                "vet": MappingProxyType(
+                    {"stdout": 2 * 1024 * 1024, "stderr": 2 * 1024 * 1024}
+                ),
+                "unit": MappingProxyType(
+                    {"stdout": 16 * 1024 * 1024, "stderr": 4 * 1024 * 1024}
+                ),
+                "race": MappingProxyType(
+                    {"stdout": 24 * 1024 * 1024, "stderr": 4 * 1024 * 1024}
+                ),
+            }
+        ),
     }
 )
 _BUILD_TARGETS = MappingProxyType(
@@ -386,7 +448,7 @@ def test_current_source_overlays_reject_writable_stale_and_undersized_mutations(
             {
                 "tmpfs": (
                     backend_tmpfs[0],
-                    backend_cache.replace("size=3g", "size=2g", 1),
+                    backend_cache.replace("size=768m", "size=767m", 1),
                     backend_tmpfs[2],
                 )
             },
@@ -451,6 +513,208 @@ def test_docker_directory_contains_only_manifested_assets() -> None:
     assert _docker_regular_files(_REPO_ROOT) == policy["retained_docker_paths"]
 
 
+def test_hard2g_backend_unit_compose_docker_and_runner_contract() -> None:
+    services = _compose_services(load_root_compose_contract(_REPO_ROOT))
+    backend = _mapping_value(services, "backend-unit")
+    dockerfile = _required_asset_text(
+        _REPO_ROOT / "testframework" / "docker" / "Dockerfile.qa"
+    )
+    entrypoint = _required_asset_text(
+        _REPO_ROOT
+        / "testframework"
+        / "docker"
+        / "entrypoints"
+        / "backend-unit.sh"
+    )
+
+    assert _hard2g_backend_unit_service_is_closed(backend)
+    assert _dockerfile_qa_is_closed(dockerfile)
+    assert _backend_entrypoint_is_closed(entrypoint)
+    assert _hard2g_runner_helpers_are_closed(_REPO_ROOT)
+    assert _hard2g_readme_metadata_copies_are_closed(dockerfile)
+
+
+def test_hard2g_backend_unit_compose_contract_rejects_authority_mutations() -> None:
+    backend = _expected_public_service("backend-unit")
+    volumes = backend["volumes"]
+    environment = backend["environment"]
+    tmpfs = backend["tmpfs"]
+    assert type(volumes) is tuple and len(volumes) == 7
+    assert isinstance(environment, Mapping)
+    assert type(tmpfs) is tuple and len(tmpfs) == 3
+    cache_tmpfs = tmpfs[1]
+    assert type(cache_tmpfs) is str
+    assert _hard2g_backend_unit_service_is_closed(backend)
+
+    def mutated(**updates: object) -> Mapping[str, object]:
+        candidate = dict(backend)
+        candidate.update(updates)
+        return MappingProxyType(candidate)
+
+    writable_source = dict(volumes[1])
+    writable_source["read_only"] = False
+    hostile_environment = dict(environment)
+    hostile_environment["GOPROXY"] = "https://proxy.invalid"
+    broad_root = _read_only_bind("./backend", "/opt/hub/source/backend")
+    docs_root = _read_only_bind(
+        "./backend/docs",
+        "/opt/hub/source/backend/docs",
+    )
+    observer_root = _read_only_bind(
+        "./testframework/observers",
+        "/opt/hub/testframework/observers",
+    )
+    host_launcher = _read_only_bind(
+        "./testframework/docker/entrypoints/backend-unit.sh",
+        "/usr/local/bin/backend-unit",
+    )
+    socket_bind = MappingProxyType(
+        {
+            "type": "bind",
+            "source": "/var/run/docker.sock",
+            "target": "/var/run/docker.sock",
+        }
+    )
+    extra_writer = MappingProxyType(
+        {
+            "type": "bind",
+            "source": "./testframework/reports-extra",
+            "target": "/reports-extra",
+        }
+    )
+    mutations = (
+        {"command": ("--build",)},
+        {"cpus": 2.0},
+        {"mem_limit": "10g"},
+        {"memswap_limit": "10g"},
+        {"environment": MappingProxyType(hostile_environment)},
+        {"tmpfs": (tmpfs[0], cache_tmpfs.replace("768m", "767m"), tmpfs[2])},
+        {"volumes": (volumes[0], broad_root)},
+        {"volumes": (*volumes, docs_root)},
+        {"volumes": (*volumes, observer_root)},
+        {"volumes": (*volumes, host_launcher)},
+        {"volumes": (*volumes, socket_bind)},
+        {"volumes": (*volumes, extra_writer)},
+        {
+            "volumes": (
+                volumes[0],
+                MappingProxyType(writable_source),
+                *volumes[2:],
+            )
+        },
+        {"privileged": True},
+    )
+    for updates in mutations:
+        assert not _hard2g_backend_unit_service_is_closed(mutated(**updates))
+
+    admitted = MappingProxyType(
+        {
+            name: MappingProxyType({"profiles": ("qa",)})
+            for name in _PUBLIC_SERVICES + _QA_INFRASTRUCTURE
+        }
+    )
+    assert _qa_service_profiles_are_closed(admitted)
+    added_service = dict(admitted)
+    added_service["observer"] = MappingProxyType({"profiles": ("qa",)})
+    assert not _qa_service_profiles_are_closed(MappingProxyType(added_service))
+
+
+def test_hard2g_runner_rejects_permissive_authority() -> None:
+    canonical_entrypoint = "\n".join(
+        (
+            "#!/bin/sh",
+            "set -eu",
+            '[ "$#" -eq 0 ] || exit 64',
+            "unset GOMAXPROCS",
+            ". /usr/local/lib/hub/backend-unit/runtime.sh",
+            ". /usr/local/lib/hub/backend-unit/plan.sh",
+            ". /usr/local/lib/hub/backend-unit/execute.sh",
+            ". /usr/local/lib/hub/backend-unit/receipt.sh",
+            "main",
+            "",
+        )
+    )
+    assert _hard2g_backend_entrypoint_is_closed(canonical_entrypoint)
+    for hostile in (
+        canonical_entrypoint.replace("unset GOMAXPROCS", "GOMAXPROCS=1", 1),
+        canonical_entrypoint.replace("main", 'command "$HUB_QA_COMMAND"', 1),
+        canonical_entrypoint.replace("main", "docker compose run backend-unit", 1),
+        canonical_entrypoint.replace("main", "touch /reports/SEAL", 1),
+    ):
+        assert not _hard2g_backend_entrypoint_is_closed(hostile)
+
+
+def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
+    python_image = "sha256:" + "a" * 64
+    backend_image = "sha256:" + "b" * 64
+    image_ids = MappingProxyType(
+        {"python_contract": python_image, "backend_unit": backend_image}
+    )
+    assert _hard2g_provenance_bindings_are_closed(
+        _HARD2G_IMAGE_INSPECT_ARGVS,
+        _HARD2G_BUILD_INPUT_PATHS,
+        _HARD2G_BUILD_INPUT_PATHS,
+        image_ids,
+        backend_image,
+    )
+    assert not _hard2g_provenance_bindings_are_closed(
+        _HARD2G_IMAGE_INSPECT_ARGVS[:-1],
+        _HARD2G_BUILD_INPUT_PATHS,
+        _HARD2G_BUILD_INPUT_PATHS,
+        image_ids,
+        backend_image,
+    )
+    assert not _hard2g_provenance_bindings_are_closed(
+        _HARD2G_IMAGE_INSPECT_ARGVS,
+        _HARD2G_BUILD_INPUT_PATHS,
+        _HARD2G_BUILD_INPUT_PATHS[:-1],
+        image_ids,
+        backend_image,
+    )
+    assert not _hard2g_provenance_bindings_are_closed(
+        _HARD2G_IMAGE_INSPECT_ARGVS,
+        _HARD2G_BUILD_INPUT_PATHS,
+        _HARD2G_BUILD_INPUT_PATHS,
+        image_ids,
+        python_image,
+    )
+
+
+def test_hard2g_report_budget_is_exact_and_fail_closed() -> None:
+    assert _hard2g_report_budget_is_closed(_HARD2G_REPORT_BUDGET)
+    too_small = dict(_HARD2G_REPORT_BUDGET)
+    too_small["total_bytes"] = 63 * 1024 * 1024
+    assert not _hard2g_report_budget_is_closed(MappingProxyType(too_small))
+    stream_mismatch = dict(_HARD2G_REPORT_BUDGET)
+    streams = dict(_mapping_value(_HARD2G_REPORT_BUDGET, "streams"))
+    streams["race"] = MappingProxyType(
+        {"stdout": 23 * 1024 * 1024, "stderr": 4 * 1024 * 1024}
+    )
+    stream_mismatch["streams"] = MappingProxyType(streams)
+    assert not _hard2g_report_budget_is_closed(
+        MappingProxyType(stream_mismatch)
+    )
+
+
+def test_hard2g_container_publication_order_is_closed() -> None:
+    canonical_receipt = '''#!/bin/sh
+set -eu
+write_owner
+write_package_plans
+write_stage_artifacts
+write_inventory
+: > "$run_dir/CONTAINER_COMPLETE"
+write_atomic "$run_dir/container-receipt.json" "$receipt"
+'''
+    assert _hard2g_container_publication_is_closed(canonical_receipt)
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt.replace("CONTAINER_COMPLETE", "container-receipt.json", 1)
+    )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt + 'write_atomic "$run_dir/SEAL" "$seal"\n'
+    )
+
+
 def test_retired_control_plane_is_absent_and_unreferenced() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
@@ -511,7 +775,7 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
                 / "entrypoints"
                 / "backend-unit.sh"
             ),
-            "if go build ./...; then",
+            "unset GOMAXPROCS",
         ),
         (
             _frontend_entrypoint_is_closed,
@@ -1576,17 +1840,23 @@ def _public_service_overrides(name: str) -> Mapping[str, object]:
                 "environment": MappingProxyType(
                     {
                         "GOCACHE": "/var/cache/hub-go",
+                        "GOENV": "off",
+                        "GOFLAGS": "-p=1",
+                        "GOPROXY": "off",
+                        "GOTOOLCHAIN": "local",
                         "GOTMPDIR": "/var/tmp/hub-go",
+                        "GOWORK": "off",
                     }
                 ),
                 "cpus": 6.0,
-                "mem_limit": "10g",
+                "mem_limit": "2g",
+                "memswap_limit": "2g",
                 "tmpfs": (
                     "/tmp:rw,noexec,nosuid,nodev,size=64m",
                     "/var/cache/hub-go:rw,noexec,nosuid,nodev,"
-                    "size=3g,uid=10001,gid=10001,mode=1770",
+                    "size=768m,uid=10001,gid=10001,mode=1770",
                     "/var/tmp/hub-go:rw,nosuid,nodev,exec,"
-                    "size=4g,uid=10001,gid=10001,mode=1770",
+                    "size=384m,uid=10001,gid=10001,mode=1770",
                 ),
             }
         ),
@@ -1971,8 +2241,16 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                         "/usr/local/bin/backend-unit",
                         "RUN sed -i 's/\\r$//' /usr/local/bin/backend-unit && "
                         "chmod 0555 /usr/local/bin/backend-unit",
-                        "ENV GOCACHE=/reports/backend-unit/go-cache",
-                        "ENV GOTMPDIR=/reports/backend-unit/tmp",
+                        "COPY testframework/docker/backend_unit/ "
+                        "/usr/local/lib/hub/backend-unit/",
+                        "RUN find /usr/local/lib/hub/backend-unit -type f -exec "
+                        "sed -i 's/\\r$//' {} + && chmod 0555 "
+                        "/usr/local/lib/hub/backend-unit/runtime.sh "
+                        "/usr/local/lib/hub/backend-unit/plan.sh "
+                        "/usr/local/lib/hub/backend-unit/execute.sh "
+                        "/usr/local/lib/hub/backend-unit/receipt.sh",
+                        "ENV GOCACHE=/var/cache/hub-go",
+                        "ENV GOTMPDIR=/var/tmp/hub-go",
                         "ENV HOME=/tmp",
                         "USER 10001:10001",
                         'ENTRYPOINT ["/usr/local/bin/backend-unit"]',
@@ -2035,6 +2313,7 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                         "COPY testframework/src/ ./src/",
                         "RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv "
                         "uv sync --frozen --all-groups",
+                        "COPY testframework/observers/ ./observers/",
                         "COPY docker-compose.local.yml "
                         "/opt/hub/docker-compose.local.yml",
                         "COPY .planning/phases/130-tf-traceability-gates/PLAN.md "
@@ -2061,7 +2340,7 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                         "chown -R 10001:10001 /opt/hub/testframework "
                         "/opt/hub/.venv",
                         "ENV PATH=/opt/hub/.venv/bin:$PATH",
-                        "ENV PYTHONPATH=/opt/hub/testframework/src",
+                        "ENV PYTHONPATH=/opt/hub/testframework/src:/opt/hub/testframework",
                         "ENV PYTHONSAFEPATH=1",
                         "USER 10001:10001",
                         'ENTRYPOINT ["/usr/local/bin/python-qa"]',
@@ -2191,28 +2470,163 @@ def _docker_instructions_are_safe(text: object) -> bool:
 
 
 def _backend_entrypoint_is_closed(text: object) -> bool:
+    return _hard2g_backend_entrypoint_is_closed(text)
+
+
+def _hard2g_backend_entrypoint_is_closed(text: object) -> bool:
     try:
         if type(text) is not str or not _shell_source_is_safe(text):
             return False
-        return text == _canonical_fixed_unit_entrypoint(
-            target="backend-unit",
-            report_setup='mkdir -p "$report_dir" "$report_dir/go-cache" "$report_dir/tmp"',
-            workdir="/opt/hub/source/backend",
-            steps=(
-                ("build", "go build ./..."),
-                ("vet", "go vet -tags hubtest ./..."),
-                (
-                    "unit",
-                    "go test -tags hubtest -json -count=1 -timeout=150s "
-                    "./tests/...",
-                ),
-                (
-                    "race",
-                    "go test -tags hubtest -json -race -count=1 "
-                    "-timeout=150s ./tests/...",
-                ),
-            ),
+        lines = tuple(line.strip() for line in text.splitlines() if line.strip())
+        helper_paths = (
+            "/usr/local/lib/hub/backend-unit/runtime.sh",
+            "/usr/local/lib/hub/backend-unit/plan.sh",
+            "/usr/local/lib/hub/backend-unit/execute.sh",
+            "/usr/local/lib/hub/backend-unit/receipt.sh",
         )
+        forbidden = (
+            "docker ",
+            "observer",
+            "final-receipt",
+            "seal",
+            "hub_qa_command",
+            "exit 0",
+        )
+        return (
+            lines[:4]
+            == (
+                "#!/bin/sh",
+                "set -eu",
+                '[ "$#" -eq 0 ] || exit 64',
+                "unset GOMAXPROCS",
+            )
+            and all(text.count(path) == 1 for path in helper_paths)
+            and not any(token in text.casefold() for token in forbidden)
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_backend_unit_service_is_closed(service: object) -> bool:
+    try:
+        return service == _expected_public_service("backend-unit")
+    except Exception:
+        return False
+
+
+def _hard2g_runner_helpers_are_closed(repo_root: Path) -> bool:
+    try:
+        helper_paths = (
+            repo_root / "testframework/docker/backend_unit/runtime.sh",
+            repo_root / "testframework/docker/backend_unit/plan.sh",
+            repo_root / "testframework/docker/backend_unit/execute.sh",
+            repo_root / "testframework/docker/backend_unit/receipt.sh",
+        )
+        helper_sources = tuple(_read_bounded_regular(path) for path in helper_paths)
+        if not all(type(source) is str for source in helper_sources):
+            return False
+        receipt = helper_sources[-1]
+        assert type(receipt) is str
+        return (
+            all(_shell_source_is_safe(source) for source in helper_sources)
+            and _hard2g_container_publication_is_closed(receipt)
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_container_publication_is_closed(text: object) -> bool:
+    try:
+        if type(text) is not str or not _shell_source_is_safe(text):
+            return False
+        complete_index = text.find("CONTAINER_COMPLETE")
+        receipt_index = text.find("container-receipt.json")
+        return (
+            text.count("CONTAINER_COMPLETE") == 1
+            and text.count("container-receipt.json") == 1
+            and 0 <= complete_index < receipt_index
+            and not any(
+                token in text.casefold()
+                for token in (
+                    "observer-receipt",
+                    "final-receipt",
+                    "/seal",
+                    "rename",
+                    " mv ",
+                )
+            )
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_readme_metadata_copies_are_closed(text: object) -> bool:
+    try:
+        stages = _docker_stages_safe(text)
+        if not isinstance(stages, Mapping):
+            return False
+        python_tests = stages.get("python-tests")
+        if type(python_tests) is not tuple or len(python_tests) != 2:
+            return False
+        instructions = python_tests[1]
+        return (
+            type(instructions) is tuple
+            and "COPY testframework/pyproject.toml testframework/uv.lock "
+            "testframework/.python-version testframework/README.md ./"
+            in instructions
+            and "COPY testframework/schemas/ ./schemas/" in instructions
+            and "COPY testframework/docker/ ./docker/" in instructions
+            and "testframework/schemas/README.md" not in text
+            and "hard2g" not in text.casefold()
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_provenance_bindings_are_closed(
+    image_inspect_argvs: object,
+    manifest_before: object,
+    manifest_after: object,
+    image_ids: object,
+    bound_backend_image: object,
+) -> bool:
+    try:
+        if (
+            image_inspect_argvs != _HARD2G_IMAGE_INSPECT_ARGVS
+            or manifest_before != _HARD2G_BUILD_INPUT_PATHS
+            or manifest_after != _HARD2G_BUILD_INPUT_PATHS
+            or not isinstance(image_ids, Mapping)
+            or tuple(image_ids) != ("python_contract", "backend_unit")
+        ):
+            return False
+        python_image = image_ids["python_contract"]
+        backend_image = image_ids["backend_unit"]
+        return (
+            type(python_image) is str
+            and type(backend_image) is str
+            and all(
+                image.startswith("sha256:")
+                and len(image) == 71
+                and set(image[7:]) <= set("0123456789abcdef")
+                for image in (python_image, backend_image)
+            )
+            and bound_backend_image == backend_image
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_report_budget_is_closed(budget: object) -> bool:
+    try:
+        if budget != _HARD2G_REPORT_BUDGET or not isinstance(budget, Mapping):
+            return False
+        streams = _mapping_value(budget, "streams")
+        allocated = sum(
+            _mapping_value(streams, stage)[stream]
+            for stage in ("build", "vet", "unit", "race")
+            for stream in ("stdout", "stderr")
+        )
+        return allocated == budget["total_bytes"] - budget["reserved_metadata_bytes"]
     except Exception:
         return False
 
