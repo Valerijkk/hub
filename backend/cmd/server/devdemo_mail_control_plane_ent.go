@@ -414,13 +414,13 @@ func validDevMailControlDomainRow(row *appent.MailDomain, plan devMailControlDom
 		bytes.Equal(row.DesiredHash, plan.desiredHash[:]) &&
 		row.DeployedGeneration != nil && *row.DeployedGeneration == devMailControlGeneration &&
 		row.DeployedHashVersion != nil && *row.DeployedHashVersion == devMailControlHashVersion &&
-		row.DeployedHash != nil && bytes.Equal(row.DeployedHash, plan.desiredHash[:]) &&
+		row.DeployedHash != nil && bytes.Equal(*row.DeployedHash, plan.desiredHash[:]) &&
 		row.AttemptedGeneration == nil && row.AttemptedHashVersion == nil && row.AttemptedHash == nil &&
 		row.LastErrorCode == nil && row.NextRetryAt == nil && row.LeaseToken == nil && row.LeaseUntil == nil
 }
 
 func validDevMailControlAccountRow(row *appent.MailAccount, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) bool {
-	if row == nil || !validDevMailControlNow(now) || row.ID != plan.id || row.OrganizationID != plan.organizationID || row.UserID != plan.userID || row.MailDomainID != domain.id || row.EngineProvisioningKey != plan.provisioningKey || row.LocalPart != plan.localPart || row.EngineAccountID == nil || *row.EngineAccountID != engineAccountID || !row.DesiredEnabled || row.Status != mailaccount.Status("active") || row.ControlGeneration != devMailControlGeneration || row.ControlHashVersion != devMailControlHashVersion || !bytes.Equal(row.ControlHash, plan.controlHash[:]) || row.DeployedGeneration == nil || *row.DeployedGeneration != devMailControlGeneration || row.DeployedHashVersion == nil || *row.DeployedHashVersion != devMailControlHashVersion || row.DeployedHash == nil || !bytes.Equal(row.DeployedHash, plan.controlHash[:]) || row.ProvisionErrorCode != nil || row.SyncErrorCode != nil {
+	if row == nil || !validDevMailControlNow(now) || row.ID != plan.id || row.OrganizationID != plan.organizationID || row.UserID != plan.userID || row.MailDomainID != domain.id || row.EngineProvisioningKey != plan.provisioningKey || row.LocalPart != plan.localPart || row.EngineAccountID == nil || *row.EngineAccountID != engineAccountID || !row.DesiredEnabled || row.Status != mailaccount.Status("active") || row.ControlGeneration != devMailControlGeneration || row.ControlHashVersion != devMailControlHashVersion || !bytes.Equal(row.ControlHash, plan.controlHash[:]) || row.DeployedGeneration == nil || *row.DeployedGeneration != devMailControlGeneration || row.DeployedHashVersion == nil || *row.DeployedHashVersion != devMailControlHashVersion || row.DeployedHash == nil || !bytes.Equal(*row.DeployedHash, plan.controlHash[:]) || row.ProvisionErrorCode != nil || row.SyncErrorCode != nil {
 		return false
 	}
 	switch row.ProjectionState {
