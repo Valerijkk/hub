@@ -149,10 +149,11 @@ func mailboxEntCheckedTimeAdd(now time.Time, duration time.Duration) (time.Time,
 }
 
 func mailboxEntValidTime(value time.Time) bool {
-	if value.IsZero() || value.Location() != time.UTC || value.Nanosecond() != 0 {
+	if value.IsZero() || value.Nanosecond() != 0 {
 		return false
 	}
-	return true
+	_, offset := value.Zone()
+	return offset == 0
 }
 
 func mailboxEntSafeError(err error) error {

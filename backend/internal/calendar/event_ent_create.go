@@ -131,7 +131,7 @@ func (backend *eventEntTransactionBackend) PersistCalendarEvent(ctx context.Cont
 		SetLocation(input.Location).
 		SetAllDay(input.Temporal.AllDay).
 		SetTimezone(input.Temporal.Timezone).
-		SetExdates(append([]string(nil), input.Exdates...)).
+		SetExdates(append([]string{}, input.Exdates...)).
 		SetSequence(int(input.Sequence)).
 		SetVersion(int(input.Version)).
 		SetSource(calendarevent.Source(input.Source)).

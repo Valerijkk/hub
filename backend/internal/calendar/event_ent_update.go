@@ -372,7 +372,7 @@ func (backend *eventEntTransactionBackend) persistCalendarEventUpdateMaster(ctx 
 		SetLocation(input.Location).
 		SetAllDay(input.Temporal.AllDay).
 		SetTimezone(input.Temporal.Timezone).
-		SetExdates(append([]string(nil), input.Exdates...)).
+		SetExdates(append([]string{}, input.Exdates...)).
 		SetSequence(sequence).
 		SetVersion(version).
 		SetStatus(calendarevent.Status(input.Status))

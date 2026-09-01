@@ -634,7 +634,7 @@ func calendarInboundInviteReceiptReady(
 		*receipt.LeaseToken == claim.LeaseToken &&
 		receipt.LeaseGeneration == claim.LeaseGeneration &&
 		receipt.LeaseUntil != nil &&
-		calendarInboundInviteWholeSecondUTC(*receipt.LeaseUntil) &&
+		calendarInboundMessagePersistedWholeSecondValid(*receipt.LeaseUntil) &&
 		receipt.NextAttemptAt == nil &&
 		receipt.ErrorCode == nil
 }
@@ -667,7 +667,7 @@ func calendarInboundInviteMailAccountReady(
 		account.SyncCursor == nil ||
 		*account.SyncCursor == "" ||
 		account.LastSyncedAt == nil ||
-		!calendarInboundInviteWholeSecondUTC(*account.LastSyncedAt) ||
+		!calendarInboundMessagePersistedWholeSecondValid(*account.LastSyncedAt) ||
 		account.RebuildCheckpoint != nil ||
 		account.RebuildBaseCursor != nil ||
 		account.SyncErrorCode != nil {
@@ -833,7 +833,7 @@ func calendarInboundInviteMapObjectState(
 			row.CalendarEventID != nil ||
 			row.ExpiresAt == nil ||
 			row.ExpiresAt.IsZero() ||
-			!calendarInboundInviteWholeSecondUTC(*row.ExpiresAt) {
+			!calendarInboundMessagePersistedWholeSecondValid(*row.ExpiresAt) {
 			return nil, ErrEventInvalid
 		}
 	default:
@@ -944,7 +944,7 @@ func calendarInboundInviteDeferredExpiry(
 		return nil, ErrEventInvalid
 	}
 	if current != nil && string(current.State) == string(CalendarInboundObjectDeferredMissingMaster) {
-		if current.ExpiresAt == nil || !calendarInboundInviteWholeSecondUTC(*current.ExpiresAt) {
+		if current.ExpiresAt == nil || !calendarInboundMessagePersistedWholeSecondValid(*current.ExpiresAt) {
 			return nil, ErrEventInvalid
 		}
 		return eventEntTimePointer(current.ExpiresAt), nil
@@ -1176,7 +1176,7 @@ func (backend *eventEntTransactionBackend) createCalendarInboundInviteEvent(
 		SetLocation(message.Location).
 		SetAllDay(projection.temporal.AllDay).
 		SetTimezone(projection.temporal.Timezone).
-		SetExdates(append([]string(nil), projection.exdates...)).
+		SetExdates(append([]string{}, projection.exdates...)).
 		SetSequence(sequence).
 		SetVersion(1).
 		SetSource(calendarevent.Source(CalendarEventSourceMailImport)).
@@ -1243,7 +1243,7 @@ func (backend *eventEntTransactionBackend) updateCalendarInboundInviteEvent(
 		SetLocation(message.Location).
 		SetAllDay(projection.temporal.AllDay).
 		SetTimezone(projection.temporal.Timezone).
-		SetExdates(append([]string(nil), projection.exdates...)).
+		SetExdates(append([]string{}, projection.exdates...)).
 		SetSequence(sequence).
 		SetVersion(nextVersion).
 		SetStatus(calendarevent.Status(projection.status)).

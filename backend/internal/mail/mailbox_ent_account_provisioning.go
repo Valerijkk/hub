@@ -663,18 +663,22 @@ func mailboxEntAccountProvisioningDue(account *ent.MailAccount, databaseNow time
 	return *account.NextProvisionAt, !account.NextProvisionAt.After(databaseNow), true
 }
 
+func mailboxEntNullableBytesAbsent(value *[]byte) bool {
+	return value == nil || *value == nil
+}
+
 func mailboxEntAccountProvisioningConverged(account *ent.MailAccount) bool {
-	if account == nil || account.Status != mailaccount.Status("provisioning") || !account.DesiredEnabled || account.EngineAccountID == nil || !mailboxAccountProvisioningSafeText(*account.EngineAccountID) || account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || len(*account.DeployedHash) != sha256.Size || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 {
+	if account == nil || account.Status != mailaccount.Status("provisioning") || !account.DesiredEnabled || account.EngineAccountID == nil || !mailboxAccountProvisioningSafeText(*account.EngineAccountID) || account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || mailboxEntNullableBytesAbsent(account.DeployedHash) || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || len(*account.DeployedHash) != sha256.Size || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 {
 		return false
 	}
-	return account.AttemptedControlGeneration == nil && account.AttemptedControlHashVersion == nil && account.AttemptedControlHash == nil && account.ProvisionLeaseToken == nil && account.ProvisionLeaseUntil == nil && account.NextProvisionAt == nil && account.ProvisionErrorCode == nil
+	return account.AttemptedControlGeneration == nil && account.AttemptedControlHashVersion == nil && mailboxEntNullableBytesAbsent(account.AttemptedControlHash) && account.ProvisionLeaseToken == nil && account.ProvisionLeaseUntil == nil && account.NextProvisionAt == nil && account.ProvisionErrorCode == nil
 }
 
 func mailboxEntAccountProvisioningPreProviderShape(account *ent.MailAccount) bool {
-	if account == nil || account.ID == uuid.Nil || account.OrganizationID == uuid.Nil || account.UserID == uuid.Nil || account.MailDomainID == uuid.Nil || account.Status != mailaccount.Status("provisioning") || !account.DesiredEnabled || account.ProjectionState != mailaccount.ProjectionState("bootstrapping") || account.EngineAccountID != nil || !mailboxAccountProvisioningSafeText(account.EngineProvisioningKey) || !validCanonicalRegistryLocalPart(account.LocalPart) || account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration != nil || account.DeployedHashVersion != nil || account.DeployedHash != nil || account.PasswordEnrollmentGeneration != 0 || account.PasswordEnrolledEngineAccountID != nil || account.PasswordEnrolledAt != nil || account.PasswordEnrollmentLeaseToken != nil || account.PasswordEnrollmentLeaseUntil != nil || account.ProvisionAttempts < 0 || !mailboxEntValidTime(account.EventCutoffAt) || !mailboxEntValidTime(account.SyncScheduleUpdatedAt) {
+	if account == nil || account.ID == uuid.Nil || account.OrganizationID == uuid.Nil || account.UserID == uuid.Nil || account.MailDomainID == uuid.Nil || account.Status != mailaccount.Status("provisioning") || !account.DesiredEnabled || account.ProjectionState != mailaccount.ProjectionState("bootstrapping") || account.EngineAccountID != nil || !mailboxAccountProvisioningSafeText(account.EngineProvisioningKey) || !validCanonicalRegistryLocalPart(account.LocalPart) || account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration != nil || account.DeployedHashVersion != nil || !mailboxEntNullableBytesAbsent(account.DeployedHash) || account.PasswordEnrollmentGeneration != 0 || account.PasswordEnrolledEngineAccountID != nil || account.PasswordEnrolledAt != nil || account.PasswordEnrollmentLeaseToken != nil || account.PasswordEnrollmentLeaseUntil != nil || account.ProvisionAttempts < 0 || !mailboxEntValidTime(account.EventCutoffAt) || !mailboxEntValidTime(account.SyncScheduleUpdatedAt) {
 		return false
 	}
-	if (account.AttemptedControlGeneration == nil) != (account.AttemptedControlHashVersion == nil) || (account.AttemptedControlGeneration == nil) != (account.AttemptedControlHash == nil) {
+	if (account.AttemptedControlGeneration == nil) != (account.AttemptedControlHashVersion == nil) || (account.AttemptedControlGeneration == nil) != mailboxEntNullableBytesAbsent(account.AttemptedControlHash) {
 		return false
 	}
 	if account.AttemptedControlGeneration != nil && (*account.AttemptedControlGeneration != account.ControlGeneration || *account.AttemptedControlHashVersion != account.ControlHashVersion || len(*account.AttemptedControlHash) != sha256.Size || subtle.ConstantTimeCompare(*account.AttemptedControlHash, account.ControlHash) != 1) {

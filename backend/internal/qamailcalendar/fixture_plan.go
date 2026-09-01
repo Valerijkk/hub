@@ -95,7 +95,7 @@ func newInboundRequestFixturePlan(nonce string) (inboundRequestFixturePlan, erro
 		domainControlHash:      inboundRequestFixtureHash("domain-control", nonce),
 		accountControlHash:     inboundRequestFixtureHash("account-control", nonce),
 		calendarText: fmt.Sprintf(
-			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCALSCALE:GREGORIAN\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:%s\r\nDTSTAMP:20260826T000000Z\r\nDTSTART:20260827T100000Z\r\nDTEND:20260827T103000Z\r\nSEQUENCE:0\r\nSTATUS:CONFIRMED\r\nSUMMARY:QA Mail Calendar Meeting\r\nORGANIZER:mailto:%s\r\nATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:\r\n mailto:%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+			"BEGIN:VCALENDAR\r\nPRODID:-//Hub//Calendar//EN\r\nVERSION:2.0\r\nCALSCALE:GREGORIAN\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:%s\r\nDTSTAMP:20260826T000000Z\r\nDTSTART:20260827T100000Z\r\nDTEND:20260827T103000Z\r\nSEQUENCE:0\r\nSTATUS:CONFIRMED\r\nSUMMARY:QA Mail Calendar Meeting\r\nORGANIZER:mailto:%s\r\nATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:\r\n mailto:%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
 			itipUID,
 			organizerAddress,
 			ownerAddress,

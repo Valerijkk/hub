@@ -820,8 +820,8 @@ func calendarInboundMessageRegistrationFromReceipt(
 func calendarInboundMessageReceiptValid(receipt *ent.CalendarInboundMessageReceipt) bool {
 	if receipt == nil || receipt.ID == uuid.Nil || receipt.LeaseGeneration < 0 ||
 		receipt.Attempts < 0 || receipt.Attempts > calendarInboundMessageMaximumAttempts ||
-		!calendarInboundMessageTimestampValid(receipt.CreatedAt) ||
-		!calendarInboundMessageTimestampValid(receipt.UpdatedAt) || receipt.UpdatedAt.Before(receipt.CreatedAt) {
+		!calendarInboundMessagePersistedTimestampValid(receipt.CreatedAt) ||
+		!calendarInboundMessagePersistedTimestampValid(receipt.UpdatedAt) || receipt.UpdatedAt.Before(receipt.CreatedAt) {
 		return false
 	}
 	if _, err := calendarInboundMessageRegistrationFromReceipt(receipt); err != nil {
@@ -836,7 +836,7 @@ func calendarInboundMessageReceiptValid(receipt *ent.CalendarInboundMessageRecei
 		return false
 	}
 	if receipt.DeferredObjectStateID != nil {
-		if *receipt.DeferredObjectStateID == uuid.Nil || !calendarInboundMessageWholeSecondUTC(*receipt.DeferredExpiresAt) {
+		if *receipt.DeferredObjectStateID == uuid.Nil || !calendarInboundMessagePersistedWholeSecondValid(*receipt.DeferredExpiresAt) {
 			return false
 		}
 		if receipt.NextAttemptAt != nil && receipt.NextAttemptAt.After(*receipt.DeferredExpiresAt) {
@@ -853,17 +853,17 @@ func calendarInboundMessageReceiptValid(receipt *ent.CalendarInboundMessageRecei
 			return receipt.NextAttemptAt == nil && receipt.ErrorCode == nil
 		}
 		return receipt.NextAttemptAt != nil && receipt.ErrorCode != nil &&
-			calendarInboundMessageWholeSecondUTC(*receipt.NextAttemptAt) &&
+			calendarInboundMessagePersistedWholeSecondValid(*receipt.NextAttemptAt) &&
 			calendarInboundMessageRetryErrorCodeValid(string(*receipt.ErrorCode))
 	case calendarInboundMessageReceiptStateProcessing:
 		return receipt.LeaseToken != nil && *receipt.LeaseToken != uuid.Nil &&
-			receipt.LeaseUntil != nil && calendarInboundMessageWholeSecondUTC(*receipt.LeaseUntil) &&
+			receipt.LeaseUntil != nil && calendarInboundMessagePersistedWholeSecondValid(*receipt.LeaseUntil) &&
 			receipt.LeaseGeneration >= 1 && receipt.Attempts >= 1 &&
 			receipt.NextAttemptAt == nil && receipt.ErrorCode == nil
 	case calendarInboundMessageReceiptStateDeferredMissingMaster:
 		return receipt.LeaseToken == nil && receipt.LeaseUntil == nil &&
 			receipt.Attempts >= 1 && receipt.Attempts < calendarInboundMessageMaximumAttempts &&
-			receipt.NextAttemptAt != nil && calendarInboundMessageWholeSecondUTC(*receipt.NextAttemptAt) &&
+			receipt.NextAttemptAt != nil && calendarInboundMessagePersistedWholeSecondValid(*receipt.NextAttemptAt) &&
 			receipt.DeferredObjectStateID != nil && receipt.DeferredExpiresAt != nil && receipt.ErrorCode == nil
 	case calendarInboundMessageReceiptStateApplied,
 		calendarInboundMessageReceiptStateIgnoredStale,
@@ -927,6 +927,14 @@ func calendarInboundMessageTimestampValid(value time.Time) bool {
 
 func calendarInboundMessageWholeSecondUTC(value time.Time) bool {
 	return calendarInboundMessageTimestampValid(value) && value.Nanosecond() == 0
+}
+
+func calendarInboundMessagePersistedTimestampValid(value time.Time) bool {
+	return !value.IsZero()
+}
+
+func calendarInboundMessagePersistedWholeSecondValid(value time.Time) bool {
+	return calendarInboundMessagePersistedTimestampValid(value) && value.Nanosecond() == 0
 }
 
 func calendarInboundMessageReceiptErrorCodeValid(code *calendarinboundmessagereceipt.ErrorCode) bool {

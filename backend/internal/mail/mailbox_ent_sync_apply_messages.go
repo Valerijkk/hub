@@ -538,10 +538,10 @@ func mailboxEntApplyCreateThread(ctx context.Context, tx *ent.Tx, accountID uuid
 }
 
 func mailboxEntApplyThreadRowValid(row *ent.MailThread, accountID uuid.UUID) bool {
-	if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.ThreadKeyVersion != int32(ThreadKeyVersionV1) || len(row.ThreadKey) != len(ThreadKey{}) || row.MessageCount < 1 || row.UnreadCount < 0 || row.UnreadCount > row.MessageCount || row.LastSeenSyncEpoch < 0 || row.LastSeenSyncEpoch > mailboxEntApplySyncEpochMaximum || !syncValidSafeText(row.NormalizedSubject, MaxEngineHeaderValueBytes, true) || !syncValidTime(row.LastMessageAt) || !syncValidTime(row.CreatedAt) || !syncValidTime(row.UpdatedAt) {
+	if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.ThreadKeyVersion != int32(ThreadKeyVersionV1) || len(row.ThreadKey) != len(ThreadKey{}) || row.MessageCount < 1 || row.UnreadCount < 0 || row.UnreadCount > row.MessageCount || row.LastSeenSyncEpoch < 0 || row.LastSeenSyncEpoch > mailboxEntApplySyncEpochMaximum || !syncValidSafeText(row.NormalizedSubject, MaxEngineHeaderValueBytes, true) || !mailboxEntValidTime(row.LastMessageAt) || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) {
 		return false
 	}
-	if row.DeletedAt != nil && !syncValidTime(*row.DeletedAt) {
+	if row.DeletedAt != nil && !mailboxEntValidTime(*row.DeletedAt) {
 		return false
 	}
 	key, ok := mailboxEntApplyThreadKeyFromRow(row)
@@ -783,10 +783,10 @@ func mailboxEntApplyReceivedEventChange(current, desired *uuid.UUID) (bool, erro
 }
 
 func mailboxEntApplyMessageRowValid(row *ent.MailMessage, accountID uuid.UUID) bool {
-	if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.MailThreadID == uuid.Nil || !syncValidOpaque(row.EngineMessageID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(row.EngineVersion, MaxEngineOpaqueIDBytes) || (row.InternetMessageID != nil && !validThreadMessageID(*row.InternetMessageID)) || (row.InReplyTo != nil && !validThreadMessageID(*row.InReplyTo)) || row.SizeBytes < 0 || row.SizeBytes > MaxEngineMessageBytes || row.LastSeenSyncEpoch < 0 || row.LastSeenSyncEpoch > mailboxEntApplySyncEpochMaximum || !syncValidSafeText(row.Subject, MaxEngineHeaderValueBytes, true) || !syncValidSafeText(row.Snippet, MaxEngineSnippetBytes, true) || !syncValidTime(row.CreatedAt) || !syncValidTime(row.UpdatedAt) {
+	if row == nil || row.ID == uuid.Nil || row.MailAccountID != accountID || row.MailThreadID == uuid.Nil || !syncValidOpaque(row.EngineMessageID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(row.EngineVersion, MaxEngineOpaqueIDBytes) || (row.InternetMessageID != nil && !validThreadMessageID(*row.InternetMessageID)) || (row.InReplyTo != nil && !validThreadMessageID(*row.InReplyTo)) || row.SizeBytes < 0 || row.SizeBytes > MaxEngineMessageBytes || row.LastSeenSyncEpoch < 0 || row.LastSeenSyncEpoch > mailboxEntApplySyncEpochMaximum || !syncValidSafeText(row.Subject, MaxEngineHeaderValueBytes, true) || !syncValidSafeText(row.Snippet, MaxEngineSnippetBytes, true) || !mailboxEntValidTime(row.CreatedAt) || !mailboxEntValidTime(row.UpdatedAt) {
 		return false
 	}
-	if row.SentAt != nil && !syncValidTime(*row.SentAt) || row.ReceivedAt != nil && !syncValidTime(*row.ReceivedAt) || row.FlagsSyncedAt != nil && !syncValidTime(*row.FlagsSyncedAt) || row.DeletedAt != nil && !syncValidTime(*row.DeletedAt) || row.CalendarEventID != nil && *row.CalendarEventID == uuid.Nil || row.ReceivedEventID != nil && *row.ReceivedEventID == uuid.Nil || row.EngineState != nil && !syncValidSafeText(*row.EngineState, 4_096, false) {
+	if row.SentAt != nil && !mailboxEntValidTime(*row.SentAt) || row.ReceivedAt != nil && !mailboxEntValidTime(*row.ReceivedAt) || row.FlagsSyncedAt != nil && !mailboxEntValidTime(*row.FlagsSyncedAt) || row.DeletedAt != nil && !mailboxEntValidTime(*row.DeletedAt) || row.CalendarEventID != nil && *row.CalendarEventID == uuid.Nil || row.ReceivedEventID != nil && *row.ReceivedEventID == uuid.Nil || row.EngineState != nil && !syncValidSafeText(*row.EngineState, 4_096, false) {
 		return false
 	}
 	if row.Priority != mailmessage.Priority(EnginePriorityLow) && row.Priority != mailmessage.Priority(EnginePriorityNormal) && row.Priority != mailmessage.Priority(EnginePriorityHigh) {
