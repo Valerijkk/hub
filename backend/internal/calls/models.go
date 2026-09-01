@@ -1,10 +1,20 @@
 package calls
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type PersistedCallProvider string
+
+const (
+	PersistedCallProviderLiveKit PersistedCallProvider = "livekit"
+	PersistedCallProviderJitsi   PersistedCallProvider = "jitsi"
+)
+
+var ErrCallProviderLookupInvalid = errors.New("invalid call provider lookup")
 
 // CreateCallRequest содержит параметры для создания нового звонка.
 type CreateCallRequest struct {

@@ -2,6 +2,8 @@ package calls
 
 import (
 	"context"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -106,6 +108,35 @@ func (r *EntRepository) UpdateCallStarted(ctx context.Context, roomName string, 
 func (r *EntRepository) GetCallByRoomName(ctx context.Context, roomName string) (*ent.Call, error) {
 	return r.db.Call.Query().
 		Where(call.RoomName(roomName)).
+		Only(ctx)
+}
+
+func (r *EntRepository) GetCallByProviderAndRoomName(ctx context.Context, provider PersistedCallProvider, roomName string) (*ent.Call, error) {
+	if ctx == nil {
+		return nil, ErrCallProviderLookupInvalid
+	}
+
+	reflectedContext := reflect.ValueOf(ctx)
+	switch reflectedContext.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		if reflectedContext.IsNil() {
+			return nil, ErrCallProviderLookupInvalid
+		}
+	}
+
+	if r == nil ||
+		r.db == nil ||
+		(provider != PersistedCallProviderLiveKit && provider != PersistedCallProviderJitsi) ||
+		strings.TrimSpace(roomName) == "" ||
+		strings.TrimSpace(roomName) != roomName {
+		return nil, ErrCallProviderLookupInvalid
+	}
+
+	return r.db.Call.Query().
+		Where(
+			call.ProviderEQ(call.Provider(provider)),
+			call.RoomName(roomName),
+		).
 		Only(ctx)
 }
 
@@ -298,7 +329,6 @@ func (r *EntRepository) IsActiveParticipant(ctx context.Context, callID, userID 
 		).
 		Exist(ctx)
 }
-
 
 // IsCallParticipantOrChannelMember — A2-007: доступ к WS-комнате call:{id}.
 // Канальный звонок: член канала ИЛИ активный участник.
