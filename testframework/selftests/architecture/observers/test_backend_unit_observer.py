@@ -1125,6 +1125,13 @@ def test_main_derives_every_sealed_classification_from_raw_observations(
     assert final["run_id"] == observer["run_id"] == _RUN_ID
     assert final["owner_nonce"] == observer["owner_nonce"] == _OWNER_NONCE
     assert final["container_id"] == observer["container_id"] == _CONTAINER_ID
+    assert (
+        final["bound_backend_image_id"]
+        == observer["container_image"]
+        == observer["fixed_image_ids"]["backend_unit"]
+        == _BACKEND_IMAGE_ID
+    )
+    assert observer["fixed_image_ids"]["python_contract"] == _PYTHON_IMAGE_ID
     assert observer["canonical_build_input_manifest_bytes"] == _MANIFEST_BYTES.decode()
     assert observer["canonical_build_input_manifest_sha256"] == _MANIFEST_SHA256
     expected_stop_argv = ("docker", "stop", "--timeout", "5", _CONTAINER_ID)

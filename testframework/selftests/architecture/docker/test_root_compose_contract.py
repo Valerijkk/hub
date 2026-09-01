@@ -185,6 +185,9 @@ _HARD2G_OBSERVER_SOURCE_PATHS = (
     "testframework/observers/backend_unit/publication.py",
     "testframework/observers/backend_unit/observe.py",
 )
+_HARD2G_OBSERVER_SAFE_PATHS_SOURCE_PATH = (
+    "testframework/observers/backend_unit/safe_paths.py"
+)
 _HARD2G_OBSERVER_SELFTEST_PATHS = (
     "testframework/selftests/architecture/observers/test_backend_unit_receipts.py",
     "testframework/selftests/architecture/observers/"
@@ -671,6 +674,103 @@ def test_hard2g_backend_unit_compose_contract_rejects_authority_mutations() -> N
     assert not _qa_service_profiles_are_closed(MappingProxyType(added_service))
 
 
+def test_hard2g_task2_provenance_oracle_rejects_role_blind_binding() -> None:
+    source = _required_asset_text(
+        _REPO_ROOT / _HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE
+    )
+    assert _hard2g_task2_provenance_oracle_chain_is_closed(source)
+    mutated = source.replace(
+        '        == observer["container_image"]\n',
+        '        == observer["fixed_image_ids"]["backend_unit"]\n',
+        1,
+    )
+    assert mutated != source
+    assert not _hard2g_task2_provenance_oracle_chain_is_closed(mutated)
+
+
+def test_hard2g_task2_provenance_oracle_requires_live_publish_binding() -> None:
+    source = _required_asset_text(
+        _REPO_ROOT / _HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE
+    )
+    assert _hard2g_task2_provenance_oracle_chain_is_closed(source)
+    hostile_sources = (
+        source.replace(
+            "    runtime = _RawObserverRuntime("
+            "raw_observations=raw_observations)\n",
+            "    runtime = _RawObserverRuntime()\n",
+            1,
+        ),
+        source.replace(
+            "    runtime = _RawObserverRuntime("
+            "raw_observations=raw_observations)\n",
+            "    runtime = _RawObserverRuntime("
+            "raw_observations=raw_observations)\n"
+            "    runtime = fake\n",
+            1,
+        ),
+        source.replace(
+            "    runtime = _RawObserverRuntime("
+            "raw_observations=raw_observations)\n",
+            "    runtime = _RawObserverRuntime("
+            "raw_observations=raw_observations)\n"
+            "    runtime.published = _publication_payloads()\n",
+            1,
+        ),
+        source.replace(
+            "    final, observer = runtime.published\n",
+            "    runtime.__dict__.update({\"published\": _publication_payloads()})\n"
+            "    final, observer = runtime.published\n",
+            1,
+        ),
+        source.replace(
+            "    final, observer = runtime.published\n",
+            "    final, observer = _publication_payloads()\n",
+            1,
+        ),
+        source.replace(
+            "    final, observer = runtime.published\n",
+            "    runtime = fake\n"
+            "    final, observer = runtime.published\n",
+            1,
+        ),
+        source.replace(
+            "    final, observer = runtime.published\n",
+            "    runtime.published = _publication_payloads()\n"
+            "    final, observer = runtime.published\n",
+            1,
+        ),
+        source.replace(
+            '    assert final["classification"] == expected\n',
+            "    return\n"
+            '    assert final["classification"] == expected\n',
+            1,
+        ),
+        source.replace(
+            '    assert final["classification"] == expected\n',
+            '    final = {"bound_backend_image_id": _BACKEND_IMAGE_ID}\n'
+            '    assert final["classification"] == expected\n',
+            1,
+        ),
+        source.replace(
+            '    assert final["classification"] == expected\n',
+            '    observer["container_image"] = _BACKEND_IMAGE_ID\n'
+            '    assert final["classification"] == expected\n',
+            1,
+        ),
+        source.replace(
+            '    assert final["classification"] == expected\n',
+            '    observer.update({"container_image": _BACKEND_IMAGE_ID})\n'
+            '    assert final["classification"] == expected\n',
+            1,
+        ),
+    )
+    assert all(hostile != source for hostile in hostile_sources)
+    assert all(
+        not _hard2g_task2_provenance_oracle_chain_is_closed(hostile)
+        for hostile in hostile_sources
+    )
+
+
 def test_hard2g_runner_rejects_permissive_authority() -> None:
     canonical_entrypoint = "\n".join(
         (
@@ -756,6 +856,80 @@ def test_hard2g_runtime_budget_contract_is_closed() -> None:
         ),
     ):
         assert not _hard2g_runtime_budget_contract_is_closed(hostile)
+
+
+def test_hard2g_execute_budget_bridge_is_closed() -> None:
+    canonical_execute = _hard2g_execute_budget_bridge_fixture()
+    assert _hard2g_execute_budget_bridge_is_closed(canonical_execute)
+
+    for hostile in (
+        canonical_execute.replace(
+            'stream_tmp="$GOTMPDIR/stream-capture/$stage.$stream.$package_ordinal.tmp"',
+            'stream_tmp="$stream_path.raw"',
+            1,
+        ),
+        canonical_execute.replace(
+            'read_limit=$((remaining + 1))',
+            'read_limit=$((stream_cap + 1))',
+            1,
+        ),
+        canonical_execute.replace(
+            'head -c "$read_limit" < "$fifo_path" > "$stream_tmp"',
+            'while IFS= read -r chunk; do printf "%s\n" "$chunk"; done',
+            1,
+        ),
+        canonical_execute.replace(
+            '  if check_budget; then\n'
+            '    cat -- "$stream_tmp" >> "$stream_path"',
+            '  cat -- "$stream_tmp" >> "$stream_path"\n'
+            '  if check_budget; then\n    :',
+            1,
+        ),
+        canonical_execute.replace(
+            'while owned_go_child_is_live "$go_child_pid"; do',
+            'while kill -0 "$go_child_pid" 2>/dev/null; do',
+            1,
+        ),
+        canonical_execute.replace(
+            '  [ ! -e "$budget_stop_marker" ] || return 75\n  return 0',
+            '  return 0',
+            1,
+        ),
+        canonical_execute.replace(
+            '    read_bounded_stage_stream "$stage" stdout '
+            '"$stdout_fifo" "$stdout_path" "$stdout_used_path" '
+            '"$package_ordinal" &',
+            '    :',
+            1,
+        ),
+        canonical_execute.replace(
+            '    if monitor_owned_budget_stop "$go_child_pid" '
+            '"$budget_stop_marker"; then',
+            '    if :; then',
+            1,
+        ),
+        canonical_execute.replace(
+            '      terminate_owned_go_child_group\n'
+            '      reap_owned_go_child_group\n'
+            '      wait "$stdout_reader_pid"',
+            '      wait "$go_child_pid" || child_exit=$?\n'
+            '      terminate_owned_go_child_group\n'
+            '      reap_owned_go_child_group\n'
+            '      wait "$stdout_reader_pid"',
+            1,
+        ),
+        canonical_execute.replace(
+            '    if check_budget; then\n      :\n    else\n'
+            '      truncation_evidence=budget-stop\n'
+            '      terminate_owned_go_child_group\n'
+            '      reap_owned_go_child_group\n'
+            '      return 75\n    fi\n'
+            '    wait "$go_child_pid"',
+            '    wait "$go_child_pid"',
+            1,
+        ),
+    ):
+        assert not _hard2g_execute_budget_bridge_is_closed(hostile)
 
 
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
@@ -889,6 +1063,9 @@ finalize_container() {
 '''
     assert _hard2g_container_publication_is_closed(canonical_receipt)
     assert not _hard2g_container_publication_is_closed(
+        canonical_receipt + "}\n"
+    )
+    assert not _hard2g_container_publication_is_closed(
         canonical_receipt.replace(
             '"$run_dir/CONTAINER_COMPLETE"',
             '"$run_dir/container-receipt.json"',
@@ -934,6 +1111,22 @@ finalize_container() {
             1,
         )
     )
+    for hostile_early_return in (
+        canonical_receipt.replace(
+            "  write_package_plans\n",
+            "  return 0\n  write_package_plans\n",
+            1,
+        ),
+        canonical_receipt.replace(
+            "  write_inventory\n",
+            "  write_inventory\n  return 0\n",
+            1,
+        ),
+    ):
+        assert hostile_early_return != canonical_receipt
+        assert not _hard2g_container_publication_is_closed(
+            hostile_early_return
+        )
     for hostile in (
         canonical_receipt
         + 'if true; then write_atomic "$run_dir/SEAL" "$seal"; fi\n',
@@ -959,7 +1152,17 @@ finalize_container() {
         canonical_receipt + 'printf x > "$run_dir/SEAL"\n',
     ):
         assert not _hard2g_container_publication_is_closed(hostile)
+    for hostile_simple_command in (
+        "arbitrary_writer\n",
+        "python -c 'pass'\n",
+        "/tmp/writer\n",
+    ):
+        assert not _hard2g_container_publication_is_closed(
+            canonical_receipt + hostile_simple_command
+        )
     for mutation in (
+        "read run_dir\n",
+        "read -r run_dir\n",
         "run_dir=/tmp\n",
         "export run_dir=/tmp\n",
         "readonly run_dir=/tmp\n",
@@ -983,13 +1186,17 @@ finalize_container() {
 def test_hard2g_readme_metadata_is_copied_without_becoming_an_oracle(
     tmp_path: Path,
 ) -> None:
-    dockerfile = '''FROM python-base AS python-tests
-COPY testframework/pyproject.toml testframework/uv.lock testframework/.python-version testframework/README.md ./
-COPY testframework/schemas/ ./schemas/
-COPY testframework/docker/ ./docker/
-# hard2g metadata marker is allowed in a Dockerfile comment
-'''
+    dockerfile = "\n".join(
+        (
+            "FROM python-base AS python-tests",
+            *_HARD2G_METADATA_README_COPY_INSTRUCTIONS,
+            *sorted(_HARD2G_METADATA_ALLOWED_PYTHON_EXECUTABLE_INSTRUCTIONS),
+        )
+    ) + "\n"
     assert _hard2g_readme_metadata_copies_are_closed(dockerfile)
+    assert _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + "ENV README_NOTE=human-metadata\n"
+    )
     assert not _hard2g_readme_metadata_copies_are_closed(
         dockerfile.replace(
             "COPY testframework/schemas/ ./schemas/",
@@ -1003,6 +1210,41 @@ COPY testframework/docker/ ./docker/
     assert not _hard2g_readme_metadata_copies_are_closed(
         dockerfile + "RUN cat /opt/hub/testframework/docker/README.md\n"
     )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile
+        + 'RUN stem=READ; cat "/opt/hub/testframework/$stem"ME.md\n'
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile
+        + "RUN printf '\\122\\105\\101\\104\\115\\105\\056\\155\\144\\n' | xargs cat\n"
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + 'CMD ["cat", "/opt/hub/testframework/README.md"]\n'
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + 'ENTRYPOINT ["/usr/local/bin/hostile"]\n'
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + "COPY --from=python-base /README.md ./README.md\n"
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + 'RUN cat /opt/hub/testframework/READ""ME.md\n'
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + "RUN cat /opt/hub/testframework/READ${part}ME.md\n"
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + "COPY testframework/runner/README.md ./runner/README.md\n"
+    )
+    assert _HARD2G_METADATA_README_PATHS == frozenset(
+        {
+            "testframework/README.md",
+            "testframework/schemas/README.md",
+            "testframework/docker/README.md",
+        }
+    )
+    assert "testframework/runner/README.md" not in _HARD2G_METADATA_README_PATHS
+    assert "testframework/runner/README.md" in _RETIRED_PATHS
 
     _write_valid_layout(tmp_path)
     for relative in _HARD2G_METADATA_README_PATHS:
@@ -1017,6 +1259,128 @@ COPY testframework/docker/ ./docker/
         for path in authority_paths
     )
     assert _active_authority_is_clean(tmp_path, _FORBIDDEN_TOKENS)
+
+
+def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
+    observer_source = "testframework/observers/backend_unit/observe.py"
+    harmless = (
+        "# README is metadata, not an observer authority.\n"
+        'readme_error = ValueError("source path is denied")\n'
+    )
+    literal_safe_wrapper = (
+        "from observers.backend_unit.safe_paths import open_regular_relative\n"
+        'descriptor = open_regular_relative(root, "owner.json", flags)\n'
+    )
+    dynamic_safe_wrapper = (
+        "from observers.backend_unit.safe_paths import open_regular_relative\n"
+        "relative = event.relative\n"
+        "descriptor = open_regular_relative(root, relative, flags)\n"
+    )
+    valid_safe_paths = (
+        "import os\n"
+        "def open_regular_relative(root, relative, flags):\n"
+        "    candidate = root / relative\n"
+        '    if candidate.name.casefold() == "readme.md":\n'
+        '        raise ValueError("README paths are not readable")\n'
+        "    return os.open(candidate, flags)\n"
+    )
+    thread_positive = "thread = lambda: None\nthread()\n"
+    assert _hard2g_observer_source_has_closed_read_authority(observer_source, harmless)
+    assert _hard2g_observer_source_has_closed_read_authority(
+        observer_source, literal_safe_wrapper
+    )
+    assert _hard2g_observer_source_has_closed_read_authority(
+        observer_source, dynamic_safe_wrapper
+    )
+    assert _hard2g_observer_source_has_closed_read_authority(
+        observer_source, thread_positive
+    )
+    assert _hard2g_observer_source_has_closed_read_authority(
+        _HARD2G_OBSERVER_SAFE_PATHS_SOURCE_PATH,
+        valid_safe_paths,
+    )
+
+    hostile_sources = (
+        'Path("/reports/owner.json").open()\n',
+        'Path("/reports/owner.json").read_text()\n',
+        'Path("/reports/owner.json").read_bytes()\n',
+        'Path("/reports").joinpath(name).read_text()\n',
+        'Path(f"/reports/{name}.json").read_text()\n',
+        "candidate.read_text()\n",
+        'getattr(candidate, "read_text")()\n',
+        "open(dynamic_path)\n",
+        "os.open(dynamic_path, 0)\n",
+        "from io import open as file_open\nfile_open(dynamic_path)\n",
+        "reader = open\nreader(dynamic_path)\n",
+        "reader = candidate.read_text\nreader()\n",
+        "reader = os.open\nreader(dynamic_path, 0)\n",
+        "exec(source)\n",
+        "eval(expression)\n",
+        '__builtins__["open"](dynamic_path)\n',
+        "program = exec\nprogram(source)\n",
+        "program = eval\nprogram(expression)\n",
+        "lookup = getattr\nreader = lookup(candidate, 'read_text')\nreader()\n",
+        "from builtins import getattr as lookup\n"
+        "reader = lookup(candidate, 'read_text')\nreader()\n",
+        "lookup = getattr\nlookup(candidate, method_name)()\n",
+    )
+    assert all(
+        not _hard2g_observer_source_has_closed_read_authority(
+            observer_source,
+            source,
+        )
+        for source in hostile_sources
+    )
+    for hostile_safe_paths in (
+        (
+            "import os\n"
+            "def open_regular_relative(root, relative, flags):\n"
+            "    candidate = root / relative\n"
+            "    return os.open(candidate, flags)\n"
+        ),
+        (
+            "import os\n"
+            "def open_regular_relative(root, relative, flags):\n"
+            "    candidate = root / relative\n"
+            "    descriptor = os.open(candidate, flags)\n"
+            '    if candidate.name.casefold() == "readme.md":\n'
+            '        raise ValueError("README paths are not readable")\n'
+            "    return descriptor\n"
+        ),
+        (
+            "import os\n"
+            "def open_regular_relative(root, relative, flags):\n"
+            "    candidate = root / relative\n"
+            '    if candidate.name.casefold() == "readme.md":\n'
+            '        raise ValueError("README paths are not readable")\n'
+            "    def delayed_open():\n"
+            "        return os.open(candidate, flags)\n"
+            "    return delayed_open()\n"
+        ),
+    ):
+        assert not _hard2g_observer_source_has_closed_read_authority(
+            _HARD2G_OBSERVER_SAFE_PATHS_SOURCE_PATH,
+            hostile_safe_paths,
+        )
+
+
+def test_hard2g_observer_source_manifest_rejects_uncovered_modules(
+    tmp_path: Path,
+) -> None:
+    for relative in _HARD2G_OBSERVER_SOURCE_PATHS:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("pass\n", encoding="utf-8")
+    assert _hard2g_observer_source_manifest_is_closed(
+        tmp_path,
+        _HARD2G_OBSERVER_SOURCE_PATHS,
+    )
+    extra = tmp_path / "testframework/observers/backend_unit/uncovered.py"
+    extra.write_text("pass\n", encoding="utf-8")
+    assert not _hard2g_observer_source_manifest_is_closed(
+        tmp_path,
+        _HARD2G_OBSERVER_SOURCE_PATHS,
+    )
 
 
 def test_retired_control_plane_is_absent_and_unreferenced() -> None:
@@ -2996,6 +3360,164 @@ def _hard2g_runtime_budget_fixture(assignments: tuple[str, ...]) -> str:
     )
 
 
+def _hard2g_execute_budget_bridge_fixture() -> str:
+    return '''#!/bin/sh
+set -eu
+
+read_bounded_stage_stream() {
+  stage="$1"
+  stream="$2"
+  fifo_path="$3"
+  stream_path="$4"
+  stream_used_path="$5"
+  package_ordinal="$6"
+  stream_cap="$(stage_stream_cap "$stage" "$stream")"
+  stream_used="$(cat "$stream_used_path")"
+  remaining=$((stream_cap - stream_used))
+  read_limit=$((remaining + 1))
+  stream_tmp="$GOTMPDIR/stream-capture/$stage.$stream.$package_ordinal.tmp"
+  if [ "$remaining" -lt 0 ]; then
+    : > "$budget_stop_marker"
+    return 75
+  fi
+  if check_budget; then
+    :
+  else
+    : > "$budget_stop_marker"
+    return 75
+  fi
+  if head -c "$read_limit" < "$fifo_path" > "$stream_tmp"; then
+    :
+  else
+    : > "$budget_stop_marker"
+    return 75
+  fi
+  stream_bytes="$(wc -c < "$stream_tmp")"
+  if [ "$stream_bytes" -gt "$remaining" ]; then
+    : > "$budget_stop_marker"
+    return 75
+  fi
+  stream_used=$((stream_used + stream_bytes))
+  if check_budget; then
+    cat -- "$stream_tmp" >> "$stream_path"
+  else
+    : > "$budget_stop_marker"
+    return 75
+  fi
+  if check_budget; then
+    printf '%s\n' "$stream_used" > "$stream_used_path"
+    rm -f -- "$stream_tmp"
+    return 0
+  fi
+  : > "$budget_stop_marker"
+  return 75
+}
+
+owned_go_child_is_live() {
+  go_child_pid="$1"
+  stat_path="/proc/$go_child_pid/stat"
+  [ -r "$stat_path" ] || return 1
+  stat_line="$(cat "$stat_path")"
+  case "$stat_line" in
+    "$go_child_pid (go) Z "*|"$go_child_pid (go) X "*) return 1 ;;
+    "$go_child_pid (go) "*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+monitor_owned_budget_stop() {
+  go_child_pid="$1"
+  budget_stop_marker="$2"
+  while owned_go_child_is_live "$go_child_pid"; do
+    [ ! -e "$budget_stop_marker" ] || return 75
+    sleep 1
+  done
+  [ ! -e "$budget_stop_marker" ] || return 75
+  return 0
+}
+
+run_stage() {
+  stage="$1"
+  plan_path="$2"
+  stage_exit=0
+  package_ordinal=0
+  while IFS= read -r package; do
+    package_ordinal=$((package_ordinal + 1))
+    child_exit=0
+    stdout_reader_exit=0
+    stderr_reader_exit=0
+    budget_stop_marker="$stage_stop_marker"
+    rm -f -- "$budget_stop_marker"
+    start_owned_go_child_group "$stage" "$package"
+    read_bounded_stage_stream "$stage" stdout "$stdout_fifo" "$stdout_path" "$stdout_used_path" "$package_ordinal" &
+    stdout_reader_pid="$!"
+    read_bounded_stage_stream "$stage" stderr "$stderr_fifo" "$stderr_path" "$stderr_used_path" "$package_ordinal" &
+    stderr_reader_pid="$!"
+    if monitor_owned_budget_stop "$go_child_pid" "$budget_stop_marker"; then
+      :
+    else
+      truncation_evidence=budget-stop
+      terminate_owned_go_child_group
+      reap_owned_go_child_group
+      wait "$stdout_reader_pid" || stdout_reader_exit=$?
+      wait "$stderr_reader_pid" || stderr_reader_exit=$?
+      return 75
+    fi
+    wait "$stdout_reader_pid" || stdout_reader_exit=$?
+    wait "$stderr_reader_pid" || stderr_reader_exit=$?
+    if [ -e "$budget_stop_marker" ] || [ "$stdout_reader_exit" -eq 75 ] || [ "$stderr_reader_exit" -eq 75 ]; then
+      truncation_evidence=budget-stop
+      terminate_owned_go_child_group
+      reap_owned_go_child_group
+      return 75
+    fi
+    if check_budget; then
+      :
+    else
+      truncation_evidence=budget-stop
+      terminate_owned_go_child_group
+      reap_owned_go_child_group
+      return 75
+    fi
+    wait "$go_child_pid" || child_exit=$?
+    if [ "$child_exit" -ne 0 ] && [ "$stage_exit" -eq 0 ]; then
+      stage_exit="$child_exit"
+    fi
+  done < "$plan_path"
+  return "$stage_exit"
+}
+'''
+
+
+def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
+    try:
+        if (
+            type(text) is not str
+            or "\r" in text
+            or not text.endswith("\n")
+            or not _shell_source_is_safe(text)
+        ):
+            return False
+        lines = _shell_active_lines(text)
+        fixture_lines = _shell_active_lines(_hard2g_execute_budget_bridge_fixture())
+        if not isinstance(lines, tuple) or not isinstance(fixture_lines, tuple):
+            return False
+        bridge_functions = (
+            "read_bounded_stage_stream",
+            "owned_go_child_is_live",
+            "monitor_owned_budget_stop",
+            "run_stage",
+        )
+        return all(
+            lines.count(f"{name}() {{") == 1
+            and _shell_function_body(lines, name)
+            == _shell_function_body(fixture_lines, name)
+            for name in bridge_functions
+        )
+    except Exception:
+        return False
+
+
 def _hard2g_backend_unit_service_is_closed(service: object) -> bool:
     try:
         return service == _expected_public_service("backend-unit")
@@ -3015,16 +3537,571 @@ def _hard2g_runner_helpers_are_closed(repo_root: Path) -> bool:
         if not all(type(source) is str for source in helper_sources):
             return False
         runtime = helper_sources[0]
+        execute = helper_sources[2]
         receipt = helper_sources[-1]
         assert type(runtime) is str
+        assert type(execute) is str
         assert type(receipt) is str
         return (
             all(_shell_source_is_safe(source) for source in helper_sources)
             and _hard2g_runtime_budget_contract_is_closed(runtime)
+            and _hard2g_execute_budget_bridge_is_closed(execute)
             and _hard2g_container_publication_is_closed(receipt)
         )
     except Exception:
         return False
+
+
+_HARD2G_DIRECT_PYTHON_FILESYSTEM_READS = frozenset(
+    {
+        "exists",
+        "fdopen",
+        "glob",
+        "is_dir",
+        "is_file",
+        "is_symlink",
+        "iterdir",
+        "listdir",
+        "lstat",
+        "open",
+        "read",
+        "read1",
+        "read_bytes",
+        "readinto",
+        "readinto1",
+        "readline",
+        "readlines",
+        "readlink",
+        "read_text",
+        "rglob",
+        "samefile",
+        "scandir",
+        "stat",
+        "walk",
+    }
+)
+_HARD2G_DYNAMIC_EXECUTION_NAMES = frozenset({"eval", "exec"})
+_HARD2G_V4_CONTENT_READ_NAMES = frozenset(
+    {
+        "fdopen",
+        "open",
+        "read",
+        "read1",
+        "read_bytes",
+        "readinto",
+        "readinto1",
+        "readline",
+        "readlines",
+        "read_text",
+    }
+)
+_HARD2G_METADATA_README_COPY_INSTRUCTIONS = (
+    "COPY testframework/pyproject.toml testframework/uv.lock "
+    "testframework/.python-version testframework/README.md ./",
+    "COPY testframework/schemas/ ./schemas/",
+    "COPY testframework/docker/ ./docker/",
+)
+_HARD2G_METADATA_ALLOWED_PYTHON_BASE_EXECUTABLE_INSTRUCTIONS = frozenset(
+    {
+        "RUN groupadd --gid 10001 hubqa && useradd --uid 10001 --gid "
+        "10001 --create-home --home-dir /home/hubqa hubqa",
+        "RUN python -m pip install --no-cache-dir uv==0.12.0",
+        "RUN mkdir -p /opt/hub/testframework /opt/hub/.venv && "
+        "chown -R 10001:10001 /opt/hub/testframework /opt/hub/.venv",
+    }
+)
+_HARD2G_METADATA_ALLOWED_PYTHON_EXECUTABLE_INSTRUCTIONS = frozenset(
+    {
+        "RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv "
+        "uv sync --frozen --all-groups --no-install-project",
+        "RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv "
+        "uv sync --frozen --all-groups",
+        "RUN find /opt/hub/docker-compose.local.yml "
+        "/opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md "
+        "/opt/hub/testframework/docker -type f -exec "
+        "sed -i 's/\\r$//' {} +",
+        "RUN find /opt/hub/testframework/cases "
+        "/opt/hub/testframework/policies "
+        "/opt/hub/testframework/schemas -type f -exec "
+        "sed -i 's/\\r$//' {} +",
+        "RUN sed -i 's/\\r$//' /usr/local/bin/python-qa && "
+        "chmod 0555 /usr/local/bin/python-qa && "
+        "chown -R 10001:10001 /opt/hub/testframework /opt/hub/.venv",
+        'ENTRYPOINT ["/usr/local/bin/python-qa"]',
+    }
+)
+
+
+def _hard2g_observer_source_manifest_is_closed(
+    repo_root: Path,
+    source_paths: object,
+) -> bool:
+    try:
+        if type(source_paths) is not tuple or source_paths != _HARD2G_OBSERVER_SOURCE_PATHS:
+            return False
+        discovered = _regular_files_below(
+            repo_root / "testframework/observers",
+            ".py",
+            (),
+        )
+        expected = tuple(sorted(repo_root / path for path in source_paths))
+        return isinstance(discovered, tuple) and tuple(sorted(discovered)) == expected
+    except Exception:
+        return False
+
+
+def _hard2g_observer_source_has_closed_read_authority(
+    relative: object,
+    source: object,
+) -> bool:
+    try:
+        if (
+            type(relative) is not str
+            or relative not in _HARD2G_OBSERVER_SOURCE_PATHS
+            or type(source) is not str
+        ):
+            return False
+        return _hard2g_v4_observer_source_is_closed(relative, source)
+    except Exception:
+        return False
+
+
+def _hard2g_observer_sources_have_closed_read_authority(
+    source_paths: object,
+    sources: object,
+) -> bool:
+    try:
+        return (
+            type(source_paths) is tuple
+            and source_paths == _HARD2G_OBSERVER_SOURCE_PATHS
+            and type(sources) is tuple
+            and len(sources) == len(source_paths)
+            and all(
+                _hard2g_observer_source_has_closed_read_authority(path, source)
+                for path, source in zip(source_paths, sources)
+            )
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_authority_aliases(
+    tree: ast.AST,
+) -> tuple[frozenset[str], frozenset[str], frozenset[str]]:
+    reads: set[str] = set()
+    executions: set[str] = set()
+    paths: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom) or type(node.module) is not str:
+            continue
+        for alias in node.names:
+            bound = alias.asname or alias.name
+            if (
+                node.module in {"builtins", "io", "os"}
+                and alias.name in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS
+            ):
+                reads.add(bound)
+            if (
+                node.module == "builtins"
+                and alias.name in _HARD2G_DYNAMIC_EXECUTION_NAMES
+            ):
+                executions.add(bound)
+            if (
+                node.module in {"pathlib", "os.path"}
+                and alias.name in {"Path", "PurePath", "join"}
+            ):
+                paths.add(bound)
+    return frozenset(reads), frozenset(executions), frozenset(paths)
+
+
+def _hard2g_python_call_is_direct_filesystem_read(
+    call: ast.Call,
+    read_aliases: frozenset[str],
+) -> bool:
+    if isinstance(call.func, ast.Name):
+        return call.func.id == "open" or call.func.id in read_aliases
+    if isinstance(call.func, ast.Attribute):
+        return call.func.attr in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS
+    return _hard2g_getattr_call_names(call, _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS)
+
+
+def _hard2g_python_call_is_dynamic_execution(
+    call: ast.Call,
+    execution_aliases: frozenset[str],
+) -> bool:
+    if isinstance(call.func, ast.Name):
+        return (
+            call.func.id in _HARD2G_DYNAMIC_EXECUTION_NAMES
+            or call.func.id in execution_aliases
+        )
+    if isinstance(call.func, ast.Attribute):
+        return call.func.attr in _HARD2G_DYNAMIC_EXECUTION_NAMES
+    return _hard2g_getattr_call_names(call, _HARD2G_DYNAMIC_EXECUTION_NAMES)
+
+
+def _hard2g_getattr_call_names(call: ast.Call, names: frozenset[str]) -> bool:
+    getter = call.func
+    if (
+        not isinstance(getter, ast.Call)
+        or not isinstance(getter.func, ast.Name)
+        or getter.func.id != "getattr"
+        or len(getter.args) < 2
+    ):
+        return False
+    return _hard2g_ast_value_matches_names(getter.args[1], names)
+
+
+def _hard2g_safe_paths_has_no_readme_authority(
+    tree: ast.AST,
+    calls: tuple[ast.Call, ...],
+    read_aliases: frozenset[str],
+    path_aliases: frozenset[str],
+) -> bool:
+    readme_names = _hard2g_readme_bound_names(tree)
+    if any(
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Div)
+        and _hard2g_ast_value_mentions_readme(node, readme_names)
+        for node in ast.walk(tree)
+    ):
+        return False
+    return not any(
+        (
+            _hard2g_python_call_is_direct_filesystem_read(call, read_aliases)
+            or _hard2g_python_call_constructs_path(call, path_aliases)
+        )
+        and any(
+            _hard2g_ast_value_mentions_readme(argument, readme_names)
+            for argument in (*call.args, *(keyword.value for keyword in call.keywords))
+        )
+        for call in calls
+    )
+
+
+def _hard2g_readme_bound_names(tree: ast.AST) -> frozenset[str]:
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        value = node.value if isinstance(node, (ast.Assign, ast.AnnAssign)) else None
+        if value is None or not _hard2g_ast_value_mentions_readme(value, frozenset()):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+        names.update(target.id for target in targets if isinstance(target, ast.Name))
+    return frozenset(names)
+
+
+def _hard2g_ast_value_mentions_readme(
+    value: ast.AST,
+    readme_names: frozenset[str],
+) -> bool:
+    if any(isinstance(node, ast.Name) and node.id in readme_names for node in ast.walk(value)):
+        return True
+    return "readme" in "".join(
+        character
+        for character in ast.unparse(value).casefold()
+        if character.isalpha()
+    )
+
+
+def _hard2g_ast_value_matches_names(value: ast.AST, names: frozenset[str]) -> bool:
+    compact = "".join(
+        character
+        for character in ast.unparse(value).casefold()
+        if character.isalpha()
+    )
+    return any(
+        "".join(character for character in name if character.isalpha()) in compact
+        for name in names
+    )
+
+
+def _hard2g_python_call_constructs_path(
+    call: ast.Call,
+    path_aliases: frozenset[str],
+) -> bool:
+    if isinstance(call.func, ast.Name):
+        return call.func.id in {"Path", "PurePath"} | path_aliases
+    if not isinstance(call.func, ast.Attribute):
+        return False
+    return call.func.attr in {"joinpath", "with_name", "with_suffix"} or (
+        call.func.attr == "join"
+        and (
+            isinstance(call.func.value, ast.Name)
+            and call.func.value.id in path_aliases
+            or isinstance(call.func.value, ast.Attribute)
+            and call.func.value.attr == "path"
+        )
+    )
+
+
+def _hard2g_v4_observer_source_is_closed(relative: str, source: str) -> bool:
+    tree = ast.parse(source)
+    aliases = _hard2g_v4_authority_aliases(tree)
+    calls = tuple(node for node in ast.walk(tree) if isinstance(node, ast.Call))
+    if any(_hard2g_v4_bad_indirection(call, aliases) for call in calls):
+        return False
+    if relative == _HARD2G_OBSERVER_SAFE_PATHS_SOURCE_PATH:
+        return _hard2g_v4_safe_paths_boundary_is_closed(tree, calls, aliases)
+    return not any(_hard2g_v4_direct_read(call, aliases) for call in calls)
+
+
+def _hard2g_v4_authority_aliases(tree: ast.AST) -> Mapping[str, frozenset[str]]:
+    aliases: dict[str, set[str]] = {
+        "read": set(),
+        "execution": set(),
+        "getattr": set(),
+        "builtins": set(),
+    }
+    assignments = tuple(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr))
+    )
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for imported in node.names:
+                if imported.name == "builtins":
+                    aliases["builtins"].add(imported.asname or imported.name)
+        elif isinstance(node, ast.ImportFrom) and type(node.module) is str:
+            for imported in node.names:
+                bound = imported.asname or imported.name
+                if (
+                    node.module in {"builtins", "io", "os"}
+                    and imported.name in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS
+                ):
+                    aliases["read"].add(bound)
+                if (
+                    node.module == "builtins"
+                    and imported.name in _HARD2G_DYNAMIC_EXECUTION_NAMES
+                ):
+                    aliases["execution"].add(bound)
+                if node.module == "builtins" and imported.name == "getattr":
+                    aliases["getattr"].add(bound)
+    for _ in range(len(assignments) + 1):
+        changed = False
+        for assignment in assignments:
+            value = assignment.value
+            if not isinstance(value, ast.AST):
+                continue
+            targets = _hard2g_v4_assignment_targets(assignment)
+            if not targets:
+                continue
+            kind = _hard2g_v4_callable_kind(value, aliases)
+            if kind in {"read", "execution", "getattr"}:
+                before = len(aliases[kind])
+                aliases[kind].update(targets)
+                changed = changed or len(aliases[kind]) != before
+            if isinstance(value, ast.Call):
+                resolved = _hard2g_v4_getattr_method_kind(value, aliases)
+                if resolved in {"read", "execution"}:
+                    before = len(aliases[resolved])
+                    aliases[resolved].update(targets)
+                    changed = changed or len(aliases[resolved]) != before
+        if not changed:
+            break
+    return MappingProxyType(
+        {name: frozenset(bound) for name, bound in aliases.items()}
+    )
+
+
+def _hard2g_v4_assignment_targets(
+    assignment: ast.Assign | ast.AnnAssign | ast.NamedExpr,
+) -> frozenset[str]:
+    targets = assignment.targets if isinstance(assignment, ast.Assign) else (assignment.target,)
+    return frozenset(target.id for target in targets if isinstance(target, ast.Name))
+
+
+def _hard2g_v4_callable_kind(
+    value: ast.AST,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> str | None:
+    if isinstance(value, ast.Name):
+        if value.id == "open" or value.id in aliases["read"]:
+            return "read"
+        if value.id in _HARD2G_DYNAMIC_EXECUTION_NAMES or value.id in aliases["execution"]:
+            return "execution"
+        if value.id == "getattr" or value.id in aliases["getattr"]:
+            return "getattr"
+    if isinstance(value, ast.Attribute):
+        if value.attr in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS:
+            return "read"
+        if value.attr in _HARD2G_DYNAMIC_EXECUTION_NAMES:
+            return "execution"
+        if (
+            value.attr == "getattr"
+            and isinstance(value.value, ast.Name)
+            and value.value.id in aliases["builtins"]
+        ):
+            return "getattr"
+    if (
+        isinstance(value, ast.Subscript)
+        and _hard2g_v4_is_builtins_namespace(value.value, aliases)
+        and isinstance(value.slice, ast.Constant)
+        and type(value.slice.value) is str
+    ):
+        name = value.slice.value
+        if name in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS:
+            return "read"
+        if name in _HARD2G_DYNAMIC_EXECUTION_NAMES:
+            return "execution"
+        if name == "getattr":
+            return "getattr"
+    return None
+
+
+def _hard2g_v4_is_builtins_namespace(
+    value: ast.AST,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    return isinstance(value, ast.Name) and (
+        value.id == "__builtins__" or value.id in aliases["builtins"]
+    )
+
+
+def _hard2g_v4_getattr_method_kind(
+    call: ast.Call,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> str | None:
+    if _hard2g_v4_callable_kind(call.func, aliases) != "getattr":
+        return None
+    if (
+        len(call.args) < 2
+        or not isinstance(call.args[1], ast.Constant)
+        or type(call.args[1].value) is not str
+    ):
+        return "unknown"
+    method = call.args[1].value
+    if method in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS:
+        return "read"
+    if method in _HARD2G_DYNAMIC_EXECUTION_NAMES:
+        return "execution"
+    return "allowed"
+
+
+def _hard2g_v4_bad_indirection(
+    call: ast.Call,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    kind = _hard2g_v4_callable_kind(call.func, aliases)
+    if kind == "execution":
+        return True
+    return kind == "getattr" and (
+        _hard2g_v4_getattr_method_kind(call, aliases) != "allowed"
+    )
+
+
+def _hard2g_v4_direct_read(
+    call: ast.Call,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    return _hard2g_v4_callable_kind(call.func, aliases) == "read"
+
+
+def _hard2g_v4_safe_paths_boundary_is_closed(
+    tree: ast.AST,
+    calls: tuple[ast.Call, ...],
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    functions = tuple(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == "open_regular_relative"
+    )
+    if len(functions) != 1:
+        return False
+    function = functions[0]
+    if any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        for node in ast.walk(function)
+        if node is not function
+    ) or not {"root", "relative"} <= {arg.arg for arg in function.args.args}:
+        return False
+    candidates = tuple(
+        (statement, _hard2g_v4_candidate_name(statement))
+        for statement in function.body
+        if _hard2g_v4_candidate_name(statement) is not None
+    )
+    if len(candidates) != 1:
+        return False
+    candidate_statement, candidate = candidates[0]
+    assert type(candidate) is str
+    if sum(
+        candidate in _hard2g_v4_assignment_targets(node)
+        for node in ast.walk(function)
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr))
+    ) != 1:
+        return False
+    guards = tuple(
+        statement
+        for statement in function.body
+        if _hard2g_v4_is_readme_guard(statement, candidate)
+    )
+    reads = tuple(
+        call for call in calls if _hard2g_v4_content_read(call, aliases)
+    )
+    return (
+        len(guards) == len(reads) == 1
+        and candidate_statement.lineno < guards[0].lineno < reads[0].lineno
+        and reads[0] in ast.walk(function)
+        and isinstance(reads[0].func, ast.Attribute)
+        and reads[0].func.attr == "open"
+        and isinstance(reads[0].func.value, ast.Name)
+        and reads[0].func.value.id == "os"
+        and len(reads[0].args) >= 2
+        and isinstance(reads[0].args[0], ast.Name)
+        and reads[0].args[0].id == candidate
+    )
+
+
+def _hard2g_v4_candidate_name(statement: ast.stmt) -> str | None:
+    if (
+        not isinstance(statement, ast.Assign)
+        or len(statement.targets) != 1
+        or not isinstance(statement.targets[0], ast.Name)
+        or not isinstance(statement.value, ast.BinOp)
+        or not isinstance(statement.value.op, ast.Div)
+        or not isinstance(statement.value.left, ast.Name)
+        or statement.value.left.id != "root"
+        or not isinstance(statement.value.right, ast.Name)
+        or statement.value.right.id != "relative"
+    ):
+        return None
+    return statement.targets[0].id
+
+
+def _hard2g_v4_is_readme_guard(statement: ast.stmt, candidate: str) -> bool:
+    if (
+        not isinstance(statement, ast.If)
+        or len(statement.body) != 1
+        or not isinstance(statement.body[0], ast.Raise)
+        or not isinstance(statement.test, ast.Compare)
+        or len(statement.test.ops) != 1
+        or not isinstance(statement.test.ops[0], ast.Eq)
+        or len(statement.test.comparators) != 1
+        or not isinstance(statement.test.comparators[0], ast.Constant)
+        or statement.test.comparators[0].value != "readme.md"
+    ):
+        return False
+    value = statement.test.left
+    return (
+        isinstance(value, ast.Call)
+        and not value.args
+        and isinstance(value.func, ast.Attribute)
+        and value.func.attr == "casefold"
+        and isinstance(value.func.value, ast.Attribute)
+        and value.func.value.attr == "name"
+        and isinstance(value.func.value.value, ast.Name)
+        and value.func.value.value.id == candidate
+    )
+
+
+def _hard2g_v4_content_read(
+    call: ast.Call,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    return _hard2g_v4_direct_read(call, aliases) and (
+        not isinstance(call.func, ast.Attribute)
+        or call.func.attr in _HARD2G_V4_CONTENT_READ_NAMES
+    )
 
 
 def _hard2g_container_publication_is_closed(text: object) -> bool:
@@ -3058,14 +4135,13 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
             finalizer.index(line) if finalizer.count(line) == 1 else -1
             for line in required_lines
         )
+        ordered_finalizer = (*required_lines, "return 0")
         return (
             all(lines.count(line) == 1 for line in required_lines)
+            and lines.count("return 0") == 1
             and all(position >= 0 for position in positions)
             and positions == tuple(sorted(positions))
-            and any(
-                line.startswith("return") and index > positions[-1]
-                for index, line in enumerate(finalizer)
-            )
+            and finalizer == ordered_finalizer
         )
     except Exception:
         return False
@@ -3073,30 +4149,82 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
 
 def _hard2g_readme_metadata_copies_are_closed(text: object) -> bool:
     try:
+        if (
+            _HARD2G_METADATA_README_PATHS
+            != frozenset(
+                {
+                    "testframework/README.md",
+                    "testframework/schemas/README.md",
+                    "testframework/docker/README.md",
+                }
+            )
+            or "testframework/runner/README.md" not in _RETIRED_PATHS
+        ):
+            return False
         stages = _docker_stages_safe(text)
         if not isinstance(stages, Mapping):
             return False
         python_tests = stages.get("python-tests")
         if type(python_tests) is not tuple or len(python_tests) != 2:
             return False
+        python_base = stages.get("python-base")
+        base_instructions = (
+            () if python_base is None else python_base[1]
+        )
+        if (
+            type(base_instructions) is not tuple
+            or not all(
+                _hard2g_v4_docker_instruction_is_closed(
+                    instruction,
+                    _HARD2G_METADATA_ALLOWED_PYTHON_BASE_EXECUTABLE_INSTRUCTIONS,
+                )
+                for instruction in base_instructions
+            )
+        ):
+            return False
         instructions = python_tests[1]
         if type(instructions) is not tuple:
             return False
-        copied_metadata = (
-            "COPY testframework/pyproject.toml testframework/uv.lock "
-            "testframework/.python-version testframework/README.md ./",
-            "COPY testframework/schemas/ ./schemas/",
-            "COPY testframework/docker/ ./docker/",
-        )
-        if not all(instruction in instructions for instruction in copied_metadata):
+        if not all(
+            instruction in instructions
+            for instruction in _HARD2G_METADATA_README_COPY_INSTRUCTIONS
+        ):
             return False
         return all(
-            "README" not in instruction
-            or instruction in copied_metadata
+            _hard2g_v4_docker_instruction_is_closed(
+                instruction,
+                _HARD2G_METADATA_ALLOWED_PYTHON_EXECUTABLE_INSTRUCTIONS,
+            )
             for instruction in instructions
         )
     except Exception:
         return False
+
+
+def _hard2g_v4_docker_instruction_is_closed(
+    instruction: str,
+    executable_allowlist: frozenset[str],
+) -> bool:
+    if instruction in _HARD2G_METADATA_README_COPY_INSTRUCTIONS:
+        return True
+    opcode = instruction.partition(" ")[0]
+    if opcode in {"RUN", "CMD", "ENTRYPOINT"}:
+        return instruction in executable_allowlist
+    if opcode != "COPY":
+        return opcode in {"ENV", "USER", "WORKDIR"}
+    words = instruction.split()
+    source_index = 1
+    while source_index < len(words) and words[source_index].startswith("--"):
+        source_index += 1
+    if source_index != 1:
+        return False
+    sources = words[source_index:-1]
+    return bool(sources) and all(
+        "$" not in source
+        and not any(character in source for character in ('"', "'", chr(96), "\\"))
+        and source.rsplit("/", 1)[-1].casefold() != "readme.md"
+        for source in sources
+    )
 
 
 def _hard2g_provenance_bindings_are_closed(
@@ -3320,89 +4448,54 @@ def _hard2g_compound_publication_grammar_is_closed(
     lines: tuple[str, ...],
 ) -> bool:
     try:
-        allowed_lines = {
-            "write_owner",
-            "write_package_plans",
-            "write_stage_artifacts",
-            "write_inventory",
-            ': > "$run_dir/CONTAINER_COMPLETE"',
-            'write_atomic "$run_dir/container-receipt.json" "$receipt"',
-            'mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"',
+        allowed_commands = {
+            "set -eu": ("set", "-eu"),
+            "write_owner": ("write_owner",),
+            "write_package_plans": ("write_package_plans",),
+            "write_stage_artifacts": ("write_stage_artifacts",),
+            "write_inventory": ("write_inventory",),
+            ': > "$run_dir/CONTAINER_COMPLETE"': (
+                ":",
+                ">",
+                "$run_dir/CONTAINER_COMPLETE",
+            ),
+            'write_atomic "$run_dir/container-receipt.json" "$receipt"': (
+                "write_atomic",
+                "$run_dir/container-receipt.json",
+                "$receipt",
+            ),
+            'mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"': (
+                "mv",
+                "--",
+                "$run_dir/$stage.$artifact.tmp",
+                "$run_dir/$stage.$artifact",
+            ),
+            "return 0": ("return", "0"),
         }
-        allowed_headers = {"rename_stage_artifact() {", "finalize_container() {"}
-        control_tokens = {
-            ";",
-            "&&",
-            "||",
-            "|",
-            "if",
-            "then",
-            "else",
-            "elif",
-            "fi",
-            "for",
-            "while",
-            "until",
-            "do",
-            "done",
-            "case",
-            "esac",
+        allowed_structure = {
+            "rename_stage_artifact() {",
+            "finalize_container() {",
+            "}",
         }
-        filesystem_writers = {
-            "cp",
-            "dd",
-            "install",
-            "ln",
-            "mkdir",
-            "mv",
-            "rename",
-            "rm",
-            "tee",
-            "touch",
-            "truncate",
-        }
+        structural_lines = tuple(
+            line for line in lines if line in allowed_structure
+        )
+        if structural_lines != (
+            "rename_stage_artifact() {",
+            "}",
+            "finalize_container() {",
+            "}",
+        ):
+            return False
         for line in lines:
             words = _shell_words(line)
             if not isinstance(words, tuple):
                 return False
             if _hard2g_line_mutates_run_dir(words):
                 return False
-            if line in allowed_lines or line in allowed_headers:
+            if line in allowed_structure:
                 continue
-            if "$(" in line or "`" in line or "${" in line:
-                return False
-            if any(word in control_tokens for word in words):
-                return False
-            if words and (
-                words[0].startswith("$")
-                or words[0] in {".", "command", "eval", "exec", "source"}
-            ):
-                return False
-            has_move = any(
-                word == "mv" or word.endswith("/mv") for word in words
-            )
-            has_rename = any(
-                word == "rename" or word.endswith("/rename") for word in words
-            )
-            has_write = any(word.startswith("write_") for word in words)
-            has_redirection = any(word in {">", ">>"} for word in words)
-            has_filesystem_writer = any(
-                word in filesystem_writers
-                or word.endswith(tuple(f"/{writer}" for writer in filesystem_writers))
-                for word in words
-            )
-            if (
-                has_move
-                or has_rename
-                or has_write
-                or has_redirection
-                or has_filesystem_writer
-            ):
-                return False
-            if any(
-                reserved in line.casefold()
-                for reserved in ("final-receipt.json", "observer-receipt.json", "seal")
-            ):
+            if allowed_commands.get(line) != words:
                 return False
         return True
     except Exception:
@@ -3444,12 +4537,19 @@ def _hard2g_observer_imports_are_python_tests_only(
         selftest_paths = config["selftest_paths"]
         if type(source_paths) is not tuple or type(selftest_paths) is not tuple:
             return False
-        source_root = repo_root / "testframework/observers/backend_unit"
+        source_root = repo_root / "testframework/observers"
         if not source_root.is_dir() or source_root.is_symlink():
             return False
-        if any(
-            type(_read_bounded_regular(repo_root / path)) is not str
-            for path in source_paths
+        if not _hard2g_observer_source_manifest_is_closed(repo_root, source_paths):
+            return False
+        observer_sources = tuple(
+            _read_bounded_regular(repo_root / path) for path in source_paths
+        )
+        if not all(type(source) is str for source in observer_sources):
+            return False
+        if not _hard2g_observer_sources_have_closed_read_authority(
+            source_paths,
+            observer_sources,
         ):
             return False
         selftest_sources = {
@@ -3553,19 +4653,220 @@ def _hard2g_task2_provenance_oracle_chain_is_closed(text: str) -> bool:
                 for node in ast.walk(function)
             )
 
-        def has_final_observer_unpack(function: ast.AST) -> bool:
-            return any(
-                isinstance(node, ast.Assign)
-                and any(
-                    isinstance(target, ast.Tuple)
-                    and tuple(
-                        element.id if isinstance(element, ast.Name) else ""
-                        for element in target.elts
-                    )
-                    == ("final", "observer")
-                    for target in node.targets
+        def is_runtime_published(value: ast.AST) -> bool:
+            return (
+                isinstance(value, ast.Attribute)
+                and value.attr == "published"
+                and isinstance(value.value, ast.Name)
+                and value.value.id == "runtime"
+            )
+
+        def is_exact_runtime_construction(statement: ast.stmt) -> bool:
+            if (
+                not isinstance(statement, ast.Assign)
+                or len(statement.targets) != 1
+                or not isinstance(statement.targets[0], ast.Name)
+                or statement.targets[0].id != "runtime"
+                or not isinstance(statement.value, ast.Call)
+            ):
+                return False
+            call = statement.value
+            return (
+                isinstance(call.func, ast.Name)
+                and call.func.id == "_RawObserverRuntime"
+                and not call.args
+                and len(call.keywords) == 1
+                and call.keywords[0].arg == "raw_observations"
+                and isinstance(call.keywords[0].value, ast.Name)
+                and call.keywords[0].value.id == "raw_observations"
+            )
+
+        def is_live_publication_unpack(statement: ast.stmt) -> bool:
+            return (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Tuple)
+                and tuple(
+                    element.id if isinstance(element, ast.Name) else ""
+                    for element in statement.targets[0].elts
                 )
-                for node in ast.walk(function)
+                == ("final", "observer")
+                and is_runtime_published(statement.value)
+            )
+
+        def is_runtime_published_guard(statement: ast.stmt) -> bool:
+            return (
+                isinstance(statement, ast.Assert)
+                and isinstance(statement.test, ast.Compare)
+                and len(statement.test.ops) == 1
+                and isinstance(statement.test.ops[0], ast.IsNot)
+                and len(statement.test.comparators) == 1
+                and isinstance(statement.test.comparators[0], ast.Constant)
+                and statement.test.comparators[0].value is None
+                and is_runtime_published(statement.test.left)
+            )
+
+        def target_is_rooted_in(
+            target: ast.expr,
+            names: frozenset[str],
+        ) -> bool:
+            while isinstance(target, (ast.Attribute, ast.Subscript)):
+                target = target.value
+            return isinstance(target, ast.Name) and target.id in names
+
+        def statement_writes_names_or_alias_roots(
+            statement: ast.stmt,
+            names: frozenset[str],
+        ) -> bool:
+            return any(
+                (
+                    isinstance(node, ast.Name)
+                    and node.id in names
+                    and isinstance(node.ctx, (ast.Store, ast.Del))
+                )
+                or (
+                    isinstance(node, (ast.Attribute, ast.Subscript))
+                    and isinstance(node.ctx, (ast.Store, ast.Del))
+                    and target_is_rooted_in(node, names)
+                )
+                for node in ast.walk(statement)
+            )
+
+        def statement_rebinds_role_aliases(statement: ast.stmt) -> bool:
+            names = frozenset({"final", "observer"})
+            return statement_writes_names_or_alias_roots(
+                statement,
+                names,
+            ) or any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and target_is_rooted_in(node.func, names)
+                for node in ast.walk(statement)
+            )
+
+        def statement_rebinds_runtime_or_published(statement: ast.stmt) -> bool:
+            return statement_writes_names_or_alias_roots(
+                statement,
+                frozenset({"runtime"}),
+            ) or any(
+                (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id in {"setattr", "delattr"}
+                    and len(node.args) >= 1
+                    and isinstance(node.args[0], ast.Name)
+                    and node.args[0].id == "runtime"
+                )
+                or (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and target_is_rooted_in(
+                        node.func,
+                        frozenset({"runtime"}),
+                    )
+                )
+                for node in ast.walk(statement)
+            )
+
+        def binding_path(value: ast.AST) -> tuple[str, tuple[str, ...]] | None:
+            keys: list[str] = []
+            while isinstance(value, ast.Subscript):
+                if not isinstance(value.slice, ast.Constant) or type(value.slice.value) is not str:
+                    return None
+                keys.append(value.slice.value)
+                value = value.value
+            if not isinstance(value, ast.Name):
+                return None
+            return value.id, tuple(reversed(keys))
+
+        def equality_chain(statement: ast.stmt) -> tuple[object, ...] | None:
+            if not isinstance(statement, ast.Assert) or not isinstance(statement.test, ast.Compare):
+                return None
+            comparison = statement.test
+            if not all(isinstance(operator, ast.Eq) for operator in comparison.ops):
+                return None
+            return tuple(
+                binding_path(value)
+                for value in (comparison.left, *comparison.comparators)
+            )
+
+        def has_role_specific_publication_bindings(function: ast.AST) -> bool:
+            backend_chain = (
+                ("final", ("bound_backend_image_id",)),
+                ("observer", ("container_image",)),
+                ("observer", ("fixed_image_ids", "backend_unit")),
+                ("_BACKEND_IMAGE_ID", ()),
+            )
+            python_binding = (
+                ("observer", ("fixed_image_ids", "python_contract")),
+                ("_PYTHON_IMAGE_ID", ()),
+            )
+            statements = tuple(function.body)
+            runtime_constructions = tuple(
+                index
+                for index, statement in enumerate(statements)
+                if is_exact_runtime_construction(statement)
+            )
+            live_unpacks = tuple(
+                index
+                for index, statement in enumerate(statements)
+                if is_live_publication_unpack(statement)
+            )
+            guards = tuple(
+                index
+                for index, statement in enumerate(statements)
+                if is_runtime_published_guard(statement)
+            )
+            backend_assertions = tuple(
+                index
+                for index, statement in enumerate(statements)
+                if equality_chain(statement) == backend_chain
+            )
+            python_assertions = tuple(
+                index
+                for index, statement in enumerate(statements)
+                if equality_chain(statement) == python_binding
+            )
+            if (
+                len(runtime_constructions) != 1
+                or len(live_unpacks) != 1
+                or len(guards) != 1
+                or len(backend_assertions) != 1
+                or len(python_assertions) != 1
+            ):
+                return False
+            construction_index = runtime_constructions[0]
+            unpack_index = live_unpacks[0]
+            backend_index = backend_assertions[0]
+            python_index = python_assertions[0]
+            if not (
+                construction_index
+                < guards[0]
+                < unpack_index
+                < backend_index
+                < python_index
+            ):
+                return False
+            if any(
+                isinstance(node, ast.Return)
+                for statement in statements[: python_index + 1]
+                for node in ast.walk(statement)
+            ):
+                return False
+            if any(
+                index != unpack_index
+                and statement_rebinds_role_aliases(statement)
+                for index, statement in enumerate(
+                    statements[: python_index + 1]
+                )
+            ):
+                return False
+            return not any(
+                index != construction_index
+                and statement_rebinds_runtime_or_published(statement)
+                for index, statement in enumerate(
+                    statements[: python_index + 1]
+                )
             )
 
         fixed_images = functions.get(
@@ -3633,7 +4934,7 @@ def _hard2g_task2_provenance_oracle_chain_is_closed(text: str) -> bool:
                 and node.value.startswith(b"observer_receipt_sha256=")
                 for node in ast.walk(publication)
             )
-            and has_final_observer_unpack(main_lifecycle)
+            and has_role_specific_publication_bindings(main_lifecycle)
             and {"run_id", "owner_nonce", "container_id"} <= literals(main_lifecycle)
             and any(
                 {
