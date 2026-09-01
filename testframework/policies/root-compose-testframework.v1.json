@@ -68,5 +68,64 @@
     "compose.unit.yaml",
     "compose.g0-bootstrap.yaml",
     "docker.sock"
-  ]
+  ],
+  "hard2g_observer": {
+    "module": "observers.backend_unit",
+    "python_stage": "python-tests",
+    "source_paths": [
+      "testframework/observers/__init__.py",
+      "testframework/observers/backend_unit/__init__.py",
+      "testframework/observers/backend_unit/contracts.py",
+      "testframework/observers/backend_unit/safe_paths.py",
+      "testframework/observers/backend_unit/lease.py",
+      "testframework/observers/backend_unit/resources.py",
+      "testframework/observers/backend_unit/docker_adapter.py",
+      "testframework/observers/backend_unit/publication.py",
+      "testframework/observers/backend_unit/observe.py"
+    ],
+    "selftest_paths": [
+      "testframework/selftests/architecture/observers/test_backend_unit_receipts.py",
+      "testframework/selftests/architecture/observers/test_backend_unit_receipts_review_contract.py",
+      "testframework/selftests/architecture/observers/test_backend_unit_observer.py"
+    ],
+    "policy_path": "testframework/policies/backend-unit-observer.v1.json",
+    "image_inspect_argvs": [
+      [
+        "docker",
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "worktree-master-python-contract"
+      ],
+      [
+        "docker",
+        "image",
+        "inspect",
+        "--format",
+        "{{json .}}",
+        "worktree-master-backend-unit"
+      ]
+    ],
+    "canonical_build_input_paths": [
+      "docker-compose.local.yml",
+      "testframework/docker/Dockerfile.qa",
+      "testframework/docker/entrypoints/backend-unit.sh",
+      "testframework/docker/backend_unit/runtime.sh",
+      "testframework/docker/backend_unit/plan.sh",
+      "testframework/docker/backend_unit/execute.sh",
+      "testframework/docker/backend_unit/receipt.sh",
+      "testframework/observers/**",
+      "testframework/schemas/backend-unit-package-plan.schema.v1.json",
+      "testframework/schemas/backend-unit-container-receipt.schema.v1.json",
+      "testframework/schemas/backend-unit-observer-receipt.schema.v1.json",
+      "testframework/policies/backend-unit-observer.v1.json",
+      "testframework/policies/backend-unit-phase150-08c2-subject.v1.json",
+      "testframework/policies/root-compose-testframework.v1.json",
+      "testframework/selftests/architecture/docker/**",
+      "testframework/selftests/architecture/observers/**"
+    ],
+    "snapshot_assertion_source": "testframework/selftests/architecture/observers/test_backend_unit_observer.py",
+    "fixture_path": "testframework/selftests/architecture/observers/fixtures/backend_unit/valid/observer-receipt.json"
+  }
 }

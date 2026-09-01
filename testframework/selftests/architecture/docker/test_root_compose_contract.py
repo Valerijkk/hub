@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import ast
 import json
 import math
 import os
+import shlex
 import stat
 import traceback
 from collections.abc import Mapping
@@ -30,6 +32,7 @@ _POLICY_KEYS = (
     "retained_docker_paths",
     "retired_paths",
     "forbidden_tokens",
+    "hard2g_observer",
 )
 _PUBLIC_SERVICES = (
     "backend-unit",
@@ -154,6 +157,52 @@ _HARD2G_BUILD_INPUT_PATHS = (
     "testframework/selftests/architecture/docker/**",
     "testframework/selftests/architecture/observers/**",
 )
+_HARD2G_OBSERVER_CONFIG_KEYS = (
+    "module",
+    "python_stage",
+    "source_paths",
+    "selftest_paths",
+    "policy_path",
+    "image_inspect_argvs",
+    "canonical_build_input_paths",
+    "snapshot_assertion_source",
+    "fixture_path",
+)
+_HARD2G_OBSERVER_MODULE = "observers.backend_unit"
+_HARD2G_OBSERVER_POLICY_PATH = (
+    "testframework/policies/backend-unit-observer.v1.json"
+)
+_HARD2G_OBSERVER_SOURCE_PATHS = (
+    "testframework/observers/__init__.py",
+    "testframework/observers/backend_unit/__init__.py",
+    "testframework/observers/backend_unit/contracts.py",
+    "testframework/observers/backend_unit/safe_paths.py",
+    "testframework/observers/backend_unit/lease.py",
+    "testframework/observers/backend_unit/resources.py",
+    "testframework/observers/backend_unit/docker_adapter.py",
+    "testframework/observers/backend_unit/publication.py",
+    "testframework/observers/backend_unit/observe.py",
+)
+_HARD2G_OBSERVER_SELFTEST_PATHS = (
+    "testframework/selftests/architecture/observers/test_backend_unit_receipts.py",
+    "testframework/selftests/architecture/observers/"
+    "test_backend_unit_receipts_review_contract.py",
+    "testframework/selftests/architecture/observers/test_backend_unit_observer.py",
+)
+_HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE = (
+    _HARD2G_OBSERVER_SELFTEST_PATHS[-1]
+)
+_HARD2G_OBSERVER_FIXTURE_PATH = (
+    "testframework/selftests/architecture/observers/fixtures/backend_unit/valid/"
+    "observer-receipt.json"
+)
+_HARD2G_METADATA_README_PATHS = frozenset(
+    {
+        "testframework/README.md",
+        "testframework/schemas/README.md",
+        "testframework/docker/README.md",
+    }
+)
 _HARD2G_REPORT_BUDGET = MappingProxyType(
     {
         "total_bytes": 64 * 1024 * 1024,
@@ -275,6 +324,7 @@ def test_root_compose_exposes_exact_fixed_qa_services() -> None:
     assert policy["retained_docker_paths"] == _RETAINED_DOCKER_PATHS
     assert policy["retired_paths"] == _RETIRED_PATHS
     assert policy["forbidden_tokens"] == _FORBIDDEN_TOKENS
+    assert _hard2g_observer_config_is_closed(policy["hard2g_observer"])
     assert _policy_text(_REPO_ROOT) == _canonical_policy_text()
     assert tuple(name for name in services if name in _PUBLIC_SERVICES) == (
         _PUBLIC_SERVICES
@@ -630,53 +680,62 @@ def test_hard2g_runner_rejects_permissive_authority() -> None:
             ". /usr/local/lib/hub/backend-unit/plan.sh",
             ". /usr/local/lib/hub/backend-unit/execute.sh",
             ". /usr/local/lib/hub/backend-unit/receipt.sh",
-            "main",
+            "backend_unit_main",
             "",
         )
     )
     assert _hard2g_backend_entrypoint_is_closed(canonical_entrypoint)
     for hostile in (
+        canonical_entrypoint.replace("#!/bin/sh", "#!/bin/sh\n", 1),
+        canonical_entrypoint.replace("set -eu", "set -e", 1),
+        canonical_entrypoint.replace(
+            '[ "$#" -eq 0 ] || exit 64',
+            '[ "$#" -le 0 ] || exit 64',
+            1,
+        ),
         canonical_entrypoint.replace("unset GOMAXPROCS", "GOMAXPROCS=1", 1),
-        canonical_entrypoint.replace("main", 'command "$HUB_QA_COMMAND"', 1),
-        canonical_entrypoint.replace("main", "docker compose run backend-unit", 1),
-        canonical_entrypoint.replace("main", "touch /reports/SEAL", 1),
+        canonical_entrypoint.replace(
+            ". /usr/local/lib/hub/backend-unit/plan.sh",
+            ". /usr/local/lib/hub/backend-unit/receipt.sh",
+            1,
+        ),
+        canonical_entrypoint.replace(
+            "backend_unit_main", "backend_unit_main --help", 1
+        ),
+        canonical_entrypoint.replace(
+            "backend_unit_main", "exec backend_unit_main", 1
+        ),
+        canonical_entrypoint.replace(
+            "backend_unit_main", "eval backend_unit_main", 1
+        ),
+        canonical_entrypoint.replace(
+            "backend_unit_main", 'command "$HUB_QA_COMMAND"', 1
+        ),
+        canonical_entrypoint.replace(
+            "backend_unit_main", "docker compose run backend-unit", 1
+        ),
+        canonical_entrypoint.replace(
+            "backend_unit_main", "touch /reports/SEAL", 1
+        ),
+        canonical_entrypoint.replace(
+            "backend_unit_main\n",
+            "true\nbackend_unit_main\n",
+            1,
+        ),
     ):
         assert not _hard2g_backend_entrypoint_is_closed(hostile)
 
 
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
-    python_image = "sha256:" + "a" * 64
-    backend_image = "sha256:" + "b" * 64
-    image_ids = MappingProxyType(
-        {"python_contract": python_image, "backend_unit": backend_image}
+    contract = load_root_compose_contract(_REPO_ROOT)
+    policy = _mapping_value(contract, "policy")
+    dockerfile = _required_asset_text(
+        _REPO_ROOT / "testframework" / "docker" / "Dockerfile.qa"
     )
     assert _hard2g_provenance_bindings_are_closed(
-        _HARD2G_IMAGE_INSPECT_ARGVS,
-        _HARD2G_BUILD_INPUT_PATHS,
-        _HARD2G_BUILD_INPUT_PATHS,
-        image_ids,
-        backend_image,
-    )
-    assert not _hard2g_provenance_bindings_are_closed(
-        _HARD2G_IMAGE_INSPECT_ARGVS[:-1],
-        _HARD2G_BUILD_INPUT_PATHS,
-        _HARD2G_BUILD_INPUT_PATHS,
-        image_ids,
-        backend_image,
-    )
-    assert not _hard2g_provenance_bindings_are_closed(
-        _HARD2G_IMAGE_INSPECT_ARGVS,
-        _HARD2G_BUILD_INPUT_PATHS,
-        _HARD2G_BUILD_INPUT_PATHS[:-1],
-        image_ids,
-        backend_image,
-    )
-    assert not _hard2g_provenance_bindings_are_closed(
-        _HARD2G_IMAGE_INSPECT_ARGVS,
-        _HARD2G_BUILD_INPUT_PATHS,
-        _HARD2G_BUILD_INPUT_PATHS,
-        image_ids,
-        python_image,
+        _REPO_ROOT,
+        policy,
+        dockerfile,
     )
 
 
@@ -699,20 +758,107 @@ def test_hard2g_report_budget_is_exact_and_fail_closed() -> None:
 def test_hard2g_container_publication_order_is_closed() -> None:
     canonical_receipt = '''#!/bin/sh
 set -eu
-write_owner
-write_package_plans
-write_stage_artifacts
-write_inventory
-: > "$run_dir/CONTAINER_COMPLETE"
-write_atomic "$run_dir/container-receipt.json" "$receipt"
+
+rename_stage_artifact() {
+  mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"
+}
+
+finalize_container() {
+  write_owner
+  write_package_plans
+  write_stage_artifacts
+  write_inventory
+  : > "$run_dir/CONTAINER_COMPLETE"
+  write_atomic "$run_dir/container-receipt.json" "$receipt"
+  return 0
+}
 '''
     assert _hard2g_container_publication_is_closed(canonical_receipt)
     assert not _hard2g_container_publication_is_closed(
-        canonical_receipt.replace("CONTAINER_COMPLETE", "container-receipt.json", 1)
+        canonical_receipt.replace(
+            '"$run_dir/CONTAINER_COMPLETE"',
+            '"$run_dir/container-receipt.json"',
+            1,
+        )
     )
     assert not _hard2g_container_publication_is_closed(
         canonical_receipt + 'write_atomic "$run_dir/SEAL" "$seal"\n'
     )
+    assert not _hard2g_container_publication_is_closed(
+        'mv -- "$run_dir/final-receipt.json" "$run_dir/result.json"\n'
+        + canonical_receipt
+    )
+    assert not _hard2g_container_publication_is_closed(
+        'mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"\n'
+        + canonical_receipt
+    )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt.replace(
+            '"$run_dir/container-receipt.json"',
+            '"$run_dir/$receipt_name"',
+            1,
+        )
+    )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt
+        + "final_name='final-'receipt.json\n"
+        + 'write_atomic "$run_dir/$final_name" "$receipt"\n'
+    )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt
+        + "final_part=final-\n"
+        + "receipt_part=receipt.json\n"
+        + 'write_atomic "$run_dir/$final_part$receipt_part" "$receipt"\n'
+    )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt + "eval 'write_owner'\n"
+    )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt.replace(
+            "  write_inventory\n  : >",
+            "  : >\n  write_inventory\n  : >",
+            1,
+        )
+    )
+
+
+def test_hard2g_readme_metadata_is_copied_without_becoming_an_oracle(
+    tmp_path: Path,
+) -> None:
+    dockerfile = '''FROM python-base AS python-tests
+COPY testframework/pyproject.toml testframework/uv.lock testframework/.python-version testframework/README.md ./
+COPY testframework/schemas/ ./schemas/
+COPY testframework/docker/ ./docker/
+# hard2g metadata marker is allowed in a Dockerfile comment
+'''
+    assert _hard2g_readme_metadata_copies_are_closed(dockerfile)
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile.replace(
+            "COPY testframework/schemas/ ./schemas/",
+            "COPY testframework/schemas/README.md ./schemas/README.md",
+            1,
+        )
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + "COPY testframework/docker/README.md ./docker/README.md\n"
+    )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        dockerfile + "RUN cat /opt/hub/testframework/docker/README.md\n"
+    )
+
+    _write_valid_layout(tmp_path)
+    for relative in _HARD2G_METADATA_README_PATHS:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("/qa-gate is metadata only.\n", encoding="utf-8")
+
+    authority_paths = _active_authority_paths(tmp_path)
+    assert isinstance(authority_paths, tuple)
+    assert all(
+        path.relative_to(tmp_path).as_posix() not in _HARD2G_METADATA_README_PATHS
+        for path in authority_paths
+    )
+    assert _active_authority_is_clean(tmp_path, _FORBIDDEN_TOKENS)
 
 
 def test_retired_control_plane_is_absent_and_unreferenced() -> None:
@@ -1412,6 +1558,11 @@ def _parse_policy_safe(text: object) -> Mapping[str, object] | object:
                 or tuple(value) != expected
             ):
                 return _INVALID
+        hard2g_observer = _parse_hard2g_observer_config(
+            document["hard2g_observer"]
+        )
+        if not isinstance(hard2g_observer, Mapping):
+            return _INVALID
         return MappingProxyType(
             {
                 "schema": document["schema"],
@@ -1420,6 +1571,7 @@ def _parse_policy_safe(text: object) -> Mapping[str, object] | object:
                 "retained_docker_paths": tuple(document["retained_docker_paths"]),
                 "retired_paths": tuple(document["retired_paths"]),
                 "forbidden_tokens": tuple(document["forbidden_tokens"]),
+                "hard2g_observer": hard2g_observer,
             }
         )
     except Exception:
@@ -1433,6 +1585,65 @@ def _load_json_document_safe(text: object) -> object:
         return json.loads(text, object_pairs_hook=_json_pairs_without_duplicates)
     except Exception:
         return _INVALID
+
+
+def _parse_hard2g_observer_config(value: object) -> Mapping[str, object] | object:
+    try:
+        if type(value) is not dict or tuple(value) != _HARD2G_OBSERVER_CONFIG_KEYS:
+            return _INVALID
+        source_paths = _string_tuple(value["source_paths"])
+        selftest_paths = _string_tuple(value["selftest_paths"])
+        image_inspect_argvs = _nested_string_argvs(value["image_inspect_argvs"])
+        build_input_paths = _string_tuple(value["canonical_build_input_paths"])
+        if (
+            value["module"] != _HARD2G_OBSERVER_MODULE
+            or value["python_stage"] != "python-tests"
+            or source_paths != _HARD2G_OBSERVER_SOURCE_PATHS
+            or selftest_paths != _HARD2G_OBSERVER_SELFTEST_PATHS
+            or value["policy_path"] != _HARD2G_OBSERVER_POLICY_PATH
+            or image_inspect_argvs != _HARD2G_IMAGE_INSPECT_ARGVS
+            or build_input_paths != _HARD2G_BUILD_INPUT_PATHS
+            or value["snapshot_assertion_source"]
+            != _HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE
+            or value["fixture_path"] != _HARD2G_OBSERVER_FIXTURE_PATH
+        ):
+            return _INVALID
+        return MappingProxyType(
+            {
+                "module": value["module"],
+                "python_stage": value["python_stage"],
+                "source_paths": source_paths,
+                "selftest_paths": selftest_paths,
+                "policy_path": value["policy_path"],
+                "image_inspect_argvs": image_inspect_argvs,
+                "canonical_build_input_paths": build_input_paths,
+                "snapshot_assertion_source": value["snapshot_assertion_source"],
+                "fixture_path": value["fixture_path"],
+            }
+        )
+    except Exception:
+        return _INVALID
+
+
+def _string_tuple(value: object) -> tuple[str, ...] | object:
+    if (
+        type(value) is not list
+        or any(type(item) is not str for item in value)
+        or len(value) != len(set(value))
+    ):
+        return _INVALID
+    return tuple(value)
+
+
+def _nested_string_argvs(value: object) -> tuple[tuple[str, ...], ...] | object:
+    if type(value) is not list:
+        return _INVALID
+    result: list[tuple[str, ...]] = []
+    for argv in value:
+        if type(argv) is not list or any(type(item) is not str for item in argv):
+            return _INVALID
+        result.append(tuple(argv))
+    return tuple(result)
 
 
 def _json_pairs_without_duplicates(
@@ -2475,33 +2686,24 @@ def _backend_entrypoint_is_closed(text: object) -> bool:
 
 def _hard2g_backend_entrypoint_is_closed(text: object) -> bool:
     try:
-        if type(text) is not str or not _shell_source_is_safe(text):
+        if (
+            type(text) is not str
+            or "\r" in text
+            or not text.endswith("\n")
+            or not _shell_source_is_safe(text)
+        ):
             return False
-        lines = tuple(line.strip() for line in text.splitlines() if line.strip())
-        helper_paths = (
-            "/usr/local/lib/hub/backend-unit/runtime.sh",
-            "/usr/local/lib/hub/backend-unit/plan.sh",
-            "/usr/local/lib/hub/backend-unit/execute.sh",
-            "/usr/local/lib/hub/backend-unit/receipt.sh",
-        )
-        forbidden = (
-            "docker ",
-            "observer",
-            "final-receipt",
-            "seal",
-            "hub_qa_command",
-            "exit 0",
-        )
-        return (
-            lines[:4]
-            == (
-                "#!/bin/sh",
-                "set -eu",
-                '[ "$#" -eq 0 ] || exit 64',
-                "unset GOMAXPROCS",
-            )
-            and all(text.count(path) == 1 for path in helper_paths)
-            and not any(token in text.casefold() for token in forbidden)
+        lines = tuple(text.splitlines())
+        return lines == (
+            "#!/bin/sh",
+            "set -eu",
+            '[ "$#" -eq 0 ] || exit 64',
+            "unset GOMAXPROCS",
+            ". /usr/local/lib/hub/backend-unit/runtime.sh",
+            ". /usr/local/lib/hub/backend-unit/plan.sh",
+            ". /usr/local/lib/hub/backend-unit/execute.sh",
+            ". /usr/local/lib/hub/backend-unit/receipt.sh",
+            "backend_unit_main",
         )
     except Exception:
         return False
@@ -2539,21 +2741,37 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
     try:
         if type(text) is not str or not _shell_source_is_safe(text):
             return False
-        complete_index = text.find("CONTAINER_COMPLETE")
-        receipt_index = text.find("container-receipt.json")
+        lines = _shell_active_lines(text)
+        if not isinstance(lines, tuple):
+            return False
+        if any(
+            not _hard2g_shell_line_has_no_observer_publication_authority(line)
+            for line in lines
+        ):
+            return False
+        if not _hard2g_stage_renames_are_owned(lines):
+            return False
+        finalizer = _shell_function_body(lines, "finalize_container")
+        if not isinstance(finalizer, tuple):
+            return False
+        required_lines = (
+            "write_owner",
+            "write_package_plans",
+            "write_stage_artifacts",
+            "write_inventory",
+            ': > "$run_dir/CONTAINER_COMPLETE"',
+            'write_atomic "$run_dir/container-receipt.json" "$receipt"',
+        )
+        positions = tuple(
+            finalizer.index(line) if finalizer.count(line) == 1 else -1
+            for line in required_lines
+        )
         return (
-            text.count("CONTAINER_COMPLETE") == 1
-            and text.count("container-receipt.json") == 1
-            and 0 <= complete_index < receipt_index
-            and not any(
-                token in text.casefold()
-                for token in (
-                    "observer-receipt",
-                    "final-receipt",
-                    "/seal",
-                    "rename",
-                    " mv ",
-                )
+            all(position >= 0 for position in positions)
+            and positions == tuple(sorted(positions))
+            and any(
+                line.startswith("return") and index > positions[-1]
+                for index, line in enumerate(finalizer)
             )
         )
     except Exception:
@@ -2569,48 +2787,366 @@ def _hard2g_readme_metadata_copies_are_closed(text: object) -> bool:
         if type(python_tests) is not tuple or len(python_tests) != 2:
             return False
         instructions = python_tests[1]
-        return (
-            type(instructions) is tuple
-            and "COPY testframework/pyproject.toml testframework/uv.lock "
-            "testframework/.python-version testframework/README.md ./"
-            in instructions
-            and "COPY testframework/schemas/ ./schemas/" in instructions
-            and "COPY testframework/docker/ ./docker/" in instructions
-            and "testframework/schemas/README.md" not in text
-            and "hard2g" not in text.casefold()
+        if type(instructions) is not tuple:
+            return False
+        copied_metadata = (
+            "COPY testframework/pyproject.toml testframework/uv.lock "
+            "testframework/.python-version testframework/README.md ./",
+            "COPY testframework/schemas/ ./schemas/",
+            "COPY testframework/docker/ ./docker/",
+        )
+        if not all(instruction in instructions for instruction in copied_metadata):
+            return False
+        return all(
+            "README" not in instruction
+            or instruction in copied_metadata
+            for instruction in instructions
         )
     except Exception:
         return False
 
 
 def _hard2g_provenance_bindings_are_closed(
-    image_inspect_argvs: object,
-    manifest_before: object,
-    manifest_after: object,
-    image_ids: object,
-    bound_backend_image: object,
+    repo_root: Path,
+    policy: Mapping[str, object],
+    dockerfile: object,
 ) -> bool:
     try:
-        if (
-            image_inspect_argvs != _HARD2G_IMAGE_INSPECT_ARGVS
-            or manifest_before != _HARD2G_BUILD_INPUT_PATHS
-            or manifest_after != _HARD2G_BUILD_INPUT_PATHS
-            or not isinstance(image_ids, Mapping)
-            or tuple(image_ids) != ("python_contract", "backend_unit")
+        config = _mapping_value(policy, "hard2g_observer")
+        if not _hard2g_observer_config_is_closed(config):
+            return False
+        if not _hard2g_observer_imports_are_python_tests_only(
+            repo_root,
+            config,
+            dockerfile,
         ):
             return False
-        python_image = image_ids["python_contract"]
-        backend_image = image_ids["backend_unit"]
+        observer_policy = _read_json_mapping(
+            repo_root / _HARD2G_OBSERVER_POLICY_PATH
+        )
+        if not isinstance(observer_policy, Mapping):
+            return False
+        if (
+            observer_policy.get("module") != config["module"]
+            or _nested_string_argvs(observer_policy.get("image_inspect_argvs"))
+            != config["image_inspect_argvs"]
+            or _string_tuple(observer_policy.get("canonical_build_input_paths"))
+            != config["canonical_build_input_paths"]
+        ):
+            return False
+        observer_test = _read_bounded_regular(
+            repo_root / _HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE
+        )
+        if type(observer_test) is not str or not _observer_snapshot_chain_is_asserted(
+            observer_test
+        ):
+            return False
+        fixture = _read_json_mapping(repo_root / _HARD2G_OBSERVER_FIXTURE_PATH)
+        if not isinstance(fixture, Mapping):
+            return False
+        fixed_image_ids = fixture.get("fixed_image_ids")
+        final_receipt = fixture.get("final_receipt")
+        manifest_bytes = fixture.get("canonical_build_input_manifest_bytes")
+        manifest_sha256 = fixture.get("canonical_build_input_manifest_sha256")
         return (
-            type(python_image) is str
-            and type(backend_image) is str
-            and all(
-                image.startswith("sha256:")
-                and len(image) == 71
-                and set(image[7:]) <= set("0123456789abcdef")
-                for image in (python_image, backend_image)
+            isinstance(fixed_image_ids, Mapping)
+            and tuple(fixed_image_ids) == ("python_contract", "backend_unit")
+            and _is_sha256_digest(fixed_image_ids["python_contract"])
+            and _is_sha256_digest(fixed_image_ids["backend_unit"])
+            and fixture.get("bound_backend_image_id")
+            == fixed_image_ids["backend_unit"]
+            and fixture.get("container_image") == fixed_image_ids["backend_unit"]
+            and isinstance(final_receipt, Mapping)
+            and final_receipt.get("backend_image_id")
+            == fixed_image_ids["backend_unit"]
+            and type(manifest_bytes) is str
+            and _canonical_manifest_paths_are_closed(
+                manifest_bytes,
+                config["canonical_build_input_paths"],
             )
-            and bound_backend_image == backend_image
+            and _is_sha256_digest(manifest_sha256)
+            and final_receipt.get("canonical_build_input_manifest_sha256")
+            == manifest_sha256
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_observer_config_is_closed(value: object) -> bool:
+    try:
+        return _parse_hard2g_observer_config(
+            {
+                "module": value["module"],
+                "python_stage": value["python_stage"],
+                "source_paths": list(value["source_paths"]),
+                "selftest_paths": list(value["selftest_paths"]),
+                "policy_path": value["policy_path"],
+                "image_inspect_argvs": [
+                    list(argv) for argv in value["image_inspect_argvs"]
+                ],
+                "canonical_build_input_paths": list(
+                    value["canonical_build_input_paths"]
+                ),
+                "snapshot_assertion_source": value["snapshot_assertion_source"],
+                "fixture_path": value["fixture_path"],
+            }
+        ) == value
+    except Exception:
+        return False
+
+
+def _shell_active_lines(text: str) -> tuple[str, ...] | object:
+    try:
+        return tuple(
+            line.strip()
+            for line in text.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        )
+    except Exception:
+        return _INVALID
+
+
+def _shell_function_body(
+    lines: tuple[str, ...], name: str
+) -> tuple[str, ...] | object:
+    try:
+        header = f"{name}() {{"
+        if lines.count(header) != 1:
+            return _INVALID
+        start = lines.index(header)
+        for end in range(start + 1, len(lines)):
+            if lines[end] == "}":
+                return lines[start + 1 : end]
+        return _INVALID
+    except Exception:
+        return _INVALID
+
+
+def _shell_words(line: str) -> tuple[str, ...] | object:
+    try:
+        lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        lexer.commenters = "#"
+        return tuple(lexer)
+    except Exception:
+        return _INVALID
+
+
+def _hard2g_shell_line_has_no_observer_publication_authority(line: str) -> bool:
+    words = _shell_words(line)
+    if not isinstance(words, tuple):
+        return False
+    if words and (
+        words[0].startswith("$")
+        or words[0] in {".", "command", "eval", "exec", "source"}
+    ):
+        return False
+    raw = line.casefold()
+    if (
+        line != 'write_atomic "$run_dir/container-receipt.json" "$receipt"'
+        and any(
+            fragment in raw
+            for fragment in ("final-", "observer-", "receipt.json", "seal")
+        )
+    ):
+        return False
+    return not any(
+        reserved in word.casefold()
+        for word in words
+        for reserved in ("final-receipt.json", "observer-receipt.json", "seal")
+    )
+
+
+def _hard2g_stage_rename_is_owned(line: str) -> bool:
+    words = _shell_words(line)
+    if not isinstance(words, tuple):
+        return False
+    if not words or words[0] != "mv":
+        return True
+    if len(words) != 4 or words[1] != "--":
+        return False
+    source, destination = words[2:]
+    return (
+        source == "$run_dir/$stage.$artifact.tmp"
+        and destination == "$run_dir/$stage.$artifact"
+    )
+
+
+def _hard2g_stage_renames_are_owned(lines: tuple[str, ...]) -> bool:
+    try:
+        all_moves = tuple(
+            line
+            for line in lines
+            if (words := _shell_words(line))
+            and any(word == "mv" or word.endswith("/mv") for word in words)
+        )
+        if not all_moves:
+            return True
+        helper = _shell_function_body(lines, "rename_stage_artifact")
+        if not isinstance(helper, tuple):
+            return False
+        helper_moves = tuple(
+            line
+            for line in helper
+            if (words := _shell_words(line))
+            and any(word == "mv" or word.endswith("/mv") for word in words)
+        )
+        return (
+            len(all_moves) == 1
+            and len(helper_moves) == 1
+            and all_moves == helper_moves
+            and _hard2g_stage_rename_is_owned(helper_moves[0])
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_observer_imports_are_python_tests_only(
+    repo_root: Path,
+    config: Mapping[str, object],
+    dockerfile: object,
+) -> bool:
+    try:
+        stages = _docker_stages_safe(dockerfile)
+        if not isinstance(stages, Mapping):
+            return False
+        python_stage = stages.get(config["python_stage"])
+        if type(python_stage) is not tuple or len(python_stage) != 2:
+            return False
+        python_instructions = python_stage[1]
+        if (
+            type(python_instructions) is not tuple
+            or "COPY testframework/observers/ ./observers/"
+            not in python_instructions
+            or "COPY testframework/selftests/ ./selftests/"
+            not in python_instructions
+            or "ENV PYTHONPATH=/opt/hub/testframework/src:/opt/hub/testframework"
+            not in python_instructions
+            or "ENV PYTHONSAFEPATH=1" not in python_instructions
+        ):
+            return False
+        if any(
+            "testframework/observers/" in instruction
+            for stage_name, stage in stages.items()
+            if stage_name != config["python_stage"]
+            for instruction in stage[1]
+        ):
+            return False
+        source_paths = config["source_paths"]
+        selftest_paths = config["selftest_paths"]
+        if type(source_paths) is not tuple or type(selftest_paths) is not tuple:
+            return False
+        source_root = repo_root / "testframework/observers/backend_unit"
+        if not source_root.is_dir() or source_root.is_symlink():
+            return False
+        if any(
+            type(_read_bounded_regular(repo_root / path)) is not str
+            for path in source_paths
+        ):
+            return False
+        selftest_sources = {
+            path: _read_bounded_regular(repo_root / path) for path in selftest_paths
+        }
+        if not all(type(source) is str for source in selftest_sources.values()):
+            return False
+        module = config["module"]
+        if type(module) is not str or not all(
+            _python_source_imports_module(source, module)
+            for source in selftest_sources.values()
+            if type(source) is str
+        ):
+            return False
+        python_sources = _regular_files_below(
+            repo_root / "testframework",
+            ".py",
+            (repo_root / "testframework" / "reports",),
+        )
+        if not isinstance(python_sources, tuple):
+            return False
+        allowed_selftests = {repo_root / path for path in selftest_paths}
+        for source_path in python_sources:
+            source = _read_bounded_regular(source_path)
+            if type(source) is not str or not _python_source_imports_module(source, module):
+                continue
+            if source_path not in allowed_selftests and source_root not in source_path.parents:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _python_source_imports_module(text: str, module: str) -> bool:
+    try:
+        tree = ast.parse(text)
+        return any(
+            (
+                isinstance(node, ast.ImportFrom)
+                and type(node.module) is str
+                and (node.module == module or node.module.startswith(f"{module}."))
+            )
+            or (
+                isinstance(node, ast.Import)
+                and any(
+                    alias.name == module or alias.name.startswith(f"{module}.")
+                    for alias in node.names
+                )
+            )
+            for node in ast.walk(tree)
+        )
+    except Exception:
+        return False
+
+
+def _observer_snapshot_chain_is_asserted(text: str) -> bool:
+    try:
+        tree = ast.parse(text)
+        return any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "verify_snapshot_chain"
+            and tuple(
+                argument.id if isinstance(argument, ast.Name) else ""
+                for argument in node.args
+            )
+            == ("prebuild", "postgreen", "observer_snapshot")
+            for node in ast.walk(tree)
+        )
+    except Exception:
+        return False
+
+
+def _read_json_mapping(path: Path) -> Mapping[str, object] | object:
+    text = _read_bounded_regular(path)
+    document = _load_json_document_safe(text)
+    return document if isinstance(document, Mapping) else _INVALID
+
+
+def _is_sha256_digest(value: object) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 71
+        and value.startswith("sha256:")
+        and set(value[7:]) <= set("0123456789abcdef")
+    )
+
+
+def _canonical_manifest_paths_are_closed(
+    manifest_bytes: str,
+    policy_paths: object,
+) -> bool:
+    try:
+        if type(policy_paths) is not tuple or not manifest_bytes.endswith("\n"):
+            return False
+        rows = tuple(manifest_bytes.removesuffix("\n").split("\n"))
+        parsed_paths: list[str] = []
+        for row in rows:
+            path, separator, digest = row.partition("\t")
+            if not separator or not path or not _is_sha256_digest(digest):
+                return False
+            parsed_paths.append(path)
+        required_paths = tuple(path for path in policy_paths if "*" not in path)
+        return len(parsed_paths) == len(set(parsed_paths)) and all(
+            path in parsed_paths for path in required_paths
         )
     except Exception:
         return False
@@ -2991,6 +3527,7 @@ def _authority_path_is_excluded(path: Path, repo_root: Path) -> bool:
         == "docs/superpowers/specs/2026-08-15-docker-compose-"
         "testframework-consolidation-design.md"
         or relative == _POLICY_RELATIVE_PATH.as_posix()
+        or relative in _HARD2G_METADATA_README_PATHS
         or relative
         == "testframework/selftests/architecture/docker/"
         "test_root_compose_contract.py"
@@ -3011,6 +3548,19 @@ def _policy_document() -> dict[str, object]:
         "retained_docker_paths": list(_RETAINED_DOCKER_PATHS),
         "retired_paths": list(_RETIRED_PATHS),
         "forbidden_tokens": list(_FORBIDDEN_TOKENS),
+        "hard2g_observer": {
+            "module": _HARD2G_OBSERVER_MODULE,
+            "python_stage": "python-tests",
+            "source_paths": list(_HARD2G_OBSERVER_SOURCE_PATHS),
+            "selftest_paths": list(_HARD2G_OBSERVER_SELFTEST_PATHS),
+            "policy_path": _HARD2G_OBSERVER_POLICY_PATH,
+            "image_inspect_argvs": [
+                list(argv) for argv in _HARD2G_IMAGE_INSPECT_ARGVS
+            ],
+            "canonical_build_input_paths": list(_HARD2G_BUILD_INPUT_PATHS),
+            "snapshot_assertion_source": _HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE,
+            "fixture_path": _HARD2G_OBSERVER_FIXTURE_PATH,
+        },
     }
 
 
