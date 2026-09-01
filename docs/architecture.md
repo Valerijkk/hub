@@ -118,6 +118,17 @@ occurrences on that realtime signal; it does not create a second reminder. Linke
 attach is exact-match/fail-closed, and external guests stay ordinary-event-only until secure
 join credential delivery is accepted. Implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
 
+**Bounded Mail/Calendar Docker receipt (2026-09-01):** the QA composition exercised
+the implementation slice for account materialization, live-thread FTS, invitation
+correlation, Calendar reverse linkage, accepted RSVP, and quiescent fixture cleanup
+with **7/7 scoped cases passing**. The slice keeps canonical iCalendar `PRODID`,
+non-nil empty `exdates`, and storage-tolerant persisted PostgreSQL timestamp/nullable
+`bytea` handling; its quiescent cleanup retry is isolated from strict one-shot
+fault/guard deletion. This is not a full-app result: the aggregate integration job
+is `NOT_GREEN` because five unrelated `project_outbox` setup cases have no available
+Redis/NATS harness. Broader Mail 0.1.5 production composition and product acceptance
+remain outside this receipt.
+
 **Repository pattern (основные модули с interface):** audit, bases, calls, crm, github, gitlab, hr, intranet, marketplace, messenger, notification, project, search, sprint, tms, tracker и др.
 
 **Ent schemas (измерено 2026-08-13):** **85** entity schema types в **87** `.go` files
