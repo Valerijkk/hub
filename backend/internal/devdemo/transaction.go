@@ -7,10 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	entsql "entgo.io/ent/dialect/sql"
-
 	"github.com/valerii/hub/backend/ent"
-	"entgo.io/ent/dialect"
 )
 
 type transactionRunner struct {
@@ -54,26 +51,28 @@ func (runner *transactionRunner) run(ctx context.Context, advisoryKey int64, fn 
 }
 
 func (runner *transactionRunner) runPostgres(ctx context.Context, advisoryKey int64, fn func(*ent.Client) error) error {
-	sqlTx, err := runner.rawDB.BeginTx(ctx, nil)
+	tx, err := runner.client.Tx(ctx)
 	if err != nil {
 		return fmt.Errorf("begin devdemo sql transaction: %w", err)
 	}
 	committed := false
 	defer func() {
 		if !committed {
-			_ = sqlTx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
-	if _, err := sqlTx.ExecContext(ctx, `SELECT pg_advisory_xact_lock($1)`, advisoryKey); err != nil {
+	driver := tx.Driver()
+	if driver == nil {
+		return errors.New("devdemo transaction driver is unavailable")
+	}
+	if err := driver.Exec(ctx, `SELECT pg_advisory_xact_lock($1)`, []any{advisoryKey}, nil); err != nil {
 		return fmt.Errorf("acquire devdemo advisory lock: %w", err)
 	}
-	driver := entsql.NewDriver(dialect.Postgres, entsql.Conn{ExecQuerier: sqlTx})
-	txClient := ent.NewClient(ent.Driver(driver))
-	if err := fn(txClient); err != nil {
+	if err := fn(tx.Client()); err != nil {
 		return fmt.Errorf("run devdemo transaction callback: %w", err)
 	}
-	if err := sqlTx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit devdemo sql transaction: %w", err)
 	}
 	committed = true
