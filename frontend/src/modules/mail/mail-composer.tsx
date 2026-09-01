@@ -1285,6 +1285,7 @@ export function MailComposer({
 				replaceSubmissionIntent(intent);
 			}
 			if (intent === null) throw new Error("Submission intent unavailable");
+			const activeIntent = intent;
 
 			const obtainSubmission = async (): Promise<MailSubmission> => {
 				let lastError: unknown;
@@ -1293,9 +1294,9 @@ export function MailComposer({
 						await sleepWithSignal(delay, session.controller.signal);
 					}
 					try {
-						return await sendMailDraft(intent.draftId, {
-							idempotencyKey: intent.idempotencyKey,
-							ifMatch: intent.revision,
+						return await sendMailDraft(activeIntent.draftId, {
+							idempotencyKey: activeIntent.idempotencyKey,
+							ifMatch: activeIntent.revision,
 							signal: session.controller.signal,
 						});
 					} catch (error) {
@@ -1309,9 +1310,9 @@ export function MailComposer({
 			};
 
 			let submission =
-				intent.submissionId === null
+				activeIntent.submissionId === null
 					? await obtainSubmission()
-					: await getMailSubmission(intent.submissionId, {
+					: await getMailSubmission(activeIntent.submissionId, {
 							signal: session.controller.signal,
 						});
 			if (session !== sessionRef.current || session.controller.signal.aborted) return;
@@ -1319,7 +1320,7 @@ export function MailComposer({
 			const recordSubmission = (candidate: MailSubmission) => {
 				if (candidate.status === "sent") return;
 				intent = {
-					...intent,
+					...activeIntent,
 					submissionId: candidate.id,
 					status: candidate.status,
 				};

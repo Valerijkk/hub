@@ -19,17 +19,18 @@ import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedMessengerRouteImport } from './routes/_authenticated/messenger'
 import { Route as AuthenticatedMarketplaceRouteImport } from './routes/_authenticated/marketplace'
+import { Route as AuthenticatedMailRouteImport } from './routes/_authenticated/mail'
 import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
-import { Route as AuthenticatedCalendarEventsEventIdRouteImport } from './routes/_authenticated/calendar_/events/$eventId'
 import { Route as AuthenticatedBasesRouteImport } from './routes/_authenticated/bases'
 import { Route as AuthenticatedAccountingRouteImport } from './routes/_authenticated/accounting'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedMessengerIndexRouteImport } from './routes/_authenticated/messenger/index'
+import { Route as AuthenticatedMailIndexRouteImport } from './routes/_authenticated/mail/index'
 import { Route as AuthenticatedIntranetIndexRouteImport } from './routes/_authenticated/intranet/index'
 import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings/security'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
@@ -41,6 +42,7 @@ import { Route as AuthenticatedSettingsAiRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects/new'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
 import { Route as AuthenticatedMessengerChannelIdRouteImport } from './routes/_authenticated/messenger/$channelId'
+import { Route as AuthenticatedMailFolderKeyRouteImport } from './routes/_authenticated/mail/$folderKey'
 import { Route as AuthenticatedIntranetDirectoryRouteImport } from './routes/_authenticated/intranet/directory'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminTrashRouteImport } from './routes/_authenticated/admin/trash'
@@ -54,6 +56,9 @@ import { Route as AuthenticatedProjectsProjectIdTmsRouteImport } from './routes/
 import { Route as AuthenticatedProjectsProjectIdGanttRouteImport } from './routes/_authenticated/projects/$projectId/gantt'
 import { Route as AuthenticatedProjectsProjectIdDashboardRouteImport } from './routes/_authenticated/projects/$projectId/dashboard'
 import { Route as AuthenticatedProjectsProjectIdBacklogRouteImport } from './routes/_authenticated/projects/$projectId/backlog'
+import { Route as AuthenticatedMailOauthCallbackRouteImport } from './routes/_authenticated/mail_/oauth/callback'
+import { Route as AuthenticatedMailMessageMessageIdRouteImport } from './routes/_authenticated/mail/message/$messageId'
+import { Route as AuthenticatedCalendarEventsEventIdRouteImport } from './routes/_authenticated/calendar_/events/$eventId'
 import { Route as AuthenticatedProjectsProjectIdSprintsIndexRouteImport } from './routes/_authenticated/projects/$projectId/sprints/index'
 import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from './routes/_authenticated/projects/$projectId/issues/index'
 import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from './routes/_authenticated/projects/$projectId/board/index'
@@ -69,6 +74,7 @@ import { Route as AuthenticatedProjectsProjectIdSettingsLabelsRouteImport } from
 import { Route as AuthenticatedProjectsProjectIdSettingsIntegrationsRouteImport } from './routes/_authenticated/projects/$projectId/settings/integrations'
 import { Route as AuthenticatedProjectsProjectIdIssuesNewRouteImport } from './routes/_authenticated/projects/$projectId/issues/new'
 import { Route as AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport } from './routes/_authenticated/projects/$projectId/issues/$issueKey'
+import { Route as AuthenticatedMailFolderKeyThreadThreadIdRouteImport } from './routes/_authenticated/mail/$folderKey/thread/$threadId'
 import { Route as AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs_.$runId'
 import { Route as AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases_.$caseKey'
 
@@ -124,6 +130,11 @@ const AuthenticatedMarketplaceRoute =
   } as any).lazy(() =>
     import('./routes/_authenticated/marketplace.lazy').then((d) => d.Route),
   )
+const AuthenticatedMailRoute = AuthenticatedMailRouteImport.update({
+  id: '/mail',
+  path: '/mail',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedHrRoute = AuthenticatedHrRouteImport.update({
   id: '/hr',
   path: '/hr',
@@ -158,12 +169,6 @@ const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedCalendarEventsEventIdRoute =
-  AuthenticatedCalendarEventsEventIdRouteImport.update({
-    id: '/calendar_/events/$eventId',
-    path: '/calendar/events/$eventId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedBasesRoute = AuthenticatedBasesRouteImport.update({
   id: '/bases',
   path: '/bases',
@@ -188,6 +193,11 @@ const AuthenticatedMessengerIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedMessengerRoute,
   } as any)
+const AuthenticatedMailIndexRoute = AuthenticatedMailIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedMailRoute,
+} as any)
 const AuthenticatedIntranetIndexRoute =
   AuthenticatedIntranetIndexRouteImport.update({
     id: '/intranet/',
@@ -256,6 +266,12 @@ const AuthenticatedMessengerChannelIdRoute =
     id: '/$channelId',
     path: '/$channelId',
     getParentRoute: () => AuthenticatedMessengerRoute,
+  } as any)
+const AuthenticatedMailFolderKeyRoute =
+  AuthenticatedMailFolderKeyRouteImport.update({
+    id: '/$folderKey',
+    path: '/$folderKey',
+    getParentRoute: () => AuthenticatedMailRoute,
   } as any)
 const AuthenticatedIntranetDirectoryRoute =
   AuthenticatedIntranetDirectoryRouteImport.update({
@@ -342,6 +358,24 @@ const AuthenticatedProjectsProjectIdBacklogRoute =
     id: '/backlog',
     path: '/backlog',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedMailOauthCallbackRoute =
+  AuthenticatedMailOauthCallbackRouteImport.update({
+    id: '/mail_/oauth/callback',
+    path: '/mail/oauth/callback',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMailMessageMessageIdRoute =
+  AuthenticatedMailMessageMessageIdRouteImport.update({
+    id: '/message/$messageId',
+    path: '/message/$messageId',
+    getParentRoute: () => AuthenticatedMailRoute,
+  } as any)
+const AuthenticatedCalendarEventsEventIdRoute =
+  AuthenticatedCalendarEventsEventIdRouteImport.update({
+    id: '/calendar_/events/$eventId',
+    path: '/calendar/events/$eventId',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedProjectsProjectIdSprintsIndexRoute =
   AuthenticatedProjectsProjectIdSprintsIndexRouteImport.update({
@@ -449,6 +483,12 @@ const AuthenticatedProjectsProjectIdIssuesIssueKeyRoute =
     path: '/issues/$issueKey',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedMailFolderKeyThreadThreadIdRoute =
+  AuthenticatedMailFolderKeyThreadThreadIdRouteImport.update({
+    id: '/thread/$threadId',
+    path: '/thread/$threadId',
+    getParentRoute: () => AuthenticatedMailFolderKeyRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsRunsRunIdRoute =
   AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport.update({
     id: '/runs_/$runId',
@@ -474,12 +514,12 @@ export interface FileRoutesByFullPath {
   '/accounting': typeof AuthenticatedAccountingRoute
   '/bases': typeof AuthenticatedBasesRoute
   '/calendar': typeof AuthenticatedCalendarRoute
-  '/calendar/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
   '/calls': typeof AuthenticatedCallsRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help': typeof AuthenticatedHelpRoute
   '/hr': typeof AuthenticatedHrRoute
+  '/mail': typeof AuthenticatedMailRouteWithChildren
   '/marketplace': typeof AuthenticatedMarketplaceRoute
   '/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -492,6 +532,7 @@ export interface FileRoutesByFullPath {
   '/admin/trash': typeof AuthenticatedAdminTrashRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/intranet/directory': typeof AuthenticatedIntranetDirectoryRoute
+  '/mail/$folderKey': typeof AuthenticatedMailFolderKeyRouteWithChildren
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/new': typeof AuthenticatedProjectsNewRoute
@@ -503,14 +544,19 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/intranet/': typeof AuthenticatedIntranetIndexRoute
+  '/mail/': typeof AuthenticatedMailIndexRoute
   '/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/calendar/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
+  '/mail/message/$messageId': typeof AuthenticatedMailMessageMessageIdRoute
+  '/mail/oauth/callback': typeof AuthenticatedMailOauthCallbackRoute
   '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
   '/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
   '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
   '/projects/$projectId/triage': typeof AuthenticatedProjectsProjectIdTriageRoute
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/mail/$folderKey/thread/$threadId': typeof AuthenticatedMailFolderKeyThreadThreadIdRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
   '/projects/$projectId/settings/integrations': typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRoute
@@ -537,7 +583,6 @@ export interface FileRoutesByTo {
   '/accounting': typeof AuthenticatedAccountingRoute
   '/bases': typeof AuthenticatedBasesRoute
   '/calendar': typeof AuthenticatedCalendarRoute
-  '/calendar/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
   '/calls': typeof AuthenticatedCallsRoute
   '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -554,6 +599,7 @@ export interface FileRoutesByTo {
   '/admin/trash': typeof AuthenticatedAdminTrashRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/intranet/directory': typeof AuthenticatedIntranetDirectoryRoute
+  '/mail/$folderKey': typeof AuthenticatedMailFolderKeyRouteWithChildren
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/settings/ai': typeof AuthenticatedSettingsAiRoute
@@ -564,14 +610,19 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/intranet': typeof AuthenticatedIntranetIndexRoute
+  '/mail': typeof AuthenticatedMailIndexRoute
   '/messenger': typeof AuthenticatedMessengerIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/calendar/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
+  '/mail/message/$messageId': typeof AuthenticatedMailMessageMessageIdRoute
+  '/mail/oauth/callback': typeof AuthenticatedMailOauthCallbackRoute
   '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
   '/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
   '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
   '/projects/$projectId/triage': typeof AuthenticatedProjectsProjectIdTriageRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/mail/$folderKey/thread/$threadId': typeof AuthenticatedMailFolderKeyThreadThreadIdRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
   '/projects/$projectId/settings/integrations': typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRoute
@@ -600,12 +651,12 @@ export interface FileRoutesById {
   '/_authenticated/accounting': typeof AuthenticatedAccountingRoute
   '/_authenticated/bases': typeof AuthenticatedBasesRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
-  '/_authenticated/calendar_/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
   '/_authenticated/calls': typeof AuthenticatedCallsRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/help': typeof AuthenticatedHelpRoute
   '/_authenticated/hr': typeof AuthenticatedHrRoute
+  '/_authenticated/mail': typeof AuthenticatedMailRouteWithChildren
   '/_authenticated/marketplace': typeof AuthenticatedMarketplaceRoute
   '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -618,6 +669,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/trash': typeof AuthenticatedAdminTrashRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/intranet/directory': typeof AuthenticatedIntranetDirectoryRoute
+  '/_authenticated/mail/$folderKey': typeof AuthenticatedMailFolderKeyRouteWithChildren
   '/_authenticated/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
@@ -629,14 +681,19 @@ export interface FileRoutesById {
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/_authenticated/intranet/': typeof AuthenticatedIntranetIndexRoute
+  '/_authenticated/mail/': typeof AuthenticatedMailIndexRoute
   '/_authenticated/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/calendar_/events/$eventId': typeof AuthenticatedCalendarEventsEventIdRoute
+  '/_authenticated/mail/message/$messageId': typeof AuthenticatedMailMessageMessageIdRoute
+  '/_authenticated/mail_/oauth/callback': typeof AuthenticatedMailOauthCallbackRoute
   '/_authenticated/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/_authenticated/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
   '/_authenticated/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
   '/_authenticated/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
   '/_authenticated/projects/$projectId/triage': typeof AuthenticatedProjectsProjectIdTriageRoute
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/_authenticated/mail/$folderKey/thread/$threadId': typeof AuthenticatedMailFolderKeyThreadThreadIdRoute
   '/_authenticated/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/_authenticated/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
   '/_authenticated/projects/$projectId/settings/integrations': typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRoute
@@ -665,12 +722,12 @@ export interface FileRouteTypes {
     | '/accounting'
     | '/bases'
     | '/calendar'
-    | '/calendar/events/$eventId'
     | '/calls'
     | '/crm'
     | '/dashboard'
     | '/help'
     | '/hr'
+    | '/mail'
     | '/marketplace'
     | '/messenger'
     | '/settings'
@@ -683,6 +740,7 @@ export interface FileRouteTypes {
     | '/admin/trash'
     | '/admin/users'
     | '/intranet/directory'
+    | '/mail/$folderKey'
     | '/messenger/$channelId'
     | '/projects/$projectId'
     | '/projects/new'
@@ -694,14 +752,19 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/intranet/'
+    | '/mail/'
     | '/messenger/'
     | '/projects/'
+    | '/calendar/events/$eventId'
+    | '/mail/message/$messageId'
+    | '/mail/oauth/callback'
     | '/projects/$projectId/backlog'
     | '/projects/$projectId/dashboard'
     | '/projects/$projectId/gantt'
     | '/projects/$projectId/tms'
     | '/projects/$projectId/triage'
     | '/projects/$projectId/'
+    | '/mail/$folderKey/thread/$threadId'
     | '/projects/$projectId/issues/$issueKey'
     | '/projects/$projectId/issues/new'
     | '/projects/$projectId/settings/integrations'
@@ -728,7 +791,6 @@ export interface FileRouteTypes {
     | '/accounting'
     | '/bases'
     | '/calendar'
-    | '/calendar/events/$eventId'
     | '/calls'
     | '/crm'
     | '/dashboard'
@@ -745,6 +807,7 @@ export interface FileRouteTypes {
     | '/admin/trash'
     | '/admin/users'
     | '/intranet/directory'
+    | '/mail/$folderKey'
     | '/messenger/$channelId'
     | '/projects/new'
     | '/settings/ai'
@@ -755,14 +818,19 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/intranet'
+    | '/mail'
     | '/messenger'
     | '/projects'
+    | '/calendar/events/$eventId'
+    | '/mail/message/$messageId'
+    | '/mail/oauth/callback'
     | '/projects/$projectId/backlog'
     | '/projects/$projectId/dashboard'
     | '/projects/$projectId/gantt'
     | '/projects/$projectId/tms'
     | '/projects/$projectId/triage'
     | '/projects/$projectId'
+    | '/mail/$folderKey/thread/$threadId'
     | '/projects/$projectId/issues/$issueKey'
     | '/projects/$projectId/issues/new'
     | '/projects/$projectId/settings/integrations'
@@ -790,12 +858,12 @@ export interface FileRouteTypes {
     | '/_authenticated/accounting'
     | '/_authenticated/bases'
     | '/_authenticated/calendar'
-    | '/_authenticated/calendar_/events/$eventId'
     | '/_authenticated/calls'
     | '/_authenticated/crm'
     | '/_authenticated/dashboard'
     | '/_authenticated/help'
     | '/_authenticated/hr'
+    | '/_authenticated/mail'
     | '/_authenticated/marketplace'
     | '/_authenticated/messenger'
     | '/_authenticated/settings'
@@ -808,6 +876,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/trash'
     | '/_authenticated/admin/users'
     | '/_authenticated/intranet/directory'
+    | '/_authenticated/mail/$folderKey'
     | '/_authenticated/messenger/$channelId'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/new'
@@ -819,14 +888,19 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/profile'
     | '/_authenticated/settings/security'
     | '/_authenticated/intranet/'
+    | '/_authenticated/mail/'
     | '/_authenticated/messenger/'
     | '/_authenticated/projects/'
+    | '/_authenticated/calendar_/events/$eventId'
+    | '/_authenticated/mail/message/$messageId'
+    | '/_authenticated/mail_/oauth/callback'
     | '/_authenticated/projects/$projectId/backlog'
     | '/_authenticated/projects/$projectId/dashboard'
     | '/_authenticated/projects/$projectId/gantt'
     | '/_authenticated/projects/$projectId/tms'
     | '/_authenticated/projects/$projectId/triage'
     | '/_authenticated/projects/$projectId/'
+    | '/_authenticated/mail/$folderKey/thread/$threadId'
     | '/_authenticated/projects/$projectId/issues/$issueKey'
     | '/_authenticated/projects/$projectId/issues/new'
     | '/_authenticated/projects/$projectId/settings/integrations'
@@ -927,6 +1001,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMarketplaceRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mail': {
+      id: '/_authenticated/mail'
+      path: '/mail'
+      fullPath: '/mail'
+      preLoaderRoute: typeof AuthenticatedMailRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/hr': {
       id: '/_authenticated/hr'
       path: '/hr'
@@ -969,13 +1050,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/calendar_/events/$eventId': {
-      id: '/_authenticated/calendar_/events/$eventId'
-      path: '/calendar/events/$eventId'
-      fullPath: '/calendar/events/$eventId'
-      preLoaderRoute: typeof AuthenticatedCalendarEventsEventIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/bases': {
       id: '/_authenticated/bases'
       path: '/bases'
@@ -1003,6 +1077,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/messenger/'
       preLoaderRoute: typeof AuthenticatedMessengerIndexRouteImport
       parentRoute: typeof AuthenticatedMessengerRoute
+    }
+    '/_authenticated/mail/': {
+      id: '/_authenticated/mail/'
+      path: '/'
+      fullPath: '/mail/'
+      preLoaderRoute: typeof AuthenticatedMailIndexRouteImport
+      parentRoute: typeof AuthenticatedMailRoute
     }
     '/_authenticated/intranet/': {
       id: '/_authenticated/intranet/'
@@ -1080,6 +1161,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/messenger/$channelId'
       preLoaderRoute: typeof AuthenticatedMessengerChannelIdRouteImport
       parentRoute: typeof AuthenticatedMessengerRoute
+    }
+    '/_authenticated/mail/$folderKey': {
+      id: '/_authenticated/mail/$folderKey'
+      path: '/$folderKey'
+      fullPath: '/mail/$folderKey'
+      preLoaderRoute: typeof AuthenticatedMailFolderKeyRouteImport
+      parentRoute: typeof AuthenticatedMailRoute
     }
     '/_authenticated/intranet/directory': {
       id: '/_authenticated/intranet/directory'
@@ -1171,6 +1259,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/projects/$projectId/backlog'
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdBacklogRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/mail_/oauth/callback': {
+      id: '/_authenticated/mail_/oauth/callback'
+      path: '/mail/oauth/callback'
+      fullPath: '/mail/oauth/callback'
+      preLoaderRoute: typeof AuthenticatedMailOauthCallbackRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mail/message/$messageId': {
+      id: '/_authenticated/mail/message/$messageId'
+      path: '/message/$messageId'
+      fullPath: '/mail/message/$messageId'
+      preLoaderRoute: typeof AuthenticatedMailMessageMessageIdRouteImport
+      parentRoute: typeof AuthenticatedMailRoute
+    }
+    '/_authenticated/calendar_/events/$eventId': {
+      id: '/_authenticated/calendar_/events/$eventId'
+      path: '/calendar/events/$eventId'
+      fullPath: '/calendar/events/$eventId'
+      preLoaderRoute: typeof AuthenticatedCalendarEventsEventIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/projects/$projectId/sprints/': {
       id: '/_authenticated/projects/$projectId/sprints/'
@@ -1277,6 +1386,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/mail/$folderKey/thread/$threadId': {
+      id: '/_authenticated/mail/$folderKey/thread/$threadId'
+      path: '/thread/$threadId'
+      fullPath: '/mail/$folderKey/thread/$threadId'
+      preLoaderRoute: typeof AuthenticatedMailFolderKeyThreadThreadIdRouteImport
+      parentRoute: typeof AuthenticatedMailFolderKeyRoute
+    }
     '/_authenticated/projects/$projectId/tms/runs_/$runId': {
       id: '/_authenticated/projects/$projectId/tms/runs_/$runId'
       path: '/runs/$runId'
@@ -1293,6 +1409,37 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedMailFolderKeyRouteChildren {
+  AuthenticatedMailFolderKeyThreadThreadIdRoute: typeof AuthenticatedMailFolderKeyThreadThreadIdRoute
+}
+
+const AuthenticatedMailFolderKeyRouteChildren: AuthenticatedMailFolderKeyRouteChildren =
+  {
+    AuthenticatedMailFolderKeyThreadThreadIdRoute:
+      AuthenticatedMailFolderKeyThreadThreadIdRoute,
+  }
+
+const AuthenticatedMailFolderKeyRouteWithChildren =
+  AuthenticatedMailFolderKeyRoute._addFileChildren(
+    AuthenticatedMailFolderKeyRouteChildren,
+  )
+
+interface AuthenticatedMailRouteChildren {
+  AuthenticatedMailFolderKeyRoute: typeof AuthenticatedMailFolderKeyRouteWithChildren
+  AuthenticatedMailIndexRoute: typeof AuthenticatedMailIndexRoute
+  AuthenticatedMailMessageMessageIdRoute: typeof AuthenticatedMailMessageMessageIdRoute
+}
+
+const AuthenticatedMailRouteChildren: AuthenticatedMailRouteChildren = {
+  AuthenticatedMailFolderKeyRoute: AuthenticatedMailFolderKeyRouteWithChildren,
+  AuthenticatedMailIndexRoute: AuthenticatedMailIndexRoute,
+  AuthenticatedMailMessageMessageIdRoute:
+    AuthenticatedMailMessageMessageIdRoute,
+}
+
+const AuthenticatedMailRouteWithChildren =
+  AuthenticatedMailRoute._addFileChildren(AuthenticatedMailRouteChildren)
 
 interface AuthenticatedMessengerRouteChildren {
   AuthenticatedMessengerChannelIdRoute: typeof AuthenticatedMessengerChannelIdRoute
@@ -1434,12 +1581,12 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAccountingRoute: typeof AuthenticatedAccountingRoute
   AuthenticatedBasesRoute: typeof AuthenticatedBasesRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
-  AuthenticatedCalendarEventsEventIdRoute: typeof AuthenticatedCalendarEventsEventIdRoute
   AuthenticatedCallsRoute: typeof AuthenticatedCallsRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
   AuthenticatedHrRoute: typeof AuthenticatedHrRoute
+  AuthenticatedMailRoute: typeof AuthenticatedMailRouteWithChildren
   AuthenticatedMarketplaceRoute: typeof AuthenticatedMarketplaceRoute
   AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
@@ -1455,19 +1602,20 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute
   AuthenticatedIntranetIndexRoute: typeof AuthenticatedIntranetIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
+  AuthenticatedCalendarEventsEventIdRoute: typeof AuthenticatedCalendarEventsEventIdRoute
+  AuthenticatedMailOauthCallbackRoute: typeof AuthenticatedMailOauthCallbackRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountingRoute: AuthenticatedAccountingRoute,
   AuthenticatedBasesRoute: AuthenticatedBasesRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
-  AuthenticatedCalendarEventsEventIdRoute:
-    AuthenticatedCalendarEventsEventIdRoute,
   AuthenticatedCallsRoute: AuthenticatedCallsRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHelpRoute: AuthenticatedHelpRoute,
   AuthenticatedHrRoute: AuthenticatedHrRoute,
+  AuthenticatedMailRoute: AuthenticatedMailRouteWithChildren,
   AuthenticatedMarketplaceRoute: AuthenticatedMarketplaceRoute,
   AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
@@ -1484,6 +1632,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProjectsNewRoute: AuthenticatedProjectsNewRoute,
   AuthenticatedIntranetIndexRoute: AuthenticatedIntranetIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
+  AuthenticatedCalendarEventsEventIdRoute:
+    AuthenticatedCalendarEventsEventIdRoute,
+  AuthenticatedMailOauthCallbackRoute: AuthenticatedMailOauthCallbackRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

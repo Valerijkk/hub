@@ -33,6 +33,8 @@ function parseMailOAuthCallback(
 
 	const state = states[0];
 	const code = codes[0];
+	if (state === undefined || code === undefined) return null;
+
 	const codeBytes = new TextEncoder().encode(code);
 	if (
 		!isCanonicalMailOAuthState(state) ||
