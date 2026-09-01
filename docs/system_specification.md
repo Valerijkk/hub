@@ -927,7 +927,7 @@ Commit `eae39e7df9f6160b591e3dd36a798564a19bd7c6` is `CALL-DUR-08A SOURCE_ACCEPT
 
 The frozen `hubtest` oracle uses an in-process fake Ent Postgres dialect driver without real/SQLite database, filesystem, network, `enttest` or new dependency. Canonical GREEN proves exact predicates/arguments, generated row mapping, both providers across active/ended Calls, no-row not-found, multi-row not-singular, unwrapped driver-error identity and exact invalid-input sentinel/no-query behavior in unit and race. It does not prove migration/default/backfill, DB-trigger immutability, planner/index, callback authentication/routing, tenant isolation, provider selection or runtime. The provider-room tuple is resolver data after trusted ingress, never authn/authz or delivery identity.
 
-## CALL-DUR-08B immutable registry contract (2026-08-31)
+## CALL-DUR-08B immutable registry contract (2026-09-01)
 
 `ConferenceProviderRegistry` is constructed once from one or more `RegisteredConferenceProvider` values and has no mutating registration API. Valid IDs are exact `livekit|jitsi`. Every entry owns the existing `CallJoinCredentialIssuer`, ID and capabilities. Known capability bits are call-aware credential, room provision, room delete, guest credential and participant metadata; narrow Go interfaces make every advertised operational bit structurally verifiable.
 
@@ -935,7 +935,7 @@ Construction returns exact invalid or duplicate sentinels for empty input, nil/t
 
 `LiveKitConferenceProvider` remains the full legacy provider and advertises all capabilities. `JitsiConferenceProvider` validates `JitsiConfig`, composes the existing issuer and implements only the trusted call-aware credential capability. It has no legacy provision/delete/room-string join/guest/participant-state method. `NewConferenceProvider`, config validation, configured service and server wiring are unchanged and continue rejecting active Jitsi. 08D owns persisted provider mapping, call-lifecycle routing and guest-denial/HTTP-mapping prerequisites; active-provider selection and cutover remain Phase 152. Credential allocation remains 08C.
 
-The sole `hubtest` oracle is constructor/interface/lookup-only and performs no credential issuance, DB, filesystem, network or generated-provider access. Docker evidence remains `NOT_RUN` until the ordered dependency and resource gates accept a unique RED oracle.
+The sole `hubtest` oracle is constructor/interface/lookup-only and performs no credential issuance, DB, filesystem, network or generated-provider access. Commit `b66dada8` and canonical clean Docker container `worktree-master-backend-unit-run-9af81ee5d32d` are `SOURCE_ACCEPTED`: build/vet/unit/race passed and the frozen oracle recorded 32 PASS actions in unit and 32 in race. Provider selection/routing, persistence mapping, guest denial/HTTP behavior, config loading/activation, service/server wiring, integration/PostgreSQL, deployment, media and browser runtime remain `NOT_RUN/UNBOUND`.
 
 ## CALL-DUR-02 durable schema source contract (2026-08-31)
 
