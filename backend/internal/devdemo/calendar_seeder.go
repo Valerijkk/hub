@@ -11,7 +11,8 @@ import (
 )
 
 type calendarSeeder struct {
-	calendar CalendarDemoPort
+	calendar              CalendarDemoPort
+	includeMailInvitation bool
 }
 
 type calendarSeedResult struct {
@@ -21,13 +22,14 @@ type calendarSeedResult struct {
 	rsvpsTotal           int
 	rsvpsReplayed        int
 	occurrencesCancelled int
+	eventIDs             map[string]uuid.UUID
 }
 
-func newCalendarSeeder(calendar CalendarDemoPort) (*calendarSeeder, error) {
+func newCalendarSeeder(calendar CalendarDemoPort, includeMailInvitation bool) (*calendarSeeder, error) {
 	if isNilCalendarDemoDependency(calendar) {
 		return nil, errors.New("calendar demo seeder: calendar port is required")
 	}
-	return &calendarSeeder{calendar: calendar}, nil
+	return &calendarSeeder{calendar: calendar, includeMailInvitation: includeMailInvitation}, nil
 }
 
 func (seeder *calendarSeeder) seed(ctx context.Context, userIDs map[string]uuid.UUID) (calendarSeedResult, error) {
@@ -38,12 +40,12 @@ func (seeder *calendarSeeder) seed(ctx context.Context, userIDs map[string]uuid.
 		return calendarSeedResult{}, errors.New("calendar demo seed: context is required")
 	}
 
-	dataset, err := newCalendarDemoDataset(userIDs)
+	dataset, err := newCalendarDemoDataset(userIDs, seeder.includeMailInvitation)
 	if err != nil {
 		return calendarSeedResult{}, fmt.Errorf("calendar demo seed: dataset preparation failed: %w", err)
 	}
 
-	result := calendarSeedResult{datasetVersion: dataset.version}
+	result := calendarSeedResult{datasetVersion: dataset.version, eventIDs: make(map[string]uuid.UUID, len(dataset.events))}
 	expectedRSVPs := 0
 	expectedCancellations := 0
 	for _, plan := range dataset.events {
@@ -59,6 +61,15 @@ func (seeder *calendarSeeder) seed(ctx context.Context, userIDs map[string]uuid.
 		if created.EventID == uuid.Nil {
 			return calendarSeedResult{}, errors.New("calendar demo seed: create event response is invalid")
 		}
+		if _, exists := result.eventIDs[plan.key]; exists {
+			return calendarSeedResult{}, errors.New("calendar demo seed: event key is duplicated")
+		}
+		for _, existingEventID := range result.eventIDs {
+			if existingEventID == created.EventID {
+				return calendarSeedResult{}, errors.New("calendar demo seed: event id is duplicated")
+			}
+		}
+		result.eventIDs[plan.key] = created.EventID
 
 		attendeeVersions, err := calendarDemoAttendeeVersions(created.Attendees)
 		if err != nil {
@@ -104,7 +115,34 @@ func (seeder *calendarSeeder) seed(ctx context.Context, userIDs map[string]uuid.
 	if result.eventsTotal != len(dataset.events) || result.rsvpsTotal != expectedRSVPs || result.occurrencesCancelled != expectedCancellations {
 		return calendarSeedResult{}, errors.New("calendar demo seed: reconciliation totals are invalid")
 	}
-	return result, nil
+	return result.copy(), nil
+}
+
+func (result calendarSeedResult) eventID(key string) (uuid.UUID, error) {
+	if key == "" || result.eventIDs == nil {
+		return uuid.Nil, errors.New("calendar demo seed: event id is unavailable")
+	}
+	eventID, exists := result.eventIDs[key]
+	if !exists || eventID == uuid.Nil {
+		return uuid.Nil, errors.New("calendar demo seed: event id is unavailable")
+	}
+	return eventID, nil
+}
+
+func (result calendarSeedResult) copy() calendarSeedResult {
+	result.eventIDs = copyCalendarDemoEventIDs(result.eventIDs)
+	return result
+}
+
+func copyCalendarDemoEventIDs(eventIDs map[string]uuid.UUID) map[string]uuid.UUID {
+	if eventIDs == nil {
+		return nil
+	}
+	copied := make(map[string]uuid.UUID, len(eventIDs))
+	for key, eventID := range eventIDs {
+		copied[key] = eventID
+	}
+	return copied
 }
 
 func calendarDemoAttendeeVersions(attendees []CalendarDemoAttendeeState) (map[uuid.UUID]int, error) {

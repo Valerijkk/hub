@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	calendarDemoDatasetVersion  = 1
+	calendarDemoDatasetVersion      = 1
+	calendarDemoMailDatasetVersion  = 2
 	calendarDemoTimezone        = "Europe/Moscow"
 	calendarDemoRequiredRole    = "required"
 	calendarDemoAcceptedStatus  = "accepted"
@@ -21,6 +22,7 @@ type calendarDemoDataset struct {
 }
 
 type calendarDemoEventPlan struct {
+	key                string
 	actorID            uuid.UUID
 	create             CalendarDemoCreateInput
 	rsvps              []calendarDemoRSVPPlan
@@ -33,7 +35,7 @@ type calendarDemoRSVPPlan struct {
 	status         string
 }
 
-func newCalendarDemoDataset(userIDs map[string]uuid.UUID) (calendarDemoDataset, error) {
+func newCalendarDemoDataset(userIDs map[string]uuid.UUID, includeMailInvitation bool) (calendarDemoDataset, error) {
 	pm, err := requiredCalendarDemoUserID(userIDs, "pm@hub.local")
 	if err != nil {
 		return calendarDemoDataset{}, err
@@ -60,6 +62,7 @@ func newCalendarDemoDataset(userIDs map[string]uuid.UUID) (calendarDemoDataset, 
 		version: calendarDemoDatasetVersion,
 		events: []calendarDemoEventPlan{
 			{
+				key:     "team-sync",
 				actorID: pm,
 				create: CalendarDemoCreateInput{
 					IdempotencyKey: "hub-devdemo-calendar-v1-create-team-sync",
@@ -81,6 +84,7 @@ func newCalendarDemoDataset(userIDs map[string]uuid.UUID) (calendarDemoDataset, 
 				},
 			},
 			{
+				key:     "dev2-focus",
 				actorID: dev2,
 				create: CalendarDemoCreateInput{
 					IdempotencyKey: "hub-devdemo-calendar-v1-create-dev2-focus",
@@ -93,6 +97,7 @@ func newCalendarDemoDataset(userIDs map[string]uuid.UUID) (calendarDemoDataset, 
 				},
 			},
 			{
+				key:     "release-planning",
 				actorID: pm,
 				create: CalendarDemoCreateInput{
 					IdempotencyKey: "hub-devdemo-calendar-v1-create-release-planning",
@@ -113,6 +118,7 @@ func newCalendarDemoDataset(userIDs map[string]uuid.UUID) (calendarDemoDataset, 
 				},
 			},
 			{
+				key:     "weekly-review",
 				actorID: pm,
 				create: CalendarDemoCreateInput{
 					IdempotencyKey: "hub-devdemo-calendar-v1-create-weekly-review",
@@ -134,6 +140,25 @@ func newCalendarDemoDataset(userIDs map[string]uuid.UUID) (calendarDemoDataset, 
 			},
 		},
 	}
+	if includeMailInvitation {
+		dataset.version = calendarDemoMailDatasetVersion
+		dataset.events = append(dataset.events, calendarDemoEventPlan{
+			key:     MailInvitationEventKey,
+			actorID: pm,
+			create: CalendarDemoCreateInput{
+				IdempotencyKey: "hub-devdemo-calendar-v2-create-mail-invitation",
+				Title:          "Mail invitation",
+				Description:    "PM invitation for the dev1 Mail demo",
+				Location:       "Mail demo",
+				StartsAt:       time.Date(2026, time.September, 3, 10, 0, 0, 0, time.UTC),
+				EndsAt:         time.Date(2026, time.September, 3, 10, 30, 0, 0, time.UTC),
+				Timezone:       calendarDemoTimezone,
+				Attendees: []CalendarDemoAttendeeCandidate{
+					{UserID: dev1, Email: "dev1@hub.local", Role: calendarDemoRequiredRole},
+				},
+			},
+		})
+	}
 	if err := validateCalendarDemoDataset(dataset); err != nil {
 		return calendarDemoDataset{}, err
 	}
@@ -152,14 +177,20 @@ func requiredCalendarDemoUserID(userIDs map[string]uuid.UUID, email string) (uui
 }
 
 func validateCalendarDemoDataset(dataset calendarDemoDataset) error {
-	if dataset.version != calendarDemoDatasetVersion || len(dataset.events) == 0 {
+	if (dataset.version != calendarDemoDatasetVersion && dataset.version != calendarDemoMailDatasetVersion) || len(dataset.events) == 0 {
 		return errors.New("calendar demo dataset: invalid version or events")
 	}
 	keys := make(map[string]struct{})
+	eventKeys := make(map[string]struct{}, len(dataset.events))
+	mailInvitationPlans := 0
 	for _, event := range dataset.events {
-		if event.actorID == uuid.Nil || !calendarDemoUTCInterval(event.create.StartsAt, event.create.EndsAt) {
+		if event.key == "" || event.actorID == uuid.Nil || !calendarDemoUTCInterval(event.create.StartsAt, event.create.EndsAt) {
 			return errors.New("calendar demo dataset: invalid event identity or interval")
 		}
+		if _, exists := eventKeys[event.key]; exists {
+			return errors.New("calendar demo dataset: duplicated event key")
+		}
+		eventKeys[event.key] = struct{}{}
 		if event.create.Timezone != calendarDemoTimezone || !calendarDemoUniqueKey(keys, event.create.IdempotencyKey) {
 			return errors.New("calendar demo dataset: invalid event timezone or key")
 		}
@@ -187,6 +218,17 @@ func validateCalendarDemoDataset(dataset calendarDemoDataset) error {
 				return errors.New("calendar demo dataset: invalid recurrence cancellation")
 			}
 		}
+		if event.key == MailInvitationEventKey {
+			mailInvitationPlans++
+			if event.actorID == uuid.Nil || len(event.create.Attendees) != 1 || event.create.Attendees[0].Email != "dev1@hub.local" ||
+				event.create.Attendees[0].Role != calendarDemoRequiredRole || len(event.rsvps) != 0 {
+				return errors.New("calendar demo dataset: invalid mail invitation plan")
+			}
+		}
+	}
+	if (dataset.version == calendarDemoDatasetVersion && mailInvitationPlans != 0) ||
+		(dataset.version == calendarDemoMailDatasetVersion && mailInvitationPlans != 1) {
+		return errors.New("calendar demo dataset: invalid mail invitation version")
 	}
 	return nil
 }
