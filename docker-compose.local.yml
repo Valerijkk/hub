@@ -138,13 +138,13 @@ services:
 
   seaweedfs:
     image: chrislusf/seaweedfs:3.97
-    command: ["server", "-s3", "-dir=/data", "-s3.config=/etc/seaweedfs/s3.json"]
+    # Local: без s3.config (как deployments/docker-compose.yml). Prod генерирует из S3_* (A14-002).
+    command: ["server", "-s3", "-dir=/data"]
     ports:
       - "9333:9333"
       - "8333:8333"
     volumes:
       - seaweeddata:/data
-      - ./deployments/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
 
   # LiveKit — на Windows сузьте UDP-диапазон (Hyper-V резервирует порты).
   # Если bind UDP failed: docker compose up -d --no-deps backend frontend hub-mail
