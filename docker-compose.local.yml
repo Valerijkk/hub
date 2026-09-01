@@ -210,6 +210,7 @@ services:
       FIBER_IMMUTABLE: "true"
       ENVIRONMENT: development
       DEV_MODE: "true"
+      MAILBOX_DEMO_ENABLED: "true"
       DATABASE_URL: "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
       MONGODB_URL: "mongodb://hub:hub@mongo:27017/?authSource=admin"
       MONGODB_DATABASE: "hub"
