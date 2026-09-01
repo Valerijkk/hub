@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ast
+import glob
+import hashlib
 import json
 import math
 import os
@@ -726,6 +728,36 @@ def test_hard2g_runner_rejects_permissive_authority() -> None:
         assert not _hard2g_backend_entrypoint_is_closed(hostile)
 
 
+def test_hard2g_runtime_budget_contract_is_closed() -> None:
+    assignments = _hard2g_runtime_budget_assignments()
+    assert type(assignments) is tuple
+    canonical_runtime = _hard2g_runtime_budget_fixture(assignments)
+    assert _hard2g_runtime_budget_contract_is_closed(canonical_runtime)
+
+    report_symbol, _, _ = assignments[0].partition("=")
+    metadata_assignment = assignments[1]
+    cap_symbol, _, cap_value = assignments[2].partition("=")
+    report_check = '  [ "$report_bytes" -le "$REPORT_BUDGET_BYTES" ] || return 75\n'
+    metadata_check = (
+        '  [ "$metadata_bytes" -le "$REPORT_METADATA_BUDGET_BYTES" ] '
+        "|| return 75\n"
+    )
+    for hostile in (
+        canonical_runtime.replace(
+            assignments[0], f"{report_symbol}=1", 1
+        ),
+        canonical_runtime.replace(f"{metadata_assignment}\n", "", 1),
+        canonical_runtime.replace(f'"${cap_symbol}"', f'"{cap_value}"', 1),
+        canonical_runtime.replace(report_check, "", 1),
+        canonical_runtime.replace(
+            metadata_check,
+            metadata_check + "  return 0\n",
+            1,
+        ),
+    ):
+        assert not _hard2g_runtime_budget_contract_is_closed(hostile)
+
+
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
@@ -752,6 +784,88 @@ def test_hard2g_report_budget_is_exact_and_fail_closed() -> None:
     stream_mismatch["streams"] = MappingProxyType(streams)
     assert not _hard2g_report_budget_is_closed(
         MappingProxyType(stream_mismatch)
+    )
+
+
+def test_hard2g_canonical_build_input_manifest_expands_wildcards_and_hashes_bytes(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "docker-compose.local.yml").write_bytes(b"compose\n")
+    observers = tmp_path / "testframework" / "observers" / "backend_unit"
+    observers.mkdir(parents=True)
+    (observers / "observe.py").write_bytes(b"observe\n")
+    (observers / "contracts.py").write_bytes(b"contracts\n")
+    policy_paths = (
+        "docker-compose.local.yml",
+        "testframework/observers/**",
+    )
+    manifest = _canonical_build_input_manifest_bytes(tmp_path, policy_paths)
+    assert type(manifest) is bytes
+    assert manifest == (
+        b"docker-compose.local.yml\tsha256:"
+        + hashlib.sha256(b"compose\n").hexdigest().encode()
+        + b"\n"
+        + b"testframework/observers/backend_unit/contracts.py\tsha256:"
+        + hashlib.sha256(b"contracts\n").hexdigest().encode()
+        + b"\n"
+        + b"testframework/observers/backend_unit/observe.py\tsha256:"
+        + hashlib.sha256(b"observe\n").hexdigest().encode()
+        + b"\n"
+    )
+    manifest_sha256 = "sha256:" + hashlib.sha256(manifest).hexdigest()
+    assert _hard2g_exact_manifest_binding_is_closed(
+        tmp_path,
+        manifest,
+        manifest_sha256,
+        policy_paths,
+    )
+    assert not _hard2g_exact_manifest_binding_is_closed(
+        tmp_path,
+        manifest.replace(b"\n", b"\r\n", 1),
+        manifest_sha256,
+        policy_paths,
+    )
+    assert not _hard2g_exact_manifest_binding_is_closed(
+        tmp_path,
+        manifest,
+        "sha256:" + "0" * 64,
+        policy_paths,
+    )
+    (observers / "late.py").write_bytes(b"late\n")
+    assert not _hard2g_exact_manifest_binding_is_closed(
+        tmp_path,
+        manifest,
+        manifest_sha256,
+        policy_paths,
+    )
+
+
+def test_hard2g_canonical_build_input_manifest_rejects_symlink_parent(
+    tmp_path: Path,
+) -> None:
+    observers = tmp_path / "testframework" / "observers"
+    observers.mkdir(parents=True)
+    (observers / "safe.py").write_bytes(b"safe\n")
+    policy_paths = ("testframework/observers/**",)
+    manifest = _canonical_build_input_manifest_bytes(tmp_path, policy_paths)
+    assert type(manifest) is bytes
+    manifest_sha256 = "sha256:" + hashlib.sha256(manifest).hexdigest()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "escaped.py").write_bytes(b"escaped\n")
+    try:
+        (observers / "linked-parent").symlink_to(
+            outside,
+            target_is_directory=True,
+        )
+    except (NotImplementedError, OSError):
+        pytest.skip("the OS does not permit directory symlink creation")
+    assert _canonical_build_input_manifest_bytes(tmp_path, policy_paths) is _INVALID
+    assert not _hard2g_exact_manifest_binding_is_closed(
+        tmp_path,
+        manifest,
+        manifest_sha256,
+        policy_paths,
     )
 
 
@@ -817,6 +931,50 @@ finalize_container() {
         canonical_receipt.replace(
             "  write_inventory\n  : >",
             "  : >\n  write_inventory\n  : >",
+            1,
+        )
+    )
+    for hostile in (
+        canonical_receipt
+        + 'if true; then write_atomic "$run_dir/SEAL" "$seal"; fi\n',
+        canonical_receipt + "if true; then arbitrary_writer; fi\n",
+        canonical_receipt + "true && arbitrary_writer\n",
+        canonical_receipt + "false || arbitrary_writer\n",
+        canonical_receipt + "true | arbitrary_writer\n",
+        canonical_receipt
+        + 'mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"; '
+        + 'write_atomic "$run_dir/SEAL" "$seal"\n',
+        canonical_receipt
+        + 'write_atomic "$run_dir/$(printf SEAL)" "$seal"\n',
+        canonical_receipt
+        + 'receipt_target="$run_dir/container-receipt.json"\n'
+        + 'write_atomic "$receipt_target" "$receipt"\n',
+        canonical_receipt
+        + 'mv -- "$run_dir/${stage}.${artifact}.tmp" '
+        + '"$run_dir/$stage.$artifact"\n',
+        canonical_receipt
+        + 'mv -- "$run_dir/$stage.$artifact.tmp" '
+        + '"$run_dir/$stage.$artifact"\n'
+        + 'mv -- "$run_dir/packet.partial" "$run_dir/packet"\n',
+        canonical_receipt + 'printf x > "$run_dir/SEAL"\n',
+    ):
+        assert not _hard2g_container_publication_is_closed(hostile)
+    for mutation in (
+        "run_dir=/tmp\n",
+        "export run_dir=/tmp\n",
+        "readonly run_dir=/tmp\n",
+        "local run_dir=/tmp\n",
+        "declare run_dir=/tmp\n",
+        "typeset run_dir=/tmp\n",
+        "unset run_dir\n",
+    ):
+        assert not _hard2g_container_publication_is_closed(
+            canonical_receipt + mutation
+        )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt.replace(
+            '  mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"',
+            "  :",
             1,
         )
     )
@@ -2709,6 +2867,135 @@ def _hard2g_backend_entrypoint_is_closed(text: object) -> bool:
         return False
 
 
+def _hard2g_runtime_budget_assignments() -> tuple[str, ...] | object:
+    try:
+        budget = _HARD2G_REPORT_BUDGET
+        if not _hard2g_report_budget_is_closed(budget):
+            return _INVALID
+        total = _mapping_value(budget, "total_bytes")
+        metadata = _mapping_value(budget, "reserved_metadata_bytes")
+        streams = _mapping_value(budget, "streams")
+        if (
+            type(total) is not int
+            or type(metadata) is not int
+            or not isinstance(streams, Mapping)
+        ):
+            return _INVALID
+        assignments = [
+            f"REPORT_BUDGET_BYTES={total}",
+            f"REPORT_METADATA_BUDGET_BYTES={metadata}",
+        ]
+        for stage in ("build", "vet", "unit", "race"):
+            stage_budget = _mapping_value(streams, stage)
+            if not isinstance(stage_budget, Mapping):
+                return _INVALID
+            for stream in ("stdout", "stderr"):
+                cap = _mapping_value(stage_budget, stream)
+                if type(cap) is not int:
+                    return _INVALID
+                assignments.append(
+                    f"{stage.upper()}_{stream.upper()}_CAP_BYTES={cap}"
+                )
+        return tuple(assignments)
+    except Exception:
+        return _INVALID
+
+
+def _hard2g_runtime_stage_stream_cap_body(
+    assignments: tuple[str, ...],
+) -> tuple[str, ...] | object:
+    try:
+        cap_symbols = tuple(
+            assignment.partition("=")[0] for assignment in assignments[2:]
+        )
+        if len(cap_symbols) != 8 or any(not symbol for symbol in cap_symbols):
+            return _INVALID
+        cases = tuple(
+            f'{stage}:{stream}) printf \'%s\\n\' "${cap_symbols[index]}" ;;'
+            for index, (stage, stream) in enumerate(
+                (stage, stream)
+                for stage in ("build", "vet", "unit", "race")
+                for stream in ("stdout", "stderr")
+            )
+        )
+        return (
+            'stage="$1"',
+            'stream="$2"',
+            'case "$stage:$stream" in',
+            *cases,
+            "*) return 64 ;;",
+            "esac",
+        )
+    except Exception:
+        return _INVALID
+
+
+def _hard2g_runtime_budget_contract_is_closed(text: object) -> bool:
+    try:
+        assignments = _hard2g_runtime_budget_assignments()
+        if (
+            type(text) is not str
+            or "\r" in text
+            or type(assignments) is not tuple
+            or not _shell_source_is_safe(text)
+        ):
+            return False
+        lines = _shell_active_lines(text)
+        if not isinstance(lines, tuple) or any(
+            lines.count(assignment) != 1 for assignment in assignments
+        ):
+            return False
+        symbols = tuple(assignment.partition("=")[0] for assignment in assignments)
+        if any(
+            line.startswith(f"{symbol}=") and line not in assignments
+            for line in lines
+            for symbol in symbols
+        ):
+            return False
+        stage_stream_cap = _shell_function_body(lines, "stage_stream_cap")
+        check_budget = _shell_function_body(lines, "check_budget")
+        return (
+            stage_stream_cap
+            == _hard2g_runtime_stage_stream_cap_body(assignments)
+            and check_budget
+            == (
+                'report_bytes="$(report_regular_file_bytes)"',
+                'metadata_bytes="$(report_metadata_bytes)"',
+                '[ "$report_bytes" -le "$REPORT_BUDGET_BYTES" ] || return 75',
+                '[ "$metadata_bytes" -le "$REPORT_METADATA_BUDGET_BYTES" ] '
+                "|| return 75",
+            )
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_runtime_budget_fixture(assignments: tuple[str, ...]) -> str:
+    stage_stream_cap = _hard2g_runtime_stage_stream_cap_body(assignments)
+    assert type(stage_stream_cap) is tuple
+    return "\n".join(
+        (
+            "#!/bin/sh",
+            "set -eu",
+            "",
+            *assignments,
+            "",
+            "stage_stream_cap() {",
+            *(f"  {line}" for line in stage_stream_cap),
+            "}",
+            "",
+            "check_budget() {",
+            '  report_bytes="$(report_regular_file_bytes)"',
+            '  metadata_bytes="$(report_metadata_bytes)"',
+            '  [ "$report_bytes" -le "$REPORT_BUDGET_BYTES" ] || return 75',
+            '  [ "$metadata_bytes" -le "$REPORT_METADATA_BUDGET_BYTES" ] '
+            "|| return 75",
+            "}",
+            "",
+        )
+    )
+
+
 def _hard2g_backend_unit_service_is_closed(service: object) -> bool:
     try:
         return service == _expected_public_service("backend-unit")
@@ -2727,10 +3014,13 @@ def _hard2g_runner_helpers_are_closed(repo_root: Path) -> bool:
         helper_sources = tuple(_read_bounded_regular(path) for path in helper_paths)
         if not all(type(source) is str for source in helper_sources):
             return False
+        runtime = helper_sources[0]
         receipt = helper_sources[-1]
+        assert type(runtime) is str
         assert type(receipt) is str
         return (
             all(_shell_source_is_safe(source) for source in helper_sources)
+            and _hard2g_runtime_budget_contract_is_closed(runtime)
             and _hard2g_container_publication_is_closed(receipt)
         )
     except Exception:
@@ -2751,6 +3041,8 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
             return False
         if not _hard2g_stage_renames_are_owned(lines):
             return False
+        if not _hard2g_compound_publication_grammar_is_closed(lines):
+            return False
         finalizer = _shell_function_body(lines, "finalize_container")
         if not isinstance(finalizer, tuple):
             return False
@@ -2767,7 +3059,8 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
             for line in required_lines
         )
         return (
-            all(position >= 0 for position in positions)
+            all(lines.count(line) == 1 for line in required_lines)
+            and all(position >= 0 for position in positions)
             and positions == tuple(sorted(positions))
             and any(
                 line.startswith("return") and index > positions[-1]
@@ -2837,7 +3130,7 @@ def _hard2g_provenance_bindings_are_closed(
         observer_test = _read_bounded_regular(
             repo_root / _HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE
         )
-        if type(observer_test) is not str or not _observer_snapshot_chain_is_asserted(
+        if type(observer_test) is not str or not _hard2g_task2_provenance_oracle_chain_is_closed(
             observer_test
         ):
             return False
@@ -2859,6 +3152,11 @@ def _hard2g_provenance_bindings_are_closed(
             and isinstance(final_receipt, Mapping)
             and final_receipt.get("backend_image_id")
             == fixed_image_ids["backend_unit"]
+            and all(
+                final_receipt.get(field) == fixture.get(field)
+                for field in ("run_id", "owner_nonce", "container_id")
+            )
+            and _is_sha256_digest(final_receipt.get("observer_receipt_sha256"))
             and type(manifest_bytes) is str
             and _canonical_manifest_paths_are_closed(
                 manifest_bytes,
@@ -2867,6 +3165,12 @@ def _hard2g_provenance_bindings_are_closed(
             and _is_sha256_digest(manifest_sha256)
             and final_receipt.get("canonical_build_input_manifest_sha256")
             == manifest_sha256
+            and _hard2g_exact_manifest_binding_is_closed(
+                repo_root,
+                manifest_bytes.encode("utf-8", errors="strict"),
+                manifest_sha256,
+                config["canonical_build_input_paths"],
+            )
         )
     except Exception:
         return False
@@ -2961,14 +3265,11 @@ def _hard2g_stage_rename_is_owned(line: str) -> bool:
     words = _shell_words(line)
     if not isinstance(words, tuple):
         return False
-    if not words or words[0] != "mv":
-        return True
-    if len(words) != 4 or words[1] != "--":
-        return False
-    source, destination = words[2:]
-    return (
-        source == "$run_dir/$stage.$artifact.tmp"
-        and destination == "$run_dir/$stage.$artifact"
+    return words == (
+        "mv",
+        "--",
+        "$run_dir/$stage.$artifact.tmp",
+        "$run_dir/$stage.$artifact",
     )
 
 
@@ -2981,7 +3282,7 @@ def _hard2g_stage_renames_are_owned(lines: tuple[str, ...]) -> bool:
             and any(word == "mv" or word.endswith("/mv") for word in words)
         )
         if not all_moves:
-            return True
+            return False
         helper = _shell_function_body(lines, "rename_stage_artifact")
         if not isinstance(helper, tuple):
             return False
@@ -2997,6 +3298,113 @@ def _hard2g_stage_renames_are_owned(lines: tuple[str, ...]) -> bool:
             and all_moves == helper_moves
             and _hard2g_stage_rename_is_owned(helper_moves[0])
         )
+    except Exception:
+        return False
+
+
+def _hard2g_line_mutates_run_dir(words: tuple[str, ...]) -> bool:
+    try:
+        if any(word.startswith("run_dir=") for word in words):
+            return True
+        return (
+            bool(words)
+            and words[0]
+            in {"export", "readonly", "local", "declare", "typeset", "unset"}
+            and any(word == "run_dir" for word in words[1:])
+        )
+    except Exception:
+        return True
+
+
+def _hard2g_compound_publication_grammar_is_closed(
+    lines: tuple[str, ...],
+) -> bool:
+    try:
+        allowed_lines = {
+            "write_owner",
+            "write_package_plans",
+            "write_stage_artifacts",
+            "write_inventory",
+            ': > "$run_dir/CONTAINER_COMPLETE"',
+            'write_atomic "$run_dir/container-receipt.json" "$receipt"',
+            'mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"',
+        }
+        allowed_headers = {"rename_stage_artifact() {", "finalize_container() {"}
+        control_tokens = {
+            ";",
+            "&&",
+            "||",
+            "|",
+            "if",
+            "then",
+            "else",
+            "elif",
+            "fi",
+            "for",
+            "while",
+            "until",
+            "do",
+            "done",
+            "case",
+            "esac",
+        }
+        filesystem_writers = {
+            "cp",
+            "dd",
+            "install",
+            "ln",
+            "mkdir",
+            "mv",
+            "rename",
+            "rm",
+            "tee",
+            "touch",
+            "truncate",
+        }
+        for line in lines:
+            words = _shell_words(line)
+            if not isinstance(words, tuple):
+                return False
+            if _hard2g_line_mutates_run_dir(words):
+                return False
+            if line in allowed_lines or line in allowed_headers:
+                continue
+            if "$(" in line or "`" in line or "${" in line:
+                return False
+            if any(word in control_tokens for word in words):
+                return False
+            if words and (
+                words[0].startswith("$")
+                or words[0] in {".", "command", "eval", "exec", "source"}
+            ):
+                return False
+            has_move = any(
+                word == "mv" or word.endswith("/mv") for word in words
+            )
+            has_rename = any(
+                word == "rename" or word.endswith("/rename") for word in words
+            )
+            has_write = any(word.startswith("write_") for word in words)
+            has_redirection = any(word in {">", ">>"} for word in words)
+            has_filesystem_writer = any(
+                word in filesystem_writers
+                or word.endswith(tuple(f"/{writer}" for writer in filesystem_writers))
+                for word in words
+            )
+            if (
+                has_move
+                or has_rename
+                or has_write
+                or has_redirection
+                or has_filesystem_writer
+            ):
+                return False
+            if any(
+                reserved in line.casefold()
+                for reserved in ("final-receipt.json", "observer-receipt.json", "seal")
+            ):
+                return False
+        return True
     except Exception:
         return False
 
@@ -3097,19 +3505,148 @@ def _python_source_imports_module(text: str, module: str) -> bool:
         return False
 
 
-def _observer_snapshot_chain_is_asserted(text: str) -> bool:
+def _hard2g_task2_provenance_oracle_chain_is_closed(text: str) -> bool:
     try:
         tree = ast.parse(text)
-        return any(
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "verify_snapshot_chain"
-            and tuple(
-                argument.id if isinstance(argument, ast.Name) else ""
-                for argument in node.args
+        functions = {
+            node.name: node
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+
+        def literals(function: ast.AST) -> set[str]:
+            return {
+                node.value
+                for node in ast.walk(function)
+                if isinstance(node, ast.Constant) and type(node.value) is str
+            }
+
+        def has_call(function: ast.AST, attribute: str) -> bool:
+            return any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == attribute
+                for node in ast.walk(function)
             )
-            == ("prebuild", "postgreen", "observer_snapshot")
-            for node in ast.walk(tree)
+
+        def has_literal_tuple(function: ast.AST, expected: tuple[str, ...]) -> bool:
+            return any(
+                isinstance(node, ast.Tuple)
+                and tuple(
+                    item.value if isinstance(item, ast.Constant) else None
+                    for item in node.elts
+                )
+                == expected
+                for node in ast.walk(function)
+            )
+
+        def has_snapshot_chain(function: ast.AST) -> bool:
+            return any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "verify_snapshot_chain"
+                and tuple(
+                    argument.id if isinstance(argument, ast.Name) else ""
+                    for argument in node.args
+                )
+                == ("prebuild", "postgreen", "observer_snapshot")
+                for node in ast.walk(function)
+            )
+
+        def has_final_observer_unpack(function: ast.AST) -> bool:
+            return any(
+                isinstance(node, ast.Assign)
+                and any(
+                    isinstance(target, ast.Tuple)
+                    and tuple(
+                        element.id if isinstance(element, ast.Name) else ""
+                        for element in target.elts
+                    )
+                    == ("final", "observer")
+                    for target in node.targets
+                )
+                for node in ast.walk(function)
+            )
+
+        fixed_images = functions.get(
+            "test_docker_adapter_has_only_literal_read_argvs_and_fixed_images"
+        )
+        candidate_rejection = functions.get(
+            "test_candidate_binding_rejects_every_foreign_identity_and_window_boundary"
+        )
+        bound_candidate = functions.get(
+            "test_candidate_binding_requires_hostname_exact_prefix_and_open_window"
+        )
+        snapshots = functions.get(
+            "test_lease_snapshots_bind_exact_manifest_images_and_no_acl_claim"
+        )
+        publication = functions.get(
+            "test_publication_validates_before_write_then_hashes_seals_and_renames"
+        )
+        main_lifecycle = functions.get(
+            "test_main_derives_every_sealed_classification_from_raw_observations"
+        )
+        payloads = functions.get("_publication_payloads")
+        payload_dict_keys = tuple(
+            {
+                key.value
+                for key in node.keys
+                if isinstance(key, ast.Constant) and type(key.value) is str
+            }
+            for node in ast.walk(payloads)
+            if isinstance(node, ast.Dict)
+        )
+        return (
+            has_call(fixed_images, "inspect_fixed_images")
+            and has_literal_tuple(
+                fixed_images,
+                (
+                    "docker",
+                    "image",
+                    "inspect",
+                    "--format",
+                    "{{json .}}",
+                    "worktree-master-python-contract",
+                ),
+            )
+            and has_literal_tuple(
+                fixed_images,
+                (
+                    "docker",
+                    "image",
+                    "inspect",
+                    "--format",
+                    "{{json .}}",
+                    "worktree-master-backend-unit",
+                ),
+            )
+            and has_call(candidate_rejection, "bind_unique_candidate")
+            and has_call(candidate_rejection, "raises")
+            and {"image_id", "container_image"} <= literals(candidate_rejection)
+            and has_call(bound_candidate, "bind_unique_candidate")
+            and "backend_image_id" in literals(bound_candidate)
+            and has_snapshot_chain(snapshots)
+            and has_call(publication, "publish")
+            and any(
+                isinstance(node, ast.Constant)
+                and type(node.value) is bytes
+                and node.value.startswith(b"observer_receipt_sha256=")
+                for node in ast.walk(publication)
+            )
+            and has_final_observer_unpack(main_lifecycle)
+            and {"run_id", "owner_nonce", "container_id"} <= literals(main_lifecycle)
+            and any(
+                {
+                    "run_id",
+                    "owner_nonce",
+                    "container_id",
+                    "bound_backend_image_id",
+                    "container_image",
+                    "fixed_image_ids",
+                }
+                <= keys
+                for keys in payload_dict_keys
+            )
         )
     except Exception:
         return False
@@ -3147,6 +3684,128 @@ def _canonical_manifest_paths_are_closed(
         required_paths = tuple(path for path in policy_paths if "*" not in path)
         return len(parsed_paths) == len(set(parsed_paths)) and all(
             path in parsed_paths for path in required_paths
+        )
+    except Exception:
+        return False
+
+
+def _canonical_build_input_manifest_bytes(
+    repo_root: Path,
+    policy_paths: object,
+) -> bytes | object:
+    try:
+        if type(policy_paths) is not tuple or any(
+            type(path) is not str or not path or path.startswith("/")
+            for path in policy_paths
+        ):
+            return _INVALID
+        expanded: dict[str, Path] = {}
+        for pattern in policy_paths:
+            candidates = (
+                tuple(
+                    Path(path)
+                    for path in glob.glob(str(repo_root / pattern), recursive=True)
+                )
+                if "*" in pattern
+                else (repo_root / pattern,)
+            )
+            if not candidates:
+                return _INVALID
+            regular: list[tuple[str, Path]] = []
+            for candidate in candidates:
+                relative = _hard2g_contained_regular_relative(repo_root, candidate)
+                if relative is _INVALID:
+                    return _INVALID
+                if type(relative) is str:
+                    regular.append((relative, candidate))
+            if "*" in pattern and not regular:
+                return _INVALID
+            if "*" not in pattern and len(regular) != len(candidates):
+                return _INVALID
+            for relative, candidate in regular:
+                if relative in expanded:
+                    return _INVALID
+                expanded[relative] = candidate
+        rows: list[bytes] = []
+        for relative, path in sorted(expanded.items()):
+            content = _read_bounded_regular(path)
+            if type(content) is not str:
+                return _INVALID
+            rows.append(
+                relative.encode("utf-8")
+                + b"\tsha256:"
+                + hashlib.sha256(content.encode("utf-8")).hexdigest().encode()
+                + b"\n"
+            )
+        return b"".join(rows) if rows else _INVALID
+    except Exception:
+        return _INVALID
+
+
+def _hard2g_contained_regular_relative(
+    repo_root: Path,
+    candidate: Path,
+) -> str | None | object:
+    try:
+        root_stat = repo_root.lstat()
+        if not _hard2g_lstat_component_is_closed(root_stat, directory=True):
+            return _INVALID
+        relative = candidate.relative_to(repo_root)
+        if not relative.parts or any(
+            part in {"", ".", ".."} for part in relative.parts
+        ):
+            return _INVALID
+        current = repo_root
+        for index, component in enumerate(relative.parts):
+            current /= component
+            current_stat = current.lstat()
+            final_component = index == len(relative.parts) - 1
+            if final_component:
+                if _hard2g_lstat_component_is_closed(current_stat, directory=False):
+                    return relative.as_posix()
+                if _hard2g_lstat_component_is_closed(current_stat, directory=True):
+                    return None
+                return _INVALID
+            if not _hard2g_lstat_component_is_closed(current_stat, directory=True):
+                return _INVALID
+        return _INVALID
+    except Exception:
+        return _INVALID
+
+
+def _hard2g_lstat_component_is_closed(
+    value: os.stat_result,
+    *,
+    directory: bool,
+) -> bool:
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    attributes = getattr(value, "st_file_attributes", 0)
+    return (
+        (stat.S_ISDIR(value.st_mode) if directory else stat.S_ISREG(value.st_mode))
+        and not attributes & reparse_flag
+    )
+
+
+def _hard2g_exact_manifest_binding_is_closed(
+    repo_root: Path,
+    manifest_bytes: object,
+    manifest_sha256: object,
+    policy_paths: object,
+) -> bool:
+    try:
+        if (
+            type(manifest_bytes) is not bytes
+            or b"\r" in manifest_bytes
+            or not manifest_bytes.endswith(b"\n")
+            or not _is_sha256_digest(manifest_sha256)
+        ):
+            return False
+        expected = _canonical_build_input_manifest_bytes(repo_root, policy_paths)
+        return (
+            type(expected) is bytes
+            and manifest_bytes == expected
+            and manifest_sha256
+            == "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
         )
     except Exception:
         return False
