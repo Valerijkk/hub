@@ -78,7 +78,7 @@ export function MailThreadList({
 	className,
 }: MailThreadListProps) {
 	const { t } = useTranslation("mail");
-	const navigate = useNavigate();
+	const navigate = useNavigate({ from: MailRoute.fullPath });
 	const mailSearch = MailRoute.useSearch();
 	const [searchInput, setSearchInput] = useState(mailSearch.q ?? "");
 	const debouncedSearch = useDebouncedValue(searchInput, 300);

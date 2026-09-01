@@ -136,6 +136,12 @@ describe("MailScheduleAction", () => {
 				},
 			);
 		});
+		await waitFor(() => {
+			expect(projectsApi.listProjects).toHaveBeenCalledTimes(1);
+		});
+		await waitFor(() => {
+			expect(projectsApi.listMembers).toHaveBeenCalledWith("project-1");
+		});
 
 		expect(
 			await screen.findByRole("button", {

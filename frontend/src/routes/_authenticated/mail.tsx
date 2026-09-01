@@ -56,7 +56,7 @@ function isCanonicalMailRouteSearch(
 }
 
 function MailRoute() {
-	const navigate = useNavigate();
+	const navigate = useNavigate({ from: Route.fullPath });
 	const rawSearch = useRouterState({
 		select: (state) => state.location.search,
 	});

@@ -528,7 +528,7 @@ export function CreateCallDialog({
 		if (!projectId && projects && projects.length > 0) {
 			setProjectId(projects[0]?.id ?? "");
 		}
-	}, [projectId, projects]);
+	}, [dialogSession, projectId, projects]);
 
 	const {
 		data: members,
