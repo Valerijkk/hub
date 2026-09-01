@@ -48,6 +48,18 @@ func (s *Service) ListEvents(ctx context.Context, userID uuid.UUID, from, to tim
 
 	events := make([]EventResponse, 0)
 
+	calendarEvents, err := s.repo.ListCalendarEventsForActor(ctx, userID, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("list canonical calendar events: %w", err)
+	}
+	for _, event := range calendarEvents {
+		canonicalEvents, err := expandCalendarEventOccurrences(event, from, to)
+		if err != nil {
+			return nil, fmt.Errorf("expand canonical calendar event occurrences: %w", err)
+		}
+		events = append(events, canonicalEvents...)
+	}
+
 	calls, err := s.repo.ListScheduledCalls(ctx, projectIDs)
 	if err != nil {
 		return nil, fmt.Errorf("list scheduled calls: %w", err)
@@ -82,7 +94,7 @@ func (s *Service) ListEvents(ctx context.Context, userID uuid.UUID, from, to tim
 		events = append(events, leaveEvent(lv))
 	}
 
-	sort.Slice(events, func(i, j int) bool {
+	sort.SliceStable(events, func(i, j int) bool {
 		if events[i].StartsAt.Equal(events[j].StartsAt) {
 			return events[i].Title < events[j].Title
 		}
@@ -100,6 +112,31 @@ func validateRange(from, to time.Time) error {
 		return ErrRangeTooWide
 	}
 	return nil
+}
+
+func expandCalendarEventOccurrences(event *ent.CalendarEvent, from, to time.Time) ([]EventResponse, error) {
+	occurrences, _, _, err := availabilityEventOccurrences(event, event.Edges.Exceptions)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]EventResponse, 0, len(occurrences))
+	for _, occurrence := range occurrences {
+		if !occurrence.from.Before(to) || !occurrence.to.After(from) {
+			continue
+		}
+		endsAt := occurrence.to.UTC()
+		result = append(result, EventResponse{
+			ID:          fmt.Sprintf("event-%s-%s", event.ID, occurrence.key),
+			Type:        EventTypeEvent,
+			Title:       event.Title,
+			Description: event.Description,
+			StartsAt:    occurrence.from.UTC(),
+			EndsAt:      &endsAt,
+			AllDay:      event.AllDay,
+			URL:         fmt.Sprintf("/calendar/events/%s", event.ID),
+		})
+	}
+	return result, nil
 }
 
 func expandCallEvents(sc *ent.ScheduledCall, from, to time.Time) []EventResponse {

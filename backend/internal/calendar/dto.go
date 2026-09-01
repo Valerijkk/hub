@@ -10,6 +10,7 @@ import (
 type EventType string
 
 const (
+	EventTypeEvent    EventType = "event"
 	EventTypeCall     EventType = "call"
 	EventTypeSprint   EventType = "sprint"
 	EventTypeDeadline EventType = "deadline"
