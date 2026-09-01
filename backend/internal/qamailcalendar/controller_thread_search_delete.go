@@ -259,6 +259,9 @@ func (c *Controller) deleteThreadSearchFixture(ctx context.Context, nonce string
 		) {
 		return rollbackAndReconcile(false)
 	}
+	if err := deleteFixtureAuthSideEffectsLocked(ctx, tx, deletingRecord.persisted.ownerUserID); err != nil {
+		return rollbackAndReconcile(false)
+	}
 	if guardErr := threadSearchFixtureGuardDeleteDependents(ctx, tx, deletingRecord); guardErr != nil {
 		return rollbackAndReconcile(errors.Is(guardErr, errThreadSearchFixtureDeleteGuardDependent))
 	}

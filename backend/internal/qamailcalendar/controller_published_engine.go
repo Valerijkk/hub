@@ -28,7 +28,11 @@ func (c *Controller) finalizeInboundRequestFixturePublishedCleanupEngine(
 		return inboundRequestFixtureRecord{}, errInboundRequestFixtureLifecycle
 	}
 
-	if err := destroyInboundRequestFixtureEngine(c.engine, expected.engineFixture); err != nil {
+	injectedEngineFailure := c.takeInboundRequestFixturePublishedFault(
+		expected.nonce,
+		inboundRequestFixturePublishedFaultCleanupEngineAfterDBDeleteFailure,
+	)
+	if err := destroyInboundRequestFixtureEngine(c.engine, expected.engineFixture); err != nil || injectedEngineFailure {
 		failed, marked := c.markInboundRequestFixturePublishedCleanupEngineFailedFromClaim(
 			expected.nonce,
 			expected,
@@ -40,6 +44,13 @@ func (c *Controller) finalizeInboundRequestFixturePublishedCleanupEngine(
 			errInboundRequestFixtureLifecycle,
 			errInboundRequestFixtureCleanup,
 		)
+	}
+
+	if c.takeInboundRequestFixturePublishedFault(
+		expected.nonce,
+		inboundRequestFixturePublishedFaultCleanupFinalCASLost,
+	) {
+		return inboundRequestFixtureRecord{}, errInboundRequestFixtureLifecycle
 	}
 
 	cleaned, marked := c.markInboundRequestFixturePublishedCleanupCleanedFromClaim(

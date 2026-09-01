@@ -155,7 +155,7 @@ func inboundRequestFixturePublishedAccountValid(
 		bytes.Equal(account.ControlHash, plan.accountControlHash[:]) &&
 		account.AttemptedControlGeneration == nil &&
 		account.AttemptedControlHashVersion == nil &&
-		account.AttemptedControlHash == nil &&
+		inboundRequestFixturePublishedNullableBytesAbsent(account.AttemptedControlHash) &&
 		account.DeployedGeneration != nil &&
 		*account.DeployedGeneration == 1 &&
 		account.DeployedHashVersion != nil &&
@@ -181,7 +181,7 @@ func inboundRequestFixturePublishedAccountValid(
 		account.SyncLeaseBaseCursor == nil &&
 		account.SyncLeaseCheckpoint == nil &&
 		account.SyncLeaseResultHashVersion == nil &&
-		account.SyncLeaseResultHash == nil &&
+		inboundRequestFixturePublishedNullableBytesAbsent(account.SyncLeaseResultHash) &&
 		account.SyncLeaseAppliedPhase == nil &&
 		account.SyncLeaseAppliedNextAt == nil &&
 		account.SyncLeaseAppliedAt == nil &&
@@ -243,10 +243,10 @@ func inboundRequestFixturePublishedDomainValid(
 		bytes.Equal(domain.DesiredHash, plan.domainControlHash[:]) &&
 		domain.AttemptedGeneration == nil &&
 		domain.AttemptedHashVersion == nil &&
-		domain.AttemptedHash == nil &&
+		inboundRequestFixturePublishedNullableBytesAbsent(domain.AttemptedHash) &&
 		domain.DeployedGeneration == nil &&
 		domain.DeployedHashVersion == nil &&
-		domain.DeployedHash == nil &&
+		inboundRequestFixturePublishedNullableBytesAbsent(domain.DeployedHash) &&
 		domain.LastErrorCode == nil &&
 		domain.NextRetryAt == nil &&
 		domain.AttemptCount == 0 &&
@@ -256,6 +256,10 @@ func inboundRequestFixturePublishedDomainValid(
 		domain.Version == 1 &&
 		domain.CreatedAt.Equal(plan.fixedAt) &&
 		domain.UpdatedAt.Equal(plan.fixedAt)
+}
+
+func inboundRequestFixturePublishedNullableBytesAbsent(value *[]byte) bool {
+	return value == nil || *value == nil
 }
 
 func inboundRequestFixturePublishedMailAccountNoWait() predicate.MailAccount {

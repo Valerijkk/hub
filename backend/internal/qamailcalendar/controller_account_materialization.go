@@ -473,8 +473,8 @@ func accountMaterializationFixtureOptionalTupleValid(
 	hashVersion *int32,
 	hash *[]byte,
 ) bool {
-	if generation == nil || hashVersion == nil || hash == nil {
-		return generation == nil && hashVersion == nil && hash == nil
+	if generation == nil || hashVersion == nil || hash == nil || *hash == nil {
+		return generation == nil && hashVersion == nil && (hash == nil || *hash == nil)
 	}
 	return *generation >= 1 && *hashVersion >= 1 && len(*hash) == sha256.Size
 }
@@ -994,7 +994,7 @@ func accountMaterializationFixtureOptionalTupleAbsent(
 	hashVersion *int32,
 	hash *[]byte,
 ) bool {
-	return generation == nil && hashVersion == nil && hash == nil
+	return generation == nil && hashVersion == nil && (hash == nil || *hash == nil)
 }
 
 func accountMaterializationFixtureFreshAccountState(account *ent.MailAccount) bool {

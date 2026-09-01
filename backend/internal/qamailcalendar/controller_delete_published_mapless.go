@@ -52,6 +52,12 @@ func (c *Controller) deleteInboundRequestFixturePublishedMapless(
 	rollbackBeforeCommit := func() bool {
 		return !commitAttempted && tx.Rollback() == nil
 	}
+	if !prepareInboundRequestFixturePublishedAuthCleanup(ctx, tx, plan, persisted, engineAuthority) {
+		if !rollbackBeforeCommit() {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
 
 	first, _, observed := observeInboundRequestFixturePublishedFullProof(
 		ctx,
@@ -66,6 +72,18 @@ func (c *Controller) deleteInboundRequestFixturePublishedMapless(
 		}
 		return errInboundRequestFixtureLifecycle
 	}
+	faultInjected, faultApplied := c.applyInboundRequestFixturePublishedMaplessProofFault(
+		ctx,
+		tx,
+		plan,
+		first,
+	)
+	if !faultApplied {
+		if !rollbackBeforeCommit() {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
 
 	second, secondLockedRoots, observed := observeInboundRequestFixturePublishedFullProof(
 		ctx,
@@ -74,7 +92,7 @@ func (c *Controller) deleteInboundRequestFixturePublishedMapless(
 		persisted,
 		engineAuthority,
 	)
-	if !observed || first != second || second.engineAuthority != engineAuthority {
+	if faultInjected || !observed || first != second || second.engineAuthority != engineAuthority {
 		if !rollbackBeforeCommit() {
 			return errInboundRequestFixtureLifecycle
 		}

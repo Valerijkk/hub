@@ -86,6 +86,19 @@ func observeInboundRequestFixturePublishedCommitUnknown(
 		}
 		return inboundRequestFixturePublishedCommitUnknownObservationPartial
 	}
+	if prepareInboundRequestFixturePublishedAuthCleanup(ctx, tx, plan, persisted, authority) {
+		proof, _, observed = observeInboundRequestFixturePublishedFullProof(
+			ctx,
+			tx,
+			plan,
+			persisted,
+			authority,
+		)
+		if observed && proof.valid(plan, persisted) && proof.cleanup == expectedCleanup {
+			return inboundRequestFixturePublishedCommitUnknownObservationExactPresent
+		}
+		return inboundRequestFixturePublishedCommitUnknownObservationPartial
+	}
 
 	messageFolder, err := tx.MailMessageFolder.Query().
 		Where(

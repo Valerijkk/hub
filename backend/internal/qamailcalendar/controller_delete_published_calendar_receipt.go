@@ -181,7 +181,7 @@ func inboundRequestFixturePublishedCalendarObjectStateMatches(
 }
 
 func inboundRequestFixturePublishedCalendarTimestampValid(value time.Time) bool {
-	return !value.IsZero() && value.Location() == time.UTC
+	return !value.IsZero()
 }
 
 func inboundRequestFixturePublishedCalendarReceiptNoWait() predicate.CalendarInboundMessageReceipt {

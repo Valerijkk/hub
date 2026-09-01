@@ -84,6 +84,10 @@ func (c *Controller) renewInboundRequestFixturePublishedFullProofAfterRollback(
 	if err != nil {
 		return false
 	}
+	if !prepareInboundRequestFixturePublishedAuthCleanup(ctx, renewalTx, plan, persisted, engineAuthority) {
+		_ = renewalTx.Rollback()
+		return false
+	}
 	renewed, _, observed := observeInboundRequestFixturePublishedFullProof(
 		ctx,
 		renewalTx,
@@ -114,6 +118,12 @@ func (c *Controller) deleteInboundRequestFixturePublished(
 	rollbackBeforeCommit := func() bool {
 		return !commitAttempted && tx.Rollback() == nil
 	}
+	if !prepareInboundRequestFixturePublishedAuthCleanup(ctx, tx, plan, persisted, engineAuthority) {
+		if !rollbackBeforeCommit() {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
 
 	first, _, observed := observeInboundRequestFixturePublishedFullProof(
 		ctx,
@@ -123,6 +133,12 @@ func (c *Controller) deleteInboundRequestFixturePublished(
 		engineAuthority,
 	)
 	if !observed {
+		if !rollbackBeforeCommit() {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
+	if !c.applyInboundRequestFixturePublishedProofFault(ctx, tx, plan, first) {
 		if !rollbackBeforeCommit() {
 			return errInboundRequestFixtureLifecycle
 		}
@@ -195,8 +211,51 @@ func (c *Controller) deleteInboundRequestFixturePublished(
 		return errInboundRequestFixtureLifecycle
 	}
 
+	if c.takeInboundRequestFixturePublishedFault(
+		nonce,
+		inboundRequestFixturePublishedFaultCleanupSerializationRollback,
+	) {
+		if !c.renewInboundRequestFixturePublishedFullProofAfterRollback(
+			ctx,
+			tx,
+			plan,
+			persisted,
+			engineAuthority,
+			first,
+		) {
+			return errInboundRequestFixtureLifecycle
+		}
+		if _, restored := c.restoreInboundRequestFixturePublishedAfterRollback(nonce, claimed); !restored {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
+
+	if c.takeInboundRequestFixturePublishedFault(
+		nonce,
+		inboundRequestFixturePublishedFaultCleanupCommitUnknownPresent,
+	) {
+		if !rollbackBeforeCommit() {
+			return errInboundRequestFixtureLifecycle
+		}
+		if _, marked := c.markInboundRequestFixturePublishedCleanupCommitUnknown(nonce, claimed); !marked {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
+
 	commitAttempted = true
 	if err := tx.Commit(); err != nil {
+		if _, marked := c.markInboundRequestFixturePublishedCleanupCommitUnknown(nonce, claimed); !marked {
+			return errInboundRequestFixtureLifecycle
+		}
+		return errInboundRequestFixtureLifecycle
+	}
+
+	if c.takeInboundRequestFixturePublishedFault(
+		nonce,
+		inboundRequestFixturePublishedFaultCleanupCommitUnknownAbsent,
+	) {
 		if _, marked := c.markInboundRequestFixturePublishedCleanupCommitUnknown(nonce, claimed); !marked {
 			return errInboundRequestFixtureLifecycle
 		}

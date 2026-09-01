@@ -112,7 +112,8 @@ func observeInboundRequestFixturePublishedCalendarEvent(
 			plan,
 			event.ID,
 		) ||
-		!bytes.Equal(event.PayloadHash, objectStates[0].PayloadHash) {
+		event.PayloadHash == nil ||
+		!bytes.Equal(*event.PayloadHash, objectStates[0].PayloadHash) {
 		return inboundRequestFixturePublishedCalendarEventObservation{}, false
 	}
 
@@ -172,8 +173,10 @@ func inboundRequestFixturePublishedCalendarEventMatches(
 		event.OrganizerEmail == plan.organizerAddress &&
 		event.ScheduledCallID == nil &&
 		event.ReminderMinutes == nil &&
-		event.PayloadHashVersion == 1 &&
-		len(event.PayloadHash) == sha256.Size &&
+		event.PayloadHashVersion != nil &&
+		*event.PayloadHashVersion == 1 &&
+		event.PayloadHash != nil &&
+		len(*event.PayloadHash) == sha256.Size &&
 		event.DeletedAt == nil &&
 		inboundRequestFixturePublishedCalendarTimestampValid(event.CreatedAt) &&
 		inboundRequestFixturePublishedCalendarTimestampValid(event.UpdatedAt) &&

@@ -73,6 +73,9 @@ func (c *Controller) RegisterRoutes(api fiber.Router) error {
 	if c == nil || api == nil {
 		return errInboundRequestFixtureControllerInput
 	}
+	if err := c.registerInboundRequestFixturePublishedFaultRoutes(api); err != nil {
+		return err
+	}
 
 	api.Post("/_qa/mail-calendar/fixtures", c.create)
 	api.Post("/_qa/mail-calendar/fixtures/:nonce/publish", c.publish)

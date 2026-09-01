@@ -403,7 +403,7 @@ func threadSearchFixtureGuardDeleteDependents(
 	}
 	observation.States[ThreadSearchDeleteGuardSlotAIProviderByOwner] = threadSearchFixtureGuardEmptyState(len(aiProviders))
 
-	crmContacts, err := tx.CRMContact.Query().
+	crmContacts, err := tx.CrmContact.Query().
 		Where(crmcontact.HasLinkedUserWith(user.IDEQ(record.persisted.ownerUserID)), threadSearchFixtureGuardNoWait).
 		Limit(1).
 		All(ctx)

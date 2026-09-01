@@ -139,6 +139,9 @@ func (c *Controller) deleteAccountMaterializationFixture(ctx context.Context, no
 	if err != nil || !accountMaterializationFixtureDeleteGraphValid(record, organizationRow, ownerRow, domainRow, accounts, identities) {
 		return rollbackAndRestore()
 	}
+	if err := deleteFixtureAuthSideEffectsLocked(ctx, tx, record.persisted.ownerUserID); err != nil {
+		return rollbackAndRestore()
+	}
 
 	if len(identities) == 1 {
 		if err := tx.MailIdentity.DeleteOneID(identities[0].ID).Exec(ctx); err != nil {

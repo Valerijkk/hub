@@ -71,6 +71,7 @@ type Controller struct {
 	fixtures                       map[string]inboundRequestFixtureRecord
 	accountMaterializationFixtures map[string]accountMaterializationFixtureRecord
 	threadSearchFixtures           map[string]ThreadSearchFixtureLifecycleRecord
+	publishedFaults                map[string]inboundRequestFixturePublishedFaultKind
 	publishedRecoveryRouteInstalled bool
 }
 
@@ -92,6 +93,7 @@ func NewController(client *ent.Client, engine *mail.FakeMailEngine, config Confi
 		fixtures:                       make(map[string]inboundRequestFixtureRecord),
 		accountMaterializationFixtures: make(map[string]accountMaterializationFixtureRecord),
 		threadSearchFixtures:           make(map[string]ThreadSearchFixtureLifecycleRecord),
+		publishedFaults:                make(map[string]inboundRequestFixturePublishedFaultKind),
 	}, nil
 }
 
@@ -106,6 +108,7 @@ func (c *Controller) createInboundRequestFixture(
 		c.fixtures == nil ||
 		c.accountMaterializationFixtures == nil ||
 		c.threadSearchFixtures == nil ||
+		c.publishedFaults == nil ||
 		!validToken(string(c.config.token)) {
 		return inboundRequestFixtureSnapshot{}, errInboundRequestFixtureControllerInput
 	}
@@ -170,7 +173,8 @@ func (c *Controller) reserveInboundRequestFixture() (string, bool) {
 		c.random == nil ||
 		c.fixtures == nil ||
 		c.accountMaterializationFixtures == nil ||
-		c.threadSearchFixtures == nil {
+		c.threadSearchFixtures == nil ||
+		c.publishedFaults == nil {
 		return "", false
 	}
 
