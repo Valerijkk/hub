@@ -29,6 +29,16 @@ func NewLiveKitConferenceProvider(cfg config.LiveKitConfig) *LiveKitConferencePr
 	}
 }
 
+// ProviderID returns the immutable LiveKit registry identity.
+func (*LiveKitConferenceProvider) ProviderID() ConferenceProviderID {
+	return ConferenceProviderID(ProviderLiveKit)
+}
+
+// Capabilities reports the complete existing LiveKit provider surface.
+func (*LiveKitConferenceProvider) Capabilities() ConferenceProviderCapabilities {
+	return allConferenceProviderCapabilities
+}
+
 // Provision creates a LiveKit room with the supplied participant limit.
 func (p *LiveKitConferenceProvider) Provision(ctx context.Context, roomName string, maxParticipants uint32) error {
 	_, err := p.client.CreateRoom(ctx, &livekit.CreateRoomRequest{
