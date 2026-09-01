@@ -33,7 +33,7 @@ export interface CalendarEvent {
 
 export type CalendarView = "month" | "week" | "day" | "agenda";
 
-export type CalendarEventKind = "call" | "sprint" | "deadline" | "leave";
+export type CalendarEventKind = "call" | "event" | "sprint" | "deadline" | "leave";
 
 const CALL_COLORS = [
 	"bg-violet-400/20 border-violet-400/40 text-violet-700 dark:text-violet-300",
@@ -54,6 +54,7 @@ export function getColorForEvent(id: string): string {
 
 const KIND_COLORS: Record<CalendarEventKind, string> = {
 	call: "bg-violet-400/20 border-violet-400/40 text-violet-700 dark:text-violet-300",
+	event: "bg-teal-400/20 border-teal-400/40 text-teal-700 dark:text-teal-300",
 	sprint:
 		"bg-indigo-400/20 border-indigo-400/40 text-indigo-700 dark:text-indigo-300",
 	deadline:

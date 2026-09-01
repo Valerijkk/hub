@@ -26,6 +26,7 @@ import { WeekView } from "@/modules/calls/calendar-week-view";
 
 const KIND_LABELS: Record<CalendarEventKind, string> = {
 	call: "Созвоны",
+	event: "События",
 	sprint: "Спринты",
 	deadline: "Дедлайны",
 	leave: "Отпуска",
@@ -96,6 +97,7 @@ export function UnifiedCalendar() {
 	);
 	const [filters, setFilters] = useState<Record<CalendarEventKind, boolean>>({
 		call: true,
+		event: true,
 		sprint: true,
 		deadline: true,
 		leave: true,
@@ -204,8 +206,12 @@ export function UnifiedCalendar() {
 	}, [data, filters]);
 
 	const handleEventClick = useCallback((ev: CalendarEvent) => {
+		if (ev.kind === "event" && ev.url) {
+			void navigate({ to: ev.url as string });
+			return;
+		}
 		setSelectedEvent(ev);
-	}, []);
+	}, [navigate]);
 
 	const handleExport = async () => {
 		try {

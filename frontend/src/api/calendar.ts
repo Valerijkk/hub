@@ -1,6 +1,6 @@
 import { api, type ApiRequestOptions } from "./client";
 
-export type CalendarEventKind = "call" | "sprint" | "deadline" | "leave";
+export type CalendarEventKind = "call" | "event" | "sprint" | "deadline" | "leave";
 
 export interface CalendarEventDTO {
 	id: string;

@@ -27,7 +27,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 
 // ListEvents godoc
 // @Summary События единого календаря
-// @Description Звонки, спринты и дедлайны задач за период (MOD-04)
+// @Description Канонические события, звонки, спринты и дедлайны задач за период (MOD-04)
 // @Tags Calendar
 // @Produce json
 // @Param from query string true "Начало периода (RFC3339)"
