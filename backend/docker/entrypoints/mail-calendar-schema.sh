@@ -30,10 +30,16 @@ readonly ROUNDTRIP_RECONCILIATION_FILENAME=20260829000000_mail_calendar_schema_r
 readonly CHECK_ROUNDTRIP_FLATTENING_FILENAME=20260829000001_mail_calendar_check_roundtrip_flattening.sql
 readonly PROJECT_OUTBOX_AUTHORITY_FILENAME=20260831000000_qa_project_outbox_authority.sql
 readonly OUTBOX_EVENT_ORIGIN_FILENAME=20260831000001_outbox_event_origin.sql
-readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=11
-readonly EXPECTED_LINEAGE_ENTRY_COUNT=12
-readonly EXPECTED_LATEST_VERSION=20260831000001
-readonly SNAPSHOT_FILENAME=20260831000001_current_snapshot.sql
+readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME=20260901000000_mail_threads_live_subject_snippet_fts.sql
+readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_INDEX_NAME=mail_threads_live_subject_snippet_fts_idx
+readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_CREATE_INDEX_SQL="CREATE INDEX \"mail_threads_live_subject_snippet_fts_idx\" ON \"mail_threads\" USING GIN (to_tsvector('simple'::regconfig, ((\"normalized_subject\")::text || ' '::text) || (\"snippet\")::text)) WHERE (\"deleted_at\" IS NULL);"
+readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_CANONICAL_COMMENT='-- Create index "mail_threads_live_subject_snippet_fts_idx" to table: "mail_threads"'
+readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_CANONICAL_CREATE_INDEX_SQL="CREATE INDEX \"mail_threads_live_subject_snippet_fts_idx\" ON \"mail_threads\" USING gin ((to_tsvector('simple'::regconfig, (((normalized_subject)::text || ' '::text) || (snippet)::text)))) WHERE (deleted_at IS NULL);"
+readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_SCHEMA_EXCLUDE_SELECTOR='mail_threads[type=table].mail_threads_live_subject_snippet_fts_idx[type=index]'
+readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=12
+readonly EXPECTED_LINEAGE_ENTRY_COUNT=13
+readonly EXPECTED_LATEST_VERSION=20260901000000
+readonly SNAPSHOT_FILENAME=20260901000000_current_snapshot.sql
 readonly EXPECTED_DATABASE_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public'
 readonly EXPECTED_PREFEATURE_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar'
 readonly EXPECTED_CURRENT_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar'
@@ -84,6 +90,36 @@ normalized_file_has_exact_line() {
   tr -d '\r' < "$2" | grep -Fqx -- "$1"
 }
 
+crlf_normalized_file_has_exact_line() {
+  awk -v expected="$1" '
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      if (line == expected) found = 1
+    }
+    END {
+      if (!found) exit 1
+    }
+  ' "$2"
+}
+
+count_exact_token_occurrences() {
+  awk -v token="$1" '
+    BEGIN {
+      token_length = length(token)
+      if (token_length == 0) exit 1
+    }
+    {
+      remainder = $0
+      while ((offset = index(remainder, token)) != 0) {
+        count++
+        remainder = substr(remainder, offset + token_length)
+      }
+    }
+    END { print count + 0 }
+  ' "$2"
+}
+
 require_internal_database_urls() {
   [ "${DATABASE_URL:-}" = "$EXPECTED_DATABASE_URL" ] || fail 'schema-maintenance: DATABASE_URL must be the fixed internal disposable target' "$EX_CONFIG"
   [ "${PREFEATURE_SCHEMA_URL:-}" = "$EXPECTED_PREFEATURE_SCHEMA_URL" ] || fail 'schema-maintenance: PREFEATURE_SCHEMA_URL must be the fixed internal prefeature schema' "$EX_CONFIG"
@@ -111,7 +147,7 @@ require_exact_files() {
   done
 }
 
-require_eleven_sql_lineage_inputs() {
+require_twelve_sql_lineage_inputs() {
   require_exact_files "$EXPECTED_LINEAGE_ENTRY_COUNT" \
     "$BASELINE_FILENAME" \
     "$CORE_FILENAME" \
@@ -124,10 +160,11 @@ require_eleven_sql_lineage_inputs() {
     "$CHECK_ROUNDTRIP_FLATTENING_FILENAME" \
     "$PROJECT_OUTBOX_AUTHORITY_FILENAME" \
     "$OUTBOX_EVENT_ORIGIN_FILENAME" \
+    "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" \
     atlas.sum
 }
 
-copy_eleven_sql_lineage_inputs() {
+copy_twelve_sql_lineage_inputs() {
   destination="$1"
 
   cp "$LINEAGE_DIR/$BASELINE_FILENAME" "$destination/$BASELINE_FILENAME" ||
@@ -152,6 +189,8 @@ copy_eleven_sql_lineage_inputs() {
     fail 'schema-maintenance: cannot copy project outbox authority lineage input for hashing' "$EX_CONFIG"
   cp "$LINEAGE_DIR/$OUTBOX_EVENT_ORIGIN_FILENAME" "$destination/$OUTBOX_EVENT_ORIGIN_FILENAME" ||
     fail 'schema-maintenance: cannot copy outbox event origin lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" "$destination/$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" ||
+    fail 'schema-maintenance: cannot copy Mail thread FTS lineage input for hashing' "$EX_CONFIG"
 }
 
 require_exact_candidate_files() {
@@ -185,6 +224,53 @@ emit_review_file() {
 
 require_non_symlink() {
   [ ! -L "$1" ] || fail "schema-maintenance: generate source contains a symlink: $1" "$EX_CONFIG"
+}
+
+require_exact_mail_threads_live_subject_snippet_fts_migration() {
+  fts_migration="$LINEAGE_DIR/$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME"
+
+  require_non_symlink "$fts_migration"
+  [ -f "$fts_migration" ] ||
+    fail 'schema-maintenance: Mail thread FTS migration is not regular' "$EX_CONFIG"
+  fts_migration_size="$(wc -c < "$fts_migration" | tr -d '[:space:]')"
+  [ "$fts_migration_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
+    fail 'schema-maintenance: Mail thread FTS migration exceeds review size limit' "$EX_CONFIG"
+  if ! awk -v expected="$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_CREATE_INDEX_SQL" '
+    {
+      if (NR != 1) {
+        invalid = 1
+        next
+      }
+      line = $0
+      sub(/\r$/, "", line)
+      if (line != expected) {
+        invalid = 1
+      }
+    }
+    END {
+      if (NR != 1 || invalid) exit 1
+    }
+  ' "$fts_migration"; then
+    fail 'schema-maintenance: Mail thread FTS migration must contain exactly the frozen CREATE INDEX statement' "$EX_CONFIG"
+  fi
+}
+
+require_exact_mail_threads_live_subject_snippet_fts_schema_boundary() {
+  verification_schema="$1"
+  current_schema="$2"
+
+  verification_index_occurrences="$(count_exact_token_occurrences "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_INDEX_NAME" "$verification_schema")" ||
+    fail 'schema-maintenance: cannot count Mail thread FTS index occurrences in verification schema' "$EX_CONFIG"
+  [ "$verification_index_occurrences" -eq 2 ] ||
+    fail 'schema-maintenance: verification schema must contain exactly two Mail thread FTS index-name occurrences' "$EX_CONFIG"
+  crlf_normalized_file_has_exact_line "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_CANONICAL_COMMENT" "$verification_schema" ||
+    fail 'schema-maintenance: verification schema must contain the pinned Atlas Mail thread FTS comment' "$EX_CONFIG"
+  crlf_normalized_file_has_exact_line "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_CANONICAL_CREATE_INDEX_SQL" "$verification_schema" ||
+    fail 'schema-maintenance: verification schema must contain the pinned Atlas Mail thread FTS CREATE INDEX statement' "$EX_CONFIG"
+  current_index_occurrences="$(count_exact_token_occurrences "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_INDEX_NAME" "$current_schema")" ||
+    fail 'schema-maintenance: cannot count Mail thread FTS index occurrences in current Ent schema' "$EX_CONFIG"
+  [ "$current_index_occurrences" -eq 0 ] ||
+    fail 'schema-maintenance: current Ent schema must omit the migration-only Mail thread FTS index' "$EX_CONFIG"
 }
 
 require_exact_go_dependency_pins() {
@@ -776,7 +862,7 @@ run_root_fk_desired_replay_gate() {
   require_exact_atlas_cli
   require_internal_database_urls
   require_root_fk_inputs
-  require_eleven_sql_lineage_inputs
+  require_twelve_sql_lineage_inputs
   run_materializer materialize current ||
     fail 'schema-maintenance: cannot materialize current desired schema for root-FK verification' "$EX_CONFIG"
   write_bounded_schema_inspect "$CURRENT_SCHEMA_URL" "$root_fk_desired_schema" desired
@@ -860,7 +946,7 @@ run_diff() {
 run_hash() {
   require_exact_atlas_cli
   require_internal_database_urls
-  require_eleven_sql_lineage_inputs
+  require_twelve_sql_lineage_inputs
   start_materializer_job
   run_root_fk_desired_replay_gate
 
@@ -870,7 +956,7 @@ run_hash() {
   mkdir "$candidate_dir" ||
     fail 'schema-maintenance: cannot create hash candidate directory' "$EX_CONFIG"
 
-  copy_eleven_sql_lineage_inputs "$candidate_dir"
+  copy_twelve_sql_lineage_inputs "$candidate_dir"
   "$ATLAS_CLI" migrate hash --dir "file://$candidate_dir" > /dev/null ||
     fail 'schema-maintenance: cannot hash reviewed Mail/Calendar lineage inputs' "$EX_CONFIG"
   require_exact_candidate_files "$candidate_dir" "$EXPECTED_LINEAGE_ENTRY_COUNT" \
@@ -885,6 +971,7 @@ run_hash() {
     "$CHECK_ROUNDTRIP_FLATTENING_FILENAME" \
     "$PROJECT_OUTBOX_AUTHORITY_FILENAME" \
     "$OUTBOX_EVENT_ORIGIN_FILENAME" \
+    "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" \
     atlas.sum
 
   emit_review_file "$candidate_dir/atlas.sum"
@@ -893,7 +980,7 @@ run_hash() {
 run_verify() {
   require_exact_atlas_cli
   require_internal_database_urls
-  require_eleven_sql_lineage_inputs
+  require_twelve_sql_lineage_inputs
   start_materializer_job
 
   "$ATLAS_CLI" migrate validate \
@@ -959,6 +1046,10 @@ run_verify() {
   materializer_current_schema_size="$(wc -c < "$materializer_current_schema" | tr -d ' ')"
   [ "$materializer_current_schema_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
     fail 'schema-maintenance: current schema inspection exceeds review size limit' "$EX_CONFIG"
+  require_exact_mail_threads_live_subject_snippet_fts_migration
+  require_exact_mail_threads_live_subject_snippet_fts_schema_boundary \
+    "$materializer_verification_schema" \
+    "$materializer_current_schema"
 
   materializer_snapshot_dir="$WORK_ROOT/current-snapshot"
   materializer_snapshot_file="$materializer_snapshot_dir/$SNAPSHOT_FILENAME"
@@ -1033,6 +1124,7 @@ run_verify() {
     --from "$VERIFICATION_SCHEMA_URL" \
     --to "$ATLAS_COMPARE_DEV_URL" \
     --dev-url "$ATLAS_DIFF_DEV_URL" \
+    --exclude "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_SCHEMA_EXCLUDE_SELECTOR" \
     --format '{{ sql . }}' > "$materializer_verification_to_compare_diff" ||
     fail 'schema-maintenance: cannot diff verification schema to snapshot roundtrip schema' "$EX_CONFIG"
   require_non_symlink "$materializer_verification_to_compare_diff"
@@ -1050,6 +1142,7 @@ run_verify() {
     --from "$ATLAS_COMPARE_DEV_URL" \
     --to "$VERIFICATION_SCHEMA_URL" \
     --dev-url "$ATLAS_DIFF_DEV_URL" \
+    --exclude "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_SCHEMA_EXCLUDE_SELECTOR" \
     --format '{{ sql . }}' > "$materializer_compare_to_verification_diff" ||
     fail 'schema-maintenance: cannot diff snapshot roundtrip schema to verification schema' "$EX_CONFIG"
   require_non_symlink "$materializer_compare_to_verification_diff"

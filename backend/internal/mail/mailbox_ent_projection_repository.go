@@ -768,16 +768,19 @@ func mailboxEntThreadProjectionItems(ctx context.Context, transaction *ent.Tx, a
 
 func mailboxThreadProjectionSearchPredicate(search string) predicate.MailThread {
 	return predicate.MailThread(func(selector *entsql.Selector) {
-		selector.Where(entsql.Or(
-			mailboxThreadProjectionContainsFold(selector.C(mailthread.FieldNormalizedSubject), search),
-			mailboxThreadProjectionContainsFold(selector.C(mailthread.FieldSnippet), search),
+		selector.Where(mailboxThreadProjectionFTSPredicate(
+			selector.C(mailthread.FieldNormalizedSubject),
+			selector.C(mailthread.FieldSnippet),
+			search,
 		))
 	})
 }
 
-func mailboxThreadProjectionContainsFold(column, value string) *entsql.Predicate {
+func mailboxThreadProjectionFTSPredicate(normalizedSubjectColumn, snippetColumn, search string) *entsql.Predicate {
 	return entsql.P(func(builder *entsql.Builder) {
-		builder.Ident(column).WriteString(" ILIKE ").Arg("%" + value + "%")
+		builder.WriteString("to_tsvector('simple'::regconfig, ((")
+		builder.Ident(normalizedSubjectColumn).WriteString(")::text || ' '::text) || (")
+		builder.Ident(snippetColumn).WriteString(")::text) @@ plainto_tsquery('simple'::regconfig, ").Arg(search).WriteString(")")
 	})
 }
 

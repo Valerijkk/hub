@@ -1,0 +1,1 @@
+CREATE INDEX "mail_threads_live_subject_snippet_fts_idx" ON "mail_threads" USING GIN (to_tsvector('simple'::regconfig, (("normalized_subject")::text || ' '::text) || ("snippet")::text)) WHERE ("deleted_at" IS NULL);
