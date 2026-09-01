@@ -1776,6 +1776,7 @@ modules/
 | SERVER_PORT | Порт HTTP-сервера | 3000 |
 | FIBER_IMMUTABLE | Копирование строк из RequestCtx | true |
 | DEV_MODE | Dev-эндпоинты (seed, dev-login) | false |
+| MAILBOX_DEMO_ENABLED | Ровно `true` включает локальный Mail/Calendar demo provider только при `DEV_MODE=true`; unset/empty/ровно `false` отключает его; любое другое заданное значение невалидно и отклоняется startup wiring | false |
 | DATABASE_URL | PostgreSQL connection string | postgresql://hub:hub@localhost:5432/hub?sslmode=disable |
 | MONGODB_URL | MongoDB connection string | mongodb://hub:hub@localhost:27017 |
 | MONGODB_DATABASE | Имя базы MongoDB | hub |
@@ -1797,6 +1798,15 @@ modules/
 | VAPID_PUBLIC_KEY | VAPID public key (base64url) | "" |
 | VAPID_PRIVATE_KEY | VAPID private key (base64url) | "" |
 | VAPID_SUBJECT | VAPID subject (mailto:) | mailto:admin@hub.local |
+
+### Dev Mail/Calendar composition
+
+`MAILBOX_DEMO_ENABLED=true` действует только вместе с `DEV_MODE=true` и компилируется
+только в обычной dev-сборке (`!qa && !release`). В ней Fake-провайдер обслуживает
+локальную доставку без внешнего транспорта, но использует общие production-сервисы,
+workers и correlation-поток Mail/Calendar. QA- и release-сборки остаются inert для
+этой опции. Production-подключение Stalwart/JMAP — отдельная composition-конфигурация
+и не заменяется dev Fake-провайдером.
 
 ### Лимиты запросов
 

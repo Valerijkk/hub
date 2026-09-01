@@ -20,6 +20,26 @@ docker compose -f docker-compose.local.yml up -d
 curl -X POST http://localhost:8080/api/dev/seed
 ```
 
+### Локальное демо Mail + Calendar
+
+В обычном dev-backend Compose-профиле включён `MAILBOX_DEMO_ENABLED=true`.
+После `POST /api/dev/seed` синхронно подготавливаются почтовые данные
+`pm@hub.local` и `dev1@hub.local`, а также приглашение Calendar между ними.
+Для входа используйте dev-login при `DEV_MODE=true`; пароли, токены и иные
+учётные данные в документации не фиксируются.
+
+Откройте UI: http://localhost:8080. Вручную проверьте:
+
+- шесть системных папок у каждого демо-почтового ящика;
+- три статических треда / четыре статических сообщения и отдельное динамическое приглашение;
+- скачивание подготовленного вложения;
+- переходы Mail ↔ Calendar и RSVP из приглашения;
+- compose, reply и forward (в dev-демо они attachmentless);
+- действие Schedule из письма.
+
+Повторный `POST /api/dev/seed` идемпотентен: он повторно использует подготовленный
+набор и не перезаписывает пользовательские изменения.
+
 Нативный backend + Docker infra — см. [DEPLOY.md](DEPLOY.md) § «Локальная разработка».
 
 ---
