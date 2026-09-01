@@ -20,6 +20,32 @@ vi.mock("react-i18next", async (importOriginal) => ({
 const NOW_MS = 1_800_000_000_000;
 const STATE = "A".repeat(43);
 const authorizationURL = "https://oauth.example.test/authorize?state=" + STATE;
+const originalLocationDescriptor = Object.getOwnPropertyDescriptor(
+	window,
+	"location",
+);
+
+function mockLocationAssign() {
+	const assign = vi.fn();
+	const location = Object.create(window.location) as Location;
+	Object.defineProperty(location, "assign", {
+		configurable: true,
+		value: assign,
+	});
+	Object.defineProperty(window, "location", {
+		configurable: true,
+		value: location,
+	});
+	return assign;
+}
+
+function restoreLocation(): void {
+	if (originalLocationDescriptor) {
+		Object.defineProperty(window, "location", originalLocationDescriptor);
+	} else {
+		Reflect.deleteProperty(window, "location");
+	}
+}
 
 function connection(
 	status: MailOAuthConnection["status"],
@@ -38,6 +64,7 @@ function renderPanel() {
 describe("MailConnectionPanel", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		window.sessionStorage.clear();
 		vi.spyOn(Date, "now").mockReturnValue(NOW_MS);
 		vi.mocked(mailApi.getMailOAuthConnectionStatus).mockResolvedValue(
 			connection("reconnect_required"),
@@ -50,6 +77,8 @@ describe("MailConnectionPanel", () => {
 	});
 
 	afterEach(() => {
+		restoreLocation();
+		window.sessionStorage.clear();
 		vi.restoreAllMocks();
 	});
 
@@ -86,9 +115,7 @@ describe("MailConnectionPanel", () => {
 	});
 
 	it("uses normal OAuth, records the connection marker, then redirects", async () => {
-		const assign = vi
-			.spyOn(window.location, "assign")
-			.mockImplementation(() => undefined);
+		const assign = mockLocationAssign();
 		renderPanel();
 
 		fireEvent.click(
@@ -111,9 +138,7 @@ describe("MailConnectionPanel", () => {
 
 	it("does not redirect and shows a generic error when marker persistence refuses", async () => {
 		vi.mocked(oauthFlow.rememberMailOAuthFlow).mockReturnValue(false);
-		const assign = vi
-			.spyOn(window.location, "assign")
-			.mockImplementation(() => undefined);
+		const assign = mockLocationAssign();
 		renderPanel();
 
 		fireEvent.click(
@@ -139,9 +164,7 @@ describe("MailConnectionPanel", () => {
 				resolveAuthorization = resolve;
 			}),
 		);
-		const assign = vi
-			.spyOn(window.location, "assign")
-			.mockImplementation(() => undefined);
+		const assign = mockLocationAssign();
 		renderPanel();
 
 		const reconnect = await screen.findByRole("button", {
