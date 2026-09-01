@@ -432,6 +432,10 @@ interface CreateCallDialogProps {
 	defaultDate?: string;
 	/** Предзаполнение времени (HH:MM). */
 	defaultTime?: string;
+	/** Участники, предзаполненные вызывающим сценарием. */
+	initialParticipantIds?: readonly string[];
+	/** Заголовок, предзаполненный вызывающим сценарием. */
+	initialTitle?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -447,6 +451,8 @@ export function CreateCallDialog({
 	onOpenChange,
 	defaultDate,
 	defaultTime,
+	initialParticipantIds,
+	initialTitle,
 }: CreateCallDialogProps) {
 	const { t } = useTranslation("calls");
 	const queryClient = useQueryClient();
@@ -457,6 +463,7 @@ export function CreateCallDialog({
 		[timeZoneOptions],
 	);
 	const dialogSessionRef = useRef(0);
+	const initialParticipantsSessionRef = useRef<number | null>(null);
 	const [dialogSession, setDialogSession] = useState(0);
 	const idempotencyRef = useRef<{ fingerprint: string; key: string } | null>(
 		null,
@@ -474,6 +481,20 @@ export function CreateCallDialog({
 	const [projectId, setProjectId] = useState("");
 	const [participantIds, setParticipantIds] = useState<string[]>([]);
 	const [participantSearch, setParticipantSearch] = useState("");
+	const normalizedInitialParticipantIds = useMemo(() => {
+		const currentUserKey = currentUserId.trim().toLocaleLowerCase("und");
+		const knownIDs = new Set<string>();
+		for (const participantID of initialParticipantIds ?? []) {
+			if (typeof participantID !== "string") continue;
+			const normalized = participantID.trim().toLocaleLowerCase("und");
+			if (!normalized || normalized === currentUserKey || knownIDs.has(normalized)) {
+				continue;
+			}
+			knownIDs.add(normalized);
+		}
+		return Array.from(knownIDs);
+	}, [currentUserId, initialParticipantIds]);
+	const initialParticipantKey = normalizedInitialParticipantIds.join(",");
 
 	const {
 		data: channels,
@@ -509,7 +530,10 @@ export function CreateCallDialog({
 		}
 	}, [projectId, projects]);
 
-	const { data: members } = useQuery({
+	const {
+		data: members,
+		isSuccess: membersLoaded,
+	} = useQuery({
 		queryKey: ["project-members", projectId],
 		queryFn: () => listMembers(projectId),
 		enabled: !!projectId,
@@ -672,14 +696,46 @@ export function CreateCallDialog({
 		);
 	}, [currentUserId]);
 
+	useEffect(() => {
+		if (
+			!open ||
+			!membersLoaded ||
+			initialParticipantsSessionRef.current === dialogSession
+		) {
+			return;
+		}
+		const availableMemberIDs = new Map(
+			((members ?? []) as MemberResponse[]).flatMap((member) => {
+				const normalized = member.user_id.trim().toLocaleLowerCase("und");
+				return normalized ? [[normalized, member.user_id] as const] : [];
+			}),
+		);
+		setParticipantIds(
+			normalizedInitialParticipantIds
+				.flatMap((userID) => {
+					const availableUserID = availableMemberIDs.get(userID);
+					return availableUserID ? [availableUserID] : [];
+				})
+				.slice(0, MAX_INVITEE_COUNT),
+		);
+		initialParticipantsSessionRef.current = dialogSession;
+	}, [
+		dialogSession,
+		members,
+		membersLoaded,
+		normalizedInitialParticipantIds,
+		open,
+	]);
+
 	// Сбрасываем форму при открытии с переданными default-значениями
 	useEffect(() => {
 		const nextSession = dialogSessionRef.current + 1;
 		dialogSessionRef.current = nextSession;
 		setDialogSession(nextSession);
+		initialParticipantsSessionRef.current = null;
 		if (!open) return;
 
-		setTitle("");
+		setTitle(initialTitle ?? "");
 		setDescription("");
 		setDate(defaultDate ?? "");
 		setTime(defaultTime ?? "10:00");
@@ -692,7 +748,14 @@ export function CreateCallDialog({
 		setParticipantSearch("");
 		idempotencyRef.current = null;
 		availabilityToastRef.current = "";
-	}, [open, defaultDate, defaultTime, defaultTimezone]);
+	}, [
+		open,
+		defaultDate,
+		defaultTime,
+		defaultTimezone,
+		initialParticipantKey,
+		initialTitle,
+	]);
 
 	const invalidateDialogSession = () => {
 		const nextSession = dialogSessionRef.current + 1;

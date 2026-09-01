@@ -32,6 +32,7 @@ import {
 import { MailMessageActions } from "@/modules/mail/mail-message-actions";
 import { MailMessageDraftActions } from "@/modules/mail/mail-message-draft-actions";
 import { mailKeys } from "@/modules/mail/mail-query-keys";
+import { MailScheduleAction } from "@/modules/mail/mail-schedule-action";
 
 const MAIL_THREAD_DETAIL_PAGE_SIZE = 25;
 
@@ -393,6 +394,7 @@ function MessageCard({
 								) : null}
 							</div>
 							<MailMessageDraftActions messageID={messageID} />
+							<MailScheduleAction message={message} />
 							<MailMessageActions
 								message={message}
 								threadID={message.thread_id.toLowerCase()}

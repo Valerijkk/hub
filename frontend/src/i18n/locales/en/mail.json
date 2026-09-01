@@ -334,6 +334,14 @@
 			"retry": "Retry {{action}}",
 			"retryWait": "Retry {{action}} in {{seconds}} s"
 		},
+		"schedule": {
+			"label": "Schedule a meeting from this message",
+			"action": "Schedule meeting",
+			"resolving": "Finding colleagues…",
+			"empty": "This message has no email addresses that can be used to schedule a meeting.",
+			"unresolved": "No colleagues from this message are available to add to a meeting.",
+			"failed": "The meeting could not be prepared. Try again."
+		},
 		"actions": {
 			"label": "Message actions",
 			"markRead": "Mark read",
