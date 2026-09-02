@@ -8,6 +8,7 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailaccount"
+	"github.com/valerii/hub/backend/ent/mailsubmission"
 )
 
 const mailboxEntMaxInt64 = int64(1<<63 - 1)
@@ -100,12 +101,40 @@ func (repository *MailboxEntRepository) ClaimMailboxSyncStep(ctx context.Context
 				Claimed:         true,
 				Fence:           persistedFence,
 				EngineAccountID: *account.EngineAccountID,
-				EventCutoff:     account.EventCutoffAt,
+				EventCutoff:     account.EventCutoffAt.UTC(),
 			}
 			return nil
 		}
 		if account.NextSyncAt.After(databaseWallClock) {
 			result = mailboxEntSyncNonClaim(*account.NextSyncAt)
+			return nil
+		}
+		queuedSubmissionDue, err := transaction.MailSubmission.Query().
+			Where(
+				mailsubmission.MailAccountIDEQ(account.ID),
+				mailsubmission.StatusEQ(mailsubmission.Status("queued")),
+				mailsubmission.NextAttemptAtNotNil(),
+				mailsubmission.NextAttemptAtLTE(databaseWallClock),
+			).
+			Exist(ctx)
+		if err != nil {
+			return mailboxEntSafeError(err)
+		}
+		if queuedSubmissionDue {
+			result = mailboxEntSyncNonClaim(databaseWallClock)
+			return nil
+		}
+		acceptedSubmissionExists, err := transaction.MailSubmission.Query().
+			Where(
+				mailsubmission.MailAccountIDEQ(account.ID),
+				mailsubmission.StatusEQ(mailsubmission.Status("accepted")),
+			).
+			Exist(ctx)
+		if err != nil {
+			return mailboxEntSafeError(err)
+		}
+		if acceptedSubmissionExists {
+			result = mailboxEntSyncNonClaim(databaseWallClock)
 			return nil
 		}
 
@@ -133,9 +162,6 @@ func (repository *MailboxEntRepository) ClaimMailboxSyncStep(ctx context.Context
 			SetSyncLeaseEpoch(leaseEpoch).
 			SetSyncLeaseSyncEpoch(fence.SyncEpoch).
 			SetSyncLeaseMutationEpoch(fence.MutationEpoch).
-			ClearSyncLeaseCursor().
-			ClearSyncLeaseBaseCursor().
-			ClearSyncLeaseCheckpoint().
 			ClearSyncLeaseResultHashVersion().
 			ClearSyncLeaseResultHash().
 			ClearSyncLeaseAppliedPhase().
@@ -150,10 +176,16 @@ func (repository *MailboxEntRepository) ClaimMailboxSyncStep(ctx context.Context
 		switch fence.Phase {
 		case MailboxSyncPhaseIncremental, MailboxSyncPhaseCatchUp:
 			update.SetSyncLeaseCursor(fence.Cursor)
+			update.ClearSyncLeaseBaseCursor()
+			update.ClearSyncLeaseCheckpoint()
 		case MailboxSyncPhaseEnumeration:
+			update.ClearSyncLeaseCursor()
 			if fence.BaseCursor != "" {
 				update.SetSyncLeaseBaseCursor(fence.BaseCursor)
 				update.SetSyncLeaseCheckpoint(fence.Checkpoint)
+			} else {
+				update.ClearSyncLeaseBaseCursor()
+				update.ClearSyncLeaseCheckpoint()
 			}
 		default:
 			return mailboxServiceError(MailboxServiceErrorInvalid)
@@ -165,7 +197,7 @@ func (repository *MailboxEntRepository) ClaimMailboxSyncStep(ctx context.Context
 			Claimed:         true,
 			Fence:           fence,
 			EngineAccountID: *account.EngineAccountID,
-			EventCutoff:     account.EventCutoffAt,
+			EventCutoff:     account.EventCutoffAt.UTC(),
 		}
 		return nil
 	})
@@ -372,7 +404,7 @@ func mailboxEntSyncLeaseFence(account *ent.MailAccount) (MailboxSyncFence, bool,
 		return MailboxSyncFence{}, false, false
 	}
 	if account.SyncLeaseToken == nil {
-		if account.SyncLeaseSyncEpoch != nil || account.SyncLeaseMutationEpoch != nil || account.SyncLeasePhase != nil || account.SyncLeaseCursor != nil || account.SyncLeaseBaseCursor != nil || account.SyncLeaseCheckpoint != nil || account.SyncLeaseResultHashVersion != nil || account.SyncLeaseResultHash != nil || account.SyncLeaseAppliedPhase != nil || account.SyncLeaseAppliedNextAt != nil || account.SyncLeaseAppliedAt != nil {
+		if account.SyncLeaseSyncEpoch != nil || account.SyncLeaseMutationEpoch != nil || account.SyncLeasePhase != nil || account.SyncLeaseCursor != nil || account.SyncLeaseBaseCursor != nil || account.SyncLeaseCheckpoint != nil || account.SyncLeaseResultHashVersion != nil || !mailboxEntNullableBytesAbsent(account.SyncLeaseResultHash) || account.SyncLeaseAppliedPhase != nil || account.SyncLeaseAppliedNextAt != nil || account.SyncLeaseAppliedAt != nil {
 			return MailboxSyncFence{}, false, false
 		}
 		return MailboxSyncFence{}, false, true

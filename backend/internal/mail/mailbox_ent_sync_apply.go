@@ -230,7 +230,7 @@ func mailboxEntSyncApplyProofFromAccount(account *ent.MailAccount, fence Mailbox
 		return mailboxEntSyncApplyProof{}, false, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	hasVersion := account.SyncLeaseResultHashVersion != nil
-	hasHash := account.SyncLeaseResultHash != nil
+	hasHash := !mailboxEntNullableBytesAbsent(account.SyncLeaseResultHash)
 	hasPhase := account.SyncLeaseAppliedPhase != nil
 	hasNext := account.SyncLeaseAppliedNextAt != nil
 	hasApplied := account.SyncLeaseAppliedAt != nil
