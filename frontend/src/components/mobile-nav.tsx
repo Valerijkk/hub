@@ -39,6 +39,10 @@ export function MobileNav() {
 	const { t } = useTranslation("common");
 	const matchRoute = useMatchRoute();
 	const [moreOpen, setMoreOpen] = useState(false);
+	const moreIsActive =
+		moreOpen ||
+		!!matchRoute({ to: "/mail", fuzzy: true }) ||
+		!!matchRoute({ to: "/calendar", fuzzy: true });
 
 	const navItems = [
 		{
@@ -144,6 +148,49 @@ export function MobileNav() {
 					>
 						<div className="space-y-1">
 							<Link
+								to="/mail/$folderKey"
+								params={{ folderKey: "inbox" }}
+								className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[var(--hover)]"
+								onClick={() => setMoreOpen(false)}
+							>
+								<svg
+									aria-hidden="true"
+									width="16"
+									height="16"
+									viewBox="0 0 16 16"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="1.5"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								>
+									<rect x="1.5" y="3" width="13" height="10" rx="1.5" />
+									<path d="M2 4l6 4.5L14 4" />
+								</svg>
+								{t("nav.mail")}
+							</Link>
+							<Link
+								to="/calendar"
+								className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[var(--hover)]"
+								onClick={() => setMoreOpen(false)}
+							>
+								<svg
+									aria-hidden="true"
+									width="16"
+									height="16"
+									viewBox="0 0 16 16"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="1.5"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								>
+									<rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+									<path d="M5 1.5v3M11 1.5v3M2 6h12" />
+								</svg>
+								{t("nav.calendar")}
+							</Link>
+							<Link
 								to="/settings/profile"
 								className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[var(--hover)]"
 								onClick={() => setMoreOpen(false)}
@@ -208,7 +255,7 @@ export function MobileNav() {
 					aria-controls="mobile-nav-more-panel"
 					className={cn(
 						"flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
-						moreOpen ? "text-primary" : "text-t3",
+						moreIsActive ? "text-primary" : "text-t3",
 					)}
 				>
 					<svg
