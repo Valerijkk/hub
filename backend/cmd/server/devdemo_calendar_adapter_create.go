@@ -65,6 +65,7 @@ func (a *calendarDemoAdapter) CreateEvent(
 	}
 
 	requested := make(map[uuid.UUID]calendarDemoRequestedAttendee, len(input.Attendees))
+	requestedOrder := make([]uuid.UUID, 0, len(input.Attendees))
 	candidates := make([]calendarmod.CalendarEventCreateAttendeeCandidate, 0, len(input.Attendees))
 	for _, attendee := range input.Attendees {
 		if attendee.UserID == uuid.Nil || strings.TrimSpace(attendee.Email) == "" {
@@ -79,6 +80,7 @@ func (a *calendarDemoAdapter) CreateEvent(
 		}
 		userID := attendee.UserID
 		requested[userID] = calendarDemoRequestedAttendee{email: attendee.Email, role: role}
+		requestedOrder = append(requestedOrder, userID)
 		candidates = append(candidates, calendarmod.CalendarEventCreateAttendeeCandidate{
 			UserID:      &userID,
 			Email:       attendee.Email,
@@ -164,10 +166,9 @@ func (a *calendarDemoAdapter) CreateEvent(
 		if !exists {
 			return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("unexpected calendar demo create receipt attendee"))
 		}
-		if attendee.Email != expected.email || attendee.Role != expected.role || attendee.RSVPStatus != calendarmod.RSVPNeedsAction {
+		if attendee.Email != expected.email || attendee.Role != expected.role || (!created.Replayed() && attendee.RSVPStatus != calendarmod.RSVPNeedsAction) {
 			return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("mismatched calendar demo create receipt attendee"))
 		}
-		delete(requested, userID)
 
 		attendees = append(attendees, devdemo.CalendarDemoAttendeeState{
 			UserID:     userID,
@@ -177,8 +178,28 @@ func (a *calendarDemoAdapter) CreateEvent(
 			Version:    attendeeVersion,
 		})
 	}
-	if len(requested) != 0 {
+	if len(seen) != len(requested) {
 		return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("incomplete calendar demo create receipt"))
+	}
+	if created.Replayed() {
+		live, err := a.GetEvent(ctx, actorID, receipt.ID)
+		if err != nil {
+			return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, err)
+		}
+		if live.EventID != receipt.ID || live.Status != "confirmed" {
+			return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("invalid calendar demo replay event"))
+		}
+		liveAttendees, err := calendarDemoReplayCreateAttendees(actorID, requested, requestedOrder, live.Attendees)
+		if err != nil {
+			return zero, err
+		}
+		return devdemo.CalendarDemoCreateResult{
+			EventID:   live.EventID,
+			Version:   live.Version,
+			Sequence:  live.Sequence,
+			Attendees: liveAttendees,
+			Replayed:  true,
+		}, nil
 	}
 
 	return devdemo.CalendarDemoCreateResult{
@@ -188,6 +209,55 @@ func (a *calendarDemoAdapter) CreateEvent(
 		Attendees: attendees,
 		Replayed:  created.Replayed(),
 	}, nil
+}
+
+func calendarDemoReplayCreateAttendees(
+	actorID uuid.UUID,
+	requested map[uuid.UUID]calendarDemoRequestedAttendee,
+	requestedOrder []uuid.UUID,
+	liveAttendees []devdemo.CalendarDemoAttendeeState,
+) ([]devdemo.CalendarDemoAttendeeState, error) {
+	if actorID == uuid.Nil || len(requested) != len(requestedOrder) {
+		return nil, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("invalid calendar demo replay attendees"))
+	}
+
+	found := make(map[uuid.UUID]devdemo.CalendarDemoAttendeeState, len(requested))
+	for _, attendee := range liveAttendees {
+		if attendee.UserID == actorID {
+			continue
+		}
+		if attendee.Role == "organizer" {
+			return nil, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("invalid calendar demo replay organizer"))
+		}
+		expected, wanted := requested[attendee.UserID]
+		if !wanted {
+			return nil, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("unexpected calendar demo replay attendee"))
+		}
+		expectedRole, err := calendarDemoOutputRole(calendarDemoStageCreate, expected.role)
+		if err != nil {
+			return nil, err
+		}
+		if attendee.Email != expected.email || attendee.Role != expectedRole {
+			return nil, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("mismatched calendar demo replay attendee"))
+		}
+		if _, exists := found[attendee.UserID]; exists {
+			return nil, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("duplicate calendar demo replay attendee"))
+		}
+		found[attendee.UserID] = attendee
+	}
+	if len(found) != len(requested) {
+		return nil, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("incomplete calendar demo replay attendees"))
+	}
+
+	attendees := make([]devdemo.CalendarDemoAttendeeState, 0, len(requestedOrder))
+	for _, userID := range requestedOrder {
+		attendee, exists := found[userID]
+		if !exists {
+			return nil, newCalendarDemoReconcileError(calendarDemoStageCreate, errors.New("incomplete calendar demo replay attendees"))
+		}
+		attendees = append(attendees, attendee)
+	}
+	return attendees, nil
 }
 
 func calendarDemoUintToInt(stage calendarDemoStage, value uint) (int, error) {

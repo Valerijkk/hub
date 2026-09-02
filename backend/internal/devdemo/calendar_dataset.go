@@ -14,6 +14,7 @@ const (
 	calendarDemoRequiredRole    = "required"
 	calendarDemoAcceptedStatus  = "accepted"
 	calendarDemoTentativeStatus = "tentative"
+	calendarDemoWeeklyReviewRRULE = "FREQ=WEEKLY;BYDAY=MO;COUNT=4"
 )
 
 type calendarDemoDataset struct {
@@ -128,7 +129,7 @@ func newCalendarDemoDataset(userIDs map[string]uuid.UUID, includeMailInvitation 
 					StartsAt:       weeklyReviewStart,
 					EndsAt:         weeklyReviewStart.Add(30 * time.Minute),
 					Timezone:       calendarDemoTimezone,
-					RRULE:          "FREQ=WEEKLY;COUNT=4",
+					RRULE:          calendarDemoWeeklyReviewRRULE,
 					Attendees: []CalendarDemoAttendeeCandidate{
 						{UserID: tester1, Email: "tester1@hub.local", Role: calendarDemoRequiredRole},
 					},
@@ -213,7 +214,7 @@ func validateCalendarDemoDataset(dataset calendarDemoDataset) error {
 			}
 		}
 		if !event.cancelRecurrenceID.IsZero() {
-			if event.create.RRULE != "FREQ=WEEKLY;COUNT=4" || event.cancelRecurrenceID.Location() != time.UTC ||
+			if event.create.RRULE != calendarDemoWeeklyReviewRRULE || event.cancelRecurrenceID.Location() != time.UTC ||
 				!event.cancelRecurrenceID.Equal(event.create.StartsAt.Add(7*24*time.Hour)) {
 				return errors.New("calendar demo dataset: invalid recurrence cancellation")
 			}

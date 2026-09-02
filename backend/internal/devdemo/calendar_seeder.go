@@ -71,7 +71,7 @@ func (seeder *calendarSeeder) seed(ctx context.Context, userIDs map[string]uuid.
 		}
 		result.eventIDs[plan.key] = created.EventID
 
-		attendeeVersions, err := calendarDemoAttendeeVersions(created.Attendees)
+		attendees, err := calendarDemoAttendeesByUserID(created.Attendees)
 		if err != nil {
 			return calendarSeedResult{}, err
 		}
@@ -81,15 +81,25 @@ func (seeder *calendarSeeder) seed(ctx context.Context, userIDs map[string]uuid.
 		}
 
 		for _, rsvpPlan := range plan.rsvps {
-			expectedVersion, ok := attendeeVersions[rsvpPlan.actorID]
+			attendee, ok := attendees[rsvpPlan.actorID]
 			if !ok {
 				return calendarSeedResult{}, errors.New("calendar demo seed: RSVP attendee version is unavailable")
+			}
+			if created.Replayed {
+				switch attendee.RSVPStatus {
+				case rsvpPlan.status:
+					result.rsvpsTotal++
+					continue
+				case "needs_action":
+				default:
+					return calendarSeedResult{}, errors.New("calendar demo seed: replayed RSVP attendee state conflicts")
+				}
 			}
 
 			rsvp, err := seeder.calendar.RespondSeries(ctx, rsvpPlan.actorID, CalendarDemoRSVPInput{
 				IdempotencyKey:          rsvpPlan.idempotencyKey,
 				EventID:                 created.EventID,
-				ExpectedAttendeeVersion: expectedVersion,
+				ExpectedAttendeeVersion: attendee.Version,
 				Status:                  rsvpPlan.status,
 			})
 			if err != nil {
@@ -145,18 +155,18 @@ func copyCalendarDemoEventIDs(eventIDs map[string]uuid.UUID) map[string]uuid.UUI
 	return copied
 }
 
-func calendarDemoAttendeeVersions(attendees []CalendarDemoAttendeeState) (map[uuid.UUID]int, error) {
-	versions := make(map[uuid.UUID]int, len(attendees))
+func calendarDemoAttendeesByUserID(attendees []CalendarDemoAttendeeState) (map[uuid.UUID]CalendarDemoAttendeeState, error) {
+	states := make(map[uuid.UUID]CalendarDemoAttendeeState, len(attendees))
 	for _, attendee := range attendees {
 		if attendee.UserID == uuid.Nil || attendee.Version <= 0 {
 			return nil, errors.New("calendar demo seed: attendee response is invalid")
 		}
-		if _, exists := versions[attendee.UserID]; exists {
+		if _, exists := states[attendee.UserID]; exists {
 			return nil, errors.New("calendar demo seed: attendee response is duplicated")
 		}
-		versions[attendee.UserID] = attendee.Version
+		states[attendee.UserID] = attendee
 	}
-	return versions, nil
+	return states, nil
 }
 
 func (seeder *calendarSeeder) cancelOccurrence(ctx context.Context, actorID, eventID uuid.UUID, recurrenceID time.Time) error {
