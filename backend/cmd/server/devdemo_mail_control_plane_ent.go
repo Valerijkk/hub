@@ -176,6 +176,12 @@ func reconcileDevMailControlDomain(ctx context.Context, client *appent.Client, p
 		}
 		return domain, true, nil
 	case 1:
+		if rows[0] == nil {
+			return nil, false, newDevMailControlError(devMailControlStageDomain, devMailControlFailureConflict)
+		}
+		if rows[0].EngineDomainID == nil || *rows[0].EngineDomainID != engineDomainID {
+			return nil, false, newDevMailControlError(devMailControlStageDomain, devMailControlFailureConflict)
+		}
 		if !validDevMailControlDomainRow(rows[0], plan, engineDomainID) {
 			return nil, false, newDevMailControlError(devMailControlStageDomain, devMailControlFailureConflict)
 		}
@@ -285,19 +291,19 @@ func reconcileDevMailControlAccount(ctx context.Context, client *appent.Client, 
 			SetProjectionState(mailaccount.ProjectionState("bootstrapping")).
 			SetNextSyncAt(now).
 			SetSyncScheduleUpdatedAt(now).
-			SetEventCutoffAt(now).
+			SetEventCutoffAt(devMailControlEventCutoff()).
 			SetCreatedAt(now).
 			SetUpdatedAt(now).
 			Save(ctx)
 		if err != nil {
 			return nil, false, devMailControlTransactionFailure(devMailControlStageAccount, err)
 		}
-		if !validDevMailControlAccountRow(account, domain, plan, engineAccountID, now) {
+		if !validDevMailControlAccountRow(account, domain, plan, engineAccountID, now) || !account.EventCutoffAt.Equal(devMailControlEventCutoff()) {
 			return nil, false, newDevMailControlError(devMailControlStageAccount, devMailControlFailureUnavailable)
 		}
 		return account, true, nil
 	case 1:
-		if !validDevMailControlAccountRow(rows[0], domain, plan, engineAccountID, now) {
+		if !validDevMailControlExistingAccountRow(rows[0], domain, plan, engineAccountID, now) {
 			return nil, false, newDevMailControlError(devMailControlStageAccount, devMailControlFailureConflict)
 		}
 		return rows[0], false, nil
@@ -398,41 +404,56 @@ func reconcileDevMailControlSettings(ctx context.Context, client *appent.Client,
 }
 
 func validDevMailControlDomainRow(row *appent.MailDomain, plan devMailControlDomainPlan, engineDomainID string) bool {
-	return row != nil &&
-		row.ID == plan.id &&
-		row.OrganizationID == plan.organizationID &&
-		row.Domain == plan.domain &&
-		row.EngineProvisioningKey == plan.provisioningKey &&
-		row.EngineDomainID != nil && *row.EngineDomainID == engineDomainID &&
-		row.DesiredPresent && row.Enabled && row.IsDefault && row.DeletedAt == nil &&
-		row.State == maildomain.State("verified") &&
-		row.VerificationStatus == maildomain.VerificationStatus("verified") &&
-		row.DkimStatus == maildomain.DkimStatus("valid") &&
-		len(row.RequiredDNSRecords) == 0 &&
-		row.DesiredGeneration == devMailControlGeneration &&
-		row.DesiredHashVersion == devMailControlHashVersion &&
-		bytes.Equal(row.DesiredHash, plan.desiredHash[:]) &&
-		row.DeployedGeneration != nil && *row.DeployedGeneration == devMailControlGeneration &&
-		row.DeployedHashVersion != nil && *row.DeployedHashVersion == devMailControlHashVersion &&
-		row.DeployedHash != nil && bytes.Equal(*row.DeployedHash, plan.desiredHash[:]) &&
-		row.AttemptedGeneration == nil && row.AttemptedHashVersion == nil && row.AttemptedHash == nil &&
-		row.LastErrorCode == nil && row.NextRetryAt == nil && row.LeaseToken == nil && row.LeaseUntil == nil
+	return devMailControlDomainRowMismatchGroup(row, plan, engineDomainID) == "none"
+}
+
+func devMailControlDomainRowMismatchGroup(row *appent.MailDomain, plan devMailControlDomainPlan, engineDomainID string) string {
+	if row == nil || row.ID != plan.id || row.OrganizationID != plan.organizationID || row.Domain != plan.domain || row.EngineProvisioningKey != plan.provisioningKey {
+		return "core-binding"
+	}
+	if row.EngineDomainID == nil || *row.EngineDomainID != engineDomainID {
+		return "provider-binding"
+	}
+	if !row.DesiredPresent || !row.Enabled || !row.IsDefault || row.DeletedAt != nil {
+		return "flags"
+	}
+	if row.State != maildomain.State("verified") || row.VerificationStatus != maildomain.VerificationStatus("verified") || row.DkimStatus != maildomain.DkimStatus("valid") || len(row.RequiredDNSRecords) != 0 {
+		return "verification"
+	}
+	if row.DesiredGeneration != devMailControlGeneration || row.DesiredHashVersion != devMailControlHashVersion || !bytes.Equal(row.DesiredHash, plan.desiredHash[:]) {
+		return "desired-control"
+	}
+	if row.DeployedGeneration == nil || *row.DeployedGeneration != devMailControlGeneration || row.DeployedHashVersion == nil || *row.DeployedHashVersion != devMailControlHashVersion || row.DeployedHash == nil || !bytes.Equal(*row.DeployedHash, plan.desiredHash[:]) {
+		return "deployed-control"
+	}
+	if row.AttemptedGeneration != nil || row.AttemptedHashVersion != nil || !devMailControlNullableBytesAbsent(row.AttemptedHash) {
+		return "attempted-control"
+	}
+	if row.LastErrorCode != nil || row.NextRetryAt != nil || row.LeaseToken != nil || row.LeaseUntil != nil {
+		return "retry-lease"
+	}
+	return "none"
+}
+
+func devMailControlNullableBytesAbsent(value *[]byte) bool {
+	return value == nil || *value == nil
+}
+
+func validDevMailControlPersistedTime(value time.Time) bool {
+	if value.IsZero() || value.Nanosecond() != 0 {
+		return false
+	}
+	_, offset := value.Zone()
+	return offset == 0
 }
 
 func validDevMailControlAccountRow(row *appent.MailAccount, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) bool {
-	if row == nil || !validDevMailControlNow(now) || row.ID != plan.id || row.OrganizationID != plan.organizationID || row.UserID != plan.userID || row.MailDomainID != domain.id || row.EngineProvisioningKey != plan.provisioningKey || row.LocalPart != plan.localPart || row.EngineAccountID == nil || *row.EngineAccountID != engineAccountID || !row.DesiredEnabled || row.Status != mailaccount.Status("active") || row.ControlGeneration != devMailControlGeneration || row.ControlHashVersion != devMailControlHashVersion || !bytes.Equal(row.ControlHash, plan.controlHash[:]) || row.DeployedGeneration == nil || *row.DeployedGeneration != devMailControlGeneration || row.DeployedHashVersion == nil || *row.DeployedHashVersion != devMailControlHashVersion || row.DeployedHash == nil || !bytes.Equal(*row.DeployedHash, plan.controlHash[:]) || row.ProvisionErrorCode != nil || row.SyncErrorCode != nil {
+	if !validDevMailControlAccountBaseRow(row, domain, plan, engineAccountID, now) || row.SyncErrorCode != nil {
 		return false
 	}
 	switch row.ProjectionState {
 	case mailaccount.ProjectionState("bootstrapping"):
-		return row.NextSyncAt != nil && !row.NextSyncAt.After(now) &&
-			row.SyncCursor == nil && row.RebuildCheckpoint == nil && row.RebuildBaseCursor == nil && row.LastSyncedAt == nil &&
-			row.ProvisionAttempts == 0 && row.SyncAttempts == 0 &&
-			row.SyncLeaseToken == nil && row.SyncLeaseUntil == nil &&
-			row.SyncLeaseSyncEpoch == nil && row.SyncLeaseMutationEpoch == nil && row.SyncLeasePhase == nil &&
-			row.SyncLeaseCursor == nil && row.SyncLeaseBaseCursor == nil && row.SyncLeaseCheckpoint == nil &&
-			row.SyncLeaseResultHashVersion == nil && row.SyncLeaseResultHash == nil &&
-			row.SyncLeaseAppliedPhase == nil && row.SyncLeaseAppliedNextAt == nil && row.SyncLeaseAppliedAt == nil
+		return row.NextSyncAt != nil && !row.NextSyncAt.After(now) && validDevMailControlBootstrappingAccountRow(row)
 	case mailaccount.ProjectionState("ready"):
 		return row.NextSyncAt != nil && row.SyncAttempts == 0 &&
 			row.SyncCursor != nil && *row.SyncCursor != "" && row.LastSyncedAt != nil &&
@@ -440,6 +461,85 @@ func validDevMailControlAccountRow(row *appent.MailAccount, domain devMailContro
 	default:
 		return false
 	}
+}
+
+func validDevMailControlAccountBaseRow(row *appent.MailAccount, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) bool {
+	return row != nil &&
+		validDevMailControlNow(now) &&
+		validDevMailControlPersistedTime(row.EventCutoffAt) &&
+		!row.EventCutoffAt.After(devMailControlEventCutoff()) &&
+		row.ID == plan.id &&
+		row.OrganizationID == plan.organizationID &&
+		row.UserID == plan.userID &&
+		row.MailDomainID == domain.id &&
+		row.EngineProvisioningKey == plan.provisioningKey &&
+		row.LocalPart == plan.localPart &&
+		row.EngineAccountID != nil && *row.EngineAccountID == engineAccountID &&
+		row.DesiredEnabled &&
+		row.Status == mailaccount.Status("active") &&
+		row.ControlGeneration == devMailControlGeneration &&
+		row.ControlHashVersion == devMailControlHashVersion &&
+		bytes.Equal(row.ControlHash, plan.controlHash[:]) &&
+		row.DeployedGeneration != nil && *row.DeployedGeneration == devMailControlGeneration &&
+		row.DeployedHashVersion != nil && *row.DeployedHashVersion == devMailControlHashVersion &&
+		row.DeployedHash != nil && bytes.Equal(*row.DeployedHash, plan.controlHash[:]) &&
+		row.ProvisionErrorCode == nil
+}
+
+func validDevMailControlExistingSyncErrorCode(value *mailaccount.SyncErrorCode) bool {
+	if value == nil {
+		return true
+	}
+	switch *value {
+	case mailaccount.SyncErrorCode("MAIL_SYNC_ENGINE_UNAVAILABLE"),
+		mailaccount.SyncErrorCode("MAIL_SYNC_CURSOR_INVALID"),
+		mailaccount.SyncErrorCode("MAIL_SYNC_RESTART_REQUIRED"),
+		mailaccount.SyncErrorCode("MAIL_SYNC_PAGE_REJECTED"),
+		mailaccount.SyncErrorCode("MAIL_SYNC_PROJECTION_LIMIT"),
+		mailaccount.SyncErrorCode("MAIL_SYNC_CONTROL_CONFLICT"):
+		return true
+	default:
+		return false
+	}
+}
+
+func validDevMailControlExistingAccountRow(row *appent.MailAccount, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) bool {
+	if !validDevMailControlAccountBaseRow(row, domain, plan, engineAccountID, now) || !validDevMailControlExistingSyncErrorCode(row.SyncErrorCode) {
+		return false
+	}
+	switch row.ProjectionState {
+	case mailaccount.ProjectionState("bootstrapping"),
+		mailaccount.ProjectionState("ready"),
+		mailaccount.ProjectionState("degraded"),
+		mailaccount.ProjectionState("rebuilding"):
+		return true
+	default:
+		return false
+	}
+}
+
+func validDevMailControlBootstrappingAccountRow(row *appent.MailAccount) bool {
+	return row != nil &&
+		row.ProjectionState == mailaccount.ProjectionState("bootstrapping") &&
+		row.SyncCursor == nil &&
+		row.RebuildCheckpoint == nil &&
+		row.RebuildBaseCursor == nil &&
+		row.LastSyncedAt == nil &&
+		row.ProvisionAttempts == 0 &&
+		row.SyncAttempts == 0 &&
+		row.SyncLeaseToken == nil &&
+		row.SyncLeaseUntil == nil &&
+		row.SyncLeaseSyncEpoch == nil &&
+		row.SyncLeaseMutationEpoch == nil &&
+		row.SyncLeasePhase == nil &&
+		row.SyncLeaseCursor == nil &&
+		row.SyncLeaseBaseCursor == nil &&
+		row.SyncLeaseCheckpoint == nil &&
+		row.SyncLeaseResultHashVersion == nil &&
+		devMailControlNullableBytesAbsent(row.SyncLeaseResultHash) &&
+		row.SyncLeaseAppliedPhase == nil &&
+		row.SyncLeaseAppliedNextAt == nil &&
+		row.SyncLeaseAppliedAt == nil
 }
 
 func validDevMailControlIdentityRow(row *appent.MailIdentity, accountID uuid.UUID, plan devMailControlAccountPlan, engineIdentityID string) bool {

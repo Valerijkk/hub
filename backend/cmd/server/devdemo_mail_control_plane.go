@@ -39,6 +39,12 @@ var (
 	errDevMailControlUnavailable = errors.New("dev mail control-plane is unavailable")
 )
 
+// devMailControlEventCutoff is before every deterministic demo-source and
+// dynamic fake Mail message; it is not scheduler time.
+func devMailControlEventCutoff() time.Time {
+	return time.Date(2026, time.August, 30, 0, 0, 0, 0, time.UTC)
+}
+
 type devMailControlFailure string
 
 const (
