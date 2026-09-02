@@ -1,7 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-	CalendarDays,
 	ChevronDown,
 	ChevronLeft,
 	Download,
@@ -30,6 +29,7 @@ import {
 	MailThreadList,
 } from "@/modules/mail/mail-thread-list";
 import { MailMessageActions } from "@/modules/mail/mail-message-actions";
+import { MailCalendarInvitation } from "@/modules/mail/mail-calendar-invitation";
 import { MailMessageDraftActions } from "@/modules/mail/mail-message-draft-actions";
 import { mailKeys } from "@/modules/mail/mail-query-keys";
 import { MailScheduleAction } from "@/modules/mail/mail-schedule-action";
@@ -231,15 +231,7 @@ function MessageCard({
 				) : null}
 				{detail.calendar_event_id !== null &&
 				isCanonicalCalendarEventID(detail.calendar_event_id) ? (
-					<Button asChild variant="outline" size="sm" className="min-h-11">
-						<Link
-							to="/calendar/events/$eventId"
-							params={{ eventId: detail.calendar_event_id.toLowerCase() }}
-						>
-							<CalendarDays aria-hidden="true" className="h-4 w-4" />
-							{t("reader.calendar.openEvent")}
-						</Link>
-					</Button>
+					<MailCalendarInvitation eventId={detail.calendar_event_id} />
 				) : null}
 				<MailSafeContent
 					language={i18n.language}

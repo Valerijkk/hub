@@ -372,7 +372,24 @@
 			"cancel": "Calendar cancellation",
 			"reply": "Calendar response",
 			"openEvent": "Open event",
-			"openRelatedEmail": "Open related email"
+			"openRelatedEmail": "Open related email",
+			"rsvp": {
+				"current": "Your response: {{status}}",
+				"unavailable": "Invitation details are unavailable.",
+				"failed": "Could not save your response. Try again.",
+				"saving": "Saving response…",
+				"actions": {
+					"accepted": "Accept",
+					"tentative": "Tentative",
+					"declined": "Decline"
+				},
+				"status": {
+					"needs_action": "Needs action",
+					"accepted": "Accepted",
+					"tentative": "Tentative",
+					"declined": "Declined"
+				}
+			}
 		}
 	}
 }
