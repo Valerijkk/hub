@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,12 +14,154 @@ import (
 	mailmod "github.com/valerii/hub/backend/internal/mail"
 )
 
+type devMailDemoObserveStage string
+
+const (
+	devMailDemoObserveStagePMOwner             devMailDemoObserveStage = "pm_owner"
+	devMailDemoObserveStageDev1Owner           devMailDemoObserveStage = "dev1_owner"
+	devMailDemoObserveStagePMFolders           devMailDemoObserveStage = "pm_folders"
+	devMailDemoObserveStageDev1Folders         devMailDemoObserveStage = "dev1_folders"
+	devMailDemoObserveStageStaticSource        devMailDemoObserveStage = "static_source"
+	devMailDemoObserveStagePMEvent             devMailDemoObserveStage = "pm_event"
+	devMailDemoObserveStagePMInvitation        devMailDemoObserveStage = "pm_invitation"
+	devMailDemoObserveStageDev1Invitation      devMailDemoObserveStage = "dev1_invitation"
+	devMailDemoObserveStageInvitationSemantics devMailDemoObserveStage = "invitation_semantics"
+	devMailDemoObserveStageDev1Search          devMailDemoObserveStage = "dev1_search"
+)
+
+type devMailDemoCorrelationDirection string
+
+const (
+	devMailDemoCorrelationDirectionPMReverse   devMailDemoCorrelationDirection = "pm_reverse"
+	devMailDemoCorrelationDirectionPMForward   devMailDemoCorrelationDirection = "pm_forward"
+	devMailDemoCorrelationDirectionDev1Forward devMailDemoCorrelationDirection = "dev1_forward"
+	devMailDemoCorrelationDirectionDev1Reverse devMailDemoCorrelationDirection = "dev1_reverse"
+)
+
+func (direction devMailDemoCorrelationDirection) valid() bool {
+	switch direction {
+	case devMailDemoCorrelationDirectionPMReverse,
+		devMailDemoCorrelationDirectionPMForward,
+		devMailDemoCorrelationDirectionDev1Forward,
+		devMailDemoCorrelationDirectionDev1Reverse:
+		return true
+	default:
+		return false
+	}
+}
+
+type devMailDemoThreadDetailErrorKind string
+
+const (
+	devMailDemoThreadDetailErrorKindNotFound    devMailDemoThreadDetailErrorKind = "not_found"
+	devMailDemoThreadDetailErrorKindUnavailable devMailDemoThreadDetailErrorKind = "unavailable"
+)
+
+func (kind devMailDemoThreadDetailErrorKind) valid() bool {
+	switch kind {
+	case devMailDemoThreadDetailErrorKindNotFound,
+		devMailDemoThreadDetailErrorKindUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+func devMailDemoLogThreadDetailPending(err error) {
+	var kind devMailDemoThreadDetailErrorKind
+	switch {
+	case errors.Is(err, mailmod.ErrMailboxServiceNotFound):
+		kind = devMailDemoThreadDetailErrorKindNotFound
+	case errors.Is(err, mailmod.ErrMailboxServiceUnavailable):
+		kind = devMailDemoThreadDetailErrorKindUnavailable
+	default:
+		return
+	}
+	if !kind.valid() {
+		return
+	}
+	slog.Warn("dev mail demo thread detail pending", "detail_error_kind", string(kind))
+}
+
+type devMailDemoStaticPendingPhase string
+
+const (
+	devMailDemoStaticPendingPhaseThreadList   devMailDemoStaticPendingPhase = "thread_list"
+	devMailDemoStaticPendingPhaseThreadDetail devMailDemoStaticPendingPhase = "thread_detail"
+	devMailDemoStaticPendingPhaseExactMatch   devMailDemoStaticPendingPhase = "exact_match"
+)
+
+func (phase devMailDemoStaticPendingPhase) valid() bool {
+	switch phase {
+	case devMailDemoStaticPendingPhaseThreadList,
+		devMailDemoStaticPendingPhaseThreadDetail,
+		devMailDemoStaticPendingPhaseExactMatch:
+		return true
+	default:
+		return false
+	}
+}
+
+func devMailDemoLogStaticPending(messageID string, phase devMailDemoStaticPendingPhase) {
+	sourceSlot, ok := devMailDemoStaticSourceSlot(messageID)
+	if !ok || !phase.valid() {
+		return
+	}
+	slog.Warn(
+		"dev mail demo static source pending",
+		"source_slot", sourceSlot,
+		"source_phase", string(phase),
+	)
+}
+
+func devMailDemoStaticSourceSlot(messageID string) (string, bool) {
+	switch messageID {
+	case "devmail-message-release-01-v1":
+		return "release_first", true
+	case "devmail-message-release-02-v1":
+		return "release_reply", true
+	case "devmail-message-brand-kit-v1":
+		return "brand_kit", true
+	case "devmail-message-retention-note-v1":
+		return "retention_note", true
+	default:
+		return "", false
+	}
+}
+
+func devMailDemoLogCorrelationPending(direction devMailDemoCorrelationDirection, err error) {
+	if !direction.valid() {
+		return
+	}
+	kind, ok := mailmod.MailboxCalendarCorrelationErrorKindOf(err)
+	if !ok {
+		return
+	}
+	switch kind {
+	case mailmod.MailboxCalendarCorrelationErrorKindNotFound,
+		mailmod.MailboxCalendarCorrelationErrorKindStale,
+		mailmod.MailboxCalendarCorrelationErrorKindUnavailable:
+		slog.Warn(
+			"dev mail demo calendar correlation pending",
+			"correlation_direction", string(direction),
+			"correlation_kind", string(kind),
+		)
+	}
+}
+
 type devMailDemoOwner struct {
 	userID    uuid.UUID
 	accountID uuid.UUID
 }
 
-func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared devMailDemoPrepared, pmEventID uuid.UUID) error {
+func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared devMailDemoPrepared, pmEventID uuid.UUID) (resultErr error) {
+	stage := devMailDemoObserveStagePMOwner
+	defer func() {
+		if errors.Is(resultErr, errDevMailDemoPending) {
+			slog.Warn("dev mail demo observation pending", "observe_stage", string(stage))
+		}
+	}()
+
 	if ctx == nil {
 		return errDevMailDemoUnavailable
 	}
@@ -36,6 +179,7 @@ func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared dev
 	if err != nil {
 		return err
 	}
+	stage = devMailDemoObserveStageDev1Owner
 	dev1Owner, err := adapter.observeOwner(ctx, prepared, devMailSourceDev1Email, prepared.dev1UserID)
 	if err != nil {
 		return err
@@ -43,24 +187,30 @@ func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared dev
 	if pmOwner.accountID == dev1Owner.accountID {
 		return errDevMailDemoUnavailable
 	}
+	stage = devMailDemoObserveStagePMFolders
 	if _, err := adapter.observeFolders(ctx, pmOwner.userID); err != nil {
 		return err
 	}
+	stage = devMailDemoObserveStageDev1Folders
 	dev1Folders, err := adapter.observeFolders(ctx, dev1Owner.userID)
 	if err != nil {
 		return err
 	}
+	stage = devMailDemoObserveStageStaticSource
 	if err := adapter.observeStaticSource(ctx, prepared, plan, dev1Owner, dev1Folders); err != nil {
 		return err
 	}
+	stage = devMailDemoObserveStagePMEvent
 	pmEvent, err := adapter.readPMEvent(ctx, prepared, pmEventID)
 	if err != nil {
 		return err
 	}
+	stage = devMailDemoObserveStagePMInvitation
 	pmMessageID, err := adapter.observePMInvitation(ctx, prepared, pmOwner, pmEventID)
 	if err != nil {
 		return err
 	}
+	stage = devMailDemoObserveStageDev1Invitation
 	dev1EventID, dev1MessageID, err := adapter.observeDev1Invitation(ctx, prepared, dev1Owner, pmEvent)
 	if err != nil {
 		return err
@@ -68,6 +218,7 @@ func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared dev
 	if pmMessageID == dev1MessageID || pmEventID == dev1EventID {
 		return errDevMailDemoUnavailable
 	}
+	stage = devMailDemoObserveStageInvitationSemantics
 	return adapter.observeInvitationSemantics(ctx, prepared, pmEvent, dev1EventID)
 }
 
@@ -161,12 +312,18 @@ func (adapter *devMailDemoAdapter) observeStaticSource(ctx context.Context, prep
 		}
 		threads, err := adapter.observeTargetedThreads(ctx, owner.userID, search)
 		if err != nil {
+			if errors.Is(err, errDevMailDemoPending) {
+				devMailDemoLogStaticPending(expected.Projection.MessageID, devMailDemoStaticPendingPhaseThreadList)
+			}
 			return err
 		}
 		matches := make(map[uuid.UUID]uuid.UUID, 1)
 		for _, thread := range threads.Items {
 			detail, err := adapter.observeThreadDetail(ctx, owner.userID, thread.ID, detailCache)
 			if err != nil {
+				if errors.Is(err, errDevMailDemoPending) {
+					devMailDemoLogStaticPending(expected.Projection.MessageID, devMailDemoStaticPendingPhaseThreadDetail)
+				}
 				return err
 			}
 			for _, actual := range detail.Messages {
@@ -180,6 +337,7 @@ func (adapter *devMailDemoAdapter) observeStaticSource(ctx context.Context, prep
 			}
 		}
 		if len(matches) == 0 {
+			devMailDemoLogStaticPending(expected.Projection.MessageID, devMailDemoStaticPendingPhaseExactMatch)
 			return errDevMailDemoPending
 		}
 		if len(matches) != 1 {
@@ -256,6 +414,7 @@ func (adapter *devMailDemoAdapter) observeThreadDetail(ctx context.Context, acto
 	}
 	detail, err := adapter.projectionSvc.GetMailboxThreadDetail(ctx, actorID, mailmod.MailboxThreadDetailProjectionQuery{ThreadID: threadID, Limit: 100})
 	if err != nil {
+		devMailDemoLogThreadDetailPending(err)
 		return mailmod.MailboxThreadDetailProjection{}, devMailDemoMailboxError(err)
 	}
 	if detail.ProjectionState != mailmod.MailboxProjectionReady || detail.ProjectionAsOf == nil {
@@ -325,6 +484,7 @@ func (adapter *devMailDemoAdapter) observePMInvitation(ctx context.Context, prep
 	}
 	reverse, err := mailmod.ResolveCalendarMailboxCorrelation(ctx, adapter.mailboxRepo, reverseRequest)
 	if err != nil {
+		devMailDemoLogCorrelationPending(devMailDemoCorrelationDirectionPMReverse, err)
 		return uuid.Nil, devMailDemoCorrelationError(err)
 	}
 	if !reverse.Matches(reverseRequest) || reverse.AccountID() != owner.accountID || reverse.MessageID() == uuid.Nil || reverse.Path() != mailmod.MailboxCalendarCorrelationPathOutboundInvite {
@@ -336,6 +496,7 @@ func (adapter *devMailDemoAdapter) observePMInvitation(ctx context.Context, prep
 	}
 	forward, err := mailmod.ResolveMailboxCalendarCorrelation(ctx, adapter.mailboxRepo, forwardRequest)
 	if err != nil {
+		devMailDemoLogCorrelationPending(devMailDemoCorrelationDirectionPMForward, err)
 		return uuid.Nil, devMailDemoCorrelationError(err)
 	}
 	if !forward.Matches(forwardRequest) || forward.CalendarEventID() != eventID || forward.Path() != mailmod.MailboxCalendarCorrelationPathOutboundInvite {
@@ -370,6 +531,7 @@ func (adapter *devMailDemoAdapter) observeDev1Invitation(ctx context.Context, pr
 			}
 			forward, err := mailmod.ResolveMailboxCalendarCorrelation(ctx, adapter.mailboxRepo, request)
 			if err != nil {
+				devMailDemoLogCorrelationPending(devMailDemoCorrelationDirectionDev1Forward, err)
 				return uuid.Nil, uuid.Nil, devMailDemoCorrelationError(err)
 			}
 			if !forward.Matches(request) || forward.Path() != mailmod.MailboxCalendarCorrelationPathInboundReceipt || forward.CalendarEventID() == uuid.Nil || eventID != uuid.Nil {
@@ -381,6 +543,7 @@ func (adapter *devMailDemoAdapter) observeDev1Invitation(ctx context.Context, pr
 			}
 			reverse, err := mailmod.ResolveCalendarMailboxCorrelation(ctx, adapter.mailboxRepo, reverseRequest)
 			if err != nil {
+				devMailDemoLogCorrelationPending(devMailDemoCorrelationDirectionDev1Reverse, err)
 				return uuid.Nil, uuid.Nil, devMailDemoCorrelationError(err)
 			}
 			if !reverse.Matches(reverseRequest) || reverse.Path() != mailmod.MailboxCalendarCorrelationPathInboundReceipt || reverse.AccountID() != owner.accountID || reverse.MessageID() != message.ID {
@@ -390,6 +553,7 @@ func (adapter *devMailDemoAdapter) observeDev1Invitation(ctx context.Context, pr
 		}
 	}
 	if eventID == uuid.Nil || messageID == uuid.Nil {
+		slog.Warn("dev mail demo observation pending", "observe_stage", string(devMailDemoObserveStageDev1Search))
 		return uuid.Nil, uuid.Nil, errDevMailDemoPending
 	}
 	return eventID, messageID, nil

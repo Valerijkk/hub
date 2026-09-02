@@ -144,6 +144,12 @@ func wireDevMailCalendarRuntime(
 			}
 			return ctx.Next()
 		})
+		calendarMailDeliveryServiceOptions := mailmod.DefaultCalendarMailDeliveryServiceOptions()
+		calendarMailDeliveryServiceOptions.ScanInterval = 2 * time.Second
+		submissionWorkerOptions := mailmod.DefaultMailboxSubmissionWorkerOptions()
+		submissionWorkerOptions.ScanInterval = 2 * time.Second
+		submissionFinalizationWorkerOptions := mailmod.DefaultMailboxSubmissionFinalizationWorkerOptions()
+		submissionFinalizationWorkerOptions.ScanInterval = 2 * time.Second
 		wireMailboxEngineRuntime(d, mailboxEngineRuntimeInputs{
 			mailboxService:                  mailboxSvc,
 			mailboxRepository:               mailboxRepo,
@@ -158,6 +164,9 @@ func wireDevMailCalendarRuntime(
 			submissionDispatcher:            mailboxSubmissionDispatcher,
 			submissionReconciler:            mailboxSubmissionReconciler,
 			submissionFinalizer:             mailboxSubmissionFinalizer,
+			calendarMailDeliveryServiceOptions:  calendarMailDeliveryServiceOptions,
+			submissionWorkerOptions:             submissionWorkerOptions,
+			submissionFinalizationWorkerOptions: submissionFinalizationWorkerOptions,
 			startGate:                       runtimeStart,
 		})
 		d.mailCalendarDemoSeeder = mailCalendarDemoSeeder

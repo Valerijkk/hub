@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"log/slog"
 	"sort"
 	"time"
 
@@ -25,13 +26,41 @@ import (
 
 const mailboxEntSyncIDDomain = "hub.mail.sync-id.v1"
 
+type mailboxEntPrepareSubstage string
+
+const (
+	mailboxEntPrepareSubstageRequestInput           mailboxEntPrepareSubstage = "request_input"
+	mailboxEntPrepareSubstageAccountLookup          mailboxEntPrepareSubstage = "account_lookup"
+	mailboxEntPrepareSubstageWallClock              mailboxEntPrepareSubstage = "wall_clock"
+	mailboxEntPrepareSubstageAccountLeaseValidation mailboxEntPrepareSubstage = "account_lease_validation"
+	mailboxEntPrepareSubstageFolders                mailboxEntPrepareSubstage = "folders"
+	mailboxEntPrepareSubstageMessageRows            mailboxEntPrepareSubstage = "message_rows"
+	mailboxEntPrepareSubstageProvenance             mailboxEntPrepareSubstage = "provenance"
+	mailboxEntPrepareSubstageLabels                 mailboxEntPrepareSubstage = "labels"
+	mailboxEntPrepareSubstagePersistedStates        mailboxEntPrepareSubstage = "persisted_states"
+	mailboxEntPrepareSubstageThreads                mailboxEntPrepareSubstage = "threads"
+	mailboxEntPrepareSubstageMessages               mailboxEntPrepareSubstage = "messages"
+	mailboxEntPrepareSubstageCandidateAvailability  mailboxEntPrepareSubstage = "candidate_availability"
+	mailboxEntPrepareSubstageEventSelection         mailboxEntPrepareSubstage = "event_selection"
+	mailboxEntPrepareSubstageSelectionValidation    mailboxEntPrepareSubstage = "selection_validation"
+	mailboxEntPrepareSubstageClassification         mailboxEntPrepareSubstage = "classification"
+	mailboxEntPrepareSubstageTransactionCommit      mailboxEntPrepareSubstage = "transaction_commit"
+)
+
 // PrepareMailboxSyncPage re-resolves one claimed page into deterministic, policy-ready state.
-func (repository *MailboxEntRepository) PrepareMailboxSyncPage(ctx context.Context, request MailboxSyncPrepareRequest) (MailboxSyncPreparedPage, error) {
+func (repository *MailboxEntRepository) PrepareMailboxSyncPage(ctx context.Context, request MailboxSyncPrepareRequest) (result MailboxSyncPreparedPage, resultErr error) {
+	stage := mailboxEntPrepareSubstageRequestInput
+	defer func() {
+		if resultErr != nil {
+			slog.Warn("mailbox sync prepare failed", "prepare_substage", string(stage))
+		}
+	}()
+
 	if repository == nil || repository.client == nil || ctx == nil || !mailboxEntPrepareRequestValid(request) {
 		return MailboxSyncPreparedPage{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 
-	var result MailboxSyncPreparedPage
+	stage = mailboxEntPrepareSubstageAccountLookup
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		account, err := transaction.MailAccount.Query().
 			Where(mailaccount.IDEQ(request.Fence.AccountID)).
@@ -39,28 +68,35 @@ func (repository *MailboxEntRepository) PrepareMailboxSyncPage(ctx context.Conte
 			Only(ctx)
 		if err != nil {
 			if ent.IsNotFound(err) {
+				stage = mailboxEntPrepareSubstageTransactionCommit
 				return nil
 			}
 			return mailboxEntSafeError(err)
 		}
+		stage = mailboxEntPrepareSubstageWallClock
 		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return err
 		}
-		input, prepared, err := mailboxEntPrepareInput(ctx, transaction, account, request, databaseWallClock)
+		stage = mailboxEntPrepareSubstageAccountLeaseValidation
+		input, prepared, err := mailboxEntPrepareInput(ctx, transaction, account, request, databaseWallClock, &stage)
 		if err != nil {
 			return err
 		}
 		if !prepared {
+			stage = mailboxEntPrepareSubstageTransactionCommit
 			return nil
 		}
+		stage = mailboxEntPrepareSubstageSelectionValidation
 		if !validMailboxSyncPrepareSelection(input, request.EventCandidates) {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
+		stage = mailboxEntPrepareSubstageClassification
 		if _, err := ClassifyMailboxSyncPage(input); err != nil {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 		result = MailboxSyncPreparedPage{Prepared: true, Input: mailboxEntPrepareCopyInput(input)}
+		stage = mailboxEntPrepareSubstageTransactionCommit
 		return nil
 	})
 	if err != nil {
@@ -146,10 +182,11 @@ func mailboxEntPrepareCandidatesValid(page MailboxSyncPolicyPage, candidates []M
 	return len(seenMessages) == len(candidates)
 }
 
-func mailboxEntPrepareInput(ctx context.Context, transaction *ent.Tx, account *ent.MailAccount, request MailboxSyncPrepareRequest, now time.Time) (MailboxSyncPolicyInput, bool, error) {
-	if transaction == nil || account == nil || !mailboxEntValidTime(now) {
+func mailboxEntPrepareInput(ctx context.Context, transaction *ent.Tx, account *ent.MailAccount, request MailboxSyncPrepareRequest, now time.Time, prepareSubstage *mailboxEntPrepareSubstage) (MailboxSyncPolicyInput, bool, error) {
+	if prepareSubstage == nil || transaction == nil || account == nil || !mailboxEntValidTime(now) {
 		return MailboxSyncPolicyInput{}, false, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
+	*prepareSubstage = mailboxEntPrepareSubstageAccountLeaseValidation
 	if account.Status != mailaccount.StatusActive || !account.DesiredEnabled {
 		return MailboxSyncPolicyInput{}, false, nil
 	}
@@ -165,12 +202,14 @@ func mailboxEntPrepareInput(ctx context.Context, transaction *ent.Tx, account *e
 	}
 
 	page := cloneMailboxSyncPolicyPage(request.Page)
+	*prepareSubstage = mailboxEntPrepareSubstageFolders
 	folders, err := mailboxEntPrepareFolders(ctx, transaction, account, request.Folders)
 	if err != nil {
 		return MailboxSyncPolicyInput{}, false, err
 	}
 	projections := mailboxEntPrepareProjectionPointers(&page)
 	engineMessageIDs := mailboxEntPrepareProjectionIDs(projections, page)
+	*prepareSubstage = mailboxEntPrepareSubstageMessageRows
 	messageRows, err := mailboxEntPrepareMessageRows(ctx, transaction, account, engineMessageIDs)
 	if err != nil {
 		return MailboxSyncPolicyInput{}, false, err
@@ -181,6 +220,7 @@ func mailboxEntPrepareInput(ctx context.Context, transaction *ent.Tx, account *e
 	}
 	sort.Strings(liveEngineMessageIDs)
 
+	*prepareSubstage = mailboxEntPrepareSubstageProvenance
 	provenance, err := mailboxEntPrepareProvenance(ctx, transaction, account, liveEngineMessageIDs)
 	if err != nil {
 		return MailboxSyncPolicyInput{}, false, err
@@ -199,6 +239,7 @@ func mailboxEntPrepareInput(ctx context.Context, transaction *ent.Tx, account *e
 			projection.Origin = EngineProjectionOriginInboundOrUnknown
 		}
 	}
+	*prepareSubstage = mailboxEntPrepareSubstageLabels
 	labels, err := mailboxEntPrepareLabels(ctx, transaction, account, projections)
 	if err != nil {
 		return MailboxSyncPolicyInput{}, false, err
@@ -216,26 +257,31 @@ func mailboxEntPrepareInput(ctx context.Context, transaction *ent.Tx, account *e
 			}
 		}
 	}
+	*prepareSubstage = mailboxEntPrepareSubstagePersistedStates
 	states, err := mailboxEntPreparePersistedStates(ctx, transaction, account, stateRows)
 	if err != nil {
 		return MailboxSyncPolicyInput{}, false, err
 	}
+	*prepareSubstage = mailboxEntPrepareSubstageThreads
 	threads, err := mailboxEntPrepareThreads(ctx, transaction, account, projections)
 	if err != nil {
 		return MailboxSyncPolicyInput{}, false, err
 	}
+	*prepareSubstage = mailboxEntPrepareSubstageMessages
 	messages, destroyed, err := mailboxEntPrepareMessages(ctx, transaction, account, page, messageRows, states, threads, provenance)
 	if err != nil {
 		return MailboxSyncPolicyInput{}, false, err
 	}
 	input := MailboxSyncPolicyInput{
 		Page: page, Folders: folders, Messages: messages, Destroyed: destroyed, Labels: labels,
-		SyncEpoch: account.SyncEpoch, EventCutoff: account.EventCutoffAt,
+		SyncEpoch: account.SyncEpoch, EventCutoff: account.EventCutoffAt.UTC(),
 		Event: MailboxSyncPolicyEventContext{Mailbox: MailboxEventID{AccountID: account.ID, ID: account.ID}, OrganizationID: account.OrganizationID, OccurredAt: request.OccurredAt, CorrelationID: request.CorrelationID},
 	}
+	*prepareSubstage = mailboxEntPrepareSubstageCandidateAvailability
 	if err := mailboxEntPrepareCandidateAvailability(ctx, transaction, request.EventCandidates); err != nil {
 		return MailboxSyncPolicyInput{}, false, err
 	}
+	*prepareSubstage = mailboxEntPrepareSubstageEventSelection
 	if err := mailboxEntPrepareSelectEvents(&input, request.EventCandidates); err != nil {
 		return MailboxSyncPolicyInput{}, false, err
 	}
@@ -365,10 +411,14 @@ func mailboxEntPrepareProvenance(ctx context.Context, transaction *ent.Tx, accou
 		if current.ConfirmedDraft != nil { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
 		result[*row.ProviderMessageID] = current
 	}
-	drafts, err := transaction.MailDraft.Query().Where(maildraft.MailAccountIDEQ(account.ID), maildraft.EngineMessageIDIn(engineMessageIDs...)).All(ctx)
+	drafts, err := transaction.MailDraft.Query().Where(
+		maildraft.MailAccountIDEQ(account.ID),
+		maildraft.EngineMessageIDIn(engineMessageIDs...),
+		maildraft.StatusIn(maildraft.Status("active"), maildraft.Status("submitting")),
+	).All(ctx)
 	if err != nil { return nil, mailboxEntSafeError(err) }
 	for _, row := range drafts {
-		if row == nil || row.ID == uuid.Nil || row.MailAccountID != account.ID || (string(row.Status) != "active" && string(row.Status) != "submitting" && string(row.Status) != "submitted") || row.EngineMessageID == nil || row.EngineVersion == nil || !syncValidOpaque(*row.EngineMessageID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(*row.EngineVersion, MaxEngineOpaqueIDBytes) {
+		if row == nil || row.ID == uuid.Nil || row.MailAccountID != account.ID || (string(row.Status) != "active" && string(row.Status) != "submitting") || row.EngineMessageID == nil || row.EngineVersion == nil || !syncValidOpaque(*row.EngineMessageID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(*row.EngineVersion, MaxEngineOpaqueIDBytes) {
 			return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 		current := result[*row.EngineMessageID]
@@ -574,10 +624,7 @@ func mailboxEntPrepareThreads(ctx context.Context, transaction *ent.Tx, account 
 			resolved[key] = MailboxEventID{AccountID: account.ID, ID: row.ID}
 			continue
 		}
-		identityBytes := make([]byte, 1+len(key.key))
-		identityBytes[0] = byte(key.version)
-		copy(identityBytes[1:], key.key[:])
-		id, err := mailboxEntStableSyncID(account.ID, "thread", identityBytes)
+		id, err := mailboxEntStableThreadID(account.ID, ThreadIdentity{KeyVersion: key.version, Key: key.key})
 		if err != nil { return nil, err }
 		if other, duplicate := proposed[id]; duplicate && other != key { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
 		proposed[id] = key

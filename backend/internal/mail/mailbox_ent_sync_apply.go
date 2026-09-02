@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,23 +40,52 @@ func (mailboxEntSyncApplyNoWrite) Error() string {
 
 var errMailboxEntSyncApplyNoWrite = mailboxEntSyncApplyNoWrite{}
 
+type mailboxEntSyncApplySubstage string
+
+const (
+	mailboxEntSyncApplySubstageInput             mailboxEntSyncApplySubstage = "input"
+	mailboxEntSyncApplySubstageCanonicalize      mailboxEntSyncApplySubstage = "canonicalize"
+	mailboxEntSyncApplySubstageExpectedPosition  mailboxEntSyncApplySubstage = "expected_position"
+	mailboxEntSyncApplySubstageAccountLookup     mailboxEntSyncApplySubstage = "account_lookup"
+	mailboxEntSyncApplySubstageWallClock         mailboxEntSyncApplySubstage = "wall_clock"
+	mailboxEntSyncApplySubstageLeaseFence        mailboxEntSyncApplySubstage = "lease_fence"
+	mailboxEntSyncApplySubstageAccountValidation mailboxEntSyncApplySubstage = "account_validation"
+	mailboxEntSyncApplySubstageLeaseDeadline     mailboxEntSyncApplySubstage = "lease_deadline"
+	mailboxEntSyncApplySubstageProof             mailboxEntSyncApplySubstage = "proof"
+	mailboxEntSyncApplySubstageNextAttempt       mailboxEntSyncApplySubstage = "next_attempt"
+	mailboxEntSyncApplySubstagePrePosition       mailboxEntSyncApplySubstage = "pre_position"
+	mailboxEntSyncApplySubstageOutboxCandidates  mailboxEntSyncApplySubstage = "outbox_candidates"
+	mailboxEntSyncApplySubstageProjection        mailboxEntSyncApplySubstage = "projection"
+	mailboxEntSyncApplySubstageOutboxAppend      mailboxEntSyncApplySubstage = "outbox_append"
+	mailboxEntSyncApplySubstageAccountPersist    mailboxEntSyncApplySubstage = "account_persist"
+)
+
 // ApplyMailboxSyncPage commits one canonical page while the originating lease
 // remains fenced. The provider and policy work have already happened before
 // this boundary; this method performs no external I/O.
-func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context, request MailboxSyncApplyRequest) (MailboxSyncApplyResult, error) {
+func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context, request MailboxSyncApplyRequest) (result MailboxSyncApplyResult, resultErr error) {
+	stage := mailboxEntSyncApplySubstageInput
+	defer func() {
+		if resultErr != nil {
+			slog.Warn("mailbox sync apply repository failed", "apply_substage", string(stage))
+		}
+	}()
+
 	if repository == nil || repository.client == nil || ctx == nil || !validMailboxSyncFence(request.Fence) || !mailboxEntValidTime(request.Now) || !mailboxEntValidTime(request.NextAttemptAt) {
 		return MailboxSyncApplyResult{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
+	stage = mailboxEntSyncApplySubstageCanonicalize
 	canonical, err := CanonicalizeMailboxSyncApplyRequest(request)
 	if err != nil {
 		return MailboxSyncApplyResult{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
+	stage = mailboxEntSyncApplySubstageExpectedPosition
 	position, err := mailboxEntSyncApplyExpectedPosition(canonical)
 	if err != nil {
 		return MailboxSyncApplyResult{}, err
 	}
 
-	var result MailboxSyncApplyResult
+	stage = mailboxEntSyncApplySubstageAccountLookup
 	err = repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		account, err := transaction.MailAccount.Query().
 			Where(mailaccount.IDEQ(canonical.Fence.AccountID)).
@@ -67,10 +97,12 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 			}
 			return mailboxEntSafeError(err)
 		}
+		stage = mailboxEntSyncApplySubstageWallClock
 		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return err
 		}
+		stage = mailboxEntSyncApplySubstageLeaseFence
 		if account.Status != mailaccount.StatusActive || !account.DesiredEnabled {
 			return errMailboxEntSyncApplyNoWrite
 		}
@@ -81,6 +113,7 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 		if !hasLease || persistedFence != canonical.Fence || account.SyncEpoch != canonical.Fence.SyncEpoch || account.MutationEpoch != canonical.Fence.MutationEpoch || account.SyncLeaseUntil == nil || !account.SyncLeaseUntil.After(databaseWallClock) {
 			return errMailboxEntSyncApplyNoWrite
 		}
+		stage = mailboxEntSyncApplySubstageAccountValidation
 		active, err := mailboxEntSyncApplyAccountValid(account, canonical.Fence.AccountID)
 		if err != nil {
 			return err
@@ -88,11 +121,13 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 		if !active {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
+		stage = mailboxEntSyncApplySubstageLeaseDeadline
 		leaseUntil, ok := mailboxEntCheckedTimeAdd(canonical.NextAttemptAt, time.Second)
 		if !ok || !leaseUntil.After(canonical.NextAttemptAt) {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 
+		stage = mailboxEntSyncApplySubstageProof
 		proof, hasProof, err := mailboxEntSyncApplyProofFromAccount(account, persistedFence)
 		if err != nil {
 			return err
@@ -105,10 +140,12 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 			return errMailboxEntSyncApplyNoWrite
 		}
 
+		stage = mailboxEntSyncApplySubstageNextAttempt
 		if !canonical.NextAttemptAt.After(databaseWallClock) {
 			return mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 
+		stage = mailboxEntSyncApplySubstagePrePosition
 		prePosition, err := mailboxEntSyncClaimSnapshot(account)
 		if err != nil {
 			return err
@@ -116,15 +153,19 @@ func (repository *MailboxEntRepository) ApplyMailboxSyncPage(ctx context.Context
 		if !mailboxEntSyncApplyFencePositionMatches(prePosition, canonical.Fence) {
 			return errMailboxEntSyncApplyNoWrite
 		}
+		stage = mailboxEntSyncApplySubstageOutboxCandidates
 		if err := mailboxEntSyncApplyOutboxCandidatesAvailable(ctx, transaction, canonical); err != nil {
 			return err
 		}
+		stage = mailboxEntSyncApplySubstageProjection
 		if err := repository.mailboxEntApplySyncProjection(ctx, transaction, canonical, databaseWallClock); err != nil {
 			return err
 		}
+		stage = mailboxEntSyncApplySubstageOutboxAppend
 		if err := mailboxEntSyncApplyAppendOutbox(ctx, transaction, canonical, databaseWallClock); err != nil {
 			return err
 		}
+		stage = mailboxEntSyncApplySubstageAccountPersist
 		if err := mailboxEntSyncApplyPersistAccount(ctx, account, canonical, position, databaseWallClock, leaseUntil); err != nil {
 			return err
 		}

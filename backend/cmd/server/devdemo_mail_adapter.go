@@ -21,6 +21,11 @@ const (
 	devMailDemoDatasetVersion = 1
 	devMailDemoObserveTimeout = 2 * time.Minute
 	devMailDemoObservePoll    = 5 * time.Second
+
+	devMailDemoInvitationTitle       = "Mail invitation"
+	devMailDemoInvitationDescription = "PM invitation for the dev1 Mail demo"
+	devMailDemoInvitationLocation    = "Mail demo"
+	devMailDemoInvitationTimezone    = "Europe/Moscow"
 )
 
 var (
@@ -259,6 +264,9 @@ func (adapter *devMailDemoAdapter) ReconcileMailDemo(ctx context.Context, input 
 	if adapter.prepared == nil || !adapter.prepared.matches(adapter.prepared.organizationID, pmUserID, dev1UserID) {
 		return devdemo.MailDemoResult{}, errDevMailDemoInvalid
 	}
+	if err := adapter.recoverCalendarInviteBeforeObserve(ctx, *adapter.prepared, input.CalendarEvent.EventID); err != nil {
+		return devdemo.MailDemoResult{}, err
+	}
 	if err := adapter.observe(ctx, *adapter.prepared, input.CalendarEvent.EventID); err != nil {
 		return devdemo.MailDemoResult{}, err
 	}
@@ -269,6 +277,87 @@ func (adapter *devMailDemoAdapter) ReconcileMailDemo(ctx context.Context, input 
 		adapter.observedPMEventID = input.CalendarEvent.EventID
 	}
 	return devMailDemoResult(*adapter.prepared, replayed)
+}
+
+func (adapter *devMailDemoAdapter) recoverCalendarInviteBeforeObserve(ctx context.Context, prepared devMailDemoPrepared, eventID uuid.UUID) error {
+	if ctx == nil || eventID == uuid.Nil || !prepared.matches(prepared.organizationID, prepared.pmUserID, prepared.dev1UserID) {
+		return errDevMailDemoInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	event, err := adapter.eventReadSvc.GetCalendarEvent(ctx, prepared.pmUserID, eventID)
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		return errDevMailDemoUnavailable
+	}
+	attendeeID, matches := devMailDemoSeededInvitationAttendeeID(prepared, eventID, event)
+	if !matches {
+		return errDevMailDemoInvalid
+	}
+	eventSequence, err := calendarDemoUintToInt(calendarDemoStageCreate, event.Sequence)
+	if err != nil {
+		return errDevMailDemoInvalid
+	}
+	err = adapter.mailboxRepo.RecoverDevDemoCalendarInviteDelivery(ctx, mailmod.DevDemoCalendarInviteRecoveryRequest{
+		OrganizationID: prepared.organizationID,
+		EventID:        eventID,
+		AttendeeID:     attendeeID,
+		OrganizerID:    prepared.pmUserID,
+		EventSequence:  eventSequence,
+		Kind:           mailmod.CalendarInviteDeliveryKindCreated,
+		RecurrenceID:   "",
+	})
+	if err == nil {
+		return nil
+	}
+	if contextErr := ctx.Err(); contextErr != nil {
+		return contextErr
+	}
+	var repositoryError *mailmod.CalendarMailDeliveryRepositoryError
+	if errors.As(err, &repositoryError) && repositoryError != nil && repositoryError.Kind() == mailmod.CalendarMailDeliveryRepositoryErrorConflict {
+		return nil
+	}
+	return errDevMailDemoUnavailable
+}
+
+// devMailDemoSeededInvitationAttendeeID admits only the immutable Calendar
+// fixture reconciled by the dev seeder. Recovery must never act on an
+// arbitrary PM-to-dev1 event merely because it has the same participants.
+func devMailDemoSeededInvitationAttendeeID(prepared devMailDemoPrepared, eventID uuid.UUID, event calendarmod.CalendarEventDetail) (uuid.UUID, bool) {
+	startsAt := time.Date(2026, time.September, 3, 10, 0, 0, 0, time.UTC)
+	endsAt := time.Date(2026, time.September, 3, 10, 30, 0, 0, time.UTC)
+	if eventID == uuid.Nil || event.ID != eventID || event.Title != devMailDemoInvitationTitle || event.Description != devMailDemoInvitationDescription || event.Location != devMailDemoInvitationLocation ||
+		event.AllDay || event.Timezone != devMailDemoInvitationTimezone || event.StartsAt == nil || event.EndsAt == nil || event.StartDate != nil || event.EndDateExclusive != nil ||
+		event.StartsAt.Location() != time.UTC || event.EndsAt.Location() != time.UTC || !event.StartsAt.Equal(startsAt) || !event.EndsAt.Equal(endsAt) || event.RRULE != nil || len(event.Exdates) != 0 ||
+		event.Status != calendarmod.CalendarEventStatusConfirmed || event.Version != 1 || event.OrganizerID == nil || *event.OrganizerID != prepared.pmUserID || event.OrganizerEmail != devMailSourcePMEmail || len(event.Attendees) != 2 {
+		return uuid.Nil, false
+	}
+
+	attendeeID := uuid.Nil
+	organizerCount := 0
+	for _, attendee := range event.Attendees {
+		if attendee.ID == uuid.Nil || attendee.UserID == nil || attendee.Version != 1 || attendee.RespondedAt != nil {
+			return uuid.Nil, false
+		}
+		switch *attendee.UserID {
+		case prepared.pmUserID:
+			if attendee.Email != devMailSourcePMEmail || attendee.Role != calendarmod.CalendarEventAttendeeRoleOrganizer || attendee.RSVPStatus != calendarmod.RSVPAccepted {
+				return uuid.Nil, false
+			}
+			organizerCount++
+		case prepared.dev1UserID:
+			if attendee.Email != devMailSourceDev1Email || attendee.Role != calendarmod.CalendarEventAttendeeRoleRequired || attendee.RSVPStatus != calendarmod.RSVPNeedsAction || attendeeID != uuid.Nil {
+				return uuid.Nil, false
+			}
+			attendeeID = attendee.ID
+		default:
+			return uuid.Nil, false
+		}
+	}
+	return attendeeID, organizerCount == 1 && attendeeID != uuid.Nil
 }
 
 func (adapter *devMailDemoAdapter) observe(ctx context.Context, prepared devMailDemoPrepared, pmEventID uuid.UUID) error {

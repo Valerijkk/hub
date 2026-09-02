@@ -22,12 +22,50 @@ type mailboxEngineRuntimeInputs struct {
 	messageReadEngine     mailmod.MailboxMessageReadEngine
 	messageMutationEngine mailmod.MailboxMessageMutationEngine
 	calendarPartEngine    mailmod.MailboxCalendarPartReadEngine
+	startGate             <-chan struct{}
 
 	calendarMailDeliveryDraftCreator mailmod.CalendarMailDeliveryDraftCreator
 	draftService                     *mailmod.MailboxDraftService
 	submissionDispatcher             *mailmod.MailboxSubmissionDispatcher
 	submissionReconciler             *mailmod.MailboxSubmissionReconciler
 	submissionFinalizer              *mailmod.MailboxSubmissionFinalizer
+	calendarMailDeliveryServiceOptions  mailmod.CalendarMailDeliveryServiceOptions
+	submissionWorkerOptions             mailmod.MailboxSubmissionWorkerOptions
+	submissionFinalizationWorkerOptions mailmod.MailboxSubmissionFinalizationWorkerOptions
+}
+
+func mailboxEngineCalendarMailDeliveryServiceOptionsOrDefault(options mailmod.CalendarMailDeliveryServiceOptions) mailmod.CalendarMailDeliveryServiceOptions {
+	if options == (mailmod.CalendarMailDeliveryServiceOptions{}) {
+		return mailmod.DefaultCalendarMailDeliveryServiceOptions()
+	}
+	return options
+}
+
+func mailboxEngineSubmissionWorkerOptionsOrDefault(options mailmod.MailboxSubmissionWorkerOptions) mailmod.MailboxSubmissionWorkerOptions {
+	if options == (mailmod.MailboxSubmissionWorkerOptions{}) {
+		return mailmod.DefaultMailboxSubmissionWorkerOptions()
+	}
+	return options
+}
+
+func mailboxEngineSubmissionFinalizationWorkerOptionsOrDefault(options mailmod.MailboxSubmissionFinalizationWorkerOptions) mailmod.MailboxSubmissionFinalizationWorkerOptions {
+	if options == (mailmod.MailboxSubmissionFinalizationWorkerOptions{}) {
+		return mailmod.DefaultMailboxSubmissionFinalizationWorkerOptions()
+	}
+	return options
+}
+
+func waitMailboxEngineRuntimeStart(ctx context.Context, gate <-chan struct{}) bool {
+	if gate == nil {
+		return true
+	}
+
+	select {
+	case <-gate:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func wireMailboxEngineRuntime(d *serverDeps, inputs mailboxEngineRuntimeInputs) {
@@ -35,7 +73,14 @@ func wireMailboxEngineRuntime(d *serverDeps, inputs mailboxEngineRuntimeInputs) 
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	wireCalendarOutboundRuntime(d, inputs.mailboxRepository, inputs.calendarMailDeliveryDraftCreator, mailboxSubmissionService)
+	wireCalendarOutboundRuntime(
+		d,
+		inputs.mailboxRepository,
+		inputs.calendarMailDeliveryDraftCreator,
+		mailboxSubmissionService,
+		inputs.startGate,
+		mailboxEngineCalendarMailDeliveryServiceOptionsOrDefault(inputs.calendarMailDeliveryServiceOptions),
+	)
 
 	mailboxSubmissionHandler, err := mailmod.NewMailboxSubmissionHandler(mailboxSubmissionService)
 	if err != nil {
@@ -49,7 +94,7 @@ func wireMailboxEngineRuntime(d *serverDeps, inputs mailboxEngineRuntimeInputs) 
 		inputs.mailboxRepository,
 		inputs.submissionDispatcher,
 		mailmod.NewMailboxSubmissionWorkerTimer(),
-		mailmod.DefaultMailboxSubmissionWorkerOptions(),
+		mailboxEngineSubmissionWorkerOptionsOrDefault(inputs.submissionWorkerOptions),
 	)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
@@ -75,7 +120,7 @@ func wireMailboxEngineRuntime(d *serverDeps, inputs mailboxEngineRuntimeInputs) 
 		inputs.mailboxRepository,
 		inputs.submissionFinalizer,
 		mailmod.NewMailboxSubmissionWorkerTimer(),
-		mailmod.DefaultMailboxSubmissionFinalizationWorkerOptions(),
+		mailboxEngineSubmissionFinalizationWorkerOptionsOrDefault(inputs.submissionFinalizationWorkerOptions),
 	)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
@@ -160,29 +205,44 @@ func wireMailboxEngineRuntime(d *serverDeps, inputs mailboxEngineRuntimeInputs) 
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	wireCalendarInboundRuntime(d, inputs.mailboxRepository, inputs.calendarPartEngine, inputs.eventRepository, inputs.eventService)
+	wireCalendarInboundRuntime(d, inputs.mailboxRepository, inputs.calendarPartEngine, inputs.eventRepository, inputs.eventService, inputs.startGate)
 
 	go func() {
+		if !waitMailboxEngineRuntimeStart(d.rootCtx, inputs.startGate) {
+			return
+		}
 		if err := mailboxSyncWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
 			slog.Error("background worker stopped", "error", err)
 		}
 	}()
 	go func() {
+		if !waitMailboxEngineRuntimeStart(d.rootCtx, inputs.startGate) {
+			return
+		}
 		if err := mailboxSubmissionWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
 			slog.Error("background worker stopped", "error", err)
 		}
 	}()
 	go func() {
+		if !waitMailboxEngineRuntimeStart(d.rootCtx, inputs.startGate) {
+			return
+		}
 		if err := mailboxSubmissionStaleWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
 			slog.Error("background worker stopped", "error", err)
 		}
 	}()
 	go func() {
+		if !waitMailboxEngineRuntimeStart(d.rootCtx, inputs.startGate) {
+			return
+		}
 		if err := mailboxSubmissionReconciliationWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
 			slog.Error("background worker stopped", "error", err)
 		}
 	}()
 	go func() {
+		if !waitMailboxEngineRuntimeStart(d.rootCtx, inputs.startGate) {
+			return
+		}
 		if err := mailboxSubmissionFinalizationWorker.Run(d.rootCtx); err != nil && d.rootCtx.Err() == nil {
 			slog.Error("background worker stopped", "error", err)
 		}
@@ -209,6 +269,8 @@ func wireCalendarOutboundRuntime(
 	mailboxRepo *mailmod.MailboxEntRepository,
 	drafts mailmod.CalendarMailDeliveryDraftCreator,
 	submissions *mailmod.MailboxSubmissionService,
+	startGate <-chan struct{},
+	options mailmod.CalendarMailDeliveryServiceOptions,
 ) {
 	calendarMailDeliveryService, err := mailmod.NewCalendarMailDeliveryService(
 		mailboxRepo,
@@ -216,7 +278,7 @@ func wireCalendarOutboundRuntime(
 		submissions,
 		mailmod.NewCalendarMailMaterializer(),
 		mailmod.NewCalendarMailDeliveryTimer(),
-		mailmod.DefaultCalendarMailDeliveryServiceOptions(),
+		options,
 	)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
@@ -225,13 +287,44 @@ func wireCalendarOutboundRuntime(
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	if err := calendarInviteDeliveryConsumer.Start(d.rootCtx); err != nil {
-		d.fatal("failed to wire calendar and mail routes", err)
+	if startGate == nil {
+		if err := calendarInviteDeliveryConsumer.Start(d.rootCtx); err != nil {
+			d.fatal("failed to wire calendar and mail routes", err)
+		}
+		calendarMailDeliveryWorkerCtx, calendarMailDeliveryWorkerCancel := context.WithCancel(d.rootCtx)
+		calendarMailDeliveryWorkerDone := make(chan struct{})
+		go func() {
+			defer close(calendarMailDeliveryWorkerDone)
+			if err := calendarMailDeliveryService.Run(calendarMailDeliveryWorkerCtx); err != nil && calendarMailDeliveryWorkerCtx.Err() == nil {
+				slog.Error("background worker stopped")
+			}
+		}()
+		var calendarMailDeliveryCleanup sync.Once
+		d.addCleanup(func() {
+			calendarMailDeliveryCleanup.Do(func() {
+				calendarInviteDeliveryConsumer.Stop()
+				calendarMailDeliveryWorkerCancel()
+				<-calendarMailDeliveryWorkerDone
+			})
+		})
+		return
 	}
+
 	calendarMailDeliveryWorkerCtx, calendarMailDeliveryWorkerCancel := context.WithCancel(d.rootCtx)
 	calendarMailDeliveryWorkerDone := make(chan struct{})
 	go func() {
 		defer close(calendarMailDeliveryWorkerDone)
+		if !waitMailboxEngineRuntimeStart(calendarMailDeliveryWorkerCtx, startGate) {
+			return
+		}
+		if err := calendarInviteDeliveryConsumer.Start(calendarMailDeliveryWorkerCtx); err != nil {
+			if calendarMailDeliveryWorkerCtx.Err() == nil {
+				slog.Error("background consumer failed to start", "error", err)
+				d.rootCancel()
+			}
+			return
+		}
+		defer calendarInviteDeliveryConsumer.Stop()
 		if err := calendarMailDeliveryService.Run(calendarMailDeliveryWorkerCtx); err != nil && calendarMailDeliveryWorkerCtx.Err() == nil {
 			slog.Error("background worker stopped")
 		}
@@ -239,14 +332,13 @@ func wireCalendarOutboundRuntime(
 	var calendarMailDeliveryCleanup sync.Once
 	d.addCleanup(func() {
 		calendarMailDeliveryCleanup.Do(func() {
-			calendarInviteDeliveryConsumer.Stop()
 			calendarMailDeliveryWorkerCancel()
 			<-calendarMailDeliveryWorkerDone
 		})
 	})
 }
 
-func wireCalendarInboundRuntime(d *serverDeps, mailboxRepo *mailmod.MailboxEntRepository, engine mailmod.MailboxCalendarPartReadEngine, eventRepo *calendarmod.EventEntRepository, eventSvc *calendarmod.EventService) {
+func wireCalendarInboundRuntime(d *serverDeps, mailboxRepo *mailmod.MailboxEntRepository, engine mailmod.MailboxCalendarPartReadEngine, eventRepo *calendarmod.EventEntRepository, eventSvc *calendarmod.EventService, startGate <-chan struct{}) {
 	calendarInboundSource := mailmod.NewMailboxEntCalendarPartSource(mailboxRepo, engine)
 	calendarInboundService, err := calendarmod.NewCalendarInboundMessageService(eventRepo, calendarInboundSource, eventSvc)
 	if err != nil {
@@ -264,13 +356,44 @@ func wireCalendarInboundRuntime(d *serverDeps, mailboxRepo *mailmod.MailboxEntRe
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
 	}
-	if err := calendarInboundConsumer.Start(d.rootCtx); err != nil {
-		d.fatal("failed to wire calendar and mail routes", err)
+	if startGate == nil {
+		if err := calendarInboundConsumer.Start(d.rootCtx); err != nil {
+			d.fatal("failed to wire calendar and mail routes", err)
+		}
+		calendarInboundWorkerCtx, calendarInboundWorkerCancel := context.WithCancel(d.rootCtx)
+		calendarInboundWorkerDone := make(chan struct{})
+		go func() {
+			defer close(calendarInboundWorkerDone)
+			if err := calendarInboundDueWorker.Run(calendarInboundWorkerCtx); err != nil && calendarInboundWorkerCtx.Err() == nil {
+				slog.Error("background worker stopped")
+			}
+		}()
+		var calendarInboundCleanup sync.Once
+		d.addCleanup(func() {
+			calendarInboundCleanup.Do(func() {
+				calendarInboundConsumer.Stop()
+				calendarInboundWorkerCancel()
+				<-calendarInboundWorkerDone
+			})
+		})
+		return
 	}
+
 	calendarInboundWorkerCtx, calendarInboundWorkerCancel := context.WithCancel(d.rootCtx)
 	calendarInboundWorkerDone := make(chan struct{})
 	go func() {
 		defer close(calendarInboundWorkerDone)
+		if !waitMailboxEngineRuntimeStart(calendarInboundWorkerCtx, startGate) {
+			return
+		}
+		if err := calendarInboundConsumer.Start(calendarInboundWorkerCtx); err != nil {
+			if calendarInboundWorkerCtx.Err() == nil {
+				slog.Error("background consumer failed to start", "error", err)
+				d.rootCancel()
+			}
+			return
+		}
+		defer calendarInboundConsumer.Stop()
 		if err := calendarInboundDueWorker.Run(calendarInboundWorkerCtx); err != nil && calendarInboundWorkerCtx.Err() == nil {
 			slog.Error("background worker stopped")
 		}
@@ -278,7 +401,6 @@ func wireCalendarInboundRuntime(d *serverDeps, mailboxRepo *mailmod.MailboxEntRe
 	var calendarInboundCleanup sync.Once
 	d.addCleanup(func() {
 		calendarInboundCleanup.Do(func() {
-			calendarInboundConsumer.Stop()
 			calendarInboundWorkerCancel()
 			<-calendarInboundWorkerDone
 		})
