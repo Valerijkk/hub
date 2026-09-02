@@ -102,7 +102,7 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 		d.fatal("failed to wire calendar and mail routes", err)
 		return true
 	}
-	wireCalendarOutboundRuntime(d, mailboxRepo, calendarMailDeliveryDraftCreator, mailboxSubmissionService)
+	wireCalendarOutboundRuntime(d, mailboxRepo, calendarMailDeliveryDraftCreator, mailboxSubmissionService, nil, mailmod.DefaultCalendarMailDeliveryServiceOptions())
 	mailboxSubmissionDispatcher, err := mailmod.NewMailboxSubmissionDispatcher(mailboxRepo, mailboxEngine)
 	if err != nil {
 		d.fatal("failed to wire calendar and mail routes", err)
@@ -206,7 +206,7 @@ func wireQAMailCalendarRuntime(d *serverDeps, mailboxSvc *mailmod.MailboxService
 		}
 	}()
 	wireMailboxMessageDetail(d, mailboxSvc, mailboxRepo, mailboxEngine)
-	wireCalendarInboundRuntime(d, mailboxRepo, mailboxEngine, eventRepo, eventSvc)
+	wireCalendarInboundRuntime(d, mailboxRepo, mailboxEngine, eventRepo, eventSvc, nil)
 	return true
 }
 

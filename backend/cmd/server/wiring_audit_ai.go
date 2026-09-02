@@ -45,11 +45,7 @@ func wireAuditMailAI(d *serverDeps) {
 	}
 	mailStore := mailmod.NewEntSettingsStore(d.db)
 	mailAdminSvc := mailmod.NewAdminService(mailStore, hubMailURL, fromAlerts, cfg.Resend.APIKey != "")
-	mailSender := mailmod.NewService(mailmod.LoadConfig())
-	mailSender.SetSettingsStore(mailStore) // W7-A1-003: admin daily_limit / alerts_enabled → SendAlert
-	// A3W7-1-001: shared DailyLimit across Hub replicas (Redis INCR+TTL → UTC midnight).
-	mailSender.SetDailySlotStore(mailmod.NewRedisDailySlotStore(d.rdb))
-	mailAdminHandler := mailmod.NewAdminHandler(mailAdminSvc, mailStore, mailSender, func(c fiber.Ctx, userID uuid.UUID) (bool, error) {
+	mailAdminHandler := mailmod.NewAdminHandler(mailAdminSvc, func(c fiber.Ctx, userID uuid.UUID) (bool, error) {
 		return d.auditSvc.IsSystemAdmin(c.Context(), userID)
 	})
 	mailAdminHandler.RegisterRoutes(api, requireAuth)
