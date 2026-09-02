@@ -9,6 +9,7 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailaccount"
+	"github.com/valerii/hub/backend/ent/mailsubmission"
 	"github.com/valerii/hub/backend/ent/predicate"
 )
 
@@ -35,6 +36,7 @@ func (repository *MailboxEntRepository) ScanDueMailboxSyncAccounts(ctx context.C
 				mailaccount.NextSyncAtNotNil(),
 				mailaccount.NextSyncAtLTE(now),
 				mailboxEntMailboxSyncNoLiveLease(now),
+				mailboxEntMailboxSyncNoDueQueuedSubmission(now),
 			).
 			Order(ent.Asc(mailaccount.FieldNextSyncAt), ent.Asc(mailaccount.FieldID)).
 			Limit(request.Limit).
@@ -137,6 +139,14 @@ func mailboxEntMailboxSyncSkipLocked() predicate.MailAccount {
 	}
 }
 
+func mailboxEntMailboxSyncNoDueQueuedSubmission(now time.Time) predicate.MailAccount {
+	return mailaccount.Not(mailaccount.HasSubmissionsWith(
+		mailsubmission.StatusEQ(mailsubmission.Status("queued")),
+		mailsubmission.NextAttemptAtNotNil(),
+		mailsubmission.NextAttemptAtLTE(now),
+	))
+}
+
 func mailboxEntMailboxSyncNoLiveLease(now time.Time) predicate.MailAccount {
 	return mailaccount.And(
 		mailaccount.Or(mailaccount.SyncLeaseUntilIsNil(), mailaccount.SyncLeaseUntilLTE(now)),
@@ -150,8 +160,8 @@ func mailboxEntWorkerDueAccount(account *ent.MailAccount, selectedAt time.Time) 
 	}
 	return MailboxSyncWorkerDueAccount{
 		AccountID:     account.ID,
-		DueAt:         *account.NextSyncAt,
-		UpdatedAt:     account.SyncScheduleUpdatedAt,
+		DueAt:         account.NextSyncAt.UTC(),
+		UpdatedAt:     account.SyncScheduleUpdatedAt.UTC(),
 		SyncEpoch:     account.SyncEpoch,
 		MutationEpoch: account.MutationEpoch,
 		LeaseEpoch:    account.SyncLeaseEpoch,

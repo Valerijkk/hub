@@ -3,13 +3,13 @@ package mail
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"reflect"
 	"sort"
 	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
 type MailboxSyncServiceConfig struct {
@@ -56,6 +56,37 @@ type MailboxSyncServiceError struct {
 	Kind MailboxSyncServiceErrorKind
 }
 
+type mailboxSyncStepStage string
+
+const (
+	mailboxSyncStepStageClaim           mailboxSyncStepStage = "claim"
+	mailboxSyncStepStageListFolders     mailboxSyncStepStage = "list_folders"
+	mailboxSyncStepStageEnginePage      mailboxSyncStepStage = "engine_page"
+	mailboxSyncStepStageEventCandidates mailboxSyncStepStage = "event_candidates"
+	mailboxSyncStepStagePrepare         mailboxSyncStepStage = "prepare"
+	mailboxSyncStepStageClassify        mailboxSyncStepStage = "classify"
+	mailboxSyncStepStageApply           mailboxSyncStepStage = "apply"
+	mailboxSyncStepStageResolve         mailboxSyncStepStage = "resolve"
+)
+
+type mailboxSyncStepLogPhase string
+
+const (
+	mailboxSyncStepLogPhaseUnknown     mailboxSyncStepLogPhase = "unknown"
+	mailboxSyncStepLogPhaseIncremental mailboxSyncStepLogPhase = "incremental"
+	mailboxSyncStepLogPhaseEnumeration mailboxSyncStepLogPhase = "enumeration"
+	mailboxSyncStepLogPhaseCatchUp     mailboxSyncStepLogPhase = "catch_up"
+)
+
+type mailboxSyncStepLogErrorKind string
+
+const (
+	mailboxSyncStepLogErrorKindUnknown     mailboxSyncStepLogErrorKind = "unknown"
+	mailboxSyncStepLogErrorKindInvalid     mailboxSyncStepLogErrorKind = "invalid"
+	mailboxSyncStepLogErrorKindTooLarge    mailboxSyncStepLogErrorKind = "too_large"
+	mailboxSyncStepLogErrorKindUnavailable mailboxSyncStepLogErrorKind = "unavailable"
+)
+
 func (errorValue *MailboxSyncServiceError) Error() string {
 	if errorValue == nil {
 		return "mailbox sync service error"
@@ -88,6 +119,36 @@ func (errorValue *MailboxSyncServiceError) Unwrap() error {
 	}
 }
 
+func mailboxSyncStepLogPhaseFrom(phase MailboxSyncPhase) mailboxSyncStepLogPhase {
+	switch phase {
+	case MailboxSyncPhaseIncremental:
+		return mailboxSyncStepLogPhaseIncremental
+	case MailboxSyncPhaseEnumeration:
+		return mailboxSyncStepLogPhaseEnumeration
+	case MailboxSyncPhaseCatchUp:
+		return mailboxSyncStepLogPhaseCatchUp
+	default:
+		return mailboxSyncStepLogPhaseUnknown
+	}
+}
+
+func mailboxSyncStepLogErrorKindFrom(err error) mailboxSyncStepLogErrorKind {
+	var serviceError *MailboxSyncServiceError
+	if !errors.As(err, &serviceError) || serviceError == nil {
+		return mailboxSyncStepLogErrorKindUnknown
+	}
+	switch serviceError.Kind {
+	case MailboxSyncServiceErrorInvalid:
+		return mailboxSyncStepLogErrorKindInvalid
+	case MailboxSyncServiceErrorTooLarge:
+		return mailboxSyncStepLogErrorKindTooLarge
+	case MailboxSyncServiceErrorUnavailable:
+		return mailboxSyncStepLogErrorKindUnavailable
+	default:
+		return mailboxSyncStepLogErrorKindUnknown
+	}
+}
+
 // MailboxSyncEngine reads one bounded account folder snapshot and projection page.
 type MailboxSyncEngine interface {
 	ListFolders(context.Context, string) ([]EngineFolder, error)
@@ -110,7 +171,22 @@ func NewMailboxSyncService(engine MailboxSyncEngine, repository MailboxSyncRepos
 	return &MailboxSyncService{engine: engine, repository: repository, config: config}, nil
 }
 
-func (service *MailboxSyncService) Step(ctx context.Context, accountID uuid.UUID) (MailboxSyncStepResult, error) {
+func (service *MailboxSyncService) Step(ctx context.Context, accountID uuid.UUID) (result MailboxSyncStepResult, resultErr error) {
+	stage := mailboxSyncStepStageClaim
+	phase := mailboxSyncStepLogPhaseUnknown
+	cursorPresent := false
+	defer func() {
+		if resultErr == nil {
+			return
+		}
+		slog.Warn("mailbox sync step failed",
+			slog.String("component", "mailbox_sync"),
+			slog.String("stage", string(stage)),
+			slog.String("phase", string(phase)),
+			slog.Bool("cursor_present", cursorPresent),
+			slog.String("service_error_kind", string(mailboxSyncStepLogErrorKindFrom(resultErr))),
+		)
+	}()
 	if ctx == nil || service == nil || mailboxSyncNilDependency(service.engine) || mailboxSyncNilDependency(service.repository) || !validMailboxSyncServiceConfig(service.config) || accountID == uuid.Nil {
 		return MailboxSyncStepResult{}, mailboxSyncServiceError(MailboxSyncServiceErrorInvalid)
 	}
@@ -151,27 +227,34 @@ func (service *MailboxSyncService) Step(ctx context.Context, accountID uuid.UUID
 	if !validMailboxSyncClaim(accountID, leaseID, claim) {
 		return MailboxSyncStepResult{}, mailboxSyncServiceError(MailboxSyncServiceErrorInvalid)
 	}
+	phase = mailboxSyncStepLogPhaseFrom(claim.Fence.Phase)
+	cursorPresent = claim.Fence.Cursor != "" || claim.Fence.BaseCursor != "" || claim.Fence.Checkpoint != ""
 
+	stage = mailboxSyncStepStageListFolders
 	folders, err := service.engine.ListFolders(ctx, claim.EngineAccountID)
 	if err != nil {
 		return service.handleFolderError(ctx, claim.Fence, now, err)
 	}
 	if err := ctx.Err(); err != nil { return MailboxSyncStepResult{}, err }
 	if len(folders) > MaxEngineFolderItems {
+		stage = mailboxSyncStepStageResolve
 		return service.reject(ctx, claim.Fence, now, MailboxSyncServiceErrorTooLarge)
 	}
 	folders = cloneMailboxSyncFolders(folders)
 
+	stage = mailboxSyncStepStageEnginePage
 	page, err := service.enginePage(ctx, claim)
 	if err != nil {
 		return service.handlePageError(ctx, claim.Fence, now, err)
 	}
 	if err := ctx.Err(); err != nil { return MailboxSyncStepResult{}, err }
+	stage = mailboxSyncStepStageEventCandidates
 	candidates, candidateError, err := service.eventCandidates(ctx, page)
 	if err != nil {
 		return MailboxSyncStepResult{}, err
 	}
 	if candidateError != "" {
+		stage = mailboxSyncStepStageResolve
 		return service.reject(ctx, claim.Fence, now, candidateError)
 	}
 	if err := ctx.Err(); err != nil {
@@ -189,6 +272,7 @@ func (service *MailboxSyncService) Step(ctx context.Context, accountID uuid.UUID
 		CorrelationID:   leaseID.String(),
 	}
 	expectedPrepareRequest := cloneMailboxSyncPrepareRequest(prepareRequest)
+	stage = mailboxSyncStepStagePrepare
 	prepared, err := service.repository.PrepareMailboxSyncPage(ctx, cloneMailboxSyncPrepareRequest(expectedPrepareRequest))
 	if err != nil {
 		if contextErr := ctx.Err(); contextErr != nil { return MailboxSyncStepResult{}, contextErr }
@@ -203,16 +287,20 @@ func (service *MailboxSyncService) Step(ctx context.Context, accountID uuid.UUID
 	}
 	input := cloneMailboxSyncPolicyInput(prepared.Input)
 	if !validMailboxSyncPreparedInput(input, claim, expectedPrepareRequest) {
+		stage = mailboxSyncStepStageResolve
 		return service.reject(ctx, claim.Fence, now, MailboxSyncServiceErrorInvalid)
 	}
 	if err := ctx.Err(); err != nil {
 		return MailboxSyncStepResult{}, err
 	}
+	stage = mailboxSyncStepStageClassify
 	policyResult, err := ClassifyMailboxSyncPage(input)
 	if err != nil {
 		if errors.Is(err, ErrMailboxSyncPolicyTooLarge) {
+			stage = mailboxSyncStepStageResolve
 			return service.reject(ctx, claim.Fence, now, MailboxSyncServiceErrorTooLarge)
 		}
+		stage = mailboxSyncStepStageResolve
 		return service.reject(ctx, claim.Fence, now, MailboxSyncServiceErrorInvalid)
 	}
 	if err := ctx.Err(); err != nil {
@@ -221,16 +309,19 @@ func (service *MailboxSyncService) Step(ctx context.Context, accountID uuid.UUID
 	policyResult = cloneMailboxSyncPolicyResult(policyResult)
 	expectedPhase, ok := mailboxSyncExpectedPhase(claim.Fence, policyResult.Advance)
 	if !ok {
+		stage = mailboxSyncStepStageResolve
 		return service.reject(ctx, claim.Fence, now, MailboxSyncServiceErrorInvalid)
 	}
 	nextAttemptAt, err := service.nextAttemptAt(now, service.config.PollInterval)
 	if err != nil {
+		stage = mailboxSyncStepStageResolve
 		return service.reject(ctx, claim.Fence, now, MailboxSyncServiceErrorInvalid)
 	}
 	if err := ctx.Err(); err != nil {
 		return MailboxSyncStepResult{}, err
 	}
 	applyRequest := MailboxSyncApplyRequest{CanonicalVersion: MailboxSyncCanonicalVersionV3, Fence: claim.Fence, Result: policyResult, Now: now, NextAttemptAt: nextAttemptAt}
+	stage = mailboxSyncStepStageApply
 	applied, err := service.repository.ApplyMailboxSyncPage(ctx, applyRequest)
 	if err != nil {
 		if contextErr := ctx.Err(); contextErr != nil { return MailboxSyncStepResult{}, contextErr }
@@ -685,12 +776,21 @@ func mailboxSyncNilDependency(value any) bool {
 	}
 }
 
+func cloneMailboxSyncFlatSlice[T any](values []T) []T {
+	if values == nil {
+		return nil
+	}
+	result := make([]T, len(values))
+	copy(result, values)
+	return result
+}
+
 func cloneMailboxSyncFolders(values []EngineFolder) []EngineFolder {
-	return append([]EngineFolder(nil), values...)
+	return cloneMailboxSyncFlatSlice(values)
 }
 
 func cloneMailboxSyncEventCandidates(values []MailboxSyncEventCandidate) []MailboxSyncEventCandidate {
-	return append([]MailboxSyncEventCandidate(nil), values...)
+	return cloneMailboxSyncFlatSlice(values)
 }
 
 func cloneMailboxSyncPrepareRequest(value MailboxSyncPrepareRequest) MailboxSyncPrepareRequest {
@@ -709,10 +809,7 @@ func cloneMailboxSyncChangePage(value *EngineChangePage) *EngineChangePage {
 	if value == nil { return nil }
 	result := *value
 	result.CreatedOrUpdated = cloneMailboxSyncProjections(value.CreatedOrUpdated)
-	if value.DestroyedIDs != nil {
-		result.DestroyedIDs = make([]string, len(value.DestroyedIDs))
-		copy(result.DestroyedIDs, value.DestroyedIDs)
-	}
+	result.DestroyedIDs = cloneMailboxSyncFlatSlice(value.DestroyedIDs)
 	return &result
 }
 
@@ -724,6 +821,9 @@ func cloneMailboxSyncEnumerationPage(value *EngineEnumerationPage) *EngineEnumer
 }
 
 func cloneMailboxSyncProjections(values []EngineMessageProjection) []EngineMessageProjection {
+	if values == nil {
+		return nil
+	}
 	result := make([]EngineMessageProjection, len(values))
 	for index, value := range values { result[index] = cloneMailboxSyncProjection(value) }
 	return result
@@ -731,61 +831,49 @@ func cloneMailboxSyncProjections(values []EngineMessageProjection) []EngineMessa
 
 func cloneMailboxSyncProjection(value EngineMessageProjection) EngineMessageProjection {
 	result := value
-	if value.References != nil {
-		result.References = append([]string{}, value.References...)
-	}
-	if value.To != nil {
-		result.To = append([]EngineAddress{}, value.To...)
-	}
-	if value.CC != nil {
-		result.CC = append([]EngineAddress{}, value.CC...)
-	}
-	if value.BCC != nil {
-		result.BCC = append([]EngineAddress{}, value.BCC...)
-	}
-	if value.ReplyTo != nil {
-		result.ReplyTo = append([]EngineAddress{}, value.ReplyTo...)
-	}
-	if value.FolderIDs != nil {
-		result.FolderIDs = append([]string{}, value.FolderIDs...)
-	}
-	if value.ReservedKeywords != nil {
-		result.ReservedKeywords = append([]EngineKeywordMarker{}, value.ReservedKeywords...)
-	}
+	result.References = cloneMailboxSyncFlatSlice(value.References)
+	result.To = cloneMailboxSyncFlatSlice(value.To)
+	result.CC = cloneMailboxSyncFlatSlice(value.CC)
+	result.BCC = cloneMailboxSyncFlatSlice(value.BCC)
+	result.ReplyTo = cloneMailboxSyncFlatSlice(value.ReplyTo)
+	result.FolderIDs = cloneMailboxSyncFlatSlice(value.FolderIDs)
+	result.ReservedKeywords = cloneMailboxSyncFlatSlice(value.ReservedKeywords)
 	if value.Attachments != nil {
 		result.Attachments = make([]EngineProjectionAttachment, len(value.Attachments))
 		for index, attachment := range value.Attachments {
 			result.Attachments[index] = attachment
-			result.Attachments[index].SHA256 = append([]byte(nil), attachment.SHA256...)
+			result.Attachments[index].SHA256 = syncCloneBytes(attachment.SHA256)
 		}
 	}
 	if value.SentAt != nil { copied := *value.SentAt; result.SentAt = &copied }
 	if value.ReceivedAt != nil { copied := *value.ReceivedAt; result.ReceivedAt = &copied }
 	result.CalendarMethod = copyMailCalendarMethod(value.CalendarMethod)
-	if value.CalendarPartLocatorHash != nil {
-		result.CalendarPartLocatorHash = append([]byte{}, value.CalendarPartLocatorHash...)
-	}
+	result.CalendarPartLocatorHash = syncCloneBytes(value.CalendarPartLocatorHash)
 	return result
 }
 
 func cloneMailboxSyncPolicyInput(value MailboxSyncPolicyInput) MailboxSyncPolicyInput {
 	result := value
 	result.Page = cloneMailboxSyncPolicyPage(value.Page)
-	result.Folders = append([]MailboxSyncPolicyFolder(nil), value.Folders...)
-	result.Messages = make([]MailboxSyncPolicyMessage, len(value.Messages))
+	result.Folders = cloneMailboxSyncFlatSlice(value.Folders)
+	if value.Messages != nil {
+		result.Messages = make([]MailboxSyncPolicyMessage, len(value.Messages))
+	}
 	for index, message := range value.Messages {
 		result.Messages[index] = message
-		result.Messages[index].Thread.Ancestors = append([]ThreadAncestor(nil), message.Thread.Ancestors...)
+		result.Messages[index].Thread.Ancestors = cloneMailboxSyncFlatSlice(message.Thread.Ancestors)
 		result.Messages[index].Previous = cloneMailboxSyncPrevious(message.Previous)
 		result.Messages[index].Provenance.ConfirmedSubmission = cloneMailboxSyncProof(message.Provenance.ConfirmedSubmission)
 		result.Messages[index].Provenance.ConfirmedDraft = cloneMailboxSyncProof(message.Provenance.ConfirmedDraft)
 	}
-	result.Destroyed = make([]MailboxSyncPolicyDestroyed, len(value.Destroyed))
+	if value.Destroyed != nil {
+		result.Destroyed = make([]MailboxSyncPolicyDestroyed, len(value.Destroyed))
+	}
 	for index, destroyed := range value.Destroyed {
 		result.Destroyed[index] = destroyed
-		result.Destroyed[index].Labels = append([]MailboxSyncPolicyLabelState(nil), destroyed.Labels...)
+		result.Destroyed[index].Labels = cloneMailboxSyncFlatSlice(destroyed.Labels)
 	}
-	result.Labels = append([]MailboxSyncPolicyLabelDefinition(nil), value.Labels...)
+	result.Labels = cloneMailboxSyncFlatSlice(value.Labels)
 	if value.Event.ActorID != nil { actorID := *value.Event.ActorID; result.Event.ActorID = &actorID }
 	return result
 }
@@ -793,8 +881,8 @@ func cloneMailboxSyncPolicyInput(value MailboxSyncPolicyInput) MailboxSyncPolicy
 func cloneMailboxSyncPrevious(value *MailboxSyncPolicyPreviousMessage) *MailboxSyncPolicyPreviousMessage {
 	if value == nil { return nil }
 	result := *value
-	result.FolderIDs = append([]MailboxEventID(nil), value.FolderIDs...)
-	result.Labels = append([]MailboxSyncPolicyLabelState(nil), value.Labels...)
+	result.FolderIDs = cloneMailboxSyncFlatSlice(value.FolderIDs)
+	result.Labels = cloneMailboxSyncFlatSlice(value.Labels)
 	if value.ReceivedEventID != nil { eventID := *value.ReceivedEventID; result.ReceivedEventID = &eventID }
 	return &result
 }
@@ -809,29 +897,30 @@ func cloneMailboxSyncPolicyResult(value MailboxSyncPolicyResult) MailboxSyncPoli
 	result := value
 	if value.Advance.Change != nil { advance := *value.Advance.Change; result.Advance.Change = &advance }
 	if value.Advance.Enumeration != nil { advance := *value.Advance.Enumeration; result.Advance.Enumeration = &advance }
-	result.Folders = append([]MailboxSyncPolicyFolderIntent(nil), value.Folders...)
-	result.Upserts = make([]MailboxSyncPolicyMessageIntent, len(value.Upserts))
+	result.Folders = cloneMailboxSyncFlatSlice(value.Folders)
+	if value.Upserts != nil {
+		result.Upserts = make([]MailboxSyncPolicyMessageIntent, len(value.Upserts))
+	}
 	for index, upsert := range value.Upserts {
 		result.Upserts[index] = upsert
-		result.Upserts[index].ThreadIdentity.CanonicalParticipants = append([]string(nil), upsert.ThreadIdentity.CanonicalParticipants...)
+		result.Upserts[index].ThreadIdentity.CanonicalParticipants = cloneMailboxSyncFlatSlice(upsert.ThreadIdentity.CanonicalParticipants)
 		result.Upserts[index].Projection = cloneMailboxSyncProjection(upsert.Projection)
-		result.Upserts[index].FolderIDs = append([]MailboxEventID(nil), upsert.FolderIDs...)
-		result.Upserts[index].Labels = append([]MailboxSyncPolicyLabelState(nil), upsert.Labels...)
+		result.Upserts[index].FolderIDs = cloneMailboxSyncFlatSlice(upsert.FolderIDs)
+		result.Upserts[index].Labels = cloneMailboxSyncFlatSlice(upsert.Labels)
 		result.Upserts[index].CalendarMethod = copyMailCalendarMethod(upsert.CalendarMethod)
 		result.Upserts[index].CalendarPartLocatorHash = syncCloneBytes(upsert.CalendarPartLocatorHash)
-		if upsert.ChangedFields != nil {
-			result.Upserts[index].ChangedFields = make([]MailChangedField, len(upsert.ChangedFields))
-			copy(result.Upserts[index].ChangedFields, upsert.ChangedFields)
-		}
+		result.Upserts[index].ChangedFields = cloneMailboxSyncFlatSlice(upsert.ChangedFields)
 		if upsert.ReceivedEventID != nil { eventID := *upsert.ReceivedEventID; result.Upserts[index].ReceivedEventID = &eventID }
 	}
-	result.Tombstones = make([]MailboxSyncPolicyTombstoneIntent, len(value.Tombstones))
+	if value.Tombstones != nil {
+		result.Tombstones = make([]MailboxSyncPolicyTombstoneIntent, len(value.Tombstones))
+	}
 	for index, tombstone := range value.Tombstones {
 		result.Tombstones[index] = tombstone
-		result.Tombstones[index].Labels = append([]MailboxSyncPolicyLabelState(nil), tombstone.Labels...)
+		result.Tombstones[index].Labels = cloneMailboxSyncFlatSlice(tombstone.Labels)
 	}
-	result.Counts.Folders = append([]MailboxEventID(nil), value.Counts.Folders...)
-	result.Counts.Threads = append([]MailboxEventID(nil), value.Counts.Threads...)
-	result.Events = append([]events.EnvelopeV1(nil), value.Events...)
+	result.Counts.Folders = cloneMailboxSyncFlatSlice(value.Counts.Folders)
+	result.Counts.Threads = cloneMailboxSyncFlatSlice(value.Counts.Threads)
+	result.Events = cloneMailboxSyncFlatSlice(value.Events)
 	return result
 }
