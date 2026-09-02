@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/calendarattendee"
 	"github.com/valerii/hub/backend/ent/calendarevent"
 	"github.com/valerii/hub/backend/ent/mailaccount"
 	"github.com/valerii/hub/backend/ent/maillabel"
@@ -658,7 +659,15 @@ func mailboxEntThreadDetailProjectionCalendarLinks(ctx context.Context, transact
 		Where(
 			calendarevent.IDIn(ids...),
 			calendarevent.OrganizationIDEQ(scope.OrganizationID),
-			calendarevent.CalendarOwnerIDEQ(scope.ActorID),
+			calendarevent.Or(
+				calendarevent.CalendarOwnerIDEQ(scope.ActorID),
+				calendarevent.OrganizerIDEQ(scope.ActorID),
+				calendarevent.HasAttendeesWith(
+					calendarattendee.UserIDEQ(scope.ActorID),
+					calendarattendee.RemovedAtIsNil(),
+					calendarattendee.RecurrenceIDIsNil(),
+				),
+			),
 			calendarevent.DeletedAtIsNil(),
 		).
 		Limit(len(ids) + 1).

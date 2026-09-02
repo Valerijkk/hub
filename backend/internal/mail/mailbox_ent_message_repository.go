@@ -109,10 +109,7 @@ func (repository *MailboxEntRepository) ResolveMailboxMessage(ctx context.Contex
 			return err
 		}
 
-		calendarPartLocatorHash := []byte(nil)
-		if row.CalendarPartLocatorHash != nil {
-			calendarPartLocatorHash = append([]byte{}, (*row.CalendarPartLocatorHash)...)
-		}
+		calendarPartLocatorHash := syncCloneBytes(mailboxEntCalendarPartLocatorHashValue(row.CalendarPartLocatorHash))
 
 		snapshot = MailboxMessageSnapshot{
 			summary:                 messages[0],

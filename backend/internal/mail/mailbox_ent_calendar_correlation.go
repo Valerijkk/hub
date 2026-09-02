@@ -113,16 +113,17 @@ func mailboxEntResolveCalendarEventForMessage(ctx context.Context, transaction *
 		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 	}
 	message := messages[0]
+	calendarPartLocatorHash := mailboxEntCalendarPartLocatorHashValue(message.CalendarPartLocatorHash)
 
 	candidates := mailboxEntCalendarCorrelationCandidates{}
 	if message.CalendarMethod != nil {
-		if message.CalendarPartLocatorHash == nil || len(*message.CalendarPartLocatorHash) != 32 || !mailboxEntCalendarCorrelationMethodValid(*message.CalendarMethod) {
+		if calendarPartLocatorHash == nil || len(calendarPartLocatorHash) != 32 || !mailboxEntCalendarCorrelationMethodValid(*message.CalendarMethod) {
 			return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 		}
-		if err := mailboxEntCalendarCorrelationInboundCandidates(ctx, transaction, request, message, &candidates); err != nil {
+		if err := mailboxEntCalendarCorrelationInboundCandidates(ctx, transaction, request, message, calendarPartLocatorHash, &candidates); err != nil {
 			return MailboxCalendarCorrelationResult{}, err
 		}
-	} else if message.CalendarPartLocatorHash != nil {
+	} else if calendarPartLocatorHash != nil {
 		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 	}
 
@@ -166,8 +167,8 @@ func mailboxEntCalendarCorrelationMethodValid(method mailmessage.CalendarMethod)
 	}
 }
 
-func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transaction *ent.Tx, request MailboxCalendarCorrelationRequest, message *ent.MailMessage, candidates *mailboxEntCalendarCorrelationCandidates) error {
-	if ctx == nil || transaction == nil || message == nil || candidates == nil || message.CalendarMethod == nil || message.CalendarPartLocatorHash == nil || len(*message.CalendarPartLocatorHash) != 32 {
+func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transaction *ent.Tx, request MailboxCalendarCorrelationRequest, message *ent.MailMessage, calendarPartLocatorHash []byte, candidates *mailboxEntCalendarCorrelationCandidates) error {
+	if ctx == nil || transaction == nil || message == nil || candidates == nil || message.CalendarMethod == nil || calendarPartLocatorHash == nil || len(calendarPartLocatorHash) != 32 {
 		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 	}
 
@@ -176,7 +177,7 @@ func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transac
 			calendarinboundmessagereceipt.OrganizationIDEQ(request.organizationID),
 			calendarinboundmessagereceipt.MailboxIDEQ(request.accountID),
 			calendarinboundmessagereceipt.MailMessageIDEQ(request.messageID),
-			calendarinboundmessagereceipt.PartLocatorHashEQ(*message.CalendarPartLocatorHash),
+			calendarinboundmessagereceipt.PartLocatorHashEQ(calendarPartLocatorHash),
 		).
 		Order(ent.Asc(calendarinboundmessagereceipt.FieldID)).
 		Limit(mailboxEntCalendarCorrelationCandidateLimit + 1).
@@ -186,7 +187,7 @@ func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transac
 	}
 
 	for _, row := range rows {
-		if !mailboxEntCalendarCorrelationInboundRowValid(row, request, message) {
+		if !mailboxEntCalendarCorrelationInboundRowValid(row, request, message, calendarPartLocatorHash) {
 			return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 		}
 
@@ -211,8 +212,8 @@ func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transac
 	return nil
 }
 
-func mailboxEntCalendarCorrelationInboundRowValid(row *ent.CalendarInboundMessageReceipt, request MailboxCalendarCorrelationRequest, message *ent.MailMessage) bool {
-	if row == nil || message == nil || row.ID == uuid.Nil || row.OrganizationID != request.organizationID || row.MailboxID != request.accountID || row.MailMessageID != request.messageID || message.CalendarPartLocatorHash == nil || !bytes.Equal(row.PartLocatorHash, *message.CalendarPartLocatorHash) {
+func mailboxEntCalendarCorrelationInboundRowValid(row *ent.CalendarInboundMessageReceipt, request MailboxCalendarCorrelationRequest, message *ent.MailMessage, calendarPartLocatorHash []byte) bool {
+	if row == nil || message == nil || calendarPartLocatorHash == nil || len(calendarPartLocatorHash) != 32 || row.ID == uuid.Nil || row.OrganizationID != request.organizationID || row.MailboxID != request.accountID || row.MailMessageID != request.messageID || !bytes.Equal(row.PartLocatorHash, calendarPartLocatorHash) {
 		return false
 	}
 	return row.CalendarEventID == nil || *row.CalendarEventID != uuid.Nil

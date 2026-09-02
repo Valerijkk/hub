@@ -798,7 +798,8 @@ func mailboxEntApplyMessageRowValid(row *ent.MailMessage, accountID uuid.UUID) b
 	if row.AuthenticationClass != mailmessage.AuthenticationClass(MailAuthenticationClassTrustedInternal) && row.AuthenticationClass != mailmessage.AuthenticationClass(MailAuthenticationClassDMARCAligned) && row.AuthenticationClass != mailmessage.AuthenticationClass(MailAuthenticationClassUntrusted) {
 		return false
 	}
-	if (row.CalendarMethod == nil) != (row.CalendarPartLocatorHash == nil) || (row.CalendarPartLocatorHash != nil && len(*row.CalendarPartLocatorHash) != sha256.Size) {
+	calendarPartLocatorHash := mailboxEntCalendarPartLocatorHashValue(row.CalendarPartLocatorHash)
+	if (row.CalendarMethod == nil) != (calendarPartLocatorHash == nil) || (calendarPartLocatorHash != nil && len(calendarPartLocatorHash) != sha256.Size) {
 		return false
 	}
 	if row.CalendarMethod != nil && *row.CalendarMethod != mailmessage.CalendarMethod(MailCalendarMethodRequest) && *row.CalendarMethod != mailmessage.CalendarMethod(MailCalendarMethodCancel) && *row.CalendarMethod != mailmessage.CalendarMethod(MailCalendarMethodReply) {
@@ -955,10 +956,11 @@ func mailboxEntApplyOptionalTimeEqual(left, right *time.Time) bool {
 }
 
 func mailboxEntApplyCalendarPartLocatorHashEqual(left *[]byte, right []byte) bool {
-	if left == nil || right == nil {
-		return left == nil && right == nil
+	normalizedLeft := mailboxEntCalendarPartLocatorHashValue(left)
+	if normalizedLeft == nil || right == nil {
+		return normalizedLeft == nil && right == nil
 	}
-	return bytes.Equal(*left, right)
+	return bytes.Equal(normalizedLeft, right)
 }
 
 func mailboxEntApplyCalendarMethodEqual(left, right *mailmessage.CalendarMethod) bool {
