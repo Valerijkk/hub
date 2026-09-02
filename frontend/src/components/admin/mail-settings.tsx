@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import {
 	getMailSettings,
 	type MailSettings,
-	sendMailBroadcast,
 	updateMailSettings,
 } from "@/api/admin-mail";
 import { QueryErrorAlert } from "@/components/query-state-view";
@@ -19,8 +18,6 @@ export function MailSettingsPanel() {
 	const [fromAlerts, setFromAlerts] = useState("");
 	const [alertsEnabled, setAlertsEnabled] = useState(true);
 	const [dailyLimit, setDailyLimit] = useState("20");
-	const [broadcastSubject, setBroadcastSubject] = useState("");
-	const [broadcastBody, setBroadcastBody] = useState("");
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -147,68 +144,6 @@ export function MailSettingsPanel() {
 				</Button>
 			</div>
 
-			<div className="rounded-[var(--r3)] border border-b1 bg-gradient-to-b from-card to-raised p-5 space-y-4">
-				<h4 className="text-[14px] font-semibold">
-					Marketing broadcast (lite)
-				</h4>
-				<p className="text-[12px] text-t3">
-					Отправка всем пользователям с email через hub-mail / Resend
-				</p>
-				<div className="space-y-2">
-					<Label htmlFor="broadcast-subject">Тема</Label>
-					<Input
-						id="broadcast-subject"
-						value={broadcastSubject}
-						onChange={(e) => setBroadcastSubject(e.target.value)}
-					/>
-				</div>
-				<div className="space-y-2">
-					<Label htmlFor="broadcast-body">HTML / текст</Label>
-					<textarea
-						id="broadcast-body"
-						value={broadcastBody}
-						onChange={(e) => setBroadcastBody(e.target.value)}
-						rows={4}
-						className="w-full rounded-[var(--r2)] border border-b1 bg-[var(--input)] px-3 py-2 text-[13px]"
-					/>
-				</div>
-				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						disabled={!broadcastSubject.trim() || !broadcastBody.trim()}
-						onClick={async () => {
-							try {
-								const r = await sendMailBroadcast({
-									subject: broadcastSubject.trim(),
-									html_body: broadcastBody.trim(),
-									dry_run: true,
-								});
-								toast.success(`Dry-run: ${r.recipients} получателей`);
-							} catch (err) {
-								toastApiError(err);
-							}
-						}}
-					>
-						Dry-run
-					</Button>
-					<Button
-						disabled={!broadcastSubject.trim() || !broadcastBody.trim()}
-						onClick={async () => {
-							try {
-								const r = await sendMailBroadcast({
-									subject: broadcastSubject.trim(),
-									html_body: broadcastBody.trim(),
-								});
-								toast.success(`Отправлено: ${r.sent}/${r.recipients}`);
-							} catch (err) {
-								toastApiError(err);
-							}
-						}}
-					>
-						Отправить
-					</Button>
-				</div>
-			</div>
 		</div>
 	);
 }
