@@ -306,7 +306,7 @@ func mailboxBootstrapOAuthAccountReady(account *ent.MailAccount) bool {
 	if account.ControlGeneration < 1 || account.ControlHashVersion < 1 || len(account.ControlHash) != sha256.Size || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || len(*account.DeployedHash) != sha256.Size || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 {
 		return false
 	}
-	if account.AttemptedControlGeneration != nil || account.AttemptedControlHashVersion != nil || account.AttemptedControlHash != nil || account.ProvisionLeaseToken != nil || account.ProvisionLeaseUntil != nil || account.NextProvisionAt != nil || account.ProvisionErrorCode != nil {
+	if account.AttemptedControlGeneration != nil || account.AttemptedControlHashVersion != nil || !mailboxEntNullableBytesAbsent(account.AttemptedControlHash) || account.ProvisionLeaseToken != nil || account.ProvisionLeaseUntil != nil || account.NextProvisionAt != nil || account.ProvisionErrorCode != nil {
 		return false
 	}
 	if account.PasswordEnrollmentGeneration < 1 || account.PasswordEnrolledEngineAccountID == nil || *account.PasswordEnrolledEngineAccountID != *account.EngineAccountID || account.PasswordEnrolledAt == nil || !mailboxEntValidTime(*account.PasswordEnrolledAt) || account.PasswordEnrollmentLeaseToken != nil || account.PasswordEnrollmentLeaseUntil != nil {

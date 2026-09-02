@@ -476,7 +476,7 @@ func mailboxEntDomainProvisioningConverged(domain *ent.MailDomain) bool {
 	return mailboxEntDomainProvisioningCurrentDeployedTuple(domain) &&
 		domain.AttemptedGeneration == nil &&
 		domain.AttemptedHashVersion == nil &&
-		domain.AttemptedHash == nil &&
+		mailboxEntNullableBytesAbsent(domain.AttemptedHash) &&
 		domain.LeaseToken == nil &&
 		domain.LeaseUntil == nil &&
 		domain.LastErrorCode == nil &&
@@ -759,7 +759,7 @@ func mailboxEntDomainProvisioningStateInvariant(domain *ent.MailDomain) bool {
 }
 
 func mailboxEntDomainProvisioningTupleValid(generation *int64, version *int32, hash *[]byte, maximumGeneration int64) bool {
-	if maximumGeneration < 1 || (generation == nil) != (version == nil) || (generation == nil) != (hash == nil) {
+	if maximumGeneration < 1 || (generation == nil) != (version == nil) || (generation == nil) != mailboxEntNullableBytesAbsent(hash) {
 		return false
 	}
 	return generation == nil ||

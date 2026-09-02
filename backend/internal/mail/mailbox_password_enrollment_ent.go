@@ -274,7 +274,7 @@ func mailboxPasswordEnrollmentDeployedTupleValid(account *ent.MailAccount) bool 
 	}
 	hasGeneration := account.DeployedGeneration != nil
 	hasVersion := account.DeployedHashVersion != nil
-	hasHash := account.DeployedHash != nil
+	hasHash := !mailboxEntNullableBytesAbsent(account.DeployedHash)
 	if hasGeneration != hasVersion || hasGeneration != hasHash {
 		return false
 	}

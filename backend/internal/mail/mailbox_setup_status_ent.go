@@ -236,7 +236,7 @@ func mailboxSetupStatusAccountTupleIntegrityValid(account *ent.MailAccount) bool
 func mailboxSetupStatusControlTupleValid(generation *int64, version *int32, hash *[]byte, maximumGeneration int64) bool {
 	hasGeneration := generation != nil
 	hasVersion := version != nil
-	hasHash := hash != nil
+	hasHash := !mailboxEntNullableBytesAbsent(hash)
 	if hasGeneration != hasVersion || hasGeneration != hasHash {
 		return false
 	}
@@ -258,7 +258,7 @@ func mailboxSetupStatusMutationLeaseValid(account *ent.MailAccount) bool {
 }
 
 func mailboxSetupStatusAccountCurrentControlValid(account *ent.MailAccount) bool {
-	if account == nil || account.EngineAccountID == nil || !validMailboxOAuthOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) || !mailboxSetupStatusAccountTupleIntegrityValid(account) || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || account.DeployedHash == nil || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 || account.AttemptedControlGeneration != nil || account.AttemptedControlHashVersion != nil || account.AttemptedControlHash != nil || account.ProvisionLeaseToken != nil || account.ProvisionLeaseUntil != nil || account.NextProvisionAt != nil || account.ProvisionErrorCode != nil {
+	if account == nil || account.EngineAccountID == nil || !validMailboxOAuthOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) || !mailboxSetupStatusAccountTupleIntegrityValid(account) || account.DeployedGeneration == nil || account.DeployedHashVersion == nil || mailboxEntNullableBytesAbsent(account.DeployedHash) || *account.DeployedGeneration != account.ControlGeneration || *account.DeployedHashVersion != account.ControlHashVersion || subtle.ConstantTimeCompare(*account.DeployedHash, account.ControlHash) != 1 || account.AttemptedControlGeneration != nil || account.AttemptedControlHashVersion != nil || !mailboxEntNullableBytesAbsent(account.AttemptedControlHash) || account.ProvisionLeaseToken != nil || account.ProvisionLeaseUntil != nil || account.NextProvisionAt != nil || account.ProvisionErrorCode != nil {
 		return false
 	}
 	return true
@@ -281,7 +281,7 @@ func mailboxSetupStatusProvisioningSafe(account *ent.MailAccount) bool {
 		return false
 	}
 	if account.EngineAccountID == nil {
-		return account.DeployedGeneration == nil && account.DeployedHashVersion == nil && account.DeployedHash == nil
+		return account.DeployedGeneration == nil && account.DeployedHashVersion == nil && mailboxEntNullableBytesAbsent(account.DeployedHash)
 	}
 	return !mailboxSetupStatusAccountCurrentControlValid(account) && (account.AttemptedControlGeneration != nil || account.ProvisionLeaseToken != nil || account.NextProvisionAt != nil)
 }
