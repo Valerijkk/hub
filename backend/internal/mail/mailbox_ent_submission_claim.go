@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
+	"log/slog"
 	"sort"
 	"time"
 
@@ -12,11 +13,11 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailaccount"
 	"github.com/valerii/hub/backend/ent/mailattachment"
+	"github.com/valerii/hub/backend/ent/mailboxpolicy"
 	"github.com/valerii/hub/backend/ent/maildomain"
 	"github.com/valerii/hub/backend/ent/maildraft"
 	"github.com/valerii/hub/backend/ent/mailidentity"
 	"github.com/valerii/hub/backend/ent/mailobject"
-	"github.com/valerii/hub/backend/ent/mailboxpolicy"
 	"github.com/valerii/hub/backend/ent/mailsendratebucket"
 	"github.com/valerii/hub/backend/ent/mailsubmission"
 	"github.com/valerii/hub/backend/ent/organization"
@@ -24,6 +25,35 @@ import (
 )
 
 var _ MailboxSubmissionClaimRepository = (*MailboxEntRepository)(nil)
+
+type mailboxEntSubmissionAuthorizeStage string
+
+const (
+	mailboxEntSubmissionAuthorizeStageAccountLookup           mailboxEntSubmissionAuthorizeStage = "account_lookup"
+	mailboxEntSubmissionAuthorizeStageSubmissionLookup        mailboxEntSubmissionAuthorizeStage = "submission_lookup"
+	mailboxEntSubmissionAuthorizeStageDraftLookup             mailboxEntSubmissionAuthorizeStage = "draft_lookup"
+	mailboxEntSubmissionAuthorizeStageActorLookup             mailboxEntSubmissionAuthorizeStage = "actor_lookup"
+	mailboxEntSubmissionAuthorizeStageIdentityLookup          mailboxEntSubmissionAuthorizeStage = "identity_lookup"
+	mailboxEntSubmissionAuthorizeStageAttachments             mailboxEntSubmissionAuthorizeStage = "attachments"
+	mailboxEntSubmissionAuthorizeStagePolicyLookup            mailboxEntSubmissionAuthorizeStage = "policy_lookup"
+	mailboxEntSubmissionAuthorizeStageDomainsLookup           mailboxEntSubmissionAuthorizeStage = "domains_lookup"
+	mailboxEntSubmissionAuthorizeStageOrganizationRateBucket  mailboxEntSubmissionAuthorizeStage = "organization_rate_bucket"
+	mailboxEntSubmissionAuthorizeStageUserRateBucket          mailboxEntSubmissionAuthorizeStage = "user_rate_bucket"
+	mailboxEntSubmissionAuthorizeStageWallClock               mailboxEntSubmissionAuthorizeStage = "wall_clock"
+	mailboxEntSubmissionAuthorizeStageFenceValidation         mailboxEntSubmissionAuthorizeStage = "fence_validation"
+	mailboxEntSubmissionAuthorizeStageDurableBinding          mailboxEntSubmissionAuthorizeStage = "durable_binding"
+	mailboxEntSubmissionAuthorizeStagePreflightIdentity       mailboxEntSubmissionAuthorizeStage = "preflight_identity"
+	mailboxEntSubmissionAuthorizeStagePreflightBinding        mailboxEntSubmissionAuthorizeStage = "preflight_binding"
+	mailboxEntSubmissionAuthorizeStagePolicyBinding           mailboxEntSubmissionAuthorizeStage = "policy_binding"
+	mailboxEntSubmissionAuthorizeStageFreshPreflight          mailboxEntSubmissionAuthorizeStage = "fresh_preflight"
+	mailboxEntSubmissionAuthorizeStageRateState               mailboxEntSubmissionAuthorizeStage = "rate_state"
+	mailboxEntSubmissionAuthorizeStageRateEvaluation          mailboxEntSubmissionAuthorizeStage = "rate_evaluation"
+	mailboxEntSubmissionAuthorizeStageRatePersistOrganization mailboxEntSubmissionAuthorizeStage = "rate_persist_organization"
+	mailboxEntSubmissionAuthorizeStageRatePersistUser         mailboxEntSubmissionAuthorizeStage = "rate_persist_user"
+	mailboxEntSubmissionAuthorizeStageAuthorizationHash       mailboxEntSubmissionAuthorizeStage = "authorization_hash"
+	mailboxEntSubmissionAuthorizeStageSubmissionUpdate        mailboxEntSubmissionAuthorizeStage = "submission_update"
+	mailboxEntSubmissionAuthorizeStageAuthorizationValidation mailboxEntSubmissionAuthorizeStage = "authorization_validation"
+)
 
 // ClaimMailboxSubmission atomically advances one due queued submission to the
 // short authorizing lease. It intentionally never calls BeginEngineCommand:
@@ -71,6 +101,39 @@ func (repository *MailboxEntRepository) ClaimMailboxSubmission(ctx context.Conte
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
 
+		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
+		if err != nil {
+			return mailboxEntSubmissionRepositoryError(err)
+		}
+		otherSubmissions, err := transaction.MailSubmission.Query().
+			Where(
+				mailsubmission.MailAccountIDEQ(account.ID),
+				mailsubmission.IDNEQ(submission.ID),
+				mailsubmission.StatusIn(mailsubmission.Status("submitting"), mailsubmission.Status("unknown")),
+			).
+			Order(ent.Asc(mailsubmission.FieldID)).
+			ForUpdate().
+			All(ctx)
+		if err != nil {
+			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
+		}
+		if MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusQueued || submission.NextAttemptAt == nil ||
+			submission.NextAttemptAt.After(databaseNow) || submission.AttemptCount < 0 || submission.AttemptCount > 7 {
+			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+		}
+		if busyUntil, busy, kind := mailboxEntSubmissionClaimOtherSubmissionBusyUntil(account, otherSubmissions, databaseNow); kind != "" {
+			return NewMailboxSubmissionRepositoryError(kind)
+		} else if busy {
+			result = MailboxSubmissionClaimResult{busyUntil: &busyUntil}
+			return nil
+		}
+		if busyUntil, busy, valid := mailboxEntSubmissionClaimBusyUntil(account, databaseNow); !valid {
+			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
+		} else if busy {
+			result = MailboxSubmissionClaimResult{busyUntil: &busyUntil}
+			return nil
+		}
+
 		draft, err := transaction.MailDraft.Query().
 			Where(maildraft.IDEQ(*submission.MailDraftID), maildraft.MailAccountIDEQ(account.ID)).
 			ForUpdate().
@@ -99,21 +162,6 @@ func (repository *MailboxEntRepository) ClaimMailboxSubmission(ctx context.Conte
 			All(ctx)
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
-		}
-
-		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
-		if err != nil {
-			return mailboxEntSubmissionRepositoryError(err)
-		}
-		if busyUntil, busy, valid := mailboxEntSubmissionClaimBusyUntil(account); !valid {
-			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
-		} else if busy {
-			result = MailboxSubmissionClaimResult{busyUntil: &busyUntil}
-			return nil
-		}
-		if MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusQueued || submission.NextAttemptAt == nil ||
-			submission.NextAttemptAt.After(databaseNow) || submission.AttemptCount < 0 || submission.AttemptCount > 7 {
-			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
 		}
 		binding, ok := mailboxEntSubmissionBindingFromRow(submission)
 		if !ok || !mailboxEntSubmissionClaimDraftMatches(draft, account.ID, *submission.MailDraftID, binding) {
@@ -188,13 +236,16 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 	preflight := request.Preflight
 
 	var result MailboxSubmissionAuthorizeResult
+	stage := mailboxEntSubmissionAuthorizeStageAccountLookup
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		// Lock order: MailAccount -> MailSubmission -> MailDraft -> User -> MailIdentity
 		// -> MailAttachment -> MailObject -> MailboxPolicy -> MailDomain -> rate buckets.
+		stage = mailboxEntSubmissionAuthorizeStageAccountLookup
 		account, err := transaction.MailAccount.Query().Where(mailaccount.IDEQ(claim.fence.AccountID)).ForUpdate().Only(ctx)
 		if err != nil {
 			return mailboxEntSubmissionClaimLookupError(err)
 		}
+		stage = mailboxEntSubmissionAuthorizeStageSubmissionLookup
 		submission, err := transaction.MailSubmission.Query().
 			Where(mailsubmission.IDEQ(claim.submissionID), mailsubmission.MailAccountIDEQ(account.ID)).
 			ForUpdate().
@@ -205,6 +256,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 		if submission.MailDraftID == nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
+		stage = mailboxEntSubmissionAuthorizeStageDraftLookup
 		draft, err := transaction.MailDraft.Query().
 			Where(maildraft.IDEQ(*submission.MailDraftID), maildraft.MailAccountIDEQ(account.ID)).
 			ForUpdate().
@@ -214,6 +266,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 		}
 
 		terminalCode := MailboxSubmissionErrorCode("")
+		stage = mailboxEntSubmissionAuthorizeStageActorLookup
 		actor, err := transaction.User.Query().
 			Where(
 				user.IDEQ(account.UserID),
@@ -235,6 +288,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 
 		var identity *ent.MailIdentity
 		if terminalCode == "" {
+			stage = mailboxEntSubmissionAuthorizeStageIdentityLookup
 			identity, err = transaction.MailIdentity.Query().
 				Where(
 					mailidentity.IDEQ(draft.FromIdentityID),
@@ -256,6 +310,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 
 		var attachments []MailboxSubmissionCleanAttachment
 		if terminalCode == "" {
+			stage = mailboxEntSubmissionAuthorizeStageAttachments
 			var clean bool
 			attachments, clean, err = mailboxEntSubmissionLockCleanAttachments(ctx, transaction, account, draft)
 			if err != nil {
@@ -269,6 +324,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 		var policy *ent.MailboxPolicy
 		var domains []*ent.MailDomain
 		if terminalCode == "" {
+			stage = mailboxEntSubmissionAuthorizeStagePolicyLookup
 			policy, err = transaction.MailboxPolicy.Query().
 				Where(mailboxpolicy.OrganizationIDEQ(account.OrganizationID)).
 				ForUpdate().
@@ -282,6 +338,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			}
 		}
 		if terminalCode == "" {
+			stage = mailboxEntSubmissionAuthorizeStageDomainsLookup
 			domains, err = transaction.MailDomain.Query().
 				Where(
 					maildomain.OrganizationIDEQ(account.OrganizationID),
@@ -301,20 +358,24 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 
 		var organizationBucket, userBucket *ent.MailSendRateBucket
 		if terminalCode == "" {
+			stage = mailboxEntSubmissionAuthorizeStageOrganizationRateBucket
 			organizationBucket, err = mailboxEntSubmissionLockRateBucket(ctx, transaction, mailsendratebucket.Scope("organization_instance"), account.OrganizationID)
 			if err != nil {
 				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 			}
+			stage = mailboxEntSubmissionAuthorizeStageUserRateBucket
 			userBucket, err = mailboxEntSubmissionLockRateBucket(ctx, transaction, mailsendratebucket.Scope("user"), account.UserID)
 			if err != nil {
 				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 			}
 		}
 
+		stage = mailboxEntSubmissionAuthorizeStageWallClock
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return mailboxEntSubmissionRepositoryError(err)
 		}
+		stage = mailboxEntSubmissionAuthorizeStageFenceValidation
 		if !mailboxEntSubmissionAuthorizingFenceMatches(account, submission, claim, databaseNow) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
 		}
@@ -326,6 +387,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			return nil
 		}
 
+		stage = mailboxEntSubmissionAuthorizeStageDurableBinding
 		binding, ok := mailboxEntSubmissionBindingFromRow(submission)
 		if !ok {
 			if err := mailboxEntSubmissionTerminal(ctx, account, submission, draft, claim, databaseNow, MailboxSubmissionErrorCodeRejected); err != nil {
@@ -342,6 +404,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			result = mailboxEntSubmissionFailedResult(MailboxSubmissionErrorCodeRejected)
 			return nil
 		}
+		stage = mailboxEntSubmissionAuthorizeStagePreflightIdentity
 		if !mailboxEntSubmissionIdentityMatchesPreflight(identity, account.ID, preflight.FromEmail) {
 			if err := mailboxEntSubmissionTerminal(ctx, account, submission, draft, claim, databaseNow, MailboxSubmissionErrorCodeIdentityUnavailable); err != nil {
 				return err
@@ -349,6 +412,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			result = mailboxEntSubmissionFailedResult(MailboxSubmissionErrorCodeIdentityUnavailable)
 			return nil
 		}
+		stage = mailboxEntSubmissionAuthorizeStagePreflightBinding
 		preflightBinding := submissionPreflightBindingHash(persistedSubmission, preflight.FromEmail, preflight.RecipientCount, preflight.MessageBytes)
 		if subtle.ConstantTimeCompare(preflight.BindingHash[:], preflightBinding[:]) != 1 {
 			if err := mailboxEntSubmissionTerminal(ctx, account, submission, draft, claim, databaseNow, MailboxSubmissionErrorCodeRejected); err != nil {
@@ -357,6 +421,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			result = mailboxEntSubmissionFailedResult(MailboxSubmissionErrorCodeRejected)
 			return nil
 		}
+		stage = mailboxEntSubmissionAuthorizeStagePolicyBinding
 		freshPolicy, policyErr := mailboxEntSubmissionClaimPolicyBinding(account, policy, domains)
 		if policyErr != nil {
 			if err := mailboxEntSubmissionTerminal(ctx, account, submission, draft, claim, databaseNow, MailboxSubmissionErrorCodePolicy); err != nil {
@@ -365,6 +430,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			result = mailboxEntSubmissionFailedResult(MailboxSubmissionErrorCodePolicy)
 			return nil
 		}
+		stage = mailboxEntSubmissionAuthorizeStageFreshPreflight
 		freshRequest, valid := freshPolicy.PreflightRequest(persistedSubmission)
 		if !valid {
 			if err := mailboxEntSubmissionTerminal(ctx, account, submission, draft, claim, databaseNow, MailboxSubmissionErrorCodePolicy); err != nil {
@@ -373,6 +439,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			result = mailboxEntSubmissionFailedResult(MailboxSubmissionErrorCodePolicy)
 			return nil
 		}
+		stage = mailboxEntSubmissionAuthorizeStagePolicyBinding
 		semanticBinding := submissionPreflightPolicyBindingHash(freshRequest)
 		if subtle.ConstantTimeCompare(preflight.PolicyBindingHash[:], semanticBinding[:]) != 1 {
 			if err := mailboxEntSubmissionTerminal(ctx, account, submission, draft, claim, databaseNow, MailboxSubmissionErrorCodePolicy); err != nil {
@@ -399,6 +466,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			result = mailboxEntSubmissionFailedResult(MailboxSubmissionErrorCodeAttachmentNotClean)
 			return nil
 		}
+		stage = mailboxEntSubmissionAuthorizeStageRateState
 		organizationState, organizationMissing, valid := mailboxEntSubmissionRateBucketState(organizationBucket, mailsendratebucket.Scope("organization_instance"), account.OrganizationID)
 		if !valid {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
@@ -408,6 +476,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
 		// Exactly one policy evaluator call decides both buckets all-or-nothing.
+		stage = mailboxEntSubmissionAuthorizeStageRateEvaluation
 		rateDecision, err := EvaluateMailboxSubmissionRateLimit(MailboxSubmissionRateLimitInput{
 			Now:                  databaseNow,
 			OrganizationCapacity: policy.InstanceSendRatePerMinute,
@@ -418,9 +487,11 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
+		stage = mailboxEntSubmissionAuthorizeStageRatePersistOrganization
 		if err := mailboxEntSubmissionPersistRateBucket(ctx, transaction, organizationBucket, organizationMissing, mailsendratebucket.Scope("organization_instance"), account.OrganizationID, rateDecision.Organization, databaseNow); err != nil {
 			return err
 		}
+		stage = mailboxEntSubmissionAuthorizeStageRatePersistUser
 		if err := mailboxEntSubmissionPersistRateBucket(ctx, transaction, userBucket, userMissing, mailsendratebucket.Scope("user"), account.UserID, rateDecision.User, databaseNow); err != nil {
 			return err
 		}
@@ -435,6 +506,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			return nil
 		}
 
+		stage = mailboxEntSubmissionAuthorizeStageAuthorizationHash
 		authorizationHash, err := MailboxSubmissionDispatchAuthorizationHash(MailboxSubmissionDispatchAuthorizationHashInput{
 			AccountID:                  account.ID,
 			SubmissionID:               submission.ID,
@@ -451,6 +523,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
+		stage = mailboxEntSubmissionAuthorizeStageSubmissionUpdate
 		if err := submission.Update().
 			SetStatus(mailsubmission.Status("submitting")).
 			SetDispatchAuthorizedAt(databaseNow).
@@ -465,6 +538,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 			authorizedAt:      databaseNow,
 			authorizationHash: authorizationHash,
 		}
+		stage = mailboxEntSubmissionAuthorizeStageAuthorizationValidation
 		if !mailboxSubmissionDispatchAuthorizationValid(authorization) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
@@ -472,6 +546,7 @@ func (repository *MailboxEntRepository) AuthorizeMailboxSubmission(ctx context.C
 		return nil
 	})
 	if err != nil {
+		slog.Warn("mailbox submission authorization failed", "stage", string(stage))
 		return MailboxSubmissionAuthorizeResult{}, mailboxEntSubmissionRepositoryError(err)
 	}
 	return result, nil
@@ -580,39 +655,115 @@ func mailboxEntSubmissionClaimAccountKind(account *ent.MailAccount) MailboxSubmi
 	return ""
 }
 
-// mailboxEntSubmissionClaimBusyUntil observes any stored lease, including an
-// expired one. Expiry belongs to the dedicated stale-recovery path; claimers
-// must never steal it. The furthest stored boundary is conservative if both
-// scheduler and command leases are present.
-func mailboxEntSubmissionClaimBusyUntil(account *ent.MailAccount) (time.Time, bool, bool) {
-	if account == nil {
+// mailboxEntSubmissionLiveLeaseBusyUntil returns the furthest live lease.
+// A boundary equal to databaseNow is already expired; only strictly future
+// deadlines block a new submission claim.
+func mailboxEntSubmissionLiveLeaseBusyUntil(databaseNow time.Time, mutationLeaseUntil, syncLeaseUntil *time.Time) (time.Time, bool) {
+	if !mailboxEntValidTime(databaseNow) {
+		return time.Time{}, false
+	}
+	var busyUntil time.Time
+	hasLiveLease := false
+	for _, leaseUntil := range []*time.Time{mutationLeaseUntil, syncLeaseUntil} {
+		if leaseUntil == nil || !leaseUntil.After(databaseNow) {
+			continue
+		}
+		if !hasLiveLease || busyUntil.Before(*leaseUntil) {
+			busyUntil = *leaseUntil
+			hasLiveLease = true
+		}
+	}
+	if !hasLiveLease {
+		return time.Time{}, false
+	}
+	return busyUntil.Round(0).UTC(), true
+}
+
+// mailboxEntSubmissionClaimBusyUntil owns the submission-claim barrier for
+// every valid stored account lease. Expired fences are intentionally still
+// busy at databaseNow: only recovery clears them, never a fresh claim.
+func mailboxEntSubmissionClaimBusyUntil(account *ent.MailAccount, databaseNow time.Time) (time.Time, bool, bool) {
+	if account == nil || !mailboxEntValidTime(databaseNow) {
 		return time.Time{}, false, false
 	}
-	var busyUntil *time.Time
+	if (account.MutationLeaseToken == nil) != (account.MutationLeaseUntil == nil) {
+		return time.Time{}, false, false
+	}
+	var mutationLeaseUntil *time.Time
 	if account.MutationLeaseToken != nil {
 		if account.MutationLeaseUntil == nil || *account.MutationLeaseToken == uuid.Nil || !mailboxEntValidTime(*account.MutationLeaseUntil) {
 			return time.Time{}, false, false
 		}
-		value := *account.MutationLeaseUntil
-		busyUntil = &value
+		mutationLeaseUntil = account.MutationLeaseUntil
 	}
 	_, hasSyncLease, syncValid := mailboxEntSyncLeaseFence(account)
 	if !syncValid {
 		return time.Time{}, false, false
 	}
+	var syncLeaseUntil *time.Time
 	if hasSyncLease {
 		if account.SyncLeaseUntil == nil || !mailboxEntValidTime(*account.SyncLeaseUntil) {
 			return time.Time{}, false, false
 		}
-		if busyUntil == nil || busyUntil.Before(*account.SyncLeaseUntil) {
-			value := *account.SyncLeaseUntil
-			busyUntil = &value
+		syncLeaseUntil = account.SyncLeaseUntil
+	}
+	busyUntil := databaseNow.Round(0).UTC()
+	hasStoredLease := false
+	for _, leaseUntil := range []*time.Time{mutationLeaseUntil, syncLeaseUntil} {
+		if leaseUntil == nil {
+			continue
+		}
+		hasStoredLease = true
+		if busyUntil.Before(*leaseUntil) {
+			busyUntil = leaseUntil.Round(0).UTC()
 		}
 	}
-	if busyUntil == nil {
-		return time.Time{}, false, true
+	return busyUntil, hasStoredLease, true
+}
+
+// mailboxEntSubmissionClaimOtherSubmissionBusyUntil validates every locked
+// active submission before a fresh queue item can mint an account lease. A
+// live submitting row must own the exact stored account lease; an expired
+// submission or any unknown outcome remains for recovery/reconciliation.
+func mailboxEntSubmissionClaimOtherSubmissionBusyUntil(account *ent.MailAccount, rows []*ent.MailSubmission, databaseNow time.Time) (time.Time, bool, MailboxSubmissionRepositoryErrorKind) {
+	if account == nil || account.ID == uuid.Nil || !mailboxEntValidTime(databaseNow) {
+		return time.Time{}, false, MailboxSubmissionRepositoryErrorInvalid
 	}
-	return busyUntil.Round(0).UTC(), true, true
+
+	busyUntil := databaseNow.Round(0).UTC()
+	hasBusy := false
+	var previousID uuid.UUID
+	for index, row := range rows {
+		if !mailboxEntSubmissionRowValid(row, account.ID) || row.ID == uuid.Nil ||
+			index > 0 && !syncLessUUID(previousID, row.ID) {
+			return time.Time{}, false, MailboxSubmissionRepositoryErrorInvalid
+		}
+		previousID = row.ID
+
+		switch MailboxSubmissionStatus(row.Status) {
+		case MailboxSubmissionStatusSubmitting:
+			if row.CommandLeaseToken == nil || row.CommandLeaseExpiresAt == nil {
+				return time.Time{}, false, MailboxSubmissionRepositoryErrorInvalid
+			}
+			if row.CommandLeaseExpiresAt.After(databaseNow) &&
+				(account.MutationLeaseToken == nil || account.MutationLeaseUntil == nil ||
+					*account.MutationLeaseToken != *row.CommandLeaseToken || !account.MutationLeaseUntil.Equal(*row.CommandLeaseExpiresAt)) {
+				return time.Time{}, false, MailboxSubmissionRepositoryErrorVersionConflict
+			}
+			if databaseNow.Before(*row.CommandLeaseExpiresAt) && busyUntil.Before(*row.CommandLeaseExpiresAt) {
+				busyUntil = row.CommandLeaseExpiresAt.Round(0).UTC()
+			}
+			hasBusy = true
+		case MailboxSubmissionStatusUnknown:
+			if row.NextReconcileAt != nil && row.NextReconcileAt.After(databaseNow) && busyUntil.Before(*row.NextReconcileAt) {
+				busyUntil = row.NextReconcileAt.Round(0).UTC()
+			}
+			hasBusy = true
+		default:
+			return time.Time{}, false, MailboxSubmissionRepositoryErrorInvalid
+		}
+	}
+	return busyUntil, hasBusy, ""
 }
 
 func mailboxEntSubmissionClaimDraftMatches(draft *ent.MailDraft, accountID, draftID uuid.UUID, binding mailboxEngineSubmissionBinding) bool {
@@ -655,12 +806,12 @@ func mailboxEntSubmissionClaimPolicyBinding(account *ent.MailAccount, policy *en
 		return MailboxSubmissionPolicyBinding{}, ErrMailboxSubmissionPolicyBindingInvalid
 	}
 	return NewMailboxSubmissionPolicyBinding(MailboxSubmissionPolicyBindingInput{
-		OrganizationID:           account.OrganizationID,
-		PolicyID:                 policy.ID,
-		PolicyVersion:            int64(policy.Version),
-		PolicyMaxMessageBytes:    policy.MaxMessageBytes,
-		PolicyMaxRecipients:      policy.MaxRecipients,
-		ExternalMailEnabled:      policy.ExternalMailEnabled,
+		OrganizationID:         account.OrganizationID,
+		PolicyID:               policy.ID,
+		PolicyVersion:          int64(policy.Version),
+		PolicyMaxMessageBytes:  policy.MaxMessageBytes,
+		PolicyMaxRecipients:    policy.MaxRecipients,
+		ExternalMailEnabled:    policy.ExternalMailEnabled,
 		VerifiedEnabledDomains: boundDomains,
 	})
 }
@@ -675,7 +826,7 @@ func mailboxEntSubmissionAuthorizingFenceMatches(account *ent.MailAccount, submi
 		account.MutationEpoch != claim.fence.MutationEpoch || submission.CommandFence != claim.fence.MutationEpoch ||
 		!mailboxEntValidTime(*account.MutationLeaseUntil) || !mailboxEntValidTime(*submission.CommandLeaseExpiresAt) ||
 		!account.MutationLeaseUntil.After(databaseNow) || !submission.CommandLeaseExpiresAt.After(databaseNow) ||
-		submission.NextAttemptAt != nil || submission.DispatchAuthorizedAt != nil || submission.DispatchAuthorizationHash != nil ||
+		submission.NextAttemptAt != nil || submission.DispatchAuthorizedAt != nil || !mailboxEntNullableBytesAbsent(submission.DispatchAuthorizationHash) ||
 		submission.ProviderSubmissionID != nil || submission.ProviderMessageID != nil || submission.ResultMailMessageID != nil || submission.LastErrorCode != nil {
 		return false
 	}
@@ -808,7 +959,7 @@ func mailboxEntSubmissionRateBucketState(row *ent.MailSendRateBucket, scope mail
 	default:
 		return MailboxSubmissionRateBucketState{}, false, false
 	}
-	return MailboxSubmissionRateBucketState{Tokens: row.Tokens, LastRefillAt: row.LastRefillAt, RefillRemainderNanos: row.RefillRemainderNanos, Version: row.Version}, false, true
+	return MailboxSubmissionRateBucketState{Tokens: row.Tokens, LastRefillAt: row.LastRefillAt.Round(0).UTC(), RefillRemainderNanos: row.RefillRemainderNanos, Version: row.Version}, false, true
 }
 
 func mailboxEntSubmissionPersistRateBucket(ctx context.Context, transaction *ent.Tx, row *ent.MailSendRateBucket, missing bool, scope mailsendratebucket.Scope, ownerID uuid.UUID, final MailboxSubmissionRateBucketState, databaseNow time.Time) error {

@@ -30,38 +30,38 @@ type FakeMailEngineConfig struct {
 type FakeMailOperation string
 
 const (
-	FakeMailOperationCapabilities         FakeMailOperation = "capabilities"
-	FakeMailOperationGetDomain            FakeMailOperation = "get_domain"
-	FakeMailOperationEnsureDomain         FakeMailOperation = "ensure_domain"
-	FakeMailOperationEnsureAccount        FakeMailOperation = "ensure_account"
-	FakeMailOperationListFolders          FakeMailOperation = "list_folders"
-	FakeMailOperationCreateFolder         FakeMailOperation = "create_folder"
-	FakeMailOperationRenameFolder         FakeMailOperation = "rename_folder"
-	FakeMailOperationDeleteFolder         FakeMailOperation = "delete_folder"
-	FakeMailOperationListMessages         FakeMailOperation = "list_messages"
-	FakeMailOperationGetMessage           FakeMailOperation = "get_message"
-	FakeMailOperationGetDraft             FakeMailOperation = "get_draft"
-	FakeMailOperationGetBlob              FakeMailOperation = "get_blob"
-	FakeMailOperationReadCalendarPart     FakeMailOperation = "read_calendar_part"
-	FakeMailOperationChanges              FakeMailOperation = "changes"
-	FakeMailOperationEnumerateProjection  FakeMailOperation = "enumerate_projection"
-	FakeMailOperationSaveDraft            FakeMailOperation = "save_draft"
+	FakeMailOperationCapabilities                  FakeMailOperation = "capabilities"
+	FakeMailOperationGetDomain                     FakeMailOperation = "get_domain"
+	FakeMailOperationEnsureDomain                  FakeMailOperation = "ensure_domain"
+	FakeMailOperationEnsureAccount                 FakeMailOperation = "ensure_account"
+	FakeMailOperationListFolders                   FakeMailOperation = "list_folders"
+	FakeMailOperationCreateFolder                  FakeMailOperation = "create_folder"
+	FakeMailOperationRenameFolder                  FakeMailOperation = "rename_folder"
+	FakeMailOperationDeleteFolder                  FakeMailOperation = "delete_folder"
+	FakeMailOperationListMessages                  FakeMailOperation = "list_messages"
+	FakeMailOperationGetMessage                    FakeMailOperation = "get_message"
+	FakeMailOperationGetDraft                      FakeMailOperation = "get_draft"
+	FakeMailOperationGetBlob                       FakeMailOperation = "get_blob"
+	FakeMailOperationReadCalendarPart              FakeMailOperation = "read_calendar_part"
+	FakeMailOperationChanges                       FakeMailOperation = "changes"
+	FakeMailOperationEnumerateProjection           FakeMailOperation = "enumerate_projection"
+	FakeMailOperationSaveDraft                     FakeMailOperation = "save_draft"
 	FakeMailOperationUploadCalendarDraftCreateMIME FakeMailOperation = "upload_calendar_draft_create_mime"
 	FakeMailOperationImportCalendarDraftCreateMIME FakeMailOperation = "import_calendar_draft_create_mime"
-	FakeMailOperationReconcileDraft       FakeMailOperation = "reconcile_draft"
-	FakeMailOperationDeleteDraft          FakeMailOperation = "delete_draft"
-	FakeMailOperationReconcileDraftDeletion FakeMailOperation = "reconcile_draft_deletion"
-	FakeMailOperationPreflightSubmission FakeMailOperation = "preflight_submission"
-	FakeMailOperationSubmit               FakeMailOperation = "submit"
-	FakeMailOperationReconcileSubmission  FakeMailOperation = "reconcile_submission"
-	FakeMailOperationMoveMessages         FakeMailOperation = "move_messages"
-	FakeMailOperationSetFlags             FakeMailOperation = "set_flags"
-	FakeMailOperationSetKeywords          FakeMailOperation = "set_keywords"
-	FakeMailOperationDeleteMessages       FakeMailOperation = "delete_messages"
-	FakeMailOperationGetSieve             FakeMailOperation = "get_sieve"
-	FakeMailOperationUpsertSieve          FakeMailOperation = "upsert_sieve"
-	FakeMailOperationClassifyMessages     FakeMailOperation = "classify_messages"
-	FakeMailOperationHealth               FakeMailOperation = "health"
+	FakeMailOperationReconcileDraft                FakeMailOperation = "reconcile_draft"
+	FakeMailOperationDeleteDraft                   FakeMailOperation = "delete_draft"
+	FakeMailOperationReconcileDraftDeletion        FakeMailOperation = "reconcile_draft_deletion"
+	FakeMailOperationPreflightSubmission           FakeMailOperation = "preflight_submission"
+	FakeMailOperationSubmit                        FakeMailOperation = "submit"
+	FakeMailOperationReconcileSubmission           FakeMailOperation = "reconcile_submission"
+	FakeMailOperationMoveMessages                  FakeMailOperation = "move_messages"
+	FakeMailOperationSetFlags                      FakeMailOperation = "set_flags"
+	FakeMailOperationSetKeywords                   FakeMailOperation = "set_keywords"
+	FakeMailOperationDeleteMessages                FakeMailOperation = "delete_messages"
+	FakeMailOperationGetSieve                      FakeMailOperation = "get_sieve"
+	FakeMailOperationUpsertSieve                   FakeMailOperation = "upsert_sieve"
+	FakeMailOperationClassifyMessages              FakeMailOperation = "classify_messages"
+	FakeMailOperationHealth                        FakeMailOperation = "health"
 )
 
 // FakeMailFault is a safe typed dispatch failure. AfterDispatch models a lost response.
@@ -180,33 +180,33 @@ type FakeMailEngine struct {
 	mu       sync.Mutex
 	sourceMu sync.Mutex
 
-	nextID func() string
-	now    func() time.Time
+	nextID        func() string
+	now           func() time.Time
 	localDelivery bool
-	serial int
+	serial        int
 
-	domains      map[string]EngineDomainState
-	domainKeys   map[string]string
-	accounts     map[string]EngineAccount
-	accountKeys  map[string]string
-	identityEmails map[string]map[string]struct{}
-	folders      map[string]map[string]EngineFolder
-	messages     map[string]map[string]EngineMessage
-	blobs        map[string]map[string]EngineBlob
-	calendarParts map[fakeCalendarPartKey]fakeCalendarPart
-	drafts       map[string]map[string]fakeDraft
+	domains              map[string]EngineDomainState
+	domainKeys           map[string]string
+	accounts             map[string]EngineAccount
+	accountKeys          map[string]string
+	identityEmails       map[string]map[string]struct{}
+	folders              map[string]map[string]EngineFolder
+	messages             map[string]map[string]EngineMessage
+	blobs                map[string]map[string]EngineBlob
+	calendarParts        map[fakeCalendarPartKey]fakeCalendarPart
+	drafts               map[string]map[string]fakeDraft
 	calendarDraftCreates map[fakeCalendarDraftCreateKey]fakeCalendarDraftCreateStage
-	submissions  map[string]map[string]fakeSubmission
-	sieves       map[string]EngineSieveState
-	spamResults  map[fakeAccountCursorKey]EngineSpamTrainingResult
-	faults       []FakeMailFault
-	changes      map[string][]fakeChange
-	changeScript map[fakeAccountCursorKey]FakeMailChangeScript
-	enumScript   map[fakeEnumerationKey]FakeMailEnumerationScript
-	overrides    map[fakeAccountCursorKey]EngineMessageProjection
-	snapshots    map[fakeAccountCursorKey]fakeEnumerationSnapshot
-	checkpoints  map[fakeEnumerationKey]fakeCheckpoint
-	issuedIDs    map[string]struct{}
+	submissions          map[string]map[string]fakeSubmission
+	sieves               map[string]EngineSieveState
+	spamResults          map[fakeAccountCursorKey]EngineSpamTrainingResult
+	faults               []FakeMailFault
+	changes              map[string][]fakeChange
+	changeScript         map[fakeAccountCursorKey]FakeMailChangeScript
+	enumScript           map[fakeEnumerationKey]FakeMailEnumerationScript
+	overrides            map[fakeAccountCursorKey]EngineMessageProjection
+	snapshots            map[fakeAccountCursorKey]fakeEnumerationSnapshot
+	checkpoints          map[fakeEnumerationKey]fakeCheckpoint
+	issuedIDs            map[string]struct{}
 }
 
 var _ mailboxDraftCalendarCreateEngine = (*FakeMailEngine)(nil)
@@ -225,30 +225,30 @@ func NewFakeMailEngine(config FakeMailEngineConfig) *FakeMailEngine {
 		now = func() time.Time { return time.Unix(0, 0).UTC() }
 	}
 	return &FakeMailEngine{
-		nextID:       nextID,
-		now:          now,
-		localDelivery: config.LocalDelivery,
-		domains:      make(map[string]EngineDomainState),
-		domainKeys:   make(map[string]string),
-		accounts:     make(map[string]EngineAccount),
-		accountKeys:  make(map[string]string),
-		identityEmails: make(map[string]map[string]struct{}),
-		folders:      make(map[string]map[string]EngineFolder),
-		messages:     make(map[string]map[string]EngineMessage),
-		blobs:        make(map[string]map[string]EngineBlob),
-		calendarParts: make(map[fakeCalendarPartKey]fakeCalendarPart),
-		drafts:       make(map[string]map[string]fakeDraft),
+		nextID:               nextID,
+		now:                  now,
+		localDelivery:        config.LocalDelivery,
+		domains:              make(map[string]EngineDomainState),
+		domainKeys:           make(map[string]string),
+		accounts:             make(map[string]EngineAccount),
+		accountKeys:          make(map[string]string),
+		identityEmails:       make(map[string]map[string]struct{}),
+		folders:              make(map[string]map[string]EngineFolder),
+		messages:             make(map[string]map[string]EngineMessage),
+		blobs:                make(map[string]map[string]EngineBlob),
+		calendarParts:        make(map[fakeCalendarPartKey]fakeCalendarPart),
+		drafts:               make(map[string]map[string]fakeDraft),
 		calendarDraftCreates: make(map[fakeCalendarDraftCreateKey]fakeCalendarDraftCreateStage),
-		submissions:  make(map[string]map[string]fakeSubmission),
-		sieves:       make(map[string]EngineSieveState),
-		spamResults:  make(map[fakeAccountCursorKey]EngineSpamTrainingResult),
-		changes:      make(map[string][]fakeChange),
-		changeScript: make(map[fakeAccountCursorKey]FakeMailChangeScript),
-		enumScript:   make(map[fakeEnumerationKey]FakeMailEnumerationScript),
-		overrides:    make(map[fakeAccountCursorKey]EngineMessageProjection),
-		snapshots:    make(map[fakeAccountCursorKey]fakeEnumerationSnapshot),
-		checkpoints:  make(map[fakeEnumerationKey]fakeCheckpoint),
-		issuedIDs:    make(map[string]struct{}),
+		submissions:          make(map[string]map[string]fakeSubmission),
+		sieves:               make(map[string]EngineSieveState),
+		spamResults:          make(map[fakeAccountCursorKey]EngineSpamTrainingResult),
+		changes:              make(map[string][]fakeChange),
+		changeScript:         make(map[fakeAccountCursorKey]FakeMailChangeScript),
+		enumScript:           make(map[fakeEnumerationKey]FakeMailEnumerationScript),
+		overrides:            make(map[fakeAccountCursorKey]EngineMessageProjection),
+		snapshots:            make(map[fakeAccountCursorKey]fakeEnumerationSnapshot),
+		checkpoints:          make(map[fakeEnumerationKey]fakeCheckpoint),
+		issuedIDs:            make(map[string]struct{}),
 	}
 }
 
@@ -1285,7 +1285,7 @@ func (f *FakeMailEngine) importCalendarDraftCreateMIME(
 		f.drafts[request.accountID] = make(map[string]fakeDraft)
 	}
 	f.drafts[request.accountID][request.draftKey] = fakeDraft{
-		message: message,
+		message:  message,
 		identity: fakeDraftIdentity{mutationID: request.mutationID},
 	}
 	f.putMessageLocked(message, true)
@@ -1526,19 +1526,20 @@ func (f *FakeMailEngine) submitMailboxSubmission(_ context.Context, submission E
 	if int64(messageVariableBytes(message)) > submission.MaxMessageBytes {
 		return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
+	sentAt := f.currentTime()
+	if !validMailEventTime(sentAt) {
+		return nil, fakeEngineError(EngineErrorRejectedPolicy)
+	}
 
 	candidateSubmissionID, err := f.nextOpaqueID()
 	if err != nil {
 		return nil, err
 	}
-	candidateMessageID, err := f.nextOpaqueID()
-	if err != nil {
-		return nil, err
-	}
-	message.Projection.MessageID = candidateMessageID
+	message.Projection.MessageID = submission.MessageID
 	message.Projection.Flags.Draft = false
 	message.Projection.Origin = EngineProjectionOriginConfirmedOwnerSubmission
 	message.Projection.FolderIDs = []string{"sent"}
+	message.Projection.SentAt = &sentAt
 	if int64(messageVariableBytes(message)) > submission.MaxMessageBytes {
 		return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
@@ -1563,14 +1564,18 @@ func (f *FakeMailEngine) submitMailboxSubmission(_ context.Context, submission E
 	if draft.message.Projection.Version != submission.ExpectedVersion {
 		return nil, fakeEngineError(EngineErrorConflict)
 	}
-	if err := f.reserveOpaqueIDsLocked(candidateSubmissionID, candidateMessageID); err != nil {
+	storedDraftMessage, exists := f.messages[submission.AccountID][submission.MessageID]
+	if !exists || !reflect.DeepEqual(cloneMessage(draft.message), cloneMessage(storedDraftMessage)) {
+		return nil, fakeEngineError(EngineErrorConflict)
+	}
+	if err := f.reserveOpaqueIDsLocked(candidateSubmissionID); err != nil {
 		return nil, err
 	}
 	f.putMessageLocked(message, true)
 	if f.submissions[submission.AccountID] == nil {
 		f.submissions[submission.AccountID] = make(map[string]fakeSubmission)
 	}
-	accepted := EngineSubmissionAccepted{SubmissionID: candidateSubmissionID, MessageID: candidateMessageID}
+	accepted := EngineSubmissionAccepted{SubmissionID: candidateSubmissionID, MessageID: submission.MessageID}
 	f.submissions[submission.AccountID][submission.SubmissionKey] = fakeSubmission{accepted: accepted, draftKey: submission.DraftKey, messageID: submission.MessageID, expectedVersion: submission.ExpectedVersion}
 	if faulted && fault.AfterDispatch {
 		return nil, fakeEngineError(fault.Kind)
@@ -1718,7 +1723,9 @@ func (f *FakeMailEngine) SetKeywords(_ context.Context, accountID string, messag
 		for keyword := range keywords {
 			message.Projection.ReservedKeywords = append(message.Projection.ReservedKeywords, keyword)
 		}
-		sort.Slice(message.Projection.ReservedKeywords, func(left, right int) bool { return message.Projection.ReservedKeywords[left] < message.Projection.ReservedKeywords[right] })
+		sort.Slice(message.Projection.ReservedKeywords, func(left, right int) bool {
+			return message.Projection.ReservedKeywords[left] < message.Projection.ReservedKeywords[right]
+		})
 		f.putMessageLocked(message, true)
 	}
 	if faulted && fault.AfterDispatch {
@@ -2031,7 +2038,6 @@ func fakeEngineError(kind EngineErrorKind) error {
 	return &EngineError{Kind: kind}
 }
 
-
 func validatePageRequest(page EnginePageRequest) error {
 	if page.Limit < 1 || page.Limit > MaxEnginePageItems {
 		return fakeEngineError(EngineErrorRejectedPolicy)
@@ -2116,7 +2122,7 @@ func validateMessageContent(content EngineMessageContent) error {
 	} else if content.Format != EngineBodyRich {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
-	if !validSafeText(content.PlainBody, MaxEngineBodyPartBytes, false) || !validSafeText(content.RichBody, MaxEngineBodyPartBytes, false) {
+	if !validMessageBodyText(content.PlainBody, MaxEngineBodyPartBytes, false) || !validMessageBodyText(content.RichBody, MaxEngineBodyPartBytes, false) {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	return nil
@@ -2126,7 +2132,7 @@ func validateEngineMessage(message EngineMessage) error {
 	if err := validateProjection(message.Projection); err != nil {
 		return err
 	}
-	if (message.Body.Format == EngineBodyPlain && message.Body.RichBody != "") || (message.Body.Format != EngineBodyPlain && message.Body.Format != EngineBodyRich) || !validSafeText(message.Body.PlainBody, MaxEngineBodyPartBytes, false) || !validSafeText(message.Body.RichBody, MaxEngineBodyPartBytes, false) {
+	if (message.Body.Format == EngineBodyPlain && message.Body.RichBody != "") || (message.Body.Format != EngineBodyPlain && message.Body.Format != EngineBodyRich) || !validMessageBodyText(message.Body.PlainBody, MaxEngineBodyPartBytes, false) || !validMessageBodyText(message.Body.RichBody, MaxEngineBodyPartBytes, false) {
 		return fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	return nil
@@ -2301,7 +2307,9 @@ func validateProjectionPage(page EngineProjectionPage) error {
 		return fakeEngineError(EngineErrorPayloadTooLarge)
 	}
 	for _, projection := range page.Messages {
-		if err := validateProjection(projection); err != nil { return err }
+		if err := validateProjection(projection); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -2312,16 +2320,24 @@ func validateChangePage(page EngineChangePage, request EngineChangeRequest) erro
 	}
 	destroyed := make(map[string]struct{}, len(page.DestroyedIDs))
 	for _, messageID := range page.DestroyedIDs {
-		if !validOpaqueID(messageID) { return fakeEngineError(EngineErrorPayloadTooLarge) }
-		if _, duplicate := destroyed[messageID]; duplicate { return fakeEngineError(EngineErrorPayloadTooLarge) }
+		if !validOpaqueID(messageID) {
+			return fakeEngineError(EngineErrorPayloadTooLarge)
+		}
+		if _, duplicate := destroyed[messageID]; duplicate {
+			return fakeEngineError(EngineErrorPayloadTooLarge)
+		}
 		destroyed[messageID] = struct{}{}
 	}
 	for _, projection := range page.CreatedOrUpdated {
 		if projection.AccountID != request.AccountID {
 			return fakeEngineError(EngineErrorPayloadTooLarge)
 		}
-		if _, collision := destroyed[projection.MessageID]; collision { return fakeEngineError(EngineErrorPayloadTooLarge) }
-		if err := validateProjection(projection); err != nil { return err }
+		if _, collision := destroyed[projection.MessageID]; collision {
+			return fakeEngineError(EngineErrorPayloadTooLarge)
+		}
+		if err := validateProjection(projection); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -2334,7 +2350,9 @@ func validateEnumerationPage(page EngineEnumerationPage, request EngineEnumerati
 		if projection.AccountID != request.AccountID {
 			return fakeEngineError(EngineErrorPayloadTooLarge)
 		}
-		if err := validateProjection(projection); err != nil { return err }
+		if err := validateProjection(projection); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -2373,6 +2391,21 @@ func validSafeText(value string, maximum int, required bool) bool {
 		return false
 	}
 	for _, runeValue := range value {
+		if runeValue < 0x20 || (runeValue >= 0x7f && runeValue <= 0x9f) {
+			return false
+		}
+	}
+	return true
+}
+
+func validMessageBodyText(value string, maximum int, required bool) bool {
+	if (required && value == "") || len(value) > maximum || !utf8.ValidString(value) {
+		return false
+	}
+	for _, runeValue := range value {
+		if runeValue == '\n' {
+			continue
+		}
 		if runeValue < 0x20 || (runeValue >= 0x7f && runeValue <= 0x9f) {
 			return false
 		}

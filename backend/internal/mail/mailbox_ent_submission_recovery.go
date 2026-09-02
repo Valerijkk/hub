@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"log/slog"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -18,6 +19,35 @@ import (
 
 var _ MailboxSubmissionStaleRecoveryRepository = (*MailboxEntRepository)(nil)
 
+type mailboxEntSubmissionRecoveryStage string
+
+const (
+	mailboxEntSubmissionRecoveryStageAccountLookup           mailboxEntSubmissionRecoveryStage = "account_lookup"
+	mailboxEntSubmissionRecoveryStageAccountValidation       mailboxEntSubmissionRecoveryStage = "account_validation"
+	mailboxEntSubmissionRecoveryStageSubmissionLookup        mailboxEntSubmissionRecoveryStage = "submission_lookup"
+	mailboxEntSubmissionRecoveryStageSubmissionState         mailboxEntSubmissionRecoveryStage = "submission_state"
+	mailboxEntSubmissionRecoveryStageDraftLookup             mailboxEntSubmissionRecoveryStage = "draft_lookup"
+	mailboxEntSubmissionRecoveryStageDraftValidation         mailboxEntSubmissionRecoveryStage = "draft_validation"
+	mailboxEntSubmissionRecoveryStageWallClock               mailboxEntSubmissionRecoveryStage = "wall_clock"
+	mailboxEntSubmissionRecoveryStageLeaseClassification     mailboxEntSubmissionRecoveryStage = "lease_classification"
+	mailboxEntSubmissionRecoveryStageCurrentStateValidation  mailboxEntSubmissionRecoveryStage = "current_state_validation"
+	mailboxEntSubmissionRecoveryStageReleasedStateValidation mailboxEntSubmissionRecoveryStage = "released_state_validation"
+	mailboxEntSubmissionRecoveryStageOrphanFence             mailboxEntSubmissionRecoveryStage = "orphan_fence"
+	mailboxEntSubmissionRecoveryStageDualFenceShape          mailboxEntSubmissionRecoveryStage = "dual_fence_shape"
+	mailboxEntSubmissionRecoveryStageDualFenceExpiry         mailboxEntSubmissionRecoveryStage = "dual_fence_expiry"
+	mailboxEntSubmissionRecoveryStageDualFenceMatch          mailboxEntSubmissionRecoveryStage = "dual_fence_match"
+	mailboxEntSubmissionRecoveryStageStateApply              mailboxEntSubmissionRecoveryStage = "state_apply"
+)
+
+type mailboxEntSubmissionRecoveryScanStage string
+
+const (
+	mailboxEntSubmissionRecoveryScanStageWallClock        mailboxEntSubmissionRecoveryScanStage = "wall_clock"
+	mailboxEntSubmissionRecoveryScanStageQuery            mailboxEntSubmissionRecoveryScanStage = "query"
+	mailboxEntSubmissionRecoveryScanStageCandidate        mailboxEntSubmissionRecoveryScanStage = "candidate"
+	mailboxEntSubmissionRecoveryScanStageResultValidation mailboxEntSubmissionRecoveryScanStage = "result_validation"
+)
+
 // ScanDueMailboxSubmissionRecovery selects a bounded, ordered advisory list
 // of expired authorizing/submitting/unknown/accepted command leases. It never
 // makes a provider call and its output is not a recovery capability.
@@ -27,11 +57,14 @@ func (repository *MailboxEntRepository) ScanDueMailboxSubmissionRecovery(ctx con
 	}
 
 	var result MailboxSubmissionRecoveryScanResult
+	stage := mailboxEntSubmissionRecoveryScanStageWallClock
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
+		stage = mailboxEntSubmissionRecoveryScanStageWallClock
 		selectedAt, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 		}
+		stage = mailboxEntSubmissionRecoveryScanStageQuery
 		rows, err := transaction.MailSubmission.Query().
 			Where(
 				mailboxEntSubmissionRecoverySkipLocked(),
@@ -48,6 +81,7 @@ func (repository *MailboxEntRepository) ScanDueMailboxSubmissionRecovery(ctx con
 
 		submissions := make([]MailboxSubmissionRecoveryDue, 0, len(rows))
 		for _, submission := range rows {
+			stage = mailboxEntSubmissionRecoveryScanStageCandidate
 			due, ok := mailboxEntSubmissionRecoveryDueFromRow(submission)
 			if !ok {
 				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
@@ -55,6 +89,7 @@ func (repository *MailboxEntRepository) ScanDueMailboxSubmissionRecovery(ctx con
 			submissions = append(submissions, due)
 		}
 		scanned := MailboxSubmissionRecoveryScanResult{SelectedAt: selectedAt, Submissions: submissions}
+		stage = mailboxEntSubmissionRecoveryScanStageResultValidation
 		if !mailboxEntSubmissionRecoveryScanResultValid(request, scanned) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
@@ -62,9 +97,12 @@ func (repository *MailboxEntRepository) ScanDueMailboxSubmissionRecovery(ctx con
 		return nil
 	})
 	if err != nil {
+		slog.Warn("mailbox submission stale recovery scan failed", "stage", string(stage))
 		return MailboxSubmissionRecoveryScanResult{}, mailboxEntSubmissionRecoveryRepositoryError(err)
 	}
+	stage = mailboxEntSubmissionRecoveryScanStageResultValidation
 	if !mailboxEntSubmissionRecoveryScanResultValid(request, result) {
+		slog.Warn("mailbox submission stale recovery scan failed", "stage", string(stage))
 		return MailboxSubmissionRecoveryScanResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 	}
 	return mailboxEntSubmissionRecoveryScanResultCopy(result), nil
@@ -72,7 +110,8 @@ func (repository *MailboxEntRepository) ScanDueMailboxSubmissionRecovery(ctx con
 
 // RecoverStaleMailboxSubmission re-reads one advisory submission under the
 // Account -> Submission -> Draft lock order. It only resolves already-expired
-// dual leases and never calls a provider, queue, or transport.
+// dual leases or safely fenced orphaned submission leases and never calls a
+// provider, queue, or transport.
 func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx context.Context, request MailboxSubmissionStaleRecoveryRequest) (MailboxSubmissionStaleRecoveryResult, error) {
 	if repository == nil || repository.client == nil || ctx == nil || !mailboxSubmissionStaleRecoveryRequestValid(request) {
 		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
@@ -90,7 +129,9 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 	}
 
 	result := mailboxSubmissionStaleRecoveryNoop()
+	stage := mailboxEntSubmissionRecoveryStageAccountLookup
 	err = repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
+		stage = mailboxEntSubmissionRecoveryStageAccountLookup
 		account, err := transaction.MailAccount.Query().
 			Where(mailaccount.IDEQ(lookup.MailAccountID)).
 			ForUpdate().
@@ -101,10 +142,12 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 		}
+		stage = mailboxEntSubmissionRecoveryStageAccountValidation
 		if kind := mailboxEntSubmissionClaimAccountKind(account); kind != "" {
 			return NewMailboxSubmissionRepositoryError(kind)
 		}
 
+		stage = mailboxEntSubmissionRecoveryStageSubmissionLookup
 		submission, err := transaction.MailSubmission.Query().
 			Where(mailsubmission.IDEQ(request.SubmissionID), mailsubmission.MailAccountIDEQ(account.ID)).
 			ForUpdate().
@@ -115,6 +158,7 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 		}
+		stage = mailboxEntSubmissionRecoveryStageSubmissionState
 		if !mailboxEntSubmissionRecoveryStaleStatus(MailboxSubmissionStatus(submission.Status)) {
 			return nil
 		}
@@ -125,6 +169,7 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
 
+		stage = mailboxEntSubmissionRecoveryStageDraftLookup
 		draft, err := transaction.MailDraft.Query().
 			Where(maildraft.IDEQ(*submission.MailDraftID), maildraft.MailAccountIDEQ(account.ID)).
 			ForUpdate().
@@ -132,24 +177,36 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 		if err != nil {
 			return mailboxEntSubmissionRecoveryDraftError(err)
 		}
+		stage = mailboxEntSubmissionRecoveryStageDraftValidation
 		if !mailboxEntDraftReadRowValid(draft, account.ID, *submission.MailDraftID) {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
 
+		stage = mailboxEntSubmissionRecoveryStageWallClock
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
 		}
+		orphaned := false
+		stage = mailboxEntSubmissionRecoveryStageLeaseClassification
 		switch mailboxEntSubmissionRecoveryClassifyLeaseState(account, submission) {
 		case mailboxEntSubmissionRecoveryLeaseStateReleased:
+			stage = mailboxEntSubmissionRecoveryStageReleasedStateValidation
 			if !mailboxEntSubmissionRecoveryReleasedStateValid(submission) {
 				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 			}
 			return nil
 		case mailboxEntSubmissionRecoveryLeaseStateHeld:
+			stage = mailboxEntSubmissionRecoveryStageCurrentStateValidation
 			if !mailboxEntSubmissionRecoveryCurrentStateValid(submission, account.ID) {
 				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 			}
+		case mailboxEntSubmissionRecoveryLeaseStateOrphaned:
+			stage = mailboxEntSubmissionRecoveryStageCurrentStateValidation
+			if !mailboxEntSubmissionRecoveryCurrentStateValid(submission, account.ID) {
+				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
+			}
+			orphaned = true
 		case mailboxEntSubmissionRecoveryLeaseStateInvalid:
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		case mailboxEntSubmissionRecoveryLeaseStateConflict:
@@ -157,20 +214,36 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 		default:
 			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 		}
-		if !mailboxEntSubmissionRecoveryDualFenceShapeMatches(account, submission, draft) {
-			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
-		}
-		if account.MutationLeaseUntil.After(databaseNow) {
-			return nil
-		}
-		if !mailboxEntSubmissionRecoveryDualFenceMatches(account, submission, draft, databaseNow) {
-			return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+		if orphaned {
+			stage = mailboxEntSubmissionRecoveryStageOrphanFence
+			if !mailboxEntSubmissionRecoveryOrphanedFenceMatches(account, submission, draft, databaseNow) {
+				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+			}
+		} else {
+			stage = mailboxEntSubmissionRecoveryStageDualFenceShape
+			if !mailboxEntSubmissionRecoveryDualFenceShapeMatches(account, submission, draft) {
+				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+			}
+			stage = mailboxEntSubmissionRecoveryStageDualFenceExpiry
+			if account.MutationLeaseUntil.After(databaseNow) {
+				return nil
+			}
+			stage = mailboxEntSubmissionRecoveryStageDualFenceMatch
+			if !mailboxEntSubmissionRecoveryDualFenceMatches(account, submission, draft, databaseNow) {
+				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+			}
 		}
 
+		stage = mailboxEntSubmissionRecoveryStageStateApply
 		switch MailboxSubmissionStatus(submission.Status) {
 		case MailboxSubmissionStatusAuthorizing:
 			if submission.AttemptCount >= 1 && submission.AttemptCount <= 7 {
-				updated, err := mailboxEntSubmissionRecoveryRequeue(ctx, account, submission, draft, databaseNow)
+				var updated MailboxSubmissionStaleRecoveryResult
+				if orphaned {
+					updated, err = mailboxEntSubmissionRecoveryRequeueOrphaned(ctx, account, submission, draft, databaseNow)
+				} else {
+					updated, err = mailboxEntSubmissionRecoveryRequeue(ctx, account, submission, draft, databaseNow)
+				}
 				if err != nil {
 					return err
 				}
@@ -180,28 +253,48 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 			if submission.AttemptCount != 8 {
 				return NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorInvalid)
 			}
-			updated, err := mailboxEntSubmissionRecoveryTerminal(ctx, account, submission, draft, databaseNow)
+			var updated MailboxSubmissionStaleRecoveryResult
+			if orphaned {
+				updated, err = mailboxEntSubmissionRecoveryTerminalOrphaned(ctx, account, submission, draft, databaseNow)
+			} else {
+				updated, err = mailboxEntSubmissionRecoveryTerminal(ctx, account, submission, draft, databaseNow)
+			}
 			if err != nil {
 				return err
 			}
 			result = updated
 			return nil
 		case MailboxSubmissionStatusSubmitting:
-			updated, err := mailboxEntSubmissionRecoveryUnknown(ctx, account, submission, draft, databaseNow)
+			var updated MailboxSubmissionStaleRecoveryResult
+			if orphaned {
+				updated, err = mailboxEntSubmissionRecoveryUnknownOrphaned(ctx, account, submission, draft, databaseNow)
+			} else {
+				updated, err = mailboxEntSubmissionRecoveryUnknown(ctx, account, submission, draft, databaseNow)
+			}
 			if err != nil {
 				return err
 			}
 			result = updated
 			return nil
 		case MailboxSubmissionStatusUnknown:
-			updated, err := mailboxEntSubmissionRecoveryReleaseUnknown(ctx, account, submission, draft, databaseNow)
+			var updated MailboxSubmissionStaleRecoveryResult
+			if orphaned {
+				updated, err = mailboxEntSubmissionRecoveryReleaseUnknownOrphaned(ctx, account, submission, draft, databaseNow)
+			} else {
+				updated, err = mailboxEntSubmissionRecoveryReleaseUnknown(ctx, account, submission, draft, databaseNow)
+			}
 			if err != nil {
 				return err
 			}
 			result = updated
 			return nil
 		case MailboxSubmissionStatusAccepted:
-			updated, err := mailboxEntSubmissionRecoveryReleaseAccepted(ctx, account, submission, draft, databaseNow)
+			var updated MailboxSubmissionStaleRecoveryResult
+			if orphaned {
+				updated, err = mailboxEntSubmissionRecoveryReleaseAcceptedOrphaned(ctx, account, submission, draft, databaseNow)
+			} else {
+				updated, err = mailboxEntSubmissionRecoveryReleaseAccepted(ctx, account, submission, draft, databaseNow)
+			}
 			if err != nil {
 				return err
 			}
@@ -212,6 +305,7 @@ func (repository *MailboxEntRepository) RecoverStaleMailboxSubmission(ctx contex
 		}
 	})
 	if err != nil {
+		slog.Warn("mailbox submission stale recovery failed", "stage", string(stage))
 		return MailboxSubmissionStaleRecoveryResult{}, mailboxEntSubmissionRecoveryRepositoryError(err)
 	}
 	if !mailboxSubmissionStaleRecoveryResultValid(result) {
@@ -242,10 +336,11 @@ func mailboxEntSubmissionRecoveryDueFromRow(submission *ent.MailSubmission) (Mai
 	if submission == nil || submission.ID == uuid.Nil || submission.CommandLeaseExpiresAt == nil {
 		return MailboxSubmissionRecoveryDue{}, false
 	}
+	leaseUntil := (*submission.CommandLeaseExpiresAt).Round(0).UTC()
 	due := MailboxSubmissionRecoveryDue{
 		SubmissionID: submission.ID,
 		Status:       MailboxSubmissionStatus(submission.Status),
-		LeaseUntil:   *submission.CommandLeaseExpiresAt,
+		LeaseUntil:   leaseUntil,
 	}
 	return due, mailboxSubmissionRecoveryDueValid(due)
 }
@@ -268,6 +363,7 @@ const (
 	mailboxEntSubmissionRecoveryLeaseStateInvalid mailboxEntSubmissionRecoveryLeaseState = iota
 	mailboxEntSubmissionRecoveryLeaseStateReleased
 	mailboxEntSubmissionRecoveryLeaseStateHeld
+	mailboxEntSubmissionRecoveryLeaseStateOrphaned
 	mailboxEntSubmissionRecoveryLeaseStateConflict
 )
 
@@ -284,6 +380,8 @@ func mailboxEntSubmissionRecoveryClassifyLeaseState(account *ent.MailAccount, su
 		return mailboxEntSubmissionRecoveryLeaseStateReleased
 	case accountHeld && submissionHeld:
 		return mailboxEntSubmissionRecoveryLeaseStateHeld
+	case !accountHeld && submissionHeld:
+		return mailboxEntSubmissionRecoveryLeaseStateOrphaned
 	default:
 		return mailboxEntSubmissionRecoveryLeaseStateConflict
 	}
@@ -339,7 +437,7 @@ func mailboxEntSubmissionRecoveryLeaseStateBaseValid(submission *ent.MailSubmiss
 func mailboxEntSubmissionRecoveryUnknownLeaseStateValid(submission *ent.MailSubmission, accountID uuid.UUID) bool {
 	return mailboxEntSubmissionRecoveryLeaseStateBaseValid(submission, accountID) &&
 		MailboxSubmissionStatus(submission.Status) == MailboxSubmissionStatusUnknown && submission.MailDraftID != nil &&
-		submission.CommandLeaseToken != nil && submission.DispatchAuthorizedAt != nil && submission.DispatchAuthorizationHash != nil &&
+		submission.CommandLeaseToken != nil && submission.DispatchAuthorizedAt != nil && !mailboxEntNullableBytesAbsent(submission.DispatchAuthorizationHash) &&
 		submission.ProviderSubmissionID == nil && submission.ProviderMessageID == nil && submission.ResultMailMessageID == nil &&
 		submission.NextAttemptAt == nil && submission.ReconcileAttempts >= 1 && submission.ReconcileAttempts <= 10 && submission.NextReconcileAt == nil
 }
@@ -347,7 +445,7 @@ func mailboxEntSubmissionRecoveryUnknownLeaseStateValid(submission *ent.MailSubm
 func mailboxEntSubmissionRecoveryAcceptedLeaseStateValid(submission *ent.MailSubmission, accountID uuid.UUID) bool {
 	return mailboxEntSubmissionRecoveryLeaseStateBaseValid(submission, accountID) &&
 		MailboxSubmissionStatus(submission.Status) == MailboxSubmissionStatusAccepted && submission.MailDraftID != nil &&
-		submission.CommandLeaseToken != nil && submission.DispatchAuthorizedAt != nil && submission.DispatchAuthorizationHash != nil &&
+		submission.CommandLeaseToken != nil && submission.DispatchAuthorizedAt != nil && !mailboxEntNullableBytesAbsent(submission.DispatchAuthorizationHash) &&
 		submission.ProviderSubmissionID != nil && submission.ProviderMessageID != nil && submission.ResultMailMessageID == nil &&
 		submission.LastErrorCode == nil && submission.NextAttemptAt == nil && submission.NextReconcileAt == nil
 }
@@ -369,6 +467,144 @@ func mailboxEntSubmissionRecoveryDualFenceShapeMatches(account *ent.MailAccount,
 func mailboxEntSubmissionRecoveryDualFenceMatches(account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) bool {
 	return mailboxEntSubmissionRecoveryDualFenceShapeMatches(account, submission, draft) && !account.MutationLeaseUntil.After(databaseNow) &&
 		!submission.CommandLeaseExpiresAt.After(databaseNow)
+}
+
+func mailboxEntSubmissionRecoveryOrphanedFenceMatches(account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) bool {
+	if account == nil || submission == nil || draft == nil ||
+		account.MutationLeaseToken != nil || account.MutationLeaseUntil != nil ||
+		submission.CommandLeaseToken == nil || submission.CommandLeaseExpiresAt == nil ||
+		*submission.CommandLeaseToken == uuid.Nil || !mailboxEntValidTime(*submission.CommandLeaseExpiresAt) ||
+		submission.CommandLeaseExpiresAt.After(databaseNow) ||
+		account.MutationEpoch < 1 || submission.CommandFence < 1 ||
+		account.MutationEpoch <= submission.CommandFence ||
+		submission.MailDraftID == nil || *submission.MailDraftID == uuid.Nil {
+		return false
+	}
+	binding, ok := mailboxEntSubmissionBindingFromRow(submission)
+	return ok && mailboxEntSubmissionClaimDraftMatches(draft, account.ID, *submission.MailDraftID, binding)
+}
+
+func mailboxEntSubmissionRecoveryRequeueOrphaned(ctx context.Context, account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) (MailboxSubmissionStaleRecoveryResult, error) {
+	if submission == nil || MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusAuthorizing ||
+		submission.AttemptCount < 1 || submission.AttemptCount > 7 ||
+		!mailboxEntSubmissionRecoveryOrphanedFenceMatches(account, submission, draft, databaseNow) {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+	}
+	if err := submission.Update().
+		SetStatus(mailsubmission.Status("queued")).
+		ClearCommandLeaseToken().
+		ClearCommandLeaseExpiresAt().
+		ClearDispatchAuthorizedAt().
+		ClearDispatchAuthorizationHash().
+		ClearProviderSubmissionID().
+		ClearProviderMessageID().
+		ClearResultMailMessageID().
+		ClearLastErrorCode().
+		SetNextAttemptAt(databaseNow).
+		SetAttemptCount(submission.AttemptCount).
+		SetUpdatedAt(databaseNow).
+		Exec(ctx); err != nil {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
+	}
+	return mailboxSubmissionStaleRecoveryRequeued(databaseNow), nil
+}
+
+func mailboxEntSubmissionRecoveryTerminalOrphaned(ctx context.Context, account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) (MailboxSubmissionStaleRecoveryResult, error) {
+	if submission == nil || MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusAuthorizing ||
+		submission.AttemptCount != 8 ||
+		!mailboxEntSubmissionRecoveryOrphanedFenceMatches(account, submission, draft, databaseNow) {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+	}
+	if err := submission.Update().
+		SetStatus(mailsubmission.Status("failed")).
+		ClearCommandLeaseToken().
+		ClearCommandLeaseExpiresAt().
+		ClearDispatchAuthorizedAt().
+		ClearDispatchAuthorizationHash().
+		ClearProviderSubmissionID().
+		ClearProviderMessageID().
+		ClearResultMailMessageID().
+		SetLastErrorCode(mailsubmission.LastErrorCode(MailboxSubmissionErrorCodeRetryExhausted)).
+		ClearNextAttemptAt().
+		SetUpdatedAt(databaseNow).
+		Exec(ctx); err != nil {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
+	}
+	if err := draft.Update().
+		SetStatus(maildraft.Status("active")).
+		SetUpdatedAt(databaseNow).
+		Exec(ctx); err != nil {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
+	}
+	return mailboxSubmissionStaleRecoveryFailed(), nil
+}
+
+func mailboxEntSubmissionRecoveryUnknownOrphaned(ctx context.Context, account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) (MailboxSubmissionStaleRecoveryResult, error) {
+	if submission == nil || MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusSubmitting ||
+		submission.AttemptCount < 1 || submission.AttemptCount > 8 ||
+		!mailboxEntSubmissionRecoveryOrphanedFenceMatches(account, submission, draft, databaseNow) {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+	}
+	if err := submission.Update().
+		SetStatus(mailsubmission.Status("unknown")).
+		ClearCommandLeaseToken().
+		ClearCommandLeaseExpiresAt().
+		ClearProviderSubmissionID().
+		ClearProviderMessageID().
+		ClearResultMailMessageID().
+		SetLastErrorCode(mailsubmission.LastErrorCode(MailboxSubmissionErrorCodeReconciliationRequired)).
+		ClearNextAttemptAt().
+		SetReconcileAttempts(0).
+		SetNextReconcileAt(databaseNow).
+		SetUpdatedAt(databaseNow).
+		Exec(ctx); err != nil {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
+	}
+	return mailboxSubmissionStaleRecoveryReconciliationRequired(), nil
+}
+
+func mailboxEntSubmissionRecoveryReleaseUnknownOrphaned(ctx context.Context, account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) (MailboxSubmissionStaleRecoveryResult, error) {
+	if submission == nil || MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusUnknown ||
+		submission.ReconcileAttempts < 1 || submission.ReconcileAttempts > 10 ||
+		!mailboxEntSubmissionRecoveryOrphanedFenceMatches(account, submission, draft, databaseNow) {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+	}
+	update := submission.Update().
+		SetStatus(mailsubmission.Status("unknown")).
+		ClearCommandLeaseToken().
+		ClearCommandLeaseExpiresAt().
+		ClearProviderSubmissionID().
+		ClearProviderMessageID().
+		ClearResultMailMessageID().
+		ClearNextAttemptAt().
+		SetReconcileAttempts(submission.ReconcileAttempts).
+		SetUpdatedAt(databaseNow)
+	if submission.ReconcileAttempts == 10 {
+		update.SetLastErrorCode(mailsubmission.LastErrorCode(MailboxSubmissionErrorCodeReconciliationExhausted)).
+			ClearNextReconcileAt()
+	} else {
+		update.SetLastErrorCode(mailboxEntSubmissionRecoveryPendingCode(submission.LastErrorCode)).
+			SetNextReconcileAt(databaseNow)
+	}
+	if err := update.Exec(ctx); err != nil {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
+	}
+	return mailboxSubmissionStaleRecoveryLeaseReleased(), nil
+}
+
+func mailboxEntSubmissionRecoveryReleaseAcceptedOrphaned(ctx context.Context, account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) (MailboxSubmissionStaleRecoveryResult, error) {
+	if submission == nil || MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusAccepted ||
+		!mailboxEntSubmissionRecoveryOrphanedFenceMatches(account, submission, draft, databaseNow) {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorVersionConflict)
+	}
+	if err := submission.Update().
+		ClearCommandLeaseToken().
+		ClearCommandLeaseExpiresAt().
+		SetUpdatedAt(databaseNow).
+		Exec(ctx); err != nil {
+		return MailboxSubmissionStaleRecoveryResult{}, NewMailboxSubmissionRepositoryError(MailboxSubmissionRepositoryErrorUnavailable)
+	}
+	return mailboxSubmissionStaleRecoveryLeaseReleased(), nil
 }
 
 func mailboxEntSubmissionRecoveryRequeue(ctx context.Context, account *ent.MailAccount, submission *ent.MailSubmission, draft *ent.MailDraft, databaseNow time.Time) (MailboxSubmissionStaleRecoveryResult, error) {

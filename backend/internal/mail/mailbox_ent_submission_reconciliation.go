@@ -154,7 +154,7 @@ func (repository *MailboxEntRepository) ClaimUnknownMailboxSubmission(ctx contex
 			result = busyResult
 			return nil
 		}
-		if busyUntil, busy, valid := mailboxEntSubmissionClaimBusyUntil(account); !valid {
+		if busyUntil, busy, valid := mailboxEntSubmissionClaimBusyUntil(account, databaseNow); !valid {
 			return newMailboxSubmissionReconciliationError(MailboxSubmissionReconciliationErrorInvalid)
 		} else if busy {
 			busyResult, err := NewMailboxSubmissionReconciliationBusyResult(busyUntil)
@@ -367,7 +367,7 @@ func mailboxEntSubmissionReconciliationScanRowValid(submission *ent.MailSubmissi
 	if submission == nil || submission.ID == uuid.Nil || submission.MailAccountID == uuid.Nil || !mailboxEntValidTime(databaseNow) ||
 		!mailboxEntSubmissionRowValid(submission, submission.MailAccountID) || MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusUnknown ||
 		submission.NextReconcileAt == nil || submission.NextReconcileAt.After(databaseNow) || submission.CommandLeaseToken != nil ||
-		submission.CommandLeaseExpiresAt != nil || submission.DispatchAuthorizedAt == nil || submission.DispatchAuthorizationHash == nil ||
+		submission.CommandLeaseExpiresAt != nil || submission.DispatchAuthorizedAt == nil || mailboxEntNullableBytesAbsent(submission.DispatchAuthorizationHash) ||
 		submission.ProviderSubmissionID != nil || submission.ProviderMessageID != nil || submission.ResultMailMessageID != nil ||
 		submission.NextAttemptAt != nil || submission.MailDraftID == nil || *submission.MailDraftID == uuid.Nil ||
 		submission.AttemptCount < 1 || submission.AttemptCount > 8 || submission.ReconcileAttempts < 0 || submission.ReconcileAttempts > 9 ||
@@ -401,7 +401,7 @@ func mailboxEntSubmissionReconciliationFenceMatches(account *ent.MailAccount, su
 		MailboxSubmissionStatus(submission.Status) != MailboxSubmissionStatusUnknown || submission.MailDraftID == nil ||
 		submission.ReconcileAttempts < 1 || submission.ReconcileAttempts > 10 || submission.NextReconcileAt != nil ||
 		submission.LastErrorCode == nil || !mailboxEntSubmissionReconciliationPendingCode(MailboxSubmissionErrorCode(*submission.LastErrorCode)) ||
-		submission.DispatchAuthorizedAt == nil || submission.DispatchAuthorizationHash == nil ||
+		submission.DispatchAuthorizedAt == nil || mailboxEntNullableBytesAbsent(submission.DispatchAuthorizationHash) ||
 		submission.ProviderSubmissionID != nil || submission.ProviderMessageID != nil || submission.ResultMailMessageID != nil ||
 		submission.NextAttemptAt != nil || account.MutationLeaseToken == nil || account.MutationLeaseUntil == nil ||
 		submission.CommandLeaseToken == nil || submission.CommandLeaseExpiresAt == nil ||

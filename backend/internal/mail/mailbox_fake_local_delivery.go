@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"log/slog"
+	"reflect"
 	"sort"
 	"time"
 )
@@ -11,6 +13,30 @@ import (
 const (
 	fakeLocalDeliveryCalendarLocatorDomain  = "hub.mail.fake.local-delivery.calendar-locator.v1"
 	fakeLocalDeliveryCalendarLocatorVersion = byte(1)
+)
+
+type fakeLocalDeliveryFailureStage string
+
+const (
+	fakeLocalDeliveryFailureStageDraftBinding        fakeLocalDeliveryFailureStage = "draft_binding"
+	fakeLocalDeliveryFailureStageSenderSentFolder    fakeLocalDeliveryFailureStage = "sender_sent_folder"
+	fakeLocalDeliveryFailureStageRecipientRouting    fakeLocalDeliveryFailureStage = "recipient_routing"
+	fakeLocalDeliveryFailureStageCalendarStage       fakeLocalDeliveryFailureStage = "calendar_stage"
+	fakeLocalDeliveryFailureStageFault               fakeLocalDeliveryFailureStage = "fault"
+	fakeLocalDeliveryFailureStageCandidateValidation fakeLocalDeliveryFailureStage = "candidate_validation"
+	fakeLocalDeliveryFailureStageCommitRecheck       fakeLocalDeliveryFailureStage = "commit_recheck"
+	fakeLocalDeliveryFailureStageCandidateCollision  fakeLocalDeliveryFailureStage = "candidate_collision"
+	fakeLocalDeliveryFailureStageCommitted           fakeLocalDeliveryFailureStage = "committed"
+)
+
+type fakeLocalDeliveryCalendarMismatchReason string
+
+const (
+	fakeLocalDeliveryCalendarMismatchReasonBCC                   fakeLocalDeliveryCalendarMismatchReason = "bcc"
+	fakeLocalDeliveryCalendarMismatchReasonDraftsFolder          fakeLocalDeliveryCalendarMismatchReason = "drafts_folder"
+	fakeLocalDeliveryCalendarMismatchReasonStageDraftIdentity    fakeLocalDeliveryCalendarMismatchReason = "stage_draft_identity"
+	fakeLocalDeliveryCalendarMismatchReasonStageDraftImportState fakeLocalDeliveryCalendarMismatchReason = "stage_draft_import_state"
+	fakeLocalDeliveryCalendarMismatchReasonMethodInvalid         fakeLocalDeliveryCalendarMismatchReason = "method_invalid"
 )
 
 type fakeLocalDeliveryTarget struct {
@@ -47,7 +73,30 @@ type fakeLocalDeliveryRecipientCandidate struct {
 // submitMailboxSubmissionWithLocalDelivery creates the existing sender
 // projection together with all resolved local inbox projections as one Fake
 // state transition. All routing and candidate validation precede reservation.
-func (f *FakeMailEngine) submitMailboxSubmissionWithLocalDelivery(submission EngineSubmission) (EngineSubmissionResult, error) {
+func (f *FakeMailEngine) submitMailboxSubmissionWithLocalDelivery(submission EngineSubmission) (result EngineSubmissionResult, err error) {
+	stage := fakeLocalDeliveryFailureStageDraftBinding
+	calendarMismatchReason := fakeLocalDeliveryCalendarMismatchReason("")
+	submissionWritten := false
+	secondPassLocked := false
+	defer func() {
+		if secondPassLocked {
+			f.mu.Unlock()
+		}
+		if err != nil {
+			attributes := []any{
+				"fake_local_delivery_stage", string(stage),
+				"submission_written", submissionWritten,
+			}
+			if calendarMismatchReason != "" {
+				attributes = append(attributes, "fake_local_delivery_calendar_mismatch_reason", string(calendarMismatchReason))
+			}
+			slog.Warn(
+				"mail fake local delivery submit failed",
+				attributes...,
+			)
+		}
+	}()
+
 	f.mu.Lock()
 	if stored, ok := f.submissions[submission.AccountID][submission.SubmissionKey]; ok {
 		if !fakeSubmissionBindingMatches(stored, submission) {
@@ -70,11 +119,14 @@ func (f *FakeMailEngine) submitMailboxSubmissionWithLocalDelivery(submission Eng
 		f.mu.Unlock()
 		return nil, fakeEngineError(EngineErrorRejectedPolicy)
 	}
-	plan, err := f.fakeLocalDeliveryPlanLocked(submission, draft)
+	plan, planStage, planCalendarMismatchReason, err := f.fakeLocalDeliveryPlanLocked(submission, draft)
 	if err != nil {
+		stage = planStage
+		calendarMismatchReason = planCalendarMismatchReason
 		f.mu.Unlock()
 		return nil, err
 	}
+	stage = fakeLocalDeliveryFailureStageFault
 	fault, faulted := f.takeFaultLocked(FakeMailOperationSubmit)
 	if faulted && !fault.AfterDispatch {
 		f.mu.Unlock()
@@ -83,19 +135,17 @@ func (f *FakeMailEngine) submitMailboxSubmissionWithLocalDelivery(submission Eng
 	message := cloneMessage(draft.message)
 	f.mu.Unlock()
 
+	stage = fakeLocalDeliveryFailureStageCandidateValidation
 	message.Projection.MessageID = ""
 	if int64(messageVariableBytes(message)) > submission.MaxMessageBytes {
 		return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
 
-	var receivedAt time.Time
-	if len(plan.targets) != 0 {
-		receivedAt = f.currentTime()
-		if !validMailEventTime(receivedAt) {
-			return nil, fakeEngineError(EngineErrorRejectedPolicy)
-		}
+	sentAt := f.currentTime()
+	if !validMailEventTime(sentAt) {
+		return nil, fakeEngineError(EngineErrorRejectedPolicy)
 	}
-	ids, err := f.fakeLocalDeliveryCandidateIDs(len(plan.targets))
+	ids, err := f.fakeLocalDeliveryCandidateIDs(submission.MessageID, len(plan.targets))
 	if err != nil {
 		return nil, err
 	}
@@ -103,19 +153,21 @@ func (f *FakeMailEngine) submitMailboxSubmissionWithLocalDelivery(submission Eng
 	message.Projection.Flags.Draft = false
 	message.Projection.Origin = EngineProjectionOriginConfirmedOwnerSubmission
 	message.Projection.FolderIDs = []string{plan.senderSentFolderID}
+	message.Projection.SentAt = &sentAt
 	if int64(messageVariableBytes(message)) > submission.MaxMessageBytes {
 		return nil, fakeEngineError(EngineErrorPayloadTooLarge)
 	}
 	if err := validateEngineMessage(message); err != nil {
 		return nil, err
 	}
-	recipients, err := fakeLocalDeliveryRecipientCandidates(message, plan, ids, receivedAt)
+	recipients, err := fakeLocalDeliveryRecipientCandidates(message, plan, ids, sentAt)
 	if err != nil {
 		return nil, err
 	}
 
+	stage = fakeLocalDeliveryFailureStageCommitRecheck
 	f.mu.Lock()
-	defer f.mu.Unlock()
+	secondPassLocked = true
 	if stored, ok := f.submissions[submission.AccountID][submission.SubmissionKey]; ok {
 		if !fakeSubmissionBindingMatches(stored, submission) {
 			return nil, fakeEngineError(EngineErrorIndeterminate)
@@ -132,14 +184,18 @@ func (f *FakeMailEngine) submitMailboxSubmissionWithLocalDelivery(submission Eng
 	if len(draft.message.Projection.Attachments) != 0 {
 		return nil, fakeEngineError(EngineErrorRejectedPolicy)
 	}
-	currentPlan, err := f.fakeLocalDeliveryPlanLocked(submission, draft)
+	currentPlan, planStage, planCalendarMismatchReason, err := f.fakeLocalDeliveryPlanLocked(submission, draft)
 	if err != nil {
+		stage = planStage
+		calendarMismatchReason = planCalendarMismatchReason
 		return nil, err
 	}
+	stage = fakeLocalDeliveryFailureStageCandidateCollision
 	if !fakeLocalDeliveryPlansEqual(plan, currentPlan) {
 		return nil, fakeEngineError(EngineErrorConflict)
 	}
-	if _, exists := f.messages[message.Projection.AccountID][message.Projection.MessageID]; exists {
+	storedDraftMessage, exists := f.messages[message.Projection.AccountID][message.Projection.MessageID]
+	if !exists || !reflect.DeepEqual(cloneMessage(draft.message), cloneMessage(storedDraftMessage)) {
 		return nil, fakeEngineError(EngineErrorConflict)
 	}
 	for _, recipient := range recipients {
@@ -190,6 +246,8 @@ func (f *FakeMailEngine) submitMailboxSubmissionWithLocalDelivery(submission Eng
 		messageID:       submission.MessageID,
 		expectedVersion: submission.ExpectedVersion,
 	}
+	submissionWritten = true
+	stage = fakeLocalDeliveryFailureStageCommitted
 	if faulted && fault.AfterDispatch {
 		return nil, fakeEngineError(fault.Kind)
 	}
@@ -330,25 +388,25 @@ func fakeLocalDeliveryDraftMessageInFolder(message EngineMessage, accountID, fol
 		projection.FolderIDs[0] == folderID
 }
 
-func (f *FakeMailEngine) fakeLocalDeliveryPlanLocked(submission EngineSubmission, draft fakeDraft) (fakeLocalDeliveryPlan, error) {
+func (f *FakeMailEngine) fakeLocalDeliveryPlanLocked(submission EngineSubmission, draft fakeDraft) (fakeLocalDeliveryPlan, fakeLocalDeliveryFailureStage, fakeLocalDeliveryCalendarMismatchReason, error) {
 	senderSentFolderID, err := f.fakeLocalDeliverySystemFolderIDLocked(submission.AccountID, EngineFolderRoleSent)
 	if err != nil {
-		return fakeLocalDeliveryPlan{}, err
+		return fakeLocalDeliveryPlan{}, fakeLocalDeliveryFailureStageSenderSentFolder, "", err
 	}
 	targets, err := f.fakeLocalDeliveryTargetsLocked(draft.message.Projection)
 	if err != nil {
-		return fakeLocalDeliveryPlan{}, err
+		return fakeLocalDeliveryPlan{}, fakeLocalDeliveryFailureStageRecipientRouting, "", err
 	}
 	plan := fakeLocalDeliveryPlan{senderSentFolderID: senderSentFolderID, targets: targets}
 	if len(targets) == 0 {
-		return plan, nil
+		return plan, "", "", nil
 	}
-	calendar, err := f.fakeLocalDeliveryCalendarLocked(submission, draft)
+	calendar, calendarMismatchReason, err := f.fakeLocalDeliveryCalendarLocked(submission, draft)
 	if err != nil {
-		return fakeLocalDeliveryPlan{}, err
+		return fakeLocalDeliveryPlan{}, fakeLocalDeliveryFailureStageCalendarStage, calendarMismatchReason, err
 	}
 	plan.calendar = calendar
-	return plan, nil
+	return plan, "", "", nil
 }
 
 func (f *FakeMailEngine) fakeLocalDeliveryTargetsLocked(projection EngineMessageProjection) ([]fakeLocalDeliveryTarget, error) {
@@ -436,77 +494,89 @@ func (f *FakeMailEngine) fakeLocalDeliverySystemFolderIDLocked(accountID string,
 	return folderID, nil
 }
 
-func (f *FakeMailEngine) fakeLocalDeliveryCalendarLocked(submission EngineSubmission, draft fakeDraft) (*fakeLocalDeliveryCalendar, error) {
-	var (
-		key   fakeCalendarDraftCreateKey
-		stage fakeCalendarDraftCreateStage
-		found bool
-	)
-	for candidateKey, candidateStage := range f.calendarDraftCreates {
-		if candidateKey.accountID != submission.AccountID || candidateKey.draftKey != submission.DraftKey {
-			continue
-		}
-		if found {
-			return nil, fakeEngineError(EngineErrorConflict)
-		}
-		key = candidateKey
-		stage = candidateStage
-		found = true
+func (f *FakeMailEngine) fakeLocalDeliveryCalendarLocked(submission EngineSubmission, draft fakeDraft) (*fakeLocalDeliveryCalendar, fakeLocalDeliveryCalendarMismatchReason, error) {
+	key := fakeCalendarDraftCreateKey{
+		accountID:  submission.AccountID,
+		draftKey:   submission.DraftKey,
+		mutationID: draft.identity.mutationID,
 	}
+	stage, found := f.calendarDraftCreates[key]
 	if !found {
-		return nil, nil
+		return nil, "", nil
 	}
 	if len(draft.message.Projection.BCC) != 0 {
-		return nil, fakeEngineError(EngineErrorRejectedPolicy)
+		return nil, fakeLocalDeliveryCalendarMismatchReasonBCC, fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	draftFolderID, err := f.fakeLocalDeliverySystemFolderIDLocked(submission.AccountID, EngineFolderRoleDrafts)
 	if err != nil {
-		return nil, err
+		return nil, fakeLocalDeliveryCalendarMismatchReasonDraftsFolder, err
 	}
-	if !fakeLocalDeliveryCalendarStageMatchesDraft(key, stage, draft, draftFolderID) {
-		return nil, fakeEngineError(EngineErrorConflict)
+	if reason := fakeLocalDeliveryCalendarStageMatchesDraft(key, stage, draft, draftFolderID); reason != "" {
+		return nil, reason, fakeEngineError(EngineErrorConflict)
 	}
 	method, ok := fakeLocalDeliveryCalendarMethod(stage.calendar.method)
 	if !ok {
-		return nil, fakeEngineError(EngineErrorUnavailable)
+		return nil, fakeLocalDeliveryCalendarMismatchReasonMethodInvalid, fakeEngineError(EngineErrorUnavailable)
 	}
 	return &fakeLocalDeliveryCalendar{
 		method:        method,
 		itip:          stage.calendar.calendarBytes(),
 		bindingDigest: stage.bindingDigest,
 		contentDigest: stage.calendarContentDigest,
-	}, nil
+	}, "", nil
 }
 
-func fakeLocalDeliveryCalendarStageMatchesDraft(key fakeCalendarDraftCreateKey, stage fakeCalendarDraftCreateStage, draft fakeDraft, draftFolderID string) bool {
+func fakeLocalDeliveryCalendarStageMatchesDraft(key fakeCalendarDraftCreateKey, stage fakeCalendarDraftCreateStage, draft fakeDraft, draftFolderID string) fakeLocalDeliveryCalendarMismatchReason {
 	receivedAt := draft.message.Projection.ReceivedAt
 	if receivedAt == nil || key.accountID != stage.draft.AccountID || key.draftKey != stage.draft.DraftKey || key.mutationID != stage.draft.MutationID {
-		return false
+		return fakeLocalDeliveryCalendarMismatchReasonStageDraftIdentity
 	}
-	return fakeCalendarDraftCreateImportedMessageMatches(draft, stage, mailboxDraftCalendarCreateImport{
+	if !fakeCalendarDraftCreateImportedMessageMatches(draft, stage, mailboxDraftCalendarCreateImport{
 		accountID:  key.accountID,
 		draftKey:   key.draftKey,
 		mutationID: key.mutationID,
 		blobID:     stage.blobID,
 		sizeBytes:  stage.sizeBytes,
 		receivedAt: *receivedAt,
-	}, draftFolderID)
+	}, draftFolderID) {
+		return fakeLocalDeliveryCalendarMismatchReasonStageDraftImportState
+	}
+	return ""
 }
 
 func fakeLocalDeliveryCalendarMethod(method CalendarMailDeliveryMethod) (MailCalendarMethod, bool) {
-	result := MailCalendarMethod(method)
-	return result, validCalendarPartMethod(result)
+	switch method {
+	case CalendarMailDeliveryMethodRequest:
+		return MailCalendarMethodRequest, true
+	case CalendarMailDeliveryMethodCancel:
+		return MailCalendarMethodCancel, true
+	case CalendarMailDeliveryMethodReply:
+		return MailCalendarMethodReply, true
+	default:
+		var empty MailCalendarMethod
+		return empty, false
+	}
 }
 
-func (f *FakeMailEngine) fakeLocalDeliveryCandidateIDs(targetCount int) (fakeLocalDeliveryCandidateIDs, error) {
-	if targetCount < 0 {
+func fakeLocalDeliveryCalendarDeliveryMethod(method MailCalendarMethod) (CalendarMailDeliveryMethod, bool) {
+	switch method {
+	case MailCalendarMethodRequest:
+		return CalendarMailDeliveryMethodRequest, true
+	case MailCalendarMethodCancel:
+		return CalendarMailDeliveryMethodCancel, true
+	case MailCalendarMethodReply:
+		return CalendarMailDeliveryMethodReply, true
+	default:
+		var empty CalendarMailDeliveryMethod
+		return empty, false
+	}
+}
+
+func (f *FakeMailEngine) fakeLocalDeliveryCandidateIDs(senderMessageID string, targetCount int) (fakeLocalDeliveryCandidateIDs, error) {
+	if !validOpaqueID(senderMessageID) || targetCount < 0 {
 		return fakeLocalDeliveryCandidateIDs{}, fakeEngineError(EngineErrorRejectedPolicy)
 	}
 	submissionID, err := f.nextOpaqueID()
-	if err != nil {
-		return fakeLocalDeliveryCandidateIDs{}, err
-	}
-	senderMessageID, err := f.nextOpaqueID()
 	if err != nil {
 		return fakeLocalDeliveryCandidateIDs{}, err
 	}
@@ -515,9 +585,9 @@ func (f *FakeMailEngine) fakeLocalDeliveryCandidateIDs(targetCount int) (fakeLoc
 		senderMessageID:     senderMessageID,
 		recipientMessageIDs: make([]string, targetCount),
 		recipientVersions:   make([]string, targetCount),
-		reservedIDs:         make([]string, 0, 2+targetCount*2),
+		reservedIDs:         make([]string, 0, 1+targetCount*2),
 	}
-	result.reservedIDs = append(result.reservedIDs, submissionID, senderMessageID)
+	result.reservedIDs = append(result.reservedIDs, submissionID)
 	for index := 0; index < targetCount; index++ {
 		messageID, err := f.nextOpaqueID()
 		if err != nil {
@@ -587,6 +657,7 @@ func fakeLocalDeliveryRecipientCandidateForTarget(
 	message.Projection.Origin = EngineProjectionOriginInboundOrUnknown
 	message.Projection.AuthenticationClass = MailAuthenticationClassTrustedInternal
 	instant := receivedAt.UTC()
+	message.Projection.SentAt = nil
 	message.Projection.ReceivedAt = &instant
 	message.Projection.CalendarMethod = nil
 	message.Projection.CalendarPartLocatorHash = nil
@@ -620,7 +691,8 @@ func fakeLocalDeliveryRecipientCandidateForTarget(
 }
 
 func fakeLocalDeliveryCalendarLocatorHash(accountID, messageID, version string, calendar fakeLocalDeliveryCalendar) ([sha256.Size]byte, error) {
-	if !validAccountID(accountID) || !validOpaqueID(messageID) || !validOpaqueID(version) || !validCalendarPartMethod(calendar.method) || len(calendar.itip) == 0 || len(calendar.itip) > MaxCalendarPartBytes || calendar.bindingDigest == [sha256.Size]byte{} || calendar.contentDigest == [sha256.Size]byte{} || calendar.contentDigest != calendarMIMEPartContentHash(CalendarMailDeliveryMethod(calendar.method), calendar.itip) {
+	deliveryMethod, deliveryMethodOK := fakeLocalDeliveryCalendarDeliveryMethod(calendar.method)
+	if !deliveryMethodOK || !validAccountID(accountID) || !validOpaqueID(messageID) || !validOpaqueID(version) || !validCalendarPartMethod(calendar.method) || len(calendar.itip) == 0 || len(calendar.itip) > MaxCalendarPartBytes || calendar.bindingDigest == [sha256.Size]byte{} || calendar.contentDigest == [sha256.Size]byte{} || calendar.contentDigest != calendarMIMEPartContentHash(deliveryMethod, calendar.itip) {
 		return [sha256.Size]byte{}, fakeEngineError(EngineErrorUnavailable)
 	}
 	hasher := sha256.New()

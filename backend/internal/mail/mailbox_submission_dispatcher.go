@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"log/slog"
 	"reflect"
 
 	"github.com/google/uuid"
@@ -11,6 +12,18 @@ type mailboxSubmissionEngine interface {
 	PreflightSubmission(context.Context, EngineSubmissionPreflightRequest) (EngineSubmissionPreflight, error)
 	submitMailboxSubmission(context.Context, EngineSubmission) (EngineSubmissionResult, error)
 }
+
+type mailboxSubmissionDispatchStage string
+
+const (
+	mailboxSubmissionDispatchStageClaim               mailboxSubmissionDispatchStage = "claim"
+	mailboxSubmissionDispatchStagePreflightRequest    mailboxSubmissionDispatchStage = "preflight_request"
+	mailboxSubmissionDispatchStagePreflight           mailboxSubmissionDispatchStage = "preflight"
+	mailboxSubmissionDispatchStagePreflightResolution mailboxSubmissionDispatchStage = "preflight_resolution"
+	mailboxSubmissionDispatchStageAuthorize           mailboxSubmissionDispatchStage = "authorize"
+	mailboxSubmissionDispatchStageSubmit              mailboxSubmissionDispatchStage = "submit"
+	mailboxSubmissionDispatchStageDispatchResolution  mailboxSubmissionDispatchStage = "dispatch_resolution"
+)
 
 var (
 	_ mailboxSubmissionEngine = (*FakeMailEngine)(nil)
@@ -51,11 +64,19 @@ func mailboxSubmissionTypedNil(value any) bool {
 // Dispatch claims one queued receipt, preflights it outside a transaction,
 // authorizes it durably, and makes at most one provider mutation. A busy or
 // stale submitting receipt is a no-op: it never enters the mutation path.
-func (dispatcher *MailboxSubmissionDispatcher) Dispatch(ctx context.Context, submissionID uuid.UUID) error {
+func (dispatcher *MailboxSubmissionDispatcher) Dispatch(ctx context.Context, submissionID uuid.UUID) (resultErr error) {
+	stage := mailboxSubmissionDispatchStageClaim
+	defer func() {
+		if resultErr != nil {
+			slog.Warn("mailbox submission dispatch failed", "stage", string(stage))
+		}
+	}()
+
 	if dispatcher == nil || dispatcher.repository == nil || dispatcher.engine == nil || ctx == nil || submissionID == uuid.Nil {
 		return newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorInvalid)
 	}
 
+	stage = mailboxSubmissionDispatchStageClaim
 	claimResult, err := dispatcher.repository.ClaimMailboxSubmission(ctx, MailboxSubmissionClaimRequest{SubmissionID: submissionID})
 	if err != nil {
 		return newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorRepositoryUnavailable)
@@ -68,15 +89,20 @@ func (dispatcher *MailboxSubmissionDispatcher) Dispatch(ctx context.Context, sub
 		return newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorInvalid)
 	}
 
+	stage = mailboxSubmissionDispatchStagePreflightRequest
 	preflightRequest, ok := claim.Policy().PreflightRequest(claim.submission)
 	if !ok {
+		stage = mailboxSubmissionDispatchStagePreflightResolution
 		return dispatcher.resolvePreflightFailure(ctx, mailboxSubmissionDispatchPreflightFailure(claim, nil))
 	}
+	stage = mailboxSubmissionDispatchStagePreflight
 	preflight, err := dispatcher.engine.PreflightSubmission(ctx, preflightRequest)
 	if err != nil || !mailboxSubmissionPreflightValid(preflight) {
+		stage = mailboxSubmissionDispatchStagePreflightResolution
 		return dispatcher.resolvePreflightFailure(ctx, mailboxSubmissionDispatchPreflightFailure(claim, err))
 	}
 
+	stage = mailboxSubmissionDispatchStageAuthorize
 	authorizeResult, err := dispatcher.repository.AuthorizeMailboxSubmission(ctx, MailboxSubmissionAuthorizeRequest{Claim: claim, Preflight: preflight})
 	if err != nil {
 		return newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorRepositoryUnavailable)
@@ -89,6 +115,7 @@ func (dispatcher *MailboxSubmissionDispatcher) Dispatch(ctx context.Context, sub
 		if !authorized {
 			return newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorInvalid)
 		}
+		stage = mailboxSubmissionDispatchStageSubmit
 		return dispatcher.dispatchAuthorized(ctx, claim, authorization)
 	default:
 		return newMailboxSubmissionDispatchError(MailboxSubmissionDispatchErrorInvalid)
@@ -108,19 +135,31 @@ func (dispatcher *MailboxSubmissionDispatcher) resolvePreflightFailure(ctx conte
 	}
 }
 
-func (dispatcher *MailboxSubmissionDispatcher) dispatchAuthorized(ctx context.Context, claim MailboxSubmissionClaim, authorization MailboxSubmissionDispatchAuthorization) error {
+func (dispatcher *MailboxSubmissionDispatcher) dispatchAuthorized(ctx context.Context, claim MailboxSubmissionClaim, authorization MailboxSubmissionDispatchAuthorization) (resultErr error) {
+	stage := mailboxSubmissionDispatchStageSubmit
+	defer func() {
+		if resultErr != nil {
+			slog.Warn("mailbox submission dispatch failed", "stage", string(stage))
+		}
+	}()
+
 	if authorization.SubmissionID() != claim.SubmissionID() || authorization.Fence() != claim.Fence() || authorization.AuthorizedAt().IsZero() || ctx.Err() != nil {
+		stage = mailboxSubmissionDispatchStageDispatchResolution
 		return dispatcher.resolve(ctx, authorization, MailboxSubmissionDispatchResolutionUnknown, "", "")
 	}
 
+	stage = mailboxSubmissionDispatchStageSubmit
 	result, err := dispatcher.engine.submitMailboxSubmission(ctx, claim.submission)
 	if err != nil {
+		stage = mailboxSubmissionDispatchStageDispatchResolution
 		return dispatcher.resolve(ctx, authorization, MailboxSubmissionDispatchResolutionUnknown, "", "")
 	}
 	accepted, ok := result.(EngineSubmissionAccepted)
 	if !ok || !validOpaqueID(accepted.SubmissionID) || !validOpaqueID(accepted.MessageID) {
+		stage = mailboxSubmissionDispatchStageDispatchResolution
 		return dispatcher.resolve(ctx, authorization, MailboxSubmissionDispatchResolutionUnknown, "", "")
 	}
+	stage = mailboxSubmissionDispatchStageDispatchResolution
 	return dispatcher.resolve(ctx, authorization, MailboxSubmissionDispatchResolutionAccepted, accepted.SubmissionID, accepted.MessageID)
 }
 

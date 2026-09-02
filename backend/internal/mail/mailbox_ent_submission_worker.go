@@ -4,10 +4,12 @@ import (
 	"context"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/mailsubmission"
+	"github.com/valerii/hub/backend/ent/predicate"
 )
 
 var _ MailboxSubmissionWorkerDueScanner = (*MailboxEntRepository)(nil)
@@ -42,6 +44,7 @@ func (repository *MailboxEntRepository) ScanDueMailboxSubmissionIDs(ctx context.
 				mailsubmission.AttemptCountGTE(0),
 				mailsubmission.AttemptCountLTE(7),
 				mailsubmission.MailDraftIDNotNil(),
+				mailboxEntSubmissionWorkerNoAccountDispatchBlocker(selectedAt),
 			).
 			Order(ent.Asc(mailsubmission.FieldNextAttemptAt), ent.Asc(mailsubmission.FieldID)).
 			Limit(request.Limit).
@@ -73,11 +76,37 @@ func (repository *MailboxEntRepository) ScanDueMailboxSubmissionIDs(ctx context.
 	return mailboxEntSubmissionWorkerDueScanResultCopy(result), nil
 }
 
+// mailboxEntSubmissionWorkerNoAccountDispatchBlocker keeps an advisory scan
+// from filling its bounded batch with work that its account cannot dispatch.
+// The claim transaction remains the authoritative concurrency boundary.
+func mailboxEntSubmissionWorkerNoAccountDispatchBlocker(selectedAt time.Time) predicate.MailSubmission {
+	return func(selector *sql.Selector) {
+		blocker := sql.Table(mailsubmission.Table).As("mail_submission_account_dispatch_blocker")
+		selector.Where(sql.NotExists(
+			sql.Select().
+				From(blocker).
+				Where(sql.And(
+					sql.ColumnsEQ(blocker.C(mailsubmission.FieldMailAccountID), selector.C(mailsubmission.FieldMailAccountID)),
+					sql.ColumnsNEQ(blocker.C(mailsubmission.FieldID), selector.C(mailsubmission.FieldID)),
+					sql.Or(
+						sql.EQ(blocker.C(mailsubmission.FieldStatus), mailsubmission.Status("unknown")),
+						sql.And(
+							sql.EQ(blocker.C(mailsubmission.FieldStatus), mailsubmission.Status("submitting")),
+							sql.NotNull(blocker.C(mailsubmission.FieldCommandLeaseToken)),
+							sql.NotNull(blocker.C(mailsubmission.FieldCommandLeaseExpiresAt)),
+							sql.LTE(blocker.C(mailsubmission.FieldCommandLeaseExpiresAt), selectedAt),
+						),
+					),
+				)),
+		))
+	}
+}
+
 func mailboxEntSubmissionWorkerDueScanRowValid(submission *ent.MailSubmission, selectedAt time.Time) bool {
 	return submission != nil && submission.ID != uuid.Nil && submission.Status == mailsubmission.Status("queued") &&
 		submission.NextAttemptAt != nil && mailboxEntValidTime(*submission.NextAttemptAt) && !submission.NextAttemptAt.After(selectedAt) &&
 		submission.CommandLeaseToken == nil && submission.CommandLeaseExpiresAt == nil &&
-		submission.DispatchAuthorizedAt == nil && submission.DispatchAuthorizationHash == nil &&
+		submission.DispatchAuthorizedAt == nil && mailboxEntNullableBytesAbsent(submission.DispatchAuthorizationHash) &&
 		submission.ProviderSubmissionID == nil && submission.ProviderMessageID == nil &&
 		submission.ResultMailMessageID == nil && submission.LastErrorCode == nil &&
 		submission.AttemptCount >= 0 && submission.AttemptCount <= 7 &&

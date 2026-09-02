@@ -205,7 +205,7 @@ func (result MailboxSubmissionClaimResult) Claim() (MailboxSubmissionClaim, bool
 	return mailboxSubmissionClaimCopy(result.claim), true
 }
 
-// BusyUntil returns a defensive UTC lease observation only for a valid busy result.
+// BusyUntil returns a defensive UTC account-dispatch deferral observation for a valid busy result.
 func (result MailboxSubmissionClaimResult) BusyUntil() (time.Time, bool) {
 	if !mailboxSubmissionClaimResultValid(result) || result.claimed {
 		return time.Time{}, false
