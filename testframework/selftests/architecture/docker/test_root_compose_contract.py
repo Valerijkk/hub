@@ -1400,6 +1400,7 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
         "readers = {x: lambda value: value}\nreaders[x](path)\n",
         "def use(reader=lambda value: value):\n    reader(path)\nuse()\n",
         "def use(reader):\n    reader(path)\nuse(lambda value: value)\n",
+        "def use(reader):\n    reader(path)\nuse(reader=lambda value: value)\n",
         "reader, = (lambda value: value,)\nreader(path)\n",
         "[reader] = [lambda value: value]\nreader(path)\n",
         "runners = {x: lambda value: value}\nrunners[x](source)\n",
