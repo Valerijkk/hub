@@ -901,7 +901,7 @@ def test_hard2g_runtime_budget_contract_is_closed() -> None:
 
 
 def test_hard2g_execute_budget_bridge_is_closed() -> None:
-    canonical_execute = _hard2g_execute_budget_bridge_fixture()
+    canonical_execute = _hard2g_c02_durable_budget_execute_fixture()
     assert _hard2g_execute_budget_bridge_is_closed(canonical_execute)
 
     for hostile in (
@@ -952,7 +952,7 @@ def test_hard2g_execute_budget_bridge_is_closed() -> None:
         ),
         canonical_execute.replace(
             '    if check_budget; then\n      :\n    else\n'
-            '      truncation_evidence=budget-stop\n'
+            '      report_budget_truncated_due_to_budget=true\n'
             '      terminate_owned_go_child_group\n'
             '      reap_owned_go_child_group\n'
             '      return 75\n    fi\n'
@@ -960,7 +960,13 @@ def test_hard2g_execute_budget_bridge_is_closed() -> None:
             '    wait "$go_child_pid"',
             1,
         ),
+        canonical_execute.replace(
+            "report_budget_truncated_due_to_budget=true",
+            "truncation_evidence=budget-stop",
+            1,
+        ),
     ):
+        assert hostile != canonical_execute
         assert not _hard2g_execute_budget_bridge_is_closed(hostile)
 
 
@@ -1430,6 +1436,93 @@ def test_hard2g_c02_durable_budget_fixture_topology_is_closed() -> None:
         assert hostile != receipt
         assert not _hard2g_c02_durable_budget_fixture_topology_is_closed(
             runtime, execute, hostile
+        )
+
+
+def test_hard2g_report_budget_truncation_receipt_binding_is_closed() -> None:
+    runtime = _hard2g_c02_durable_budget_runtime_fixture()
+    plan = "#!/bin/sh\nset -eu\n"
+    execute = _hard2g_c02_durable_budget_execute_fixture()
+    receipt = _hard2g_container_receipt_fixture()
+    assert _hard2g_report_budget_truncation_receipt_binding_is_closed(
+        runtime, plan, execute, receipt
+    )
+
+    hostile_sources = (
+        (
+            runtime.replace("report_budget_truncated_due_to_budget=false\n", "", 1),
+            plan,
+            execute,
+            receipt,
+        ),
+        (
+            runtime,
+            plan + "report_budget_truncated_due_to_budget=false\n",
+            execute,
+            receipt,
+        ),
+        (
+            runtime,
+            plan + ". /payload\n",
+            execute,
+            receipt,
+        ),
+        (
+            runtime,
+            plan,
+            execute.replace(
+                "report_budget_truncated_due_to_budget=true\n", "", 1
+            ),
+            receipt,
+        ),
+        (
+            runtime,
+            plan,
+            execute.replace(
+                "report_budget_truncated_due_to_budget=true",
+                "truncation_evidence=budget-stop",
+                1,
+            ),
+            receipt,
+        ),
+        (
+            runtime,
+            plan,
+            execute,
+            receipt.replace(
+                'case "${report_budget_truncated_due_to_budget-}" in',
+                "case false in",
+                1,
+            ),
+        ),
+        (
+            runtime,
+            plan,
+            execute,
+            receipt.replace(
+                '$report_budget_json}"',
+                'false}"',
+                1,
+            ),
+        ),
+    )
+    for (
+        hostile_runtime,
+        hostile_plan,
+        hostile_execute,
+        hostile_receipt,
+    ) in hostile_sources:
+        assert (hostile_runtime, hostile_plan, hostile_execute, hostile_receipt) != (
+            runtime,
+            plan,
+            execute,
+            receipt,
+        )
+        assert not _hard2g_report_budget_truncation_receipt_binding_is_closed(
+            hostile_runtime,
+            hostile_plan,
+            hostile_execute,
+            hostile_receipt,
         )
 
 
@@ -4175,7 +4268,9 @@ def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
         ):
             return False
         lines = _shell_active_lines(text)
-        fixture_lines = _shell_active_lines(_hard2g_execute_budget_bridge_fixture())
+        fixture_lines = _shell_active_lines(
+            _hard2g_c02_durable_budget_execute_fixture()
+        )
         if not isinstance(lines, tuple) or not isinstance(fixture_lines, tuple):
             return False
         bridge_functions = (
@@ -4223,6 +4318,9 @@ def _hard2g_runner_helpers_are_closed(repo_root: Path) -> bool:
             and _hard2g_runtime_budget_contract_is_closed(runtime)
             and _hard2g_execute_budget_bridge_is_closed(execute)
             and _hard2g_c02_runtime_helper_ownership_is_closed(
+                runtime, plan, execute, receipt
+            )
+            and _hard2g_report_budget_truncation_receipt_binding_is_closed(
                 runtime, plan, execute, receipt
             )
             and _hard2g_container_publication_is_closed(receipt)
@@ -5954,6 +6052,44 @@ def _hard2g_c02_durable_budget_fixture_topology_is_closed(
         return (
             receipt_lines.count(writer) == 1
             and _hard2g_container_publication_is_closed(receipt_text)
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_report_budget_truncation_receipt_binding_is_closed(
+    runtime: object,
+    plan: object,
+    execute: object,
+    receipt: object,
+) -> bool:
+    try:
+        if (
+            type(plan) is not str
+            or "\r" in plan
+            or not plan.endswith("\n")
+            or not _shell_source_is_safe(plan)
+        ):
+            return False
+        plan_lines = _shell_active_lines(plan)
+        if type(plan_lines) is not tuple:
+            return False
+        symbol = "report_budget_truncated_due_to_budget"
+        pattern = re.compile(
+            rf"(?<![A-Za-z0-9_]){re.escape(symbol)}(?![A-Za-z0-9_])"
+        )
+        if any(pattern.search(line) for line in plan_lines):
+            return False
+        return (
+            _hard2g_c02_runtime_helper_ownership_is_closed(
+                runtime, plan, execute, receipt
+            )
+            and _hard2g_runtime_budget_contract_is_closed(runtime)
+            and _hard2g_execute_budget_bridge_is_closed(execute)
+            and _hard2g_c02_durable_budget_fixture_topology_is_closed(
+                runtime, execute, receipt
+            )
+            and _hard2g_container_publication_is_closed(receipt)
         )
     except Exception:
         return False
