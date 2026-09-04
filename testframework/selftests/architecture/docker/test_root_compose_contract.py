@@ -1217,6 +1217,122 @@ def test_hard2g_c02_shell_control_flow_is_closed() -> None:
         assert not _hard2g_c02_shell_control_flow_is_closed(hostile)
 
 
+def test_hard2g_c02_runtime_helper_ownership_is_closed() -> None:
+    runtime = _hard2g_runtime_budget_fixture(_hard2g_runtime_budget_assignments())
+    plan = "#!/bin/sh\nset -eu\n"
+    execute = _hard2g_execute_budget_bridge_fixture()
+    receipt = "#!/bin/sh\nset -eu\n"
+    assert _hard2g_c02_runtime_helper_ownership_is_closed(
+        runtime, plan, execute, receipt
+    )
+    runtime_with_real_helper = runtime.replace(
+        "start_owned_go_child_group() {\n  :\n}\n\n",
+        "start_owned_go_child_group() {\n  return 0\n}\n\n",
+        1,
+    )
+    assert runtime_with_real_helper != runtime
+    assert _hard2g_c02_runtime_helper_ownership_is_closed(
+        runtime_with_real_helper, plan, execute, receipt
+    )
+
+    missing = runtime.replace(
+        "start_owned_go_child_group() {\n  :\n}\n\n", "", 1
+    )
+    empty = runtime.replace(
+        "start_owned_go_child_group() {\n  :\n}\n\n",
+        "start_owned_go_child_group() {\n}\n\n",
+        1,
+    )
+    duplicate = runtime + "\nstart_owned_go_child_group() {\n  :\n}\n"
+    for hostile in (missing, empty, duplicate):
+        assert hostile != runtime
+        assert not _hard2g_c02_runtime_helper_ownership_is_closed(
+            hostile, plan, execute, receipt
+        )
+
+    for definition in (
+        "start_owned_go_child_group() {\n  :\n}\n",
+        "start_owned_go_child_group () {\n  :\n}\n",
+        "start_owned_go_child_group ()\n{\n  :\n}\n",
+        "start_owned_go_child_group(){\n  :\n}\n",
+        "function start_owned_go_child_group() {\n  :\n}\n",
+    ):
+        hostile = execute + "\n" + definition
+        assert hostile != execute
+        assert not _hard2g_c02_runtime_helper_ownership_is_closed(
+            runtime, plan, hostile, receipt
+        )
+
+    for declaration in (
+        "start_owned_go_child_group=payload\n",
+        "readonly start_owned_go_child_group\n",
+        "alias start_owned_go_child_group=payload\n",
+        "unset start_owned_go_child_group\n",
+    ):
+        hostile = execute + declaration
+        assert hostile != execute
+        assert not _hard2g_c02_runtime_helper_ownership_is_closed(
+            runtime, plan, hostile, receipt
+        )
+
+    for source_name in ("plan", "receipt"):
+        for fragment in (
+            "start_owned_go_child_group() {\n  :\n}\n",
+            "start_owned_go_child_group=payload\n",
+            "printf '%s\\n' 'start_owned_go_child_group'\n",
+        ):
+            hostile_plan = plan + fragment if source_name == "plan" else plan
+            hostile_receipt = receipt + fragment if source_name == "receipt" else receipt
+            assert hostile_plan != plan or hostile_receipt != receipt
+            assert not _hard2g_c02_runtime_helper_ownership_is_closed(
+                runtime, hostile_plan, execute, hostile_receipt
+            )
+
+    for fragment in (
+        ". /payload\n",
+        "source /payload\n",
+        "alias unsafe=payload\n",
+    ):
+        hostile = plan + fragment
+        assert hostile != plan
+        assert not _hard2g_c02_runtime_helper_ownership_is_closed(
+            runtime, hostile, execute, receipt
+        )
+
+    for source_name in ("plan", "execute", "receipt"):
+        hostile_plan = plan + "trap ':' EXIT\n" if source_name == "plan" else plan
+        hostile_execute = (
+            execute + "trap ':' EXIT\n" if source_name == "execute" else execute
+        )
+        hostile_receipt = (
+            receipt + "trap ':' EXIT\n" if source_name == "receipt" else receipt
+        )
+        assert (
+            hostile_plan != plan
+            or hostile_execute != execute
+            or hostile_receipt != receipt
+        )
+        assert not _hard2g_c02_runtime_helper_ownership_is_closed(
+            runtime, hostile_plan, hostile_execute, hostile_receipt
+        )
+
+    missing_call = execute.replace(
+        '    start_owned_go_child_group "$stage" "$package"\n', "    :\n", 1
+    )
+    extra_call = execute.replace(
+        '    start_owned_go_child_group "$stage" "$package"\n',
+        '    start_owned_go_child_group "$stage" "$package"\n'
+        '    start_owned_go_child_group "$stage" "$package"\n',
+        1,
+    )
+    wrong_call = execute.replace('"$package"', '"$wrong_package"', 1)
+    for hostile in (missing_call, extra_call, wrong_call):
+        assert hostile != execute
+        assert not _hard2g_c02_runtime_helper_ownership_is_closed(
+            runtime, plan, hostile, receipt
+        )
+
+
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
@@ -3906,15 +4022,20 @@ def _hard2g_runner_helpers_are_closed(repo_root: Path) -> bool:
         if not all(type(source) is str for source in helper_sources):
             return False
         runtime = helper_sources[0]
+        plan = helper_sources[1]
         execute = helper_sources[2]
         receipt = helper_sources[-1]
         assert type(runtime) is str
+        assert type(plan) is str
         assert type(execute) is str
         assert type(receipt) is str
         return (
             all(_shell_source_is_safe(source) for source in helper_sources)
             and _hard2g_runtime_budget_contract_is_closed(runtime)
             and _hard2g_execute_budget_bridge_is_closed(execute)
+            and _hard2g_c02_runtime_helper_ownership_is_closed(
+                runtime, plan, execute, receipt
+            )
             and _hard2g_container_publication_is_closed(receipt)
         )
     except Exception:
@@ -5428,6 +5549,144 @@ def _hard2g_c02_shell_control_flow_is_closed(body: object) -> bool:
             ):
                 return False
         return not stack
+    except Exception:
+        return False
+
+
+def _hard2g_c02_runtime_helper_ownership_is_closed(
+    runtime: object,
+    plan: object,
+    execute: object,
+    receipt: object,
+) -> bool:
+    try:
+        sources = (runtime, plan, execute, receipt)
+        if any(
+            type(source) is not str
+            or "\r" in source
+            or not source.endswith("\n")
+            or not _shell_source_is_safe(source)
+            for source in sources
+        ):
+            return False
+        runtime_text, plan_text, execute_text, receipt_text = sources
+        assert type(runtime_text) is str
+        assert type(plan_text) is str
+        assert type(execute_text) is str
+        assert type(receipt_text) is str
+        active_sources = tuple(_shell_active_lines(source) for source in sources)
+        if not all(type(lines) is tuple for lines in active_sources):
+            return False
+        runtime_lines, plan_lines, execute_lines, receipt_lines = active_sources
+        assert type(runtime_lines) is tuple
+        assert type(plan_lines) is tuple
+        assert type(execute_lines) is tuple
+        assert type(receipt_lines) is tuple
+        runtime_inventory = _hard2g_c02_function_inventory(runtime_text)
+        execute_inventory = _hard2g_c02_function_inventory(execute_text)
+        if runtime_inventory is None or execute_inventory is None:
+            return False
+        if (
+            not all(
+                name in runtime_inventory and runtime_inventory[name]
+                for name in _HARD2G_C02_RUNTIME_OWNED_HELPERS
+            )
+            or any(
+                name in execute_inventory
+                for name in _HARD2G_C02_RUNTIME_OWNED_HELPERS
+            )
+            or any(
+                not _hard2g_c02_shell_body_lexically_closed(body)
+                or not _hard2g_c02_shell_control_flow_is_closed(body)
+                for inventory in (runtime_inventory, execute_inventory)
+                for body in inventory.values()
+            )
+        ):
+            return False
+        protected_names = _HARD2G_C02_RUNTIME_OWNED_HELPERS
+        loader_words = {".", "source", "eval", "exec", "alias", "command", "builtin"}
+        declaration_words = {
+            "local",
+            "export",
+            "readonly",
+            "declare",
+            "typeset",
+            "read",
+            "unset",
+            "alias",
+        }
+        for source_index, source_lines in enumerate(active_sources):
+            for line in source_lines:
+                words = _shell_words(line)
+                if type(words) is not tuple:
+                    return False
+                if (
+                    any(word in loader_words or word == "function" for word in words)
+                    or (source_index != 0 and "trap" in words)
+                    or re.search(r"\$[A-Za-z_{][^\s]*\s*\(\)", line)
+                ):
+                    return False
+                for name in protected_names:
+                    if any(word.startswith(f"{name}=") for word in words):
+                        return False
+                    if (
+                        any(
+                            word in declaration_words
+                            and any(
+                                target == name or target.startswith(f"{name}=")
+                                for target in words[index + 1 :]
+                            )
+                            for index, word in enumerate(words)
+                        )
+                        or (
+                            words
+                            and words[0] in {"for", "select"}
+                            and len(words) > 1
+                            and words[1] == name
+                        )
+                        or (
+                            words
+                            and words[0] == "getopts"
+                            and any(target == name for target in words[1:])
+                        )
+                    ):
+                        return False
+        identifier_occurrences = {
+            name: re.compile(
+                rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])"
+            )
+            for name in protected_names
+        }
+        if any(
+            pattern.search(line)
+            for source_lines in (plan_lines, receipt_lines)
+            for line in source_lines
+            for pattern in identifier_occurrences.values()
+        ):
+            return False
+        expected_execute_occurrences = (
+            (
+                "start_owned_go_child_group",
+                'start_owned_go_child_group "$stage" "$package"',
+            ),
+            (
+                "monitor_owned_budget_stop",
+                'if monitor_owned_budget_stop "$go_child_pid" "$budget_stop_marker"; then',
+            ),
+            ("terminate_owned_go_child_group", "terminate_owned_go_child_group"),
+            ("reap_owned_go_child_group", "reap_owned_go_child_group"),
+            ("terminate_owned_go_child_group", "terminate_owned_go_child_group"),
+            ("reap_owned_go_child_group", "reap_owned_go_child_group"),
+            ("terminate_owned_go_child_group", "terminate_owned_go_child_group"),
+            ("reap_owned_go_child_group", "reap_owned_go_child_group"),
+        )
+        actual_execute_occurrences = tuple(
+            (name, line)
+            for line in execute_lines
+            for name, pattern in identifier_occurrences.items()
+            if pattern.search(line)
+        )
+        return actual_execute_occurrences == expected_execute_occurrences
     except Exception:
         return False
 
