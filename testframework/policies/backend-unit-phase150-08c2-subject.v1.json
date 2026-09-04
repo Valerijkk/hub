@@ -1,0 +1,4 @@
+{
+  "backend/internal/calls/call_durable_credential_allocation.go": "sha256:be6ff058468c4e288e0b0d7060fd17cf3118229d009f28dc056d89f281e99d4d",
+  "backend/tests/calls/call_durable_credential_allocation_test.go": "sha256:0ae525c86a75369bdb5790f26b1308f42574fb545883328da24011d4150b03a9"
+}

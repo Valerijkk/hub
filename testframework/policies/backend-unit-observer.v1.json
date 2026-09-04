@@ -1,0 +1,275 @@
+{
+  "schema": "hub.qa.backend-unit-observer-policy/v1",
+  "version": 1,
+  "module": "observers.backend_unit",
+  "invocation": [
+    "python",
+    "testframework/observers/backend_unit/observe.py",
+    "--compose-project",
+    "worktree-master"
+  ],
+  "compose_project_regex": "^[a-z0-9][a-z0-9_-]{0,62}$",
+  "shell": false,
+  "docker_argv_templates": [
+    [
+      "docker",
+      "events",
+      "--since",
+      "<validated_rfc3339nano_start>",
+      "--filter",
+      "type=container",
+      "--filter",
+      "event=create",
+      "--filter",
+      "event=start",
+      "--filter",
+      "event=die",
+      "--filter",
+      "event=destroy",
+      "--format",
+      "{{json .}}"
+    ],
+    [
+      "docker",
+      "inspect",
+      "--type",
+      "container",
+      "--format",
+      "{{json .}}",
+      "<bound_container_id>"
+    ],
+    [
+      "docker",
+      "ps",
+      "--no-trunc",
+      "--format",
+      "{{json .}}"
+    ],
+    [
+      "docker",
+      "stats",
+      "--no-stream",
+      "--format",
+      "{{json .}}",
+      "<bound_container_id>"
+    ],
+    [
+      "docker",
+      "stop",
+      "--timeout",
+      "5",
+      "<bound_container_id>"
+    ],
+    [
+      "docker",
+      "image",
+      "inspect",
+      "--format",
+      "{{json .}}",
+      "worktree-master-python-contract"
+    ],
+    [
+      "docker",
+      "image",
+      "inspect",
+      "--format",
+      "{{json .}}",
+      "worktree-master-backend-unit"
+    ]
+  ],
+  "image_inspect_argvs": [
+    [
+      "docker",
+      "image",
+      "inspect",
+      "--format",
+      "{{json .}}",
+      "worktree-master-python-contract"
+    ],
+    [
+      "docker",
+      "image",
+      "inspect",
+      "--format",
+      "{{json .}}",
+      "worktree-master-backend-unit"
+    ]
+  ],
+  "git_argvs": [
+    [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    [
+      "git",
+      "status",
+      "--porcelain=v1",
+      "--untracked-files=all"
+    ]
+  ],
+  "canonical_build_input_paths": [
+    "docker-compose.local.yml",
+    "testframework/docker/Dockerfile.qa",
+    "testframework/docker/entrypoints/backend-unit.sh",
+    "testframework/docker/backend_unit/runtime.sh",
+    "testframework/docker/backend_unit/plan.sh",
+    "testframework/docker/backend_unit/execute.sh",
+    "testframework/docker/backend_unit/receipt.sh",
+    "testframework/observers/**",
+    "testframework/schemas/backend-unit-package-plan.schema.v1.json",
+    "testframework/schemas/backend-unit-container-receipt.schema.v1.json",
+    "testframework/schemas/backend-unit-observer-receipt.schema.v1.json",
+    "testframework/policies/backend-unit-observer.v1.json",
+    "testframework/policies/backend-unit-phase150-08c2-subject.v1.json",
+    "testframework/policies/root-compose-testframework.v1.json",
+    "testframework/selftests/architecture/docker/**",
+    "testframework/selftests/architecture/observers/**"
+  ],
+  "manifest_snapshot_stages": [
+    "prebuild",
+    "postgreen",
+    "observer_snapshot"
+  ],
+  "candidate_binding": {
+    "exactly_one": true,
+    "compose_project_label": "com.docker.compose.project",
+    "compose_project": "worktree-master",
+    "compose_service_label": "com.docker.compose.service",
+    "compose_service": "backend-unit",
+    "start_window_seconds": 120,
+    "container_id_regex": "^[0-9a-f]{64}$",
+    "owner_marker_hostname_prefix": true,
+    "fixed_backend_image": "worktree-master-backend-unit",
+    "container_image_must_equal_fixed_backend_image_id": true
+  },
+  "fixed_host_config": {
+    "memory": 2147483648,
+    "memory_swap": 2147483648,
+    "nano_cpus": 6000000000,
+    "read_only_rootfs": true,
+    "security_opt": [
+      "no-new-privileges:true"
+    ],
+    "cap_drop": [
+      "ALL"
+    ],
+    "pids_limit": 256,
+    "init": true,
+    "network_mode": "worktree-master_qa-internal",
+    "mounts": [
+      { "type": "bind", "source": "./backend/cmd", "destination": "/opt/hub/source/backend/cmd", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/internal", "destination": "/opt/hub/source/backend/internal", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/tests", "destination": "/opt/hub/source/backend/tests", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/ent/schema", "destination": "/opt/hub/source/backend/ent/schema", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/migrations", "destination": "/opt/hub/source/backend/migrations", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/testframework", "destination": "/opt/hub/source/backend/testframework", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./testframework/reports", "destination": "/reports", "read_only": false, "size_bytes": null },
+      { "type": "tmpfs", "source": null, "destination": "/tmp", "read_only": false, "size_bytes": 67108864 },
+      { "type": "tmpfs", "source": null, "destination": "/var/cache/hub-go", "read_only": false, "size_bytes": 805306368 },
+      { "type": "tmpfs", "source": null, "destination": "/var/tmp/hub-go", "read_only": false, "size_bytes": 402653184 }
+    ]
+  },
+  "host_preflight": {
+    "free_ram_bytes_min": 2147483648,
+    "free_c_bytes_min": 268435456000,
+    "disk_sample_count": 3,
+    "disk_sample_interval_seconds": 2,
+    "defer_when_at_least_samples": 2,
+    "percent_disk_time_min": 70,
+    "disk_queue_length_min": 2
+  },
+  "host_runtime": {
+    "sample_interval_seconds": 5,
+    "ready_deadline_seconds": 30,
+    "deadline_owner": "observer",
+    "ram_floor_bytes": 2147483648,
+    "ram_floor_consecutive_samples": 2,
+    "rolling_disk_sample_count": 3,
+    "rolling_disk_defer_count": 2,
+    "percent_disk_time_min": 70,
+    "disk_queue_length_min": 2,
+    "whole_run_deadline_seconds": 21600,
+    "post_die_grace_seconds": 30,
+    "prohibited_overlap": [
+      "backend-unit",
+      "mail-calendar-qa-test-build"
+    ],
+    "allowed_buildkit_state": "idle"
+  },
+  "docker_read_caps": {
+    "event_records_max": 16,
+    "event_bytes_max": 65536,
+    "one_shot_output_bytes_max": 1048576,
+    "one_shot_timeout_seconds": 10
+  },
+  "exit_map": {
+    "sealed": 0,
+    "malformed_usage": 64,
+    "no_authoritative_candidate_or_seal": 75,
+    "interrupt_before_bind_without_seal": 130
+  },
+  "immutable_timeout_pair": {
+    "classification": "SEALED_TIMEOUT_UNTRIAGED",
+    "immutable_outcome": "TIMEOUT_UNTRIAGED"
+  },
+  "classifications": [
+    "SEALED_EXECUTABLE_PASS",
+    "SEALED_EXECUTABLE_FAIL_DISCOVERY",
+    "SEALED_EXECUTABLE_FAIL_STAGE",
+    "SEALED_TIMEOUT_UNTRIAGED",
+    "SEALED_INFRA_ABORTED_OOM",
+    "SEALED_INFRA_ABORTED_RESOURCE_CONTRACT",
+    "SEALED_INFRA_ABORTED_REPORT_BUDGET",
+    "SEALED_INFRA_ABORTED_TMPFS",
+    "SEALED_INFRA_ABORTED_HOST_RAM_FLOOR",
+    "SEALED_INFRA_ABORTED_DISK_PRESSURE",
+    "SEALED_INFRA_ABORTED_WHOLE_RUN_TIMEOUT",
+    "SEALED_INTERRUPTED",
+    "SEALED_INVALID_QA_OVERLAP",
+    "SEALED_INVALID_SOURCE_MUTATED",
+    "SEALED_INVALID_PROVENANCE"
+  ],
+  "classification_facts": {
+    "classification_inputs": [
+      "source_mutated",
+      "invalid_provenance",
+      "oom",
+      "resource",
+      "budget",
+      "tmpfs",
+      "timeout",
+      "discovery_failure",
+      "stage_failure"
+    ],
+    "predicate_names": [
+      "preflight_ram_floor_met",
+      "preflight_c_free_floor_met",
+      "preflight_disk_pressure_2_of_3",
+      "two_consecutive_ram_below_2_gib",
+      "rolling_disk_pressure_2_of_3",
+      "prohibited_backend_unit_overlap",
+      "prohibited_mail_calendar_qa_test_build_overlap",
+      "buildkit_idle",
+      "whole_run_deadline_expired"
+    ],
+    "stop_kinds": [
+      "interrupt",
+      "qa",
+      "disk",
+      "ram",
+      "deadline"
+    ],
+    "priority_rule": "source_mutated > invalid_provenance > earliest_explicit_stop > oom > resource > budget > tmpfs > timeout > discovery > stage > pass",
+    "explicit_stop_tie_order": [
+      "interrupt",
+      "qa",
+      "disk",
+      "ram",
+      "deadline"
+    ],
+    "qa_mapping": {
+      "qa": "SEALED_INVALID_QA_OVERLAP"
+    }
+  }
+}

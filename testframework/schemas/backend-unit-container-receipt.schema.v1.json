@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hub.qa.backend-unit-container-receipt/v1",
+  "title": "Hub QA backend-unit container receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "target", "run_id", "owner_nonce", "container_hostname",
+    "launcher_sha256", "command_profile_sha256",
+    "source_manifest_before_sha256", "source_manifest_after_sha256",
+    "cgroup", "go_environment", "package_plan_sha256",
+    "stage_receipt_sha256", "artifact_inventory",
+    "artifact_inventory_sha256", "report_budget", "terminal", "state"
+  ],
+  "properties": {
+    "schema": { "const": "hub.qa.backend-unit-container-receipt/v1" },
+    "target": { "const": "backend-unit" },
+    "run_id": { "$ref": "#/$defs/runId" },
+    "owner_nonce": { "$ref": "#/$defs/nonce" },
+    "container_hostname": { "$ref": "#/$defs/hostname" },
+    "launcher_sha256": { "$ref": "#/$defs/sha256" },
+    "command_profile_sha256": { "$ref": "#/$defs/sha256" },
+    "source_manifest_before_sha256": { "$ref": "#/$defs/sha256" },
+    "source_manifest_after_sha256": { "$ref": "#/$defs/sha256" },
+    "cgroup": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["family", "baseline", "final"],
+          "properties": {
+            "family": { "const": "v2" },
+            "baseline": { "$ref": "#/$defs/cgroupV2Snapshot" },
+            "final": { "$ref": "#/$defs/cgroupV2Snapshot" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["family", "baseline", "final"],
+          "properties": {
+            "family": { "const": "v1" },
+            "baseline": { "$ref": "#/$defs/cgroupV1Snapshot" },
+            "final": { "$ref": "#/$defs/cgroupV1Snapshot" }
+          }
+        }
+      ]
+    },
+    "go_environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "go_version", "GOFLAGS", "GOENV", "GOWORK", "GOTOOLCHAIN",
+        "GOPROXY", "GOMAXPROCS", "CGO_ENABLED", "GOOS", "GOARCH",
+        "GOCACHE", "GOTMPDIR", "runtime_affecting_environment"
+      ],
+      "properties": {
+        "go_version": { "type": "string", "minLength": 1 },
+        "GOFLAGS": { "const": "-p=1" },
+        "GOENV": { "const": "off" },
+        "GOWORK": { "const": "off" },
+        "GOTOOLCHAIN": { "const": "local" },
+        "GOPROXY": { "const": "off" },
+        "GOMAXPROCS": { "const": null },
+        "CGO_ENABLED": { "type": "string", "minLength": 1 },
+        "GOOS": { "type": "string", "minLength": 1 },
+        "GOARCH": { "type": "string", "minLength": 1 },
+        "GOCACHE": { "type": "string", "minLength": 1 },
+        "GOTMPDIR": { "type": "string", "minLength": 1 },
+        "runtime_affecting_environment": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/environmentObservation" }
+        }
+      }
+    },
+    "package_plan_sha256": { "$ref": "#/$defs/stageDigestMap" },
+    "stage_receipt_sha256": { "$ref": "#/$defs/stageDigestMap" },
+    "artifact_inventory": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "artifact_inventory_sha256": { "$ref": "#/$defs/sha256" },
+    "report_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_bytes", "reserved_metadata_bytes", "metadata_used_bytes",
+        "streams", "total_used_bytes", "truncated_due_to_budget",
+        "raw_output_partial"
+      ],
+      "properties": {
+        "total_bytes": { "const": 67108864 },
+        "reserved_metadata_bytes": { "const": 8388608 },
+        "metadata_used_bytes": { "type": "integer", "minimum": 0, "maximum": 8388608 },
+        "streams": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["build", "vet", "unit", "race"],
+          "properties": {
+            "build": { "$ref": "#/$defs/buildStreams" },
+            "vet": { "$ref": "#/$defs/vetStreams" },
+            "unit": { "$ref": "#/$defs/unitStreams" },
+            "race": { "$ref": "#/$defs/raceStreams" }
+          }
+        },
+        "total_used_bytes": { "type": "integer", "minimum": 0, "maximum": 67108864 },
+        "truncated_due_to_budget": { "type": "boolean" },
+        "raw_output_partial": { "type": "boolean" }
+      }
+    },
+    "terminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signal", "exit_code"],
+      "properties": {
+        "signal": { "type": ["string", "null"] },
+        "exit_code": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "state": { "const": "CONTAINER_COMPLETE" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "nonce": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "hostname": { "type": "string", "pattern": "^[0-9a-f]{12,64}$" },
+    "runId": {
+      "type": "string",
+      "pattern": "^backend-unit-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12,64}-[0-9a-f]{8}$"
+    },
+    "cgroupV2Snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memory.max", "memory.swap.max", "memory.events"],
+      "properties": {
+        "memory.max": { "type": "string", "pattern": "^(?:0|[1-9][0-9]*)$" },
+        "memory.swap.max": { "type": "string", "pattern": "^(?:0|[1-9][0-9]*)$" },
+        "memory.events": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["oom", "oom_kill"],
+          "properties": {
+            "oom": { "type": "integer", "minimum": 0 },
+            "oom_kill": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "cgroupV1Snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memory.limit_in_bytes", "memory.memsw.limit_in_bytes",
+        "memory.failcnt", "memory.oom_control"
+      ],
+      "properties": {
+        "memory.limit_in_bytes": { "type": "string", "pattern": "^(?:0|[1-9][0-9]*)$" },
+        "memory.memsw.limit_in_bytes": { "type": "string", "pattern": "^(?:0|[1-9][0-9]*)$" },
+        "memory.failcnt": { "type": "integer", "minimum": 0 },
+        "memory.oom_control": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["oom_kill_disable", "under_oom"],
+          "properties": {
+            "oom_kill_disable": { "type": "integer", "minimum": 0 },
+            "under_oom": { "type": "integer", "minimum": 0 },
+            "oom_kill": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "environmentObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "present", "value"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^(?:GO[A-Z0-9_]+|CGO_ENABLED)$" },
+        "present": { "type": "boolean" },
+        "value": { "type": ["string", "null"] }
+      }
+    },
+    "stageDigestMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["build", "vet", "unit", "race"],
+      "properties": {
+        "build": { "$ref": "#/$defs/sha256" },
+        "vet": { "$ref": "#/$defs/sha256" },
+        "unit": { "$ref": "#/$defs/sha256" },
+        "race": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\\\r\\n]+$"
+        },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "streamUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cap_bytes", "used_bytes", "truncated"],
+      "properties": {
+        "cap_bytes": { "type": "integer", "minimum": 0 },
+        "used_bytes": { "type": "integer", "minimum": 0 },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    "buildStreams": {
+      "type": "object", "additionalProperties": false, "required": ["stdout", "stderr"],
+      "properties": {
+        "stdout": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 2097152 }, "used_bytes": { "maximum": 2097152 } } }] },
+        "stderr": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 2097152 }, "used_bytes": { "maximum": 2097152 } } }] }
+      }
+    },
+    "vetStreams": {
+      "type": "object", "additionalProperties": false, "required": ["stdout", "stderr"],
+      "properties": {
+        "stdout": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 2097152 }, "used_bytes": { "maximum": 2097152 } } }] },
+        "stderr": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 2097152 }, "used_bytes": { "maximum": 2097152 } } }] }
+      }
+    },
+    "unitStreams": {
+      "type": "object", "additionalProperties": false, "required": ["stdout", "stderr"],
+      "properties": {
+        "stdout": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 16777216 }, "used_bytes": { "maximum": 16777216 } } }] },
+        "stderr": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 4194304 }, "used_bytes": { "maximum": 4194304 } } }] }
+      }
+    },
+    "raceStreams": {
+      "type": "object", "additionalProperties": false, "required": ["stdout", "stderr"],
+      "properties": {
+        "stdout": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 25165824 }, "used_bytes": { "maximum": 25165824 } } }] },
+        "stderr": { "allOf": [{ "$ref": "#/$defs/streamUsage" }, { "properties": { "cap_bytes": { "const": 4194304 }, "used_bytes": { "maximum": 4194304 } } }] }
+      }
+    }
+  }
+}

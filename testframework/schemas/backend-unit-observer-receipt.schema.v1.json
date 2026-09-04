@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hub.qa.backend-unit-observer-receipt/v1",
+  "title": "Hub QA backend-unit observer receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "target", "run_id", "owner_nonce", "container_id",
+    "container_image", "container_hostname", "container_receipt_sha256",
+    "compose_sha256", "git", "frozen_subjects", "source_snapshots",
+    "canonical_build_input_manifest_bytes",
+    "canonical_build_input_manifest_sha256", "fixed_image_ids",
+    "bound_backend_image_id", "host_config", "resource_samples",
+    "concurrency_samples", "lifecycle_events", "classification_facts",
+    "classification", "immutable_outcome",
+    "selected_stop", "stop_argv", "guarded_stop", "artifact_inventory",
+    "artifact_inventory_sha256", "cleanup", "final_receipt", "seal_timestamp"
+  ],
+  "properties": {
+    "schema": { "const": "hub.qa.backend-unit-observer-receipt/v1" },
+    "target": { "const": "backend-unit" },
+    "run_id": { "$ref": "#/$defs/runId" },
+    "owner_nonce": { "$ref": "#/$defs/nonce" },
+    "container_id": { "$ref": "#/$defs/engineId" },
+    "container_image": { "$ref": "#/$defs/sha256" },
+    "container_repo_digest": {
+      "type": ["string", "null"],
+      "pattern": "^[^@\\s]+@sha256:[0-9a-f]{64}$"
+    },
+    "container_hostname": { "$ref": "#/$defs/hostname" },
+    "container_receipt_sha256": { "$ref": "#/$defs/sha256" },
+    "compose_sha256": { "$ref": "#/$defs/sha256" },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["head_before", "head_after", "status_before", "status_after"],
+      "properties": {
+        "head_before": { "$ref": "#/$defs/gitSha" },
+        "head_after": { "$ref": "#/$defs/gitSha" },
+        "status_before": { "type": "string" },
+        "status_after": { "type": "string" }
+      }
+    },
+    "frozen_subjects": { "$ref": "#/$defs/frozenSubjects" },
+    "source_snapshots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prebuild", "postgreen", "observer_snapshot"],
+      "properties": {
+        "prebuild": { "$ref": "#/$defs/sourceSnapshot" },
+        "postgreen": { "$ref": "#/$defs/sourceSnapshot" },
+        "observer_snapshot": { "$ref": "#/$defs/sourceSnapshot" }
+      }
+    },
+    "canonical_build_input_manifest_bytes": { "type": "string", "minLength": 1 },
+    "canonical_build_input_manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "fixed_image_ids": { "$ref": "#/$defs/fixedImageIds" },
+    "bound_backend_image_id": { "$ref": "#/$defs/sha256" },
+    "host_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memory", "memory_swap", "nano_cpus", "read_only_rootfs", "security_opt", "cap_drop", "pids_limit", "init", "network_mode", "mounts"],
+      "properties": {
+        "memory": { "type": "integer", "minimum": 0 },
+        "memory_swap": { "type": "integer", "minimum": 0 },
+        "nano_cpus": { "type": "integer", "minimum": 0 },
+        "read_only_rootfs": { "type": "boolean" },
+        "security_opt": { "type": "array", "items": { "type": "string" } },
+        "cap_drop": { "type": "array", "items": { "type": "string" } },
+        "pids_limit": { "type": "integer", "minimum": 1 },
+        "init": { "type": "boolean" },
+        "network_mode": { "type": "string", "minLength": 1 },
+        "mounts": { "type": "array", "items": { "$ref": "#/$defs/mount" } }
+      }
+    },
+    "resource_samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/resourceSample" }
+    },
+    "concurrency_samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/concurrencySample" }
+    },
+    "lifecycle_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event", "timestamp"],
+        "properties": {
+          "event": { "enum": ["create", "start", "die", "destroy"] },
+          "timestamp": { "$ref": "#/$defs/timestamp" }
+        }
+      }
+    },
+    "classification_facts": { "$ref": "#/$defs/classificationFacts" },
+    "classification": { "$ref": "#/$defs/classification" },
+    "immutable_outcome": { "$ref": "#/$defs/immutableOutcome" },
+    "selected_stop": { "$ref": "#/$defs/selectedStop" },
+    "stop_argv": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/stopArgv" }
+      ]
+    },
+    "guarded_stop": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["predicate", "argv", "result"],
+          "properties": {
+            "predicate": { "const": null },
+            "argv": { "const": null },
+            "result": { "const": null }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["predicate", "argv", "result"],
+          "properties": {
+            "predicate": { "enum": ["whole_run_timeout", "host_ram_floor", "disk_pressure", "qa_overlap", "interrupt"] },
+            "argv": { "$ref": "#/$defs/stopArgv" },
+            "result": { "const": "stopped" }
+          }
+        }
+      ]
+    },
+    "artifact_inventory": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "artifact_inventory_sha256": { "$ref": "#/$defs/sha256" },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["container_removed"],
+      "properties": { "container_removed": { "type": "boolean" } }
+    },
+    "final_receipt": { "$ref": "#/$defs/finalReceipt" },
+    "seal_timestamp": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "nonce": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "engineId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "hostname": { "type": "string", "pattern": "^[0-9a-f]{12,64}$" },
+    "runId": {
+      "type": "string",
+      "pattern": "^backend-unit-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12,64}-[0-9a-f]{8}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$"
+    },
+    "frozenSubjects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend/internal/calls/call_durable_credential_allocation.go",
+        "backend/tests/calls/call_durable_credential_allocation_test.go"
+      ],
+      "properties": {
+        "backend/internal/calls/call_durable_credential_allocation.go": { "$ref": "#/$defs/sha256" },
+        "backend/tests/calls/call_durable_credential_allocation_test.go": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "fixedImageIds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python_contract", "backend_unit"],
+      "properties": {
+        "python_contract": { "$ref": "#/$defs/sha256" },
+        "backend_unit": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "sourceRootDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend/cmd", "backend/internal", "backend/tests",
+        "backend/ent/schema", "backend/migrations", "backend/testframework"
+      ],
+      "properties": {
+        "backend/cmd": { "$ref": "#/$defs/sha256" },
+        "backend/internal": { "$ref": "#/$defs/sha256" },
+        "backend/tests": { "$ref": "#/$defs/sha256" },
+        "backend/ent/schema": { "$ref": "#/$defs/sha256" },
+        "backend/migrations": { "$ref": "#/$defs/sha256" },
+        "backend/testframework": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "sourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["head", "status", "source_root_sha256", "frozen_subjects", "canonical_build_input_manifest_sha256", "fixed_image_ids"],
+      "properties": {
+        "head": { "$ref": "#/$defs/gitSha" },
+        "status": { "type": "string" },
+        "source_root_sha256": { "$ref": "#/$defs/sourceRootDigests" },
+        "frozen_subjects": { "$ref": "#/$defs/frozenSubjects" },
+        "canonical_build_input_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "fixed_image_ids": { "$ref": "#/$defs/fixedImageIds" }
+      }
+    },
+    "mount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "source", "destination", "read_only", "size_bytes"],
+      "properties": {
+        "type": { "enum": ["bind", "tmpfs"] },
+        "source": { "type": ["string", "null"] },
+        "destination": { "type": "string", "pattern": "^/[^\\r\\n]*$" },
+        "read_only": { "type": "boolean" },
+        "size_bytes": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "resourceSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "timestamp", "free_ram_bytes", "free_c_bytes", "percent_disk_time", "disk_queue_length"],
+      "properties": {
+        "phase": { "enum": ["preflight", "runtime"] },
+        "timestamp": { "$ref": "#/$defs/timestamp" },
+        "free_ram_bytes": { "type": "integer", "minimum": 0 },
+        "free_c_bytes": { "type": "integer", "minimum": 0 },
+        "percent_disk_time": { "type": "number", "minimum": 0 },
+        "disk_queue_length": { "type": "number", "minimum": 0 }
+      }
+    },
+    "concurrencySample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "timestamp", "backend_unit_count", "mail_calendar_qa_test_build_count", "buildkit_state"],
+      "properties": {
+        "phase": { "enum": ["preflight", "runtime"] },
+        "timestamp": { "$ref": "#/$defs/timestamp" },
+        "backend_unit_count": { "type": "integer", "minimum": 0 },
+        "mail_calendar_qa_test_build_count": { "type": "integer", "minimum": 0 },
+        "buildkit_state": { "enum": ["idle", "busy", "unknown"] }
+      }
+    },
+    "stopKind": { "enum": ["interrupt", "qa", "disk", "ram", "deadline"] },
+    "explicitStop": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/stopKind" },
+        { "type": "integer", "minimum": 0 }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "selectedStop": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/explicitStop" }
+      ]
+    },
+    "stopArgv": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "docker" }, { "const": "stop" },
+        { "const": "--timeout" }, { "const": "5" },
+        { "$ref": "#/$defs/engineId" }
+      ],
+      "items": false,
+      "minItems": 5,
+      "maxItems": 5
+    },
+    "predicates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preflight_ram_floor_met", "preflight_c_free_floor_met",
+        "preflight_disk_pressure_2_of_3",
+        "two_consecutive_ram_below_2_gib",
+        "rolling_disk_pressure_2_of_3",
+        "prohibited_backend_unit_overlap",
+        "prohibited_mail_calendar_qa_test_build_overlap",
+        "buildkit_idle", "whole_run_deadline_expired"
+      ],
+      "properties": {
+        "preflight_ram_floor_met": { "type": "boolean" },
+        "preflight_c_free_floor_met": { "type": "boolean" },
+        "preflight_disk_pressure_2_of_3": { "type": "boolean" },
+        "two_consecutive_ram_below_2_gib": { "type": "boolean" },
+        "rolling_disk_pressure_2_of_3": { "type": "boolean" },
+        "prohibited_backend_unit_overlap": { "type": "boolean" },
+        "prohibited_mail_calendar_qa_test_build_overlap": { "type": "boolean" },
+        "buildkit_idle": { "type": "boolean" },
+        "whole_run_deadline_expired": { "type": "boolean" }
+      }
+    },
+    "classification": {
+      "enum": [
+        "SEALED_EXECUTABLE_PASS", "SEALED_EXECUTABLE_FAIL_DISCOVERY",
+        "SEALED_EXECUTABLE_FAIL_STAGE", "SEALED_TIMEOUT_UNTRIAGED",
+        "SEALED_INFRA_ABORTED_OOM", "SEALED_INFRA_ABORTED_RESOURCE_CONTRACT",
+        "SEALED_INFRA_ABORTED_REPORT_BUDGET", "SEALED_INFRA_ABORTED_TMPFS",
+        "SEALED_INFRA_ABORTED_HOST_RAM_FLOOR",
+        "SEALED_INFRA_ABORTED_DISK_PRESSURE",
+        "SEALED_INFRA_ABORTED_WHOLE_RUN_TIMEOUT", "SEALED_INTERRUPTED",
+        "SEALED_INVALID_QA_OVERLAP", "SEALED_INVALID_SOURCE_MUTATED",
+        "SEALED_INVALID_PROVENANCE"
+      ]
+    },
+    "immutableOutcome": { "enum": [null, "TIMEOUT_UNTRIAGED"] },
+    "classificationFacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_mutated", "invalid_provenance", "oom", "resource",
+        "budget", "tmpfs", "timeout", "discovery_failure", "stage_failure",
+        "predicates", "explicit_stops", "selected_stop", "classification",
+        "immutable_outcome"
+      ],
+      "properties": {
+        "source_mutated": { "type": "boolean" },
+        "invalid_provenance": { "type": "boolean" },
+        "oom": { "type": "boolean" },
+        "resource": { "type": "boolean" },
+        "budget": { "type": "boolean" },
+        "tmpfs": { "type": "boolean" },
+        "timeout": { "type": "boolean" },
+        "discovery_failure": { "type": "boolean" },
+        "stage_failure": { "type": "boolean" },
+        "predicates": { "$ref": "#/$defs/predicates" },
+        "explicit_stops": { "type": "array", "items": { "$ref": "#/$defs/explicitStop" } },
+        "selected_stop": { "$ref": "#/$defs/selectedStop" },
+        "classification": { "$ref": "#/$defs/classification" },
+        "immutable_outcome": { "$ref": "#/$defs/immutableOutcome" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\\\r\\n]+$" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "finalReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "target", "run_id", "owner_nonce",
+        "container_receipt_sha256", "container_id",
+        "backend_image_id", "canonical_build_input_manifest_sha256",
+        "classification", "immutable_outcome", "seal_timestamp"
+      ],
+      "properties": {
+        "schema": { "const": "hub.qa.backend-unit-final-receipt/v1" },
+        "target": { "const": "backend-unit" },
+        "run_id": { "$ref": "#/$defs/runId" },
+        "owner_nonce": { "$ref": "#/$defs/nonce" },
+        "container_receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "container_id": { "$ref": "#/$defs/engineId" },
+        "backend_image_id": { "$ref": "#/$defs/sha256" },
+        "canonical_build_input_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "classification": { "$ref": "#/$defs/classification" },
+        "immutable_outcome": { "$ref": "#/$defs/immutableOutcome" },
+        "seal_timestamp": { "$ref": "#/$defs/timestamp" }
+      }
+    }
+  }
+}

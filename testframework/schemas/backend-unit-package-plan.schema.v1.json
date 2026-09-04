@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hub.qa.backend-unit-package-plan/v1",
+  "title": "Hub QA backend-unit package plan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "run_id",
+    "owner_nonce",
+    "stage",
+    "discovery_argv",
+    "go_environment_sha256",
+    "rows",
+    "row_count",
+    "row_set_sha256",
+    "result_partition"
+  ],
+  "properties": {
+    "schema": { "const": "hub.qa.backend-unit-package-plan/v1" },
+    "target": { "const": "backend-unit" },
+    "run_id": {
+      "type": "string",
+      "pattern": "^backend-unit-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12,64}-[0-9a-f]{8}$"
+    },
+    "owner_nonce": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "stage": {
+      "enum": ["build", "vet", "unit", "race"]
+    },
+    "discovery_argv": {
+      "oneOf": [
+        {
+          "type": "array",
+          "prefixItems": [
+            { "const": "go" },
+            { "const": "list" },
+            { "const": "-f" },
+            { "const": "{{printf \"%s\\t%s\" .ImportPath .Name}}" },
+            { "const": "./..." }
+          ],
+          "items": false,
+          "minItems": 5,
+          "maxItems": 5
+        },
+        {
+          "type": "array",
+          "prefixItems": [
+            { "const": "go" },
+            { "const": "list" },
+            { "const": "-tags" },
+            { "const": "hubtest" },
+            { "const": "-f" },
+            { "const": "{{printf \"%s\\t%s\" .ImportPath .Name}}" },
+            { "const": "./..." }
+          ],
+          "items": false,
+          "minItems": 7,
+          "maxItems": 7
+        },
+        {
+          "type": "array",
+          "prefixItems": [
+            { "const": "go" },
+            { "const": "list" },
+            { "const": "-tags" },
+            { "const": "hubtest" },
+            { "const": "-f" },
+            { "const": "{{printf \"%s\\t%s\" .ImportPath .Name}}" },
+            { "const": "./tests/..." }
+          ],
+          "items": false,
+          "minItems": 7,
+          "maxItems": 7
+        }
+      ]
+    },
+    "go_environment_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ordinal", "import_path", "package_name"],
+        "properties": {
+          "ordinal": { "type": "integer", "minimum": 1 },
+          "import_path": { "type": "string", "minLength": 1 },
+          "package_name": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "row_count": { "type": "integer", "minimum": 0 },
+    "row_set_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "result_partition": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ordinal", "import_path", "result"],
+        "properties": {
+          "ordinal": { "type": "integer", "minimum": 1 },
+          "import_path": { "type": "string", "minLength": 1 },
+          "result": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
