@@ -1106,6 +1106,111 @@ def test_hard2g_c02_shell_body_lexically_closes_only_supported_forms() -> None:
         assert not _hard2g_c02_shell_body_lexically_closed(hostile)
 
 
+def test_hard2g_c02_shell_control_flow_is_closed() -> None:
+    runtime = _hard2g_c02_function_inventory(
+        _hard2g_runtime_budget_fixture(_hard2g_runtime_budget_assignments())
+    )
+    execute = _hard2g_c02_function_inventory(
+        _hard2g_execute_budget_bridge_fixture()
+    )
+    assert runtime is not None
+    assert execute is not None
+    assert all(
+        _hard2g_c02_shell_control_flow_is_closed(body)
+        for body in (*runtime.values(), *execute.values())
+    )
+
+    for accepted in (
+        ("if ! true; then", "fi"),
+        (
+            "while true; do",
+            "if true; then",
+            "else",
+            "fi",
+            "done",
+        ),
+        (
+            'case "$stage:$stream" in',
+            "build:stdout) return 0 ;;",
+            "*) return 64 ;;",
+            "esac",
+        ),
+        ("while true; do", 'done < "$plan_path"'),
+    ):
+        assert _hard2g_c02_shell_control_flow_is_closed(accepted)
+
+    for hostile in (
+        ("fi",),
+        ("done",),
+        ('done < "$plan_path"',),
+        ("else",),
+        ("esac",),
+        ("if true; then", "else", "else", "fi"),
+        ("if true; then", "while true; do", "fi", "done"),
+        ("if true; then",),
+        ("while true; do",),
+        ('case "$stage" in', "*) return 64 ;;"),
+        ("if; then",),
+        ("if true then",),
+        ("if then; then", "fi"),
+        ("if case x in; then", "fi"),
+        ("if X=1 then; then", "fi"),
+        ("if X=1 ! if true; then", "fi"),
+        ("if ! X=1 case x in; then", "fi"),
+        ("if true # ; then", "fi"),
+        ("if true\\; then", "fi"),
+        ("while; do",),
+        ("while if true; do", "done"),
+        ("while X=1 ! if true; do", "done"),
+        ("while true # ; do", "done"),
+        ("while true\\; do", "done"),
+        ('case in',),
+        ('case "$stage"',),
+        ('case "$stage" # in', "*) return 64 ;;", "esac"),
+        ('case "$stage" extra in', "*) return 64 ;;", "esac"),
+        ('case "$stage" in', "esac"),
+        (
+            'case "$stage" in',
+            "printf '%s\\n' \"${SAFE}\"",
+            "*) return 64 ;;",
+            "esac",
+        ),
+        (
+            'case "$stage" in',
+            "*) return 64 ;;",
+            "printf '%s\\n' \"${SAFE}\"",
+            "esac",
+        ),
+        (
+            'case "$stage" in',
+            "if true; then",
+            "fi",
+            "*) return 64 ;;",
+            "esac",
+        ),
+        ("*) return 64 ;;",),
+        ("while true; do", 'done < "$plan_path" > "$other"'),
+        ("then",),
+        ("do",),
+        ("in",),
+        ("! true",),
+        ("! X=1 true",),
+        ("X=1 ! true",),
+        ("! if true; then",),
+        ("X=1 if true; then",),
+        ("X=1 fi",),
+        ("elif true; then",),
+        ("for item in items",),
+        ("until true; do",),
+        ("select item in items",),
+        ("function item",),
+        ("break",),
+        ("continue",),
+        ("exit",),
+    ):
+        assert not _hard2g_c02_shell_control_flow_is_closed(hostile)
+
+
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
@@ -5194,6 +5299,149 @@ def _hard2g_c02_shell_body_lexically_closed(body: object) -> bool:
             ) and ("(" in unexpanded or ")" in unexpanded):
                 return False
         return True
+    except Exception:
+        return False
+
+
+def _hard2g_c02_shell_control_flow_is_closed(body: object) -> bool:
+    try:
+        if not _hard2g_c02_shell_body_lexically_closed(body):
+            return False
+        name = r"[A-Za-z_][A-Za-z0-9_]*"
+        canonical_pipe_case = (
+            '"$go_child_pid (go) Z "*|"$go_child_pid (go) X "*) '
+            "return 1 ;;"
+        )
+        canonical_live_case = '"$go_child_pid (go) "*) return 0 ;;'
+        ordinary_case_arm = re.compile(
+            rf"(?:[A-Za-z0-9_:-]+|\*)\) (?:printf '%s\\n' \"\$\{{{name}\}}\"|return [0-9]+) ;;"
+        )
+        reserved_control_words = {
+            "if",
+            "while",
+            "case",
+            "then",
+            "do",
+            "in",
+            "elif",
+            "for",
+            "until",
+            "select",
+            "function",
+            "break",
+            "continue",
+            "exit",
+            "else",
+            "fi",
+            "done",
+            "esac",
+        }
+        stack: list[tuple[str, bool]] = []
+        for line in body:
+            words = _shell_words(line)
+            if not isinstance(words, tuple) or not words:
+                return False
+            is_case_arm = (
+                line in {canonical_pipe_case, canonical_live_case}
+                or bool(re.fullmatch(ordinary_case_arm, line))
+            )
+            if stack and stack[-1][0] == "CASE":
+                if is_case_arm and line.endswith(";;"):
+                    stack[-1] = ("CASE", True)
+                    continue
+                if line == "esac" and stack[-1][1]:
+                    stack.pop()
+                    continue
+                return False
+            if line.endswith(";;") or line == "esac":
+                return False
+            if re.fullmatch(r"if .+; then", line):
+                condition_words = words[1:-2]
+                condition_index = 0
+                if condition_words and condition_words[0] == "!":
+                    condition_index += 1
+                while condition_index < len(condition_words) and re.fullmatch(
+                    r"[A-Za-z_][A-Za-z0-9_]*=.*",
+                    condition_words[condition_index],
+                ):
+                    condition_index += 1
+                if (
+                    "#" in line
+                    or "\\" in line
+                    or words[0] != "if"
+                    or words[-2:] != (";", "then")
+                    or condition_index >= len(condition_words)
+                    or condition_words[condition_index] == "!"
+                    or condition_words[condition_index]
+                    in reserved_control_words
+                ):
+                    return False
+                stack.append(("IF", False))
+                continue
+            if re.fullmatch(r"while .+; do", line):
+                condition_words = words[1:-2]
+                condition_index = 0
+                if condition_words and condition_words[0] == "!":
+                    condition_index += 1
+                while condition_index < len(condition_words) and re.fullmatch(
+                    r"[A-Za-z_][A-Za-z0-9_]*=.*",
+                    condition_words[condition_index],
+                ):
+                    condition_index += 1
+                if (
+                    "#" in line
+                    or "\\" in line
+                    or words[0] != "while"
+                    or words[-2:] != (";", "do")
+                    or condition_index >= len(condition_words)
+                    or condition_words[condition_index] == "!"
+                    or condition_words[condition_index]
+                    in reserved_control_words
+                ):
+                    return False
+                stack.append(("WHILE", False))
+                continue
+            if re.fullmatch(r"case .+ in", line):
+                if (
+                    "#" in line
+                    or "\\" in line
+                    or words[0] != "case"
+                    or len(words) != 3
+                    or words[-1] != "in"
+                ):
+                    return False
+                stack.append(("CASE", False))
+                continue
+            if line == "else":
+                if not stack or stack[-1] != ("IF", False):
+                    return False
+                stack[-1] = ("IF", True)
+                continue
+            if line == "fi":
+                if not stack or stack[-1][0] != "IF":
+                    return False
+                stack.pop()
+                continue
+            if line in {"done", 'done < "$plan_path"'}:
+                if not stack or stack[-1][0] != "WHILE":
+                    return False
+                stack.pop()
+                continue
+            direct_index = 0
+            if words[direct_index] == "!":
+                return False
+            while direct_index < len(words) and re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]*=.*", words[direct_index]
+            ):
+                direct_index += 1
+            if direct_index < len(words) and words[direct_index] == "!":
+                return False
+            if (
+                direct_index < len(words)
+                and words[direct_index] in reserved_control_words
+            ):
+                return False
+        return not stack
     except Exception:
         return False
 
