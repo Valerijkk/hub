@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shlex
 import stat
 import traceback
@@ -930,6 +931,90 @@ def test_hard2g_execute_budget_bridge_is_closed() -> None:
         ),
     ):
         assert not _hard2g_execute_budget_bridge_is_closed(hostile)
+
+
+def test_hard2g_c02_function_inventory_is_fail_closed_and_preserves_bodies() -> None:
+    expected_body = (
+        "if true; then",
+        "if false; then",
+        ":",
+        "fi",
+        "fi",
+    )
+    inventory = _hard2g_c02_function_inventory(
+        """#!/bin/sh
+
+# preamble comments do not become commands
+alpha() {
+  if true; then
+    # body comments do not become commands
+    if false; then
+      :
+    fi
+  fi
+}
+
+beta () {
+  if true; then
+    if false; then
+      :
+    fi
+  fi
+}
+
+gamma ()
+{
+  if true; then
+    if false; then
+      :
+    fi
+  fi
+}
+"""
+    )
+    assert inventory is not None
+    assert tuple(inventory) == ("alpha", "beta", "gamma")
+    assert tuple(inventory.values()) == (expected_body,) * 3
+    assert _hard2g_c02_function_inventory(
+        "one() {\n  :\n}\n\ntwo () {\n  :\n}\n"
+    ) is not None
+
+    runtime = _hard2g_c02_function_inventory(
+        _hard2g_runtime_budget_fixture(_hard2g_runtime_budget_assignments())
+    )
+    execute = _hard2g_c02_function_inventory(
+        _hard2g_execute_budget_bridge_fixture()
+    )
+    assert runtime is not None
+    assert execute is not None
+    assert {"stage_stream_cap", "check_budget"}.issubset(runtime)
+    assert {
+        "read_bounded_stage_stream",
+        "owned_go_child_is_live",
+        "monitor_owned_budget_stop",
+        "run_stage",
+    }.issubset(execute)
+    assert runtime["check_budget"][-1].endswith("return 75")
+    assert execute["read_bounded_stage_stream"][-1] == "return 75"
+    assert execute["run_stage"][-1] == 'return "$stage_exit"'
+
+    for hostile in (
+        "one() {\n}\none () {\n}\n",
+        "if true; then\n  evil() {\n  }\nfi\n",
+        "(\n  evil() {\n  }\n)\n",
+        "outer() {\ninner() {\n}\n}\n",
+        "outer() {\ninner ()\n{\n}\n}\n",
+        "one(){\n}\n",
+        "function one() {\n}\n",
+        '"$dynamic"() {\n}\n',
+        "one() {;\n}\n",
+        "one() { trailing\n}\n",
+        "}\n",
+        "one() {\n  :\n",
+        "one ()\nnot-a-brace\n",
+        "one ()\n# a skipped comment\ntwo () {\n}\n",
+    ):
+        assert _hard2g_c02_function_inventory(hostile) is None
 
 
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
@@ -4780,6 +4865,107 @@ def _hard2g_observer_config_is_closed(value: object) -> bool:
         ) == value
     except Exception:
         return False
+
+
+def _hard2g_c02_function_inventory(
+    source: str,
+) -> Mapping[str, tuple[str, ...]] | None:
+    try:
+        if type(source) is not str:
+            return None
+        functions: dict[str, tuple[str, ...]] = {}
+        active_name: str | None = None
+        pending_name: str | None = None
+        body: list[str] = []
+        for raw_line in source.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if pending_name is not None:
+                if line != "{":
+                    return None
+                active_name = pending_name
+                pending_name = None
+                body = []
+                continue
+            if active_name is not None:
+                if line == "}":
+                    if active_name in functions:
+                        return None
+                    functions[active_name] = tuple(body)
+                    active_name = None
+                    body = []
+                    continue
+                brace_safe_line = re.sub(
+                    r"\$\{[A-Za-z_][A-Za-z0-9_]*\}", "", line
+                )
+                if (
+                    "{" in brace_safe_line
+                    or "}" in brace_safe_line
+                    or "()" in line
+                    or re.match(r"function\b", line)
+                ):
+                    return None
+                body.append(line)
+                continue
+
+            if re.match(
+                r"(?:if|then|else|elif|fi|case|esac|while|do|done|for|until|select)\b",
+                line,
+            ) or line.endswith(("; then", "; do")) or re.match(
+                r"(?:!\s*)?\(", line
+            ) or line.startswith(")"):
+                return None
+            name: str | None = None
+            immediate = False
+            if line.endswith("() {"):
+                prefix = line[:-4]
+                if prefix and prefix[-1] not in " \t":
+                    name = prefix
+                    immediate = True
+                elif prefix.endswith(" "):
+                    name = prefix[:-1]
+                    immediate = True
+            elif line.endswith(" ()"):
+                name = line[:-3]
+
+            if name is not None:
+                if (
+                    not name
+                    or not (
+                        "A" <= name[0] <= "Z" or "a" <= name[0] <= "z"
+                        or name[0] == "_"
+                    )
+                    or any(
+                        not (
+                            "A" <= character <= "Z"
+                            or "a" <= character <= "z"
+                            or "0" <= character <= "9"
+                            or character == "_"
+                        )
+                        for character in name[1:]
+                    )
+                    or name in functions
+                ):
+                    return None
+                if immediate:
+                    active_name = name
+                    body = []
+                else:
+                    pending_name = name
+                continue
+            if (
+                "()" in line
+                or "{" in line
+                or "}" in line
+                or re.match(r"function\b", line)
+            ):
+                return None
+        if active_name is not None or pending_name is not None:
+            return None
+        return MappingProxyType(functions)
+    except Exception:
+        return None
 
 
 def _shell_active_lines(text: str) -> tuple[str, ...] | object:
