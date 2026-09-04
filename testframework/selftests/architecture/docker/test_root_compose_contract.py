@@ -1017,6 +1017,95 @@ gamma ()
         assert _hard2g_c02_function_inventory(hostile) is None
 
 
+def test_hard2g_c02_shell_body_lexically_closes_only_supported_forms() -> None:
+    runtime = _hard2g_c02_function_inventory(
+        _hard2g_runtime_budget_fixture(_hard2g_runtime_budget_assignments())
+    )
+    execute = _hard2g_c02_function_inventory(
+        _hard2g_execute_budget_bridge_fixture()
+    )
+    assert runtime is not None
+    assert execute is not None
+    assert all(
+        _hard2g_c02_shell_body_lexically_closed(body)
+        for body in (*runtime.values(), *execute.values())
+    )
+
+    for accepted in (
+        ('printf \'%s\\n\' "${SAFE}"',),
+        ('report_bytes="$(report_regular_file_bytes)"',),
+        ('metadata_bytes="$(report_metadata_bytes)"',),
+        ('stream_cap="$(stage_stream_cap "$stage" "$stream")"',),
+        ('stream_used="$(cat "$stream_used_path")"',),
+        ('stream_bytes="$(wc -c < "$stream_tmp")"',),
+        ('stat_line="$(cat "$stat_path")"',),
+        ('value=$((left + 1))',),
+        ('other=$((9 - right))',),
+        ('if true; then',),
+        ('while true; do',),
+        ('*) return 1 ;;',),
+        ('"$go_child_pid (go) Z "*|"$go_child_pid (go) X "*) return 1 ;;',),
+        ('"$go_child_pid (go) "*) return 0 ;;',),
+    ):
+        assert _hard2g_c02_shell_body_lexically_closed(accepted)
+
+    for hostile in (
+        ('cat <<EOF',),
+        ('cat <<< "unsafe"',),
+        ('echo `unsafe`',),
+        ('cat <(unsafe)',),
+        ('cat >(unsafe)',),
+        ('left | right',),
+        ('eval unsafe',),
+        ('exec unsafe',),
+        ('. ./unsafe',),
+        ('source ./unsafe',),
+        ('alias x=unsafe',),
+        ('command unsafe',),
+        ('builtin unsafe',),
+        ('sh -c unsafe',),
+        ('/bin/sh -c unsafe',),
+        ('/bin/sh -e -c unsafe',),
+        ('/bin/busybox sh -c unsafe',),
+        ('"$helper" unsafe',),
+        ('"${helper}" unsafe',),
+        ('"$@" unsafe',),
+        ('"$*" unsafe',),
+        ('$1 unsafe',),
+        ('/$helper unsafe',),
+        ('bin$helper unsafe',),
+        ('./${helper} unsafe',),
+        ('if "${helper}"; then',),
+        ('SAFE=1 "${helper}" unsafe',),
+        ('if SAFE=1 "${helper}"; then',),
+        ('if SAFE=1 "$@"; then',),
+        ('if SAFE=1 ./${helper}; then',),
+        ('SAFE=1 > "$target" "${helper}" unsafe',),
+        ('&>out unsafe',),
+        ('&>>out unsafe',),
+        ('true && unsafe',),
+        ('true || unsafe',),
+        ('nested() {',),
+        ('function nested',),
+        ('{ unsafe; }',),
+        ('value="${x:-unsafe}"',),
+        ('value="$(unsafe)"',),
+        ('value="$(cat "$(unsafe)")"',),
+        ('value=$((left * right))',),
+        ('value=$((left + $(unsafe)))',),
+        ('if true; then; unsafe',),
+        ('*) return 1 ;; unsafe',),
+        ('unsafe \\',),
+        ('unsafe\r',),
+        ('unsafe\nnext',),
+        ('unsafe\x00',),
+        ('  unsafe',),
+        ('# comment',),
+        ('',),
+    ):
+        assert not _hard2g_c02_shell_body_lexically_closed(hostile)
+
+
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
@@ -4966,6 +5055,147 @@ def _hard2g_c02_function_inventory(
         return MappingProxyType(functions)
     except Exception:
         return None
+
+
+def _hard2g_c02_shell_body_lexically_closed(body: object) -> bool:
+    try:
+        if type(body) is not tuple or not body:
+            return False
+        name = r"[A-Za-z_][A-Za-z0-9_]*"
+        simple_parameter = rf"(?<!\$)\$\{{{name}\}}"
+        sanctioned_substitutions = {
+            'report_bytes="$(report_regular_file_bytes)"',
+            'metadata_bytes="$(report_metadata_bytes)"',
+            'stream_cap="$(stage_stream_cap "$stage" "$stream")"',
+            'stream_used="$(cat "$stream_used_path")"',
+            'stream_bytes="$(wc -c < "$stream_tmp")"',
+            'stat_line="$(cat "$stat_path")"',
+        }
+        arithmetic_assignment = re.compile(
+            rf"{name}=\$\(\((?:{name}|[0-9]+) [+-] (?:{name}|[0-9]+)\)\)"
+        )
+        canonical_pipe_case = (
+            '"$go_child_pid (go) Z "*|"$go_child_pid (go) X "*) '
+            "return 1 ;;"
+        )
+        canonical_live_case = '"$go_child_pid (go) "*) return 0 ;;'
+        ordinary_case_arm = re.compile(
+            rf"(?:[A-Za-z0-9_:-]+|\*)\) (?:printf '%s\\n' \"\$\{{{name}\}}\"|return [0-9]+) ;;"
+        )
+        forbidden_words = {
+            ".",
+            "alias",
+            "builtin",
+            "busybox",
+            "command",
+            "env",
+            "eval",
+            "exec",
+            "source",
+        }
+        for line in body:
+            if (
+                type(line) is not str
+                or not line
+                or line != line.strip()
+                or "\r" in line
+                or "\n" in line
+                or "\x00" in line
+                or line.startswith("#")
+                or line.endswith("\\")
+                or "<<" in line
+                or "`" in line
+                or "<(" in line
+                or ">(" in line
+                or re.search(r"\bfunction\b", line, re.IGNORECASE)
+            ):
+                return False
+            is_sanctioned_substitution = line in sanctioned_substitutions
+            is_arithmetic_assignment = bool(
+                re.fullmatch(arithmetic_assignment, line)
+            )
+            if "$(" in line and not (
+                is_sanctioned_substitution or is_arithmetic_assignment
+            ):
+                return False
+            unexpanded = re.sub(simple_parameter, "", line)
+            if "${" in unexpanded or "{" in unexpanded or "}" in unexpanded:
+                return False
+            is_case_arm = (
+                line in {canonical_pipe_case, canonical_live_case}
+                or bool(re.fullmatch(ordinary_case_arm, line))
+            )
+            if ";;" in line:
+                if not is_case_arm or line.count(";") != 2:
+                    return False
+            elif ";" in line and (
+                line.count(";") != 1 or not line.endswith(("; then", "; do"))
+            ):
+                return False
+            if "|" in line.replace("||", "") and line != canonical_pipe_case:
+                return False
+            words = _shell_words(line)
+            if not isinstance(words, tuple):
+                return False
+            direct_index = 0
+            if direct_index < len(words) and words[direct_index] in {
+                "if",
+                "until",
+                "while",
+            }:
+                direct_index += 1
+            if direct_index < len(words) and words[direct_index] == "!":
+                direct_index += 1
+            while direct_index < len(words) and re.fullmatch(
+                rf"{name}=.*", words[direct_index]
+            ):
+                direct_index += 1
+            if not is_case_arm and direct_index < len(words) and (
+                words[direct_index].startswith(("<", ">", "&>", "&>>"))
+                or (
+                    re.fullmatch(r"[0-9]+", words[direct_index])
+                    and direct_index + 1 < len(words)
+                    and words[direct_index + 1].startswith(("<", ">"))
+                )
+                or "$" in words[direct_index]
+                or re.fullmatch(
+                    r"(?:.*/)?(?:busybox|env)", words[direct_index]
+                )
+            ):
+                return False
+            if (
+                any(word in forbidden_words for word in words)
+                or any(
+                    re.fullmatch(
+                        r"(?:.*/)?(?:sh|bash|dash|ash)", words[index]
+                    )
+                    and "-c" in words[index + 1 :]
+                    for index in range(len(words))
+                )
+            ):
+                return False
+            if "&&" in line or "||" in line:
+                bracket_atom = r"\[ [^\[\];|&(){}]+ \]"
+                if not (
+                    re.fullmatch(
+                        rf"if {bracket_atom}(?: (?:&&|\|\|) {bracket_atom})*; then",
+                        line,
+                    )
+                    or re.fullmatch(rf"{bracket_atom} \|\| return [0-9]+", line)
+                    or re.fullmatch(
+                        rf'wait "\${name}" \|\| {name}=\$\?', line
+                    )
+                ):
+                    return False
+            if not (
+                is_case_arm
+                or is_sanctioned_substitution
+                or is_arithmetic_assignment
+            ) and ("(" in unexpanded or ")" in unexpanded):
+                return False
+        return True
+    except Exception:
+        return False
 
 
 def _shell_active_lines(text: str) -> tuple[str, ...] | object:
