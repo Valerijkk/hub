@@ -1197,6 +1197,26 @@ def test_hard2g_readme_metadata_is_copied_without_becoming_an_oracle(
     assert _hard2g_readme_metadata_copies_are_closed(
         dockerfile + "ENV README_NOTE=human-metadata\n"
     )
+    for copy_instruction in (
+        *_HARD2G_PYTHON_TESTS_CURRENT_NON_METADATA_COPY_INSTRUCTIONS,
+        _HARD2G_PYTHON_TESTS_FUTURE_OBSERVER_COPY_INSTRUCTION,
+    ):
+        assert _hard2g_readme_metadata_copies_are_closed(
+            dockerfile + copy_instruction + "\n"
+        )
+    for hostile_copy_instruction in (
+        "COPY testframework/README.* ./",
+        "COPY testframework/* ./",
+        "COPY testframework/ ./testframework/",
+    ):
+        assert not _hard2g_readme_metadata_copies_are_closed(
+            dockerfile + hostile_copy_instruction + "\n"
+        )
+    assert not _hard2g_readme_metadata_copies_are_closed(
+        "FROM python@sha256:base AS python-base\n"
+        "COPY testframework/src/ ./src/\n"
+        + dockerfile
+    )
     assert not _hard2g_readme_metadata_copies_are_closed(
         dockerfile.replace(
             "COPY testframework/schemas/ ./schemas/",
@@ -3601,6 +3621,32 @@ _HARD2G_METADATA_README_COPY_INSTRUCTIONS = (
     "COPY testframework/schemas/ ./schemas/",
     "COPY testframework/docker/ ./docker/",
 )
+_HARD2G_PYTHON_BASE_COPY_INSTRUCTIONS = frozenset()
+_HARD2G_PYTHON_TESTS_CURRENT_NON_METADATA_COPY_INSTRUCTIONS = frozenset(
+    {
+        "COPY testframework/src/ ./src/",
+        "COPY docker-compose.local.yml /opt/hub/docker-compose.local.yml",
+        "COPY .planning/phases/130-tf-traceability-gates/PLAN.md "
+        "/opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md",
+        "COPY testframework/selftests/ ./selftests/",
+        "COPY testframework/tests/ ./tests/",
+        "COPY testframework/cases/ ./cases/",
+        "COPY testframework/policies/ ./policies/",
+        "COPY testframework/load/ ./load/",
+        "COPY testframework/docker/entrypoints/python-qa.sh "
+        "/usr/local/bin/python-qa",
+    }
+)
+_HARD2G_PYTHON_TESTS_FUTURE_OBSERVER_COPY_INSTRUCTION = (
+    "COPY testframework/observers/ ./observers/"
+)
+_HARD2G_PYTHON_TESTS_COPY_INSTRUCTIONS = frozenset(
+    (
+        *_HARD2G_METADATA_README_COPY_INSTRUCTIONS,
+        *_HARD2G_PYTHON_TESTS_CURRENT_NON_METADATA_COPY_INSTRUCTIONS,
+        _HARD2G_PYTHON_TESTS_FUTURE_OBSERVER_COPY_INSTRUCTION,
+    )
+)
 _HARD2G_METADATA_ALLOWED_PYTHON_BASE_EXECUTABLE_INSTRUCTIONS = frozenset(
     {
         "RUN groupadd --gid 10001 hubqa && useradd --uid 10001 --gid "
@@ -4177,6 +4223,7 @@ def _hard2g_readme_metadata_copies_are_closed(text: object) -> bool:
                 _hard2g_v4_docker_instruction_is_closed(
                     instruction,
                     _HARD2G_METADATA_ALLOWED_PYTHON_BASE_EXECUTABLE_INSTRUCTIONS,
+                    _HARD2G_PYTHON_BASE_COPY_INSTRUCTIONS,
                 )
                 for instruction in base_instructions
             )
@@ -4194,6 +4241,7 @@ def _hard2g_readme_metadata_copies_are_closed(text: object) -> bool:
             _hard2g_v4_docker_instruction_is_closed(
                 instruction,
                 _HARD2G_METADATA_ALLOWED_PYTHON_EXECUTABLE_INSTRUCTIONS,
+                _HARD2G_PYTHON_TESTS_COPY_INSTRUCTIONS,
             )
             for instruction in instructions
         )
@@ -4204,27 +4252,14 @@ def _hard2g_readme_metadata_copies_are_closed(text: object) -> bool:
 def _hard2g_v4_docker_instruction_is_closed(
     instruction: str,
     executable_allowlist: frozenset[str],
+    copy_allowlist: frozenset[str],
 ) -> bool:
-    if instruction in _HARD2G_METADATA_README_COPY_INSTRUCTIONS:
-        return True
     opcode = instruction.partition(" ")[0]
     if opcode in {"RUN", "CMD", "ENTRYPOINT"}:
         return instruction in executable_allowlist
-    if opcode != "COPY":
-        return opcode in {"ENV", "USER", "WORKDIR"}
-    words = instruction.split()
-    source_index = 1
-    while source_index < len(words) and words[source_index].startswith("--"):
-        source_index += 1
-    if source_index != 1:
-        return False
-    sources = words[source_index:-1]
-    return bool(sources) and all(
-        "$" not in source
-        and not any(character in source for character in ('"', "'", chr(96), "\\"))
-        and source.rsplit("/", 1)[-1].casefold() != "readme.md"
-        for source in sources
-    )
+    if opcode == "COPY":
+        return instruction in copy_allowlist
+    return opcode in {"ENV", "USER", "WORKDIR"}
 
 
 def _hard2g_provenance_bindings_are_closed(
