@@ -970,6 +970,79 @@ def test_hard2g_execute_budget_bridge_is_closed() -> None:
         assert not _hard2g_execute_budget_bridge_is_closed(hostile)
 
 
+def test_hard2g_read_bounded_stage_stream_automaton_is_closed() -> None:
+    execute = _hard2g_c02_durable_budget_execute_fixture()
+    assert _hard2g_read_bounded_stage_stream_automaton_is_closed(execute)
+
+    append_line = '    cat -- "$stream_tmp" >> "$stream_path"'
+    overflow_block = (
+        '  if [ "$stream_bytes" -gt "$remaining" ]; then\n'
+        '    : > "$budget_stop_marker"\n'
+        '    return 75\n'
+        '  fi\n'
+    )
+    account_line = "  stream_used=$((stream_used + stream_bytes))\n"
+    for hostile in (
+        execute.replace(
+            'stream_tmp="$GOTMPDIR/stream-capture/$stage.$stream.$package_ordinal.tmp"',
+            'stream_tmp="$stream_path.raw"',
+            1,
+        ),
+        execute.replace(
+            'head -c "$read_limit" < "$fifo_path" > "$stream_tmp"',
+            'cat -- "$fifo_path" > "$stream_tmp"',
+            1,
+        ),
+        execute.replace(append_line, append_line + "\n" + append_line, 1),
+        execute.replace(
+            overflow_block + account_line,
+            account_line + overflow_block,
+            1,
+        ),
+        execute.replace(
+            append_line,
+            '    cat -- "$stream_tmp" >> "$target"',
+            1,
+        ),
+        execute.replace(
+            '    printf \'%s\\n\' "$stream_used" > "$stream_used_path"',
+            '    printf \'%s\\n\' "$stream_used" > "$used_target"',
+            1,
+        ),
+        execute.replace(
+            '  return 0\n}\n\nrun_stage() {',
+            '  cat -- "$fifo_path" >> "$stream_path"\n'
+            '  return 0\n}\n\nrun_stage() {',
+            1,
+        ),
+        execute.replace(
+            "read_bounded_stage_stream() {",
+            "removed_reader() {",
+            1,
+        ),
+        execute + "\nread_bounded_stage_stream () {\n  :\n}\n",
+    ):
+        assert hostile != execute
+        assert not _hard2g_read_bounded_stage_stream_automaton_is_closed(hostile)
+
+    assert not _hard2g_read_bounded_stage_stream_automaton_is_closed(None)
+    assert not _hard2g_read_bounded_stage_stream_automaton_is_closed(
+        execute.replace("\n", "\r\n", 1)
+    )
+    assert not _hard2g_read_bounded_stage_stream_automaton_is_closed(
+        execute.removesuffix("\n")
+    )
+
+    run_stage_only = execute.replace(
+        "run_stage() {\n",
+        "run_stage() {\n  :\n",
+        1,
+    )
+    assert run_stage_only != execute
+    assert _hard2g_read_bounded_stage_stream_automaton_is_closed(run_stage_only)
+    assert not _hard2g_execute_budget_bridge_is_closed(run_stage_only)
+
+
 def test_hard2g_c02_function_inventory_is_fail_closed_and_preserves_bodies() -> None:
     expected_body = (
         "if true; then",
@@ -4258,6 +4331,38 @@ run_stage() {
 '''
 
 
+def _hard2g_read_bounded_stage_stream_automaton_is_closed(text: object) -> bool:
+    try:
+        if (
+            type(text) is not str
+            or "\r" in text
+            or not text.endswith("\n")
+            or not _shell_source_is_safe(text)
+        ):
+            return False
+        lines = _shell_active_lines(text)
+        inventory = _hard2g_c02_function_inventory(text)
+        canonical_inventory = _hard2g_c02_function_inventory(
+            _hard2g_c02_durable_budget_execute_fixture()
+        )
+        if (
+            type(lines) is not tuple
+            or inventory is None
+            or canonical_inventory is None
+        ):
+            return False
+        name = "read_bounded_stage_stream"
+        canonical_body = canonical_inventory.get(name)
+        return (
+            lines.count(f"{name}() {{") == 1
+            and type(canonical_body) is tuple
+            and bool(canonical_body)
+            and inventory.get(name) == canonical_body
+        )
+    except Exception:
+        return False
+
+
 def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
     try:
         if (
@@ -4273,15 +4378,11 @@ def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
         )
         if not isinstance(lines, tuple) or not isinstance(fixture_lines, tuple):
             return False
-        bridge_functions = (
-            "read_bounded_stage_stream",
-            "run_stage",
-        )
-        return all(
-            lines.count(f"{name}() {{") == 1
-            and _shell_function_body(lines, name)
-            == _shell_function_body(fixture_lines, name)
-            for name in bridge_functions
+        return (
+            _hard2g_read_bounded_stage_stream_automaton_is_closed(text)
+            and lines.count("run_stage() {") == 1
+            and _shell_function_body(lines, "run_stage")
+            == _shell_function_body(fixture_lines, "run_stage")
         )
     except Exception:
         return False
