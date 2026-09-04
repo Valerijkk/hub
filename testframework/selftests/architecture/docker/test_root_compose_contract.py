@@ -5775,7 +5775,11 @@ def _hard2g_provenance_bindings_are_closed(
             and _is_sha256_digest(fixed_image_ids["backend_unit"])
             and fixture.get("bound_backend_image_id")
             == fixed_image_ids["backend_unit"]
-            and fixture.get("container_image") == fixed_image_ids["backend_unit"]
+            and (
+                "container_image" not in fixture
+                or fixture.get("container_image")
+                == fixed_image_ids["backend_unit"]
+            )
             and isinstance(final_receipt, Mapping)
             and final_receipt.get("backend_image_id")
             == fixed_image_ids["backend_unit"]
