@@ -1333,6 +1333,72 @@ def test_hard2g_c02_runtime_helper_ownership_is_closed() -> None:
         )
 
 
+def test_hard2g_c02_durable_budget_fixture_topology_is_closed() -> None:
+    runtime = _hard2g_c02_durable_budget_runtime_fixture()
+    execute = _hard2g_c02_durable_budget_execute_fixture()
+    receipt = _hard2g_container_receipt_fixture()
+    assert _hard2g_c02_durable_budget_fixture_topology_is_closed(
+        runtime, execute, receipt
+    )
+
+    marker_false = "report_budget_truncated_due_to_budget=false"
+    marker_true = "report_budget_truncated_due_to_budget=true"
+    runtime_marker_in_function = runtime.replace(
+        f"{marker_false}\n\n", "", 1
+    ).replace(
+        "stage_stream_cap() {\n",
+        f"stage_stream_cap() {{\n  {marker_false}\n",
+        1,
+    )
+    for hostile in (
+        runtime.replace(f"{marker_false}\n", "", 1),
+        runtime.replace(marker_false, f"{marker_false}\n{marker_false}", 1),
+        runtime.replace(marker_false, marker_true, 1),
+        runtime.replace(marker_false, 'report_budget_truncated_due_to_budget="$flag"', 1),
+        runtime_marker_in_function,
+    ):
+        assert hostile != runtime
+        assert not _hard2g_c02_durable_budget_fixture_topology_is_closed(
+            hostile, execute, receipt
+        )
+
+    execute_marker_in_reader = execute.replace(
+        f"  {marker_true}\n", "", 1
+    ).replace(
+        "read_bounded_stage_stream() {\n",
+        f"read_bounded_stage_stream() {{\n  {marker_true}\n",
+        1,
+    )
+    for hostile in (
+        execute.replace(f"  {marker_true}\n", "  :\n", 1),
+        execute.replace(marker_true, f"{marker_true}\n  {marker_true}", 1),
+        execute.replace(marker_true, marker_false, 1),
+        execute.replace(marker_true, 'report_budget_truncated_due_to_budget="$flag"', 1),
+        execute_marker_in_reader,
+        execute.replace(marker_true, "truncation_evidence=budget-stop", 1),
+    ):
+        assert hostile != execute
+        assert not _hard2g_c02_durable_budget_fixture_topology_is_closed(
+            runtime, hostile, receipt
+        )
+
+    writer = '  write_atomic "$run_dir/container-receipt.json" "$receipt"\n'
+    for hostile in (
+        receipt.replace(writer, "", 1),
+        receipt.replace(writer, writer + writer, 1),
+        receipt.replace("container-receipt.json", "receipt-copy.json", 1),
+        receipt.replace(
+            writer,
+            '  write_atomic "$run_dir/$receipt_name" "$receipt"\n',
+            1,
+        ),
+    ):
+        assert hostile != receipt
+        assert not _hard2g_c02_durable_budget_fixture_topology_is_closed(
+            runtime, execute, hostile
+        )
+
+
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
@@ -3874,6 +3940,27 @@ finalize_container() {
 '''
 
 
+def _hard2g_c02_durable_budget_runtime_fixture() -> str:
+    runtime = _hard2g_runtime_budget_fixture(_hard2g_runtime_budget_assignments())
+    insertion_point = "set -eu\n\n"
+    assert runtime.count(insertion_point) == 1
+    return runtime.replace(
+        insertion_point,
+        insertion_point + "report_budget_truncated_due_to_budget=false\n\n",
+        1,
+    )
+
+
+def _hard2g_c02_durable_budget_execute_fixture() -> str:
+    execute = _hard2g_execute_budget_bridge_fixture()
+    legacy = "truncation_evidence=budget-stop"
+    assert execute.count(legacy) == 3
+    return execute.replace(
+        legacy,
+        "report_budget_truncated_due_to_budget=true",
+    )
+
+
 def _hard2g_execute_budget_bridge_fixture() -> str:
     return '''#!/bin/sh
 set -eu
@@ -5691,6 +5778,80 @@ def _hard2g_c02_runtime_helper_ownership_is_closed(
             if pattern.search(line)
         )
         return actual_execute_occurrences == expected_execute_occurrences
+    except Exception:
+        return False
+
+
+def _hard2g_c02_durable_budget_fixture_topology_is_closed(
+    runtime: object,
+    execute: object,
+    receipt: object,
+) -> bool:
+    try:
+        sources = (runtime, execute, receipt)
+        if any(
+            type(source) is not str
+            or "\r" in source
+            or not source.endswith("\n")
+            or not _shell_source_is_safe(source)
+            for source in sources
+        ):
+            return False
+        runtime_text, execute_text, receipt_text = sources
+        assert type(runtime_text) is str
+        assert type(execute_text) is str
+        assert type(receipt_text) is str
+        if "truncation_evidence=budget-stop" in runtime_text or (
+            "truncation_evidence=budget-stop" in execute_text
+        ):
+            return False
+        runtime_lines = _shell_active_lines(runtime_text)
+        execute_lines = _shell_active_lines(execute_text)
+        receipt_lines = _shell_active_lines(receipt_text)
+        if not all(
+            type(lines) is tuple
+            for lines in (runtime_lines, execute_lines, receipt_lines)
+        ):
+            return False
+        assert type(runtime_lines) is tuple
+        assert type(execute_lines) is tuple
+        assert type(receipt_lines) is tuple
+        runtime_inventory = _hard2g_c02_function_inventory(runtime_text)
+        execute_inventory = _hard2g_c02_function_inventory(execute_text)
+        if runtime_inventory is None or execute_inventory is None:
+            return False
+        symbol = "report_budget_truncated_due_to_budget"
+        pattern = re.compile(
+            rf"(?<![A-Za-z0-9_]){re.escape(symbol)}(?![A-Za-z0-9_])"
+        )
+        runtime_occurrences = tuple(
+            line for line in runtime_lines if pattern.search(line)
+        )
+        if runtime_occurrences != (f"{symbol}=false",) or any(
+            pattern.search(line)
+            for body in runtime_inventory.values()
+            for line in body
+        ):
+            return False
+        execute_occurrences = tuple(
+            line for line in execute_lines if pattern.search(line)
+        )
+        run_stage = _shell_function_body(execute_lines, "run_stage")
+        reader = _shell_function_body(execute_lines, "read_bounded_stage_stream")
+        if type(run_stage) is not tuple or type(reader) is not tuple:
+            return False
+        expected_true = f"{symbol}=true"
+        if (
+            execute_occurrences != (expected_true, expected_true, expected_true)
+            or run_stage.count(expected_true) != 3
+            or any(pattern.search(line) for line in reader)
+        ):
+            return False
+        writer = 'write_atomic "$run_dir/container-receipt.json" "$receipt"'
+        return (
+            receipt_lines.count(writer) == 1
+            and _hard2g_container_publication_is_closed(receipt_text)
+        )
     except Exception:
         return False
 
