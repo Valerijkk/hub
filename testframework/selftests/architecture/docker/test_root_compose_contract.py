@@ -1354,6 +1354,33 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
         "def use(lookup):\n    lookup(candidate, method_name)\nuse(getattr)\n",
         "first = middle = last = open\nlast(path)\n",
         "def use(reader):\n    alias = reader\n    alias(path)\nuse(open)\n",
+        "def outer():\n"
+        "    def inner():\n"
+        "        open(path)\n"
+        "    inner()\n"
+        "outer()\n",
+        "class Reader:\n"
+        "    def read(self):\n"
+        "        open(path)\n"
+        "Reader().read()\n",
+        "def use(*args):\n    args[0](path)\nuse(open)\n",
+        "def use(**kwargs):\n"
+        "    kwargs['reader'](path)\n"
+        "use(reader=open)\n",
+        "reader = lambda value: value\n"
+        "def use():\n"
+        "    global reader\n"
+        "    reader = open\n"
+        "    reader(path)\n"
+        "use()\n",
+        "def outer():\n"
+        "    reader = lambda value: value\n"
+        "    def use():\n"
+        "        nonlocal reader\n"
+        "        reader = open\n"
+        "        reader(path)\n"
+        "    use()\n"
+        "outer()\n",
     )
     assert all(
         not _hard2g_observer_source_has_closed_read_authority(
@@ -3924,8 +3951,30 @@ def _hard2g_python_call_constructs_path(
     )
 
 
+def _hard2g_v4_lexical_shape_is_closed(tree: ast.AST) -> bool:
+    if not isinstance(tree, ast.Module):
+        return False
+    top_level_function_ids = {
+        id(node)
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.ClassDef, ast.Global, ast.Nonlocal)):
+            return False
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and (
+            id(node) not in top_level_function_ids
+            or node.args.vararg is not None
+            or node.args.kwarg is not None
+        ):
+            return False
+    return True
+
+
 def _hard2g_v4_observer_source_is_closed(relative: str, source: str) -> bool:
     tree = ast.parse(source)
+    if not _hard2g_v4_lexical_shape_is_closed(tree):
+        return False
     aliases = _hard2g_v4_authority_aliases(tree)
     module_calls = _hard2g_v4_scope_calls(tree)
     all_calls = tuple(node for node in ast.walk(tree) if isinstance(node, ast.Call))
