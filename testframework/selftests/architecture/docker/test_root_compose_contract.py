@@ -238,6 +238,40 @@ _HARD2G_C02_RUNTIME_OWNED_HELPERS = (
     "terminate_owned_go_child_group",
     "reap_owned_go_child_group",
 )
+_HARD2G_RECEIPT_BUDGET_BUILDER_BODY = (
+    'case "${report_budget_truncated_due_to_budget-}" in',
+    "false)",
+    (
+        "report_budget_json='"
+        '{"limit_bytes":67108864,"metadata_reserve_bytes":8388608,'
+        '"truncated_due_to_budget":false}'
+        "'"
+    ),
+    ";;",
+    "true)",
+    (
+        "report_budget_json='"
+        '{"limit_bytes":67108864,"metadata_reserve_bytes":8388608,'
+        '"truncated_due_to_budget":true}'
+        "'"
+    ),
+    ";;",
+    "*)",
+    "return 64",
+    ";;",
+    "esac",
+    'case "${receipt-}" in',
+    "*'\"report_budget\"'*)",
+    "return 64",
+    ";;",
+    "\\{*\\})",
+    ";;",
+    "*)",
+    "return 64",
+    ";;",
+    "esac",
+    r'receipt="${receipt%?},\"report_budget\":$report_budget_json}"',
+)
 _BUILD_TARGETS = MappingProxyType(
     {
         "backend-unit": "backend-unit",
@@ -1513,6 +1547,61 @@ def test_hard2g_canonical_build_input_manifest_rejects_symlink_parent(
 def test_hard2g_container_publication_order_is_closed() -> None:
     canonical_receipt = _hard2g_container_receipt_fixture()
     assert _hard2g_container_publication_is_closed(canonical_receipt)
+    builder_call = "  build_container_receipt\n"
+    terminal_writer = '  write_atomic "$run_dir/container-receipt.json" "$receipt"\n'
+    receipt_builder_line = (
+        r'  receipt="${receipt%?},\"report_budget\":$report_budget_json}"' + "\n"
+    )
+    for hostile_builder in (
+        canonical_receipt.replace(builder_call, "", 1),
+        canonical_receipt.replace(builder_call, builder_call + builder_call, 1),
+        canonical_receipt.replace(
+            builder_call + terminal_writer,
+            terminal_writer + builder_call,
+            1,
+        ),
+        canonical_receipt.replace(
+            'case "${report_budget_truncated_due_to_budget-}" in',
+            "case false in",
+            1,
+        ),
+        canonical_receipt.replace(
+            'case "${report_budget_truncated_due_to_budget-}" in',
+            'case "$report_budget_truncated_due_to_budget" in',
+            1,
+        ),
+        canonical_receipt.replace(
+            "*'\"report_budget\"'*)",
+            "*'\"other\"'*)",
+            1,
+        ),
+        canonical_receipt.replace("\\{*\\})", "*)", 1),
+        canonical_receipt.replace(
+            '"truncated_due_to_budget":false',
+            '"truncated_due_to_budget":"false"',
+            1,
+        ),
+        canonical_receipt.replace(
+            '"truncated_due_to_budget":false}',
+            '"truncated_due_to_budget":false,'
+            '"truncated_due_to_budget":true}',
+            1,
+        ),
+        canonical_receipt.replace(
+            receipt_builder_line,
+            '  report_budget_truncated_due_to_budget=false\n'
+            + receipt_builder_line,
+            1,
+        ),
+        canonical_receipt.replace(
+            receipt_builder_line,
+            '  write_atomic "$run_dir/budget.json" "$report_budget_json"\n'
+            + receipt_builder_line,
+            1,
+        ),
+    ):
+        assert hostile_builder != canonical_receipt
+        assert not _hard2g_container_publication_is_closed(hostile_builder)
     assert not _hard2g_container_publication_is_closed(
         canonical_receipt + "}\n"
     )
@@ -3921,23 +4010,32 @@ def _hard2g_runtime_budget_fixture(assignments: tuple[str, ...]) -> str:
 
 
 def _hard2g_container_receipt_fixture() -> str:
-    return '''#!/bin/sh
-set -eu
-
-rename_stage_artifact() {
-  mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"
-}
-
-finalize_container() {
-  write_owner
-  write_package_plans
-  write_stage_artifacts
-  write_inventory
-  : > "$run_dir/CONTAINER_COMPLETE"
-  write_atomic "$run_dir/container-receipt.json" "$receipt"
-  return 0
-}
-'''
+    return "\n".join(
+        (
+            "#!/bin/sh",
+            "set -eu",
+            "",
+            "rename_stage_artifact() {",
+            '  mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"',
+            "}",
+            "",
+            "build_container_receipt() {",
+            *(f"  {line}" for line in _HARD2G_RECEIPT_BUDGET_BUILDER_BODY),
+            "}",
+            "",
+            "finalize_container() {",
+            "  write_owner",
+            "  write_package_plans",
+            "  write_stage_artifacts",
+            "  write_inventory",
+            '  : > "$run_dir/CONTAINER_COMPLETE"',
+            "  build_container_receipt",
+            '  write_atomic "$run_dir/container-receipt.json" "$receipt"',
+            "  return 0",
+            "}",
+            "",
+        )
+    )
 
 
 def _hard2g_c02_durable_budget_runtime_fixture() -> str:
@@ -5064,7 +5162,11 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
         if not _hard2g_compound_publication_grammar_is_closed(lines):
             return False
         finalizer = _shell_function_body(lines, "finalize_container")
-        if not isinstance(finalizer, tuple):
+        builder = _shell_function_body(lines, "build_container_receipt")
+        if (
+            not isinstance(finalizer, tuple)
+            or builder != _HARD2G_RECEIPT_BUDGET_BUILDER_BODY
+        ):
             return False
         required_lines = (
             "write_owner",
@@ -5072,6 +5174,7 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
             "write_stage_artifacts",
             "write_inventory",
             ': > "$run_dir/CONTAINER_COMPLETE"',
+            "build_container_receipt",
             'write_atomic "$run_dir/container-receipt.json" "$receipt"',
         )
         positions = tuple(
@@ -5977,12 +6080,19 @@ def _hard2g_compound_publication_grammar_is_closed(
     lines: tuple[str, ...],
 ) -> bool:
     try:
+        builder = _shell_function_body(lines, "build_container_receipt")
+        if builder != _HARD2G_RECEIPT_BUDGET_BUILDER_BODY:
+            return False
+        builder_lines = frozenset(builder)
+        if any(lines.count(line) != builder.count(line) for line in builder_lines):
+            return False
         allowed_commands = {
             "set -eu": ("set", "-eu"),
             "write_owner": ("write_owner",),
             "write_package_plans": ("write_package_plans",),
             "write_stage_artifacts": ("write_stage_artifacts",),
             "write_inventory": ("write_inventory",),
+            "build_container_receipt": ("build_container_receipt",),
             ': > "$run_dir/CONTAINER_COMPLETE"': (
                 ":",
                 ">",
@@ -6003,6 +6113,7 @@ def _hard2g_compound_publication_grammar_is_closed(
         }
         allowed_structure = {
             "rename_stage_artifact() {",
+            "build_container_receipt() {",
             "finalize_container() {",
             "}",
         }
@@ -6011,6 +6122,8 @@ def _hard2g_compound_publication_grammar_is_closed(
         )
         if structural_lines != (
             "rename_stage_artifact() {",
+            "}",
+            "build_container_receipt() {",
             "}",
             "finalize_container() {",
             "}",
@@ -6023,6 +6136,8 @@ def _hard2g_compound_publication_grammar_is_closed(
             if _hard2g_line_mutates_run_dir(words):
                 return False
             if line in allowed_structure:
+                continue
+            if line in builder_lines:
                 continue
             if allowed_commands.get(line) != words:
                 return False
