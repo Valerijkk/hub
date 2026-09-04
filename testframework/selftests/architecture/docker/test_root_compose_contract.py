@@ -238,6 +238,7 @@ _HARD2G_C02_RUNTIME_OWNED_HELPERS = (
     "terminate_owned_go_child_group",
     "reap_owned_go_child_group",
 )
+_HARD2G_C02_EXECUTE_EXTENSION_ALLOWLIST: tuple[str, ...] = ()
 _HARD2G_RECEIPT_BUDGET_BUILDER_BODY = (
     'case "${report_budget_truncated_due_to_budget-}" in',
     "false)",
@@ -1041,6 +1042,56 @@ def test_hard2g_read_bounded_stage_stream_automaton_is_closed() -> None:
     assert run_stage_only != execute
     assert _hard2g_read_bounded_stage_stream_automaton_is_closed(run_stage_only)
     assert not _hard2g_execute_budget_bridge_is_closed(run_stage_only)
+
+
+def test_hard2g_c02_execute_surface_is_closed() -> None:
+    execute = _hard2g_c02_durable_budget_execute_fixture()
+    assert _HARD2G_C02_EXECUTE_EXTENSION_ALLOWLIST == ()
+    assert _hard2g_c02_execute_surface_is_closed(execute)
+
+    expected_inventory = ("read_bounded_stage_stream", "run_stage")
+    inventory = _hard2g_c02_function_inventory(execute)
+    assert inventory is not None
+    assert tuple(inventory) == expected_inventory
+
+    extra_function = "\nnoop() {\n  :\n}\n"
+    for hostile in (
+        execute.replace(
+            "\nrun_stage() {",
+            "\ncheck_budget() {\n  :\n}\n\nrun_stage() {",
+            1,
+        ),
+        execute.replace(
+            "\nrun_stage() {",
+            "\nstage_stream_cap() {\n  printf '%s\\n' 1\n}\n\nrun_stage() {",
+            1,
+        ),
+        execute + extra_function,
+        execute.replace("set -eu\n", "set -eu\nPATH=/tmp\n", 1),
+        execute.replace(
+            "set -eu\n",
+            'set -eu\n: > "$run_dir/unowned"\n',
+            1,
+        ),
+        execute + "\n# comment\n" + ': > "$run_dir/unowned"\n',
+        execute + "\nrun_stage () {\n  :\n}\n",
+        execute.replace("#!/bin/sh", "#!/bin/bash", 1),
+        execute.replace("#!/bin/sh", "#!/usr/bin/env bash", 1),
+        execute.replace("set -eu\n", "set -eu\n# unsafe\x00comment\n", 1),
+        execute.replace("set -eu\n", "\vset -eu\n", 1),
+        execute.replace("set -eu\n", "set -eu\n\v# not-a-shell-comment\n", 1),
+    ):
+        assert hostile != execute
+        assert not _hard2g_c02_execute_surface_is_closed(hostile)
+
+    assert _hard2g_c02_execute_surface_is_closed(
+        execute.replace("set -eu\n", "set -eu\n# comment-only extension\n", 1)
+    )
+    assert not _hard2g_c02_execute_surface_is_closed(None)
+    assert not _hard2g_c02_execute_surface_is_closed(
+        execute.replace("\n", "\r\n", 1)
+    )
+    assert not _hard2g_c02_execute_surface_is_closed(execute.removesuffix("\n"))
 
 
 def test_hard2g_c02_function_inventory_is_fail_closed_and_preserves_bodies() -> None:
@@ -4331,6 +4382,43 @@ run_stage() {
 '''
 
 
+def _hard2g_c02_execute_surface_is_closed(text: object) -> bool:
+    try:
+        if (
+            type(text) is not str
+            or "\r" in text
+            or "\x00" in text
+            or any(
+                character.isspace() and character not in " \t\n"
+                for character in text
+            )
+            or not text.endswith("\n")
+            or not _shell_source_is_safe(text)
+            or _HARD2G_C02_EXECUTE_EXTENSION_ALLOWLIST != ()
+        ):
+            return False
+        source_lines = text.splitlines()
+        if not source_lines or source_lines[0] != "#!/bin/sh":
+            return False
+        canonical = _hard2g_c02_durable_budget_execute_fixture()
+        lines = _shell_active_lines(text)
+        canonical_lines = _shell_active_lines(canonical)
+        inventory = _hard2g_c02_function_inventory(text)
+        canonical_inventory = _hard2g_c02_function_inventory(canonical)
+        expected_inventory = ("read_bounded_stage_stream", "run_stage")
+        return (
+            type(lines) is tuple
+            and type(canonical_lines) is tuple
+            and inventory is not None
+            and canonical_inventory is not None
+            and tuple(inventory) == expected_inventory
+            and tuple(canonical_inventory) == expected_inventory
+            and lines == canonical_lines
+        )
+    except Exception:
+        return False
+
+
 def _hard2g_read_bounded_stage_stream_automaton_is_closed(text: object) -> bool:
     try:
         if (
@@ -4379,7 +4467,8 @@ def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
         if not isinstance(lines, tuple) or not isinstance(fixture_lines, tuple):
             return False
         return (
-            _hard2g_read_bounded_stage_stream_automaton_is_closed(text)
+            _hard2g_c02_execute_surface_is_closed(text)
+            and _hard2g_read_bounded_stage_stream_automaton_is_closed(text)
             and lines.count("run_stage() {") == 1
             and _shell_function_body(lines, "run_stage")
             == _shell_function_body(fixture_lines, "run_stage")
