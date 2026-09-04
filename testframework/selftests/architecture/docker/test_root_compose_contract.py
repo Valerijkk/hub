@@ -300,6 +300,21 @@ _INFRASTRUCTURE_DEPENDENTS = frozenset(
 _QA_NETWORK = "qa-internal"
 _MAINTENANCE_SERVICE = "qa-lock"
 _MAINTENANCE_PROFILE = "qa-maintenance"
+_COMPOSE_SERVICE_NAMES = (
+    "postgres",
+    "mongo",
+    "redis",
+    "nats",
+    "seaweedfs",
+    "livekit",
+    "meilisearch",
+    "hub-mail",
+    "backend",
+    "frontend",
+    *_PUBLIC_SERVICES,
+    _MAINTENANCE_SERVICE,
+    *_QA_INFRASTRUCTURE,
+)
 _QA_LOCK_USER = "1000:1000"
 _QA_LOCK_UID_OPTION = "uid=1000"
 _QA_LOCK_GID_OPTION = "gid=1000"
@@ -377,6 +392,7 @@ def test_root_compose_exposes_exact_fixed_qa_services() -> None:
     assert tuple(name for name in services if name in _PUBLIC_SERVICES) == (
         _PUBLIC_SERVICES
     )
+    assert _compose_service_inventory_is_closed(services)
     assert _qa_service_profiles_are_closed(services)
     assert _maintenance_service_profiles_are_closed(services)
     assert _qa_lock_service_is_closed(services)
@@ -413,6 +429,20 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
         assert "ports" not in service
         assert not _contains_token(service, "docker.sock")
         assert _dependencies_are_closed(name, service)
+
+
+def test_root_compose_rejects_every_additional_service() -> None:
+    services = _compose_services(load_root_compose_contract(_REPO_ROOT))
+    assert _compose_service_inventory_is_closed(services)
+    for value in (
+        MappingProxyType({"image": "hostile:latest"}),
+        MappingProxyType({"profiles": ("aux",), "privileged": True}),
+    ):
+        hostile = dict(services)
+        hostile["unbounded-extra"] = value
+        assert not _compose_service_inventory_is_closed(
+            MappingProxyType(hostile)
+        )
 
 
 def test_current_source_overlays_reject_writable_stale_and_undersized_mutations() -> None:
@@ -1723,6 +1753,7 @@ def test_hard2g_report_budget_truncation_receipt_binding_is_closed() -> None:
 def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
+    config = _mapping_value(policy, "hard2g_observer")
     dockerfile = _required_asset_text(
         _REPO_ROOT / "testframework" / "docker" / "Dockerfile.qa"
     )
@@ -1730,6 +1761,41 @@ def test_hard2g_image_and_build_input_bindings_are_exact() -> None:
         _REPO_ROOT,
         policy,
         dockerfile,
+    )
+    image_inspect_argvs = config["image_inspect_argvs"]
+    assert type(image_inspect_argvs) is tuple
+    hostile_argvs = (
+        (
+            *image_inspect_argvs[:-1],
+            (*image_inspect_argvs[-1][:-1], "hostile-backend-image"),
+        ),
+        (
+            (*image_inspect_argvs[0], "--no-trunc"),
+            *image_inspect_argvs[1:],
+        ),
+    )
+    for argv in hostile_argvs:
+        hostile_config = dict(config)
+        hostile_config["image_inspect_argvs"] = argv
+        hostile_policy = dict(policy)
+        hostile_policy["hard2g_observer"] = MappingProxyType(hostile_config)
+        assert not _hard2g_provenance_bindings_are_closed(
+            _REPO_ROOT,
+            MappingProxyType(hostile_policy),
+            dockerfile,
+        )
+
+    manifest = _canonical_build_input_manifest_bytes(
+        _REPO_ROOT,
+        config["canonical_build_input_paths"],
+    )
+    assert type(manifest) is bytes
+    manifest_sha256 = "sha256:" + hashlib.sha256(manifest).hexdigest()
+    assert _hard2g_exact_manifest_binding_is_closed(
+        _REPO_ROOT,
+        manifest,
+        manifest_sha256,
+        config["canonical_build_input_paths"],
     )
 
 
@@ -1901,6 +1967,10 @@ def test_hard2g_container_publication_order_is_closed() -> None:
     )
     assert not _hard2g_container_publication_is_closed(
         canonical_receipt + 'write_atomic "$run_dir/SEAL" "$seal"\n'
+    )
+    assert not _hard2g_container_publication_is_closed(
+        canonical_receipt
+        + 'write_atomic "$run_dir/observer-receipt.json" "$receipt"\n'
     )
     assert not _hard2g_container_publication_is_closed(
         'mv -- "$run_dir/final-receipt.json" "$run_dir/result.json"\n'
@@ -3209,6 +3279,15 @@ def _mapping_value(value: Mapping[str, object], key: str) -> Mapping[str, object
 
 def _compose_services(contract: Mapping[str, object]) -> Mapping[str, object]:
     return _mapping_value(_mapping_value(contract, "compose"), "services")
+
+
+def _compose_service_inventory_is_closed(services: object) -> bool:
+    try:
+        return isinstance(services, Mapping) and tuple(services) == (
+            _COMPOSE_SERVICE_NAMES
+        )
+    except Exception:
+        return False
 
 
 def _qa_service_profiles_are_closed(services: object) -> bool:
@@ -5713,12 +5792,11 @@ def _hard2g_provenance_bindings_are_closed(
             and _is_sha256_digest(manifest_sha256)
             and final_receipt.get("canonical_build_input_manifest_sha256")
             == manifest_sha256
-            and _hard2g_exact_manifest_binding_is_closed(
-                repo_root,
-                manifest_bytes.encode("utf-8", errors="strict"),
-                manifest_sha256,
-                config["canonical_build_input_paths"],
-            )
+            and manifest_sha256
+            == "sha256:"
+            + hashlib.sha256(
+                manifest_bytes.encode("utf-8", errors="strict")
+            ).hexdigest()
         )
     except Exception:
         return False
