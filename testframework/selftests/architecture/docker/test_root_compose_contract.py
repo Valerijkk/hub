@@ -231,6 +231,13 @@ _HARD2G_REPORT_BUDGET = MappingProxyType(
         ),
     }
 )
+_HARD2G_C02_RUNTIME_OWNED_HELPERS = (
+    "start_owned_go_child_group",
+    "owned_go_child_is_live",
+    "monitor_owned_budget_stop",
+    "terminate_owned_go_child_group",
+    "reap_owned_go_child_group",
+)
 _BUILD_TARGETS = MappingProxyType(
     {
         "backend-unit": "backend-unit",
@@ -887,16 +894,6 @@ def test_hard2g_execute_budget_bridge_is_closed() -> None:
             1,
         ),
         canonical_execute.replace(
-            'while owned_go_child_is_live "$go_child_pid"; do',
-            'while kill -0 "$go_child_pid" 2>/dev/null; do',
-            1,
-        ),
-        canonical_execute.replace(
-            '  [ ! -e "$budget_stop_marker" ] || return 75\n  return 0',
-            '  return 0',
-            1,
-        ),
-        canonical_execute.replace(
             '    read_bounded_stage_stream "$stage" stdout '
             '"$stdout_fifo" "$stdout_path" "$stdout_used_path" '
             '"$package_ordinal" &',
@@ -987,13 +984,22 @@ gamma ()
     )
     assert runtime is not None
     assert execute is not None
-    assert {"stage_stream_cap", "check_budget"}.issubset(runtime)
     assert {
-        "read_bounded_stage_stream",
-        "owned_go_child_is_live",
-        "monitor_owned_budget_stop",
-        "run_stage",
-    }.issubset(execute)
+        "stage_stream_cap",
+        "check_budget",
+        *_HARD2G_C02_RUNTIME_OWNED_HELPERS,
+    }.issubset(runtime)
+    assert tuple(
+        name
+        for name in runtime
+        if name in _HARD2G_C02_RUNTIME_OWNED_HELPERS
+    ) == _HARD2G_C02_RUNTIME_OWNED_HELPERS
+    assert all(
+        runtime[name] == (":",)
+        for name in _HARD2G_C02_RUNTIME_OWNED_HELPERS
+    )
+    assert {"read_bounded_stage_stream", "run_stage"}.issubset(execute)
+    assert not set(_HARD2G_C02_RUNTIME_OWNED_HELPERS).intersection(execute)
     assert runtime["check_budget"][-1].endswith("return 75")
     assert execute["read_bounded_stage_stream"][-1] == "return 75"
     assert execute["run_stage"][-1] == 'return "$stage_exit"'
@@ -3739,6 +3745,11 @@ def _hard2g_runtime_budget_fixture(assignments: tuple[str, ...]) -> str:
             "|| return 75",
             "}",
             "",
+            *(
+                line
+                for name in _HARD2G_C02_RUNTIME_OWNED_HELPERS
+                for line in (f"{name}() {{", "  :", "}", "")
+            ),
         )
     )
 
@@ -3794,29 +3805,6 @@ read_bounded_stage_stream() {
   fi
   : > "$budget_stop_marker"
   return 75
-}
-
-owned_go_child_is_live() {
-  go_child_pid="$1"
-  stat_path="/proc/$go_child_pid/stat"
-  [ -r "$stat_path" ] || return 1
-  stat_line="$(cat "$stat_path")"
-  case "$stat_line" in
-    "$go_child_pid (go) Z "*|"$go_child_pid (go) X "*) return 1 ;;
-    "$go_child_pid (go) "*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-monitor_owned_budget_stop() {
-  go_child_pid="$1"
-  budget_stop_marker="$2"
-  while owned_go_child_is_live "$go_child_pid"; do
-    [ ! -e "$budget_stop_marker" ] || return 75
-    sleep 1
-  done
-  [ ! -e "$budget_stop_marker" ] || return 75
-  return 0
 }
 
 run_stage() {
@@ -3887,8 +3875,6 @@ def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
             return False
         bridge_functions = (
             "read_bounded_stage_stream",
-            "owned_go_child_is_live",
-            "monitor_owned_budget_stop",
             "run_stage",
         )
         return all(
