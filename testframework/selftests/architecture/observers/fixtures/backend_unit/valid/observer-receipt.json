@@ -7,7 +7,7 @@
   "container_image": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "container_hostname": "a1b2c3d4e5f6",
   "container_receipt_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-  "compose_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "compose_sha256": "sha256:418b8714ed1aaa3f67e4dc8aca38a6cf75a9a3a4f77288b7ac40c1ee2fdb7137",
   "git": {
     "head_before": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "head_after": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
