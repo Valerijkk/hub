@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -147,6 +148,10 @@ def test_complete_valid_seal_rejects_only_the_crlf_mutation() -> None:
         "owner_nonce",
         "observer_receipt_sha256",
     }
+    assert parse_seal(valid_seal)["observer_receipt_sha256"] == (
+        "sha256:"
+        + hashlib.sha256(_fixture_bytes("valid/observer-receipt.json")).hexdigest()
+    )
 
     crlf_only = valid_seal.replace(b"\n", b"\r\n")
 

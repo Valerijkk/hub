@@ -1,24 +1,154 @@
 {
-  "schema": "hub.qa.backend-unit-container-receipt/v1",
-  "target": "backend-unit",
-  "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
-  "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
-  "container_hostname": "a1b2c3d4e5f6",
-  "launcher_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "command_profile_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-  "source_manifest_before_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-  "source_manifest_after_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-  "cgroup": {"family": "v2", "baseline": {"memory.max": "2147483648", "memory.swap.max": "0", "memory.events": {"oom": 0, "oom_kill": 0}}, "final": {"memory.max": "2147483648", "memory.swap.max": "0", "memory.events": {"oom": 0, "oom_kill": 0}}},
-  "go_environment": {"GOFLAGS": "-p=1", "GOENV": "off", "GOWORK": "off", "GOTOOLCHAIN": "local", "GOPROXY": "off", "GOMAXPROCS": null},
-  "package_plan_sha256": {"build": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "vet": "sha256:2222222222222222222222222222222222222222222222222222222222222222", "unit": "sha256:3333333333333333333333333333333333333333333333333333333333333333", "race": "sha256:4444444444444444444444444444444444444444444444444444444444444444"},
-  "stage_receipt_sha256": {"build": "sha256:5555555555555555555555555555555555555555555555555555555555555555", "vet": "sha256:6666666666666666666666666666666666666666666666666666666666666666", "unit": "sha256:7777777777777777777777777777777777777777777777777777777777777777", "race": "sha256:8888888888888888888888888888888888888888888888888888888888888888"},
-  "artifact_inventory": [
-    {"path": "CONTAINER_COMPLETE", "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "size": 0},
-    {"path": "owner.json", "sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "size": 2},
-    {"path": "owner.json", "sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "size": 2}
-  ],
-  "artifact_inventory_sha256": "sha256:30baec5f64147aff886bde5cc5aaec64c799885a3ea713d9828fbcd14d4ecfe3",
-  "report_budget": {"limit_bytes": 67108864, "metadata_reserve_bytes": 8388608, "truncated_due_to_budget": false},
-  "terminal": {"signal": null, "exit_code": 0},
-  "state": "CONTAINER_COMPLETE"
+    "schema":  "hub.qa.backend-unit-container-receipt/v1",
+    "target":  "backend-unit",
+    "run_id":  "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
+    "owner_nonce":  "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "container_hostname":  "a1b2c3d4e5f6",
+    "launcher_sha256":  "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "command_profile_sha256":  "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "source_manifest_before_sha256":  "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "source_manifest_after_sha256":  "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "cgroup":  {
+                   "family":  "v2",
+                   "baseline":  {
+                                    "memory.max":  "2147483648",
+                                    "memory.swap.max":  "0",
+                                    "memory.events":  {
+                                                          "oom":  0,
+                                                          "oom_kill":  0
+                                                      }
+                                },
+                   "final":  {
+                                 "memory.max":  "2147483648",
+                                 "memory.swap.max":  "0",
+                                 "memory.events":  {
+                                                       "oom":  0,
+                                                       "oom_kill":  0
+                                                   }
+                             }
+               },
+    "go_environment":  {
+                           "go_version":  "go version go1.25.0 linux/amd64",
+                           "GOFLAGS":  "-p=1",
+                           "GOENV":  "off",
+                           "GOWORK":  "off",
+                           "GOTOOLCHAIN":  "local",
+                           "GOPROXY":  "off",
+                           "GOMAXPROCS":  null,
+                           "CGO_ENABLED":  "0",
+                           "GOOS":  "linux",
+                           "GOARCH":  "amd64",
+                           "GOCACHE":  "/var/cache/hub-go",
+                           "GOTMPDIR":  "/var/tmp/hub-go",
+                           "runtime_affecting_environment":  [
+                                                                 {
+                                                                     "name":  "GODEBUG",
+                                                                     "present":  false,
+                                                                     "value":  null
+                                                                 },
+                                                                 {
+                                                                     "name":  "GOEXPERIMENT",
+                                                                     "present":  false,
+                                                                     "value":  null
+                                                                 },
+                                                                 {
+                                                                     "name":  "GOMEMLIMIT",
+                                                                     "present":  false,
+                                                                     "value":  null
+                                                                 }
+                                                             ]
+                       },
+    "package_plan_sha256":  {
+                                "build":  "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                                "vet":  "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+                                "unit":  "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+                                "race":  "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+                            },
+    "stage_receipt_sha256":  {
+                                 "build":  "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+                                 "vet":  "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+                                 "unit":  "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+                                 "race":  "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+                             },
+    "artifact_inventory":  [
+                               {
+                                   "path":  "CONTAINER_COMPLETE",
+                                   "sha256":  "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                                   "size":  0
+                               },
+                               {
+                                   "path":  "owner.json",
+                                   "sha256":  "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                                   "size":  2
+                               },
+                               {
+                                   "path":  "owner.json",
+                                   "sha256":  "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                                   "size":  2
+                               }
+                           ],
+    "artifact_inventory_sha256":  "sha256:30baec5f64147aff886bde5cc5aaec64c799885a3ea713d9828fbcd14d4ecfe3",
+    "report_budget":  {
+                          "total_bytes":  67108864,
+                          "reserved_metadata_bytes":  8388608,
+                          "metadata_used_bytes":  4,
+                          "streams":  {
+                                          "build":  {
+                                                        "stdout":  {
+                                                                       "cap_bytes":  2097152,
+                                                                       "used_bytes":  0,
+                                                                       "truncated":  false
+                                                                   },
+                                                        "stderr":  {
+                                                                       "cap_bytes":  2097152,
+                                                                       "used_bytes":  0,
+                                                                       "truncated":  false
+                                                                   }
+                                                    },
+                                          "vet":  {
+                                                      "stdout":  {
+                                                                     "cap_bytes":  2097152,
+                                                                     "used_bytes":  0,
+                                                                     "truncated":  false
+                                                                 },
+                                                      "stderr":  {
+                                                                     "cap_bytes":  2097152,
+                                                                     "used_bytes":  0,
+                                                                     "truncated":  false
+                                                                 }
+                                                  },
+                                          "unit":  {
+                                                       "stdout":  {
+                                                                      "cap_bytes":  16777216,
+                                                                      "used_bytes":  0,
+                                                                      "truncated":  false
+                                                                  },
+                                                       "stderr":  {
+                                                                      "cap_bytes":  4194304,
+                                                                      "used_bytes":  0,
+                                                                      "truncated":  false
+                                                                  }
+                                                   },
+                                          "race":  {
+                                                       "stdout":  {
+                                                                      "cap_bytes":  25165824,
+                                                                      "used_bytes":  0,
+                                                                      "truncated":  false
+                                                                  },
+                                                       "stderr":  {
+                                                                      "cap_bytes":  4194304,
+                                                                      "used_bytes":  0,
+                                                                      "truncated":  false
+                                                                  }
+                                                   }
+                                      },
+                          "total_used_bytes":  4,
+                          "truncated_due_to_budget":  false,
+                          "raw_output_partial":  false
+                      },
+    "terminal":  {
+                     "signal":  null,
+                     "exit_code":  0
+                 },
+    "state":  "CONTAINER_COMPLETE"
 }

@@ -84,10 +84,24 @@ _MANIFEST_PATHS = (
     "testframework/selftests/architecture/observers/test_backend_unit_observer.py",
     *_FIXTURE_PATHS,
 )
-_MANIFEST_BYTES = b"".join(
-    path.encode() + b"\tsha256:" + hashlib.sha256(path.encode()).hexdigest().encode() + b"\n"
-    for path in _MANIFEST_PATHS
-)
+_MANIFEST_CONTENTS = {
+    path: f"frozen-content-{ordinal:03d}\n".encode()
+    for ordinal, path in enumerate(_MANIFEST_PATHS, start=1)
+}
+
+
+def _manifest_bytes(contents: dict[str, bytes]) -> bytes:
+    assert tuple(contents) == _MANIFEST_PATHS
+    return b"".join(
+        path.encode()
+        + b"\tsha256:"
+        + hashlib.sha256(contents[path]).hexdigest().encode()
+        + b"\n"
+        for path in _MANIFEST_PATHS
+    )
+
+
+_MANIFEST_BYTES = _manifest_bytes(_MANIFEST_CONTENTS)
 _MANIFEST_SHA256 = "sha256:" + hashlib.sha256(_MANIFEST_BYTES).hexdigest()
 _SEALED_CLASSIFICATIONS = (
     "SEALED_EXECUTABLE_PASS",
@@ -491,7 +505,7 @@ def _publication_payloads() -> tuple[dict[str, Any], dict[str, Any]]:
             "classification": "SEALED_TIMEOUT_UNTRIAGED",
             "immutable_outcome": "TIMEOUT_UNTRIAGED",
             "container_id": _CONTAINER_ID,
-            "bound_backend_image_id": _BACKEND_IMAGE_ID,
+            "backend_image_id": _BACKEND_IMAGE_ID,
         },
         {
             "run_id": _RUN_ID,
@@ -529,6 +543,14 @@ def test_canonical_manifest_is_exact_and_excludes_second_observer_review_file() 
         "test_backend_unit_observer_review_contract.py"
     ) not in manifest_paths
     assert set(_FIXTURE_PATHS) <= set(manifest_paths)
+    for line, path in zip(_MANIFEST_BYTES.splitlines(), _MANIFEST_PATHS, strict=True):
+        _, digest = line.split(b"\tsha256:", 1)
+        assert digest.decode() == hashlib.sha256(_MANIFEST_CONTENTS[path]).hexdigest()
+        assert digest.decode() != hashlib.sha256(path.encode()).hexdigest()
+
+    changed_contents = dict(_MANIFEST_CONTENTS)
+    changed_contents[_MANIFEST_PATHS[0]] += b"changed"
+    assert _manifest_bytes(changed_contents) != _MANIFEST_BYTES
     assert hashlib.sha256(_MANIFEST_BYTES).hexdigest() == _MANIFEST_SHA256.removeprefix(
         "sha256:"
     )
@@ -1126,7 +1148,7 @@ def test_main_derives_every_sealed_classification_from_raw_observations(
     assert final["owner_nonce"] == observer["owner_nonce"] == _OWNER_NONCE
     assert final["container_id"] == observer["container_id"] == _CONTAINER_ID
     assert (
-        final["bound_backend_image_id"]
+        final["backend_image_id"]
         == observer["container_image"]
         == observer["fixed_image_ids"]["backend_unit"]
         == _BACKEND_IMAGE_ID

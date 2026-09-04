@@ -820,7 +820,7 @@ def test_hard2g_task2_provenance_oracle_requires_live_publish_binding() -> None:
         ),
         source.replace(
             '    assert final["classification"] == expected\n',
-            '    final = {"bound_backend_image_id": _BACKEND_IMAGE_ID}\n'
+            '    final = {"backend_image_id": _BACKEND_IMAGE_ID}\n'
             '    assert final["classification"] == expected\n',
             1,
         ),
@@ -5775,11 +5775,8 @@ def _hard2g_provenance_bindings_are_closed(
             and _is_sha256_digest(fixed_image_ids["backend_unit"])
             and fixture.get("bound_backend_image_id")
             == fixed_image_ids["backend_unit"]
-            and (
-                "container_image" not in fixture
-                or fixture.get("container_image")
-                == fixed_image_ids["backend_unit"]
-            )
+            and fixture.get("container_image")
+            == fixed_image_ids["backend_unit"]
             and isinstance(final_receipt, Mapping)
             and final_receipt.get("backend_image_id")
             == fixed_image_ids["backend_unit"]
@@ -5787,7 +5784,7 @@ def _hard2g_provenance_bindings_are_closed(
                 final_receipt.get(field) == fixture.get(field)
                 for field in ("run_id", "owner_nonce", "container_id")
             )
-            and _is_sha256_digest(final_receipt.get("observer_receipt_sha256"))
+            and "observer_receipt_sha256" not in final_receipt
             and type(manifest_bytes) is str
             and _canonical_manifest_paths_are_closed(
                 manifest_bytes,
@@ -6941,7 +6938,7 @@ def _hard2g_task2_provenance_oracle_chain_is_closed(text: str) -> bool:
 
         def has_role_specific_publication_bindings(function: ast.AST) -> bool:
             backend_chain = (
-                ("final", ("bound_backend_image_id",)),
+                ("final", ("backend_image_id",)),
                 ("observer", ("container_image",)),
                 ("observer", ("fixed_image_ids", "backend_unit")),
                 ("_BACKEND_IMAGE_ID", ()),

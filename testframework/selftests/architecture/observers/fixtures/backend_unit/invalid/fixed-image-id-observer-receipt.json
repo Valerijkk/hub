@@ -4,6 +4,7 @@
   "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
   "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
   "container_id": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "container_image": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "container_hostname": "a1b2c3d4e5f6",
   "container_receipt_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "compose_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -17,8 +18,73 @@
     "backend/internal/calls/call_durable_credential_allocation.go": "sha256:be6ff058468c4e288e0b0d7060fd17cf3118229d009f28dc056d89f281e99d4d",
     "backend/tests/calls/call_durable_credential_allocation_test.go": "sha256:0ae525c86a75369bdb5790f26b1308f42574fb545883328da24011d4150b03a9"
   },
-  "canonical_build_input_manifest_bytes": "docker-compose.local.yml\tsha256:1111111111111111111111111111111111111111111111111111111111111111\ntestframework/docker/Dockerfile.qa\tsha256:2222222222222222222222222222222222222222222222222222222222222222\ntestframework/docker/entrypoints/backend-unit.sh\tsha256:3333333333333333333333333333333333333333333333333333333333333333\ntestframework/docker/backend_unit/runtime.sh\tsha256:4444444444444444444444444444444444444444444444444444444444444444\ntestframework/docker/backend_unit/plan.sh\tsha256:5555555555555555555555555555555555555555555555555555555555555555\ntestframework/docker/backend_unit/execute.sh\tsha256:6666666666666666666666666666666666666666666666666666666666666666\ntestframework/docker/backend_unit/receipt.sh\tsha256:7777777777777777777777777777777777777777777777777777777777777777\ntestframework/observers/__init__.py\tsha256:8888888888888888888888888888888888888888888888888888888888888888\ntestframework/observers/backend_unit/__init__.py\tsha256:9999999999999999999999999999999999999999999999999999999999999999\ntestframework/observers/backend_unit/contracts.py\tsha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\ntestframework/schemas/backend-unit-package-plan.schema.v1.json\tsha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\ntestframework/schemas/backend-unit-container-receipt.schema.v1.json\tsha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\ntestframework/schemas/backend-unit-observer-receipt.schema.v1.json\tsha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\ntestframework/policies/backend-unit-observer.v1.json\tsha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\ntestframework/policies/backend-unit-phase150-08c2-subject.v1.json\tsha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\ntestframework/policies/root-compose-testframework.v1.json\tsha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\ntestframework/selftests/architecture/docker/test_root_compose_contract.py\tsha256:fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210\ntestframework/selftests/architecture/observers/test_backend_unit_receipts.py\tsha256:13579bdf2468ace013579bdf2468ace013579bdf2468ace013579bdf2468ace0\n",
-  "canonical_build_input_manifest_sha256": "sha256:1e2a0dd1b39b2f458735f3c4ac7ce40fee7371be51013da108da568e9b885dba",
+  "source_snapshots": {
+    "prebuild": {
+      "head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "status": "",
+      "source_root_sha256": {
+        "backend/cmd": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "backend/internal": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "backend/tests": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "backend/ent/schema": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "backend/migrations": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "backend/testframework": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "frozen_subjects": {
+        "backend/internal/calls/call_durable_credential_allocation.go": "sha256:be6ff058468c4e288e0b0d7060fd17cf3118229d009f28dc056d89f281e99d4d",
+        "backend/tests/calls/call_durable_credential_allocation_test.go": "sha256:0ae525c86a75369bdb5790f26b1308f42574fb545883328da24011d4150b03a9"
+      },
+      "canonical_build_input_manifest_sha256": "sha256:8f05f8d4fd2e503f961755e5c80a3c1acfe78ab41aa61cc6aa5d51cc9b07f83e",
+      "fixed_image_ids": {
+        "python_contract": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "backend_unit": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "postgreen": {
+      "head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "status": "",
+      "source_root_sha256": {
+        "backend/cmd": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "backend/internal": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "backend/tests": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "backend/ent/schema": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "backend/migrations": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "backend/testframework": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "frozen_subjects": {
+        "backend/internal/calls/call_durable_credential_allocation.go": "sha256:be6ff058468c4e288e0b0d7060fd17cf3118229d009f28dc056d89f281e99d4d",
+        "backend/tests/calls/call_durable_credential_allocation_test.go": "sha256:0ae525c86a75369bdb5790f26b1308f42574fb545883328da24011d4150b03a9"
+      },
+      "canonical_build_input_manifest_sha256": "sha256:8f05f8d4fd2e503f961755e5c80a3c1acfe78ab41aa61cc6aa5d51cc9b07f83e",
+      "fixed_image_ids": {
+        "python_contract": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "backend_unit": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "observer_snapshot": {
+      "head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "status": "",
+      "source_root_sha256": {
+        "backend/cmd": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "backend/internal": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "backend/tests": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "backend/ent/schema": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "backend/migrations": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "backend/testframework": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "frozen_subjects": {
+        "backend/internal/calls/call_durable_credential_allocation.go": "sha256:be6ff058468c4e288e0b0d7060fd17cf3118229d009f28dc056d89f281e99d4d",
+        "backend/tests/calls/call_durable_credential_allocation_test.go": "sha256:0ae525c86a75369bdb5790f26b1308f42574fb545883328da24011d4150b03a9"
+      },
+      "canonical_build_input_manifest_sha256": "sha256:8f05f8d4fd2e503f961755e5c80a3c1acfe78ab41aa61cc6aa5d51cc9b07f83e",
+      "fixed_image_ids": {
+        "python_contract": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "backend_unit": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    }
+  },
+  "canonical_build_input_manifest_bytes": "docker-compose.local.yml\tsha256:418b8714ed1aaa3f67e4dc8aca38a6cf75a9a3a4f77288b7ac40c1ee2fdb7137\ntestframework/docker/Dockerfile.qa\tsha256:9a94a7520fc2db7f3c84ea29440043c682c48d9bfaf1194344e93db3fa191900\ntestframework/docker/entrypoints/backend-unit.sh\tsha256:6cac8f86e78e671036d9e581b199a141e246986cce740bc59232348c2c53642a\ntestframework/docker/backend_unit/runtime.sh\tsha256:613260fa9a505ee822d05a782561b9304ce99bcfb3d50b558bb2e0464359cd65\ntestframework/docker/backend_unit/plan.sh\tsha256:1a54187cbc727a36e21bb6978b69b545029fe4bb7e76d141a1e49c8cfea51086\ntestframework/docker/backend_unit/execute.sh\tsha256:280c819e3c08c282f8fb445410cda06b5adad62ba9c23b9afd91a8d9728a733a\ntestframework/docker/backend_unit/receipt.sh\tsha256:8c78b2e47dd7e65302a4d1775b4a48672d6eb113e1785e71cf62beae2253ce40\ntestframework/observers/__init__.py\tsha256:30cdd64d89647df0ee0ac94837859b4baf94088a16cef7f32f2d98752df30437\ntestframework/observers/backend_unit/__init__.py\tsha256:7f118c4fff9dc91f5d9399d1587f072c23ed6be31b032b54d23d2e6a72b10173\ntestframework/observers/backend_unit/contracts.py\tsha256:137f61c13a3b5a2b776945405ce37f9f63d83faa7ce2ac53daf9fb5376a7342d\ntestframework/observers/backend_unit/safe_paths.py\tsha256:59fc35f5c64c7c61c8f9a1b3f72ac468294ef800a6149dc74422cbdc1a793485\ntestframework/observers/backend_unit/lease.py\tsha256:31235c1009cdb4b258738f34c0daec3c5899dbba1af4aedafc51d99d63eb6ad8\ntestframework/observers/backend_unit/resources.py\tsha256:e5bc05e6c9adb7aaef57350a1d7b4d9e5e782d8e60b5c19227c4ce9b58180020\ntestframework/observers/backend_unit/docker_adapter.py\tsha256:c545ce61633de7b5ccc837911f6b5f0fbfc9c0fb4323e31f8e59349c42710920\ntestframework/observers/backend_unit/publication.py\tsha256:959326776cc86ec2a697cda686e41c5d113f75543408067571db0cdb5064b3fa\ntestframework/observers/backend_unit/observe.py\tsha256:565eb14d60e1aee718f273712950e69ef01438202fbe739c15b470e7b3b8e586\ntestframework/schemas/backend-unit-package-plan.schema.v1.json\tsha256:3b28a202014627a1e3180facf81233304028f927bd45c13daa0e30dd12021e37\ntestframework/schemas/backend-unit-container-receipt.schema.v1.json\tsha256:ff7ac928e39653003f102d2fc0f6bd4fa7e4e12c042ffe304829b0ccc8c31c26\ntestframework/schemas/backend-unit-observer-receipt.schema.v1.json\tsha256:3755d735a8121668dae7e4c3fddc188f6303f7e220b5329f4238364da530dfa0\ntestframework/policies/backend-unit-observer.v1.json\tsha256:bb74a36c2872b3448537b02611e1db093b6f55d52da716d86984735c20ffb59e\ntestframework/policies/backend-unit-phase150-08c2-subject.v1.json\tsha256:e70928cc5cd74e7c5668ea08fe6b94151a3c0c00143e28965e3731e970e8feac\ntestframework/policies/root-compose-testframework.v1.json\tsha256:892a6f8aaaf3e58b92c181a6a51af61f1258331bc5b7ce929f1e27608409d4d9\ntestframework/selftests/architecture/docker/test_root_compose_contract.py\tsha256:49e44930ffbf3f3f466980a245b5a7ca29c3efba23d0b4958ea9b32cc1b4b63b\ntestframework/selftests/architecture/observers/test_backend_unit_receipts.py\tsha256:db474464698e34dd344658a7f33c6caca7b3032046b2bfe6943595475aa0ea41\ntestframework/selftests/architecture/observers/test_backend_unit_receipts_review_contract.py\tsha256:00437fa730a32f547fac071c2b7b0c64e405fda348b95565674aa13caff296d6\ntestframework/selftests/architecture/observers/test_backend_unit_observer.py\tsha256:73d0a349cd6b61d1ca532e2329bbf9853a0a2bc07b048572a3ca53cec5033d73\ntestframework/selftests/architecture/observers/fixtures/backend_unit/valid/container-receipt.json\tsha256:5d5cbd57112b844b2270a4796e2df8da37bc8090c16b99f61d8a51645750fa3f\ntestframework/selftests/architecture/observers/fixtures/backend_unit/valid/final-receipt.json\tsha256:8752dbc0ff920a722b03f89f2058e68de6fda8fb5ee877d5b35e94e03b407280\ntestframework/selftests/architecture/observers/fixtures/backend_unit/valid/observer-receipt.json\tsha256:3876130a3d5cb1de8a7f1cf8b6aa817c77104b1318695db35428dd3e5b002b99\ntestframework/selftests/architecture/observers/fixtures/backend_unit/valid/package-plan.json\tsha256:a10096a55dd40c2628c092fe53a65998971e17a930aa24a084f2212be5f5cb20\ntestframework/selftests/architecture/observers/fixtures/backend_unit/valid/SEAL\tsha256:136826071d6b43c568b1e643d4c882cf3e49ec8cf3fd6443a6a059c050da4da9\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/bound-backend-image-observer-receipt.json\tsha256:c27c56c40fc4fd9aba8da6a62b6c4d321c8b7a59c7d0c36839138b2180819e3b\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/build-input-hash-observer-receipt.json\tsha256:c8d4f3243f625f393618e227e20dbd34bdeee8d74c9acc67ea8281c5617e924d\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/build-input-manifest-observer-receipt.json\tsha256:59dda0388d418441d2136618337318d4053df5eb01318d00d75132b147ed1792\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/count-package-plan.json\tsha256:4579122c357e79991d07e2e29b2b8730632b509af18320e902f482f20f81b1ee\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/discovery-argv-package-plan.json\tsha256:44cce4980f0e7907ff46eebfe2756c670428b20e2289351cb90dd5c2477e05ec\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/duplicate-import-path-package-plan.json\tsha256:9e5a6548b21e3da0dffbd943a6e20e17d7c3f6bf24d072b85c6dca40258a0142\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/engine-id-observer-receipt.json\tsha256:019960bb289b86a81a35af3388f185864ebb30153ad9190964b29d580715bc06\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/fixed-image-id-observer-receipt.json\tsha256:b74d330df4186df0f84c6774bd8a90a76e709df8e2619d7d37c2be5d30209bf5\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/foreign-run-observer-receipt.json\tsha256:4518b44018b5bdb58301145d399589aec91a00e3492d6ce12069c75b3de6333c\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/inventory-container-receipt.json\tsha256:0ecacc40eaed9a8eb3cfa8ab27cef3d5a362d53af6730b96f167ed2a78e03af1\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/inventory-hash-container-receipt.json\tsha256:0da9ab68dbfb4cdb6a7dbbaa89a6d9348693c407989c0d75064fae7b278ff492\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/non-bijection-package-plan.json\tsha256:63c6d8826351eb3e639cb596024a914e26655d581977d5acf29de24b83f39adf\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/nonce-observer-receipt.json\tsha256:79dc47af931677100aa0445180d97df99b984617f672836154b99f39e7b6c4aa\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/row-set-hash-package-plan.json\tsha256:96146f81a72327619eeab697f9acec2035aa6695e34fb7171c5a76bceda0d5b5\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/SEAL.extra-field\tsha256:0a40e05b5c5e2c67ed9fe81b7bce66beee74f391d35751a4d2bc724572be2a79\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/SEAL.missing-field\tsha256:3e8e582134c3afd3b714c54c88e61bc7fc0dcb371e3566f2a45208661447208a\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/SEAL.reordered\tsha256:7b01cf56b602087526cf3dbf0fbbd8d4d174ffc072987602f17324217a24cda2\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/timeout-outcome-final-receipt.json\tsha256:f5c14b78269ef715af0babcd804c7561c4465a80a88bbf53b7ecda6e89ca96cf\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/unknown-key-package-plan.json\tsha256:df6f6ba1aec58f633024af34413c1f26967e163863b1fdcc068fbea04a0848f3\ntestframework/selftests/architecture/observers/fixtures/backend_unit/invalid/uppercase-digest-package-plan.json\tsha256:056b068bbb0023d32418ee49a46596b2ee05c41fc483b8d59ec86dbeb9f7bf33\n",
+  "canonical_build_input_manifest_sha256": "sha256:8f05f8d4fd2e503f961755e5c80a3c1acfe78ab41aa61cc6aa5d51cc9b07f83e",
   "fixed_image_ids": {
     "python_contract": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     "backend_unit": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -32,15 +98,42 @@
     "security_opt": [
       "no-new-privileges:true"
     ],
-    "mounts": []
+    "cap_drop": [
+      "ALL"
+    ],
+    "pids_limit": 256,
+    "init": true,
+    "network_mode": "worktree-master_qa-internal",
+    "mounts": [
+      { "type": "bind", "source": "./backend/cmd", "destination": "/opt/hub/source/backend/cmd", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/internal", "destination": "/opt/hub/source/backend/internal", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/tests", "destination": "/opt/hub/source/backend/tests", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/ent/schema", "destination": "/opt/hub/source/backend/ent/schema", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/migrations", "destination": "/opt/hub/source/backend/migrations", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./backend/testframework", "destination": "/opt/hub/source/backend/testframework", "read_only": true, "size_bytes": null },
+      { "type": "bind", "source": "./testframework/reports", "destination": "/reports", "read_only": false, "size_bytes": null },
+      { "type": "tmpfs", "source": null, "destination": "/tmp", "read_only": false, "size_bytes": 67108864 },
+      { "type": "tmpfs", "source": null, "destination": "/var/cache/hub-go", "read_only": false, "size_bytes": 805306368 },
+      { "type": "tmpfs", "source": null, "destination": "/var/tmp/hub-go", "read_only": false, "size_bytes": 402653184 }
+    ]
   },
   "resource_samples": [
     {
+      "phase": "preflight",
       "timestamp": "2026-09-01T12:00:00Z",
       "free_ram_bytes": 4294967296,
       "free_c_bytes": 536870912000,
       "percent_disk_time": 1,
       "disk_queue_length": 0
+    }
+  ],
+  "concurrency_samples": [
+    {
+      "phase": "preflight",
+      "timestamp": "2026-09-01T12:00:00Z",
+      "backend_unit_count": 0,
+      "mail_calendar_qa_test_build_count": 0,
+      "buildkit_state": "idle"
     }
   ],
   "lifecycle_events": [
@@ -57,24 +150,54 @@
       "timestamp": "2026-09-01T18:00:00Z"
     }
   ],
+  "classification_facts": {
+    "source_mutated": false,
+    "invalid_provenance": false,
+    "oom": false,
+    "resource": false,
+    "budget": false,
+    "tmpfs": false,
+    "timeout": true,
+    "discovery_failure": false,
+    "stage_failure": false,
+    "predicates": {
+      "preflight_ram_floor_met": true,
+      "preflight_c_free_floor_met": true,
+      "preflight_disk_pressure_2_of_3": false,
+      "two_consecutive_ram_below_2_gib": false,
+      "rolling_disk_pressure_2_of_3": false,
+      "prohibited_backend_unit_overlap": false,
+      "prohibited_mail_calendar_qa_test_build_overlap": false,
+      "buildkit_idle": true,
+      "whole_run_deadline_expired": false
+    },
+    "explicit_stops": [],
+    "selected_stop": null,
+    "classification": "SEALED_TIMEOUT_UNTRIAGED",
+    "immutable_outcome": "TIMEOUT_UNTRIAGED"
+  },
+  "classification": "SEALED_TIMEOUT_UNTRIAGED",
+  "immutable_outcome": "TIMEOUT_UNTRIAGED",
+  "selected_stop": null,
+  "stop_argv": null,
   "guarded_stop": {
-    "predicate": "whole_run_timeout",
-    "argv": [
-      "docker",
-      "stop",
-      "--timeout",
-      "5",
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    ],
-    "result": "stopped"
+    "predicate": null,
+    "argv": null,
+    "result": null
   },
   "artifact_inventory": [
     {
       "path": "container-receipt.json",
       "sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "size": 2
+    },
+    {
+      "path": "final-receipt.json",
+      "sha256": "sha256:62ad55aa5f2e4772aba13ef8580b334c53a146d33501285d4673e0a3cf1cb2bf",
+      "size": 745
     }
   ],
+  "artifact_inventory_sha256": "sha256:89d1b0d38b3bf4c252149ecc0411ce141e1827af6f42fd4d97610593f00e8673",
   "cleanup": {
     "container_removed": true
   },
@@ -84,10 +207,9 @@
     "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
     "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
     "container_receipt_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    "observer_receipt_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "container_id": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "backend_image_id": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    "canonical_build_input_manifest_sha256": "sha256:1e2a0dd1b39b2f458735f3c4ac7ce40fee7371be51013da108da568e9b885dba",
+    "canonical_build_input_manifest_sha256": "sha256:8f05f8d4fd2e503f961755e5c80a3c1acfe78ab41aa61cc6aa5d51cc9b07f83e",
     "classification": "SEALED_TIMEOUT_UNTRIAGED",
     "immutable_outcome": "TIMEOUT_UNTRIAGED",
     "seal_timestamp": "2026-09-01T18:00:00Z"

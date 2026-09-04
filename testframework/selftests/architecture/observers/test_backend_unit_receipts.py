@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -123,8 +124,24 @@ def test_valid_fixture_bytes_cover_all_receipt_families_and_final_receipt() -> N
 
     validate_package_plan(_fixture_json("valid/package-plan.json"))
     validate_container_receipt(_fixture_json("valid/container-receipt.json"))
-    validate_observer_receipt(_fixture_json("valid/observer-receipt.json"))
-    validate_final_receipt(_fixture_json("valid/final-receipt.json"))
+    observer = _fixture_json("valid/observer-receipt.json")
+    final = _fixture_json("valid/final-receipt.json")
+    validate_observer_receipt(observer)
+    validate_final_receipt(final)
+
+    assert observer["final_receipt"] == final
+    assert "observer_receipt_sha256" not in final
+    final_artifact = next(
+        artifact
+        for artifact in observer["artifact_inventory"]
+        if artifact["path"] == "final-receipt.json"
+    )
+    assert final_artifact == {
+        "path": "final-receipt.json",
+        "sha256": "sha256:"
+        + hashlib.sha256(_fixture_bytes("valid/final-receipt.json")).hexdigest(),
+        "size": len(_fixture_bytes("valid/final-receipt.json")),
+    }
 
 
 @pytest.mark.parametrize(("family", "fixture"), _STRUCTURAL_INVALID_FIXTURES)
@@ -157,9 +174,13 @@ def test_parse_seal_accepts_only_canonical_lf_finalized_bytes() -> None:
         "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
         "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
         "observer_receipt_sha256": (
-            "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            "sha256:376653f504ca197fb49cdccc0f5b42a090c79d546352e3a12dea173d0df56d47"
         ),
     }
+    assert parsed["observer_receipt_sha256"] == (
+        "sha256:"
+        + hashlib.sha256(_fixture_bytes("valid/observer-receipt.json")).hexdigest()
+    )
 
     with pytest.raises(ReceiptContractError):
         parse_seal(b"hub.qa.backend-unit-seal/v1\r\n")
