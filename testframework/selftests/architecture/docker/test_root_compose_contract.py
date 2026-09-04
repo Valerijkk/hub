@@ -1044,6 +1044,76 @@ def test_hard2g_read_bounded_stage_stream_automaton_is_closed() -> None:
     assert not _hard2g_execute_budget_bridge_is_closed(run_stage_only)
 
 
+def test_hard2g_run_stage_automaton_is_closed() -> None:
+    execute = _hard2g_c02_durable_budget_execute_fixture()
+    assert _hard2g_run_stage_automaton_is_closed(execute)
+
+    stdout_wait = '    wait "$stdout_reader_pid" || stdout_reader_exit=$?'
+    stderr_wait = '    wait "$stderr_reader_pid" || stderr_reader_exit=$?'
+    go_wait = '    wait "$go_child_pid" || child_exit=$?'
+    for hostile in (
+        execute.replace("  stage_exit=0", "  stage_exit=1", 1),
+        execute.replace(
+            '    start_owned_go_child_group "$stage" "$package"',
+            "    :",
+            1,
+        ),
+        execute.replace(
+            '    read_bounded_stage_stream "$stage" stdout '
+            '"$stdout_fifo" "$stdout_path" "$stdout_used_path" '
+            '"$package_ordinal" &',
+            "    :",
+            1,
+        ),
+        execute.replace('    stdout_reader_pid="$!"', "    stdout_reader_pid=0", 1),
+        execute.replace(
+            '    if monitor_owned_budget_stop "$go_child_pid" '
+            '"$budget_stop_marker"; then',
+            "    if :; then",
+            1,
+        ),
+        execute.replace(stdout_wait, stdout_wait + "\n" + stdout_wait, 1),
+        execute.replace(stderr_wait + "\n", "", 1),
+        execute.replace(
+            '      terminate_owned_go_child_group\n'
+            '      reap_owned_go_child_group\n'
+            '      wait "$stdout_reader_pid"',
+            '      wait "$stdout_reader_pid"\n'
+            '      terminate_owned_go_child_group\n'
+            '      reap_owned_go_child_group',
+            1,
+        ),
+        execute.replace(go_wait, go_wait + "\n" + go_wait, 1),
+        execute.replace(
+            "report_budget_truncated_due_to_budget=true",
+            "report_budget_truncated_due_to_budget=false",
+            1,
+        ),
+        execute.replace('      return 75', '      break', 1),
+        execute.replace('      stage_exit="$child_exit"', "      stage_exit=0", 1),
+        execute.replace('  return "$stage_exit"', "  return 0", 1),
+        execute + "\nrun_stage () {\n  :\n}\n",
+    ):
+        assert hostile != execute
+        assert not _hard2g_run_stage_automaton_is_closed(hostile)
+
+    assert not _hard2g_run_stage_automaton_is_closed(None)
+    assert not _hard2g_run_stage_automaton_is_closed(
+        execute.replace("\n", "\r\n", 1)
+    )
+    assert not _hard2g_run_stage_automaton_is_closed(execute.removesuffix("\n"))
+
+    reader_only = execute.replace(
+        'stream_tmp="$GOTMPDIR/stream-capture/'
+        '$stage.$stream.$package_ordinal.tmp"',
+        'stream_tmp="$stream_path.raw"',
+        1,
+    )
+    assert reader_only != execute
+    assert _hard2g_run_stage_automaton_is_closed(reader_only)
+    assert not _hard2g_execute_budget_bridge_is_closed(reader_only)
+
+
 def test_hard2g_c02_execute_surface_is_closed() -> None:
     execute = _hard2g_c02_durable_budget_execute_fixture()
     assert _HARD2G_C02_EXECUTE_EXTENSION_ALLOWLIST == ()
@@ -4451,7 +4521,7 @@ def _hard2g_read_bounded_stage_stream_automaton_is_closed(text: object) -> bool:
         return False
 
 
-def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
+def _hard2g_run_stage_automaton_is_closed(text: object) -> bool:
     try:
         if (
             type(text) is not str
@@ -4461,17 +4531,44 @@ def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
         ):
             return False
         lines = _shell_active_lines(text)
-        fixture_lines = _shell_active_lines(
+        inventory = _hard2g_c02_function_inventory(text)
+        canonical_inventory = _hard2g_c02_function_inventory(
             _hard2g_c02_durable_budget_execute_fixture()
         )
-        if not isinstance(lines, tuple) or not isinstance(fixture_lines, tuple):
+        if (
+            type(lines) is not tuple
+            or inventory is None
+            or canonical_inventory is None
+        ):
             return False
+        expected_inventory = ("read_bounded_stage_stream", "run_stage")
+        body = inventory.get("run_stage")
+        canonical_body = canonical_inventory.get("run_stage")
+        stdout_wait = 'wait "$stdout_reader_pid" || stdout_reader_exit=$?'
+        stderr_wait = 'wait "$stderr_reader_pid" || stderr_reader_exit=$?'
+        go_wait = 'wait "$go_child_pid" || child_exit=$?'
+        return (
+            tuple(inventory) == expected_inventory
+            and tuple(canonical_inventory) == expected_inventory
+            and lines.count("run_stage() {") == 1
+            and type(body) is tuple
+            and bool(body)
+            and body == canonical_body
+            and body.count("report_budget_truncated_due_to_budget=true") == 3
+            and body.count(stdout_wait) == 2
+            and body.count(stderr_wait) == 2
+            and body.count(go_wait) == 1
+        )
+    except Exception:
+        return False
+
+
+def _hard2g_execute_budget_bridge_is_closed(text: object) -> bool:
+    try:
         return (
             _hard2g_c02_execute_surface_is_closed(text)
             and _hard2g_read_bounded_stage_stream_automaton_is_closed(text)
-            and lines.count("run_stage() {") == 1
-            and _shell_function_body(lines, "run_stage")
-            == _shell_function_body(fixture_lines, "run_stage")
+            and _hard2g_run_stage_automaton_is_closed(text)
         )
     except Exception:
         return False
