@@ -1445,23 +1445,7 @@ def test_hard2g_canonical_build_input_manifest_rejects_symlink_parent(
 
 
 def test_hard2g_container_publication_order_is_closed() -> None:
-    canonical_receipt = '''#!/bin/sh
-set -eu
-
-rename_stage_artifact() {
-  mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"
-}
-
-finalize_container() {
-  write_owner
-  write_package_plans
-  write_stage_artifacts
-  write_inventory
-  : > "$run_dir/CONTAINER_COMPLETE"
-  write_atomic "$run_dir/container-receipt.json" "$receipt"
-  return 0
-}
-'''
+    canonical_receipt = _hard2g_container_receipt_fixture()
     assert _hard2g_container_publication_is_closed(canonical_receipt)
     assert not _hard2g_container_publication_is_closed(
         canonical_receipt + "}\n"
@@ -3868,6 +3852,26 @@ def _hard2g_runtime_budget_fixture(assignments: tuple[str, ...]) -> str:
             ),
         )
     )
+
+
+def _hard2g_container_receipt_fixture() -> str:
+    return '''#!/bin/sh
+set -eu
+
+rename_stage_artifact() {
+  mv -- "$run_dir/$stage.$artifact.tmp" "$run_dir/$stage.$artifact"
+}
+
+finalize_container() {
+  write_owner
+  write_package_plans
+  write_stage_artifacts
+  write_inventory
+  : > "$run_dir/CONTAINER_COMPLETE"
+  write_atomic "$run_dir/container-receipt.json" "$receipt"
+  return 0
+}
+'''
 
 
 def _hard2g_execute_budget_bridge_fixture() -> str:
