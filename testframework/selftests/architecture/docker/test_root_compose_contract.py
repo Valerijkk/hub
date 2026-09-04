@@ -1352,6 +1352,8 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
         "def use(runner):\n    runner(source)\nuse(exec)\n",
         "lookups = {x: getattr}\nlookups[x](candidate, method_name)\n",
         "def use(lookup):\n    lookup(candidate, method_name)\nuse(getattr)\n",
+        "first = middle = last = open\nlast(path)\n",
+        "def use(reader):\n    alias = reader\n    alias(path)\nuse(open)\n",
     )
     assert all(
         not _hard2g_observer_source_has_closed_read_authority(
@@ -1372,6 +1374,17 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
         "lookups[x](candidate, method_name)\n",
         "def use(lookup):\n    lookup(candidate, method_name)\n"
         "use(lambda value, name: None)\n",
+        "def ignore(reader):\n    return None\n"
+        "def use(reader):\n    reader(path)\n"
+        "ignore(open)\n"
+        "use(lambda value: value)\n",
+        "reader = open\n"
+        "def use(reader):\n    reader(path)\n"
+        "use(lambda value: value)\n",
+        "def set_reader():\n    reader = open\n"
+        "def use(reader):\n    reader(path)\n"
+        "set_reader()\n"
+        "use(lambda value: value)\n",
     )
     assert all(
         _hard2g_observer_source_has_closed_read_authority(
@@ -3914,12 +3927,25 @@ def _hard2g_python_call_constructs_path(
 def _hard2g_v4_observer_source_is_closed(relative: str, source: str) -> bool:
     tree = ast.parse(source)
     aliases = _hard2g_v4_authority_aliases(tree)
-    calls = tuple(node for node in ast.walk(tree) if isinstance(node, ast.Call))
-    if any(_hard2g_v4_bad_indirection(call, aliases) for call in calls):
+    module_calls = _hard2g_v4_scope_calls(tree)
+    all_calls = tuple(node for node in ast.walk(tree) if isinstance(node, ast.Call))
+    function_aliases = _hard2g_v4_function_aliases(tree, aliases)
+    scoped_calls = _hard2g_v4_scoped_call_aliases(tree, function_aliases)
+    if any(_hard2g_v4_bad_indirection(call, aliases) for call in module_calls):
+        return False
+    if any(
+        _hard2g_v4_bad_indirection(call, scope_aliases)
+        for call, scope_aliases in scoped_calls
+    ):
         return False
     if relative == _HARD2G_OBSERVER_SAFE_PATHS_SOURCE_PATH:
-        return _hard2g_v4_safe_paths_boundary_is_closed(tree, calls, aliases)
-    return not any(_hard2g_v4_direct_read(call, aliases) for call in calls)
+        return _hard2g_v4_safe_paths_boundary_is_closed(tree, all_calls, aliases)
+    if any(_hard2g_v4_direct_read(call, aliases) for call in module_calls):
+        return False
+    return not any(
+        _hard2g_v4_direct_read(call, scope_aliases)
+        for call, scope_aliases in scoped_calls
+    )
 
 
 def _hard2g_v4_authority_aliases(tree: ast.AST) -> Mapping[str, frozenset[str]]:
@@ -3929,22 +3955,58 @@ def _hard2g_v4_authority_aliases(tree: ast.AST) -> Mapping[str, frozenset[str]]:
         "getattr": set(),
         "builtins": set(),
     }
+    nodes = _hard2g_v4_scope_nodes(tree)
     assignments = tuple(
         node
-        for node in ast.walk(tree)
+        for node in nodes
         if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr))
     )
-    functions = {
-        node.name: node
-        for node in tree.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-    }
-    calls = tuple(node for node in ast.walk(tree) if isinstance(node, ast.Call))
-    for node in ast.walk(tree):
+    _hard2g_v4_seed_import_aliases(nodes, aliases)
+    for _ in range(len(assignments) + 1):
+        changed = False
+        for assignment in assignments:
+            changed = _hard2g_v4_bind_assignment(assignment, aliases) or changed
+        if not changed:
+            break
+    return MappingProxyType(
+        {name: frozenset(bound) for name, bound in aliases.items()}
+    )
+
+
+def _hard2g_v4_scope_nodes(scope: ast.AST) -> tuple[ast.AST, ...]:
+    if not isinstance(scope, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef)):
+        return ()
+    nodes: list[ast.AST] = []
+
+    def visit(node: ast.AST) -> None:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return
+        nodes.append(node)
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    for statement in scope.body:
+        visit(statement)
+    return tuple(nodes)
+
+
+def _hard2g_v4_scope_calls(scope: ast.AST) -> tuple[ast.Call, ...]:
+    return tuple(
+        node
+        for node in _hard2g_v4_scope_nodes(scope)
+        if isinstance(node, ast.Call)
+    )
+
+
+def _hard2g_v4_seed_import_aliases(
+    nodes: tuple[ast.AST, ...],
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> None:
+    for node in nodes:
         if isinstance(node, ast.Import):
             for imported in node.names:
                 if imported.name == "builtins":
-                    aliases["builtins"].add(imported.asname or imported.name)
+                    aliases["builtins"].add(imported.asname or imported.name)  # type: ignore[attr-defined]
         elif isinstance(node, ast.ImportFrom) and type(node.module) is str:
             for imported in node.names:
                 bound = imported.asname or imported.name
@@ -3952,30 +4014,152 @@ def _hard2g_v4_authority_aliases(tree: ast.AST) -> Mapping[str, frozenset[str]]:
                     node.module in {"builtins", "io", "os"}
                     and imported.name in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS
                 ):
-                    aliases["read"].add(bound)
+                    aliases["read"].add(bound)  # type: ignore[attr-defined]
                 if (
                     node.module == "builtins"
                     and imported.name in _HARD2G_DYNAMIC_EXECUTION_NAMES
                 ):
-                    aliases["execution"].add(bound)
+                    aliases["execution"].add(bound)  # type: ignore[attr-defined]
                 if node.module == "builtins" and imported.name == "getattr":
-                    aliases["getattr"].add(bound)
-    for _ in range(len(assignments) + len(calls) + 1):
+                    aliases["getattr"].add(bound)  # type: ignore[attr-defined]
+
+
+def _hard2g_v4_top_level_functions(
+    tree: ast.AST,
+) -> tuple[ast.FunctionDef | ast.AsyncFunctionDef, ...]:
+    if not isinstance(tree, ast.Module):
+        return ()
+    return tuple(
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    )
+
+
+def _hard2g_v4_function_parameter_names(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> frozenset[str]:
+    arguments = function.args
+    names = {
+        argument.arg
+        for argument in (
+            *arguments.posonlyargs,
+            *arguments.args,
+            *arguments.kwonlyargs,
+        )
+    }
+    if arguments.vararg is not None:
+        names.add(arguments.vararg.arg)
+    if arguments.kwarg is not None:
+        names.add(arguments.kwarg.arg)
+    return frozenset(names)
+
+
+def _hard2g_v4_function_aliases(
+    tree: ast.AST,
+    global_aliases: Mapping[str, frozenset[str]],
+) -> Mapping[
+    ast.FunctionDef | ast.AsyncFunctionDef,
+    Mapping[str, frozenset[str]],
+]:
+    functions = _hard2g_v4_top_level_functions(tree)
+    functions_by_name = {function.name: function for function in functions}
+    overlays: dict[
+        ast.FunctionDef | ast.AsyncFunctionDef,
+        dict[str, set[str]],
+    ] = {
+        function: {kind: set(names) for kind, names in global_aliases.items()}
+        for function in functions
+    }
+    scoped_nodes = {
+        function: _hard2g_v4_scope_nodes(function)
+        for function in functions
+    }
+    for function, aliases in overlays.items():
+        parameter_names = _hard2g_v4_function_parameter_names(function)
+        for kind in _HARD2G_V4_DANGEROUS_CALLABLE_KINDS:
+            aliases[kind].difference_update(parameter_names)
+        _hard2g_v4_seed_import_aliases(scoped_nodes[function], aliases)
+    module_calls = _hard2g_v4_scope_calls(tree)
+    function_calls = {
+        function: tuple(
+            node for node in scoped_nodes[function] if isinstance(node, ast.Call)
+        )
+        for function in functions
+    }
+    local_assignments = {
+        function: tuple(
+            node
+            for node in scoped_nodes[function]
+            if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr))
+        )
+        for function in functions
+    }
+    for _ in range(
+        len(module_calls)
+        + sum(len(calls) + len(assignments) for calls, assignments in zip(
+            function_calls.values(),
+            local_assignments.values(),
+        ))
+        + 1
+    ):
         changed = False
-        for assignment in assignments:
-            changed = _hard2g_v4_bind_assignment(assignment, aliases) or changed
-        for call in calls:
-            function = _hard2g_v4_called_function(call, functions)
+        for function, assignments in local_assignments.items():
+            for assignment in assignments:
+                changed = _hard2g_v4_bind_assignment(
+                    assignment,
+                    overlays[function],
+                ) or changed
+        for call in module_calls:
+            function = _hard2g_v4_called_function(call, functions_by_name)
             if function is not None:
-                changed = (
-                    _hard2g_v4_bind_function_call(function, call, aliases)
-                    or changed
-                )
+                changed = _hard2g_v4_bind_function_call(
+                    function,
+                    call,
+                    overlays[function],
+                    global_aliases,
+                    global_aliases,
+                ) or changed
+        for caller, calls in function_calls.items():
+            caller_aliases = overlays[caller]
+            for call in calls:
+                function = _hard2g_v4_called_function(call, functions_by_name)
+                if function is not None:
+                    changed = _hard2g_v4_bind_function_call(
+                        function,
+                        call,
+                        overlays[function],
+                        caller_aliases,
+                        global_aliases,
+                    ) or changed
         if not changed:
             break
     return MappingProxyType(
-        {name: frozenset(bound) for name, bound in aliases.items()}
+        {
+            function: MappingProxyType(
+                {kind: frozenset(names) for kind, names in aliases.items()}
+            )
+            for function, aliases in overlays.items()
+        }
     )
+
+
+def _hard2g_v4_scoped_call_aliases(
+    tree: ast.AST,
+    function_aliases: Mapping[
+        ast.FunctionDef | ast.AsyncFunctionDef,
+        Mapping[str, frozenset[str]],
+    ],
+) -> tuple[tuple[ast.Call, Mapping[str, frozenset[str]]], ...]:
+    pairs: list[tuple[ast.Call, Mapping[str, frozenset[str]]]] = []
+    for function in _hard2g_v4_top_level_functions(tree):
+        aliases = function_aliases.get(function)
+        if aliases is None:
+            continue
+        pairs.extend(
+            (call, aliases) for call in _hard2g_v4_scope_calls(function)
+        )
+    return tuple(pairs)
 
 
 def _hard2g_v4_bind_assignment(
@@ -3990,10 +4174,10 @@ def _hard2g_v4_bind_assignment(
         if isinstance(assignment, ast.Assign)
         else (assignment.target,)
     )
-    return any(
-        _hard2g_v4_bind_value_to_target(target, value, aliases)
-        for target in targets
-    )
+    changed = False
+    for target in targets:
+        changed = _hard2g_v4_bind_value_to_target(target, value, aliases) or changed
+    return changed
 
 
 def _hard2g_v4_bind_value_to_target(
@@ -4012,14 +4196,14 @@ def _hard2g_v4_bind_value_to_target(
     if not isinstance(target, (ast.Tuple, ast.List)):
         return False
     if isinstance(value, (ast.Tuple, ast.List)) and len(target.elts) == len(value.elts):
-        return any(
-            _hard2g_v4_bind_value_to_target(element, item, aliases)
-            for element, item in zip(target.elts, value.elts)
-        )
-    return any(
-        _hard2g_v4_bind_value_to_target(element, value, aliases)
-        for element in target.elts
-    )
+        changed = False
+        for element, item in zip(target.elts, value.elts):
+            changed = _hard2g_v4_bind_value_to_target(element, item, aliases) or changed
+        return changed
+    changed = False
+    for element in target.elts:
+        changed = _hard2g_v4_bind_value_to_target(element, value, aliases) or changed
+    return changed
 
 
 def _hard2g_v4_bind_kinds(
@@ -4048,7 +4232,9 @@ def _hard2g_v4_called_function(
 def _hard2g_v4_bind_function_call(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     call: ast.Call,
-    aliases: Mapping[str, frozenset[str] | set[str]],
+    target_aliases: Mapping[str, frozenset[str] | set[str]],
+    caller_aliases: Mapping[str, frozenset[str] | set[str]],
+    global_aliases: Mapping[str, frozenset[str] | set[str]],
 ) -> bool:
     positional = (*function.args.posonlyargs, *function.args.args)
     defaults = {
@@ -4065,24 +4251,33 @@ def _hard2g_v4_bind_function_call(
     }
     changed = False
     for index, argument in enumerate(positional):
-        value = (
-            call.args[index]
-            if index < len(call.args)
-            else keywords.get(argument.arg, defaults.get(argument.arg))
-        )
+        if index < len(call.args):
+            value = call.args[index]
+            value_aliases = caller_aliases
+        elif argument.arg in keywords:
+            value = keywords[argument.arg]
+            value_aliases = caller_aliases
+        else:
+            value = defaults.get(argument.arg)
+            value_aliases = global_aliases
         if isinstance(value, ast.AST):
             changed = _hard2g_v4_bind_kinds(
                 argument.arg,
-                _hard2g_v4_callable_kinds(value, aliases),
-                aliases,
+                _hard2g_v4_callable_kinds(value, value_aliases),
+                target_aliases,
             ) or changed
     for argument, default in zip(function.args.kwonlyargs, function.args.kw_defaults):
-        value = keywords.get(argument.arg, default)
+        if argument.arg in keywords:
+            value = keywords[argument.arg]
+            value_aliases = caller_aliases
+        else:
+            value = default
+            value_aliases = global_aliases
         if isinstance(value, ast.AST):
             changed = _hard2g_v4_bind_kinds(
                 argument.arg,
-                _hard2g_v4_callable_kinds(value, aliases),
-                aliases,
+                _hard2g_v4_callable_kinds(value, value_aliases),
+                target_aliases,
             ) or changed
     return changed
 
