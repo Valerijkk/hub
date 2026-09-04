@@ -1367,6 +1367,13 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
         "def use(**kwargs):\n"
         "    kwargs['reader'](path)\n"
         "use(reader=open)\n",
+        "def use(reader):\n"
+        "    reader(path)\n"
+        "use(*(open,))\n",
+        "def use(reader):\n"
+        "    reader(path)\n"
+        'use(**{"reader": open})\n',
+
         "reader = lambda value: value\n"
         "def use():\n"
         "    global reader\n"
@@ -1412,6 +1419,13 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
         "def use(reader):\n    reader(path)\n"
         "set_reader()\n"
         "use(lambda value: value)\n",
+        "def use(reader, values):\n"
+        "    reader(path)\n"
+        'use(lambda value: value, ("data",))\n',
+        "def use(reader, options):\n"
+        "    reader(path)\n"
+        'use(lambda value: value, {"reader": "data"})\n',
+
     )
     assert all(
         _hard2g_observer_source_has_closed_read_authority(
@@ -3961,6 +3975,11 @@ def _hard2g_v4_lexical_shape_is_closed(tree: ast.AST) -> bool:
     }
     for node in ast.walk(tree):
         if isinstance(node, (ast.ClassDef, ast.Global, ast.Nonlocal)):
+            return False
+        if isinstance(node, ast.Call) and (
+            any(isinstance(argument, ast.Starred) for argument in node.args)
+            or any(keyword.arg is None for keyword in node.keywords)
+        ):
             return False
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and (
             id(node) not in top_level_function_ids
