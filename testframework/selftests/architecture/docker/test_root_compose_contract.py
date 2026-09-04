@@ -1343,6 +1343,15 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
         "from builtins import getattr as lookup\n"
         "reader = lookup(candidate, 'read_text')\nreader()\n",
         "lookup = getattr\nlookup(candidate, method_name)()\n",
+        "readers = {x: open}\nreaders[x](path)\n",
+        "def use(reader=open):\n    reader(path)\nuse()\n",
+        "def use(reader):\n    reader(path)\nuse(open)\n",
+        "reader, = (open,)\nreader(path)\n",
+        "[reader] = [open]\nreader(path)\n",
+        "runners = {x: exec}\nrunners[x](source)\n",
+        "def use(runner):\n    runner(source)\nuse(exec)\n",
+        "lookups = {x: getattr}\nlookups[x](candidate, method_name)\n",
+        "def use(lookup):\n    lookup(candidate, method_name)\nuse(getattr)\n",
     )
     assert all(
         not _hard2g_observer_source_has_closed_read_authority(
@@ -1350,6 +1359,26 @@ def test_hard2g_observer_sources_require_safe_path_read_authority() -> None:
             source,
         )
         for source in hostile_sources
+    )
+    harmless_callable_sources = (
+        "readers = {x: lambda value: value}\nreaders[x](path)\n",
+        "def use(reader=lambda value: value):\n    reader(path)\nuse()\n",
+        "def use(reader):\n    reader(path)\nuse(lambda value: value)\n",
+        "reader, = (lambda value: value,)\nreader(path)\n",
+        "[reader] = [lambda value: value]\nreader(path)\n",
+        "runners = {x: lambda value: value}\nrunners[x](source)\n",
+        "def use(runner):\n    runner(source)\nuse(lambda value: value)\n",
+        "lookups = {x: lambda value, name: None}\n"
+        "lookups[x](candidate, method_name)\n",
+        "def use(lookup):\n    lookup(candidate, method_name)\n"
+        "use(lambda value, name: None)\n",
+    )
+    assert all(
+        _hard2g_observer_source_has_closed_read_authority(
+            observer_source,
+            source,
+        )
+        for source in harmless_callable_sources
     )
     for hostile_safe_paths in (
         (
@@ -3615,6 +3644,9 @@ _HARD2G_V4_CONTENT_READ_NAMES = frozenset(
         "read_text",
     }
 )
+_HARD2G_V4_DANGEROUS_CALLABLE_KINDS = frozenset(
+    {"read", "execution", "getattr"}
+)
 _HARD2G_METADATA_README_COPY_INSTRUCTIONS = (
     "COPY testframework/pyproject.toml testframework/uv.lock "
     "testframework/.python-version testframework/README.md ./",
@@ -3902,6 +3934,12 @@ def _hard2g_v4_authority_aliases(tree: ast.AST) -> Mapping[str, frozenset[str]]:
         for node in ast.walk(tree)
         if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr))
     )
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    calls = tuple(node for node in ast.walk(tree) if isinstance(node, ast.Call))
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for imported in node.names:
@@ -3922,31 +3960,131 @@ def _hard2g_v4_authority_aliases(tree: ast.AST) -> Mapping[str, frozenset[str]]:
                     aliases["execution"].add(bound)
                 if node.module == "builtins" and imported.name == "getattr":
                     aliases["getattr"].add(bound)
-    for _ in range(len(assignments) + 1):
+    for _ in range(len(assignments) + len(calls) + 1):
         changed = False
         for assignment in assignments:
-            value = assignment.value
-            if not isinstance(value, ast.AST):
-                continue
-            targets = _hard2g_v4_assignment_targets(assignment)
-            if not targets:
-                continue
-            kind = _hard2g_v4_callable_kind(value, aliases)
-            if kind in {"read", "execution", "getattr"}:
-                before = len(aliases[kind])
-                aliases[kind].update(targets)
-                changed = changed or len(aliases[kind]) != before
-            if isinstance(value, ast.Call):
-                resolved = _hard2g_v4_getattr_method_kind(value, aliases)
-                if resolved in {"read", "execution"}:
-                    before = len(aliases[resolved])
-                    aliases[resolved].update(targets)
-                    changed = changed or len(aliases[resolved]) != before
+            changed = _hard2g_v4_bind_assignment(assignment, aliases) or changed
+        for call in calls:
+            function = _hard2g_v4_called_function(call, functions)
+            if function is not None:
+                changed = (
+                    _hard2g_v4_bind_function_call(function, call, aliases)
+                    or changed
+                )
         if not changed:
             break
     return MappingProxyType(
         {name: frozenset(bound) for name, bound in aliases.items()}
     )
+
+
+def _hard2g_v4_bind_assignment(
+    assignment: ast.Assign | ast.AnnAssign | ast.NamedExpr,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    value = assignment.value
+    if not isinstance(value, ast.AST):
+        return False
+    targets = (
+        assignment.targets
+        if isinstance(assignment, ast.Assign)
+        else (assignment.target,)
+    )
+    return any(
+        _hard2g_v4_bind_value_to_target(target, value, aliases)
+        for target in targets
+    )
+
+
+def _hard2g_v4_bind_value_to_target(
+    target: ast.AST,
+    value: ast.AST,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    if isinstance(target, ast.Name):
+        return _hard2g_v4_bind_kinds(
+            target.id,
+            _hard2g_v4_callable_kinds(value, aliases),
+            aliases,
+        )
+    if isinstance(target, ast.Starred):
+        return _hard2g_v4_bind_value_to_target(target.value, value, aliases)
+    if not isinstance(target, (ast.Tuple, ast.List)):
+        return False
+    if isinstance(value, (ast.Tuple, ast.List)) and len(target.elts) == len(value.elts):
+        return any(
+            _hard2g_v4_bind_value_to_target(element, item, aliases)
+            for element, item in zip(target.elts, value.elts)
+        )
+    return any(
+        _hard2g_v4_bind_value_to_target(element, value, aliases)
+        for element in target.elts
+    )
+
+
+def _hard2g_v4_bind_kinds(
+    name: str,
+    kinds: frozenset[str],
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    changed = False
+    for kind in kinds & _HARD2G_V4_DANGEROUS_CALLABLE_KINDS:
+        bound = aliases[kind]
+        if name not in bound:
+            bound.add(name)  # type: ignore[attr-defined]
+            changed = True
+    return changed
+
+
+def _hard2g_v4_called_function(
+    call: ast.Call,
+    functions: Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef],
+) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+    if not isinstance(call.func, ast.Name):
+        return None
+    return functions.get(call.func.id)
+
+
+def _hard2g_v4_bind_function_call(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    call: ast.Call,
+    aliases: Mapping[str, frozenset[str] | set[str]],
+) -> bool:
+    positional = (*function.args.posonlyargs, *function.args.args)
+    defaults = {
+        argument.arg: default
+        for argument, default in zip(
+            positional[-len(function.args.defaults) :],
+            function.args.defaults,
+        )
+    }
+    keywords = {
+        keyword.arg: keyword.value
+        for keyword in call.keywords
+        if keyword.arg is not None
+    }
+    changed = False
+    for index, argument in enumerate(positional):
+        value = (
+            call.args[index]
+            if index < len(call.args)
+            else keywords.get(argument.arg, defaults.get(argument.arg))
+        )
+        if isinstance(value, ast.AST):
+            changed = _hard2g_v4_bind_kinds(
+                argument.arg,
+                _hard2g_v4_callable_kinds(value, aliases),
+                aliases,
+            ) or changed
+    for argument, default in zip(function.args.kwonlyargs, function.args.kw_defaults):
+        value = keywords.get(argument.arg, default)
+        if isinstance(value, ast.AST):
+            changed = _hard2g_v4_bind_kinds(
+                argument.arg,
+                _hard2g_v4_callable_kinds(value, aliases),
+                aliases,
+            ) or changed
+    return changed
 
 
 def _hard2g_v4_assignment_targets(
@@ -3956,42 +4094,60 @@ def _hard2g_v4_assignment_targets(
     return frozenset(target.id for target in targets if isinstance(target, ast.Name))
 
 
-def _hard2g_v4_callable_kind(
+def _hard2g_v4_callable_kinds(
     value: ast.AST,
     aliases: Mapping[str, frozenset[str] | set[str]],
-) -> str | None:
+) -> frozenset[str]:
+    kinds: set[str] = set()
     if isinstance(value, ast.Name):
         if value.id == "open" or value.id in aliases["read"]:
-            return "read"
+            kinds.add("read")
         if value.id in _HARD2G_DYNAMIC_EXECUTION_NAMES or value.id in aliases["execution"]:
-            return "execution"
+            kinds.add("execution")
         if value.id == "getattr" or value.id in aliases["getattr"]:
-            return "getattr"
-    if isinstance(value, ast.Attribute):
+            kinds.add("getattr")
+    elif isinstance(value, ast.Attribute):
         if value.attr in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS:
-            return "read"
+            kinds.add("read")
         if value.attr in _HARD2G_DYNAMIC_EXECUTION_NAMES:
-            return "execution"
+            kinds.add("execution")
         if (
             value.attr == "getattr"
             and isinstance(value.value, ast.Name)
             and value.value.id in aliases["builtins"]
         ):
-            return "getattr"
-    if (
-        isinstance(value, ast.Subscript)
-        and _hard2g_v4_is_builtins_namespace(value.value, aliases)
-        and isinstance(value.slice, ast.Constant)
-        and type(value.slice.value) is str
-    ):
-        name = value.slice.value
-        if name in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS:
-            return "read"
-        if name in _HARD2G_DYNAMIC_EXECUTION_NAMES:
-            return "execution"
-        if name == "getattr":
-            return "getattr"
-    return None
+            kinds.add("getattr")
+    elif isinstance(value, ast.Subscript):
+        if (
+            _hard2g_v4_is_builtins_namespace(value.value, aliases)
+            and isinstance(value.slice, ast.Constant)
+            and type(value.slice.value) is str
+        ):
+            name = value.slice.value
+            if name in _HARD2G_DIRECT_PYTHON_FILESYSTEM_READS:
+                kinds.add("read")
+            if name in _HARD2G_DYNAMIC_EXECUTION_NAMES:
+                kinds.add("execution")
+            if name == "getattr":
+                kinds.add("getattr")
+        kinds.update(_hard2g_v4_callable_kinds(value.value, aliases))
+    elif isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+        for element in value.elts:
+            kinds.update(_hard2g_v4_callable_kinds(element, aliases))
+    elif isinstance(value, ast.Dict):
+        for element in value.values:
+            if isinstance(element, ast.AST):
+                kinds.update(_hard2g_v4_callable_kinds(element, aliases))
+    elif isinstance(value, ast.IfExp):
+        kinds.update(_hard2g_v4_callable_kinds(value.body, aliases))
+        kinds.update(_hard2g_v4_callable_kinds(value.orelse, aliases))
+    elif isinstance(value, ast.Call):
+        resolved = _hard2g_v4_getattr_method_kind(value, aliases)
+        if resolved in {"read", "execution"}:
+            kinds.add(resolved)
+        elif resolved == "unknown":
+            kinds.add("getattr")
+    return frozenset(kinds)
 
 
 def _hard2g_v4_is_builtins_namespace(
@@ -4007,7 +4163,7 @@ def _hard2g_v4_getattr_method_kind(
     call: ast.Call,
     aliases: Mapping[str, frozenset[str] | set[str]],
 ) -> str | None:
-    if _hard2g_v4_callable_kind(call.func, aliases) != "getattr":
+    if "getattr" not in _hard2g_v4_callable_kinds(call.func, aliases):
         return None
     if (
         len(call.args) < 2
@@ -4027,10 +4183,10 @@ def _hard2g_v4_bad_indirection(
     call: ast.Call,
     aliases: Mapping[str, frozenset[str] | set[str]],
 ) -> bool:
-    kind = _hard2g_v4_callable_kind(call.func, aliases)
-    if kind == "execution":
+    kinds = _hard2g_v4_callable_kinds(call.func, aliases)
+    if "execution" in kinds:
         return True
-    return kind == "getattr" and (
+    return "getattr" in kinds and (
         _hard2g_v4_getattr_method_kind(call, aliases) != "allowed"
     )
 
@@ -4039,7 +4195,7 @@ def _hard2g_v4_direct_read(
     call: ast.Call,
     aliases: Mapping[str, frozenset[str] | set[str]],
 ) -> bool:
-    return _hard2g_v4_callable_kind(call.func, aliases) == "read"
+    return "read" in _hard2g_v4_callable_kinds(call.func, aliases)
 
 
 def _hard2g_v4_safe_paths_boundary_is_closed(
