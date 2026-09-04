@@ -181,7 +181,7 @@ func mailboxEntCalendarDeliveryResolveRetryDelay(attempts int) (time.Duration, b
 func mailboxEntCalendarInviteDeliveryResolveScopeMatches(delivery *ent.CalendarInviteDelivery, claim CalendarMailDeliveryClaim) bool {
 	if delivery == nil || claim.kind != CalendarMailDeliveryKindInvite || claim.deliveryID.Kind() != CalendarMailDeliveryKindInvite ||
 		delivery.ID != claim.deliveryID.UUID() || delivery.OrganizationID != claim.organizationID || delivery.CalendarEventID != claim.eventID ||
-		delivery.CalendarAttendeeID != claim.attendeeID || delivery.RecurrenceID != nil || claim.materialization.recurrenceID != "" ||
+		delivery.CalendarAttendeeID != claim.attendeeID || !mailboxEntCalendarDeliveryRecurrenceMatches(delivery.RecurrenceID, claim.materialization.recurrenceID) ||
 		delivery.EventSequence != claim.materialization.eventSequence {
 		return false
 	}
@@ -192,7 +192,7 @@ func mailboxEntCalendarInviteDeliveryResolveScopeMatches(delivery *ent.CalendarI
 func mailboxEntCalendarReplyDeliveryResolveScopeMatches(delivery *ent.CalendarReplyDelivery, claim CalendarMailDeliveryClaim) bool {
 	return delivery != nil && claim.kind == CalendarMailDeliveryKindReply && claim.deliveryID.Kind() == CalendarMailDeliveryKindReply &&
 		delivery.ID == claim.deliveryID.UUID() && delivery.OrganizationID == claim.organizationID && delivery.CalendarEventID == claim.eventID &&
-		delivery.CalendarAttendeeID == claim.attendeeID && delivery.RecurrenceID == nil && claim.materialization.recurrenceID == "" &&
+		delivery.CalendarAttendeeID == claim.attendeeID && mailboxEntCalendarDeliveryRecurrenceMatches(delivery.RecurrenceID, claim.materialization.recurrenceID) &&
 		delivery.EventSequence == claim.materialization.eventSequence && delivery.AttendeeVersion == claim.materialization.attendeeVersion
 }
 
@@ -213,7 +213,6 @@ func mailboxEntCASCalendarInviteDeliveryResolve(ctx context.Context, transaction
 		calendarinvitedelivery.CalendarEventIDEQ(claim.eventID),
 		calendarinvitedelivery.CalendarAttendeeIDEQ(claim.attendeeID),
 		calendarinvitedelivery.EventSequenceEQ(claim.materialization.eventSequence),
-		calendarinvitedelivery.RecurrenceIDIsNil(),
 		calendarinvitedelivery.StateEQ(calendarinvitedelivery.StateSubmitting),
 		calendarinvitedelivery.MailSubmissionIDIsNil(),
 		calendarinvitedelivery.AttemptsEQ(delivery.Attempts),
@@ -223,8 +222,13 @@ func mailboxEntCASCalendarInviteDeliveryResolve(ctx context.Context, transaction
 		calendarinvitedelivery.NextAttemptAtIsNil(),
 		calendarinvitedelivery.LastErrorCodeIsNil(),
 		calendarinvitedelivery.TerminalAtIsNil(),
-	).
-		SetState(calendarinvitedelivery.State(resolution.state)).
+	)
+	if claim.materialization.recurrenceID == "" {
+		update.Where(calendarinvitedelivery.RecurrenceIDIsNil())
+	} else {
+		update.Where(calendarinvitedelivery.RecurrenceIDEQ(claim.materialization.recurrenceID))
+	}
+	update.SetState(calendarinvitedelivery.State(resolution.state)).
 		ClearLeaseToken().
 		ClearLeaseUntil().
 		SetLastErrorCode(calendarinvitedelivery.LastErrorCode(resolution.lastErrorCode)).
@@ -254,7 +258,6 @@ func mailboxEntCASCalendarReplyDeliveryResolve(ctx context.Context, transaction 
 		calendarreplydelivery.CalendarAttendeeIDEQ(claim.attendeeID),
 		calendarreplydelivery.EventSequenceEQ(claim.materialization.eventSequence),
 		calendarreplydelivery.AttendeeVersionEQ(claim.materialization.attendeeVersion),
-		calendarreplydelivery.RecurrenceIDIsNil(),
 		calendarreplydelivery.StateEQ(calendarreplydelivery.StateSubmitting),
 		calendarreplydelivery.MailSubmissionIDIsNil(),
 		calendarreplydelivery.AttemptsEQ(delivery.Attempts),
@@ -263,8 +266,13 @@ func mailboxEntCASCalendarReplyDeliveryResolve(ctx context.Context, transaction 
 		calendarreplydelivery.LeaseUntilEQ(claim.leaseUntil),
 		calendarreplydelivery.NextAttemptAtIsNil(),
 		calendarreplydelivery.LastErrorCodeIsNil(),
-	).
-		SetState(calendarreplydelivery.State(resolution.state)).
+	)
+	if claim.materialization.recurrenceID == "" {
+		update.Where(calendarreplydelivery.RecurrenceIDIsNil())
+	} else {
+		update.Where(calendarreplydelivery.RecurrenceIDEQ(claim.materialization.recurrenceID))
+	}
+	update.SetState(calendarreplydelivery.State(resolution.state)).
 		ClearLeaseToken().
 		ClearLeaseUntil().
 		SetLastErrorCode(calendarreplydelivery.LastErrorCode(resolution.lastErrorCode)).

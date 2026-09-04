@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 
 	appent "github.com/valerii/hub/backend/ent"
@@ -22,13 +23,17 @@ import (
 
 func reconcileDevMailControlPlaneTransaction(
 	ctx context.Context,
-	client *appent.Client,
+	tx *appent.Tx,
 	plan devMailControlPlan,
 	engineDomainID string,
 	providerAccounts map[string]devMailProviderAccount,
 ) (devMailControlPlaneResult, error) {
-	if !validDevMailControlContext(ctx) || client == nil || !validDevMailControlPlan(plan) || !validDevMailControlOpaqueID(engineDomainID) || len(providerAccounts) != len(plan.accounts) {
+	if !validDevMailControlContext(ctx) || tx == nil || !validDevMailControlPlan(plan) || !validDevMailControlOpaqueID(engineDomainID) || len(providerAccounts) != len(plan.accounts) {
 		return devMailControlPlaneResult{}, newDevMailControlError(devMailControlStageInput, devMailControlFailureInvalid)
+	}
+	client := tx.Client()
+	if client == nil {
+		return devMailControlPlaneResult{}, newDevMailControlError(devMailControlStageCommit, devMailControlFailureUnavailable)
 	}
 	for _, accountPlan := range plan.accounts {
 		provider, ok := providerAccounts[accountPlan.email]
@@ -73,7 +78,7 @@ func reconcileDevMailControlPlaneTransaction(
 
 	for _, accountPlan := range plan.accounts {
 		provider := providerAccounts[accountPlan.email]
-		account, accountCreated, err := reconcileDevMailControlAccount(ctx, client, plan.domain, accountPlan, provider.accountID, plan.now)
+		account, accountCreated, err := reconcileDevMailControlAccount(ctx, tx, client, plan.domain, accountPlan, provider.accountID, plan.now)
 		if err != nil {
 			return devMailControlPlaneResult{}, err
 		}
@@ -255,7 +260,10 @@ func reconcileDevMailControlPolicy(ctx context.Context, client *appent.Client, p
 	}
 }
 
-func reconcileDevMailControlAccount(ctx context.Context, client *appent.Client, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) (*appent.MailAccount, bool, error) {
+func reconcileDevMailControlAccount(ctx context.Context, tx *appent.Tx, client *appent.Client, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) (*appent.MailAccount, bool, error) {
+	if tx == nil || client == nil {
+		return nil, false, newDevMailControlError(devMailControlStageAccount, devMailControlFailureUnavailable)
+	}
 	rows, err := client.MailAccount.Query().
 		Where(mailaccount.Or(
 			mailaccount.IDEQ(plan.id),
@@ -303,13 +311,56 @@ func reconcileDevMailControlAccount(ctx context.Context, client *appent.Client, 
 		}
 		return account, true, nil
 	case 1:
-		if !validDevMailControlExistingAccountRow(rows[0], domain, plan, engineAccountID, now) {
+		if validDevMailControlExistingAccountRow(rows[0], domain, plan, engineAccountID, now) {
+			return rows[0], false, nil
+		}
+		if !validDevMailControlLegacyAccountRow(rows[0], domain, plan, engineAccountID, now) {
 			return nil, false, newDevMailControlError(devMailControlStageAccount, devMailControlFailureConflict)
 		}
-		return rows[0], false, nil
+		if err := reconcileDevMailControlLegacyEventCutoff(ctx, tx, rows[0], now); err != nil {
+			return nil, false, err
+		}
+		repairedRows, err := client.MailAccount.Query().
+			Where(mailaccount.IDEQ(plan.id)).
+			ForUpdate().
+			All(ctx)
+		if err != nil {
+			return nil, false, newDevMailControlError(devMailControlStageAccount, devMailControlFailureUnavailable)
+		}
+		if len(repairedRows) != 1 || !validDevMailControlExistingAccountRow(repairedRows[0], domain, plan, engineAccountID, now) {
+			return nil, false, newDevMailControlError(devMailControlStageAccount, devMailControlFailureConflict)
+		}
+		return repairedRows[0], false, nil
 	default:
 		return nil, false, newDevMailControlError(devMailControlStageAccount, devMailControlFailureConflict)
 	}
+}
+
+func reconcileDevMailControlLegacyEventCutoff(ctx context.Context, tx *appent.Tx, account *appent.MailAccount, now time.Time) error {
+	if tx == nil || account == nil {
+		return newDevMailControlError(devMailControlStageAccount, devMailControlFailureUnavailable)
+	}
+	driver := tx.Driver()
+	if driver == nil {
+		return newDevMailControlError(devMailControlStageAccount, devMailControlFailureUnavailable)
+	}
+	var result sql.Result
+	if err := driver.Exec(
+		ctx,
+		"UPDATE mail_accounts SET event_cutoff_at = $1, updated_at = $2 WHERE id = $3 AND event_cutoff_at = $4 AND created_at = $5 AND updated_at = $6",
+		[]any{devMailControlEventCutoff(), now, account.ID, account.EventCutoffAt, account.CreatedAt, account.UpdatedAt},
+		&result,
+	); err != nil {
+		return newDevMailControlError(devMailControlStageAccount, devMailControlFailureUnavailable)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return newDevMailControlError(devMailControlStageAccount, devMailControlFailureUnavailable)
+	}
+	if affected != 1 {
+		return newDevMailControlError(devMailControlStageAccount, devMailControlFailureConflict)
+	}
+	return nil
 }
 
 func reconcileDevMailControlIdentity(ctx context.Context, client *appent.Client, account *appent.MailAccount, plan devMailControlAccountPlan, engineIdentityID string, now time.Time) (*appent.MailIdentity, bool, error) {
@@ -516,6 +567,26 @@ func validDevMailControlExistingAccountRow(row *appent.MailAccount, domain devMa
 	default:
 		return false
 	}
+}
+
+func validDevMailControlLegacyAccountRow(row *appent.MailAccount, domain devMailControlDomainPlan, plan devMailControlAccountPlan, engineAccountID string, now time.Time) bool {
+	if row == nil || !validDevMailControlPersistedTime(row.EventCutoffAt) || !row.EventCutoffAt.After(devMailControlEventCutoff()) || !row.EventCutoffAt.Equal(row.CreatedAt) ||
+		!validDevMailControlStoredLease(row.ProvisionLeaseToken, row.ProvisionLeaseUntil, now) ||
+		!validDevMailControlStoredLease(row.SyncLeaseToken, row.SyncLeaseUntil, now) ||
+		!validDevMailControlStoredLease(row.MutationLeaseToken, row.MutationLeaseUntil, now) ||
+		!validDevMailControlStoredLease(row.PasswordEnrollmentLeaseToken, row.PasswordEnrollmentLeaseUntil, now) {
+		return false
+	}
+	current := *row
+	current.EventCutoffAt = devMailControlEventCutoff()
+	return validDevMailControlExistingAccountRow(&current, domain, plan, engineAccountID, now)
+}
+
+func validDevMailControlStoredLease(token *uuid.UUID, until *time.Time, now time.Time) bool {
+	if token == nil {
+		return until == nil
+	}
+	return until != nil && *token != uuid.Nil && validDevMailControlPersistedTime(*until) && !until.After(now)
 }
 
 func validDevMailControlBootstrappingAccountRow(row *appent.MailAccount) bool {

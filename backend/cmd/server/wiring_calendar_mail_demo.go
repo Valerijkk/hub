@@ -30,7 +30,7 @@ func wireDevMailCalendarRuntime(
 	}
 
 	if d.cfg.Server.DevMode {
-		calendarDemoAdapter, err := newCalendarDemoAdapter(eventSvc, eventReadSvc)
+		calendarDemoAdapter, err := newCalendarDemoAdapter(d.db, eventSvc, eventReadSvc)
 		if err != nil {
 			d.fatal("failed to wire Mail/Calendar demo seeder", err)
 			return true

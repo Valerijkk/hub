@@ -123,6 +123,11 @@ func NewCalendarEventCreateCommand(input CalendarEventCreateInput) (CalendarEven
 	}, nil
 }
 
+// RequestHash returns the canonical normalized create-request SHA-256 for trusted receipt reconciliation.
+func (command CalendarEventCreateCommand) RequestHash() MutationReceiptHash {
+	return command.requestHash
+}
+
 func (command CalendarEventCreateCommand) valid() bool {
 	rebuilt, err := NewCalendarEventCreateCommand(command.input)
 	return err == nil && rebuilt.keyHash == command.keyHash && rebuilt.requestHash == command.requestHash

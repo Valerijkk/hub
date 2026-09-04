@@ -433,44 +433,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/mail/broadcast": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Администрирование"
-                ],
-                "summary": "Admin email broadcast",
-                "parameters": [
-                    {
-                        "description": "Broadcast",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_mail.BroadcastRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_mail.BroadcastResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/admin/mail/settings": {
             "get": {
                 "security": [
@@ -18460,44 +18422,6 @@ const docTemplate = `{
             "properties": {
                 "option_id": {
                     "type": "string"
-                }
-            }
-        },
-        "internal_mail.BroadcastRequest": {
-            "type": "object",
-            "required": [
-                "html_body",
-                "subject"
-            ],
-            "properties": {
-                "dry_run": {
-                    "type": "boolean"
-                },
-                "html_body": {
-                    "type": "string",
-                    "minLength": 10
-                },
-                "subject": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "minLength": 3
-                }
-            }
-        },
-        "internal_mail.BroadcastResponse": {
-            "type": "object",
-            "properties": {
-                "dry_run": {
-                    "type": "boolean"
-                },
-                "failed": {
-                    "type": "integer"
-                },
-                "recipients": {
-                    "type": "integer"
-                },
-                "sent": {
-                    "type": "integer"
                 }
             }
         },

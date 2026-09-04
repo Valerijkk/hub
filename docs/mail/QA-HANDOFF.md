@@ -993,10 +993,9 @@ These cases are required only if founder question 5 admits L1 into the first mer
 1. Existing `GET/PUT /api/admin/mail/settings` remains flat and supports
    `hub_mail_url`, `from_alerts`, `alerts_enabled`, `daily_limit`, and read-only
    `resend_ready` without frontend changes.
-2. Existing `POST /api/admin/mail/broadcast` is documented as a deprecated governance gap:
-   it currently reaches active users but conflicts with ADR-NOTIF-01. Mailbox acceptance
-   requires removal/disablement or explicit founder re-authorization; the new mailbox must
-   never invoke or expand it implicitly.
+2. Former `POST /api/admin/mail/broadcast` is removed and not registered. Its request/
+   response contracts, backend service and frontend UI are removed; the new mailbox must not
+   invoke or recreate that surface without explicit founder re-authorization.
 3. Mailbox policy uses versioned `GET/PUT /api/admin/mail/mailbox-settings` with `If-Match`
    and remains separate from Resend.
 4. Every admin mail operation rejects a non-admin with 403 and writes its named audit
@@ -1107,11 +1106,9 @@ separately reviewed payload allowlist.
    cross-collection normalized count must be at most policy `max_recipients`, whose persisted
    and public maximum is 300. Exactly 300 is accepted when each list fits; 301 rejects before
    draft save, submit, receipt success or engine I/O.
-6. The deprecated legacy admin broadcast remains blocked for mailbox acceptance and is not
-   re-authorized by this contract. While the compatibility route still exists, unknown input
-   fields reject, subject/body have explicit UTF-8 ceilings, counters are non-negative int32,
-   `sent + failed <= recipients`, and dry-run requires zero sent/failed. Phase 148 still
-   requires disable/removal unless the founder separately re-authorizes the feature.
+6. The legacy admin broadcast is removed and not registered. This contract neither restores
+   it nor grants a mailbox-acceptance exception; manual OpenAPI contains no broadcast request
+   or response schema.
 
 ## Docker mail profile contract
 
@@ -1220,6 +1217,44 @@ oracles, not current executable evidence.
 - MIME fixtures include folded headers, encoded words, multipart nesting, invalid depth,
   oversized values, duplicate headers, and malicious calendar properties.
 - No test contacts real DNS, SMTP, remote image, or public mailbox service.
+
+### Dev-demo recovery and startup notes (static source only)
+
+Dev-demo-only restart recovery may requeue exactly the immutable PM-to-dev1 master `REQUEST`
+invite only when both owner-gated projected message reads prove the same FakeMailEngine
+restart-loss shape. Mixed, readable, or drifted state fails closed and cannot duplicate an
+invitation. Recovery requeues only the exact `CalendarInviteDelivery` and deletes its proved
+stale `MailSubmission`, submitted `MailDraft`, provider projection, recipient inbound projection,
+and inbound receipt while preserving the Calendar event and `CalendarInboundObjectState`.
+Provider/outbound and inbound projection pipelines remain the canonical owners of rebuilt message
+metadata.
+
+The sole dev1 FakeMailEngine brand-kit attachment fixture may transition exact `pending` to
+`clean` only when its account, message, blob, immutable metadata, and SHA-256 all match. It is
+idempotent when already clean and fails closed otherwise; it is not a scanner, provider-attachment,
+or production recovery lifecycle.
+
+Dev-only auto-seed is best-effort after listener reachability: loopback `GET /api/dev/status`
+uses a 10-second probe timeout, then `POST /api/dev/seed` uses a three-minute timeout, with
+delays `1,2,4,8,15,15` seconds and a 4-KiB bounded response drain. Failure never changes health
+or readiness. Docker build had begun but was deliberately interrupted after the secret incident;
+final build, tests, and runtime are `NOT_RUN/BLOCKED_SECRET_ROTATION`, with no PASS, source
+readiness, or acceptance claim.
+
+### 2026-09-04 dev-demo runtime evidence (bounded)
+
+A fresh tmpfs Docker dev-demo stack reached automatic seed on its first attempt: `POST
+/api/dev/seed` returned raw HTTP `200` in about 67 seconds. The PM/dev1 fixture then returned raw
+HTTP `200` for all fourteen detail reads, including cancellation of a recurring occurrence linked
+to Calendar. Its brand attachment was 85 bytes with SHA-256
+`a8238550297cc36a93834da7419a233b711951de4c3385d554d4f176bbc02bf2`.
+
+The exercised cross-domain chain recorded an invite delivery as `sent` and unleased, a submission
+as `sent`, an inbound receipt as applied and unleased, and an imported event UID
+`hub-<source-event-id>`. Over a stable 16-second observation, dev1 had 7 messages / 6 threads with
+cursor `sync:7`; PM had 7 messages / 7 threads with cursor `sync:14`. The post-ready error scan
+was clean. This is narrow dev-demo runtime evidence only: production Stalwart/JMAP external
+delivery, the full suite, and release/merge readiness remain `NOT_RUN` / `NOT_CLAIMED`.
 
 ## 144-02A/B/C/D future persistence and deletion oracles
 

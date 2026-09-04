@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
+	"log/slog"
 	"reflect"
 	"sort"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/maillabel"
@@ -20,6 +23,39 @@ import (
 )
 
 const mailboxEntApplySyncEpochMaximum int64 = 2_147_483_647
+
+type mailboxEntSyncMessagesStage string
+
+const (
+	mailboxEntSyncMessagesStageCanonicalResult  mailboxEntSyncMessagesStage = "canonical_result"
+	mailboxEntSyncMessagesStageMessagePlans     mailboxEntSyncMessagesStage = "message_plans"
+	mailboxEntSyncMessagesStageLoadRows         mailboxEntSyncMessagesStage = "load_rows"
+	mailboxEntSyncMessagesStageThreadPlans      mailboxEntSyncMessagesStage = "thread_plans"
+	mailboxEntSyncMessagesStageEnsureThreads    mailboxEntSyncMessagesStage = "ensure_threads"
+	mailboxEntSyncMessagesStageUpsertMessage    mailboxEntSyncMessagesStage = "upsert_message"
+	mailboxEntSyncMessagesStageTombstoneMessage mailboxEntSyncMessagesStage = "tombstone_message"
+)
+
+const mailboxEntSyncMessagesErrorCategory = "mailbox_sync_messages_apply_error"
+
+func mailboxEntLogSyncMessagesError(stage mailboxEntSyncMessagesStage, err error) {
+	attributes := []any{
+		"message_stage", string(stage),
+		"error_category", mailboxEntSyncMessagesErrorCategory,
+	}
+	var serviceError *MailboxServiceError
+	if errors.As(err, &serviceError) && serviceError != nil {
+		switch serviceError.Kind {
+		case MailboxServiceErrorInvalid, MailboxServiceErrorNotFound, MailboxServiceErrorUnavailable, MailboxServiceErrorDeleting:
+			attributes = append(attributes, "mailbox_service_error_kind", string(serviceError.Kind))
+		}
+	}
+	var postgresError *pq.Error
+	if errors.As(err, &postgresError) && postgresError != nil && postgresError.Code != "" {
+		attributes = append(attributes, "postgres_sqlstate", string(postgresError.Code))
+	}
+	slog.Warn("mailbox sync messages atom failed", attributes...)
+}
 
 type mailboxEntApplyMessageProjection struct {
 	engineMessageID   string
@@ -85,32 +121,39 @@ func (r *MailboxEntRepository) mailboxEntApplySyncMessages(ctx context.Context, 
 
 	result, err := mailboxEntApplyCanonicalSyncResult(canonical)
 	if err != nil {
+		mailboxEntLogSyncMessagesError(mailboxEntSyncMessagesStageCanonicalResult, err)
 		return err
 	}
 	accountID := canonical.Fence.AccountID
 	upserts, tombstones, err := mailboxEntApplyMessagePlans(accountID, result)
 	if err != nil {
+		mailboxEntLogSyncMessagesError(mailboxEntSyncMessagesStageMessagePlans, err)
 		return err
 	}
 	rows, err := mailboxEntApplyLoadMessageRows(ctx, tx, accountID, upserts, tombstones)
 	if err != nil {
+		mailboxEntLogSyncMessagesError(mailboxEntSyncMessagesStageLoadRows, err)
 		return err
 	}
 	threadPlans, err := mailboxEntApplyThreadPlans(accountID, upserts)
 	if err != nil {
+		mailboxEntLogSyncMessagesError(mailboxEntSyncMessagesStageThreadPlans, err)
 		return err
 	}
 	if err := mailboxEntApplyEnsureThreads(ctx, tx, accountID, result.Advance.SyncEpoch, transactionTime, threadPlans, rows); err != nil {
+		mailboxEntLogSyncMessagesError(mailboxEntSyncMessagesStageEnsureThreads, err)
 		return err
 	}
 
 	for _, plan := range upserts {
 		if err := mailboxEntApplyUpsertMessage(ctx, tx, accountID, result.Advance.SyncEpoch, transactionTime, plan); err != nil {
+			mailboxEntLogSyncMessagesError(mailboxEntSyncMessagesStageUpsertMessage, err)
 			return err
 		}
 	}
 	for _, plan := range tombstones {
 		if err := mailboxEntApplyTombstoneMessage(ctx, tx, accountID, result.Advance.SyncEpoch, transactionTime, plan); err != nil {
+			mailboxEntLogSyncMessagesError(mailboxEntSyncMessagesStageTombstoneMessage, err)
 			return err
 		}
 	}
@@ -313,7 +356,7 @@ func mailboxEntApplyLoadMessageRows(ctx context.Context, tx *ent.Tx, accountID u
 				return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 			}
 			byEngineID[row.EngineMessageID] = row
-			if prior, present := allRows[row.ID]; present && prior != row {
+			if prior, present := allRows[row.ID]; present && (prior.MailAccountID != row.MailAccountID || prior.ID != row.ID || prior.EngineMessageID != row.EngineMessageID) {
 				return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 			}
 			allRows[row.ID] = row
@@ -463,7 +506,10 @@ func mailboxEntApplyEnsureThreads(ctx context.Context, tx *ent.Tx, accountID uui
 		}
 		byKey[key] = row
 		if existing, found := byID[row.ID]; found && existing != row {
-			return mailboxServiceError(MailboxServiceErrorInvalid)
+			existingKey, ok := mailboxEntApplyThreadKeyFromRow(existing)
+			if !ok || existingKey != key {
+				return mailboxServiceError(MailboxServiceErrorInvalid)
+			}
 		}
 		byID[row.ID] = row
 	}

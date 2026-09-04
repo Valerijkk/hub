@@ -1400,32 +1400,6 @@ definitions:
       option_id:
         type: string
     type: object
-  internal_mail.BroadcastRequest:
-    properties:
-      dry_run:
-        type: boolean
-      html_body:
-        minLength: 10
-        type: string
-      subject:
-        maxLength: 200
-        minLength: 3
-        type: string
-    required:
-    - html_body
-    - subject
-    type: object
-  internal_mail.BroadcastResponse:
-    properties:
-      dry_run:
-        type: boolean
-      failed:
-        type: integer
-      recipients:
-        type: integer
-      sent:
-        type: integer
-    type: object
   internal_mail.SettingsResponse:
     properties:
       alerts_enabled:
@@ -4375,29 +4349,6 @@ paths:
       summary: Обновить лимит ресурса
       tags:
       - Аудит
-  /admin/mail/broadcast:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Broadcast
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_mail.BroadcastRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_mail.BroadcastResponse'
-      security:
-      - BearerAuth: []
-      summary: Admin email broadcast
-      tags:
-      - Администрирование
   /admin/mail/settings:
     get:
       description: Возвращает URL hub-mail, from address и лимиты (Phase 15.2, MAIL-01)

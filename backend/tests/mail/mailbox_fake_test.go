@@ -403,7 +403,7 @@ func TestFakeMailEngineTerminalEnumerationAnchorFeedsNaturalChanges(t *testing.T
 	if err != nil {
 		t.Fatalf("Changes from terminal base anchor: %v", err)
 	}
-	if changes.Bounds.Returned != 1 || changes.CreatedOrUpdated[0].MessageID != "message-2" || changes.NextCursor != "" {
+	if changes.Bounds.Returned != 1 || changes.CreatedOrUpdated[0].MessageID != "message-2" || changes.NextCursor != "sync:2" {
 		t.Fatalf("Changes from terminal base anchor = %#v, want only post-anchor message", changes)
 	}
 }

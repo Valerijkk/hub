@@ -311,7 +311,7 @@ func mailboxEntCASCalendarInviteDeliveryBind(ctx context.Context, transaction *e
 		!mailboxEntValidTime(databaseNow) {
 		return 0, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
 	}
-	updated, err := transaction.CalendarInviteDelivery.Update().
+	update := transaction.CalendarInviteDelivery.Update().
 		Where(
 			calendarinvitedelivery.IDEQ(claim.deliveryID.UUID()),
 			calendarinvitedelivery.OrganizationIDEQ(claim.organizationID),
@@ -319,7 +319,6 @@ func mailboxEntCASCalendarInviteDeliveryBind(ctx context.Context, transaction *e
 			calendarinvitedelivery.CalendarAttendeeIDEQ(claim.attendeeID),
 			calendarinvitedelivery.KindEQ(delivery.Kind),
 			calendarinvitedelivery.EventSequenceEQ(claim.materialization.eventSequence),
-			calendarinvitedelivery.RecurrenceIDIsNil(),
 			calendarinvitedelivery.StateEQ(calendarinvitedelivery.State(CalendarMailDeliveryStateSubmitting)),
 			calendarinvitedelivery.MailSubmissionIDIsNil(),
 			calendarinvitedelivery.AttemptsEQ(delivery.Attempts),
@@ -329,7 +328,13 @@ func mailboxEntCASCalendarInviteDeliveryBind(ctx context.Context, transaction *e
 			calendarinvitedelivery.NextAttemptAtIsNil(),
 			calendarinvitedelivery.LastErrorCodeIsNil(),
 			calendarinvitedelivery.TerminalAtIsNil(),
-		).
+		)
+	if claim.materialization.recurrenceID == "" {
+		update.Where(calendarinvitedelivery.RecurrenceIDIsNil())
+	} else {
+		update.Where(calendarinvitedelivery.RecurrenceIDEQ(claim.materialization.recurrenceID))
+	}
+	updated, err := update.
 		SetMailSubmissionID(submissionID).
 		SetState(calendarinvitedelivery.State(CalendarMailDeliveryStateUnknown)).
 		ClearLeaseToken().
@@ -350,7 +355,7 @@ func mailboxEntCASCalendarReplyDeliveryBind(ctx context.Context, transaction *en
 		!mailboxEntValidTime(databaseNow) {
 		return 0, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
 	}
-	updated, err := transaction.CalendarReplyDelivery.Update().
+	update := transaction.CalendarReplyDelivery.Update().
 		Where(
 			calendarreplydelivery.IDEQ(claim.deliveryID.UUID()),
 			calendarreplydelivery.OrganizationIDEQ(claim.organizationID),
@@ -358,7 +363,6 @@ func mailboxEntCASCalendarReplyDeliveryBind(ctx context.Context, transaction *en
 			calendarreplydelivery.CalendarAttendeeIDEQ(claim.attendeeID),
 			calendarreplydelivery.EventSequenceEQ(claim.materialization.eventSequence),
 			calendarreplydelivery.AttendeeVersionEQ(claim.materialization.attendeeVersion),
-			calendarreplydelivery.RecurrenceIDIsNil(),
 			calendarreplydelivery.StateEQ(calendarreplydelivery.State(CalendarMailDeliveryStateSubmitting)),
 			calendarreplydelivery.MailSubmissionIDIsNil(),
 			calendarreplydelivery.AttemptsEQ(delivery.Attempts),
@@ -367,7 +371,13 @@ func mailboxEntCASCalendarReplyDeliveryBind(ctx context.Context, transaction *en
 			calendarreplydelivery.LeaseUntilEQ(claim.leaseUntil),
 			calendarreplydelivery.NextAttemptAtIsNil(),
 			calendarreplydelivery.LastErrorCodeIsNil(),
-		).
+		)
+	if claim.materialization.recurrenceID == "" {
+		update.Where(calendarreplydelivery.RecurrenceIDIsNil())
+	} else {
+		update.Where(calendarreplydelivery.RecurrenceIDEQ(claim.materialization.recurrenceID))
+	}
+	updated, err := update.
 		SetMailSubmissionID(submissionID).
 		SetState(calendarreplydelivery.State(CalendarMailDeliveryStateUnknown)).
 		ClearLeaseToken().

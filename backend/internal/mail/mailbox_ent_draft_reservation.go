@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 	"time"
 
@@ -377,7 +378,14 @@ func mailboxEntDraftReservationLockDraft(ctx context.Context, transaction *ent.T
 		}
 		return nil, MailboxDraftRepositoryErrorUnavailable
 	}
-	if draft == nil || draft.ID != draftID || draft.MailAccountID != accountID || !mailboxEntDraftReadRowValid(draft, accountID, draftID) {
+	if draft == nil || draft.ID != draftID || draft.MailAccountID != accountID {
+		return nil, MailboxDraftRepositoryErrorStateConflict
+	}
+	if stage := mailboxEntDraftReadRowConflictStage(draft, accountID, draftID); stage != "" {
+		slog.Warn(
+			"mailbox draft row rejected",
+			"mailbox_draft_row_conflict_stage", string(stage),
+		)
 		return nil, MailboxDraftRepositoryErrorStateConflict
 	}
 	return draft, ""

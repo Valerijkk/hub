@@ -13,6 +13,8 @@
 package dev
 
 import (
+	"sync"
+
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/valerii/hub/backend/ent"
@@ -25,6 +27,7 @@ type Handler struct {
 	db                 *ent.Client
 	authSvc            *auth.AuthService
 	mailCalendarSeeder MailCalendarDemoSeeder
+	seedMu             sync.Mutex
 }
 
 // NewHandler создаёт новый Handler для dev-эндпоинтов.

@@ -907,20 +907,30 @@ func (f *FakeMailEngine) Changes(_ context.Context, request EngineChangeRequest)
 	if end > len(f.changes[request.AccountID]) {
 		end = len(f.changes[request.AccountID])
 	}
-	created := make([]EngineMessageProjection, 0, end-start)
-	destroyed := make([]string, 0, end-start)
+	latest := make(map[string]fakeChange, end-start)
 	for _, change := range f.changes[request.AccountID][start:end] {
+		if change.projection != nil {
+			latest[change.projection.MessageID] = change
+		} else {
+			latest[change.destroyed] = change
+		}
+	}
+	created := make([]EngineMessageProjection, 0, len(latest))
+	destroyed := make([]string, 0, len(latest))
+	for messageID, change := range latest {
 		if change.projection != nil {
 			created = append(created, cloneProjection(*change.projection))
 		} else {
-			destroyed = append(destroyed, change.destroyed)
+			destroyed = append(destroyed, messageID)
 		}
 	}
+	sort.Slice(created, func(left, right int) bool { return created[left].MessageID < created[right].MessageID })
+	sort.Strings(destroyed)
 	next := ""
-	if end < len(f.changes[request.AccountID]) {
+	if end > start {
 		next = syncCursor(end)
 	}
-	page := EngineChangePage{AccountID: request.AccountID, FromCursor: request.FromCursor, NextCursor: next, Bounds: EnginePageBounds{Requested: request.Page.Limit, Maximum: MaxEnginePageItems, Returned: end - start}, CreatedOrUpdated: created, DestroyedIDs: destroyed}
+	page := EngineChangePage{AccountID: request.AccountID, FromCursor: request.FromCursor, NextCursor: next, Bounds: EnginePageBounds{Requested: request.Page.Limit, Maximum: MaxEnginePageItems, Returned: len(created) + len(destroyed)}, CreatedOrUpdated: created, DestroyedIDs: destroyed}
 	if err := validateChangePage(page, request); err != nil {
 		return EngineChangePage{}, err
 	}

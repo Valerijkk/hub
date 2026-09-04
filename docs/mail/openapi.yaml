@@ -1950,29 +1950,6 @@ paths:
               schema: {$ref: "#/components/schemas/LegacyAdminMailSettings"}
         "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
-  /admin/mail/broadcast:
-    post:
-      tags: [AdminMail]
-      operationId: sendLegacyAdminMailBroadcast
-      deprecated: true
-      description: Existing admin broadcast compatibility route; conflicts with ADR-NOTIF-01 no-marketing policy and must be removed/disabled or explicitly re-authorized before mailbox acceptance
-      x-hub-current-state: implemented-governance-gap
-      x-hub-admission-status: blocked-pending-disable-or-removal
-      x-hub-rbac: admin
-      x-hub-audit-action: mail.admin.broadcast
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: "#/components/schemas/LegacyAdminMailBroadcastRequest"}
-      responses:
-        "200":
-          description: Current dry-run or per-recipient best-effort broadcast counters
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/LegacyAdminMailBroadcastResponse"}
-        "403": {$ref: "#/components/responses/Forbidden"}
-        default: {$ref: "#/components/responses/Error"}
   /admin/mail/mailbox-settings:
     get:
       tags: [AdminMail]
@@ -4253,25 +4230,6 @@ components:
         from_alerts: {type: string, format: email, maxLength: 320}
         alerts_enabled: {type: boolean}
         daily_limit: {type: integer, minimum: 0}
-    LegacyAdminMailBroadcastRequest:
-      type: object
-      additionalProperties: false
-      x-hub-max-serialized-utf8-bytes: 8389632
-      required: [subject, html_body]
-      properties:
-        subject: {type: string, minLength: 3, maxLength: 200, x-hub-max-utf8-bytes: 800}
-        html_body: {type: string, minLength: 10, maxLength: 2000000, x-hub-max-utf8-bytes: 8388608}
-        dry_run: {type: boolean, default: false}
-    LegacyAdminMailBroadcastResponse:
-      type: object
-      additionalProperties: false
-      x-hub-validation: sent plus failed must not exceed recipients; dry_run requires sent and failed to equal zero
-      required: [recipients, sent, failed, dry_run]
-      properties:
-        recipients: {type: integer, format: int32, minimum: 0, maximum: 2147483647}
-        sent: {type: integer, format: int32, minimum: 0, maximum: 2147483647}
-        failed: {type: integer, format: int32, minimum: 0, maximum: 2147483647}
-        dry_run: {type: boolean}
     AdminMailboxSettings:
       type: object
       additionalProperties: false

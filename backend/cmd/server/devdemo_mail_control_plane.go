@@ -241,7 +241,7 @@ func reconcileDevMailControlPlane(
 		}
 	}()
 
-	result, err := reconcileDevMailControlPlaneTransaction(ctx, tx.Client(), plan, domainState.DomainID, providerAccounts)
+	result, err := reconcileDevMailControlPlaneTransaction(ctx, tx, plan, domainState.DomainID, providerAccounts)
 	if err != nil {
 		return devMailControlPlaneResult{}, err
 	}

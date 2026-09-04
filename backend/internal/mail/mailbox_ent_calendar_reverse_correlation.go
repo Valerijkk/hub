@@ -8,6 +8,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/calendarattendee"
 	"github.com/valerii/hub/backend/ent/calendarevent"
+	"github.com/valerii/hub/backend/ent/calendareventexception"
 	"github.com/valerii/hub/backend/ent/calendarinboundmessagereceipt"
 	"github.com/valerii/hub/backend/ent/calendarinvitedelivery"
 	"github.com/valerii/hub/backend/ent/mailaccount"
@@ -249,7 +250,7 @@ func mailboxEntCalendarReverseOutboundCandidates(ctx context.Context, transactio
 		if !mailboxEntCalendarReverseDeliveryValid(delivery, request) {
 			return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 		}
-		if err := mailboxEntCalendarReverseDeliveryAttendeeValid(ctx, transaction, delivery); err != nil {
+		if err := mailboxEntCalendarCorrelationDeliveryAttendeeValid(ctx, transaction, delivery); err != nil {
 			return err
 		}
 		switch string(delivery.State) {
@@ -317,9 +318,12 @@ func mailboxEntCalendarReverseDeliveryValid(delivery *ent.CalendarInviteDelivery
 	}
 }
 
-func mailboxEntCalendarReverseDeliveryAttendeeValid(ctx context.Context, transaction *ent.Tx, delivery *ent.CalendarInviteDelivery) error {
+func mailboxEntCalendarCorrelationDeliveryAttendeeValid(ctx context.Context, transaction *ent.Tx, delivery *ent.CalendarInviteDelivery) error {
 	if ctx == nil || transaction == nil || delivery == nil || delivery.CalendarEventID == uuid.Nil || delivery.CalendarAttendeeID == uuid.Nil {
 		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	if delivery.Kind == calendarinvitedelivery.KindCancelled && delivery.RecurrenceID != nil {
+		return mailboxEntCalendarCorrelationOccurrenceCancelDeliveryAttendeeValid(ctx, transaction, delivery)
 	}
 
 	attendee, err := transaction.CalendarAttendee.Query().
@@ -330,6 +334,60 @@ func mailboxEntCalendarReverseDeliveryAttendeeValid(ctx context.Context, transac
 		).
 		Only(ctx)
 	if err != nil || attendee == nil || attendee.ID != delivery.CalendarAttendeeID || attendee.CalendarEventID != delivery.CalendarEventID || attendee.RemovedAt != nil || !mailboxEntCalendarCorrelationStringPointerEqual(attendee.RecurrenceID, delivery.RecurrenceID) {
+		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	return nil
+}
+
+// mailboxEntCalendarCorrelationOccurrenceCancelDeliveryAttendeeValid admits the
+// one deliberate attendee/recurrence asymmetry: an occurrence-CANCEL is sent
+// to an active master attendee while its delivery is scoped by the cancelled
+// occurrence. Every authoritative row is revalidated from the same snapshot.
+func mailboxEntCalendarCorrelationOccurrenceCancelDeliveryAttendeeValid(ctx context.Context, transaction *ent.Tx, delivery *ent.CalendarInviteDelivery) error {
+	if ctx == nil || transaction == nil || delivery == nil || delivery.ID == uuid.Nil || delivery.OrganizationID == uuid.Nil ||
+		delivery.Kind != calendarinvitedelivery.KindCancelled || delivery.RecurrenceID == nil || *delivery.RecurrenceID == "" || delivery.EventSequence < 0 {
+		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+
+	attendee, err := transaction.CalendarAttendee.Query().
+		Where(
+			calendarattendee.IDEQ(delivery.CalendarAttendeeID),
+			calendarattendee.CalendarEventIDEQ(delivery.CalendarEventID),
+			calendarattendee.RemovedAtIsNil(),
+			calendarattendee.RecurrenceIDIsNil(),
+		).
+		Only(ctx)
+	if err != nil || attendee == nil || attendee.ID != delivery.CalendarAttendeeID || attendee.CalendarEventID != delivery.CalendarEventID ||
+		attendee.RemovedAt != nil || attendee.RecurrenceID != nil {
+		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+
+	event, err := transaction.CalendarEvent.Query().
+		Where(
+			calendarevent.IDEQ(delivery.CalendarEventID),
+			calendarevent.OrganizationIDEQ(delivery.OrganizationID),
+			calendarevent.DeletedAtIsNil(),
+			calendarevent.SequenceEQ(delivery.EventSequence),
+			calendarevent.StatusIn(calendarevent.StatusConfirmed, calendarevent.StatusTentative),
+		).
+		Only(ctx)
+	if err != nil || event == nil || event.ID != delivery.CalendarEventID || event.OrganizationID != delivery.OrganizationID ||
+		event.DeletedAt != nil || event.Sequence != delivery.EventSequence ||
+		(event.Status != calendarevent.StatusConfirmed && event.Status != calendarevent.StatusTentative) {
+		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+
+	exception, err := transaction.CalendarEventException.Query().
+		Where(
+			calendareventexception.CalendarEventIDEQ(delivery.CalendarEventID),
+			calendareventexception.RecurrenceIDEQ(*delivery.RecurrenceID),
+		).
+		Only(ctx)
+	if err != nil || exception == nil || exception.ID == uuid.Nil || exception.CalendarEventID != delivery.CalendarEventID ||
+		exception.RecurrenceID != *delivery.RecurrenceID || exception.Sequence != delivery.EventSequence ||
+		exception.Status == nil || *exception.Status != calendareventexception.StatusCancelled ||
+		exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil ||
+		exception.Timezone != nil || exception.Location != nil {
 		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 	}
 	return nil

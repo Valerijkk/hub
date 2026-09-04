@@ -240,27 +240,67 @@ func mailboxEntDraftReadStorageObjectValid(object *ent.MailObject, accountID, dr
 	return object != nil && attachment != nil && attachment.StorageObjectID != nil && object.ID == *attachment.StorageObjectID && object.MailAccountID == accountID && object.DraftClientID == draftClientID && object.UploadState == mailobject.UploadState("confirmed") && object.ActualSizeBytes != nil && *object.ActualSizeBytes == object.ExpectedSizeBytes && object.ExpectedSizeBytes == attachment.SizeBytes && object.Sha256 != nil && attachment.Sha256 != nil && len(*object.Sha256) == AttachmentSHA256Bytes && bytes.Equal(*object.Sha256, *attachment.Sha256) && object.NextDeleteAt == nil && object.DeleteLeaseToken == nil && object.DeleteLeaseUntil == nil
 }
 
+type mailboxEntDraftRowConflictStage string
+
+const (
+	mailboxEntDraftRowConflictStageIdentity      mailboxEntDraftRowConflictStage = "identity"
+	mailboxEntDraftRowConflictStageEngineKey     mailboxEntDraftRowConflictStage = "engine_key"
+	mailboxEntDraftRowConflictStageRevision      mailboxEntDraftRowConflictStage = "revision"
+	mailboxEntDraftRowConflictStageHashes        mailboxEntDraftRowConflictStage = "hashes"
+	mailboxEntDraftRowConflictStageUpdatedAt     mailboxEntDraftRowConflictStage = "updated_at"
+	mailboxEntDraftRowConflictStageUUIDPointers  mailboxEntDraftRowConflictStage = "uuid_pointers"
+	mailboxEntDraftRowConflictStageRecoveryTimes mailboxEntDraftRowConflictStage = "recovery_times"
+	mailboxEntDraftRowConflictStageEnginePair    mailboxEntDraftRowConflictStage = "engine_pair"
+	mailboxEntDraftRowConflictStagePendingShape  mailboxEntDraftRowConflictStage = "pending_shape"
+	mailboxEntDraftRowConflictStageScalarState   mailboxEntDraftRowConflictStage = "scalar_state"
+)
+
 func mailboxEntDraftReadRowValid(draft *ent.MailDraft, accountID, draftID uuid.UUID) bool {
-	if draft == nil || draft.ID != draftID || draftID == uuid.Nil || draft.MailAccountID != accountID || accountID == uuid.Nil || draft.FromIdentityID == uuid.Nil || draft.DraftClientID == uuid.Nil || !syncValidOpaque(draft.EngineDraftKey, MaxEngineOpaqueIDBytes) || draft.Revision < 1 || !mailboxEntDraftReadHashValid(draft.CreateIdempotencyKeyHash) || !mailboxEntDraftReadHashValid(draft.CreateRequestHash) || !mailboxEntValidTime(draft.UpdatedAt) || !mailboxEntDraftReadUUIDPointerValid(draft.ReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.ForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingFromIdentityID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.LastMutationID) || !mailboxEntDraftReadUUIDPointerValid(draft.ConfirmedMutationID) || (draft.PendingSaveRequestHash != nil && !mailboxEntDraftReadHashValid(*draft.PendingSaveRequestHash)) {
-		return false
+	return mailboxEntDraftReadRowConflictStage(draft, accountID, draftID) == ""
+}
+
+func mailboxEntDraftReadRowConflictStage(draft *ent.MailDraft, accountID, draftID uuid.UUID) mailboxEntDraftRowConflictStage {
+	if draft == nil || draft.ID != draftID || draftID == uuid.Nil || draft.MailAccountID != accountID || accountID == uuid.Nil || draft.FromIdentityID == uuid.Nil || draft.DraftClientID == uuid.Nil {
+		return mailboxEntDraftRowConflictStageIdentity
+	}
+	if !syncValidOpaque(draft.EngineDraftKey, MaxEngineOpaqueIDBytes) {
+		return mailboxEntDraftRowConflictStageEngineKey
+	}
+	if draft.Revision < 1 {
+		return mailboxEntDraftRowConflictStageRevision
+	}
+	if !mailboxEntDraftReadHashValid(draft.CreateIdempotencyKeyHash) || !mailboxEntDraftReadHashValid(draft.CreateRequestHash) {
+		return mailboxEntDraftRowConflictStageHashes
+	}
+	if !mailboxEntValidTime(draft.UpdatedAt) {
+		return mailboxEntDraftRowConflictStageUpdatedAt
+	}
+	if !mailboxEntDraftReadUUIDPointerValid(draft.ReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.ForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingFromIdentityID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingReplyToMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.PendingForwardMessageID) || !mailboxEntDraftReadUUIDPointerValid(draft.LastMutationID) || !mailboxEntDraftReadUUIDPointerValid(draft.ConfirmedMutationID) {
+		return mailboxEntDraftRowConflictStageUUIDPointers
+	}
+	if !mailboxEntNullableBytesAbsent(draft.PendingSaveRequestHash) && !mailboxEntDraftReadHashValid(*draft.PendingSaveRequestHash) {
+		return mailboxEntDraftRowConflictStageHashes
 	}
 	if !mailboxEntDraftReadTimePointerValid(draft.PendingCreateUploadRetryAt) || !mailboxEntDraftReadTimePointerValid(draft.PendingCreateUploadExhaustedAt) || !mailboxEntDraftReadTimePointerValid(draft.AbandonedAt) || !mailboxEntDraftReadUUIDPointerValid(draft.AbandonedMutationID) {
-		return false
+		return mailboxEntDraftRowConflictStageRecoveryTimes
 	}
 	pairPresent, pairValid := mailboxEntDraftReadEnginePairValid(draft.EngineMessageID, draft.EngineVersion)
 	if !pairValid {
-		return false
+		return mailboxEntDraftRowConflictStageEnginePair
 	}
 	pendingKind, pendingKindValid := mailboxEntDraftReadPendingKind(draft.PendingMutationKind)
 	pendingCreateAttachmentPhase, pendingCreateAttachmentPhaseValid := mailboxEntDraftReadCreateAttachmentPhase(draft.PendingCreateAttachmentPhase)
 	if !pendingKindValid || !pendingCreateAttachmentPhaseValid || !validMailboxDraftPendingCreateUploadHandoff(pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes) || draft.ConfirmedMutationID != nil && (!pairPresent || draft.LastMutationID != nil && *draft.ConfirmedMutationID == *draft.LastMutationID) {
-		return false
+		return mailboxEntDraftRowConflictStagePendingShape
 	}
 	var pendingSaveRequestHash []byte
-	if draft.PendingSaveRequestHash != nil {
-		pendingSaveRequestHash = *draft.PendingSaveRequestHash
+	if !mailboxEntNullableBytesAbsent(draft.PendingSaveRequestHash) {
+		pendingSaveRequestHash = append([]byte(nil), (*draft.PendingSaveRequestHash)...)
 	}
-	return mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes, draft.PendingCreateUploadAttempt, draft.PendingCreateUploadRetryAt, draft.PendingCreateUploadExhaustedAt, draft.AbandonedAt, draft.AbandonedMutationID, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, pendingSaveRequestHash)
+	if !mailboxEntDraftReadStateScalarValid(MailboxDraftStatus(draft.Status), pairPresent, draft.LastMutationID, pendingKind, pendingCreateAttachmentPhase, draft.PendingCreateUploadBlobID, draft.PendingCreateUploadSizeBytes, draft.PendingCreateUploadAttempt, draft.PendingCreateUploadRetryAt, draft.PendingCreateUploadExhaustedAt, draft.AbandonedAt, draft.AbandonedMutationID, draft.PendingFromIdentityID, draft.PendingReplyToMessageID, draft.PendingForwardMessageID, pendingSaveRequestHash) {
+		return mailboxEntDraftRowConflictStageScalarState
+	}
+	return ""
 }
 
 func mailboxEntDraftReadEnginePairValid(messageID, version *string) (bool, bool) {
@@ -339,7 +379,7 @@ func mailboxEntDraftReadRecord(draft *ent.MailDraft, attachments mailboxEntDraft
 		return MailboxDraftRecord{}, false
 	}
 	if pendingKind != nil && *pendingKind == MailboxDraftMutationSave {
-		if draft.PendingFromIdentityID == nil || draft.PendingSaveRequestHash == nil || len(*draft.PendingSaveRequestHash) != 32 {
+		if draft.PendingFromIdentityID == nil || mailboxEntNullableBytesAbsent(draft.PendingSaveRequestHash) || len(*draft.PendingSaveRequestHash) != 32 {
 			return MailboxDraftRecord{}, false
 		}
 	} else if len(attachments.PendingAttachmentIDs) != 0 {

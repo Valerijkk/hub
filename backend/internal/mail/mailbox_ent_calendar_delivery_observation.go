@@ -185,6 +185,10 @@ func mailboxEntCASCalendarInviteDeliveryObservation(ctx context.Context, transac
 		*delivery.MailSubmissionID != submission.ID || delivery.NextAttemptAt == nil || delivery.NextAttemptAt.After(databaseNow) {
 		return 0, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
+	recurrenceIDPredicate := calendarinvitedelivery.RecurrenceIDIsNil()
+	if delivery.RecurrenceID != nil {
+		recurrenceIDPredicate = calendarinvitedelivery.RecurrenceIDEQ(*delivery.RecurrenceID)
+	}
 	switch observation.kind {
 	case mailboxEntCalendarDeliveryObservationReschedule:
 		nextAttemptAt, ok := mailboxEntCheckedTimeAdd(databaseNow, mailboxEntCalendarDeliveryObservationDelay)
@@ -199,7 +203,7 @@ func mailboxEntCASCalendarInviteDeliveryObservation(ctx context.Context, transac
 				calendarinvitedelivery.CalendarAttendeeIDEQ(delivery.CalendarAttendeeID),
 				calendarinvitedelivery.KindEQ(delivery.Kind),
 				calendarinvitedelivery.EventSequenceEQ(delivery.EventSequence),
-				calendarinvitedelivery.RecurrenceIDIsNil(),
+				recurrenceIDPredicate,
 				calendarinvitedelivery.StateEQ(calendarinvitedelivery.State(CalendarMailDeliveryStateUnknown)),
 				calendarinvitedelivery.MailSubmissionIDEQ(submission.ID),
 				calendarinvitedelivery.AttemptsEQ(delivery.Attempts),
@@ -229,7 +233,7 @@ func mailboxEntCASCalendarInviteDeliveryObservation(ctx context.Context, transac
 				calendarinvitedelivery.CalendarAttendeeIDEQ(delivery.CalendarAttendeeID),
 				calendarinvitedelivery.KindEQ(delivery.Kind),
 				calendarinvitedelivery.EventSequenceEQ(delivery.EventSequence),
-				calendarinvitedelivery.RecurrenceIDIsNil(),
+				recurrenceIDPredicate,
 				calendarinvitedelivery.StateEQ(calendarinvitedelivery.State(CalendarMailDeliveryStateUnknown)),
 				calendarinvitedelivery.MailSubmissionIDEQ(submission.ID),
 				calendarinvitedelivery.AttemptsEQ(delivery.Attempts),
@@ -263,7 +267,7 @@ func mailboxEntCASCalendarInviteDeliveryObservation(ctx context.Context, transac
 				calendarinvitedelivery.CalendarAttendeeIDEQ(delivery.CalendarAttendeeID),
 				calendarinvitedelivery.KindEQ(delivery.Kind),
 				calendarinvitedelivery.EventSequenceEQ(delivery.EventSequence),
-				calendarinvitedelivery.RecurrenceIDIsNil(),
+				recurrenceIDPredicate,
 				calendarinvitedelivery.StateEQ(calendarinvitedelivery.State(CalendarMailDeliveryStateUnknown)),
 				calendarinvitedelivery.MailSubmissionIDEQ(submission.ID),
 				calendarinvitedelivery.AttemptsEQ(delivery.Attempts),
@@ -296,6 +300,10 @@ func mailboxEntCASCalendarReplyDeliveryObservation(ctx context.Context, transact
 		*delivery.MailSubmissionID != submission.ID || delivery.NextAttemptAt == nil || delivery.NextAttemptAt.After(databaseNow) {
 		return 0, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
+	recurrenceIDPredicate := calendarreplydelivery.RecurrenceIDIsNil()
+	if delivery.RecurrenceID != nil {
+		recurrenceIDPredicate = calendarreplydelivery.RecurrenceIDEQ(*delivery.RecurrenceID)
+	}
 	switch observation.kind {
 	case mailboxEntCalendarDeliveryObservationReschedule:
 		nextAttemptAt, ok := mailboxEntCheckedTimeAdd(databaseNow, mailboxEntCalendarDeliveryObservationDelay)
@@ -310,7 +318,7 @@ func mailboxEntCASCalendarReplyDeliveryObservation(ctx context.Context, transact
 				calendarreplydelivery.CalendarAttendeeIDEQ(delivery.CalendarAttendeeID),
 				calendarreplydelivery.EventSequenceEQ(delivery.EventSequence),
 				calendarreplydelivery.AttendeeVersionEQ(delivery.AttendeeVersion),
-				calendarreplydelivery.RecurrenceIDIsNil(),
+				recurrenceIDPredicate,
 				calendarreplydelivery.StateEQ(calendarreplydelivery.State(CalendarMailDeliveryStateUnknown)),
 				calendarreplydelivery.MailSubmissionIDEQ(submission.ID),
 				calendarreplydelivery.AttemptsEQ(delivery.Attempts),
@@ -339,7 +347,7 @@ func mailboxEntCASCalendarReplyDeliveryObservation(ctx context.Context, transact
 				calendarreplydelivery.CalendarAttendeeIDEQ(delivery.CalendarAttendeeID),
 				calendarreplydelivery.EventSequenceEQ(delivery.EventSequence),
 				calendarreplydelivery.AttendeeVersionEQ(delivery.AttendeeVersion),
-				calendarreplydelivery.RecurrenceIDIsNil(),
+				recurrenceIDPredicate,
 				calendarreplydelivery.StateEQ(calendarreplydelivery.State(CalendarMailDeliveryStateUnknown)),
 				calendarreplydelivery.MailSubmissionIDEQ(submission.ID),
 				calendarreplydelivery.AttemptsEQ(delivery.Attempts),
@@ -371,7 +379,7 @@ func mailboxEntCASCalendarReplyDeliveryObservation(ctx context.Context, transact
 				calendarreplydelivery.CalendarAttendeeIDEQ(delivery.CalendarAttendeeID),
 				calendarreplydelivery.EventSequenceEQ(delivery.EventSequence),
 				calendarreplydelivery.AttendeeVersionEQ(delivery.AttendeeVersion),
-				calendarreplydelivery.RecurrenceIDIsNil(),
+				recurrenceIDPredicate,
 				calendarreplydelivery.StateEQ(calendarreplydelivery.State(CalendarMailDeliveryStateUnknown)),
 				calendarreplydelivery.MailSubmissionIDEQ(submission.ID),
 				calendarreplydelivery.AttemptsEQ(delivery.Attempts),

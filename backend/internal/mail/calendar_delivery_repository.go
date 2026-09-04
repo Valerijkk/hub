@@ -433,7 +433,7 @@ func validCalendarMailDeliveryState(value CalendarMailDeliveryState) bool {
 }
 
 func validCalendarMailDeliveryLeaseUntil(value time.Time) bool {
-	return !value.IsZero() && value.Location() == time.UTC
+	return mailboxEntValidTime(value)
 }
 
 func validCalendarMailDeliveryPreBindResolveCode(value CalendarMailDeliveryResolveCode) bool {
@@ -485,7 +485,7 @@ func validCalendarInviteDeliveryAdmission(value CalendarInviteDeliveryAdmission)
 	}
 	switch value.Kind {
 	case CalendarInviteDeliveryKindCreated, CalendarInviteDeliveryKindUpdated:
-		return value.Method == CalendarMailDeliveryMethodRequest
+		return value.Method == CalendarMailDeliveryMethodRequest && value.RecurrenceID == ""
 	case CalendarInviteDeliveryKindCancelled:
 		return value.Method == CalendarMailDeliveryMethodCancel
 	default:
@@ -588,12 +588,25 @@ func validCalendarMailDeliveryMaterializationInput(input CalendarMailDeliveryMat
 		identity.Sequence != input.eventSequence || identity.RecurrenceID != input.recurrenceID {
 		return false
 	}
-	if input.kind == CalendarMailDeliveryKindInvite {
-		return input.organizerID != uuid.Nil && (input.method == CalendarMailDeliveryMethodRequest || input.method == CalendarMailDeliveryMethodCancel) &&
-			input.eventSequence >= 0 && input.attendeeVersion == 0
+	switch input.kind {
+	case CalendarMailDeliveryKindInvite:
+		if input.organizerID == uuid.Nil || input.eventSequence < 0 || input.attendeeVersion != 0 {
+			return false
+		}
+		switch input.method {
+		case CalendarMailDeliveryMethodRequest:
+			return input.recurrenceID == ""
+		case CalendarMailDeliveryMethodCancel:
+			return true
+		default:
+			return false
+		}
+	case CalendarMailDeliveryKindReply:
+		return input.organizerID == uuid.Nil && input.method == CalendarMailDeliveryMethodReply &&
+			input.eventSequence >= 0 && input.attendeeVersion >= 1 && len(message.Attendees) == 1
+	default:
+		return false
 	}
-	return input.kind == CalendarMailDeliveryKindReply && input.organizerID == uuid.Nil && input.method == CalendarMailDeliveryMethodReply &&
-		input.eventSequence >= 0 && input.attendeeVersion >= 1 && len(message.Attendees) == 1
 }
 
 func calendarMailDeliveryMethodFromITIP(value ical.ITIPMethod) CalendarMailDeliveryMethod {

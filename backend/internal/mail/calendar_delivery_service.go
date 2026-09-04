@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"reflect"
 	"sync"
 	"time"
@@ -11,13 +12,26 @@ import (
 	"github.com/google/uuid"
 )
 
+type calendarMailDeliveryFailureStage string
+
+const (
+	calendarMailDeliveryFailureStageClaim            calendarMailDeliveryFailureStage = "claim"
+	calendarMailDeliveryFailureStageContext          calendarMailDeliveryFailureStage = "context"
+	calendarMailDeliveryFailureStageMaterialize      calendarMailDeliveryFailureStage = "materialize"
+	calendarMailDeliveryFailureStageDraftInput       calendarMailDeliveryFailureStage = "draft_input"
+	calendarMailDeliveryFailureStageDraftCreate      calendarMailDeliveryFailureStage = "draft_create"
+	calendarMailDeliveryFailureStageSubmissionCreate calendarMailDeliveryFailureStage = "submission_create"
+	calendarMailDeliveryFailureStageBind             calendarMailDeliveryFailureStage = "bind"
+	calendarMailDeliveryFailureStageResolve          calendarMailDeliveryFailureStage = "resolve"
+)
+
 const (
 	calendarMailDeliveryDraftKeyPrefix      = "hub.calendar.delivery.draft.v1/"
 	calendarMailDeliverySubmissionKeyPrefix = "hub.calendar.delivery.submission.v1/"
 	calendarMailDeliveryMaximumScanInterval = 5 * time.Minute
 	calendarMailDeliveryMinimumScanInterval = time.Second
 	calendarMailDeliveryMaximumSubjectBytes = 998
-	calendarMailDeliveryResolveTimeout       = 5 * time.Second
+	calendarMailDeliveryResolveTimeout      = 5 * time.Second
 	calendarMailDeliveryLeaseSafetyMargin   = time.Second
 )
 
@@ -90,10 +104,10 @@ type CalendarMailDeliveryRunResult struct {
 type CalendarMailDeliveryServiceErrorKind string
 
 const (
-	CalendarMailDeliveryServiceErrorInvalid  CalendarMailDeliveryServiceErrorKind = "invalid"
-	CalendarMailDeliveryServiceErrorTooLarge CalendarMailDeliveryServiceErrorKind = "too_large"
+	CalendarMailDeliveryServiceErrorInvalid     CalendarMailDeliveryServiceErrorKind = "invalid"
+	CalendarMailDeliveryServiceErrorTooLarge    CalendarMailDeliveryServiceErrorKind = "too_large"
 	CalendarMailDeliveryServiceErrorUnavailable CalendarMailDeliveryServiceErrorKind = "unavailable"
-	CalendarMailDeliveryServiceErrorPartial   CalendarMailDeliveryServiceErrorKind = "partial"
+	CalendarMailDeliveryServiceErrorPartial     CalendarMailDeliveryServiceErrorKind = "partial"
 )
 
 const calendarMailDeliveryServiceErrorText = "calendar mail delivery service error"
@@ -120,12 +134,12 @@ func (err *CalendarMailDeliveryServiceError) Kind() CalendarMailDeliveryServiceE
 // only ordinary draft and submission services. It has no direct engine,
 // transport, or external capability.
 type CalendarMailDeliveryService struct {
-	repository  CalendarMailDeliveryRepository
-	drafts      CalendarMailDeliveryDraftCreator
-	submissions CalendarMailDeliverySubmissionCreator
+	repository   CalendarMailDeliveryRepository
+	drafts       CalendarMailDeliveryDraftCreator
+	submissions  CalendarMailDeliverySubmissionCreator
 	materializer CalendarMailMaterializer
-	timer       CalendarMailDeliveryTimer
-	options     CalendarMailDeliveryServiceOptions
+	timer        CalendarMailDeliveryTimer
+	options      CalendarMailDeliveryServiceOptions
 
 	guard   sync.Mutex
 	running bool
@@ -248,9 +262,11 @@ func (service *CalendarMailDeliveryService) runOnce(ctx context.Context) (Calend
 		return CalendarMailDeliveryRunResult{}, nil
 	}
 	if err != nil {
+		slog.Warn("calendar mail delivery scan failed", "stage", "repository")
 		return CalendarMailDeliveryRunResult{}, newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorUnavailable)
 	}
 	if !validCalendarMailDeliveryDueScanResult(CalendarMailDeliveryDueScanRequest{Limit: service.options.BatchSize}, scan) {
+		slog.Warn("calendar mail delivery scan failed", "stage", "result_validation")
 		return CalendarMailDeliveryRunResult{}, newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
 	}
 
@@ -271,7 +287,14 @@ func (service *CalendarMailDeliveryService) runOnce(ctx context.Context) (Calend
 	return result, nil
 }
 
-func (service *CalendarMailDeliveryService) deliver(ctx context.Context, deliveryID CalendarMailDeliveryID) error {
+func (service *CalendarMailDeliveryService) deliver(ctx context.Context, deliveryID CalendarMailDeliveryID) (resultErr error) {
+	stage := calendarMailDeliveryFailureStageClaim
+	defer func() {
+		if resultErr != nil {
+			slog.Warn("calendar mail delivery failed", "stage", string(stage))
+		}
+	}()
+
 	claimResult, err := service.safeClaim(ctx, deliveryID)
 	if err != nil {
 		return calendarMailDeliveryRepositoryServiceError(err)
@@ -291,46 +314,63 @@ func (service *CalendarMailDeliveryService) deliver(ctx context.Context, deliver
 	if !claimed {
 		return newCalendarMailDeliveryServiceError(CalendarMailDeliveryServiceErrorInvalid)
 	}
+	stage = calendarMailDeliveryFailureStageContext
 	if ctx.Err() != nil {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeMailboxUnavailable)
 	}
 	deliveryContext, cancel, valid := calendarMailDeliveryExternalContext(ctx, claim.leaseUntil)
 	if !valid {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeMailboxUnavailable)
 	}
 	defer cancel()
 	if deliveryContext.Err() != nil {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeMailboxUnavailable)
 	}
 
+	stage = calendarMailDeliveryFailureStageMaterialize
 	materialized, materializeErr := service.safeMaterialize(claim.materialization)
 	if materializeErr != nil || !validCalendarMailMaterialization(materialized) {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeInternal)
 	}
+	stage = calendarMailDeliveryFailureStageContext
 	if deliveryContext.Err() != nil {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeMailboxUnavailable)
 	}
 
+	stage = calendarMailDeliveryFailureStageDraftInput
 	draftInput, draftInputErr := calendarMailDeliveryDraftCreateInput(claim, materialized)
 	if draftInputErr != nil {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeInvalid)
 	}
+	stage = calendarMailDeliveryFailureStageDraftCreate
 	draft, draftErr := service.safeCreateMailboxDraft(deliveryContext, claim.SenderActorID(), draftInput)
 	if draftErr != nil {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, calendarMailDeliveryDraftResolveCode(draftErr))
 	}
 	if !validCalendarMailDeliveryDraftView(draft, claim.deliveryID) {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeInternal)
 	}
+	stage = calendarMailDeliveryFailureStageContext
 	if deliveryContext.Err() != nil {
+		stage = calendarMailDeliveryFailureStageResolve
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeMailboxUnavailable)
 	}
 
+	stage = calendarMailDeliveryFailureStageSubmissionCreate
 	submission, submissionErr := service.safeCreateMailboxSubmission(deliveryContext, claim.SenderActorID(), draft.ID, MailboxSubmissionCreateInput{
 		ExpectedRevision: draft.Revision,
 		IdempotencyKey:   calendarMailDeliverySubmissionKey(claim.deliveryID),
 	})
 	if submission.ID == uuid.Nil {
+		stage = calendarMailDeliveryFailureStageResolve
 		if submissionErr != nil {
 			// No submission ID crossed the durable boundary. The stable key permits
 			// repository-owned transient retry while this unbound claim is released.
@@ -339,6 +379,7 @@ func (service *CalendarMailDeliveryService) deliver(ctx context.Context, deliver
 		return service.resolve(ctx, claim, CalendarMailDeliveryResolveCodeInternal)
 	}
 
+	stage = calendarMailDeliveryFailureStageBind
 	bindResult, bindErr := service.safeBind(ctx, CalendarMailDeliverySubmissionBindRequest{Claim: claim, SubmissionID: submission.ID})
 	if bindErr != nil {
 		// The submission ID exists, but bind may have committed. Do not resolve an
@@ -536,6 +577,7 @@ func calendarMailDeliveryDraftCreateInput(
 			To:             []EngineAddress{claim.recipient},
 			Subject:        materialized.subject,
 			Content:        materialized.content,
+			Priority:       EnginePriorityNormal,
 		},
 		IdempotencyKey: calendarMailDeliveryDraftKey(claim.deliveryID),
 		calendar:       &part,
@@ -594,7 +636,7 @@ func calendarMailDeliveryDraftResolveCode(err error) CalendarMailDeliveryResolve
 	switch draftError.Kind() {
 	case MailboxDraftServiceErrorUnavailable, MailboxDraftServiceErrorBusy, MailboxDraftServiceErrorOutcomeUnknown, MailboxDraftServiceErrorReconciliationRequired:
 		return CalendarMailDeliveryResolveCodeMailboxUnavailable
-	case MailboxDraftServiceErrorInvalid:
+	case MailboxDraftServiceErrorInvalid, MailboxDraftServiceErrorUnprocessable:
 		return CalendarMailDeliveryResolveCodeInvalid
 	default:
 		return CalendarMailDeliveryResolveCodeRejected

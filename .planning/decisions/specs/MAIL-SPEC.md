@@ -980,6 +980,12 @@ address or alias equality alone cannot classify a message as confirmed owner pro
 `from` stores exactly one normalized Address object. `to`, `cc`, `bcc` and `reply_to` are
 required concrete arrays (empty when absent), each independently bounded at 200 addresses.
 
+Development demo restart recovery is non-product and does not make durable stale message copies
+canonical. It may requeue only the fully proved `CalendarInviteDelivery` and remove its exact
+stale `MailSubmission`, submitted `MailDraft`, sent provider projection, recipient inbound
+projection, and inbound receipt. Normal provider/outbound and inbound projection paths recreate
+metadata; the linked Calendar event and inbound object-state ordering record are preserved.
+
 ### 3.5.1 MailMessageFolder
 
 `mail_message_id`, `mail_folder_id`, `engine_state`, required int64 `last_seen_sync_epoch`
@@ -2231,7 +2237,7 @@ Endpoint groups frozen for v1:
 | Canonical calendar | `GET/POST /calendar/v2/events`, `GET/PATCH/DELETE /calendar/v2/events/{id}`, `DELETE /calendar/v2/events/{id}/instances/{recurrenceId}`, v2 RSVP series/occurrence and v2 availability |
 | Existing scheduled calls | POST create requires `Idempotency-Key`; list keeps its envelope and accepts paired `from/to` for additive canonical `occurrences`; update/delete/conflict keep compatible success shapes; every writer delegates to the bridge and new meeting conflict UX uses v2 availability |
 | CRM mail seam | `GET /crm/deals/{dealId}/mail-compose-context`, `GET /crm/deals/{dealId}/mail-activities`, idempotent `PUT` and audited `DELETE /crm/deals/{dealId}/mail-activities/{messageId}` |
-| Existing Resend admin | `GET/PUT /admin/mail/settings` retains the flat `hub_mail_url/from_alerts/alerts_enabled/daily_limit/resend_ready` response contract; deprecated `POST /admin/mail/broadcast` is documented as a current ADR-NOTIF-01 governance gap, not new scope |
+| Existing Resend admin | `GET/PUT /admin/mail/settings` retains the flat `hub_mail_url/from_alerts/alerts_enabled/daily_limit/resend_ready` response contract; former `POST /admin/mail/broadcast`, its request/response schemas, backend service and frontend UI are removed and not registered |
 | Mailbox admin | `GET/PUT /admin/mail/mailbox-settings`, domain CRUD, per-user alias list/create/delete, `GET /admin/mail/health`; all require admin RBAC and an audit action |
 
 ## 6. Event envelope and compatibility

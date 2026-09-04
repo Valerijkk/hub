@@ -45,10 +45,9 @@ func (handler *MailDomainControlHandler) RegisterRoutes(api fiber.Router, authMi
 	if handler == nil || mailboxHTTPDependencyNil(handler.service) || handler.isAdmin == nil || mailboxHTTPDependencyNil(api) || authMiddleware == nil {
 		return mailDomainControlError(MailDomainControlErrorInvalid)
 	}
-	routes := api.Group("/admin/mail", authMiddleware)
-	routes.Get("/domains", handler.list, handler.preflightList, handler.requireAdmin())
-	routes.Post("/domains", handler.create, handler.preflightCreate, handler.requireAdmin())
-	routes.Put("/domains/:id/default", handler.setDefault, handler.preflightSetDefault, handler.requireAdmin())
+	api.Get("/admin/mail/domains", authMiddleware, handler.preflightList, handler.requireAdmin(), handler.list)
+	api.Post("/admin/mail/domains", authMiddleware, handler.preflightCreate, handler.requireAdmin(), handler.create)
+	api.Put("/admin/mail/domains/:id/default", authMiddleware, handler.preflightSetDefault, handler.requireAdmin(), handler.setDefault)
 	return nil
 }
 

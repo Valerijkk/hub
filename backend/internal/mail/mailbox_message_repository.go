@@ -432,10 +432,11 @@ func mailboxMessageDetailCopy(detail MailboxMessageDetail) MailboxMessageDetail 
 	detail.CalendarMethod = copyMailCalendarMethod(detail.CalendarMethod)
 	detail.CalendarEventID = mailboxFolderProjectionUUIDPointer(detail.CalendarEventID)
 	detail.SanitizedHTML = mailboxFolderProjectionStringPointer(detail.SanitizedHTML)
-	detail.Attachments = make([]MailboxMessageAttachment, len(detail.Attachments))
+	attachments := make([]MailboxMessageAttachment, len(detail.Attachments))
 	for index, attachment := range detail.Attachments {
-		detail.Attachments[index] = mailboxMessageAttachmentCopy(attachment)
+		attachments[index] = mailboxMessageAttachmentCopy(attachment)
 	}
+	detail.Attachments = attachments
 	detail.Calendar = nil
 	return detail
 }

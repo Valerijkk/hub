@@ -40,6 +40,9 @@ import (
 // @Failure 500 {object} map[string]string "Ошибка сидирования"
 // @Router /dev/seed [post]
 func (h *Handler) Seed(c fiber.Ctx) error {
+	h.seedMu.Lock()
+	defer h.seedMu.Unlock()
+
 	ctx := c.Context()
 
 	// Создать или найти пользователей

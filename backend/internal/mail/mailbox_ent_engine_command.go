@@ -60,21 +60,30 @@ func (repository *MailboxEntRepository) BeginEngineCommand(ctx context.Context, 
 			(account.MutationLeaseUntil != nil && !mailboxEntValidTime(*account.MutationLeaseUntil)) {
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
 		}
-		_, hasSyncLease, syncLeaseValid := mailboxEntSyncLeaseFence(account)
+		persistedFence, hasSyncLease, syncLeaseValid := mailboxEntSyncLeaseFence(account)
 		if !syncLeaseValid {
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
 		}
-
-		var busyUntil *time.Time
 		if account.MutationLeaseUntil != nil && account.MutationLeaseUntil.After(databaseWallClock) {
-			busyUntil = mailboxEntEngineCommandTimeCopy(*account.MutationLeaseUntil)
-		}
-		if hasSyncLease && account.SyncLeaseUntil.After(databaseWallClock) && (busyUntil == nil || account.SyncLeaseUntil.Before(*busyUntil)) {
-			busyUntil = mailboxEntEngineCommandTimeCopy(*account.SyncLeaseUntil)
-		}
-		if busyUntil != nil {
-			result = MailboxEngineCommandBeginResult{BusyUntil: busyUntil}
+			result = MailboxEngineCommandBeginResult{
+				BusyUntil: mailboxEntEngineCommandTimeCopy(*account.MutationLeaseUntil),
+			}
 			return nil
+		}
+
+		syncLeaseActive := hasSyncLease && account.SyncLeaseUntil.After(databaseWallClock)
+		syncLeaseProofComplete := false
+		if syncLeaseActive {
+			_, syncLeaseProofComplete, err = mailboxEntSyncApplyProofFromAccount(account, persistedFence)
+			if err != nil {
+				return mailboxEntDraftRepositoryError(err)
+			}
+			if !syncLeaseProofComplete {
+				result = MailboxEngineCommandBeginResult{
+					BusyUntil: mailboxEntEngineCommandTimeCopy(*account.SyncLeaseUntil),
+				}
+				return nil
+			}
 		}
 
 		leaseID := uuid.New()
@@ -91,12 +100,15 @@ func (repository *MailboxEntRepository) BeginEngineCommand(ctx context.Context, 
 		if !mailboxEntEngineCommandFenceValid(fence) {
 			return NewMailboxDraftRepositoryError(MailboxDraftRepositoryErrorInvalid)
 		}
-		if err := account.Update().
-			SetMutationLeaseToken(leaseID).
-			SetMutationLeaseUntil(leaseUntil).
-			SetMutationEpoch(nextMutationEpoch).
-			SetSyncScheduleUpdatedAt(databaseWallClock).
-			Exec(ctx); err != nil {
+		if err := mailboxEntClaimEngineCommand(
+			ctx,
+			account,
+			leaseID,
+			leaseUntil,
+			nextMutationEpoch,
+			databaseWallClock,
+			syncLeaseActive && syncLeaseProofComplete,
+		); err != nil {
 			return mailboxEntDraftRepositoryError(mailboxEntSafeError(err))
 		}
 
@@ -111,6 +123,30 @@ func (repository *MailboxEntRepository) BeginEngineCommand(ctx context.Context, 
 		return MailboxEngineCommandBeginResult{}, mailboxEntDraftRepositoryError(err)
 	}
 	return result, nil
+}
+
+func mailboxEntClaimEngineCommand(ctx context.Context, account *ent.MailAccount, leaseID uuid.UUID, leaseUntil time.Time, mutationEpoch int64, updatedAt time.Time, consumeSyncLease bool) error {
+	update := account.Update().
+		SetMutationLeaseToken(leaseID).
+		SetMutationLeaseUntil(leaseUntil).
+		SetMutationEpoch(mutationEpoch).
+		SetSyncScheduleUpdatedAt(updatedAt)
+	if consumeSyncLease {
+		update.ClearSyncLeaseToken().
+			ClearSyncLeaseUntil().
+			ClearSyncLeaseSyncEpoch().
+			ClearSyncLeaseMutationEpoch().
+			ClearSyncLeasePhase().
+			ClearSyncLeaseCursor().
+			ClearSyncLeaseBaseCursor().
+			ClearSyncLeaseCheckpoint().
+			ClearSyncLeaseResultHashVersion().
+			ClearSyncLeaseResultHash().
+			ClearSyncLeaseAppliedPhase().
+			ClearSyncLeaseAppliedNextAt().
+			ClearSyncLeaseAppliedAt()
+	}
+	return update.Exec(ctx)
 }
 
 func mailboxEntEngineCommandFenceValid(fence MailboxEngineCommandFence) bool {

@@ -16,6 +16,8 @@
 package dev
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/valerii/hub/backend/ent"
@@ -35,5 +37,10 @@ func NewHandler(_ *ent.Client, _ *auth.AuthService, _ MailCalendarDemoSeeder) *H
 // RegisterRoutes — no-op в release-сборках. /api/dev/* просто
 // не существует.
 func (h *Handler) RegisterRoutes(_ fiber.Router, _ bool) {
+	// без действий
+}
+
+// StartAutoSeed is a release-build no-op because dev endpoints are absent.
+func (h *Handler) StartAutoSeed(_ context.Context, _ int, _ bool) {
 	// без действий
 }

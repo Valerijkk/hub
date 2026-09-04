@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"reflect"
 	"sync"
 	"time"
@@ -131,6 +132,7 @@ type devMailDemoAdapter struct {
 	engine         *mailmod.FakeMailEngine
 	mailboxSvc     *mailmod.MailboxService
 	mailboxRepo    *mailmod.MailboxEntRepository
+	messageSvc     *mailmod.MailboxMessageService
 	eventReadSvc   *calendarmod.EventReadService
 	startRuntime   func() error
 	projectionSvc  *mailmod.MailboxFolderProjectionService
@@ -160,11 +162,16 @@ func newDevMailDemoAdapter(
 	if err != nil || devMailDemoNil(projectionSvc) {
 		return nil, errDevMailDemoInvalid
 	}
+	messageSvc, err := mailmod.NewMailboxMessageService(mailboxSvc, mailboxRepo, engine, mailboxRepo)
+	if err != nil || devMailDemoNil(messageSvc) {
+		return nil, errDevMailDemoInvalid
+	}
 	return &devMailDemoAdapter{
 		client:        client,
 		engine:        engine,
 		mailboxSvc:    mailboxSvc,
 		mailboxRepo:   mailboxRepo,
+		messageSvc:    messageSvc,
 		eventReadSvc:  eventReadSvc,
 		startRuntime:  startRuntime,
 		projectionSvc: projectionSvc,
@@ -270,6 +277,9 @@ func (adapter *devMailDemoAdapter) ReconcileMailDemo(ctx context.Context, input 
 	if err := adapter.observe(ctx, *adapter.prepared, input.CalendarEvent.EventID); err != nil {
 		return devdemo.MailDemoResult{}, err
 	}
+	if err := adapter.recoverDevMailDemoBrandKitAttachment(ctx, *adapter.prepared); err != nil {
+		return devdemo.MailDemoResult{}, err
+	}
 	replayed := 0
 	if adapter.observedPMEventID == input.CalendarEvent.EventID {
 		replayed = 1
@@ -318,9 +328,138 @@ func (adapter *devMailDemoAdapter) recoverCalendarInviteBeforeObserve(ctx contex
 	}
 	var repositoryError *mailmod.CalendarMailDeliveryRepositoryError
 	if errors.As(err, &repositoryError) && repositoryError != nil && repositoryError.Kind() == mailmod.CalendarMailDeliveryRepositoryErrorConflict {
-		return nil
+		return adapter.recoverDevMailDemoSentCalendarInviteDelivery(ctx, prepared, event, attendeeID, eventSequence)
 	}
 	return errDevMailDemoUnavailable
+}
+
+// recoverDevMailDemoSentCalendarInviteDelivery permits a second, exact
+// dev-only recovery only after the first recovery proved this is not its
+// rejected-delivery shape. Both durable correlation paths and both owner-gated
+// message bodies must demonstrate the same restart loss before a sent delivery
+// can be requeued; mixed states never risk a duplicate PM invitation.
+func (adapter *devMailDemoAdapter) recoverDevMailDemoSentCalendarInviteDelivery(ctx context.Context, prepared devMailDemoPrepared, pmEvent calendarmod.CalendarEventDetail, attendeeID uuid.UUID, eventSequence int) error {
+	pmOwner, err := adapter.observeOwner(ctx, prepared, devMailSourcePMEmail, prepared.pmUserID)
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		if errors.Is(err, errDevMailDemoPending) {
+			return nil
+		}
+		return errDevMailDemoUnavailable
+	}
+	dev1Owner, err := adapter.observeOwner(ctx, prepared, devMailSourceDev1Email, prepared.dev1UserID)
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		if errors.Is(err, errDevMailDemoPending) {
+			return nil
+		}
+		return errDevMailDemoUnavailable
+	}
+	if pmOwner.accountID == dev1Owner.accountID {
+		return errDevMailDemoUnavailable
+	}
+	pmMessageID, err := adapter.observePMInvitation(ctx, prepared, pmOwner, pmEvent.ID)
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		if errors.Is(err, errDevMailDemoPending) {
+			return nil
+		}
+		return errDevMailDemoUnavailable
+	}
+	dev1EventID, dev1MessageID, err := adapter.observeDev1Invitation(ctx, prepared, dev1Owner, pmEvent)
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		if errors.Is(err, errDevMailDemoPending) {
+			return nil
+		}
+		return errDevMailDemoUnavailable
+	}
+	if pmMessageID == uuid.Nil || dev1EventID == uuid.Nil || dev1MessageID == uuid.Nil || pmMessageID == dev1MessageID || pmEvent.ID == dev1EventID {
+		return errDevMailDemoUnavailable
+	}
+	if err := adapter.observeInvitationSemantics(ctx, prepared, pmEvent, dev1EventID); err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		return errDevMailDemoUnavailable
+	}
+	pmUnavailable, err := adapter.devMailDemoCalendarInviteMessageUnavailable(ctx, pmOwner.userID, pmMessageID, pmEvent.ID)
+	if err != nil {
+		return err
+	}
+	dev1Unavailable, err := adapter.devMailDemoCalendarInviteMessageUnavailable(ctx, dev1Owner.userID, dev1MessageID, dev1EventID)
+	if err != nil {
+		return err
+	}
+	if !pmUnavailable && !dev1Unavailable {
+		return nil
+	}
+	if !pmUnavailable || !dev1Unavailable {
+		return errDevMailDemoUnavailable
+	}
+	result, err := adapter.mailboxRepo.RecoverDevDemoCalendarInviteSentDelivery(ctx, mailmod.DevDemoCalendarInviteSentRecoveryRequest{
+		OrganizationID:     prepared.organizationID,
+		EventID:            pmEvent.ID,
+		AttendeeID:         attendeeID,
+		OrganizerID:        prepared.pmUserID,
+		EventSequence:      eventSequence,
+		Kind:               mailmod.CalendarInviteDeliveryKindCreated,
+		RecurrenceID:       "",
+		RecipientUserID:    dev1Owner.userID,
+		RecipientAccountID: dev1Owner.accountID,
+		RecipientEventID:   dev1EventID,
+		RecipientMessageID: dev1MessageID,
+		ExpectedUID:        "hub-" + pmEvent.ID.String(),
+	})
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		slog.Warn("dev demo calendar invite sent-delivery recovery failed", "recovery_error", err)
+		return errDevMailDemoUnavailable
+	}
+	switch result.Outcome {
+	case mailmod.DevDemoCalendarInviteSentRecoveryOutcomeNoop, mailmod.DevDemoCalendarInviteSentRecoveryOutcomeRequeued:
+		return nil
+	default:
+		return errDevMailDemoUnavailable
+	}
+}
+
+// devMailDemoCalendarInviteMessageUnavailable classifies only the one
+// restart-loss signature eligible for sent-delivery recovery. Any other read
+// error, or a readable message that no longer satisfies the invitation
+// projection contract, fails closed.
+func (adapter *devMailDemoAdapter) devMailDemoCalendarInviteMessageUnavailable(ctx context.Context, actorID, messageID, eventID uuid.UUID) (bool, error) {
+	if ctx == nil || actorID == uuid.Nil || messageID == uuid.Nil || eventID == uuid.Nil {
+		return false, errDevMailDemoUnavailable
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	detail, err := adapter.messageSvc.GetMailboxMessage(ctx, actorID, messageID)
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return false, contextErr
+		}
+		var readError *mailmod.MailboxMessageReadError
+		if errors.As(err, &readError) && readError != nil && readError.Kind() == mailmod.MailboxMessageReadErrorUnavailable {
+			return true, nil
+		}
+		return false, errDevMailDemoUnavailable
+	}
+	if detail.ID != messageID || detail.ThreadID == uuid.Nil || detail.CalendarMethod == nil || *detail.CalendarMethod != mailmod.MailCalendarMethodRequest || detail.CalendarEventID == nil || *detail.CalendarEventID != eventID || detail.PlainBody == "" || detail.SanitizedHTML != nil || !detail.RemoteImagesBlocked || detail.IsDraft || detail.Subject == "" {
+		return false, errDevMailDemoUnavailable
+	}
+	return false, nil
 }
 
 // devMailDemoSeededInvitationAttendeeID admits only the immutable Calendar
@@ -424,7 +563,7 @@ func devMailDemoSourceResultEqual(left, right devMailSourceResult) bool {
 func (adapter *devMailDemoAdapter) ready() bool {
 	return adapter != nil && !devMailDemoNil(adapter.client) && !devMailDemoNil(adapter.engine) &&
 		!devMailDemoNil(adapter.mailboxSvc) && !devMailDemoNil(adapter.mailboxRepo) &&
-		!devMailDemoNil(adapter.eventReadSvc) && !devMailDemoNil(adapter.projectionSvc) &&
+		!devMailDemoNil(adapter.messageSvc) && !devMailDemoNil(adapter.eventReadSvc) && !devMailDemoNil(adapter.projectionSvc) &&
 		adapter.now != nil && adapter.startRuntime != nil
 }
 

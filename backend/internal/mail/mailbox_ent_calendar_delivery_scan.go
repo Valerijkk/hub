@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 	"time"
 
@@ -10,6 +11,23 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/calendarinvitedelivery"
 	"github.com/valerii/hub/backend/ent/calendarreplydelivery"
+)
+
+type calendarMailDeliveryScanStage string
+
+const (
+	calendarMailDeliveryScanStageSnapshotBegin        calendarMailDeliveryScanStage = "snapshot_begin"
+	calendarMailDeliveryScanStageWallClock            calendarMailDeliveryScanStage = "wall_clock"
+	calendarMailDeliveryScanStageInviteRetryQuery     calendarMailDeliveryScanStage = "invite_retry_query"
+	calendarMailDeliveryScanStageInviteRetryCandidate calendarMailDeliveryScanStage = "invite_retry_candidate"
+	calendarMailDeliveryScanStageInviteStaleQuery     calendarMailDeliveryScanStage = "invite_stale_query"
+	calendarMailDeliveryScanStageInviteStaleCandidate calendarMailDeliveryScanStage = "invite_stale_candidate"
+	calendarMailDeliveryScanStageReplyRetryQuery      calendarMailDeliveryScanStage = "reply_retry_query"
+	calendarMailDeliveryScanStageReplyRetryCandidate  calendarMailDeliveryScanStage = "reply_retry_candidate"
+	calendarMailDeliveryScanStageReplyStaleQuery      calendarMailDeliveryScanStage = "reply_stale_query"
+	calendarMailDeliveryScanStageReplyStaleCandidate  calendarMailDeliveryScanStage = "reply_stale_candidate"
+	calendarMailDeliveryScanStageSnapshotCommit       calendarMailDeliveryScanStage = "snapshot_commit"
+	calendarMailDeliveryScanStageResultValidation     calendarMailDeliveryScanStage = "result_validation"
 )
 
 // ScanDueCalendarMailDeliveries returns the next bounded, globally ordered
@@ -21,13 +39,16 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 		return CalendarMailDeliveryDueScanResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
 	}
 
+	stage := calendarMailDeliveryScanStageSnapshotBegin
 	candidates := make([]mailboxEntCalendarDueDelivery, 0, request.Limit)
 	err := repository.withMailboxEntReadSnapshot(ctx, func(transaction *ent.Tx) error {
+		stage = calendarMailDeliveryScanStageWallClock
 		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
 
+		stage = calendarMailDeliveryScanStageInviteRetryQuery
 		inviteRetryRows, err := transaction.CalendarInviteDelivery.Query().
 			Where(
 				calendarinvitedelivery.StateIn(calendarinvitedelivery.StatePending, calendarinvitedelivery.StateUnknown),
@@ -41,6 +62,7 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
 		for _, row := range inviteRetryRows {
+			stage = calendarMailDeliveryScanStageInviteRetryCandidate
 			candidate, err := mailboxEntCalendarRetryDueCandidate(CalendarMailDeliveryKindInvite, row.ID, CalendarMailDeliveryState(row.State), row.NextAttemptAt, databaseWallClock)
 			if err != nil {
 				return err
@@ -48,6 +70,7 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 			candidates = append(candidates, candidate)
 		}
 
+		stage = calendarMailDeliveryScanStageInviteStaleQuery
 		inviteStaleRows, err := transaction.CalendarInviteDelivery.Query().
 			Where(
 				calendarinvitedelivery.StateEQ(calendarinvitedelivery.StateSubmitting),
@@ -61,6 +84,7 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
 		for _, row := range inviteStaleRows {
+			stage = calendarMailDeliveryScanStageInviteStaleCandidate
 			candidate, err := mailboxEntCalendarSubmittingDueCandidate(CalendarMailDeliveryKindInvite, row.ID, CalendarMailDeliveryState(row.State), row.LeaseUntil, databaseWallClock)
 			if err != nil {
 				return err
@@ -68,6 +92,7 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 			candidates = append(candidates, candidate)
 		}
 
+		stage = calendarMailDeliveryScanStageReplyRetryQuery
 		replyRetryRows, err := transaction.CalendarReplyDelivery.Query().
 			Where(
 				calendarreplydelivery.StateIn(calendarreplydelivery.StatePending, calendarreplydelivery.StateUnknown),
@@ -81,6 +106,7 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
 		for _, row := range replyRetryRows {
+			stage = calendarMailDeliveryScanStageReplyRetryCandidate
 			candidate, err := mailboxEntCalendarRetryDueCandidate(CalendarMailDeliveryKindReply, row.ID, CalendarMailDeliveryState(row.State), row.NextAttemptAt, databaseWallClock)
 			if err != nil {
 				return err
@@ -88,6 +114,7 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 			candidates = append(candidates, candidate)
 		}
 
+		stage = calendarMailDeliveryScanStageReplyStaleQuery
 		replyStaleRows, err := transaction.CalendarReplyDelivery.Query().
 			Where(
 				calendarreplydelivery.StateEQ(calendarreplydelivery.StateSubmitting),
@@ -101,15 +128,18 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
 		for _, row := range replyStaleRows {
+			stage = calendarMailDeliveryScanStageReplyStaleCandidate
 			candidate, err := mailboxEntCalendarSubmittingDueCandidate(CalendarMailDeliveryKindReply, row.ID, CalendarMailDeliveryState(row.State), row.LeaseUntil, databaseWallClock)
 			if err != nil {
 				return err
 			}
 			candidates = append(candidates, candidate)
 		}
+		stage = calendarMailDeliveryScanStageSnapshotCommit
 		return nil
 	})
 	if err != nil {
+		slog.Warn("calendar mail delivery repository scan failed", "stage", string(stage))
 		return CalendarMailDeliveryDueScanResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
 
@@ -142,6 +172,8 @@ func (repository *MailboxEntRepository) ScanDueCalendarMailDeliveries(ctx contex
 		}
 	}
 	if !validCalendarMailDeliveryDueScanResult(request, result) {
+		stage = calendarMailDeliveryScanStageResultValidation
+		slog.Warn("calendar mail delivery repository scan failed", "stage", string(stage))
 		return CalendarMailDeliveryDueScanResult{}, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
 	return mailboxEntCalendarDueScanResultCopy(result), nil

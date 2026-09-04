@@ -321,16 +321,8 @@ func mailboxEntCalendarCorrelationAppendOutboundEvent(ctx context.Context, trans
 	if ctx == nil || transaction == nil || delivery == nil || candidates == nil || delivery.CalendarEventID == uuid.Nil || delivery.CalendarAttendeeID == uuid.Nil {
 		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 	}
-
-	attendee, err := transaction.CalendarAttendee.Query().
-		Where(
-			calendarattendee.IDEQ(delivery.CalendarAttendeeID),
-			calendarattendee.CalendarEventIDEQ(delivery.CalendarEventID),
-			calendarattendee.RemovedAtIsNil(),
-		).
-		Only(ctx)
-	if err != nil || attendee == nil || attendee.ID != delivery.CalendarAttendeeID || attendee.CalendarEventID != delivery.CalendarEventID || attendee.RemovedAt != nil || !mailboxEntCalendarCorrelationStringPointerEqual(attendee.RecurrenceID, delivery.RecurrenceID) {
-		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	if err := mailboxEntCalendarCorrelationDeliveryAttendeeValid(ctx, transaction, delivery); err != nil {
+		return err
 	}
 
 	var appended bool

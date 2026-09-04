@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"log/slog"
 
 	"github.com/google/uuid"
 )
@@ -33,6 +34,94 @@ type mailboxCalendarDeliveryDraftLocator interface {
 // boundary after a durable replay or successful Calendar import.
 type mailboxCalendarDeliveryDraftReader interface {
 	GetMailboxDraft(context.Context, uuid.UUID, uuid.UUID) (MailboxDraftView, error)
+}
+
+type mailboxCalendarDeliveryDraftLogStage string
+
+const (
+	mailboxCalendarDeliveryDraftLogStageReserve            mailboxCalendarDeliveryDraftLogStage = "reserve"
+	mailboxCalendarDeliveryDraftLogStageReplay             mailboxCalendarDeliveryDraftLogStage = "replay"
+	mailboxCalendarDeliveryDraftLogStageDispatchValidation mailboxCalendarDeliveryDraftLogStage = "dispatch-validation"
+	mailboxCalendarDeliveryDraftLogStageBaseBuild          mailboxCalendarDeliveryDraftLogStage = "base-build"
+	mailboxCalendarDeliveryDraftLogStageUpload             mailboxCalendarDeliveryDraftLogStage = "upload"
+	mailboxCalendarDeliveryDraftLogStageAdvance            mailboxCalendarDeliveryDraftLogStage = "advance"
+	mailboxCalendarDeliveryDraftLogStageImport             mailboxCalendarDeliveryDraftLogStage = "import"
+	mailboxCalendarDeliveryDraftLogStageApplied            mailboxCalendarDeliveryDraftLogStage = "applied"
+	mailboxCalendarDeliveryDraftLogStageFinish             mailboxCalendarDeliveryDraftLogStage = "finish"
+	mailboxCalendarDeliveryDraftLogStageGet                mailboxCalendarDeliveryDraftLogStage = "get"
+	mailboxCalendarDeliveryDraftLogStageMarkUnknown        mailboxCalendarDeliveryDraftLogStage = "mark-unknown"
+)
+
+type mailboxCalendarDeliveryDraftLogErrorKind string
+
+const (
+	mailboxCalendarDeliveryDraftLogErrorKindInvalid        mailboxCalendarDeliveryDraftLogErrorKind = "invalid"
+	mailboxCalendarDeliveryDraftLogErrorKindRepository     mailboxCalendarDeliveryDraftLogErrorKind = "repository"
+	mailboxCalendarDeliveryDraftLogErrorKindEngine         mailboxCalendarDeliveryDraftLogErrorKind = "engine"
+	mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown mailboxCalendarDeliveryDraftLogErrorKind = "outcome_unknown"
+	mailboxCalendarDeliveryDraftLogErrorKindUnavailable    mailboxCalendarDeliveryDraftLogErrorKind = "unavailable"
+)
+
+func mailboxCalendarDeliveryDraftLogServiceErrorKind(kind MailboxDraftServiceErrorKind) mailboxCalendarDeliveryDraftLogErrorKind {
+	switch kind {
+	case MailboxDraftServiceErrorUnavailable:
+		return mailboxCalendarDeliveryDraftLogErrorKindUnavailable
+	default:
+		return mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown
+	}
+}
+
+// MailboxDraftRepositoryErrorKindOf returns the closed repository error kind
+// only when the error chain contains the dedicated repository error type.
+func MailboxDraftRepositoryErrorKindOf(err error) (MailboxDraftRepositoryErrorKind, bool) {
+	var repositoryError *MailboxDraftRepositoryError
+	if !errors.As(err, &repositoryError) || repositoryError == nil {
+		return MailboxDraftRepositoryErrorInvalid, false
+	}
+	return repositoryError.Kind(), true
+}
+
+func mailboxCalendarDeliveryDraftLogFailure(
+	stage mailboxCalendarDeliveryDraftLogStage,
+	errorKind mailboxCalendarDeliveryDraftLogErrorKind,
+	reservation *MailboxDraftReservation,
+	fallbackStage mailboxDraftCalendarCreateUnknownStage,
+	repositoryErrors ...error,
+) {
+	attributes := []any{"stage", string(stage), "error_kind", string(errorKind)}
+	if len(repositoryErrors) == 1 {
+		if repositoryErrorKind, ok := MailboxDraftRepositoryErrorKindOf(repositoryErrors[0]); ok {
+			attributes = append(attributes, "repository_error_kind", string(repositoryErrorKind))
+		}
+	}
+	switch fallbackStage {
+	case mailboxDraftCalendarCreateUnknownStageUpload,
+		mailboxDraftCalendarCreateUnknownStageAdvance,
+		mailboxDraftCalendarCreateUnknownStageImport:
+		attributes = append(attributes, "fallback_stage", string(fallbackStage))
+	}
+	if reservation != nil {
+		switch reservation.Kind {
+		case MailboxDraftReservationDispatch,
+			MailboxDraftReservationReplay,
+			MailboxDraftReservationReconcileRequired:
+			attributes = append(attributes, "reservation_kind", string(reservation.Kind))
+		}
+		switch reservation.Draft.Status {
+		case MailboxDraftStatusActive, MailboxDraftStatusSaving, MailboxDraftStatusUnknown:
+			attributes = append(attributes, "status", string(reservation.Draft.Status))
+		}
+		if state := reservation.Draft.PendingCreateMIME; state != nil {
+			switch state.Phase {
+			case MailboxDraftCreateMIMEPhaseUpload, MailboxDraftCreateMIMEPhaseImport:
+				attributes = append(attributes, "phase", string(state.Phase))
+			}
+			if state.Attempt >= 1 && state.Attempt <= 3 {
+				attributes = append(attributes, "attempt", state.Attempt)
+			}
+		}
+	}
+	slog.Warn("mailbox calendar draft create failed", attributes...)
 }
 
 // newMailboxCalendarDeliveryDraftCreator constructs the private production
@@ -200,6 +289,12 @@ func (creator *mailboxCalendarDeliveryDraftCreator) CreateMailboxDraft(ctx conte
 		return MailboxDraftView{}, mailboxDraftCreateRepositoryError(err)
 	}
 	if !mailboxDraftCreateBeginMatches(begin, prepared.scope) {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageDispatchValidation,
+			mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+			nil,
+			"",
+		)
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 	}
 	if !begin.Claimed {
@@ -209,6 +304,12 @@ func (creator *mailboxCalendarDeliveryDraftCreator) CreateMailboxDraft(ctx conte
 	mutationID := uuid.New()
 	bindingDigest, ok := mailboxCalendarDeliveryDraftBindingDigest(prepared, input.calendar, mutationID)
 	if !ok {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageDispatchValidation,
+			mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+			nil,
+			"",
+		)
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 	}
 	reservation, err := creator.calendar.ReserveMailboxDraftCalendarCreate(ctx, mailboxDraftCalendarCreateReserveRequest{
@@ -229,12 +330,25 @@ func (creator *mailboxCalendarDeliveryDraftCreator) CreateMailboxDraft(ctx conte
 		},
 	})
 	if err != nil {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageReserve,
+			mailboxCalendarDeliveryDraftLogErrorKindRepository,
+			nil,
+			"",
+			err,
+		)
 		return MailboxDraftView{}, mailboxDraftCreateRepositoryError(err)
 	}
 
 	switch reservation.Kind {
 	case MailboxDraftReservationReplay:
 		if !mailboxCalendarDeliveryDraftReplayReservationValid(reservation, prepared) {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageReplay,
+				mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+				&reservation,
+				"",
+			)
 			return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 		}
 		return creator.get(ctx, actorID, prepared.canonical.DraftClientID, reservation.Draft.ID)
@@ -243,14 +357,32 @@ func (creator *mailboxCalendarDeliveryDraftCreator) CreateMailboxDraft(ctx conte
 		// attempts an external reconciliation or an unfenced retry. A still-saving
 		// exact state is first closed through its dedicated durable transition so
 		// it does not retain the account lease until expiry.
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageDispatchValidation,
+			mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+			&reservation,
+			"",
+		)
 		creator.closeReconcileRequired(ctx, prepared, input.calendar, reservation)
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 	case MailboxDraftReservationDispatch:
 		if !mailboxCalendarDeliveryDraftDispatchReservationValid(reservation, prepared, bindingDigest) {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageDispatchValidation,
+				mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+				&reservation,
+				"",
+			)
 			return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 		}
 		return creator.create(ctx, actorID, prepared, input.calendar, reservation)
 	default:
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageDispatchValidation,
+			mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+			&reservation,
+			"",
+		)
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 	}
 }
@@ -315,12 +447,30 @@ func (creator *mailboxCalendarDeliveryDraftCreator) prepare(ctx context.Context,
 
 func (creator *mailboxCalendarDeliveryDraftCreator) replay(ctx context.Context, actorID, draftClientID uuid.UUID, replay MailboxDraftCreateReplayLookupResult) (MailboxDraftView, error) {
 	if creator == nil || ctx == nil || actorID == uuid.Nil || draftClientID == uuid.Nil || !replay.Found || replay.DraftID == uuid.Nil {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageReplay,
+			mailboxCalendarDeliveryDraftLogErrorKindInvalid,
+			nil,
+			"",
+		)
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
 	}
 	if replay.LastMutationID != nil {
 		if *replay.LastMutationID == uuid.Nil {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageReplay,
+				mailboxCalendarDeliveryDraftLogErrorKindInvalid,
+				nil,
+				"",
+			)
 			return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorInvalid)
 		}
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageReplay,
+			mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+			nil,
+			"",
+		)
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 	}
 	return creator.get(ctx, actorID, draftClientID, replay.DraftID)
@@ -331,19 +481,47 @@ func (creator *mailboxCalendarDeliveryDraftCreator) create(ctx context.Context, 
 	for {
 		bindingDigest, ok := mailboxCalendarDeliveryDraftBindingDigest(prepared, calendar, current.Work.MutationID)
 		if !ok || !mailboxCalendarDeliveryDraftDispatchReservationValid(current, prepared, bindingDigest) {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageDispatchValidation,
+				mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+				&current,
+				"",
+			)
 			return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 		}
 		state := current.Draft.PendingCreateMIME
 		if state == nil {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageDispatchValidation,
+				mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+				&current,
+				"",
+			)
 			return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 		}
 
 		base, ok := mailboxDraftCreateEngineDraft(prepared, current)
 		if !ok || len(base.Message.Attachments) != 0 {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageBaseBuild,
+				mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+				&current,
+				"",
+			)
 			return MailboxDraftView{}, creator.markUnknown(ctx, current, bindingDigest, mailboxDraftCalendarCreateUnknownStageUpload, "", 0)
 		}
 		upload, err := creator.engine.uploadCalendarDraftCreateMIME(ctx, base, calendar)
 		if err != nil || !validMailboxDraftCalendarCreateUpload(upload) {
+			errorKind := mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown
+			if err != nil {
+				errorKind = mailboxCalendarDeliveryDraftLogErrorKindEngine
+			}
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageUpload,
+				errorKind,
+				&current,
+				"",
+			)
 			return MailboxDraftView{}, creator.markUnknown(ctx, current, bindingDigest, mailboxDraftCalendarCreateUnknownStageUpload, "", 0)
 		}
 
@@ -356,6 +534,17 @@ func (creator *mailboxCalendarDeliveryDraftCreator) create(ctx context.Context, 
 			SizeBytes:             upload.sizeBytes,
 		})
 		if err != nil || !mailboxCalendarDeliveryDraftImportReservationValid(advanced, prepared, bindingDigest, upload) {
+			errorKind := mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown
+			if err != nil {
+				errorKind = mailboxCalendarDeliveryDraftLogErrorKindRepository
+			}
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageAdvance,
+				errorKind,
+				&current,
+				"",
+				err,
+			)
 			return MailboxDraftView{}, creator.markUnknown(ctx, current, bindingDigest, mailboxDraftCalendarCreateUnknownStageAdvance, upload.blobID, upload.sizeBytes)
 		}
 
@@ -391,12 +580,35 @@ func (creator *mailboxCalendarDeliveryDraftCreator) create(ctx context.Context, 
 					current = restarted
 					continue
 				}
+				errorKind := mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown
+				if restartErr != nil {
+					errorKind = mailboxCalendarDeliveryDraftLogErrorKindRepository
+				}
+				mailboxCalendarDeliveryDraftLogFailure(
+					mailboxCalendarDeliveryDraftLogStageImport,
+					errorKind,
+					&advanced,
+					"",
+					restartErr,
+				)
 				return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 			}
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageImport,
+				mailboxCalendarDeliveryDraftLogErrorKindEngine,
+				&advanced,
+				"",
+			)
 			return MailboxDraftView{}, creator.markUnknown(ctx, advanced, bindingDigest, mailboxDraftCalendarCreateUnknownStageImport, upload.blobID, upload.sizeBytes)
 		}
 		applied, ok := mailboxDraftCreateApplied(message, prepared, advanced)
 		if !ok {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageApplied,
+				mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+				&advanced,
+				"",
+			)
 			return MailboxDraftView{}, creator.markUnknown(ctx, advanced, bindingDigest, mailboxDraftCalendarCreateUnknownStageImport, upload.blobID, upload.sizeBytes)
 		}
 
@@ -410,6 +622,17 @@ func (creator *mailboxCalendarDeliveryDraftCreator) create(ctx context.Context, 
 			Applied:               applied,
 		})
 		if err != nil || !mailboxCalendarDeliveryDraftFinishedRecordValid(finished, prepared, advanced.Work.MutationID) {
+			errorKind := mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown
+			if err != nil {
+				errorKind = mailboxCalendarDeliveryDraftLogErrorKindRepository
+			}
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageFinish,
+				errorKind,
+				&advanced,
+				"",
+				err,
+			)
 			return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 		}
 		return creator.get(ctx, actorID, prepared.canonical.DraftClientID, finished.ID)
@@ -418,9 +641,15 @@ func (creator *mailboxCalendarDeliveryDraftCreator) create(ctx context.Context, 
 
 func (creator *mailboxCalendarDeliveryDraftCreator) markUnknown(ctx context.Context, reservation MailboxDraftReservation, bindingDigest [sha256.Size]byte, stage mailboxDraftCalendarCreateUnknownStage, blobID string, sizeBytes int64) error {
 	if creator == nil || ctx == nil || reservation.Fence == nil || reservation.Work == nil || reservation.Work.PendingCreateMIME == nil || reservation.Draft.ID == uuid.Nil || reservation.Work.MutationID == uuid.Nil {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageMarkUnknown,
+			mailboxCalendarDeliveryDraftLogErrorKindInvalid,
+			&reservation,
+			stage,
+		)
 		return mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 	}
-	_, _ = creator.calendar.MarkMailboxDraftCalendarCreateUnknown(ctx, mailboxDraftCalendarCreateMarkUnknownRequest{
+	record, err := creator.calendar.MarkMailboxDraftCalendarCreateUnknown(ctx, mailboxDraftCalendarCreateMarkUnknownRequest{
 		Fence:                 *reservation.Fence,
 		DraftID:               reservation.Draft.ID,
 		MutationID:            reservation.Work.MutationID,
@@ -430,15 +659,66 @@ func (creator *mailboxCalendarDeliveryDraftCreator) markUnknown(ctx context.Cont
 		BlobID:                blobID,
 		SizeBytes:             sizeBytes,
 	})
+	if err != nil {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageMarkUnknown,
+			mailboxCalendarDeliveryDraftLogErrorKindRepository,
+			&reservation,
+			stage,
+			err,
+		)
+	} else if !mailboxCalendarDeliveryDraftMarkUnknownResultValid(record, reservation, bindingDigest, stage) {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageMarkUnknown,
+			mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+			&reservation,
+			stage,
+		)
+	}
 	return mailboxDraftServiceError(MailboxDraftServiceErrorOutcomeUnknown)
 }
 
+func mailboxCalendarDeliveryDraftMarkUnknownResultValid(record MailboxDraftRecord, reservation MailboxDraftReservation, bindingDigest [sha256.Size]byte, stage mailboxDraftCalendarCreateUnknownStage) bool {
+	if reservation.Work == nil || reservation.Work.PendingCreateMIME == nil ||
+		record.ID != reservation.Draft.ID || record.AccountID != reservation.Draft.AccountID ||
+		record.DraftClientID != reservation.Draft.DraftClientID || record.Status != MailboxDraftStatusUnknown {
+		return false
+	}
+	state := record.PendingCreateMIME
+	if state == nil || state.Kind != MailboxDraftCreateMIMEKindCalendar ||
+		state.Attempt != reservation.Work.PendingCreateMIME.Attempt ||
+		state.BindingDigest != bindingDigest ||
+		!validMailboxDraftCreateMIMEState(state, record.Status, record.PendingMutationKind) {
+		return false
+	}
+	switch stage {
+	case mailboxDraftCalendarCreateUnknownStageUpload:
+		return state.Phase == MailboxDraftCreateMIMEPhaseUpload
+	case mailboxDraftCalendarCreateUnknownStageAdvance, mailboxDraftCalendarCreateUnknownStageImport:
+		return state.Phase == MailboxDraftCreateMIMEPhaseImport
+	default:
+		return false
+	}
+}
+
 func (creator *mailboxCalendarDeliveryDraftCreator) closeReconcileRequired(ctx context.Context, prepared mailboxDraftCreatePrepared, calendar *calendarMIMEPart, reservation MailboxDraftReservation) {
-	if creator == nil || reservation.Draft.Status != MailboxDraftStatusSaving || reservation.Work == nil || reservation.Draft.PendingCreateMIME == nil {
+	if creator == nil || (reservation.Draft.Status != MailboxDraftStatusSaving && reservation.Draft.Status != MailboxDraftStatusUnknown) || reservation.Work == nil || reservation.Draft.PendingCreateMIME == nil {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageMarkUnknown,
+			mailboxCalendarDeliveryDraftLogErrorKindInvalid,
+			&reservation,
+			"",
+		)
 		return
 	}
 	bindingDigest, ok := mailboxCalendarDeliveryDraftBindingDigest(prepared, calendar, reservation.Work.MutationID)
 	if !ok {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageMarkUnknown,
+			mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+			&reservation,
+			"",
+		)
 		return
 	}
 	state := reservation.Draft.PendingCreateMIME
@@ -448,6 +728,13 @@ func (creator *mailboxCalendarDeliveryDraftCreator) closeReconcileRequired(ctx c
 	case MailboxDraftCreateMIMEPhaseImport:
 		if state.BlobID != nil && state.SizeBytes != nil {
 			_ = creator.markUnknown(ctx, reservation, bindingDigest, mailboxDraftCalendarCreateUnknownStageImport, *state.BlobID, *state.SizeBytes)
+		} else {
+			mailboxCalendarDeliveryDraftLogFailure(
+				mailboxCalendarDeliveryDraftLogStageMarkUnknown,
+				mailboxCalendarDeliveryDraftLogErrorKindOutcomeUnknown,
+				&reservation,
+				mailboxDraftCalendarCreateUnknownStageImport,
+			)
 		}
 	}
 }
@@ -455,9 +742,26 @@ func (creator *mailboxCalendarDeliveryDraftCreator) closeReconcileRequired(ctx c
 func (creator *mailboxCalendarDeliveryDraftCreator) get(ctx context.Context, actorID, draftClientID, draftID uuid.UUID) (MailboxDraftView, error) {
 	view, err := creator.reader.GetMailboxDraft(ctx, actorID, draftID)
 	if err != nil {
-		return MailboxDraftView{}, mailboxCalendarDeliveryDraftSafeServiceError(err)
+		safeErr := mailboxCalendarDeliveryDraftSafeServiceError(err)
+		errorKind := mailboxCalendarDeliveryDraftLogErrorKindUnavailable
+		if kind, ok := MailboxDraftServiceErrorKindOf(safeErr); ok {
+			errorKind = mailboxCalendarDeliveryDraftLogServiceErrorKind(kind)
+		}
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageGet,
+			errorKind,
+			nil,
+			"",
+		)
+		return MailboxDraftView{}, safeErr
 	}
 	if view.ID != draftID || view.DraftClientID != draftClientID || view.Revision < 1 {
+		mailboxCalendarDeliveryDraftLogFailure(
+			mailboxCalendarDeliveryDraftLogStageGet,
+			mailboxCalendarDeliveryDraftLogErrorKindUnavailable,
+			nil,
+			"",
+		)
 		return MailboxDraftView{}, mailboxDraftServiceError(MailboxDraftServiceErrorUnavailable)
 	}
 	return view, nil

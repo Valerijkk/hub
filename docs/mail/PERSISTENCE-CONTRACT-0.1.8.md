@@ -1056,6 +1056,24 @@ violated by an automatic `SET NULL`. Draft rows are not hard-deleted independent
 their confirmed and pending foreign keys are `RESTRICT` and preserve live staging consumption.
 Same-account equality is proved under account lock before either optional owner edge is set.
 
+Narrow dev-demo exception: the one exact FakeMailEngine brand-kit engine-backed attachment may
+move from `pending` to `clean` by guarded reconciliation because it has no storage scan lifecycle.
+The normal `MailAttachment.scan_status` ownership and every non-fixture provider/storage semantic
+remain unchanged; any non-exact row fails closed. This is static source documentation only and
+does not grant scanner, runtime, or production acceptance.
+
+#### 2026-09-04 dev-demo runtime evidence boundary
+
+In one fresh tmpfs Docker dev-demo stack, the exact PM/dev1 brand attachment observed after the
+first automatic seed was 85 bytes with SHA-256
+`a8238550297cc36a93834da7419a233b711951de4c3385d554d4f176bbc02bf2`; its fourteen PM/dev1 detail
+reads, including the Calendar-linked recurring-occurrence cancellation, returned raw HTTP `200`.
+The same bounded run observed sent/unleased invite delivery and submission, applied/unleased inbound
+receipt, imported event UID `hub-<source-event-id>`, and stable dev1 `7 messages / 6 threads /
+sync:7` versus PM `7 / 7 / sync:14` over 16 seconds. This does not alter persistence authority or
+the FakeMailEngine exception: production Stalwart/JMAP external delivery, full-suite execution,
+and release/merge readiness remain `NOT_RUN` / `NOT_CLAIMED`.
+
 ### `MailDraft`
 
 Fields: UUID `id`/`mail_account_id`; required confirmed `from_identity_id`; required immutable
@@ -2301,6 +2319,23 @@ content-free dispatcher classification `reconciliation_required`.
 
 No service, finalizer, reconciliation worker, schema, migration, API, or runtime authority is
 changed. Tests, build, gofmt, lint, Docker, and runtime remain `NOT_RUN`.
+
+### Delivery barrier and calendar occurrence reconciliation amendment (2026-09-02)
+
+`STATIC_SOURCE_REVIEW_ONLY / provenance_source: dispatcher-enforced / FINAL_DOCKER_RUNTIME_NOT_RUN`.
+Queued-submission claim never overwrites a stored account mutation or sync lease, including an
+expired one: recovery alone clears that fence. Any other same-account `submitting` or `unknown`
+row is a fail-closed account-dispatch barrier. The due scan may advisory-filter same-account
+`unknown` and expired `submitting` rows before its order/limit, but the claim transaction remains
+the authority.
+
+Calendar occurrence `CANCEL` and `REPLY` keep the exact recurrence ID through claim, bind,
+resolve, observation and reverse correlation. An occurrence `CANCEL` authoritatively binds the
+active master attendee together with the exact cancelled exception and the delivery recurrence;
+nonmatching or indeterminate state remains closed. An already-`Unknown` calendar-draft replay
+releases that exact account fence transactionally without external I/O. This amendment records
+source/static-review evidence only: final Docker build/runtime after these changes is `NOT_RUN`,
+Stalwart is `NOT_RUN`, and it grants no release or product acceptance.
 
 ## 143-04J pure projection candidate — no persistence authority
 

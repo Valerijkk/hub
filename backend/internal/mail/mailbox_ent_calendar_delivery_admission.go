@@ -11,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/calendarattendee"
 	"github.com/valerii/hub/backend/ent/calendarevent"
+	"github.com/valerii/hub/backend/ent/calendareventexception"
 	"github.com/valerii/hub/backend/ent/calendarinvitedelivery"
 	"github.com/valerii/hub/backend/ent/calendarreplydelivery"
 )
@@ -50,13 +51,20 @@ func (repository *MailboxEntRepository) WakeCalendarReplyDelivery(ctx context.Co
 	if repository == nil || repository.client == nil || ctx == nil || !validCalendarReplyDeliveryWakeRequest(request) {
 		return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
 	}
+	locator, found, err := repository.mailboxEntCalendarReplyDeliveryLocator(ctx, request.ReplyID)
+	if err != nil {
+		return mailboxEntCalendarDeliveryRepositoryError(err)
+	}
+	if !found {
+		return nil
+	}
 
-	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
+	err = repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
 		databaseNow, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
 			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 		}
-		return mailboxEntWakeCalendarReplyDelivery(ctx, transaction, request, databaseNow)
+		return mailboxEntWakeCalendarReplyDelivery(ctx, transaction, request, locator, databaseNow)
 	})
 	return mailboxEntCalendarDeliveryRepositoryError(err)
 }
@@ -85,6 +93,28 @@ func mailboxEntAdmitCalendarInviteDelivery(ctx context.Context, transaction *ent
 	}
 	if !mailboxEntCalendarInviteDeliveryCalendarFactsValid(event, attendee, admission) {
 		return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
+	}
+	if admission.Kind == CalendarInviteDeliveryKindCancelled && admission.RecurrenceID != "" {
+		exception, err := transaction.CalendarEventException.Query().
+			Where(
+				calendareventexception.CalendarEventIDEQ(event.ID),
+				calendareventexception.RecurrenceIDEQ(admission.RecurrenceID),
+			).
+			ForUpdate().
+			Only(ctx)
+		if ent.IsNotFound(err) {
+			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
+		}
+		if err != nil {
+			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+		}
+		if exception == nil || exception.ID == uuid.Nil || exception.CalendarEventID != event.ID || exception.RecurrenceID != admission.RecurrenceID ||
+			exception.Sequence != admission.EventSequence || exception.Status == nil || *exception.Status != calendareventexception.StatusCancelled ||
+			exception.StartsAt != nil || exception.EndsAt != nil || exception.StartDate != nil || exception.EndDateExclusive != nil ||
+			exception.Timezone != nil || exception.Location != nil ||
+			(event.Status != calendarevent.StatusConfirmed && event.Status != calendarevent.StatusTentative) {
+			return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
+		}
 	}
 
 	replayed, err := mailboxEntCalendarInviteDeliveryReplay(ctx, transaction, event, attendee, admission)
@@ -204,13 +234,16 @@ func mailboxEntCalendarInviteDeliveryImmutableMatch(row *ent.CalendarInviteDeliv
 		mailboxEntCalendarDeliveryRecurrenceMatches(row.RecurrenceID, admission.RecurrenceID)
 }
 
-func mailboxEntWakeCalendarReplyDelivery(ctx context.Context, transaction *ent.Tx, request CalendarReplyDeliveryWakeRequest, databaseNow time.Time) error {
-	if ctx == nil || transaction == nil || !validCalendarReplyDeliveryWakeRequest(request) || !mailboxEntValidTime(databaseNow) {
+func mailboxEntWakeCalendarReplyDelivery(ctx context.Context, transaction *ent.Tx, request CalendarReplyDeliveryWakeRequest, locator mailboxEntCalendarReplyDeliveryLocator, databaseNow time.Time) error {
+	if ctx == nil || transaction == nil || !validCalendarReplyDeliveryWakeRequest(request) || !mailboxEntCalendarReplyDeliveryLocatorValid(locator) || !mailboxEntValidTime(databaseNow) {
 		return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
 	}
-	delivery, event, attendee, err := mailboxEntCalendarReplyDeliveryRows(ctx, transaction, request)
+	delivery, event, attendee, err := mailboxEntCalendarReplyDeliveryRowsForUpdate(ctx, transaction, locator)
 	if err != nil {
 		return err
+	}
+	if delivery == nil {
+		return nil
 	}
 	if !mailboxEntCalendarReplyDeliveryCalendarFactsValid(delivery, event, attendee) {
 		return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
@@ -243,12 +276,17 @@ func mailboxEntWakeCalendarReplyDelivery(ctx context.Context, transaction *ent.T
 		return newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorConflict)
 	}
 
+	deliveryRecurrencePredicate := calendarreplydelivery.RecurrenceIDIsNil()
+	if locator.recurrenceID != nil {
+		deliveryRecurrencePredicate = calendarreplydelivery.RecurrenceIDEQ(*locator.recurrenceID)
+	}
 	updated, err := transaction.CalendarReplyDelivery.Update().
 		Where(
 			calendarreplydelivery.IDEQ(delivery.ID),
 			calendarreplydelivery.OrganizationIDEQ(delivery.OrganizationID),
 			calendarreplydelivery.CalendarEventIDEQ(delivery.CalendarEventID),
 			calendarreplydelivery.CalendarAttendeeIDEQ(delivery.CalendarAttendeeID),
+			deliveryRecurrencePredicate,
 			calendarreplydelivery.StateEQ(calendarreplydelivery.State("pending")),
 			calendarreplydelivery.AttemptsEQ(0),
 			calendarreplydelivery.ClaimGenerationEQ(0),
@@ -270,45 +308,124 @@ func mailboxEntWakeCalendarReplyDelivery(ctx context.Context, transaction *ent.T
 	return nil
 }
 
-func mailboxEntCalendarReplyDeliveryRows(ctx context.Context, transaction *ent.Tx, request CalendarReplyDeliveryWakeRequest) (*ent.CalendarReplyDelivery, *ent.CalendarEvent, *ent.CalendarAttendee, error) {
-	if ctx == nil || transaction == nil || !validCalendarReplyDeliveryWakeRequest(request) {
+type mailboxEntCalendarReplyDeliveryLocator struct {
+	id             uuid.UUID
+	organizationID uuid.UUID
+	eventID        uuid.UUID
+	attendeeID     uuid.UUID
+	recurrenceID   *string
+}
+
+func (repository *MailboxEntRepository) mailboxEntCalendarReplyDeliveryLocator(ctx context.Context, deliveryID CalendarReplyDeliveryID) (mailboxEntCalendarReplyDeliveryLocator, bool, error) {
+	if repository == nil || repository.client == nil || ctx == nil || !validCalendarReplyDeliveryID(deliveryID) {
+		return mailboxEntCalendarReplyDeliveryLocator{}, false, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
+	}
+	delivery, err := repository.client.CalendarReplyDelivery.Query().
+		Where(calendarreplydelivery.IDEQ(deliveryID.UUID())).
+		Select(
+			calendarreplydelivery.FieldID,
+			calendarreplydelivery.FieldOrganizationID,
+			calendarreplydelivery.FieldCalendarEventID,
+			calendarreplydelivery.FieldCalendarAttendeeID,
+			calendarreplydelivery.FieldRecurrenceID,
+		).
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return mailboxEntCalendarReplyDeliveryLocator{}, false, nil
+	}
+	if err != nil || delivery == nil || delivery.ID != deliveryID.UUID() {
+		return mailboxEntCalendarReplyDeliveryLocator{}, false, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	locator := mailboxEntCalendarReplyDeliveryLocator{
+		id:             delivery.ID,
+		organizationID: delivery.OrganizationID,
+		eventID:        delivery.CalendarEventID,
+		attendeeID:     delivery.CalendarAttendeeID,
+	}
+	if delivery.RecurrenceID != nil {
+		recurrenceID := *delivery.RecurrenceID
+		locator.recurrenceID = &recurrenceID
+	}
+	if !mailboxEntCalendarReplyDeliveryLocatorValid(locator) {
+		return mailboxEntCalendarReplyDeliveryLocator{}, false, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	return locator, true, nil
+}
+
+func mailboxEntCalendarReplyDeliveryRowsForUpdate(ctx context.Context, transaction *ent.Tx, locator mailboxEntCalendarReplyDeliveryLocator) (*ent.CalendarReplyDelivery, *ent.CalendarEvent, *ent.CalendarAttendee, error) {
+	if ctx == nil || transaction == nil || !mailboxEntCalendarReplyDeliveryLocatorValid(locator) {
 		return nil, nil, nil, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorInvalid)
 	}
-	delivery, err := transaction.CalendarReplyDelivery.Query().
-		Where(calendarreplydelivery.IDEQ(request.ReplyID.UUID())).
-		ForUpdate().
-		Only(ctx)
-	if err != nil {
-		return nil, nil, nil, mailboxEntCalendarDeliveryRowError(err)
-	}
 	event, err := transaction.CalendarEvent.Query().
-		Where(calendarevent.IDEQ(delivery.CalendarEventID)).
+		Where(
+			calendarevent.IDEQ(locator.eventID),
+			calendarevent.OrganizationIDEQ(locator.organizationID),
+		).
 		ForUpdate().
 		Only(ctx)
-	if err != nil {
-		return nil, nil, nil, mailboxEntCalendarDeliveryRowError(err)
+	if err != nil || event == nil {
+		return nil, nil, nil, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	attendeeRecurrencePredicate := calendarattendee.RecurrenceIDIsNil()
+	if locator.recurrenceID != nil {
+		attendeeRecurrencePredicate = calendarattendee.RecurrenceIDEQ(*locator.recurrenceID)
 	}
 	attendee, err := transaction.CalendarAttendee.Query().
-		Where(calendarattendee.IDEQ(delivery.CalendarAttendeeID)).
+		Where(
+			calendarattendee.IDEQ(locator.attendeeID),
+			calendarattendee.CalendarEventIDEQ(event.ID),
+			attendeeRecurrencePredicate,
+		).
 		ForUpdate().
 		Only(ctx)
-	if err != nil {
-		return nil, nil, nil, mailboxEntCalendarDeliveryRowError(err)
+	if err != nil || attendee == nil {
+		return nil, nil, nil, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
+	}
+	deliveryRecurrencePredicate := calendarreplydelivery.RecurrenceIDIsNil()
+	if locator.recurrenceID != nil {
+		deliveryRecurrencePredicate = calendarreplydelivery.RecurrenceIDEQ(*locator.recurrenceID)
+	}
+	delivery, err := transaction.CalendarReplyDelivery.Query().
+		Where(calendarreplydelivery.IDEQ(locator.id), deliveryRecurrencePredicate).
+		ForUpdate().
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, nil, nil, nil
+	}
+	if err != nil || !mailboxEntCalendarReplyDeliveryLocatorMatches(locator, delivery, event, attendee) {
+		return nil, nil, nil, newCalendarMailDeliveryRepositoryError(CalendarMailDeliveryRepositoryErrorUnavailable)
 	}
 	return delivery, event, attendee, nil
+}
+
+func mailboxEntCalendarReplyDeliveryLocatorValid(locator mailboxEntCalendarReplyDeliveryLocator) bool {
+	return locator.id != uuid.Nil && locator.organizationID != uuid.Nil && locator.eventID != uuid.Nil && locator.attendeeID != uuid.Nil &&
+		(locator.recurrenceID == nil || (*locator.recurrenceID != "" && validCalendarMailDeliveryRecurrenceID(*locator.recurrenceID)))
+}
+
+func mailboxEntCalendarReplyDeliveryLocatorMatches(locator mailboxEntCalendarReplyDeliveryLocator, delivery *ent.CalendarReplyDelivery, event *ent.CalendarEvent, attendee *ent.CalendarAttendee) bool {
+	return delivery != nil && event != nil && attendee != nil &&
+		delivery.ID == locator.id && delivery.OrganizationID == locator.organizationID && delivery.CalendarEventID == locator.eventID && delivery.CalendarAttendeeID == locator.attendeeID &&
+		event.ID == locator.eventID && event.OrganizationID == locator.organizationID &&
+		attendee.ID == locator.attendeeID && attendee.CalendarEventID == locator.eventID &&
+		mailboxEntCalendarDeliveryRecurrencePointersEqual(delivery.RecurrenceID, locator.recurrenceID) &&
+		mailboxEntCalendarDeliveryRecurrencePointersEqual(attendee.RecurrenceID, locator.recurrenceID)
 }
 
 func mailboxEntCalendarInviteDeliveryCalendarFactsValid(event *ent.CalendarEvent, attendee *ent.CalendarAttendee, admission CalendarInviteDeliveryAdmission) bool {
 	if event == nil || attendee == nil || event.ID == uuid.Nil || event.OrganizationID == uuid.Nil || attendee.ID == uuid.Nil ||
 		attendee.CalendarEventID != event.ID || event.DeletedAt != nil || event.OrganizerID == nil || *event.OrganizerID != admission.OrganizerID ||
-		event.Sequence < admission.EventSequence || !mailboxEntCalendarDeliveryRecurrenceMatches(attendee.RecurrenceID, admission.RecurrenceID) {
+		event.Sequence < admission.EventSequence {
 		return false
 	}
 	switch admission.Kind {
 	case CalendarInviteDeliveryKindCreated, CalendarInviteDeliveryKindUpdated:
-		return attendee.RemovedAt == nil
+		return attendee.RemovedAt == nil && mailboxEntCalendarDeliveryRecurrenceMatches(attendee.RecurrenceID, admission.RecurrenceID)
 	case CalendarInviteDeliveryKindCancelled:
-		return true
+		if admission.RecurrenceID == "" {
+			return mailboxEntCalendarDeliveryRecurrenceMatches(attendee.RecurrenceID, admission.RecurrenceID)
+		}
+		return attendee.RecurrenceID == nil && attendee.RemovedAt == nil
 	default:
 		return false
 	}
@@ -395,7 +512,7 @@ func mailboxEntCalendarDeliveryRecurrencePointersEqual(left, right *string) bool
 }
 
 func mailboxEntCalendarDeliveryTimestampValid(value time.Time) bool {
-	return !value.IsZero() && value.Location() == time.UTC
+	return mailboxEntValidTime(value)
 }
 
 func mailboxEntCalendarDeliveryRowError(err error) error {

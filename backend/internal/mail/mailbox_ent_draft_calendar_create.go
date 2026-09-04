@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -95,12 +96,15 @@ func (repository *MailboxEntRepository) AdvanceMailboxDraftCalendarCreateToImpor
 	}
 	var result MailboxDraftReservation
 	var postCommitErr error
+	var locked *mailboxEntDraftCalendarCreateLocked
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
-		locked, kind := mailboxEntDraftCalendarCreateLock(ctx, transaction, request.Fence, request.DraftID)
+		var kind MailboxDraftRepositoryErrorKind
+		locked, kind = mailboxEntDraftCalendarCreateLock(ctx, transaction, request.Fence, request.DraftID)
 		if kind != "" {
 			return mailboxEntDraftCalendarCreateLockedError(ctx, locked, request.Fence, kind, &postCommitErr)
 		}
 		if !mailboxEntDraftCalendarCreateMatches(locked.record, MailboxDraftStatusSaving, MailboxDraftCreateMIMEPhaseUpload, request.MutationID, 1, request.ExpectedBindingDigest, "", 0) {
+			locked.conflictStage = mailboxEntDraftCalendarCreateConflictStageUploadMatch
 			return mailboxEntDraftCalendarCreateLogicalError(ctx, locked.account, request.Fence, locked.databaseNow, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
 		}
 		if err := locked.draft.Update().
@@ -123,9 +127,16 @@ func (repository *MailboxEntRepository) AdvanceMailboxDraftCalendarCreateToImpor
 		return nil
 	})
 	if err != nil {
-		return MailboxDraftReservation{}, mailboxEntDraftRepositoryError(err)
+		returned := mailboxEntDraftRepositoryError(err)
+		if locked != nil && mailboxEntDraftCreateErrorKind(returned) == MailboxDraftRepositoryErrorStateConflict {
+			slog.Warn("mailbox calendar draft advance conflict", "repository_conflict_stage", string(locked.conflictStage))
+		}
+		return MailboxDraftReservation{}, returned
 	}
 	if postCommitErr != nil {
+		if locked != nil && mailboxEntDraftCreateErrorKind(postCommitErr) == MailboxDraftRepositoryErrorStateConflict {
+			slog.Warn("mailbox calendar draft advance conflict", "repository_conflict_stage", string(locked.conflictStage))
+		}
 		return MailboxDraftReservation{}, postCommitErr
 	}
 	return result, nil
@@ -143,6 +154,16 @@ func (repository *MailboxEntRepository) MarkMailboxDraftCalendarCreateUnknown(ct
 		locked, kind := mailboxEntDraftCalendarCreateLock(ctx, transaction, request.Fence, request.DraftID)
 		if kind != "" {
 			return mailboxEntDraftCalendarCreateLockedError(ctx, locked, request.Fence, kind, &postCommitErr)
+		}
+		if locked.record.Status == MailboxDraftStatusUnknown {
+			if !mailboxEntDraftCalendarCreateUnknownReplayValid(locked.record, request) {
+				return mailboxEntDraftCalendarCreateLogicalError(ctx, locked.account, request.Fence, locked.databaseNow, MailboxDraftRepositoryErrorStateConflict, &postCommitErr)
+			}
+			if err := mailboxEntDraftCreateRelease(ctx, locked.account, request.Fence, locked.databaseNow); err != nil {
+				return err
+			}
+			result = mailboxEntDraftRecordCopy(locked.record)
+			return nil
 		}
 		phase, ok := mailboxEntDraftCalendarCreateUnknownStageMatches(locked.record, request)
 		if !ok || locked.record.PendingCreateMIME == nil {
@@ -453,33 +474,53 @@ func (repository *MailboxEntRepository) AbandonMailboxDraftCalendarCreateUpload(
 }
 
 type mailboxEntDraftCalendarCreateLocked struct {
-	account     *ent.MailAccount
-	databaseNow time.Time
-	draft       *ent.MailDraft
-	record      MailboxDraftRecord
+	account       *ent.MailAccount
+	databaseNow   time.Time
+	draft         *ent.MailDraft
+	record        MailboxDraftRecord
+	conflictStage mailboxEntDraftCalendarCreateConflictStage
 }
 
+type mailboxEntDraftCalendarCreateConflictStage string
+
+const (
+	mailboxEntDraftCalendarCreateConflictStageAccount     mailboxEntDraftCalendarCreateConflictStage = "account"
+	mailboxEntDraftCalendarCreateConflictStageDraft       mailboxEntDraftCalendarCreateConflictStage = "draft"
+	mailboxEntDraftCalendarCreateConflictStageAttachments mailboxEntDraftCalendarCreateConflictStage = "attachments"
+	mailboxEntDraftCalendarCreateConflictStageRecord      mailboxEntDraftCalendarCreateConflictStage = "record"
+	mailboxEntDraftCalendarCreateConflictStageIdentity    mailboxEntDraftCalendarCreateConflictStage = "identity"
+	mailboxEntDraftCalendarCreateConflictStageUploadMatch mailboxEntDraftCalendarCreateConflictStage = "upload_match"
+)
+
 func mailboxEntDraftCalendarCreateLock(ctx context.Context, transaction *ent.Tx, fence MailboxEngineCommandFence, draftID uuid.UUID) (*mailboxEntDraftCalendarCreateLocked, MailboxDraftRepositoryErrorKind) {
+	locked := &mailboxEntDraftCalendarCreateLocked{
+		conflictStage: mailboxEntDraftCalendarCreateConflictStageAccount,
+	}
 	account, databaseNow, err := mailboxEntDraftCreateLockAccount(ctx, transaction, fence)
 	if err != nil {
-		return nil, mailboxEntDraftCreateErrorKind(err)
+		return locked, mailboxEntDraftCreateErrorKind(err)
 	}
-	locked := &mailboxEntDraftCalendarCreateLocked{account: account, databaseNow: databaseNow}
+	locked.account = account
+	locked.databaseNow = databaseNow
 	if kind := mailboxEntDraftCreateAccountKind(account); kind != "" {
 		return locked, kind
 	}
+	locked.conflictStage = mailboxEntDraftCalendarCreateConflictStageDraft
 	draft, kind := mailboxEntDraftReservationLockDraft(ctx, transaction, fence.AccountID, draftID)
 	if kind != "" {
 		return locked, kind
 	}
+	locked.conflictStage = mailboxEntDraftCalendarCreateConflictStageAttachments
 	attachments, kind := mailboxEntDraftReadAttachmentState(ctx, transaction, draft, MailboxDraftRepositoryErrorStateConflict)
 	if kind != "" {
 		return locked, kind
 	}
+	locked.conflictStage = mailboxEntDraftCalendarCreateConflictStageRecord
 	record, ok := mailboxEntDraftCalendarCreateRecord(draft, attachments)
 	if !ok {
 		return locked, MailboxDraftRepositoryErrorStateConflict
 	}
+	locked.conflictStage = mailboxEntDraftCalendarCreateConflictStageIdentity
 	if err := mailboxEntDraftCreateLockConfirmedIdentity(ctx, transaction, fence.AccountID, record.Confirmed.FromIdentityID); err != nil {
 		return locked, mailboxEntDraftCreateErrorKind(err)
 	}
@@ -691,6 +732,24 @@ func mailboxEntDraftCalendarCreateUnknownPostStateValid(record MailboxDraftRecor
 		return mailboxEntDraftCalendarCreateMatches(record, MailboxDraftStatusUnknown, phase, request.MutationID, request.ExpectedAttempt, request.ExpectedBindingDigest, request.BlobID, request.SizeBytes) && state.RetryAt == nil && state.ExhaustedAt == nil
 	}
 	return mailboxEntDraftCalendarCreateMatches(record, MailboxDraftStatusUnknown, phase, request.MutationID, request.ExpectedAttempt, request.ExpectedBindingDigest, "", 0) && (request.ExpectedAttempt < 3 && state.RetryAt != nil && state.ExhaustedAt == nil || request.ExpectedAttempt == 3 && state.RetryAt == nil && state.ExhaustedAt != nil)
+}
+
+// mailboxEntDraftCalendarCreateUnknownReplayValid accepts only the exact
+// already-unknown state a MarkUnknown request would have produced. Advance
+// retains its ambiguous upload-or-import outcome; both cases reuse the same
+// post-state validation, including the durable retry/exhaustion invariants.
+func mailboxEntDraftCalendarCreateUnknownReplayValid(record MailboxDraftRecord, request mailboxDraftCalendarCreateMarkUnknownRequest) bool {
+	switch request.Stage {
+	case mailboxDraftCalendarCreateUnknownStageUpload:
+		return mailboxEntDraftCalendarCreateUnknownPostStateValid(record, request, MailboxDraftCreateMIMEPhaseUpload)
+	case mailboxDraftCalendarCreateUnknownStageAdvance:
+		return mailboxEntDraftCalendarCreateUnknownPostStateValid(record, request, MailboxDraftCreateMIMEPhaseUpload) ||
+			mailboxEntDraftCalendarCreateUnknownPostStateValid(record, request, MailboxDraftCreateMIMEPhaseImport)
+	case mailboxDraftCalendarCreateUnknownStageImport:
+		return mailboxEntDraftCalendarCreateUnknownPostStateValid(record, request, MailboxDraftCreateMIMEPhaseImport)
+	default:
+		return false
+	}
 }
 
 func mailboxEntDraftCalendarCreateRestartableUnknown(record MailboxDraftRecord, mutationID uuid.UUID, attempt int, bindingDigest [sha256.Size]byte, databaseNow time.Time) bool {

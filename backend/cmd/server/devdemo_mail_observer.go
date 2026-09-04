@@ -26,6 +26,7 @@ const (
 	devMailDemoObserveStagePMInvitation        devMailDemoObserveStage = "pm_invitation"
 	devMailDemoObserveStageDev1Invitation      devMailDemoObserveStage = "dev1_invitation"
 	devMailDemoObserveStageInvitationSemantics devMailDemoObserveStage = "invitation_semantics"
+	devMailDemoObserveStageInvitationBodies    devMailDemoObserveStage = "invitation_bodies"
 	devMailDemoObserveStageDev1Search          devMailDemoObserveStage = "dev1_search"
 )
 
@@ -36,6 +37,13 @@ const (
 	devMailDemoCorrelationDirectionPMForward   devMailDemoCorrelationDirection = "pm_forward"
 	devMailDemoCorrelationDirectionDev1Forward devMailDemoCorrelationDirection = "dev1_forward"
 	devMailDemoCorrelationDirectionDev1Reverse devMailDemoCorrelationDirection = "dev1_reverse"
+)
+
+type devMailDemoInvitationBodyDirection string
+
+const (
+	devMailDemoInvitationBodyDirectionPMOutbound  devMailDemoInvitationBodyDirection = "pm_outbound"
+	devMailDemoInvitationBodyDirectionDev1Inbound devMailDemoInvitationBodyDirection = "dev1_inbound"
 )
 
 func (direction devMailDemoCorrelationDirection) valid() bool {
@@ -219,7 +227,11 @@ func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared dev
 		return errDevMailDemoUnavailable
 	}
 	stage = devMailDemoObserveStageInvitationSemantics
-	return adapter.observeInvitationSemantics(ctx, prepared, pmEvent, dev1EventID)
+	if err := adapter.observeInvitationSemantics(ctx, prepared, pmEvent, dev1EventID); err != nil {
+		return err
+	}
+	stage = devMailDemoObserveStageInvitationBodies
+	return adapter.observeInvitationBodies(ctx, pmOwner, pmMessageID, pmEventID, dev1Owner, dev1MessageID, dev1EventID)
 }
 
 func (adapter *devMailDemoAdapter) observeOwner(ctx context.Context, prepared devMailDemoPrepared, email string, userID uuid.UUID) (devMailDemoOwner, error) {
@@ -565,6 +577,56 @@ func (adapter *devMailDemoAdapter) observeInvitationSemantics(ctx context.Contex
 		return errDevMailDemoUnavailable
 	}
 	if !devMailDemoInvitationEqual(pmEvent, dev1Event) || !dev1Event.CanRSVP || dev1Event.ViewerAttendee == nil || dev1Event.ViewerAttendee.UserID == nil || *dev1Event.ViewerAttendee.UserID != prepared.dev1UserID || dev1Event.ViewerAttendee.Role != calendarmod.CalendarEventAttendeeRoleRequired {
+		return errDevMailDemoUnavailable
+	}
+	return nil
+}
+
+// observeInvitationBodies proves that both correlated invitation messages can
+// be read through the owner-gated public Mail service after a process restart.
+func (adapter *devMailDemoAdapter) observeInvitationBodies(ctx context.Context, pmOwner devMailDemoOwner, pmMessageID, pmEventID uuid.UUID, dev1Owner devMailDemoOwner, dev1MessageID, dev1EventID uuid.UUID) error {
+	if pmOwner.userID == uuid.Nil || dev1Owner.userID == uuid.Nil || pmMessageID == uuid.Nil || dev1MessageID == uuid.Nil || pmEventID == uuid.Nil || dev1EventID == uuid.Nil || pmMessageID == dev1MessageID || pmEventID == dev1EventID {
+		return errDevMailDemoUnavailable
+	}
+	if err := adapter.observeInvitationBody(ctx, pmOwner.userID, pmMessageID, pmEventID, devMailDemoInvitationBodyDirectionPMOutbound); err != nil {
+		return err
+	}
+	return adapter.observeInvitationBody(ctx, dev1Owner.userID, dev1MessageID, dev1EventID, devMailDemoInvitationBodyDirectionDev1Inbound)
+}
+
+func (adapter *devMailDemoAdapter) observeInvitationBody(ctx context.Context, actorID, messageID, eventID uuid.UUID, direction devMailDemoInvitationBodyDirection) error {
+	if ctx == nil || actorID == uuid.Nil || messageID == uuid.Nil || eventID == uuid.Nil || (direction != devMailDemoInvitationBodyDirectionPMOutbound && direction != devMailDemoInvitationBodyDirectionDev1Inbound) {
+		return errDevMailDemoUnavailable
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	detail, err := adapter.messageSvc.GetMailboxMessage(ctx, actorID, messageID)
+	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return contextErr
+		}
+		var readError *mailmod.MailboxMessageReadError
+		if errors.As(err, &readError) && readError != nil {
+			switch readError.Kind() {
+			case mailmod.MailboxMessageReadErrorNotFound, mailmod.MailboxMessageReadErrorUnavailable:
+				return errDevMailDemoPending
+			default:
+				return errDevMailDemoUnavailable
+			}
+		}
+		return errDevMailDemoUnavailable
+	}
+	if detail.ID != messageID || detail.ThreadID == uuid.Nil || detail.CalendarEventID == nil || *detail.CalendarEventID != eventID || detail.PlainBody == "" || detail.SanitizedHTML != nil || !detail.RemoteImagesBlocked || detail.IsDraft || detail.Subject == "" {
+		return errDevMailDemoUnavailable
+	}
+	if direction == devMailDemoInvitationBodyDirectionPMOutbound {
+		if detail.CalendarMethod != nil {
+			return errDevMailDemoUnavailable
+		}
+		return nil
+	}
+	if detail.CalendarMethod == nil || *detail.CalendarMethod != mailmod.MailCalendarMethodRequest {
 		return errDevMailDemoUnavailable
 	}
 	return nil

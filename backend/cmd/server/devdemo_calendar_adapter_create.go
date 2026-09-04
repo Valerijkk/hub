@@ -112,6 +112,20 @@ func (a *calendarDemoAdapter) CreateEvent(
 
 	created, err := a.eventService.CreateCalendarEvent(ctx, actorID, command)
 	if err != nil {
+		var conflict *calendarmod.CalendarEventCreateConflictError
+		if errors.As(err, &conflict) && conflict != nil && conflict.Kind() == calendarmod.CalendarEventCreateConflictIdempotencyKeyReused {
+			recovered, recoverErr := a.recoverExpiredCalendarEventCreate(
+				ctx,
+				actorID,
+				input.IdempotencyKey,
+				command,
+				requested,
+				requestedOrder,
+			)
+			if recoverErr == nil {
+				return recovered, nil
+			}
+		}
 		return zero, newCalendarDemoReconcileError(calendarDemoStageCreate, err)
 	}
 	response := created.Response()

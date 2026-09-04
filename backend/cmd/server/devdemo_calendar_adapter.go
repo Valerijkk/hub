@@ -5,24 +5,28 @@ package main
 import (
 	"errors"
 
+	"github.com/valerii/hub/backend/ent"
 	calendarmod "github.com/valerii/hub/backend/internal/calendar"
 	"github.com/valerii/hub/backend/internal/devdemo"
 )
 
 type calendarDemoAdapter struct {
+	db               *ent.Client
 	eventService     *calendarmod.EventService
 	eventReadService *calendarmod.EventReadService
 }
 
 func newCalendarDemoAdapter(
+	db *ent.Client,
 	eventService *calendarmod.EventService,
 	eventReadService *calendarmod.EventReadService,
 ) (*calendarDemoAdapter, error) {
-	if eventService == nil || eventReadService == nil {
+	if db == nil || eventService == nil || eventReadService == nil {
 		return nil, errors.New("calendar demo adapter dependencies are required")
 	}
 
 	return &calendarDemoAdapter{
+		db:               db,
 		eventService:     eventService,
 		eventReadService: eventReadService,
 	}, nil
