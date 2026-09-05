@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/calendarinboundmessagereceipt"
 	"github.com/valerii/hub/backend/internal/calendar"
 	mail "github.com/valerii/hub/backend/internal/mail"
 )
@@ -302,7 +303,16 @@ func (driver *calendarInboundReceiptCompletionDriver) assertCompletionCAS(t *tes
 			t.Fatalf("receipt completion SQL is missing %q: %s", fragment, driver.updateSQL)
 		}
 	}
-	for _, value := range []any{driver.fixture.receiptID, "processing", driver.fixture.leaseToken, int64(1), driver.fixture.clock, "duplicate", "occurrence", driver.fixture.recurrenceID} {
+	for _, value := range []any{
+		driver.fixture.receiptID,
+		calendarinboundmessagereceipt.StateProcessing,
+		driver.fixture.leaseToken,
+		int64(1),
+		driver.fixture.clock,
+		calendarinboundmessagereceipt.StateDuplicate,
+		calendarinboundmessagereceipt.CalendarComponentScopeOccurrence,
+		driver.fixture.recurrenceID,
+	} {
 		if !calendarInboundReceiptCompletionContainsValue(driver.updateArguments, value) {
 			t.Fatalf("receipt completion CAS is missing %#v: %#v", value, driver.updateArguments)
 		}
