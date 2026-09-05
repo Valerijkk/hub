@@ -1151,6 +1151,18 @@ heavy command was started. Messenger's next source atom is MPR-02 after the
 accepted MPR-01; Jitsi activation still requires the remaining durable Calls
 chain and image discovery. Neither module is accepted as product-ready.
 
+**Execution blocker (2026-09-05):** checkpoints `fc856754` and `fe82e80f`
+are pushed to the authorized branch. The final preflight at
+`2026-09-05T08:15:10Z` had clean source, no backend QA overlap, 7.64-7.69 GB
+free RAM, over 312 GB free on C:, disk samples 0/0, 0/0 and 4/0
+(PercentDiskTime/queue). The `prebuild` root-handoff invocation was rejected
+twice by automatic approval review as a Windows-host validator prohibited by
+AGENTS.md; the second review rejected the recorded plan exception as
+insufficient authority. No Python helper, build or test started. Continuation
+requires explicit founder permission for the exact host root-handoff and
+observer utilities while all tests/builds remain Docker-only. No alternate
+or indirect invocation is authorized by this note.
+
 **Active continuity (2026-09-04, Phase 150):** resumed the structured handoff on
 `calls-feature-codex` at `e0cc0e1b`; Task 3/23 remains in progress. C01 and
 C03/C03R retain independent static PASS. C02-v10, C04 callable indirection,
