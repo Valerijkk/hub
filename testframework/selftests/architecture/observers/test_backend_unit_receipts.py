@@ -289,7 +289,6 @@ def _recursively_sorted(document: Mapping[str, object]) -> dict[str, object]:
     ("phase", "planned", "completed", "active_stage"),
     (
         ("bootstrap", (), (), None),
-        ("planning", ("build",), (), None),
         ("execution", ("build", "vet", "unit", "race"), ("build",), "vet"),
     ),
 )
@@ -320,8 +319,6 @@ def test_container_receipt_recursively_sorted_keys_remain_closed(mutation: str) 
     ("phase", "planned", "completed", "active_stage"),
     (
         ("bootstrap", (), (), None),
-        ("planning", (), (), None),
-        ("planning", ("build",), (), None),
         ("execution", ("build", "vet", "unit", "race"), ("build",), "vet"),
         ("execution", ("build", "vet", "unit", "race"), ("build", "vet", "unit", "race"), None),
     ),
@@ -357,7 +354,7 @@ def test_container_receipt_accepts_legacy_complete_and_inline_sealed_abort_prefi
         ("aborted_crossover", False, "aborted container receipt keys are not closed and canonical"),
         ("terminal_mismatch", False, "aborted container terminal must be TERM/143"),
         ("bootstrap_progress", False, "bootstrap abort must have no planned or completed stages and no active stage"),
-        ("planning_full_plan", False, "planning abort must have an incomplete plan, no completed stages, and no active stage"),
+        ("planning_phase", False, "abort.phase is not frozen"),
         ("execution_short_plan", False, "execution abort must plan the complete frozen stage order"),
         ("execution_wrong_active", False, "execution abort active_stage must be the first unfinished stage or null"),
         ("execution_finished_active", False, "execution abort active_stage must be the first unfinished stage or null"),
@@ -410,10 +407,8 @@ def test_container_receipt_rejects_abort_branch_crossovers_and_incomplete_proof(
             document["abort"]["planned_stages"] = ["build"]
             document["abort"]["completed_stages"] = []
             document["abort"]["active_stage"] = None
-        elif mutation == "planning_full_plan":
+        elif mutation == "planning_phase":
             document["abort"]["phase"] = "planning"
-            document["abort"]["completed_stages"] = []
-            document["abort"]["active_stage"] = None
         elif mutation == "execution_short_plan":
             document["abort"]["planned_stages"] = ["build"]
             document["abort"]["completed_stages"] = []

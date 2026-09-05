@@ -227,7 +227,7 @@
       ],
       "properties": {
         "signal": { "const": "TERM" },
-        "phase": { "enum": ["bootstrap", "planning", "execution"] },
+        "phase": { "enum": ["bootstrap", "execution"] },
         "active_stage": {
           "oneOf": [
             { "type": "null" },
@@ -254,16 +254,6 @@
             "properties": {
               "active_stage": { "const": null },
               "planned_stages": { "const": [] },
-              "completed_stages": { "const": [] }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "phase": { "const": "planning" } } },
-          "then": {
-            "properties": {
-              "active_stage": { "const": null },
-              "planned_stages": { "maxItems": 3 },
               "completed_stages": { "const": [] }
             }
           }

@@ -529,7 +529,7 @@ def _validate_abort(value: object) -> tuple[tuple[str, ...], tuple[str, ...]]:
     _require_exact_keys(abort, _ABORT_KEYS, "abort keys are not closed and canonical")
     _require_exact(abort, "signal", "TERM")
     phase = _require_string(_field(abort, "phase"), "abort.phase")
-    if phase not in ("bootstrap", "planning", "execution"):
+    if phase not in ("bootstrap", "execution"):
         _fail("abort.phase is not frozen")
     active_stage = _field(abort, "active_stage")
     if active_stage is not None and (type(active_stage) is not str or active_stage not in _CONTAINER_STAGES):
@@ -544,9 +544,6 @@ def _validate_abort(value: object) -> tuple[tuple[str, ...], tuple[str, ...]]:
     if phase == "bootstrap":
         if planned or completed or active_stage is not None:
             _fail("bootstrap abort must have no planned or completed stages and no active stage")
-    elif phase == "planning":
-        if completed or active_stage is not None or len(planned) >= len(_CONTAINER_STAGES):
-            _fail("planning abort must have an incomplete plan, no completed stages, and no active stage")
     else:
         if planned != _CONTAINER_STAGES:
             _fail("execution abort must plan the complete frozen stage order")
