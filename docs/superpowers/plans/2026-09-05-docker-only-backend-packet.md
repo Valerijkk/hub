@@ -221,6 +221,61 @@ tests and all prior targeted regressions. Task 3F independent final review
 returns C/I/M 0/0/0. The latest full suite (519/71) predates Tasks 3F/3G.
 Task 3G independent final review also returns C/I/M 0/0/0; source accepted.
 
+Post-3G actual attempt at pushed `274c6e9f06ee92f57bb4fda6eba15745d82d3bde`:
+outer run `worktree-master-backend-unit-run-2d250dfe6b80` exited 1 with
+`BACKEND_UNIT_ABORT_MONITOR`. It was already removed before live inspect;
+do not invent resource/engine-ID telemetry for this run. Its newly timestamped
+partial is `backend-unit-1426b56df41b.partial`. No completed stage exists.
+
+Task 3H root cause is concrete: `monitor_owned_budget_stop` calls the
+report-root-only `_run_dir_target_is_safe` for a marker that `run_stage`
+always creates in RAM scratch, `$stage_scratch/stop.$package_ordinal`.
+This rejects the intended marker before monitoring the still-live child.
+Own only that function and new `test_backend_unit_monitor_scratch.py`.
+Replace only that wrong guard with fixed GOTMPDIR, stage enum, exact
+8-alphanumeric scratch suffix, current directory identity via existing
+`_execute_scratch_is_current`, positive decimal ordinal, exact marker path
+and non-symlink checks. All four helpers are loaded before this runtime
+call; the delegated identity checker adds no new authority or dependency.
+Keep PID binding, process capture, budget and zombie-state logic unchanged.
+An isolated real-shell test stubs only delegated scratch identity/process
+states and first proves the intended RAM path is rejected by the old guard.
+Do not alias report and scratch roots or weaken the global report validator.
+
+Task 3H evidence: Docker focused RED 2 failed (0.67s), GREEN 2 passed
+(0.66s). Independent final review C/I/M 0/0/1; M1 is explicitly nonblocking:
+the unit stubs delegated scratch identity, and the read-only Python rootfs
+cannot create a real symlink under fixed /var/tmp/hub-go. Exact marker
+equality and the symlink guard precede capture/probing in source. A real
+RAM-marker symlink scenario remains NOT_RUN; no mount or privilege is added.
+Current-runner regression: backend-monitor-scratch-targeted-20260905.xml,
+65 passed / 529 deselected, 5.77s, exit 0. A prior overbroad selector included
+all topology/legacy lexical contracts and yielded 84 passed / 21 failed
+(18.04s); backend-monitor-scratch-regression-20260905.xml is retained.
+No test was removed or changed to turn that broader run green. Overall
+framework acceptance remains NOT_ACCEPTED; latest full result is 519/71
+and predates 3F/3G/3H. Root accepts 3H's bounded behavior with the stated M1.
+
+Task 3I frozen root contract (after 3H): repair only the already-observed
+shell auto-reap lifecycle in runtime.sh::monitor_owned_budget_stop and
+runtime.sh::reap_owned_go_child_group, with one new framework selftest
+testframework/selftests/architecture/test_backend_unit_reaped_child.py.
+Accept missing:none alongside valid-zombie:valid-zombie only after the
+existing owned identity capture/validation. Monitor keeps absent-marker=0
+and present-marker=1; reaper must call the real parent wait, preserve the
+cached child exit and existing cleanup/clearing. All inconsistent/live,
+invalid identity and uncaptured states remain fail-closed. No signal rights,
+termination helpers, capture strategy, resource budgets or Go product code
+change. Oracles execute actual shell functions: captured missing:none,
+zombie baseline, invalid/missing-with-live negatives, uncaptured failure,
+and an owned shell child whose cached exit is 17 after /proc disappears.
+Unit stubs for process/identity boundaries must be explicit; they do not
+prove a Go process-group acceptance. Tests first RED, then minimal production
+patch and Docker GREEN plus current runner regressions, independent review.
+This is a latent defect evidenced by Task 3F, not the cause of the actual
+Task 3G MONITOR abort. Test authoring can run separately; production edits
+must wait until 3H is committed. Root owns docs and Docker execution.
+
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must
 pass before actual Go execution; obsolete Windows observer attestation is not

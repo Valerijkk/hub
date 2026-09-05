@@ -1180,7 +1180,20 @@ the actual Go abort, whose kill path required a still-live owned child.
 Task 3G adds six fixed abort reasons with unchanged guards/cleanup;
 its source-contract RED and 63-test targeted Docker GREEN are recorded in
 the active plan. Next is the actual backend attempt with those markers.
+The diagnostic checkpoint `274c6e9f` is pushed. Its next actual backend run
+`2d250dfe6b80` exited 1 with `BACKEND_UNIT_ABORT_MONITOR`. Root identified
+the intended RAM stop-marker being rejected by a report-root-only guard.
+Task 3H owns correcting only that monitor path check with current scratch
+identity and exact path validation; no monitor lifecycle changes are bundled.
 Existing linked worktree is retained; no product-readiness claim is made.
+Task 3H focused Docker RED/GREEN is 2 FAIL then 2 PASS. The exact current
+launcher regression is 65 PASS / 529 deselected (5.77s), report
+backend-monitor-scratch-targeted-20260905.xml. Independent review C/I/M
+0/0/1: nonblocking real RAM-marker symlink coverage gap, source guard kept;
+no new mount/privilege. An accidentally broader selector also ran the full
+topology file: 84 PASS / 21 FAIL, retained as a separate failing report.
+It is not a green framework claim. Next frozen atom 3I handles the separately
+observed shell auto-reap missing:none lifecycle, then actual backend gate.
 
 **Previous checkpoint detail:** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and

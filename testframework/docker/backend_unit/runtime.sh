@@ -761,7 +761,17 @@ monitor_owned_budget_stop() {
   monitored_pid="$1"
   budget_stop_marker="$2"
   [ "$monitored_pid" = "${go_child_pid-}" ] || return 75
-  _run_dir_target_is_safe "$budget_stop_marker" || return 75
+  [ "${GOTMPDIR-}" = /var/tmp/hub-go ] || return 75
+  case "${stage-}" in build|vet|unit|race) ;; *) return 75 ;; esac
+  case "${stage_scratch-}" in
+    "$GOTMPDIR/.backend-unit-stage-$stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;;
+    *) return 75 ;;
+  esac
+  _execute_scratch_is_current "$stage_scratch" "${stage_scratch_identity-}" || return 75
+  case "${package_ordinal-}" in ''|*[!0-9]*) return 75 ;; esac
+  [ "$package_ordinal" -ge 1 ] || return 75
+  [ "$budget_stop_marker" = "$stage_scratch/stop.$package_ordinal" ] || return 75
+  [ ! -L "$budget_stop_marker" ] || return 75
   if [ -z "${go_child_identity-}" ]; then
     if _capture_owned_go_child_identity; then
       :
