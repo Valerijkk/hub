@@ -36,6 +36,8 @@ class PublicationRenameError(PublicationError):
 
 _PARTIAL_SUFFIX = ".partial"
 _COMPLETE_MARKER = "CONTAINER_COMPLETE"
+_ABORTED_MARKER = "CONTAINER_ABORTED"
+_TERMINAL_MARKERS = (_COMPLETE_MARKER, _ABORTED_MARKER)
 _CONTAINER_RECEIPT = "container-receipt.json"
 _FINAL_RECEIPT = "final-receipt.json"
 _OBSERVER_RECEIPT = "observer-receipt.json"
@@ -147,7 +149,7 @@ def _descriptor_identity(snapshot: Any) -> tuple[int, int, int, int, int, int, i
 
 
 def _read_regular_relative(
-    run_dir: Path, relative: str
+    run_dir: Path, relative: str, *, allow_empty: bool = False
 ) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
     descriptor = -1
     try:
@@ -155,7 +157,12 @@ def _read_regular_relative(
         before_snapshot = safe_paths._fstat(None, descriptor)
         before = safe_paths._require_regular(before_snapshot)
         size = int(before["size"])
-        if size <= 0 or size > _MAX_RECEIPT_BYTES:
+        if (
+            type(allow_empty) is not bool
+            or size < 0
+            or size > _MAX_RECEIPT_BYTES
+            or (size == 0 and not allow_empty)
+        ):
             raise PublicationError(f"{relative} has an unsafe receipt size")
         if os.name == "nt":
             payload = _read_windows_handle(descriptor, size)
@@ -280,8 +287,14 @@ def _unlink_regular(path: Path) -> bool:
 class _SafePublicationWriter:
     """Production seam restricted to descriptor-anchored safe-path operations."""
 
+    def list_terminal_markers(self, run_dir: Path) -> tuple[str, ...]:
+        try:
+            names = safe_paths.list_directory_relative(run_dir.parent, run_dir.name)
+            return tuple(marker for marker in _TERMINAL_MARKERS if marker in names)
+        except Exception as exc:
+            raise PublicationError("terminal marker directory state is unavailable") from exc
+
     def assert_terminal_and_stable(self, run_dir: Path) -> None:
-        _assert_empty_regular_marker(run_dir)
         _read_regular_relative(run_dir, _CONTAINER_RECEIPT)
 
     def assert_absent(self, final_dir: Path) -> None:
@@ -314,7 +327,11 @@ class _SafePublicationWriter:
     def read(
         self, run_dir: Path, relative: str
     ) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
-        return _read_regular_relative(run_dir, relative)
+        return _read_regular_relative(
+            run_dir,
+            relative,
+            allow_empty=relative in _TERMINAL_MARKERS,
+        )
 
     def write(self, path: Path, payload: bytes) -> None:
         try:
@@ -414,7 +431,9 @@ def _inventory_entry(observer: Mapping[str, object], path: str, payload: bytes) 
         raise PublicationError(f"observer artifact inventory does not bind exact {path} bytes")
 
 
-def _validate_container_bytes(final: Mapping[str, object], observer: Mapping[str, object], payload: bytes) -> None:
+def _validate_container_bytes(
+    final: Mapping[str, object], observer: Mapping[str, object], payload: bytes
+) -> dict[str, object]:
     document = _parse_canonical_json(payload, _CONTAINER_RECEIPT)
     try:
         validate_container_receipt(document)
@@ -437,6 +456,7 @@ def _validate_container_bytes(final: Mapping[str, object], observer: Mapping[str
     if final.get("container_receipt_sha256") != digest or observer.get("container_receipt_sha256") != digest:
         raise PublicationError("container receipt bytes do not bind final and observer receipts")
     _inventory_entry(observer, _CONTAINER_RECEIPT, payload)
+    return document
 
 
 def _seal_bytes(final: Mapping[str, object], observer_payload: bytes) -> bytes:
@@ -517,6 +537,55 @@ def _read_exact(
     return actual, identity
 
 
+def _expected_terminal_marker(container: Mapping[str, object]) -> str:
+    state = container.get("state")
+    if state == _COMPLETE_MARKER:
+        return _COMPLETE_MARKER
+    if state == _ABORTED_MARKER:
+        return _ABORTED_MARKER
+    raise PublicationError("container receipt state does not select a terminal marker")
+
+
+def _assert_terminal_marker_set(
+    lister: Callable[[Path], tuple[str, ...]], run_dir: Path, expected: str
+) -> None:
+    try:
+        present = lister(run_dir)
+    except Exception as exc:
+        raise PublicationError("terminal marker directory state is unavailable") from exc
+    if (
+        type(present) is not tuple
+        or any(type(marker) is not str for marker in present)
+        or len(present) != len(set(present))
+        or any(marker not in _TERMINAL_MARKERS for marker in present)
+        or set(present) != {expected}
+    ):
+        raise PublicationError("container terminal markers do not select exactly one expected marker")
+
+
+def _assert_empty_terminal_marker(
+    reader: Callable[
+        [Path, str], tuple[bytes, tuple[int, int, int, int, int, int, int]]
+    ],
+    lister: Callable[[Path], tuple[str, ...]],
+    run_dir: Path,
+    expected: str,
+    *,
+    expected_identity: tuple[int, int, int, int, int, int, int] | None = None,
+) -> tuple[int, int, int, int, int, int, int]:
+    _assert_terminal_marker_set(lister, run_dir, expected)
+    payload, identity = _read_payload(
+        reader,
+        run_dir,
+        expected,
+        expected_identity=expected_identity,
+    )
+    if payload != b"":
+        raise PublicationError(f"{expected} must be an empty terminal marker")
+    _assert_terminal_marker_set(lister, run_dir, expected)
+    return identity
+
+
 def _normalize_prewrite(call: Callable[[], None]) -> None:
     try:
         call()
@@ -579,6 +648,7 @@ def publish(
         raise PublicationError("publication validator is not callable")
     try:
         assert_terminal = active_writer.assert_terminal_and_stable
+        list_terminal_markers = active_writer.list_terminal_markers
         assert_absent = active_writer.assert_absent
         read = active_writer.read
         write = active_writer.write
@@ -586,7 +656,7 @@ def publish(
         rename = active_writer.rename_same_directory
     except Exception as exc:
         raise PublicationError("publication writer seam is incomplete") from exc
-    if not all(callable(call) for call in (assert_terminal, assert_absent, read, write, remove, rename)):
+    if not all(callable(call) for call in (assert_terminal, list_terminal_markers, assert_absent, read, write, remove, rename)):
         raise PublicationError("publication writer seam is incomplete")
 
     _normalize_prewrite(lambda: assert_terminal(run_dir))
@@ -595,7 +665,14 @@ def publish(
     container_payload, container_identity = _read_payload(
         read, run_dir, _CONTAINER_RECEIPT
     )
-    _validate_container_bytes(final, observer, container_payload)
+    container = _validate_container_bytes(final, observer, container_payload)
+    expected_marker = _expected_terminal_marker(container)
+    marker_identity = _assert_empty_terminal_marker(
+        read,
+        list_terminal_markers,
+        run_dir,
+        expected_marker,
+    )
     _normalize_prewrite(lambda: instrumentation(final, observer))
     _normalize_prewrite(lambda: _validate_semantics(final, observer))
     container_payload, _ = _read_payload(
@@ -604,7 +681,16 @@ def publish(
         _CONTAINER_RECEIPT,
         expected_identity=container_identity,
     )
-    _validate_container_bytes(final, observer, container_payload)
+    container = _validate_container_bytes(final, observer, container_payload)
+    if _expected_terminal_marker(container) != expected_marker:
+        raise PublicationError("container receipt terminal state changed before publication")
+    marker_identity = _assert_empty_terminal_marker(
+        read,
+        list_terminal_markers,
+        run_dir,
+        expected_marker,
+        expected_identity=marker_identity,
+    )
     final_payload = _canonical_json_bytes(final)
     _inventory_entry(observer, _FINAL_RECEIPT, final_payload)
     observer_payload = _canonical_json_bytes(observer)
@@ -665,6 +751,13 @@ def publish(
             or parsed_seal["observer_receipt_sha256"] != _digest(written_observer_payload)
         ):
             raise PublicationError("written SEAL does not bind exact written observer bytes")
+        _assert_empty_terminal_marker(
+            read,
+            list_terminal_markers,
+            run_dir,
+            expected_marker,
+            expected_identity=marker_identity,
+        )
         try:
             _rename_with_outcome(rename, run_dir, final_dir)
         except PublicationRenameError as exc:
