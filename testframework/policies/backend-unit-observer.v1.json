@@ -126,11 +126,39 @@
     "testframework/selftests/architecture/docker/**",
     "testframework/selftests/architecture/observers/**"
   ],
-  "manifest_snapshot_stages": [
+  "root_handoff_snapshot_stages": [
+    "prebuild",
+    "postgreen"
+  ],
+  "observer_snapshot_stages": [
     "prebuild",
     "postgreen",
     "observer_snapshot"
   ],
+  "root_handoff": {
+    "module": "observers.backend_unit.root_handoff",
+    "python": "python",
+    "python_version": "3.12",
+    "cwd": ".",
+    "invocations": [
+      [
+        "python",
+        "-m",
+        "observers.backend_unit.root_handoff",
+        "--phase",
+        "prebuild"
+      ],
+      [
+        "python",
+        "-m",
+        "observers.backend_unit.root_handoff",
+        "--phase",
+        "postgreen"
+      ]
+    ],
+    "provisional_report_path": "testframework/reports/.backend-unit-root-handoff.prebuild.v1.json",
+    "final_report_path": "testframework/reports/.backend-unit-root-handoff.v1.json"
+  },
   "candidate_binding": {
     "exactly_one": true,
     "compose_project_label": "com.docker.compose.project",

@@ -127,6 +127,39 @@
       "testframework/selftests/architecture/observers/**"
     ],
     "snapshot_assertion_source": "testframework/selftests/architecture/observers/test_backend_unit_observer.py",
-    "fixture_path": "testframework/selftests/architecture/observers/fixtures/backend_unit/valid/observer-receipt.json"
+    "fixture_path": "testframework/selftests/architecture/observers/fixtures/backend_unit/valid/observer-receipt.json",
+    "root_handoff_snapshot_stages": [
+      "prebuild",
+      "postgreen"
+    ],
+    "observer_snapshot_stages": [
+      "prebuild",
+      "postgreen",
+      "observer_snapshot"
+    ],
+    "root_handoff": {
+      "module": "observers.backend_unit.root_handoff",
+      "python": "python",
+      "python_version": "3.12",
+      "cwd": ".",
+      "invocations": [
+        [
+          "python",
+          "-m",
+          "observers.backend_unit.root_handoff",
+          "--phase",
+          "prebuild"
+        ],
+        [
+          "python",
+          "-m",
+          "observers.backend_unit.root_handoff",
+          "--phase",
+          "postgreen"
+        ]
+      ],
+      "provisional_report_path": "testframework/reports/.backend-unit-root-handoff.prebuild.v1.json",
+      "final_report_path": "testframework/reports/.backend-unit-root-handoff.v1.json"
+    }
   }
 }
