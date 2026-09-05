@@ -43,7 +43,13 @@ _FILE_SYNCHRONOUS_IO_NONALERT = 0x00000020
 _OBJ_CASE_INSENSITIVE = 0x00000040
 _FILE_RENAME_INFO = 3
 _FILE_DISPOSITION_INFO = 4
+_FILE_BASIC_INFO = 0
 _RENAME_NOREPLACE = 0x00000001
+_FILE_ID_BOTH_DIRECTORY_INFORMATION = 37
+_STATUS_NO_MORE_FILES = 0x80000006
+_WINDOWS_DIRECTORY_BUFFER_BYTES = 64 * 1024
+_MAX_DIRECTORY_ENTRIES = 16 * 1024
+_MAX_DIRECTORY_NAME_BYTES = 1024
 
 
 def _is_windows(ops: Any | None) -> bool:
@@ -145,6 +151,63 @@ def _require_directory(snapshot: Any) -> dict[str, int | bool]:
     return values
 
 
+def _directory_identity(snapshot: Any) -> tuple[int, int, int, int, int, int]:
+    values = _require_directory(snapshot)
+    if values["disk"] is not True:
+        raise SafePathError("directory is not on a disk filesystem")
+    try:
+        metadata = (
+            (
+                snapshot["mode"],
+                snapshot["mtime_ns"],
+                snapshot["ctime_ns"],
+            )
+            if isinstance(snapshot, dict)
+            else (
+                snapshot.st_mode,
+                snapshot.st_mtime_ns,
+                snapshot.st_ctime_ns,
+            )
+        )
+    except Exception as exc:
+        raise SafePathError("directory generation metadata is unavailable") from exc
+    if any(type(value) is not int for value in metadata):
+        raise SafePathError("directory generation metadata is malformed")
+    mode, mtime_ns, ctime_ns = metadata
+    return (
+        int(values["device"]),
+        int(values["inode"]),
+        mode,
+        int(values["nlink"]),
+        mtime_ns,
+        ctime_ns,
+    )
+
+
+def _validate_directory_limits(max_entries: int, max_name_bytes: int) -> None:
+    if (
+        type(max_entries) is not int
+        or not 1 <= max_entries <= _MAX_DIRECTORY_ENTRIES
+        or type(max_name_bytes) is not int
+        or not 1 <= max_name_bytes <= _MAX_DIRECTORY_NAME_BYTES
+    ):
+        raise SafePathError("directory enumeration limits are unsafe")
+
+
+def _validate_directory_entry_name(name: object, max_name_bytes: int) -> str:
+    if type(name) is not str or name in (".", ".."):
+        raise SafePathError("directory entry name is unsafe")
+    if "\x00" in name or "/" in name or "\\" in name:
+        raise SafePathError("directory entry name is unsafe")
+    try:
+        encoded = name.encode("utf-8", "strict")
+    except UnicodeError as exc:
+        raise SafePathError("directory entry name is not UTF-8") from exc
+    if not encoded or len(encoded) > max_name_bytes:
+        raise SafePathError("directory entry name exceeds its bound")
+    return name
+
+
 def _posix_openat(directory_fd: int, name: str, flags: int, mode: int = 0) -> int:
     try:
         library = ctypes.CDLL(None, use_errno=True)
@@ -236,6 +299,31 @@ def _open_posix_leaf(root: Path, parts: tuple[str, ...], ops: Any | None) -> tup
         raise
 
 
+def _open_posix_directory_relative(
+    root: Path, parts: tuple[str, ...]
+) -> tuple[int, int]:
+    descriptor, root_device = _posix_open_directory(root)
+    flags = os.O_RDONLY | _O_DIRECTORY | O_NOFOLLOW | _O_CLOEXEC | _O_BINARY
+    try:
+        if _directory_identity(_fstat(None, descriptor))[0] != root_device:
+            raise SafePathError("directory crossed a device boundary")
+        for part in parts:
+            child = _posix_openat(descriptor, part, flags)
+            try:
+                values = _directory_identity(_fstat(None, child))
+                if values[0] != root_device:
+                    raise SafePathError("directory crossed a device boundary")
+            except Exception:
+                _close(None, child)
+                raise
+            _close(None, descriptor)
+            descriptor = child
+        return descriptor, root_device
+    except Exception:
+        _close(None, descriptor)
+        raise
+
+
 def _windows_fstat(descriptor: int) -> dict[str, int | bool]:
     try:
         field = ctypes.c_uint32
@@ -260,17 +348,56 @@ def _windows_fstat(descriptor: int) -> dict[str, int | bool]:
                 ]
             },
         )
+        basic_type = type(
+            "_FileBasicInfo",
+            (ctypes.Structure,),
+            {
+                "_fields_": [
+                    ("CreationTime", ctypes.c_int64),
+                    ("LastAccessTime", ctypes.c_int64),
+                    ("LastWriteTime", ctypes.c_int64),
+                    ("ChangeTime", ctypes.c_int64),
+                    ("FileAttributes", ctypes.c_uint32),
+                ]
+            },
+        )
         info = info_type()
         get_info = ctypes.windll.kernel32.GetFileInformationByHandle
         get_info.argtypes = (ctypes.c_void_p, ctypes.POINTER(info_type))
         get_info.restype = ctypes.c_int
         if not get_info(ctypes.c_void_p(descriptor), ctypes.byref(info)):
             raise OSError(ctypes.get_last_error(), "GetFileInformationByHandle failed")
+        basic = basic_type()
+        if ctypes.sizeof(basic_type) != 40:
+            raise SafePathError("FileBasicInfo layout is invalid")
+        get_basic = ctypes.windll.kernel32.GetFileInformationByHandleEx
+        get_basic.argtypes = (
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+        )
+        get_basic.restype = ctypes.c_int
+        if not get_basic(
+            ctypes.c_void_p(descriptor),
+            _FILE_BASIC_INFO,
+            ctypes.byref(basic),
+            ctypes.sizeof(basic_type),
+        ):
+            raise OSError(
+                ctypes.get_last_error(),
+                "GetFileInformationByHandleEx(FileBasicInfo) failed",
+            )
+        if int(basic.FileAttributes) != int(info.attributes):
+            raise SafePathError("Windows directory metadata changed while inspected")
         file_type = ctypes.windll.kernel32.GetFileType(ctypes.c_void_p(descriptor))
         return {
             "device": int(info.volume),
             "inode": (int(info.index_high) << 32) | int(info.index_low),
             "size": (int(info.size_high) << 32) | int(info.size_low),
+            "mode": int(info.attributes),
+            "mtime_ns": int(basic.LastWriteTime) * 100,
+            "ctime_ns": int(basic.ChangeTime) * 100,
             "regular": not bool(info.attributes & _FILE_ATTRIBUTE_DIRECTORY),
             "nlink": int(info.links),
             "reparse": bool(info.attributes & _FILE_ATTRIBUTE_REPARSE_POINT),
@@ -587,6 +714,198 @@ def _open_windows_leaf(
         raise
 
 
+def _open_windows_directory_relative(
+    root: Path, parts: tuple[str, ...]
+) -> tuple[int, int]:
+    descriptor, ancestors, root_device = _nt_open_absolute_directory(root)
+    retained = list(ancestors)
+    child = -1
+    try:
+        if _directory_identity(_fstat(None, descriptor))[0] != root_device:
+            raise SafePathError("directory crossed a device boundary")
+        for part in parts:
+            child = _nt_open_relative(descriptor, part, True)
+            try:
+                values = _directory_identity(_fstat(None, child))
+                if values[0] != root_device:
+                    raise SafePathError("directory crossed a device boundary")
+            except Exception:
+                _close(None, child)
+                child = -1
+                raise
+            retained.append(child)
+            descriptor = child
+            child = -1
+        for ancestor in reversed(retained[:-1]):
+            _close(None, ancestor)
+        return descriptor, root_device
+    except Exception:
+        if child >= 0:
+            _close(None, child)
+        for ancestor in reversed(retained):
+            _close(None, ancestor)
+        raise
+
+
+def _posix_directory_entry_names(
+    descriptor: int, max_entries: int, max_name_bytes: int
+) -> tuple[str, ...]:
+    enumeration_descriptor = -1
+    try:
+        enumeration_descriptor = os.dup(descriptor)
+        scan = os.scandir(enumeration_descriptor)
+        enumeration_descriptor = -1
+        names: list[str] = []
+        with scan:
+            for entry in scan:
+                if len(names) >= max_entries:
+                    raise SafePathError("directory entry count exceeds its bound")
+                names.append(
+                    _validate_directory_entry_name(entry.name, max_name_bytes)
+                )
+        if len(names) != len(set(names)):
+            raise SafePathError("directory enumeration contains duplicate names")
+        return tuple(sorted(names))
+    except SafePathError:
+        raise
+    except Exception as exc:
+        raise SafePathError("descriptor-relative directory enumeration failed") from exc
+    finally:
+        if enumeration_descriptor >= 0:
+            _close(None, enumeration_descriptor)
+
+
+def _nt_directory_entry_names(
+    descriptor: int, max_entries: int, max_name_bytes: int
+) -> tuple[str, ...]:
+    try:
+        io_status_type = type(
+            "_IoStatusBlock",
+            (ctypes.Structure,),
+            {
+                "_fields_": [
+                    ("Status", ctypes.c_long),
+                    ("Information", ctypes.c_size_t),
+                ]
+            },
+        )
+        entry_type = type(
+            "_FileIdBothDirectoryInformation",
+            (ctypes.Structure,),
+            {
+                "_fields_": [
+                    ("NextEntryOffset", ctypes.c_uint32),
+                    ("FileIndex", ctypes.c_uint32),
+                    ("CreationTime", ctypes.c_int64),
+                    ("LastAccessTime", ctypes.c_int64),
+                    ("LastWriteTime", ctypes.c_int64),
+                    ("ChangeTime", ctypes.c_int64),
+                    ("EndOfFile", ctypes.c_int64),
+                    ("AllocationSize", ctypes.c_int64),
+                    ("FileAttributes", ctypes.c_uint32),
+                    ("FileNameLength", ctypes.c_uint32),
+                    ("EaSize", ctypes.c_uint32),
+                    ("ShortNameLength", ctypes.c_ubyte),
+                    ("ShortName", ctypes.c_uint16 * 12),
+                    ("FileId", ctypes.c_int64),
+                ]
+            },
+        )
+        query = ctypes.windll.ntdll.NtQueryDirectoryFile
+        query.argtypes = (
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.POINTER(io_status_type),
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_int,
+            ctypes.c_ubyte,
+            ctypes.c_void_p,
+            ctypes.c_ubyte,
+        )
+        query.restype = ctypes.c_long
+        entry_size = ctypes.sizeof(entry_type)
+        if entry_size != 104:
+            raise SafePathError("NT directory entry layout is invalid")
+        names: list[str] = []
+        restart = True
+        while True:
+            buffer = ctypes.create_string_buffer(_WINDOWS_DIRECTORY_BUFFER_BYTES)
+            io_status = io_status_type()
+            status = int(
+                query(
+                    ctypes.c_void_p(descriptor),
+                    None,
+                    None,
+                    None,
+                    ctypes.byref(io_status),
+                    buffer,
+                    _WINDOWS_DIRECTORY_BUFFER_BYTES,
+                    _FILE_ID_BOTH_DIRECTORY_INFORMATION,
+                    0,
+                    None,
+                    int(restart),
+                )
+            ) & 0xFFFFFFFF
+            restart = False
+            if status == _STATUS_NO_MORE_FILES:
+                break
+            if status != 0:
+                raise SafePathError("NT directory enumeration was not complete")
+            transferred = int(io_status.Information)
+            if not 1 <= transferred <= _WINDOWS_DIRECTORY_BUFFER_BYTES:
+                raise SafePathError("NT directory enumeration length is invalid")
+            offset = 0
+            while offset < transferred:
+                if transferred - offset < entry_size:
+                    raise SafePathError("NT directory entry is truncated")
+                record = entry_type.from_buffer_copy(buffer, offset)
+                name_bytes = int(record.FileNameLength)
+                if name_bytes < 2 or name_bytes % 2:
+                    raise SafePathError("NT directory entry name is malformed")
+                minimum = entry_size + name_bytes
+                next_offset = int(record.NextEntryOffset)
+                if next_offset:
+                    if (
+                        next_offset % 8
+                        or next_offset < minimum
+                        or offset + next_offset > transferred
+                    ):
+                        raise SafePathError("NT directory entry offset is malformed")
+                    next_position = offset + next_offset
+                else:
+                    if offset + minimum > transferred:
+                        raise SafePathError("NT directory entry is truncated")
+                    next_position = transferred
+                if record.FileAttributes & _FILE_ATTRIBUTE_REPARSE_POINT:
+                    raise SafePathError("NT directory entry is a reparse point")
+                raw_name = ctypes.string_at(
+                    ctypes.addressof(buffer) + offset + entry_size,
+                    name_bytes,
+                )
+                try:
+                    name = raw_name.decode("utf-16-le", "strict")
+                except UnicodeError as exc:
+                    raise SafePathError(
+                        "NT directory entry name is malformed"
+                    ) from exc
+                if len(names) >= max_entries:
+                    raise SafePathError("directory entry count exceeds its bound")
+                names.append(
+                    _validate_directory_entry_name(name, max_name_bytes)
+                )
+                offset = next_position
+        if len(names) != len(set(names)):
+            raise SafePathError("NT directory enumeration contains duplicate names")
+        return tuple(sorted(names))
+    except SafePathError:
+        raise
+    except Exception as exc:
+        raise SafePathError("NT directory enumeration failed") from exc
+
+
 def open_regular_relative(root: Path, relative: str, *, ops: Any | None = None) -> int:
     candidate = root / relative
     if candidate.name.casefold() == "readme.md":
@@ -615,6 +934,52 @@ def open_regular_relative(root: Path, relative: str, *, ops: Any | None = None) 
     finally:
         for ancestor in reversed(retained):
             _close(ops, ancestor)
+
+
+def list_directory_relative(
+    root: Path,
+    relative: str,
+    *,
+    max_entries: int = 4096,
+    max_name_bytes: int = 255,
+) -> tuple[str, ...]:
+    if not isinstance(root, Path) or not root.is_absolute():
+        raise SafePathError("directory root is not an absolute anchored path")
+    _validate_directory_limits(max_entries, max_name_bytes)
+    windows = os.name == "nt"
+    parts = _relative_parts(relative, windows)
+    descriptor = -1
+    try:
+        if windows:
+            descriptor, root_device = _open_windows_directory_relative(root, parts)
+        else:
+            descriptor, root_device = _open_posix_directory_relative(root, parts)
+        before = _directory_identity(_fstat(None, descriptor))
+        if before[0] != root_device:
+            raise SafePathError("directory crossed a device boundary")
+        if windows:
+            names = _nt_directory_entry_names(
+                descriptor,
+                max_entries,
+                max_name_bytes,
+            )
+        else:
+            names = _posix_directory_entry_names(
+                descriptor,
+                max_entries,
+                max_name_bytes,
+            )
+        after = _directory_identity(_fstat(None, descriptor))
+        if after != before:
+            raise SafePathError("directory changed while being enumerated")
+        return names
+    except SafePathError:
+        raise
+    except Exception as exc:
+        raise SafePathError("directory enumeration failed") from exc
+    finally:
+        if descriptor >= 0:
+            _close(None, descriptor)
 
 
 def _output_name(path: Path, windows: bool) -> str:
