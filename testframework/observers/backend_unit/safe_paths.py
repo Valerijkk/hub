@@ -50,6 +50,7 @@ _STATUS_NO_MORE_FILES = 0x80000006
 _WINDOWS_DIRECTORY_BUFFER_BYTES = 64 * 1024
 _MAX_DIRECTORY_ENTRIES = 16 * 1024
 _MAX_DIRECTORY_NAME_BYTES = 1024
+_MAX_DESCRIPTOR_READ_BYTES = 64 * 1024 * 1024
 
 
 def _is_windows(ops: Any | None) -> bool:
@@ -934,6 +935,110 @@ def open_regular_relative(root: Path, relative: str, *, ops: Any | None = None) 
     finally:
         for ancestor in reversed(retained):
             _close(ops, ancestor)
+
+
+def _read_descriptor_exact(
+    descriptor: int, size: int, *, ops: Any | None, windows: bool
+) -> bytes:
+    if type(size) is not int or size < 0:
+        raise SafePathError("descriptor read size is unsafe")
+    if size == 0:
+        return b""
+    chunks: list[bytes] = []
+    remaining = size
+    try:
+        if ops is not None:
+            read = getattr(ops, "read", None)
+            if not callable(read):
+                raise SafePathError("rooted read ops are required")
+            while remaining:
+                chunk = read(descriptor, min(65_536, remaining))
+                if type(chunk) is not bytes or not chunk or len(chunk) > remaining:
+                    raise SafePathError("descriptor read did not match its stable size")
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            return b"".join(chunks)
+        if not windows:
+            while remaining:
+                chunk = os.read(descriptor, min(65_536, remaining))
+                if not chunk or len(chunk) > remaining:
+                    raise SafePathError("descriptor read did not match its stable size")
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            return b"".join(chunks)
+        read_file = ctypes.windll.kernel32.ReadFile
+        read_file.argtypes = (
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32),
+            ctypes.c_void_p,
+        )
+        read_file.restype = ctypes.c_int
+        while remaining:
+            length = min(65_536, remaining)
+            buffer = ctypes.create_string_buffer(length)
+            received = ctypes.c_uint32()
+            if not read_file(
+                ctypes.c_void_p(descriptor),
+                buffer,
+                length,
+                ctypes.byref(received),
+                None,
+            ):
+                raise OSError(ctypes.get_last_error(), "ReadFile failed")
+            consumed = int(received.value)
+            if not 0 < consumed <= remaining:
+                raise SafePathError("descriptor read did not match its stable size")
+            chunks.append(buffer.raw[:consumed])
+            remaining -= consumed
+        return b"".join(chunks)
+    except SafePathError:
+        raise
+    except Exception as exc:
+        raise SafePathError("descriptor read failed") from exc
+
+
+def read_regular_relative(
+    root: Path,
+    relative: str,
+    *,
+    max_bytes: int,
+    ops: Any | None = None,
+) -> bytes:
+    """Read one rooted regular file through a stable descriptor, never by reopen."""
+
+    if (
+        type(max_bytes) is not int
+        or not 0 <= max_bytes <= _MAX_DESCRIPTOR_READ_BYTES
+    ):
+        raise SafePathError("descriptor read bound is unsafe")
+    descriptor = -1
+    try:
+        descriptor = open_regular_relative(root, relative, ops=ops)
+        before = _fstat(ops, descriptor)
+        before_values = _require_regular(before)
+        size = int(before_values["size"])
+        if size > max_bytes:
+            raise SafePathError("regular file exceeds its descriptor read bound")
+        payload = _read_descriptor_exact(
+            descriptor,
+            size,
+            ops=ops,
+            windows=_is_windows(ops),
+        )
+        after = _fstat(ops, descriptor)
+        _require_stable(before, after)
+        if len(payload) != size:
+            raise SafePathError("regular file changed during descriptor read")
+        return payload
+    except SafePathError:
+        raise
+    except Exception as exc:
+        raise SafePathError("descriptor-stable regular read failed") from exc
+    finally:
+        if descriptor >= 0:
+            _close(ops, descriptor)
 
 
 def list_directory_relative(
