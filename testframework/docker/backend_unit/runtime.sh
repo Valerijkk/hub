@@ -652,13 +652,55 @@ owned_go_child_is_live() {
   return 0
 }
 
+_owned_go_leader_state() {
+  [ "$#" -eq 0 ] || return 64
+  case "${go_child_pid-}" in ''|*[!0-9]*) return 75 ;; esac
+  case "${go_child_pgid-}" in ''|*[!0-9]*) return 75 ;; esac
+  case "${go_child_session-}" in ''|*[!0-9]*) return 75 ;; esac
+  case "${go_child_starttime-}" in ''|*[!0-9]*) return 75 ;; esac
+  case "${go_child_identity-}" in
+    "$go_child_pid:$go_child_pgid:$go_child_session:$go_child_starttime:go") ;;
+    *) return 75 ;;
+  esac
+  if [ ! -r "/proc/$go_child_pid/stat" ]; then
+    printf '%s\n' missing
+    return 0
+  fi
+  go_leader_proc="$(
+    awk -v identifier="$go_child_pid" '$1 == identifier { print $1 ":" $2 ":" $3 ":" $5 ":" $6 ":" $22; exit }' "/proc/$go_child_pid/stat"
+  )" || return 75
+  if [ -z "$go_leader_proc" ]; then
+    printf '%s\n' missing
+    return 0
+  fi
+  go_leader_pid=${go_leader_proc%%:*}
+  go_leader_tail=${go_leader_proc#*:}
+  go_leader_comm=${go_leader_tail%%:*}
+  go_leader_tail=${go_leader_tail#*:}
+  go_leader_stat=${go_leader_tail%%:*}
+  go_leader_tail=${go_leader_tail#*:}
+  go_leader_pgid=${go_leader_tail%%:*}
+  go_leader_tail=${go_leader_tail#*:}
+  go_leader_session=${go_leader_tail%%:*}
+  go_leader_starttime=${go_leader_tail#*:}
+  case "$go_leader_pid:$go_leader_comm:$go_leader_pgid:$go_leader_session:$go_leader_starttime" in
+    "$go_child_pid:(go):$go_child_pgid:$go_child_session:$go_child_starttime") ;;
+    *) printf '%s\n' invalid; return 0 ;;
+  esac
+  case "$go_leader_stat" in
+    Z) printf '%s\n' valid-zombie ;;
+    [A-Za-z]) printf '%s\n' valid-live ;;
+    *) printf '%s\n' invalid ;;
+  esac
+}
+
 _assert_owned_signal_identity() {
   [ "$#" -eq 0 ] || return 64
   [ -n "${go_child_identity-}" ] || return 75
-  case "${go_child_pid-}:${go_child_pgid-}:${go_child_session-}:${go_child_starttime-}" in
-    [0-9]*:[0-9]*:[0-9]*:[0-9]*) ;;
-    *) return 75 ;;
-  esac
+  case "${go_child_pid-}" in ''|*[!0-9]*) return 75 ;; esac
+  case "${go_child_pgid-}" in ''|*[!0-9]*) return 75 ;; esac
+  case "${go_child_session-}" in ''|*[!0-9]*) return 75 ;; esac
+  case "${go_child_starttime-}" in ''|*[!0-9]*) return 75 ;; esac
   case "$go_child_identity" in
     "$go_child_pid:$go_child_pgid:$go_child_session:$go_child_starttime:go") ;;
     *) return 75 ;;
@@ -725,17 +767,22 @@ monitor_owned_budget_stop() {
     fi
   fi
   while :; do
+    leader_state="$(_owned_go_leader_state)" || return 75
     group_state="$(_owned_go_group_state)" || return 75
-    case "$group_state" in
-      none) break ;;
-      valid-live|valid-zombie) ;;
-      invalid) return 75 ;;
+    case "$leader_state:$group_state" in
+      valid-live:valid-live)
+        [ ! -e "$budget_stop_marker" ] || return 1
+        sleep 1
+        ;;
+      valid-zombie:valid-zombie)
+        [ ! -e "$budget_stop_marker" ] || return 1
+        return 0
+        ;;
+      valid-zombie:valid-live) return 75 ;;
+      valid-live:valid-zombie|valid-live:none|valid-zombie:none|invalid:*|missing:*|*:invalid) return 75 ;;
+      *) return 75 ;;
     esac
-    [ ! -e "$budget_stop_marker" ] || return 1
-    sleep 1
   done
-  [ ! -e "$budget_stop_marker" ] || return 1
-  return 0
 }
 
 terminate_owned_go_child_group() {
@@ -744,19 +791,32 @@ terminate_owned_go_child_group() {
     _capture_owned_go_child_identity || return 75
   fi
   group_state="$(_owned_go_group_state)" || return 75
-  case "$group_state" in
-    none) return 0 ;;
-    valid-live) ;;
-    valid-zombie|invalid) return 75 ;;
+  leader_state="$(_owned_go_leader_state)" || return 75
+  case "$leader_state:$group_state" in
+    valid-zombie:valid-zombie) return 0 ;;
+    valid-live:valid-live|valid-zombie:valid-live) ;;
+    *) return 75 ;;
   esac
   _assert_owned_signal_identity || return 75
   kill -TERM -- "-$go_child_pgid" || return 75
   if _owned_go_group_reaches_terminal_state 5; then
     return 0
   fi
+  leader_state="$(_owned_go_leader_state)" || return 75
+  group_state="$(_owned_go_group_state)" || return 75
+  case "$leader_state:$group_state" in
+    valid-zombie:valid-zombie) return 0 ;;
+    valid-live:valid-live|valid-zombie:valid-live) ;;
+    *) return 75 ;;
+  esac
   _assert_owned_signal_identity || return 75
   kill -KILL -- "-$go_child_pgid" || return 75
-  _owned_go_group_reaches_terminal_state 5 || return 75
+  if _owned_go_group_reaches_terminal_state 5; then
+    return 0
+  fi
+  leader_state="$(_owned_go_leader_state)" || return 75
+  group_state="$(_owned_go_group_state)" || return 75
+  [ "$leader_state:$group_state" = valid-zombie:valid-zombie ] || return 75
   return 0
 }
 
@@ -787,6 +847,9 @@ reap_owned_go_child_group() {
   if [ -z "${go_child_identity-}" ]; then
     _capture_owned_go_child_identity || return 75
   fi
+  leader_state="$(_owned_go_leader_state)" || return 75
+  group_state="$(_owned_go_group_state)" || return 75
+  [ "$leader_state:$group_state" = valid-zombie:valid-zombie ] || return 75
   if wait "$go_child_pid"; then
     go_child_exit=0
   else
