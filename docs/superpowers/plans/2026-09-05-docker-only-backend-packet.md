@@ -292,6 +292,64 @@ bounded repair, not a Go process-group or product verdict. The full run
 backend-lifecycle-full-framework-20260905.xml is 529 passed / 71 failed,
 600 cases, 21.26s, exit 1: full framework NOT_ACCEPTED.
 
+Post-3I actual run at pushed 87d00eea5d452558fe7977316282f6333858ca21:
+outer 87fce5b9260b, engine
+f4deba8c14a635c498bf1c83ec462bf68e985d041b40e0ee4012bf289c471f3f,
+hostname f4deba8c14a6, start 2026-09-05T17:37:50.533750037Z,
+image sha256:cbd0b9f06bc7e499f9dd1a8a9973e4981b3e75b87f207fda259118c62101b0b9.
+Live inspect confirms memory/swap2147483648, NanoCpus6000000000,
+read-only true, PIDs256. Samples145.4MiB then1.999GiB; BlockIO0B/0B is
+Docker telemetry only, not Windows disk attestation. Closed Docker events
+window17:37:50Z..17:41:33Z contains OOM at1788629955 and1788630002,
+die75 at1788630020, duration149s. Compose reports exit1. Final OOMKilled
+inspect was impossible after auto-removal; the killed process is not known.
+Partial backend-unit-f4deba8c14a6.partial retains owner and four plans only;
+run_id backend-unit-20260905T173750Z-f4deba8c14a6-151ff241. No stage PASS.
+Mail rebuild had completed (BuildKit history) before this run, no QA overlap.
+
+Task3J frozen diagnostic, NOT a persistent profile or product acceptance:
+one retry on the unchanged Go/runner source, exactly
+`docker compose -f docker-compose.local.yml run --rm -e GOMEMLIMIT=512MiB backend-unit`.
+This single root-chosen hypothesis asks Go runtimes to collect more
+aggressively before exhausting the hard2GiB envelope. Official source:
+https://go.dev/doc/gc-guide#Memory_limit describes GOMEMLIMIT as a soft
+runtime target, not a hard process/cgroup limit or an OOM guarantee.
+512MiB is an experimental headroom choice, not a documented recommendation.
+Existing receipt.sh captures/hashes the optional value; independent Terra/high
+review confirms no current guard rejects this exact diagnostic override.
+Do not add GOGC/gcflags/GOMAXPROCS changes, mounts, disk caches, rebuild or
+test selectors. Source and coverage stay frozen. Capture exact identity,
+exit/OOM/events and partial/completed stages. At15min wall time, reassess
+the exact owned container; do not accept a hanging diagnostic as PASS.
+Only after useful runtime evidence may root freeze a persistent profile,
+its exact Compose/receipt guards and new Docker regressions as separate work.
+
+Task3J REJECTED: outerbed3d2d35751, engine
+6964a9fb6022ff3802a0e195e1b219feff83b19af632eb45af3e8cd2b1f44f26,
+start2026-09-05T17:47:28.588169423Z, sameimage/enforced2GiB/no-swap/6CPU.
+EffectiveGOMEMLIMIT512MiB and imageGOLANG_VERSION1.25.11 were read via inspect.
+Samples1.194GiB then526MiB did not prove success. Exact closed Docker events
+record OOM1788630563,1788630623,1788630689. Unpublished rows/stderr show
+backend/ent compiler signal:killed for the first three build packages.
+Root stopped only this exact owned engine (TERM15at1788630751), die75
+at1788630752, duration303s; Composeexit1. Reportpartial
+backend-unit-6964a9fb6022.partial is retained, no completedstage/packet.
+
+Task3K final distinct one-variable diagnostic, originalsource87d00eea:
+`docker compose -f docker-compose.local.yml run --rm -e GOGC=20 backend-unit`.
+No GOMEMLIMIT override or otherchange. This uses the official GC-guide's
+CPU-for-lower-heap tradeoff, not a promised numeric recommendation or fix.
+Independent Terra/high review confirms current guards do not reject GOGC.
+IMPORTANT: existing receipt observations omit GOGC, so its packet/hash does
+not attest the full diagnostic environment. Root must record effectiveGOGC,
+exactIDs/exit/OOM/stages separately, and MUST NOT accept this run as a Go
+gate or validate/advertise its packet as acceptance. Keep2GiB/no-swap/RAM
+caches/6CPU/coverage unchanged. Poll exact-container events and stop the
+owned diagnostic on the first observed OOM; reassess at15min otherwise.
+Do not repeat the same failure or persist a profile without proof. If this
+last distinct attempt also exhausts2GiB, preserve evidence and request a
+bounded resource decision rather than silently increasing RAM or disk I/O.
+
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must
 pass before actual Go execution; obsolete Windows observer attestation is not

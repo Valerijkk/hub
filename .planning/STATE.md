@@ -1201,6 +1201,21 @@ nonblocking fixed-RAM present-marker runtime coverage limit; exact branch
 binding is statically checked. Latest full framework run is 529 PASS /
 71 FAIL (600 cases, 21.26s), NOT_ACCEPTED; no test was suppressed. Actual
 backend build/vet/unit/race and product acceptance remain the next step.
+Task 3I checkpoint 87d00eea is pushed. Actual backend run 87fce5b9260b,
+engine f4deba8c14a635c498bf1c83ec462bf68e985d041b40e0ee4012bf289c471f3f,
+started 17:37:50Z with verified 2 GiB/no swap/6 CPU/read-only/PIDs256.
+Docker events confirm two OOMs and engine exit75 after149s; Compose returned1.
+Partial backend-unit-f4deba8c14a6.partial retains owner plus four plans only.
+No completed stage or valid packet exists. Task3J is a single-variable
+DIAGNOSTIC_ONLY retry with explicit GOMEMLIMIT=512MiB, already captured by
+the current receipt interface; hard limits/tmpfs/source/coverage unchanged.
+Task3J failed too: actual Go1.25.11 image with GOMEMLIMIT512MiB recorded
+three OOM events and killed backend/ent compiler processes. Root stopped
+only owned engine6964a9fb6022ff3802a0e195e1b219feff83b19af632eb45af3e8cd2b1f44f26;
+die75 after303s, no acceptedstage/packet. Task3K is the final distinct
+DIAGNOSTIC_ONLY attempt, GOGC20 with no GOMEMLIMIT override; stop at first
+observed OOM. Its GOGC omission from current receipt provenance is explicit,
+so even a completed diagnostic cannot be accepted as Go/product evidence.
 
 **Previous checkpoint detail:** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and
