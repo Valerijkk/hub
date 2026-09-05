@@ -191,6 +191,36 @@ ranked abort hypotheses are a normal child auto-reaped before the current
 zombie-only monitor/reaper accepts it, or an earlier reader-identity failure.
 Neither has actual causal proof yet. No product implementation was added.
 
+Task 3F diagnostic observation: canonical Python run
+`backend-shell-lifecycle-probe-20260905.xml` passed one case in 0.63s.
+It printed `state=absent child_pid=9 child_session=8 child_starttime=7230544
+parent_session=8` before the sentinel permitted an explicit wait, whose
+cached exit was 17. This proves shell auto-reaping in this test topology
+(child shares its owned parent session), not the Go group's abort cause.
+The real kill error occurred after valid-live leader/group checks, so an
+already-missing Go leader alone could not have reached that signal call.
+The zombie-only assumption remains a separately evidenced latent concern.
+
+Task 3G frozen diagnostic interface: own only six error branches in
+`execute.sh::run_stage` and new
+`testframework/selftests/architecture/test_backend_unit_abort_diagnostics.py`.
+Before their unchanged cleanup call, print exactly one fixed stderr marker
+`BACKEND_UNIT_ABORT_` plus CHILD_START, STDOUT_READER_IDENTITY,
+STDERR_READER_IDENTITY, MONITOR, READER_EXIT, or REAP. Preserve all guards,
+cleanup args, return codes and successful behavior; no dynamic values,
+process IDs, paths, secrets, generic logger, flag or control-flow change.
+The source-contract selftest must first reject missing markers and then pass;
+only the next actual backend run can establish which branch is failing.
+
+Task 3G RED: one failure on the absent CHILD_START marker (0.58s). Root
+corrected whitespace normalization and exact conditional binding in the new
+oracle before GREEN; production guards were not changed to satisfy the test.
+After the six literal markers, `backend-abort-diagnostics-green-20260905.xml`
+records 63 passed / 529 deselected in 5.68s, exit 0, including both diagnostic
+tests and all prior targeted regressions. Task 3F independent final review
+returns C/I/M 0/0/0. The latest full suite (519/71) predates Tasks 3F/3G.
+Task 3G independent final review also returns C/I/M 0/0/0; source accepted.
+
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must
 pass before actual Go execution; obsolete Windows observer attestation is not

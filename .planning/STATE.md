@@ -1173,6 +1173,13 @@ C/I/M 0/0/0. Latest full framework result is 519 PASS / 71 FAIL
 (590 cases, 20.41s); full acceptance remains NOT_ACCEPTED. A diagnostic-only
 shell child-lifecycle probe is next; no production monitor/reaper change or
 successful Go-stage verdict is yet supported.
+Current diagnostic continuation: checkpoint `485b0b3f` is pushed.
+Task 3F actual Docker probe observed an absent shell child before explicit
+wait returned 17; independent review C/I/M 0/0/0. This does not identify
+the actual Go abort, whose kill path required a still-live owned child.
+Task 3G adds six fixed abort reasons with unchanged guards/cleanup;
+its source-contract RED and 63-test targeted Docker GREEN are recorded in
+the active plan. Next is the actual backend attempt with those markers.
 Existing linked worktree is retained; no product-readiness claim is made.
 
 **Previous checkpoint detail:** branch

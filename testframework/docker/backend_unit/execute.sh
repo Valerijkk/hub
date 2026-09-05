@@ -1299,13 +1299,20 @@ run_stage() {
       _execute_abort_unpublished_stage "" "" || return 75
       return 75
     fi
-    if start_owned_go_child_group "$stage" "$package_import_path"; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
+    if start_owned_go_child_group "$stage" "$package_import_path"; then
+      :
+    else
+      printf '%s\n' 'BACKEND_UNIT_ABORT_CHILD_START' >&2
+      _execute_abort_unpublished_stage "" "" || return 75
+      return 75
+    fi
     go_child_started=true
     read_bounded_stage_stream "$stage" stdout "$stage_stdout_remaining" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity" "$budget_stop_marker" "$stage_marker_identity" &
     stdout_reader_pid="$!"
     if stdout_reader_identity="$(_execute_capture_owned_reader_identity_for_container_stop "$stdout_reader_pid" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity")"; then
       stdout_reader_started=true
     else
+      printf '%s\n' 'BACKEND_UNIT_ABORT_STDOUT_READER_IDENTITY' >&2
       _execute_abort_unpublished_stage "$stdout_reader_pid" "" || return 75
       return 75
     fi
@@ -1314,6 +1321,7 @@ run_stage() {
     if stderr_reader_identity="$(_execute_capture_owned_reader_identity_for_container_stop "$stderr_reader_pid" "$stderr_fifo" "$stderr_fifo_identity" "$package_stderr_capture" "$package_stderr_identity")"; then
       stderr_reader_started=true
     else
+      printf '%s\n' 'BACKEND_UNIT_ABORT_STDERR_READER_IDENTITY' >&2
       _execute_abort_unpublished_stage "$stdout_reader_pid" "$stderr_reader_pid" || return 75
       return 75
     fi
@@ -1321,6 +1329,7 @@ run_stage() {
       :
     else
       report_budget_truncated_due_to_budget=true
+      printf '%s\n' 'BACKEND_UNIT_ABORT_MONITOR' >&2
       _execute_abort_unpublished_stage "$stdout_reader_pid" "$stderr_reader_pid" || return 75
       return 75
     fi
@@ -1331,10 +1340,17 @@ run_stage() {
     stderr_reader_reaped=true
     if [ -e "$budget_stop_marker" ] || [ "$stdout_reader_exit" -ne 0 ] || [ "$stderr_reader_exit" -ne 0 ]; then
       report_budget_truncated_due_to_budget=true
+      printf '%s\n' 'BACKEND_UNIT_ABORT_READER_EXIT' >&2
       _execute_abort_unpublished_stage "" "" || return 75
       return 75
     fi
-    if reap_owned_go_child_group; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
+    if reap_owned_go_child_group; then
+      :
+    else
+      printf '%s\n' 'BACKEND_UNIT_ABORT_REAP' >&2
+      _execute_abort_unpublished_stage "" "" || return 75
+      return 75
+    fi
     child_group_reaped=true
     go_child_started=false
     child_exit="$go_child_exit"

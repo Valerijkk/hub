@@ -156,6 +156,12 @@ without a completed stage. Its Dash-incompatible kill syntax is fixed in
 five calls, with real owned-process RED/GREEN and unchanged identity guards.
 The cause of entering abort remains under investigation; plans and packet
 integrity are not stage verdicts.
+Six fixed stderr abort markers now distinguish child start, stdout/stderr
+reader identity, monitor, reader exit and reaping failures without printing
+dynamic data or changing cleanup. Their source-contract and the earlier
+targeted regression total 63 passing checks. The shell-child diagnostic
+confirms possible auto-reaping before explicit wait in its test topology;
+it is not proof of the actual Go abort cause.
 The old Windows `root_handoff.py` / `observe.py` choreography is superseded
 and is not an executable fallback. Historical observer receipts remain
 historical; do not fabricate their `SEAL` from an offline packet result.
