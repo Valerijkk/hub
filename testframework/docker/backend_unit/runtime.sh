@@ -270,11 +270,11 @@ _assert_tmpfs_mount() {
   tmpfs_mount_record="$(awk -v target="$tmpfs_path" '
     $5 == target {
       count += 1
-      for (index = 7; index <= NF; index += 1) {
-        if ($index == "-") {
-          if (index + 3 <= NF) {
-            type = $(index + 1)
-            options = $6 "," $(index + 3)
+      for (mount_field = 7; mount_field <= NF; mount_field += 1) {
+        if ($mount_field == "-") {
+          if (mount_field + 3 <= NF) {
+            type = $(mount_field + 1)
+            options = $6 "," $(mount_field + 3)
           }
           break
         }
