@@ -110,8 +110,8 @@ failed and aborted test runs can also have intact packets. It is not a passing
 Go gate, host seal, source/image attestation or product-readiness claim.
 
 September 5 evidence: all 17 new packet/launcher/shell selftests pass in Docker.
-The latest full framework run is **511 passed / 71 failed** (582 collected,
-20.06s); full framework acceptance remains **NOT_ACCEPTED**. The remaining
+The latest full framework run is **519 passed / 71 failed** (590 collected,
+20.41s); full framework acceptance remains **NOT_ACCEPTED**. The remaining
 observer API/fixture and lexical/AST contract failures are recorded in the
 [active plan](../../docs/superpowers/plans/2026-09-05-docker-only-backend-packet.md).
 
@@ -151,6 +151,11 @@ empty regular-file label. The identity helper now retains the same strict
 ownership/mode/type guard and normalizes only that empty label, preserving
 identity through write/truncate. Its actual-file Docker RED/GREEN and the
 combined 56 selected passing checks do not replace the pending Go gate.
+The next backend run produced owner.json and four package plans but aborted
+without a completed stage. Its Dash-incompatible kill syntax is fixed in
+five calls, with real owned-process RED/GREEN and unchanged identity guards.
+The cause of entering abort remains under investigation; plans and packet
+integrity are not stage verdicts.
 The old Windows `root_handoff.py` / `observe.py` choreography is superseded
 and is not an executable fallback. Historical observer receipts remain
 historical; do not fabricate their `SEAL` from an offline packet result.

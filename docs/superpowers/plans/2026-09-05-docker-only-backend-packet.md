@@ -149,6 +149,48 @@ not weaken ownership/type/mode or link-count checks. The last full framework
 run predates Task 3D: 511 passed / 71 failed; it is not a post-3D full PASS.
 Independent final source review returned C/I/M 0/0/0; Task 3D source accepted.
 
+Post-3D actual attempt: pushed checkpoint `b98e1e2d21d4bd39fb23b30caee6210ce6e1a513`,
+outer name `worktree-master-backend-unit-run-b17581fa42ca`, full engine ID
+`9de7f05227e4c683446fe1c8975823fd951946ecac8bdba1977e87a773757afe`,
+hostname `9de7f05227e4`. Live Docker inspect confirms image
+`sha256:cbd0b9f06bc7e499f9dd1a8a9973e4981b3e75b87f207fda259118c62101b0b9`,
+memory/memory-plus-swap 2147483648, NanoCpus 6000000000, readonly rootfs,
+PidsLimit 256, and sampled OOMKilled false. One stats sample was 1.163 GiB /
+2 GiB and 147.95% CPU; Docker-reported BlockIO 0B/0B is not a Windows disk
+attestation. The run created owner.json and all four package plans, then
+printed `/usr/local/bin/backend-unit: 804: kill: Illegal number: -` and
+exited 1. No completed stage or accepted packet exists. Current partial
+`backend-unit-9de7f05227e4.partial` is retained; it is not a PASS.
+
+Task 3E frozen one-behavior repair: reproduce /bin/sh builtin signal syntax
+with actual exclusively test-owned children/groups in
+`test_backend_unit_posix_signals.py`. Own only five literal kill calls
+(four in runtime.sh's two terminate functions and one in execute.sh's
+owned-reader signal function). If RED confirms the extra `--` is rejected,
+remove only that token; keep explicit TERM/KILL, positive/group target and
+all adjacent identity guards. Every test child uses a new session, verifies
+PID greater than one and PGID equal to that PID, and is reaped in finally;
+no zero/negative-one/foreign process target. No new binary, privilege,
+resource change or executable fallback. Independently investigate why the
+package abort path was selected; repairing kill syntax alone is not Go PASS.
+
+Task 3E actual RED: five commands each failed with Dash's `Illegal number: -`
+in 0.75s. After removing only `--`, all five pass in 0.60s and each owned
+child exits with the requested signal. The test restricts the extracted
+command to an exact kill/variable grammar before executing it. Independent
+final review C/I/M 0/0/0. Latest full framework result
+`backend-runtime-full-framework-20260905.xml`: 519 passed / 71 failed
+(590 cases, 20.41s); all 39 tests added since `fee06bb6` pass, while overall
+framework remains NOT_ACCEPTED.
+
+Task 3F is currently diagnostic-only: a real /bin/sh child lifecycle probe
+inside Python Docker will distinguish a pre-wait zombie from an already
+absent /proc entry while proving the parent's cached exit status. This
+does not implement or accept any production monitor/reaper change. The
+ranked abort hypotheses are a normal child auto-reaped before the current
+zombie-only monitor/reaper accepts it, or an earlier reader-identity failure.
+Neither has actual causal proof yet. No product implementation was added.
+
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must
 pass before actual Go execution; obsolete Windows observer attestation is not

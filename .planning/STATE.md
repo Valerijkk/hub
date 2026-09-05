@@ -1161,6 +1161,18 @@ Task 3D fixes `_owned_regular_identity` rejecting GNU stat's empty regular
 file label and keeps identity stable through write/truncate. Its real-file
 Docker RED is 1 FAIL / 2 PASS; selected GREEN is 56 PASS. Post-3D actual Go
 execution remains next; the last full framework result predates this atom.
+Task 3D checkpoint `b98e1e2d` is pushed. Its actual backend run
+`b17581fa42ca` / hostname `9de7f05227e4` passed startup far enough to
+write owner.json and all four package plans, with inspected 2 GiB/no-swap
+limits (sample 1.163 GiB). It then exited 1 with `kill: Illegal number: -`
+from the owned-child abort path; no completed Go stage exists. Task 3E owns
+literal POSIX kill syntax only; abort-cause analysis is separate. MPR-02
+and Calls 08C3 source implementation have not started.
+Task 3E signal syntax has Docker RED/GREEN (5/5) and independent review
+C/I/M 0/0/0. Latest full framework result is 519 PASS / 71 FAIL
+(590 cases, 20.41s); full acceptance remains NOT_ACCEPTED. A diagnostic-only
+shell child-lifecycle probe is next; no production monitor/reaper change or
+successful Go-stage verdict is yet supported.
 Existing linked worktree is retained; no product-readiness claim is made.
 
 **Previous checkpoint detail:** branch

@@ -728,7 +728,7 @@ _execute_signal_owned_reader_for_container_stop() {
     absent|missing|zombie) printf '%s\n' ready ;;
     live)
       _execute_assert_owned_live_reader_for_container_stop "$execute_stop_reader_pid" "$execute_stop_reader_identity" "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity" || return 75
-      kill -TERM -- "$execute_stop_reader_pid" || return 75
+      kill -TERM "$execute_stop_reader_pid" || return 75
       printf '%s\n' signalled
       ;;
     *) return 75 ;;

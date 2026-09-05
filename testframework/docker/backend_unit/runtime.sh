@@ -801,7 +801,7 @@ terminate_owned_go_child_group() {
     *) return 75 ;;
   esac
   _assert_owned_signal_identity || return 75
-  kill -TERM -- "-$go_child_pgid" || return 75
+  kill -TERM "-$go_child_pgid" || return 75
   if _owned_go_group_reaches_terminal_state 5; then
     return 0
   fi
@@ -813,7 +813,7 @@ terminate_owned_go_child_group() {
     *) return 75 ;;
   esac
   _assert_owned_signal_identity || return 75
-  kill -KILL -- "-$go_child_pgid" || return 75
+  kill -KILL "-$go_child_pgid" || return 75
   if _owned_go_group_reaches_terminal_state 5; then
     return 0
   fi
@@ -873,7 +873,7 @@ abort_owned_go_child_group_for_container_stop() {
     valid-zombie:valid-zombie) ;;
     valid-live:valid-live|valid-zombie:valid-live)
       _assert_owned_signal_identity || return 75
-      kill -TERM -- "-$go_child_pgid" || return 75
+      kill -TERM "-$go_child_pgid" || return 75
       if _owned_go_group_reaches_reapable_state_for_container_stop 1; then
         :
       else
@@ -886,7 +886,7 @@ abort_owned_go_child_group_for_container_stop() {
           *) return 75 ;;
         esac
         _assert_owned_signal_identity || return 75
-        kill -KILL -- "-$go_child_pgid" || return 75
+        kill -KILL "-$go_child_pgid" || return 75
         _owned_go_group_reaches_reapable_state_for_container_stop 1 || return 75
       fi
       ;;
