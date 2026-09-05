@@ -348,8 +348,11 @@ def validate_container_receipt(document: Mapping[str, object]) -> None:
     document = _require_mapping(document, "container receipt")
     state = _field(document, "state")
     if state == "CONTAINER_COMPLETE":
-        if tuple(document) != _CONTAINER_COMPLETE_KEYS:
-            _fail("complete container receipt keys are not closed and canonical")
+        _require_exact_keys(
+            document,
+            _CONTAINER_COMPLETE_KEYS,
+            "complete container receipt keys are not closed and canonical",
+        )
         _validate_container_common(document)
         _validate_stage_digest_map(_field(document, "package_plan_sha256"), "package_plan_sha256")
         _validate_stage_digest_map(_field(document, "stage_receipt_sha256"), "stage_receipt_sha256")
@@ -358,8 +361,11 @@ def validate_container_receipt(document: Mapping[str, object]) -> None:
         _validate_terminal(_field(document, "terminal"), aborted=False)
         return
     if state == "CONTAINER_ABORTED":
-        if tuple(document) != _CONTAINER_ABORTED_KEYS:
-            _fail("aborted container receipt keys are not closed and canonical")
+        _require_exact_keys(
+            document,
+            _CONTAINER_ABORTED_KEYS,
+            "aborted container receipt keys are not closed and canonical",
+        )
         _validate_container_common(document)
         planned, completed = _validate_abort(_field(document, "abort"))
         records = _validate_artifact_inventory(document, "container receipt")
@@ -393,21 +399,26 @@ def _validate_container_common(document: Mapping[str, object]) -> None:
 
 def _validate_container_cgroup(value: object) -> None:
     cgroup = _require_mapping(value, "cgroup")
-    if tuple(cgroup) != ("family", "baseline", "final"):
-        _fail("cgroup keys are not closed and canonical")
+    _require_exact_keys(cgroup, ("family", "baseline", "final"), "cgroup keys are not closed and canonical")
     family = _require_string(_field(cgroup, "family"), "cgroup.family")
     if family == "v2":
         for label in ("baseline", "final"):
             snapshot = _require_mapping(_field(cgroup, label), f"cgroup.{label}")
-            if tuple(snapshot) != ("memory.max", "memory.swap.max", "memory.events"):
-                _fail(f"cgroup.{label} keys are not closed and canonical")
+            _require_exact_keys(
+                snapshot,
+                ("memory.max", "memory.swap.max", "memory.events"),
+                f"cgroup.{label} keys are not closed and canonical",
+            )
             for field in ("memory.max", "memory.swap.max"):
                 number = _require_string(_field(snapshot, field), f"cgroup.{label}.{field}")
                 if re.fullmatch(r"(?:0|[1-9][0-9]*)", number) is None:
                     _fail(f"cgroup.{label}.{field} is not a canonical nonnegative integer")
             events = _require_mapping(_field(snapshot, "memory.events"), f"cgroup.{label}.memory.events")
-            if tuple(events) != ("oom", "oom_kill"):
-                _fail(f"cgroup.{label}.memory.events keys are not closed and canonical")
+            _require_exact_keys(
+                events,
+                ("oom", "oom_kill"),
+                f"cgroup.{label}.memory.events keys are not closed and canonical",
+            )
             for field in ("oom", "oom_kill"):
                 if _require_integer(_field(events, field), f"cgroup.{label}.memory.events.{field}") < 0:
                     _fail(f"cgroup.{label}.memory.events.{field} is negative")
@@ -415,10 +426,11 @@ def _validate_container_cgroup(value: object) -> None:
     if family == "v1":
         for label in ("baseline", "final"):
             snapshot = _require_mapping(_field(cgroup, label), f"cgroup.{label}")
-            if tuple(snapshot) != (
-                "memory.limit_in_bytes", "memory.memsw.limit_in_bytes", "memory.failcnt", "memory.oom_control",
-            ):
-                _fail(f"cgroup.{label} keys are not closed and canonical")
+            _require_exact_keys(
+                snapshot,
+                ("memory.limit_in_bytes", "memory.memsw.limit_in_bytes", "memory.failcnt", "memory.oom_control"),
+                f"cgroup.{label} keys are not closed and canonical",
+            )
             for field in ("memory.limit_in_bytes", "memory.memsw.limit_in_bytes"):
                 number = _require_string(_field(snapshot, field), f"cgroup.{label}.{field}")
                 if re.fullmatch(r"(?:0|[1-9][0-9]*)", number) is None:
@@ -426,8 +438,18 @@ def _validate_container_cgroup(value: object) -> None:
             if _require_integer(_field(snapshot, "memory.failcnt"), f"cgroup.{label}.memory.failcnt") < 0:
                 _fail(f"cgroup.{label}.memory.failcnt is negative")
             control = _require_mapping(_field(snapshot, "memory.oom_control"), f"cgroup.{label}.memory.oom_control")
-            if tuple(control) not in (("oom_kill_disable", "under_oom"), ("oom_kill_disable", "under_oom", "oom_kill")):
-                _fail(f"cgroup.{label}.memory.oom_control keys are not closed and canonical")
+            if "oom_kill" in control:
+                _require_exact_keys(
+                    control,
+                    ("oom_kill_disable", "under_oom", "oom_kill"),
+                    f"cgroup.{label}.memory.oom_control keys are not closed and canonical",
+                )
+            else:
+                _require_exact_keys(
+                    control,
+                    ("oom_kill_disable", "under_oom"),
+                    f"cgroup.{label}.memory.oom_control keys are not closed and canonical",
+                )
             for field in control:
                 if _require_integer(_field(control, field), f"cgroup.{label}.memory.oom_control.{field}") < 0:
                     _fail(f"cgroup.{label}.memory.oom_control.{field} is negative")
@@ -442,8 +464,7 @@ def _validate_container_environment(value: object) -> None:
         "GOMAXPROCS", "CGO_ENABLED", "GOOS", "GOARCH", "GOCACHE", "GOTMPDIR",
         "runtime_affecting_environment",
     )
-    if tuple(environment) != expected:
-        _fail("go_environment keys are not closed and canonical")
+    _require_exact_keys(environment, expected, "go_environment keys are not closed and canonical")
     for field in ("go_version", "CGO_ENABLED", "GOOS", "GOARCH", "GOCACHE", "GOTMPDIR"):
         if not _require_string(_field(environment, field), f"go_environment.{field}"):
             _fail(f"go_environment.{field} must be nonempty")
@@ -459,8 +480,11 @@ def _validate_container_environment(value: object) -> None:
     names: set[str] = set()
     for index, raw in enumerate(observations):
         observation = _require_mapping(raw, f"go_environment.runtime_affecting_environment[{index}]")
-        if tuple(observation) != ("name", "present", "value"):
-            _fail("runtime_affecting_environment observation keys are not closed and canonical")
+        _require_exact_keys(
+            observation,
+            ("name", "present", "value"),
+            "runtime_affecting_environment observation keys are not closed and canonical",
+        )
         name = _require_string(_field(observation, "name"), "runtime_affecting_environment.name")
         if re.fullmatch(r"(?:GO[A-Z0-9_]+|CGO_ENABLED)", name) is None or name in names:
             _fail("runtime_affecting_environment names are malformed or duplicated")
@@ -473,16 +497,14 @@ def _validate_container_environment(value: object) -> None:
 
 def _validate_stage_digest_map(value: object, label: str) -> None:
     digests = _require_mapping(value, label)
-    if tuple(digests) != _CONTAINER_STAGES:
-        _fail(f"{label} keys are not the complete frozen stage order")
+    _require_exact_keys(digests, _CONTAINER_STAGES, f"{label} keys are not the complete frozen stage order")
     for stage in _CONTAINER_STAGES:
         _require_sha256(_field(digests, stage), f"{label}.{stage}")
 
 
 def _validate_terminal(value: object, *, aborted: bool) -> None:
     terminal = _require_mapping(value, "terminal")
-    if tuple(terminal) != ("signal", "exit_code"):
-        _fail("terminal keys are not closed and canonical")
+    _require_exact_keys(terminal, ("signal", "exit_code"), "terminal keys are not closed and canonical")
     signal = _field(terminal, "signal")
     exit_code = _field(terminal, "exit_code")
     if aborted:
@@ -504,8 +526,7 @@ def _stage_prefix(value: object, label: str) -> tuple[str, ...]:
 
 def _validate_abort(value: object) -> tuple[tuple[str, ...], tuple[str, ...]]:
     abort = _require_mapping(value, "abort")
-    if tuple(abort) != _ABORT_KEYS:
-        _fail("abort keys are not closed and canonical")
+    _require_exact_keys(abort, _ABORT_KEYS, "abort keys are not closed and canonical")
     _require_exact(abort, "signal", "TERM")
     phase = _require_string(_field(abort, "phase"), "abort.phase")
     if phase not in ("bootstrap", "planning", "execution"):
@@ -1132,6 +1153,11 @@ def _require_sequence(value: object, label: str) -> Sequence[object]:
 
 def _string_tuple(value: object, label: str) -> tuple[str, ...]:
     return tuple(_require_string(item, label) for item in _require_sequence(value, label))
+
+
+def _require_exact_keys(document: Mapping[str, object], expected: Sequence[str], message: str) -> None:
+    if len(document) != len(expected) or set(document) != set(expected):
+        _fail(message)
 
 
 def _field(document: Mapping[str, object], field: str) -> object:

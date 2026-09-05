@@ -273,6 +273,49 @@ def _aborted_container_document(
     return document
 
 
+def _recursively_sorted(document: Mapping[str, object]) -> dict[str, object]:
+    sorted_document = json.loads(json.dumps(
+        document,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ))
+    assert type(sorted_document) is dict
+    return sorted_document
+
+
+@pytest.mark.parametrize(
+    ("phase", "planned", "completed", "active_stage"),
+    (
+        ("bootstrap", (), (), None),
+        ("planning", ("build",), (), None),
+        ("execution", ("build", "vet", "unit", "race"), ("build",), "vet"),
+    ),
+)
+def test_container_receipt_accepts_recursively_sort_keys_canonical_complete_and_abort(
+    phase: str, planned: tuple[str, ...], completed: tuple[str, ...], active_stage: str | None
+) -> None:
+    complete = _recursively_sorted(_fixture_json("valid/container-receipt.json"))
+    aborted = _recursively_sorted(_aborted_container_document(phase, planned, completed, active_stage))
+
+    for document in (complete, aborted):
+        Draft202012Validator(_schema("container_receipt")).validate(document)
+        validate_container_receipt(document)
+
+
+@pytest.mark.parametrize("mutation", ("missing", "extra"))
+def test_container_receipt_recursively_sorted_keys_remain_closed(mutation: str) -> None:
+    complete = _recursively_sorted(_fixture_json("valid/container-receipt.json"))
+    if mutation == "missing":
+        del complete["terminal"]
+    else:
+        complete["unexpected"] = None
+
+    with pytest.raises(ReceiptContractError, match="complete container receipt keys are not closed and canonical"):
+        validate_container_receipt(complete)
+
+
 @pytest.mark.parametrize(
     ("phase", "planned", "completed", "active_stage"),
     (
