@@ -1,6 +1,21 @@
 #!/bin/sh
 set -eu
 
+active_stage_for_container_stop=false
+active_stage_abort_state=idle
+active_stage_artifacts_ready=false
+active_stage_publish_in_progress=false
+child_group_reaped=false
+stdout_reader_reaped=false
+stderr_reader_reaped=false
+unpublished_stage_rolled_back=false
+stdout_reader_started=false
+stderr_reader_started=false
+stdout_reader_pid=
+stderr_reader_pid=
+stdout_reader_identity=
+stderr_reader_identity=
+
 _execute_regular_bytes() {
   [ "$#" -eq 1 ] || return 64
   [ -f "$1" ] && [ ! -L "$1" ] || return 75
@@ -460,6 +475,256 @@ _execute_publish_stage_transaction() {
   return 75
 }
 
+_execute_prepare_stage_transaction_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  _owned_run_dir_is_current "$stage_run_identity" || return 75
+  _owned_temp_is_current "$stage_results_tmp" "$stage_results_identity" 1 || return 75
+  _owned_temp_is_current "$stage_stdout_tmp" "$stage_stdout_identity" 1 || return 75
+  _owned_temp_is_current "$stage_stderr_tmp" "$stage_stderr_identity" 1 || return 75
+  _owned_temp_is_current "$stage_json_tmp" "$stage_json_identity" 1 || return 75
+  for execute_stop_final in "$stage_results_path" "$stdout_path" "$stderr_path" "$stage_json_path"; do
+    _run_dir_target_is_safe "$execute_stop_final" || return 75
+    [ ! -e "$execute_stop_final" ] && [ ! -L "$execute_stop_final" ] || return 75
+  done
+  txn_results_tmp="$stage_results_tmp"
+  txn_results_identity="$stage_results_identity"
+  txn_results_final="$stage_results_path"
+  txn_stdout_tmp="$stage_stdout_tmp"
+  txn_stdout_identity="$stage_stdout_identity"
+  txn_stdout_final="$stdout_path"
+  txn_stderr_tmp="$stage_stderr_tmp"
+  txn_stderr_identity="$stage_stderr_identity"
+  txn_stderr_final="$stderr_path"
+  txn_json_tmp="$stage_json_tmp"
+  txn_json_identity="$stage_json_identity"
+  txn_json_final="$stage_json_path"
+  txn_run_identity="$stage_run_identity"
+  txn_results_created=false
+  txn_stdout_created=false
+  txn_stderr_created=false
+  txn_json_created=false
+  txn_results_final_identity=
+  txn_stdout_final_identity=
+  txn_stderr_final_identity=
+  txn_json_final_identity=
+}
+
+_execute_reader_snapshot_for_container_stop() {
+  [ "$#" -eq 1 ] || return 64
+  execute_stop_reader_pid="$1"
+  case "$execute_stop_reader_pid" in
+    ''|*[!0-9]*) return 75 ;;
+    *) ;;
+  esac
+  [ -r "/proc/$execute_stop_reader_pid/stat" ] || return 1
+  execute_stop_reader_snapshot="$(
+    awk -v identifier="$execute_stop_reader_pid" -v owner="$$" '
+      $1 == identifier && $4 == owner {
+        print $1 ":" $4 ":" $22 ":" $2 ":" $3
+        exit
+      }
+    ' "/proc/$execute_stop_reader_pid/stat"
+  )" || return 75
+  [ -n "$execute_stop_reader_snapshot" ] || return 75
+  execute_stop_reader_snapshot_pid=${execute_stop_reader_snapshot%%:*}
+  execute_stop_reader_snapshot_tail=${execute_stop_reader_snapshot#*:}
+  execute_stop_reader_snapshot_parent=${execute_stop_reader_snapshot_tail%%:*}
+  execute_stop_reader_snapshot_tail=${execute_stop_reader_snapshot_tail#*:}
+  execute_stop_reader_snapshot_starttime=${execute_stop_reader_snapshot_tail%%:*}
+  execute_stop_reader_snapshot_tail=${execute_stop_reader_snapshot_tail#*:}
+  execute_stop_reader_snapshot_comm=${execute_stop_reader_snapshot_tail%%:*}
+  execute_stop_reader_snapshot_state=${execute_stop_reader_snapshot_tail#*:}
+  case "$execute_stop_reader_snapshot_pid" in ''|*[!0-9]*) return 75 ;; esac
+  case "$execute_stop_reader_snapshot_parent" in ''|*[!0-9]*) return 75 ;; esac
+  case "$execute_stop_reader_snapshot_starttime" in ''|*[!0-9]*) return 75 ;; esac
+  [ "$execute_stop_reader_snapshot_pid" = "$execute_stop_reader_pid" ] || return 75
+  [ "$execute_stop_reader_snapshot_parent" = "$$" ] || return 75
+  case "$execute_stop_reader_snapshot_comm" in
+    *:*) return 75 ;;
+    \(*\)) ;;
+    *) return 75 ;;
+  esac
+  case "$execute_stop_reader_snapshot_state" in
+    Z|[A-Za-z]) ;;
+    *) return 75 ;;
+  esac
+  printf '%s\n' "$execute_stop_reader_snapshot"
+}
+
+_execute_reader_identity_is_valid_for_container_stop() {
+  [ "$#" -eq 2 ] || return 64
+  execute_stop_reader_pid="$1"
+  execute_stop_reader_identity="$2"
+  case "$execute_stop_reader_pid" in
+    ''|*[!0-9]*) return 75 ;;
+    *) ;;
+  esac
+  case "$execute_stop_reader_identity" in
+    missing:*)
+      execute_stop_reader_missing_pid=${execute_stop_reader_identity#missing:}
+      case "$execute_stop_reader_missing_pid" in ''|*[!0-9]*) return 75 ;; esac
+      [ "$execute_stop_reader_missing_pid" = "$execute_stop_reader_pid" ] || return 75
+      return 0
+      ;;
+    *:*:*:*) ;;
+    *) return 75 ;;
+  esac
+  execute_stop_reader_identity_pid=${execute_stop_reader_identity%%:*}
+  execute_stop_reader_identity_tail=${execute_stop_reader_identity#*:}
+  execute_stop_reader_identity_parent=${execute_stop_reader_identity_tail%%:*}
+  execute_stop_reader_identity_tail=${execute_stop_reader_identity_tail#*:}
+  execute_stop_reader_identity_starttime=${execute_stop_reader_identity_tail%%:*}
+  execute_stop_reader_identity_comm=${execute_stop_reader_identity_tail#*:}
+  case "$execute_stop_reader_identity_pid" in ''|*[!0-9]*) return 75 ;; esac
+  case "$execute_stop_reader_identity_parent" in ''|*[!0-9]*) return 75 ;; esac
+  case "$execute_stop_reader_identity_starttime" in ''|*[!0-9]*) return 75 ;; esac
+  [ "$execute_stop_reader_identity_pid" = "$execute_stop_reader_pid" ] || return 75
+  [ "$execute_stop_reader_identity_parent" = "$$" ] || return 75
+  case "$execute_stop_reader_identity_comm" in
+    *:*) return 75 ;;
+    \(*\)) ;;
+    *) return 75 ;;
+  esac
+  return 0
+}
+
+_execute_reader_paths_are_owned_for_container_stop() {
+  [ "$#" -eq 4 ] || return 64
+  execute_stop_reader_fifo="$1"
+  execute_stop_reader_fifo_identity="$2"
+  execute_stop_reader_capture="$3"
+  execute_stop_reader_capture_identity="$4"
+  _execute_scratch_is_current "$stage_scratch" "$stage_scratch_identity" || return 75
+  _execute_fifo_is_current "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" || return 75
+  _owned_temp_is_current "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity" 1 || return 75
+  return 0
+}
+
+_execute_capture_owned_reader_identity_for_container_stop() {
+  [ "$#" -eq 5 ] || return 64
+  execute_stop_reader_pid="$1"
+  execute_stop_reader_fifo="$2"
+  execute_stop_reader_fifo_identity="$3"
+  execute_stop_reader_capture="$4"
+  execute_stop_reader_capture_identity="$5"
+  _execute_reader_paths_are_owned_for_container_stop "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity" || return 75
+  if execute_stop_reader_snapshot="$(_execute_reader_snapshot_for_container_stop "$execute_stop_reader_pid")"; then
+    printf '%s\n' "${execute_stop_reader_snapshot%:*}"
+    return 0
+  fi
+  execute_stop_reader_capture_status=$?
+  [ "$execute_stop_reader_capture_status" -eq 1 ] || return 75
+  printf 'missing:%s\n' "$execute_stop_reader_pid"
+}
+
+_execute_owned_reader_state_for_container_stop() {
+  [ "$#" -eq 7 ] || return 64
+  execute_stop_reader_started="$1"
+  execute_stop_reader_pid="$2"
+  execute_stop_reader_identity="$3"
+  execute_stop_reader_fifo="$4"
+  execute_stop_reader_fifo_identity="$5"
+  execute_stop_reader_capture="$6"
+  execute_stop_reader_capture_identity="$7"
+  case "$execute_stop_reader_started" in
+    false)
+      [ -z "$execute_stop_reader_pid" ] && [ -z "$execute_stop_reader_identity" ] || return 75
+      if [ -n "$execute_stop_reader_fifo" ] || [ -n "$execute_stop_reader_fifo_identity" ]; then
+        [ -n "$execute_stop_reader_fifo" ] && [ -n "$execute_stop_reader_fifo_identity" ] || return 75
+        _execute_scratch_is_current "$stage_scratch" "$stage_scratch_identity" || return 75
+        _execute_fifo_is_current "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" || return 75
+      fi
+      if [ -n "$execute_stop_reader_capture" ] || [ -n "$execute_stop_reader_capture_identity" ]; then
+        [ -n "$execute_stop_reader_capture" ] && [ -n "$execute_stop_reader_capture_identity" ] || return 75
+        _execute_scratch_is_current "$stage_scratch" "$stage_scratch_identity" || return 75
+        _owned_temp_is_current "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity" 1 || return 75
+      fi
+      printf '%s\n' absent
+      return 0
+      ;;
+    true) ;;
+    *) return 75 ;;
+  esac
+  _execute_reader_identity_is_valid_for_container_stop "$execute_stop_reader_pid" "$execute_stop_reader_identity" || return 75
+  _execute_reader_paths_are_owned_for_container_stop "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity" || return 75
+  if [ ! -r "/proc/$execute_stop_reader_pid/stat" ]; then
+    printf '%s\n' missing
+    return 0
+  fi
+  execute_stop_reader_snapshot="$(_execute_reader_snapshot_for_container_stop "$execute_stop_reader_pid")" || return 75
+  execute_stop_reader_current_identity=${execute_stop_reader_snapshot%:*}
+  [ "$execute_stop_reader_current_identity" = "$execute_stop_reader_identity" ] || { printf '%s\n' invalid; return 0; }
+  execute_stop_reader_state=${execute_stop_reader_snapshot##*:}
+  case "$execute_stop_reader_state" in
+    Z) printf '%s\n' zombie ;;
+    [A-Za-z]) printf '%s\n' live ;;
+    *) return 75 ;;
+  esac
+}
+
+_execute_assert_owned_live_reader_for_container_stop() {
+  [ "$#" -eq 6 ] || return 64
+  execute_stop_reader_pid="$1"
+  execute_stop_reader_identity="$2"
+  execute_stop_reader_fifo="$3"
+  execute_stop_reader_fifo_identity="$4"
+  execute_stop_reader_capture="$5"
+  execute_stop_reader_capture_identity="$6"
+  _execute_reader_identity_is_valid_for_container_stop "$execute_stop_reader_pid" "$execute_stop_reader_identity" || return 75
+  _execute_reader_paths_are_owned_for_container_stop "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity" || return 75
+  execute_stop_reader_snapshot="$(_execute_reader_snapshot_for_container_stop "$execute_stop_reader_pid")" || return 75
+  [ "${execute_stop_reader_snapshot%:*}" = "$execute_stop_reader_identity" ] || return 75
+  [ "${execute_stop_reader_snapshot##*:}" != Z ] || return 75
+  return 0
+}
+
+_execute_signal_owned_reader_for_container_stop() {
+  [ "$#" -eq 7 ] || return 64
+  execute_stop_reader_started="$1"
+  execute_stop_reader_pid="$2"
+  execute_stop_reader_identity="$3"
+  execute_stop_reader_fifo="$4"
+  execute_stop_reader_fifo_identity="$5"
+  execute_stop_reader_capture="$6"
+  execute_stop_reader_capture_identity="$7"
+  execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$execute_stop_reader_started" "$execute_stop_reader_pid" "$execute_stop_reader_identity" "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity")" || return 75
+  case "$execute_stop_reader_state" in
+    absent|missing|zombie) printf '%s\n' ready ;;
+    live)
+      _execute_assert_owned_live_reader_for_container_stop "$execute_stop_reader_pid" "$execute_stop_reader_identity" "$execute_stop_reader_fifo" "$execute_stop_reader_fifo_identity" "$execute_stop_reader_capture" "$execute_stop_reader_capture_identity" || return 75
+      kill -TERM -- "$execute_stop_reader_pid" || return 75
+      printf '%s\n' signalled
+      ;;
+    *) return 75 ;;
+  esac
+}
+
+_execute_reader_is_ready_for_container_stop() {
+  [ "$#" -eq 7 ] || return 64
+  execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75
+  case "$execute_stop_reader_state" in
+    absent|missing|zombie) printf '%s\n' ready ;;
+    live|invalid) return 75 ;;
+    *) return 75 ;;
+  esac
+}
+
+_execute_reap_owned_reader_for_container_stop() {
+  [ "$#" -eq 7 ] || return 64
+  execute_stop_reader_started="$1"
+  execute_stop_reader_pid="$2"
+  execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75
+  case "$execute_stop_reader_state" in
+    absent) return 0 ;;
+    missing|zombie) ;;
+    *) return 75 ;;
+  esac
+  if wait "$execute_stop_reader_pid"; then :; else :; fi
+  execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75
+  [ "$execute_stop_reader_state" = missing ] || return 75
+  return 0
+}
+
 _execute_abort_child() {
   [ "$#" -eq 2 ] || return 64
   execute_abort_stdout_pid="$1"
@@ -559,6 +824,112 @@ _execute_abort_unpublished_stage() {
   return 0
 }
 
+_execute_reap_stage_readers_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  execute_stop_stdout_state="$(_execute_signal_owned_reader_for_container_stop "$stdout_reader_started" "$stdout_reader_pid" "$stdout_reader_identity" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity")" || return 75
+  execute_stop_stderr_state="$(_execute_signal_owned_reader_for_container_stop "$stderr_reader_started" "$stderr_reader_pid" "$stderr_reader_identity" "$stderr_fifo" "$stderr_fifo_identity" "$package_stderr_capture" "$package_stderr_identity")" || return 75
+  case "$execute_stop_stdout_state:$execute_stop_stderr_state" in
+    *signalled*)
+      sleep 1
+      _execute_reader_is_ready_for_container_stop "$stdout_reader_started" "$stdout_reader_pid" "$stdout_reader_identity" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity" >/dev/null || return 75
+      _execute_reader_is_ready_for_container_stop "$stderr_reader_started" "$stderr_reader_pid" "$stderr_reader_identity" "$stderr_fifo" "$stderr_fifo_identity" "$package_stderr_capture" "$package_stderr_identity" >/dev/null || return 75
+      ;;
+    ready:ready) ;;
+    *) return 75 ;;
+  esac
+  case "$stdout_reader_reaped" in
+    false)
+      _execute_reap_owned_reader_for_container_stop "$stdout_reader_started" "$stdout_reader_pid" "$stdout_reader_identity" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity" || return 75
+      stdout_reader_reaped=true
+      ;;
+    true)
+      execute_stop_stdout_state="$(_execute_owned_reader_state_for_container_stop "$stdout_reader_started" "$stdout_reader_pid" "$stdout_reader_identity" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity")" || return 75
+      case "$execute_stop_stdout_state" in absent|missing) ;; *) return 75 ;; esac
+      ;;
+    *) return 75 ;;
+  esac
+  case "$stderr_reader_reaped" in
+    false)
+      _execute_reap_owned_reader_for_container_stop "$stderr_reader_started" "$stderr_reader_pid" "$stderr_reader_identity" "$stderr_fifo" "$stderr_fifo_identity" "$package_stderr_capture" "$package_stderr_identity" || return 75
+      stderr_reader_reaped=true
+      ;;
+    true)
+      execute_stop_stderr_state="$(_execute_owned_reader_state_for_container_stop "$stderr_reader_started" "$stderr_reader_pid" "$stderr_reader_identity" "$stderr_fifo" "$stderr_fifo_identity" "$package_stderr_capture" "$package_stderr_identity")" || return 75
+      case "$execute_stop_stderr_state" in absent|missing) ;; *) return 75 ;; esac
+      ;;
+    *) return 75 ;;
+  esac
+  return 0
+}
+
+_execute_no_active_go_child_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  [ -z "${go_child_pid-}" ] && [ -z "${go_child_pgid-}" ] && [ -z "${go_child_session-}" ] && [ -z "${go_child_starttime-}" ] && [ -z "${go_child_identity-}" ] || return 75
+  case "${go_child_reaped-false}" in
+    false) ;;
+    true) case "${go_child_exit-}" in ''|*[!0-9]*) return 75 ;; *) ;; esac ;;
+    *) return 75 ;;
+  esac
+  return 0
+}
+
+_execute_active_stage_artifacts_are_absent_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  _owned_run_dir_is_current "$stage_run_identity" || return 75
+  for execute_stop_temp in "$stage_results_tmp" "$stage_stdout_tmp" "$stage_stderr_tmp" "$stage_json_tmp" "$stage_marker_template" "$budget_stop_marker" "$stdout_fifo" "$stderr_fifo" "$package_stdout_capture" "$package_stderr_capture"; do
+    if [ -n "$execute_stop_temp" ]; then
+      [ ! -e "$execute_stop_temp" ] && [ ! -L "$execute_stop_temp" ] || return 75
+    fi
+  done
+  for execute_stop_final in "$stage_results_path" "$stdout_path" "$stderr_path" "$stage_json_path"; do
+    _run_dir_target_is_safe "$execute_stop_final" || return 75
+    [ ! -e "$execute_stop_final" ] && [ ! -L "$execute_stop_final" ] || return 75
+  done
+  if [ -n "$stage_scratch" ]; then
+    [ ! -e "$stage_scratch" ] && [ ! -L "$stage_scratch" ] || return 75
+  fi
+  return 0
+}
+
+_execute_rollback_active_stage_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  if [ "$active_stage_artifacts_ready" = true ]; then
+    _execute_rollback_stage_transaction || return 75
+  else
+    _execute_abort_prechild_stage || return 75
+  fi
+  _execute_active_stage_artifacts_are_absent_for_container_stop || return 75
+  return 0
+}
+
+abort_active_stage_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  [ "$active_stage_for_container_stop" = true ] || return 75
+  [ "$active_stage_abort_state" = armed ] || return 75
+  active_stage_abort_state=aborting
+  if [ "${go_child_started-false}" = true ]; then
+    abort_owned_go_child_group_for_container_stop || return 75
+  elif [ "${go_child_started-false}" = false ]; then
+    _execute_no_active_go_child_for_container_stop || return 75
+  else
+    return 75
+  fi
+  child_group_reaped=true
+  _execute_reap_stage_readers_for_container_stop || return 75
+  if [ "${package_scratch_ready-false}" = true ] && [ "${package_scratch_cleaned-false}" = false ]; then
+    _execute_cleanup_package_scratch || return 75
+    package_scratch_cleaned=true
+  fi
+  if [ "$stage" = build ] && [ -n "${owned_output-}" ]; then
+    unlink_owned_output || return 75
+  fi
+  _execute_rollback_active_stage_for_container_stop || return 75
+  unpublished_stage_rolled_back=true
+  active_stage_for_container_stop=false
+  active_stage_abort_state=aborted
+  return 0
+}
+
 run_stage() {
   [ "$#" -eq 2 ] || return 64
   stage="$1"
@@ -592,6 +963,34 @@ run_stage() {
   stage_json_identity=
   execute_file_path=
   execute_file_identity=
+  go_child_started=false
+  package_scratch_ready=false
+  package_scratch_cleaned=false
+  stage_marker_template=
+  stage_marker_identity=
+  budget_stop_marker=
+  stdout_fifo=
+  stdout_fifo_identity=
+  stderr_fifo=
+  stderr_fifo_identity=
+  package_stdout_capture=
+  package_stdout_identity=
+  package_stderr_capture=
+  package_stderr_identity=
+  stdout_reader_started=false
+  stderr_reader_started=false
+  stdout_reader_pid=
+  stderr_reader_pid=
+  stdout_reader_identity=
+  stderr_reader_identity=
+  active_stage_for_container_stop=true
+  active_stage_abort_state=armed
+  active_stage_artifacts_ready=false
+  active_stage_publish_in_progress=false
+  child_group_reaped=false
+  stdout_reader_reaped=false
+  stderr_reader_reaped=false
+  unpublished_stage_rolled_back=false
   if _execute_create_scratch "$stage"; then :; else _execute_abort_prechild_stage || return 75; return 75; fi
   if _execute_create_run_file; then
     stage_results_tmp="$execute_file_path"; stage_results_identity="$execute_file_identity"
@@ -625,6 +1024,12 @@ run_stage() {
     _execute_abort_prechild_stage || return 75
     return 75
   fi
+  if _execute_prepare_stage_transaction_for_container_stop; then
+    active_stage_artifacts_ready=true
+  else
+    _execute_abort_prechild_stage || return 75
+    return 75
+  fi
   stage_exit=0
   package_ordinal=0
   stage_previous_import_path=
@@ -643,6 +1048,15 @@ run_stage() {
     package_stdout_identity=
     package_stderr_capture=
     package_stderr_identity=
+    stdout_reader_started=false
+    stderr_reader_started=false
+    stdout_reader_pid=
+    stderr_reader_pid=
+    stdout_reader_identity=
+    stderr_reader_identity=
+    child_group_reaped=false
+    stdout_reader_reaped=false
+    stderr_reader_reaped=false
     if _execute_parse_plan_row "$execute_plan_row"; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
     if [ -n "$stage_previous_import_path" ] && [ "$package_import_path" \> "$stage_previous_import_path" ]; then
       :
@@ -695,8 +1109,20 @@ run_stage() {
     go_child_started=true
     read_bounded_stage_stream "$stage" stdout "$stage_stdout_remaining" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity" "$budget_stop_marker" "$stage_marker_identity" &
     stdout_reader_pid="$!"
+    if stdout_reader_identity="$(_execute_capture_owned_reader_identity_for_container_stop "$stdout_reader_pid" "$stdout_fifo" "$stdout_fifo_identity" "$package_stdout_capture" "$package_stdout_identity")"; then
+      stdout_reader_started=true
+    else
+      _execute_abort_unpublished_stage "$stdout_reader_pid" "" || return 75
+      return 75
+    fi
     read_bounded_stage_stream "$stage" stderr "$stage_stderr_remaining" "$stderr_fifo" "$stderr_fifo_identity" "$package_stderr_capture" "$package_stderr_identity" "$budget_stop_marker" "$stage_marker_identity" &
     stderr_reader_pid="$!"
+    if stderr_reader_identity="$(_execute_capture_owned_reader_identity_for_container_stop "$stderr_reader_pid" "$stderr_fifo" "$stderr_fifo_identity" "$package_stderr_capture" "$package_stderr_identity")"; then
+      stderr_reader_started=true
+    else
+      _execute_abort_unpublished_stage "$stdout_reader_pid" "$stderr_reader_pid" || return 75
+      return 75
+    fi
     if monitor_owned_budget_stop "$go_child_pid" "$budget_stop_marker"; then
       :
     else
@@ -706,13 +1132,17 @@ run_stage() {
     fi
     stdout_reader_exit=0; stderr_reader_exit=0
     wait "$stdout_reader_pid" || stdout_reader_exit=$?
+    stdout_reader_reaped=true
     wait "$stderr_reader_pid" || stderr_reader_exit=$?
+    stderr_reader_reaped=true
     if [ -e "$budget_stop_marker" ] || [ "$stdout_reader_exit" -ne 0 ] || [ "$stderr_reader_exit" -ne 0 ]; then
       report_budget_truncated_due_to_budget=true
       _execute_abort_unpublished_stage "" "" || return 75
       return 75
     fi
     if reap_owned_go_child_group; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
+    child_group_reaped=true
+    go_child_started=false
     child_exit="$go_child_exit"
     case "$child_exit" in ''|*[!0-9]*) _execute_abort_unpublished_stage "" "" || return 75; return 75 ;; esac
     if cgroup_final="$(capture_cgroup_snapshot)"; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
@@ -740,6 +1170,12 @@ run_stage() {
     if [ "$stage" = build ] && ! unlink_owned_output; then _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
     if _execute_cleanup_package_scratch; then
       package_scratch_cleaned=true
+      stdout_reader_started=false
+      stderr_reader_started=false
+      stdout_reader_pid=
+      stderr_reader_pid=
+      stdout_reader_identity=
+      stderr_reader_identity=
     else
       _execute_abort_unpublished_stage "" "" || return 75
       return 75
@@ -765,6 +1201,11 @@ run_stage() {
   if [ "$stage_metadata_before" -le "$REPORT_METADATA_BUDGET_BYTES" ]; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
   if check_budget; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
   if rmdir -- "$stage_scratch"; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
+  active_stage_publish_in_progress=true
   _execute_publish_stage_transaction "$stage_results_tmp" "$stage_results_identity" "$stage_results_path" "$stage_stdout_tmp" "$stage_stdout_identity" "$stdout_path" "$stage_stderr_tmp" "$stage_stderr_identity" "$stderr_path" "$stage_json_tmp" "$stage_json_identity" "$stage_json_path" "$stage_run_identity" || return 75
+  active_stage_publish_in_progress=false
+  active_stage_artifacts_ready=false
+  active_stage_for_container_stop=false
+  active_stage_abort_state=idle
   return "$stage_exit"
 }
