@@ -82,6 +82,10 @@ later Task 10.
   fail-closed gate must close the pre-append and database-outage observation
   gap before production acceptance.
 
+### Upstream configuration-source note
+
+At `stable-11146-2`, [web defaults](https://raw.githubusercontent.com/jitsi/docker-jitsi-meet/stable-11146-2/web/rootfs/defaults/settings-config.js) define `ENABLE_P2P` and `ENABLE_JAAS_COMPONENTS`, with P2P configured independently; [JVB defaults](https://raw.githubusercontent.com/jitsi/docker-jitsi-meet/stable-11146-2/jvb/rootfs/defaults/jvb.conf) keep JVB/STUN control separate. This source evidence supports explicit sample defaults only; it does not prove selected-digest contents, rendered configuration, egress behaviour, or runtime.
+
 ## Authorized continuation gate
 
 The overlay may proceed only with explicit infrastructure authority and a
