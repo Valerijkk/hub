@@ -462,6 +462,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 							channelId={channelId}
 							canReply={canReply}
 							canPost={canPost}
+							capabilities={channel?.capabilities}
 							messageId={activeThread.rootId}
 							projectId={channel?.project_id}
 							onClose={closeThread}

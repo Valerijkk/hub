@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import type { Message } from "@/api/messenger";
+import type { ChannelCapabilities, Message } from "@/api/messenger";
 import { getThread } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,6 +23,8 @@ interface ThreadPanelProps {
 	canReply?: boolean;
 	/** Fresh право вывести ответ в основную ленту. */
 	canPost?: boolean;
+	/** Серверные права действий над сообщениями; отсутствие запрещает действия. */
+	capabilities?: ChannelCapabilities;
 	/** ID проекта для issue↔thread links (optional). */
 	projectId?: string;
 	/** Колбэк закрытия панели. */
@@ -51,6 +53,7 @@ export function ThreadPanel({
 	messageId,
 	canReply = false,
 	canPost = false,
+	capabilities,
 	projectId,
 	onClose,
 }: ThreadPanelProps) {
@@ -161,7 +164,11 @@ export function ThreadPanel({
 			{/* Исходное сообщение */}
 			{parentMessage && (
 				<div className="border-b bg-raised/30">
-					<MessageItem message={parentMessage} channelId={channelId} />
+					<MessageItem
+						message={parentMessage}
+						channelId={channelId}
+						capabilities={capabilities}
+					/>
 				</div>
 			)}
 
@@ -179,7 +186,11 @@ export function ThreadPanel({
 					<div ref={replyContainerRef}>
 						{replies.map((reply) => (
 							<div key={reply.id} className="relative">
-								<MessageItem message={reply} channelId={channelId} />
+								<MessageItem
+									message={reply}
+									channelId={channelId}
+									capabilities={capabilities}
+								/>
 								<span
 									aria-hidden="true"
 									className="pointer-events-none absolute bottom-0 left-0 h-px w-px"
