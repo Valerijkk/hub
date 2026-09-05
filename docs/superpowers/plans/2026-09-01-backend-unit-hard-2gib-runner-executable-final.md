@@ -1,5 +1,7 @@
 # Backend Unit Hard-2-GiB Runner Executable Final Implementation Plan
 
+> **2026-09-05 execution supersession:** The founder requires all validators in Docker and rejects a Windows-host exception. Preserve this plan as historical source/review evidence. Its host `root_handoff` / observer execution sequence is replaced by `2026-09-05-docker-only-backend-packet.md`; do not retry it or fabricate its `SEAL`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` task-by-task. Checkboxes are the execution ledger.
 
 **Goal:** Deliver the first observer-sealed, pre-start-capped 2-GiB/no-swap `backend-unit` candidate while keeping the one public backend QA command unchanged.
@@ -312,7 +314,6 @@ go list -tags hubtest -f '{{printf "%s\t%s" .ImportPath .Name}}' ./tests/...
 - [ ] The canonical build-input manifest has exactly Compose, Dockerfile, entrypoint, four helpers, observer package, three HARD2G schemas, two new policies, root policy, and root selftests/fixtures; root snapshots it before build and after GREEN, observer recomputes it after lease, both fixed image IDs are bound, backend `.Image` equals inspected backend image ID, and any mismatch is no-seal `75`.
 - [ ] Task 14 contains exactly three discovery commands: build first, vet second, unit/race third, `LC_ALL=C` lexical order, a literal `0x09` delimiter and rejection of `0x5c 0x74`; Task 15 exact argv profiles preserve `-race` before `-p=1`.
 - [ ] Exactly one RED, one build, one post-build `python-contract` GREEN, one READY observer, and one canonical backend run are allowed; all unobserved outcomes remain non-GREEN.
-
 
 
 

@@ -1142,26 +1142,28 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 **Current continuity (2026-09-05, supersedes the snapshots below):** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and
-static review are closed; the next work is the final executable sequence
-(Tasks 20-23). The earlier single `python-contract` RED has already been
-consumed and must not be repeated. Build, post-build GREEN, observer-sealed
-backend execution, and CALL-DUR-08C2 executable acceptance are still pending.
-Two Mail `backend-unit` containers overlapped the read-only preflight, so no
-heavy command was started. Messenger's next source atom is MPR-02 after the
+static review are historical evidence; executable acceptance remains pending.
+The founder explicitly rejected any host-validator exception. The active
+replacement is `docs/superpowers/plans/2026-09-05-docker-only-backend-packet.md`:
+keep capped `backend-unit`, validate its exact packet inside `python-contract`,
+without Windows helpers or Docker socket. New packet selftests need their own
+Docker RED/GREEN; this is not a repeat of the consumed September 1 RED.
+An intact packet alone is not a passing backend test run. Messenger's next
+source atom is MPR-02 after the
 accepted MPR-01; Jitsi activation still requires the remaining durable Calls
 chain and image discovery. Neither module is accepted as product-ready.
 
-**Execution blocker (2026-09-05):** checkpoints `fc856754` and `fe82e80f`
+**Historical host-path rejection (2026-09-05):** checkpoints `fc856754` and `fe82e80f`
 are pushed to the authorized branch. The final preflight at
 `2026-09-05T08:15:10Z` had clean source, no backend QA overlap, 7.64-7.69 GB
 free RAM, over 312 GB free on C:, disk samples 0/0, 0/0 and 4/0
 (PercentDiskTime/queue). The `prebuild` root-handoff invocation was rejected
 twice by automatic approval review as a Windows-host validator prohibited by
 AGENTS.md; the second review rejected the recorded plan exception as
-insufficient authority. No Python helper, build or test started. Continuation
-requires explicit founder permission for the exact host root-handoff and
-observer utilities while all tests/builds remain Docker-only. No alternate
-or indirect invocation is authorized by this note.
+insufficient authority. No Python helper, build or test started in that attempt.
+The current instruction is to solve this wholly in Docker, not request or
+retry a host exception. The replacement does not claim the former host seal,
+Windows resource attestation or image-immutable source provenance.
 
 **Active continuity (2026-09-04, Phase 150):** resumed the structured handoff on
 `calls-feature-codex` at `e0cc0e1b`; Task 3/23 remains in progress. C01 and
