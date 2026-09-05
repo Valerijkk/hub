@@ -15,6 +15,42 @@ stdout_reader_pid=
 stderr_reader_pid=
 stdout_reader_identity=
 stderr_reader_identity=
+completed_build_final_identities=
+completed_vet_final_identities=
+completed_unit_final_identities=
+completed_race_final_identities=
+
+_execute_identity_is_exact() {
+  [ "$#" -eq 5 ] || return 64
+  execute_identity_value="$1"
+  execute_identity_expected_uid="$2"
+  execute_identity_expected_gid="$3"
+  execute_identity_expected_mode="$4"
+  execute_identity_expected_type="$5"
+  execute_identity_tail="$execute_identity_value"
+  for execute_identity_index in 1 2 3 4 5; do
+    case "$execute_identity_tail" in
+      *:*) execute_identity_field=${execute_identity_tail%%:*}; execute_identity_tail=${execute_identity_tail#*:} ;;
+      *) return 75 ;;
+    esac
+    case "$execute_identity_field" in 0|[1-9][0-9]*) ;; *) return 75 ;; esac
+    case "$execute_identity_index" in
+      1) execute_identity_device="$execute_identity_field" ;;
+      2) execute_identity_inode="$execute_identity_field" ;;
+      3) execute_identity_uid="$execute_identity_field" ;;
+      4) execute_identity_gid="$execute_identity_field" ;;
+      5) execute_identity_mode="$execute_identity_field" ;;
+      *) return 75 ;;
+    esac
+  done
+  [ -n "$execute_identity_tail" ] || return 75
+  case "$execute_identity_tail" in *:*) return 75 ;; esac
+  [ "$execute_identity_uid" = "$execute_identity_expected_uid" ] || return 75
+  [ "$execute_identity_gid" = "$execute_identity_expected_gid" ] || return 75
+  [ "$execute_identity_mode" = "$execute_identity_expected_mode" ] || return 75
+  [ "$execute_identity_tail" = "$execute_identity_expected_type" ] || return 75
+  return 0
+}
 
 _execute_regular_bytes() {
   [ "$#" -eq 1 ] || return 64
@@ -169,7 +205,7 @@ _execute_scratch_identity() {
   execute_scratch_path="$1"
   [ -d "$execute_scratch_path" ] && [ ! -L "$execute_scratch_path" ] || return 75
   execute_scratch_value="$(stat -c '%d:%i:%u:%g:%a:%F' -- "$execute_scratch_path")" || return 75
-  case "$execute_scratch_value" in [0-9]*:[0-9]*:10001:10001:700:directory) ;; *) return 75 ;; esac
+  _execute_identity_is_exact "$execute_scratch_value" 10001 10001 700 directory || return 75
   printf '%s\n' "$execute_scratch_value"
 }
 
@@ -203,7 +239,7 @@ _execute_fifo_identity() {
   execute_fifo_path="$1"
   [ -p "$execute_fifo_path" ] && [ ! -L "$execute_fifo_path" ] || return 75
   execute_fifo_value="$(stat -c '%d:%i:%u:%g:%a:%F' -- "$execute_fifo_path")" || return 75
-  case "$execute_fifo_value" in [0-9]*:[0-9]*:10001:10001:600:'fifo') ;; *) return 75 ;; esac
+  _execute_identity_is_exact "$execute_fifo_value" 10001 10001 600 fifo || return 75
   printf '%s\n' "$execute_fifo_value"
 }
 
@@ -930,6 +966,164 @@ abort_active_stage_for_container_stop() {
   return 0
 }
 
+_execute_completed_stage_final_identities_are_current() {
+  [ "$#" -eq 2 ] || return 64
+  execute_completed_stage="$1"
+  execute_completed_tuple="$2"
+  _plan_stage_is_valid "$execute_completed_stage" || return 75
+  [ -n "${stage_run_identity-}" ] || return 75
+  _owned_run_dir_is_current "$stage_run_identity" || return 75
+  case "$execute_completed_tuple" in *'|'*) ;; *) return 75 ;; esac
+  execute_completed_results=${execute_completed_tuple%%|*}
+  execute_completed_tail=${execute_completed_tuple#*|}
+  case "$execute_completed_tail" in *'|'*) ;; *) return 75 ;; esac
+  execute_completed_stdout=${execute_completed_tail%%|*}
+  execute_completed_tail=${execute_completed_tail#*|}
+  case "$execute_completed_tail" in *'|'*) ;; *) return 75 ;; esac
+  execute_completed_stderr=${execute_completed_tail%%|*}
+  execute_completed_json=${execute_completed_tail#*|}
+  case "$execute_completed_json" in *'|'*) return 75 ;; esac
+  [ -n "$execute_completed_results" ] && [ -n "$execute_completed_stdout" ] && [ -n "$execute_completed_stderr" ] && [ -n "$execute_completed_json" ] || return 75
+  _execute_identity_is_exact "$execute_completed_results" 10001 10001 600 'regular file' || return 75
+  _execute_identity_is_exact "$execute_completed_stdout" 10001 10001 600 'regular file' || return 75
+  _execute_identity_is_exact "$execute_completed_stderr" 10001 10001 600 'regular file' || return 75
+  _execute_identity_is_exact "$execute_completed_json" 10001 10001 600 'regular file' || return 75
+  _owned_temp_is_current "$run_dir/package-results.$execute_completed_stage.jsonl" "$execute_completed_results" 1 || return 75
+  _owned_temp_is_current "$run_dir/$execute_completed_stage.stdout.log" "$execute_completed_stdout" 1 || return 75
+  _owned_temp_is_current "$run_dir/$execute_completed_stage.stderr.log" "$execute_completed_stderr" 1 || return 75
+  _owned_temp_is_current "$run_dir/stage-$execute_completed_stage.json" "$execute_completed_json" 1 || return 75
+  return 0
+}
+
+prove_quiescent_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  [ "${active_stage_for_container_stop-}" = false ] || return 75
+  [ "${active_stage_abort_state-}" = idle ] || return 75
+  [ "${active_stage_publish_in_progress-}" = false ] || return 75
+  [ "${active_stage_artifacts_ready-}" = false ] || return 75
+  [ "${go_child_started-false}" = false ] || return 75
+  [ "${stdout_reader_started-false}" = false ] || return 75
+  [ "${stderr_reader_started-false}" = false ] || return 75
+  [ -z "${stdout_reader_pid-}" ] && [ -z "${stderr_reader_pid-}" ] || return 75
+  [ -z "${stdout_reader_identity-}" ] && [ -z "${stderr_reader_identity-}" ] || return 75
+  [ -z "${owned_output-}" ] || return 75
+  _execute_no_active_go_child_for_container_stop || return 75
+  case "${package_scratch_ready-false}:${package_scratch_cleaned-false}" in
+    false:false|true:true) ;;
+    *) return 75 ;;
+  esac
+
+  case "${child_group_reaped-false}:${stdout_reader_reaped-false}:${stderr_reader_reaped-false}:${unpublished_stage_rolled_back-false}" in
+    false:false:false:false)
+      [ "${go_child_reaped-false}" = false ] || return 75
+      [ -z "${go_child_exit-}" ] || return 75
+      [ "${package_scratch_ready-false}:${package_scratch_cleaned-false}" = false:false ] || return 75
+      for execute_quiescent_value in \
+        "${stage_run_identity-}" "${stage_scratch-}" "${stage_scratch_identity-}" \
+        "${stage_results_tmp-}" "${stage_results_identity-}" \
+        "${stage_stdout_tmp-}" "${stage_stdout_identity-}" \
+        "${stage_stderr_tmp-}" "${stage_stderr_identity-}" \
+        "${stage_json_tmp-}" "${stage_json_identity-}" \
+        "${execute_file_path-}" "${execute_file_identity-}" \
+        "${stage_marker_template-}" "${stage_marker_identity-}" "${budget_stop_marker-}" \
+        "${stdout_fifo-}" "${stdout_fifo_identity-}" "${stderr_fifo-}" "${stderr_fifo_identity-}" \
+        "${package_stdout_capture-}" "${package_stdout_identity-}" \
+        "${package_stderr_capture-}" "${package_stderr_identity-}" \
+        "${completed_build_final_identities-}" "${completed_vet_final_identities-}" \
+        "${completed_unit_final_identities-}" "${completed_race_final_identities-}"; do
+        [ -z "$execute_quiescent_value" ] || return 75
+      done
+      ;;
+    true:true:true:false)
+      [ "${go_child_reaped-false}" = true ] || return 75
+      case "${go_child_exit-}" in ''|*[!0-9]*) return 75 ;; esac
+      [ "${package_scratch_ready-false}:${package_scratch_cleaned-false}" = true:true ] || return 75
+      [ "${GOTMPDIR-}" = /var/tmp/hub-go ] || return 75
+      _plan_stage_is_valid "${stage-}" || return 75
+      [ -n "${stage_run_identity-}" ] || return 75
+      _owned_run_dir_is_current "$stage_run_identity" || return 75
+      [ "${stage_plan_path-}" = "$run_dir/package-plan.$stage.json" ] || return 75
+      [ "${stage_results_path-}" = "$run_dir/package-results.$stage.jsonl" ] || return 75
+      [ "${stdout_path-}" = "$run_dir/$stage.stdout.log" ] || return 75
+      [ "${stderr_path-}" = "$run_dir/$stage.stderr.log" ] || return 75
+      [ "${stage_json_path-}" = "$run_dir/stage-$stage.json" ] || return 75
+      _owned_regular_identity "$stage_plan_path" >/dev/null || return 75
+      for execute_quiescent_temp in "$stage_results_tmp" "$stage_stdout_tmp" "$stage_stderr_tmp" "$stage_json_tmp"; do
+        _owned_temp_name_is_safe "$run_dir" publish "$execute_quiescent_temp" || return 75
+        [ ! -e "$execute_quiescent_temp" ] && [ ! -L "$execute_quiescent_temp" ] || return 75
+      done
+      case "$stage" in
+        build)
+          [ -n "$completed_build_final_identities" ] && [ -z "$completed_vet_final_identities" ] && [ -z "$completed_unit_final_identities" ] && [ -z "$completed_race_final_identities" ] || return 75
+          _execute_completed_stage_final_identities_are_current build "$completed_build_final_identities" || return 75
+          ;;
+        vet)
+          [ -n "$completed_build_final_identities" ] && [ -n "$completed_vet_final_identities" ] && [ -z "$completed_unit_final_identities" ] && [ -z "$completed_race_final_identities" ] || return 75
+          _execute_completed_stage_final_identities_are_current build "$completed_build_final_identities" || return 75
+          _execute_completed_stage_final_identities_are_current vet "$completed_vet_final_identities" || return 75
+          ;;
+        unit)
+          [ -n "$completed_build_final_identities" ] && [ -n "$completed_vet_final_identities" ] && [ -n "$completed_unit_final_identities" ] && [ -z "$completed_race_final_identities" ] || return 75
+          _execute_completed_stage_final_identities_are_current build "$completed_build_final_identities" || return 75
+          _execute_completed_stage_final_identities_are_current vet "$completed_vet_final_identities" || return 75
+          _execute_completed_stage_final_identities_are_current unit "$completed_unit_final_identities" || return 75
+          ;;
+        race)
+          [ -n "$completed_build_final_identities" ] && [ -n "$completed_vet_final_identities" ] && [ -n "$completed_unit_final_identities" ] && [ -n "$completed_race_final_identities" ] || return 75
+          _execute_completed_stage_final_identities_are_current build "$completed_build_final_identities" || return 75
+          _execute_completed_stage_final_identities_are_current vet "$completed_vet_final_identities" || return 75
+          _execute_completed_stage_final_identities_are_current unit "$completed_unit_final_identities" || return 75
+          _execute_completed_stage_final_identities_are_current race "$completed_race_final_identities" || return 75
+          ;;
+        *) return 75 ;;
+      esac
+      _execute_identity_is_exact "$stage_results_identity" 10001 10001 600 'regular file' || return 75
+      _execute_identity_is_exact "$stage_stdout_identity" 10001 10001 600 'regular file' || return 75
+      _execute_identity_is_exact "$stage_stderr_identity" 10001 10001 600 'regular file' || return 75
+      _execute_identity_is_exact "$stage_json_identity" 10001 10001 600 'regular file' || return 75
+      _owned_temp_is_current "$stage_results_path" "$stage_results_identity" 1 || return 75
+      _owned_temp_is_current "$stdout_path" "$stage_stdout_identity" 1 || return 75
+      _owned_temp_is_current "$stderr_path" "$stage_stderr_identity" 1 || return 75
+      _owned_temp_is_current "$stage_json_path" "$stage_json_identity" 1 || return 75
+      case "${stage_scratch-}" in
+        "$GOTMPDIR/.backend-unit-stage-$stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;;
+        *) return 75 ;;
+      esac
+      _execute_identity_is_exact "${stage_scratch_identity-}" 10001 10001 700 directory || return 75
+      [ ! -e "$stage_scratch" ] && [ ! -L "$stage_scratch" ] || return 75
+      case "${package_ordinal-}" in ''|*[!0-9]*) return 75 ;; esac
+      [ "$package_ordinal" -ge 1 ] || return 75
+      case "${stage_marker_template-}" in
+        "$stage_scratch/marker."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;;
+        *) return 75 ;;
+      esac
+      _execute_identity_is_exact "${stage_marker_identity-}" 10001 10001 600 'regular file' || return 75
+      [ "${budget_stop_marker-}" = "$stage_scratch/stop.$package_ordinal" ] || return 75
+      [ "${stdout_fifo-}" = "$stage_scratch/stdout.$package_ordinal" ] || return 75
+      [ "${stderr_fifo-}" = "$stage_scratch/stderr.$package_ordinal" ] || return 75
+      _execute_identity_is_exact "${stdout_fifo_identity-}" 10001 10001 600 fifo || return 75
+      _execute_identity_is_exact "${stderr_fifo_identity-}" 10001 10001 600 fifo || return 75
+      case "${package_stdout_capture-}" in "$stage_scratch/stdout-capture."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;; *) return 75 ;; esac
+      case "${package_stderr_capture-}" in "$stage_scratch/stderr-capture."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;; *) return 75 ;; esac
+      _execute_identity_is_exact "${package_stdout_identity-}" 10001 10001 600 'regular file' || return 75
+      _execute_identity_is_exact "${package_stderr_identity-}" 10001 10001 600 'regular file' || return 75
+      for execute_quiescent_path in \
+        "$stage_marker_template" "$budget_stop_marker" "$stdout_fifo" "$stderr_fifo" \
+        "$package_stdout_capture" "$package_stderr_capture"; do
+        [ ! -e "$execute_quiescent_path" ] && [ ! -L "$execute_quiescent_path" ] || return 75
+      done
+      [ -z "${execute_file_path-}" ] && [ -z "${execute_file_identity-}" ] || return 75
+      ;;
+    *) return 75 ;;
+  esac
+
+  child_group_reaped=true
+  stdout_reader_reaped=true
+  stderr_reader_reaped=true
+  unpublished_stage_rolled_back=true
+  return 0
+}
+
 run_stage() {
   [ "$#" -eq 2 ] || return 64
   stage="$1"
@@ -1203,6 +1397,29 @@ run_stage() {
   if rmdir -- "$stage_scratch"; then :; else _execute_abort_unpublished_stage "" "" || return 75; return 75; fi
   active_stage_publish_in_progress=true
   _execute_publish_stage_transaction "$stage_results_tmp" "$stage_results_identity" "$stage_results_path" "$stage_stdout_tmp" "$stage_stdout_identity" "$stdout_path" "$stage_stderr_tmp" "$stage_stderr_identity" "$stderr_path" "$stage_json_tmp" "$stage_json_identity" "$stage_json_path" "$stage_run_identity" || return 75
+  _execute_identity_is_exact "$stage_results_identity" 10001 10001 600 'regular file' || return 75
+  _execute_identity_is_exact "$stage_stdout_identity" 10001 10001 600 'regular file' || return 75
+  _execute_identity_is_exact "$stage_stderr_identity" 10001 10001 600 'regular file' || return 75
+  _execute_identity_is_exact "$stage_json_identity" 10001 10001 600 'regular file' || return 75
+  case "$stage" in
+    build)
+      [ -z "$completed_build_final_identities" ] && [ -z "$completed_vet_final_identities" ] && [ -z "$completed_unit_final_identities" ] && [ -z "$completed_race_final_identities" ] || return 75
+      completed_build_final_identities="$stage_results_identity|$stage_stdout_identity|$stage_stderr_identity|$stage_json_identity"
+      ;;
+    vet)
+      [ -n "$completed_build_final_identities" ] && [ -z "$completed_vet_final_identities" ] && [ -z "$completed_unit_final_identities" ] && [ -z "$completed_race_final_identities" ] || return 75
+      completed_vet_final_identities="$stage_results_identity|$stage_stdout_identity|$stage_stderr_identity|$stage_json_identity"
+      ;;
+    unit)
+      [ -n "$completed_build_final_identities" ] && [ -n "$completed_vet_final_identities" ] && [ -z "$completed_unit_final_identities" ] && [ -z "$completed_race_final_identities" ] || return 75
+      completed_unit_final_identities="$stage_results_identity|$stage_stdout_identity|$stage_stderr_identity|$stage_json_identity"
+      ;;
+    race)
+      [ -n "$completed_build_final_identities" ] && [ -n "$completed_vet_final_identities" ] && [ -n "$completed_unit_final_identities" ] && [ -z "$completed_race_final_identities" ] || return 75
+      completed_race_final_identities="$stage_results_identity|$stage_stdout_identity|$stage_stderr_identity|$stage_json_identity"
+      ;;
+    *) return 75 ;;
+  esac
   active_stage_publish_in_progress=false
   active_stage_artifacts_ready=false
   active_stage_for_container_stop=false
