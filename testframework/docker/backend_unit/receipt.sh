@@ -21,15 +21,17 @@ _receipt_sha256_file() {
   [ "$#" -eq 1 ] || return 64
   [ -f "$1" ] && [ ! -L "$1" ] || return 75
   receipt_hash_line="$(sha256sum -- "$1")" || return 75
-  receipt_hash="$(printf '%s\n' "$receipt_hash_line" | awk 'NF >= 1 && $1 ~ /^[0-9a-f]{64}$/ { print $1; exit }')" || return 75
-  case "$receipt_hash" in [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;; *) return 75 ;; esac
+  receipt_hash="$(printf '%s\n' "$receipt_hash_line" | awk 'NF >= 1 && length($1) == 64 && $1 ~ /^[0-9a-f]+$/ { print $1; exit }')" || return 75
+  [ "${#receipt_hash}" -eq 64 ] || return 75
+  case "$receipt_hash" in *[!0-9a-f]*) return 75 ;; esac
   printf 'sha256:%s\n' "$receipt_hash"
 }
 
 _receipt_sha256_text() {
   [ "$#" -eq 1 ] || return 64
-  receipt_text_hash="$(printf '%s' "$1" | sha256sum | awk 'NF >= 1 && $1 ~ /^[0-9a-f]{64}$/ { print $1; exit }')" || return 75
-  case "$receipt_text_hash" in [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;; *) return 75 ;; esac
+  receipt_text_hash="$(printf '%s' "$1" | sha256sum | awk 'NF >= 1 && length($1) == 64 && $1 ~ /^[0-9a-f]+$/ { print $1; exit }')" || return 75
+  [ "${#receipt_text_hash}" -eq 64 ] || return 75
+  case "$receipt_text_hash" in *[!0-9a-f]*) return 75 ;; esac
   printf 'sha256:%s\n' "$receipt_text_hash"
 }
 

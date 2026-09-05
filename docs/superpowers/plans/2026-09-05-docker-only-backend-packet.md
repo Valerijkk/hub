@@ -78,6 +78,45 @@ does not close the previous full-framework 71 failures or prove a Go PASS.
 Independent source/contract/security review: C/I/M 0/0/0. Task 3A accepted;
 actual Go execution and exact-packet verification remain the next steps.
 
+Task 3B runtime repair (frozen after actual execution): checkpoint
+`48332ed735cfebac23ec70fc8193ef7d226680da` was committed/pushed with a clean
+worktree. Canonical `backend-unit` container
+`worktree-master-backend-unit-run-5293b10252d4` exited 1 before compilation
+with an awk syntax error. In `runtime.sh::_assert_tmpfs_mount`, the loop
+variable `index` collides with awk's built-in function. Ownership is only
+that loop variable renamed to `mount_field` and new
+`testframework/selftests/architecture/test_backend_unit_tmpfs_mount.py`.
+The test extracts the exact source awk program and executes real awk inside
+`python-contract`: canonical/optional-field mount success and rejection of
+missing/duplicate/non-tmpfs/malformed mount records. It must first reproduce
+the syntax error, then pass after the variable-only fix. All resource,
+ownership, size and mount-option checks are retained. No Go PASS or accepted
+container packet exists from the bootstrap failure.
+
+Task 3C digest repair (independent frozen atom): read-only review confirmed
+`_receipt_sha256_file` and `_receipt_sha256_text` each reject their own valid
+SHA-256 output because their shell case has 32, not 64, hex positions. Scope
+is these two functions in `receipt.sh` plus new
+`testframework/selftests/architecture/test_backend_unit_receipt_digest.py`.
+Use an exact 64-character lowercase-hex check and a portable awk length/hex
+predicate; preserve argument/file/symlink/error guards and output format.
+No new helper inventory or broader receipt change. Real shell/hashlib Docker
+selftests first reproduce valid-digest rejection, then cover valid file/text,
+arity, missing/symlink files and malformed digest-producer outputs. Both
+source atoms can be authored independently; root runs their RED/GREEN and
+the actual backend service sequentially, without concurrent QA or rebuild.
+
+Tasks 3B/3C evidence: `backend-bootstrap-red-20260905.xml` has 10 failed /
+20 passed (seven real awk syntax failures and three valid-digest rejections,
+with 20 negative digest cases already passing). After their exact patches,
+`backend-bootstrap-green-20260905.xml` has 53 passed / 529 deselected in
+5.50s, exit 0. Both independent reviews return C/I/M 0/0/0.
+`backend-bootstrap-full-framework-20260905.xml` records 511 passed /
+71 failed in 20.06s (582 total); the complete framework is NOT_ACCEPTED.
+The root delayed these runs while the Mail worktree's Go QA was active,
+without stopping/modifying its container. These are source/runtime-selftest
+checkpoints; post-fix actual Go acceptance is still pending.
+
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must
 pass before actual Go execution; obsolete Windows observer attestation is not

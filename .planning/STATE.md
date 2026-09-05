@@ -1147,6 +1147,15 @@ independent review C/I/M 0/0/0 and Docker RED/GREEN (focused 1 PASS; relevant
 launcher/packet/security regression 23 PASS). Current helpers and entrypoint
 are read-only overlays; no image rebuild was needed. Next is the actual Go
 build/vet/unit/race gate, then MPR-02 in its own reserved RED/GREEN slot.
+Task 3A checkpoint `48332ed7` is pushed. Its first real backend run
+`5293b10252d4` exited 1 before Go on an awk built-in-name collision in
+`runtime.sh::_assert_tmpfs_mount`. Task 3B owns that variable-only repair
+and real-awk Docker regression. Tasks 3B/3C now pass the real shell/awk Docker
+tests: 53 selected PASS, independent review C/I/M 0/0/0 for each atom.
+The new full framework result is 511 PASS / 71 FAIL (582 cases, 20.06s);
+framework acceptance remains NOT_ACCEPTED. Task 3C corrects both receipt
+SHA-256 helpers' erroneous 32-character acceptance to exactly 64 lowercase
+hex characters. Post-fix actual Go execution remains next.
 Existing linked worktree is retained; no product-readiness claim is made.
 
 **Previous checkpoint detail:** branch

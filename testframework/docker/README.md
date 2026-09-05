@@ -110,8 +110,8 @@ failed and aborted test runs can also have intact packets. It is not a passing
 Go gate, host seal, source/image attestation or product-readiness claim.
 
 September 5 evidence: all 17 new packet/launcher/shell selftests pass in Docker.
-The latest full framework run is **480 passed / 71 failed** (551 collected,
-19.94s); full framework acceptance remains **NOT_ACCEPTED**. The remaining
+The latest full framework run is **511 passed / 71 failed** (582 collected,
+20.06s); full framework acceptance remains **NOT_ACCEPTED**. The remaining
 observer API/fixture and lexical/AST contract failures are recorded in the
 [active plan](../../docs/superpowers/plans/2026-09-05-docker-only-backend-packet.md).
 
@@ -141,6 +141,11 @@ by the receipt. These nine mounts (one report, eight read-only) let reviewed
 shell fixes execute without rebuilding the image; they do not attest
 image-immutable source identity. The September 5 focused launcher test has
 Docker RED/GREEN; its current-launcher/packet regression is 23 passed.
+The first actual backend attempt exited before Go on an awk built-in-name
+collision. The variable-only fix and correction of SHA-256 helper length
+checks have real shell/awk RED/GREEN (53 selected tests pass including
+previous launcher/packet regressions), with independent review. Only a new
+actual backend run can establish post-fix build/vet/unit/race results.
 The old Windows `root_handoff.py` / `observe.py` choreography is superseded
 and is not an executable fallback. Historical observer receipts remain
 historical; do not fabricate their `SEAL` from an offline packet result.
