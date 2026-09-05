@@ -137,6 +137,8 @@ class SourceMutationError(SourceLeaseError):
 class SourceProbe(Protocol):
     def git(self, argv: tuple[str, ...]) -> str: ...
 
+    def source_root_digests(self) -> dict[str, str]: ...
+
     def canonical_build_input_manifest(self) -> bytes: ...
 
     def fixed_image_ids(self) -> dict[str, str]: ...
@@ -248,15 +250,12 @@ class SourceLease:
         descriptor: int,
         parent_descriptor: int,
         probe: SourceProbe,
-        *,
-        require_source_roots: bool,
     ) -> None:
         self.path = path
         self._descriptor = descriptor
         self._parent_descriptor = parent_descriptor
         self._lease_name = path.name
         self.probe = probe
-        self._require_source_roots = require_source_roots
         self._released = False
         self._parent_identity = _lease_parent_identity(parent_descriptor)
         self._identity = _lease_file_identity(
@@ -280,20 +279,13 @@ class SourceLease:
             root = _validated_repository_root(repo_root)
             _validate_repository_lease_path(path, root)
             probe = _SystemSourceProbe(root)
-            require_source_roots = True
         elif repo_root is not None:
             if trusted_reports_root is not None:
                 raise SourceLeaseError("Injected probe lease roots are ambiguous")
             root = _validated_repository_root(repo_root)
             _validate_repository_lease_path(path, root)
-            require_source_roots = callable(
-                getattr(probe, "source_root_digests", None)
-            )
         else:
             _validate_injected_probe_lease_path(path, trusted_reports_root)
-            require_source_roots = callable(
-                getattr(probe, "source_root_digests", None)
-            )
         parent_descriptor = -1
         descriptor = -1
         parent_identity: tuple[int, int, int | None, int | None] | None = None
@@ -308,7 +300,6 @@ class SourceLease:
                 descriptor,
                 parent_descriptor,
                 probe,
-                require_source_roots=require_source_roots,
             )
         except Exception:
             if descriptor >= 0:
@@ -335,37 +326,59 @@ class SourceLease:
         try:
             head = _parse_git_head(self.probe.git(_GIT_HEAD_ARGV))
             status = _parse_git_status(self.probe.git(_GIT_STATUS_ARGV))
-            manifest = self.probe.canonical_build_input_manifest()
-            fixed_image_ids = self.probe.fixed_image_ids()
+            manifest = self.canonical_build_input_manifest_bytes()
             frozen_subjects = self.probe.frozen_subject_digests()
+            source_roots = self._source_root_digests()
         except SourceLeaseError:
             raise
         except Exception as error:
             raise SourceLeaseError("Source snapshot probe failed") from error
-        if type(manifest) is not bytes or not manifest or b"\r" in manifest:
-            raise SourceLeaseError("Canonical build input manifest is malformed")
         snapshot: dict[str, Any] = {
             "head": head,
             "status": status,
-            "canonical_build_input_manifest_bytes": manifest,
-            "canonical_build_input_manifest_sha256": _sha256_prefixed(manifest),
-            "fixed_image_ids": fixed_image_ids,
+            "source_root_sha256": source_roots,
             "frozen_subjects": frozen_subjects,
+            "canonical_build_input_manifest_sha256": _sha256_prefixed(manifest),
         }
-        root_method = getattr(self.probe, "source_root_digests", None)
-        if callable(root_method):
-            try:
-                snapshot["source_root_sha256"] = root_method()
-            except Exception as error:
-                raise SourceLeaseError("Source-root snapshot probe failed") from error
-        _validate_snapshot(snapshot, require_source_roots=self._require_source_roots)
+        _validate_snapshot(snapshot)
         return snapshot
+
+    def canonical_build_input_manifest_bytes(self) -> bytes:
+        """Return the current canonical build manifest after lease identity checks."""
+
+        self._assert_active()
+        self._assert_path_identity()
+        try:
+            manifest = self.probe.canonical_build_input_manifest()
+        except SourceLeaseError:
+            raise
+        except Exception as error:
+            raise SourceLeaseError("Canonical build input manifest probe failed") from error
+        return _validate_canonical_build_input_manifest_bytes(manifest)
+
+    def fixed_image_ids(self) -> dict[str, str]:
+        """Return current pinned image IDs after lease identity checks."""
+
+        self._assert_active()
+        self._assert_path_identity()
+        try:
+            image_ids = self.probe.fixed_image_ids()
+        except SourceLeaseError:
+            raise
+        except Exception as error:
+            raise SourceLeaseError("Fixed image ID probe failed") from error
+        _validate_digest_mapping(
+            image_ids,
+            ("python_contract", "backend_unit"),
+            "Fixed image IDs",
+        )
+        return dict(image_ids)
 
     def verify_unchanged(self, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
         self._assert_active()
         self._assert_path_identity()
-        _validate_snapshot(before, require_source_roots=self._require_source_roots)
-        _validate_snapshot(after, require_source_roots=self._require_source_roots)
+        _validate_snapshot(before)
+        _validate_snapshot(after)
         if before["status"] or after["status"]:
             raise SourceMutationError("Git worktree is dirty")
         if dict(before) != dict(after):
@@ -439,6 +452,17 @@ class SourceLease:
         finally:
             if current_descriptor >= 0:
                 _close_lease_descriptor_quietly(current_descriptor)
+
+    def _source_root_digests(self) -> dict[str, str]:
+        root_method = getattr(self.probe, "source_root_digests", None)
+        if not callable(root_method):
+            raise SourceLeaseError("Source-root snapshot probe is unavailable")
+        try:
+            source_roots = root_method()
+        except Exception as error:
+            raise SourceLeaseError("Source-root snapshot probe failed") from error
+        _validate_digest_mapping(source_roots, _SOURCE_ROOTS, "Source-root digests")
+        return dict(source_roots)
 
 
 def _validated_repository_root(repo_root: Path | None) -> Path:
@@ -690,50 +714,66 @@ def _close_lease_descriptor_quietly(descriptor: int) -> None:
         pass
 
 
-def _validate_snapshot(snapshot: Mapping[str, Any], *, require_source_roots: bool) -> None:
-    if not isinstance(snapshot, Mapping):
-        raise SourceMutationError("Source snapshot is not a mapping")
-    required = {
+def _validate_snapshot(snapshot: Mapping[str, Any]) -> None:
+    if type(snapshot) is not dict:
+        raise SourceMutationError("Source snapshot is not a plain dict")
+    required = (
         "head",
         "status",
-        "canonical_build_input_manifest_bytes",
-        "canonical_build_input_manifest_sha256",
-        "fixed_image_ids",
+        "source_root_sha256",
         "frozen_subjects",
-    }
-    allowed = required | {"source_root_sha256"}
-    keys = set(snapshot)
-    if not required <= keys or not keys <= allowed:
+        "canonical_build_input_manifest_sha256",
+    )
+    if tuple(snapshot) != required:
         raise SourceMutationError("Source snapshot keys are not closed")
-    if require_source_roots and "source_root_sha256" not in snapshot:
-        raise SourceMutationError("Source-root snapshot is unavailable")
     head = snapshot["head"]
     status = snapshot["status"]
-    manifest = snapshot["canonical_build_input_manifest_bytes"]
     manifest_digest = snapshot["canonical_build_input_manifest_sha256"]
     if not _is_git_sha(head) or type(status) is not str:
         raise SourceMutationError("Git snapshot is malformed")
-    if (
-        type(manifest) is not bytes
-        or not manifest
-        or b"\r" in manifest
-        or manifest_digest != _sha256_prefixed(manifest)
-    ):
-        raise SourceMutationError("Canonical build input manifest changed or is malformed")
-    _validate_digest_mapping(
-        snapshot["fixed_image_ids"],
-        ("python_contract", "backend_unit"),
-        "Fixed image IDs",
-    )
+    if not _is_sha256(manifest_digest):
+        raise SourceMutationError("Canonical build input manifest digest is malformed")
     _validate_digest_mapping(
         snapshot["frozen_subjects"],
         tuple(_FROZEN_SUBJECTS),
         "Frozen subject digests",
     )
-    if "source_root_sha256" in snapshot:
-        _validate_digest_mapping(
-            snapshot["source_root_sha256"], _SOURCE_ROOTS, "Source-root digests"
-        )
+    _validate_digest_mapping(
+        snapshot["source_root_sha256"], _SOURCE_ROOTS, "Source-root digests"
+    )
+
+
+def _validate_canonical_build_input_manifest_bytes(value: object) -> bytes:
+    if (
+        type(value) is not bytes
+        or not value
+        or b"\r" in value
+        or not value.endswith(b"\n")
+    ):
+        raise SourceLeaseError("Canonical build input manifest is malformed")
+    paths: list[str] = []
+    digest_map: dict[str, str] = {}
+    for raw_line in value[:-1].split(b"\n"):
+        fields = raw_line.split(b"\t")
+        if len(fields) != 2 or not fields[0] or not fields[1]:
+            raise SourceLeaseError("Canonical build input manifest is malformed")
+        try:
+            path = fields[0].decode("utf-8")
+            digest = fields[1].decode("ascii")
+        except UnicodeDecodeError as error:
+            raise SourceLeaseError("Canonical build input manifest is malformed") from error
+        if (
+            path != _canonical_repo_relative(path, "Canonical build input")
+            or not _is_sha256(digest)
+        ):
+            raise SourceLeaseError("Canonical build input manifest is malformed")
+        if path in digest_map:
+            raise SourceLeaseError("Canonical build input manifest is malformed")
+        paths.append(path)
+        digest_map[path] = digest
+    if tuple(paths) != _MANIFEST_PATHS or tuple(digest_map) != _MANIFEST_PATHS:
+        raise SourceLeaseError("Canonical build input manifest differs from frozen policy")
+    return value
 
 
 def _validate_digest_mapping(value: object, keys: tuple[str, ...], label: str) -> None:
