@@ -116,11 +116,44 @@ def _read_windows_handle(handle: int, size: int) -> bytes:
         raise PublicationError("descriptor-anchored Windows receipt read failed") from exc
 
 
-def _read_regular_relative(run_dir: Path, relative: str) -> bytes:
+def _descriptor_identity(snapshot: Any) -> tuple[int, int, int, int, int, int, int]:
+    """Return the complete stable identity from one retained regular descriptor."""
+
+    values = safe_paths._require_regular(snapshot)
+    try:
+        if isinstance(snapshot, dict):
+            mode = snapshot["mode"]
+            mtime_ns = snapshot["mtime_ns"]
+            ctime_ns = snapshot["ctime_ns"]
+        else:
+            mode = snapshot.st_mode
+            mtime_ns = snapshot.st_mtime_ns
+            ctime_ns = snapshot.st_ctime_ns
+        if any(type(value) is not int for value in (mode, mtime_ns, ctime_ns)):
+            raise TypeError("descriptor generation metadata is malformed")
+        return (
+            int(values["device"]),
+            int(values["inode"]),
+            mode,
+            int(values["nlink"]),
+            int(values["size"]),
+            mtime_ns,
+            ctime_ns,
+        )
+    except PublicationError:
+        raise
+    except Exception as exc:
+        raise PublicationError("descriptor identity metadata is unavailable") from exc
+
+
+def _read_regular_relative(
+    run_dir: Path, relative: str
+) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
     descriptor = -1
     try:
         descriptor = safe_paths.open_regular_relative(run_dir, relative)
-        before = safe_paths._require_regular(safe_paths._fstat(None, descriptor))
+        before_snapshot = safe_paths._fstat(None, descriptor)
+        before = safe_paths._require_regular(before_snapshot)
         size = int(before["size"])
         if size <= 0 or size > _MAX_RECEIPT_BYTES:
             raise PublicationError(f"{relative} has an unsafe receipt size")
@@ -136,11 +169,18 @@ def _read_regular_relative(run_dir: Path, relative: str) -> bytes:
                 pieces.append(piece)
                 remaining -= len(piece)
             payload = b"".join(pieces)
-        after = safe_paths._require_regular(safe_paths._fstat(None, descriptor))
-        safe_paths._require_stable(before, after)
+        after_snapshot = safe_paths._fstat(None, descriptor)
+        safe_paths._require_regular(after_snapshot)
+        safe_paths._require_stable(before_snapshot, after_snapshot)
+        before_identity = _descriptor_identity(before_snapshot)
+        after_identity = _descriptor_identity(after_snapshot)
+        if before_identity != after_identity:
+            raise PublicationError(
+                f"{relative} descriptor generation changed while being read"
+            )
         if len(payload) != size:
             raise PublicationError(f"{relative} changed during the descriptor-anchored read")
-        return payload
+        return payload, after_identity
     except PublicationError:
         raise
     except Exception as exc:
@@ -271,7 +311,9 @@ class _SafePublicationWriter:
             elif parent_fd >= 0:
                 _close(parent_fd)
 
-    def read(self, run_dir: Path, relative: str) -> bytes:
+    def read(
+        self, run_dir: Path, relative: str
+    ) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
         return _read_regular_relative(run_dir, relative)
 
     def write(self, path: Path, payload: bytes) -> None:
@@ -423,24 +465,56 @@ def _seal_bytes(final: Mapping[str, object], observer_payload: bytes) -> bytes:
         raise PublicationError("SEAL cannot be formed from receipt identity") from exc
 
 
-def _read_exact(reader: Callable[[Path, str], bytes], run_dir: Path, relative: str, expected: bytes) -> bytes:
+def _read_payload(
+    reader: Callable[
+        [Path, str], tuple[bytes, tuple[int, int, int, int, int, int, int]]
+    ],
+    run_dir: Path,
+    relative: str,
+    *,
+    expected_identity: tuple[int, int, int, int, int, int, int] | None = None,
+) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
     try:
-        actual = reader(run_dir, relative)
-    except Exception as exc:
-        raise PublicationError(f"cannot re-read {relative} through the writer seam") from exc
-    if type(actual) is not bytes or actual != expected:
-        raise PublicationError(f"{relative} was not durably written as exact bytes")
-    return actual
-
-
-def _read_payload(reader: Callable[[Path, str], bytes], run_dir: Path, relative: str) -> bytes:
-    try:
-        payload = reader(run_dir, relative)
+        result = reader(run_dir, relative)
     except Exception as exc:
         raise PublicationError(f"cannot read {relative} through the writer seam") from exc
+    if type(result) is not tuple or len(result) != 2:
+        raise PublicationError(f"{relative} reader did not return payload and identity")
+    payload, identity = result
     if type(payload) is not bytes:
         raise PublicationError(f"{relative} reader did not return exact bytes")
-    return payload
+    if (
+        type(identity) is not tuple
+        or len(identity) != 7
+        or any(type(value) is not int for value in identity)
+    ):
+        raise PublicationError(
+            f"{relative} reader did not return a stable descriptor identity"
+        )
+    if expected_identity is not None and identity != expected_identity:
+        raise PublicationError(f"{relative} identity changed across publication reads")
+    return payload, identity
+
+
+def _read_exact(
+    reader: Callable[
+        [Path, str], tuple[bytes, tuple[int, int, int, int, int, int, int]]
+    ],
+    run_dir: Path,
+    relative: str,
+    expected: bytes,
+    *,
+    expected_identity: tuple[int, int, int, int, int, int, int] | None = None,
+) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
+    actual, identity = _read_payload(
+        reader,
+        run_dir,
+        relative,
+        expected_identity=expected_identity,
+    )
+    if actual != expected:
+        raise PublicationError(f"{relative} was not durably written as exact bytes")
+    return actual, identity
 
 
 def _normalize_prewrite(call: Callable[[], None]) -> None:
@@ -518,11 +592,18 @@ def publish(
     _normalize_prewrite(lambda: assert_terminal(run_dir))
     _normalize_prewrite(lambda: assert_absent(final_dir))
     _normalize_prewrite(lambda: _validate_semantics(final, observer))
-    container_payload = _read_payload(read, run_dir, _CONTAINER_RECEIPT)
+    container_payload, container_identity = _read_payload(
+        read, run_dir, _CONTAINER_RECEIPT
+    )
     _validate_container_bytes(final, observer, container_payload)
     _normalize_prewrite(lambda: instrumentation(final, observer))
     _normalize_prewrite(lambda: _validate_semantics(final, observer))
-    container_payload = _read_payload(read, run_dir, _CONTAINER_RECEIPT)
+    container_payload, _ = _read_payload(
+        read,
+        run_dir,
+        _CONTAINER_RECEIPT,
+        expected_identity=container_identity,
+    )
     _validate_container_bytes(final, observer, container_payload)
     final_payload = _canonical_json_bytes(final)
     _inventory_entry(observer, _FINAL_RECEIPT, final_payload)
@@ -533,22 +614,50 @@ def publish(
     final_owned = False
     try:
         _normalize_write(lambda: write(run_dir / _FINAL_RECEIPT, final_payload))
-        _read_exact(read, run_dir, _FINAL_RECEIPT, final_payload)
+        _, final_identity = _read_exact(read, run_dir, _FINAL_RECEIPT, final_payload)
         _normalize_write(lambda: write(run_dir / _OBSERVER_RECEIPT, observer_payload))
-        _read_exact(read, run_dir, _OBSERVER_RECEIPT, observer_payload)
+        _, observer_identity = _read_exact(
+            read, run_dir, _OBSERVER_RECEIPT, observer_payload
+        )
         seal_attempted = True
         _normalize_write(lambda: write(run_dir / _SEAL, seal_payload))
-        written_seal = _read_exact(read, run_dir, _SEAL, seal_payload)
-        written_final = _parse_canonical_json(_read_exact(read, run_dir, _FINAL_RECEIPT, final_payload), _FINAL_RECEIPT)
-        written_observer_payload = _read_exact(read, run_dir, _OBSERVER_RECEIPT, observer_payload)
+        written_seal, seal_identity = _read_exact(read, run_dir, _SEAL, seal_payload)
+        written_final_payload, _ = _read_exact(
+            read,
+            run_dir,
+            _FINAL_RECEIPT,
+            final_payload,
+            expected_identity=final_identity,
+        )
+        written_final = _parse_canonical_json(written_final_payload, _FINAL_RECEIPT)
+        written_observer_payload, _ = _read_exact(
+            read,
+            run_dir,
+            _OBSERVER_RECEIPT,
+            observer_payload,
+            expected_identity=observer_identity,
+        )
         written_observer = _parse_canonical_json(written_observer_payload, _OBSERVER_RECEIPT)
         _validate_semantics(written_final, written_observer)
         _validate_container_bytes(
             written_final,
             written_observer,
-            _read_exact(read, run_dir, _CONTAINER_RECEIPT, container_payload),
+            _read_exact(
+                read,
+                run_dir,
+                _CONTAINER_RECEIPT,
+                container_payload,
+                expected_identity=container_identity,
+            )[0],
         )
         _inventory_entry(written_observer, _FINAL_RECEIPT, final_payload)
+        written_seal, _ = _read_exact(
+            read,
+            run_dir,
+            _SEAL,
+            written_seal,
+            expected_identity=seal_identity,
+        )
         parsed_seal = parse_seal(written_seal)
         if (
             parsed_seal["run_id"] != written_final["run_id"]
