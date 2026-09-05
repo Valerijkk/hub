@@ -332,10 +332,10 @@ func calendarInboundReceiptCompletionQueryKind(query string) string {
 		return "mail_messages"
 	case strings.Contains(query, `FROM "mail_accounts"`):
 		return "mail_accounts"
-	case strings.Contains(query, `FROM "users"`):
-		return "users"
 	case strings.Contains(query, `FROM "organizations"`):
 		return "organizations"
+	case strings.Contains(query, `FROM "users"`):
+		return "users"
 	case strings.Contains(query, `FROM "mail_identities"`):
 		return "mail_identities"
 	case strings.Contains(query, `FROM "calendar_inbound_message_receipts"`):
