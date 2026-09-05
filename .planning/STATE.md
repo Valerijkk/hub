@@ -1216,6 +1216,19 @@ die75 after303s, no acceptedstage/packet. Task3K is the final distinct
 DIAGNOSTIC_ONLY attempt, GOGC20 with no GOMEMLIMIT override; stop at first
 observed OOM. Its GOGC omission from current receipt provenance is explicit,
 so even a completed diagnostic cannot be accepted as Go/product evidence.
+Task3K also failed: effectiveGOGC20/noGOMEMLIMIT, enginecedd8c07624a64a387056c037c16ccfc8339abf9eee22194b7f55112682dd8fc,
+three Docker OOMs with backend/ent compiler signal:killed; own stop then
+engineexit75/Composeexit1 after286s. No completed Go stage/packet. Do not
+repeat2GiB attempts. Founder was asked about a bounded4GiB Go-only limit;
+until explicit approval keep2GiB/no-swap and mark Go acceptance BLOCKED.
+Independent frontend work is feasible: FE-QA-2G reduces only frontend-unit
+to2GiB/no-swap; Docker RED2FAIL then GREEN72PASS, reviewC/I/M0/0/0.
+Actual frontend enginee257a9d80f4582a125c99a5cafb3569431027407d7c76005aeb3a5ba96bed970
+ran from existingimage with verified2GiB/no-swap/6CPU/readonly limits:
+TypeScriptPASS, Vitest189files/601testsPASS62.73s; engineexit0 after79s,
+no OOM in closed events. Next independent product atom is ThreadPanel
+follow/unfollow controls; API exists but UI is still absent. No Jitsi
+activation, real call/media, browser or module-readiness acceptance.
 
 **Previous checkpoint detail:** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and

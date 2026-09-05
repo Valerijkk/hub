@@ -349,6 +349,52 @@ owned diagnostic on the first observed OOM; reassess at15min otherwise.
 Do not repeat the same failure or persist a profile without proof. If this
 last distinct attempt also exhausts2GiB, preserve evidence and request a
 bounded resource decision rather than silently increasing RAM or disk I/O.
+Task3K first start was ABORTED_OVERLAP, not a memory experiment result.
+Root incorrectly combined inventory and run in one shell call; the inventory
+already showed Mail backend QA51979c5e6a87. Root immediately requested stop
+of only own6c0a6970c921 / engine
+2d358a08ebce31d67e1aa45600c308ea78e5bf5246b6ff74cb1c48dfda1ea311.
+Start18:00:41Z, TERM15 at1788631283, engineexit75 after42s; noOOM event
+in the closed interval18:00:41Z..18:02:08Z. Do not count this as GC evidence.
+Retry only after a separately read inventory confirms no other heavyQA;
+do not batch an unconditional start after a printed preflight inventory.
+
+Task3K final attempt REJECTED (no more repeated 2GiB diagnostics):
+outer7413521c4f80, engine
+cedd8c07624a64a387056c037c16ccfc8339abf9eee22194b7f55112682dd8fc,
+start2026-09-05T18:20:49.647592863Z. EffectiveGOGC20, noGOMEMLIMIT,
+sameimage/2GiB/no-swap/6CPU/readonly/pids256 were inspected. Closed events
+record OOM1788632539,1788632564,1788632619; unpublished stderr identifies
+backend/ent compile signal:killed for hub-mail, meilisearch-indexer, server.
+Root stopped only this engine after observing those events: TERM15 at
+1788632735; die75 at1788632736 after286s; Composeexit1. Partial
+backend-unit-cedd8c07624a.partial retained. No completed stage or packet.
+The later266MiB sample is not success evidence. No host tests, swap, disk
+cache or automatic memory increase. A bounded4GiB Go-only resource request
+has been sent to founder; until approved Go acceptance remains BLOCKED.
+
+## FE-QA-2G resource prerequisite (2026-09-05)
+
+Root-frozen single behavior: frontend-unit mem_limit2g and memswap_limit2g,
+keeping6CPU and all existing mounts/tmpfs/env/commands. Exact ownership:
+docker-compose.local.yml plus the narrow named assertion and two expected
+resource literals in test_root_compose_contract.py. Do not broaden the
+backend-only hard2g observer policy, tune Vitest/Node, add mounts or build.
+Docker RED first on the new test plus existing closed-service oracle, then
+the two-field Compose patch and Docker GREEN/regression. A later actual
+frontend-unit run must establish executable feasibility; static containment
+does not prove TypeScript/Vitest can finish within2GiB. This prerequisite
+does not implement follow controls or accept Messenger/Calls.
+
+FE-QA-2G result: RED2FAIL599deselected5.73s; GREEN72PASS529deselected5.88s.
+Independent Terra/high review C/I/M0/0/0. Actual frontend-unit run
+d0c2ff2af2d4 / enginee257a9d80f4582a125c99a5cafb3569431027407d7c76005aeb3a5ba96bed970
+started18:29:42.508503693Z; inspected2GiB/no-swap/6CPU/readonly; sample1.44GiB.
+TypeScriptPASS, Vitest189files/601testsPASS62.73s. Closed events start
+1788632982, die0 at1788633062 after79s, destroy; noOOM. Existingimage
+sha256:286783701fc3ef3cf25b7960eb14b6eb50e80adbbbb5c0d22e5c0799e68ce218,
+no build/pull/install. Fixed frontend report files preserved before reuse.
+This accepts the small frontend resource prerequisite, not Messenger/Calls.
 
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must

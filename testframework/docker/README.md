@@ -52,8 +52,21 @@ common 64 MiB `/tmp` tmpfs is retained first; the service mounts
 `/reports/frontend-unit/home` as a 512 MiB RAM tmpfs and
 `/reports/frontend-unit/tmp` as a 4 GiB RAM tmpfs. Both mounts are
 `noexec,nosuid,nodev`, owned by UID/GID 10001, and mode 0700. `frontend-unit`
-has a 6.0 CPU and 10 GiB memory ceiling; the tmpfs ceilings remain subject to
-that cgroup. On 2026-08-24, the canonical `frontend-unit` command executed
+has a 6.0 CPU and 2 GiB memory ceiling with memory-plus-swap also 2 GiB
+(no swap); the tmpfs ceilings remain subject to that cgroup. The two-field
+resource change has Docker RED (2 failures), GREEN/regression (72 passes),
+and independent review C/I/M 0/0/0 on 2026-09-05. The actual canonical run
+`d0c2ff2af2d4` / engine `e257a9d80f4582a125c99a5cafb3569431027407d7c76005aeb3a5ba96bed970`
+used existing image `sha256:286783701fc3ef3cf25b7960eb14b6eb50e80adbbbb5c0d22e5c0799e68ce218`:
+TypeScript PASS and Vitest 189 files / 601 tests PASS (62.73s). Inspected
+limits were 2147483648/2147483648 bytes and 6 CPU; one sample was 1.44 GiB,
+not a measured peak. Closed Docker events contain no OOM and exit 0 after
+79s. No build/pull/install or host test ran. Earlier small report files were
+copied to `testframework/reports/frontend-unit-before-20260905T1832Z/` before
+the fixed report paths were reused; that directory label is not a timestamp
+attestation. This does not prove browser, production or Jitsi readiness.
+
+Historical baseline: On 2026-08-24, the canonical `frontend-unit` command executed
 this exact source overlay from an existing local image (no build, pull, or
 package install) and exited 0. Its receipt records TypeScript `PASS` and
 Vitest `PASS`: 161 files / 419 tests in 45.83s. This is limited to the frontend

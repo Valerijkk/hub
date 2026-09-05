@@ -553,6 +553,22 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
         assert _dependencies_are_closed(name, service)
 
 
+def test_frontend_unit_has_two_gib_no_swap_envelope() -> None:
+    services = _compose_services(load_root_compose_contract(_REPO_ROOT))
+    frontend_unit = _mapping_value(services, "frontend-unit")
+
+    assert frontend_unit["cpus"] == 6.0
+    assert frontend_unit["mem_limit"] == "2g"
+    assert frontend_unit["memswap_limit"] == "2g"
+    assert frontend_unit["tmpfs"] == (
+        "/tmp:rw,noexec,nosuid,nodev,size=64m",
+        "/reports/frontend-unit/home:rw,noexec,nosuid,nodev,"
+        "size=512m,uid=10001,gid=10001,mode=0700",
+        "/reports/frontend-unit/tmp:rw,noexec,nosuid,nodev,"
+        "size=4g,uid=10001,gid=10001,mode=0700",
+    )
+
+
 def test_root_compose_rejects_every_additional_service() -> None:
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
     assert _compose_service_inventory_is_closed(services)
@@ -4958,7 +4974,8 @@ def _public_service_overrides(name: str) -> Mapping[str, object]:
                     ),
                 ),
                 "cpus": 6.0,
-                "mem_limit": "10g",
+                "mem_limit": "2g",
+                "memswap_limit": "2g",
                 "tmpfs": (
                     "/tmp:rw,noexec,nosuid,nodev,size=64m",
                     "/reports/frontend-unit/home:rw,noexec,nosuid,nodev,"
