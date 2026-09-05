@@ -101,7 +101,7 @@ _receipt_snapshot_object() {
       [ "$receipt_snapshot_tail" != "$receipt_snapshot_oom_field" ] || return 75
       receipt_snapshot_oom="$(_receipt_snapshot_decimal_value "$receipt_snapshot_oom_field" memory.events.oom)" || return 75
       receipt_snapshot_oom_kill="$(_receipt_snapshot_decimal_value "$receipt_snapshot_tail" memory.events.oom_kill)" || return 75
-      printf '{"memory.max":"%s","memory.swap.max":"0","memory.events":{"oom":%s,"oom_kill":%s}}' "$CGROUP_MEMORY_BYTES" "$receipt_snapshot_oom" "$receipt_snapshot_oom_kill"
+      printf '{"memory.events":{"oom":%s,"oom_kill":%s},"memory.max":"%s","memory.swap.max":"0"}' "$receipt_snapshot_oom" "$receipt_snapshot_oom_kill" "$CGROUP_MEMORY_BYTES"
       ;;
     "schema=hub.qa.cgroup-snapshot/v1,family=v1,memory.limit_in_bytes=$CGROUP_MEMORY_BYTES,memory.memsw.limit_in_bytes=$CGROUP_MEMORY_BYTES,cpu.cfs_quota_us=$CGROUP_CPU_QUOTA_US,cpu.cfs_period_us=$CGROUP_CPU_PERIOD_US,memory.failcnt="*)
       receipt_snapshot_tail=${receipt_snapshot#"schema=hub.qa.cgroup-snapshot/v1,family=v1,memory.limit_in_bytes=$CGROUP_MEMORY_BYTES,memory.memsw.limit_in_bytes=$CGROUP_MEMORY_BYTES,cpu.cfs_quota_us=$CGROUP_CPU_QUOTA_US,cpu.cfs_period_us=$CGROUP_CPU_PERIOD_US,"}
@@ -114,7 +114,7 @@ _receipt_snapshot_object() {
       receipt_snapshot_failcnt="$(_receipt_snapshot_decimal_value "$receipt_snapshot_failcnt_field" memory.failcnt)" || return 75
       receipt_snapshot_oom_disable="$(_receipt_snapshot_decimal_value "$receipt_snapshot_oom_disable_field" memory.oom_control.oom_kill_disable)" || return 75
       receipt_snapshot_under_oom="$(_receipt_snapshot_decimal_value "$receipt_snapshot_tail" memory.oom_control.under_oom)" || return 75
-      printf '{"memory.limit_in_bytes":"%s","memory.memsw.limit_in_bytes":"%s","memory.failcnt":%s,"memory.oom_control":{"oom_kill_disable":%s,"under_oom":%s}}' "$CGROUP_MEMORY_BYTES" "$CGROUP_MEMORY_BYTES" "$receipt_snapshot_failcnt" "$receipt_snapshot_oom_disable" "$receipt_snapshot_under_oom"
+      printf '{"memory.failcnt":%s,"memory.limit_in_bytes":"%s","memory.memsw.limit_in_bytes":"%s","memory.oom_control":{"oom_kill_disable":%s,"under_oom":%s}}' "$receipt_snapshot_failcnt" "$CGROUP_MEMORY_BYTES" "$CGROUP_MEMORY_BYTES" "$receipt_snapshot_oom_disable" "$receipt_snapshot_under_oom"
       ;;
     *) return 75 ;;
   esac
@@ -358,7 +358,7 @@ _receipt_capture_go_environment() {
   receipt_env_godebug="$(_receipt_environment_observation GODEBUG)" || return 75
   receipt_env_goexperiment="$(_receipt_environment_observation GOEXPERIMENT)" || return 75
   receipt_env_gomemlimit="$(_receipt_environment_observation GOMEMLIMIT)" || return 75
-  go_environment="{\"go_version\":\"$receipt_go_version\",\"GOFLAGS\":\"-p=1\",\"GOENV\":\"off\",\"GOWORK\":\"off\",\"GOTOOLCHAIN\":\"local\",\"GOPROXY\":\"off\",\"GOMAXPROCS\":null,\"CGO_ENABLED\":\"$receipt_cgo_enabled\",\"GOOS\":\"$receipt_goos\",\"GOARCH\":\"$receipt_goarch\",\"GOCACHE\":\"$GOCACHE\",\"GOTMPDIR\":\"$GOTMPDIR\",\"runtime_affecting_environment\":[$receipt_env_godebug,$receipt_env_goexperiment,$receipt_env_gomemlimit]}"
+  go_environment="{\"CGO_ENABLED\":\"$receipt_cgo_enabled\",\"GOARCH\":\"$receipt_goarch\",\"GOCACHE\":\"$GOCACHE\",\"GOENV\":\"off\",\"GOFLAGS\":\"-p=1\",\"GOMAXPROCS\":null,\"GOOS\":\"$receipt_goos\",\"GOPROXY\":\"off\",\"GOTMPDIR\":\"$GOTMPDIR\",\"GOTOOLCHAIN\":\"local\",\"GOWORK\":\"off\",\"go_version\":\"$receipt_go_version\",\"runtime_affecting_environment\":[$receipt_env_godebug,$receipt_env_goexperiment,$receipt_env_gomemlimit]}"
   go_environment_sha256="$(_receipt_sha256_text "$go_environment")" || return 75
 }
 
@@ -390,14 +390,31 @@ _receipt_budget_json() {
   [ "$receipt_metadata_used" -le "$REPORT_METADATA_BUDGET_BYTES" ] || return 75
   [ "$receipt_total_used" -le "$REPORT_BUDGET_BYTES" ] || return 75
   [ "${report_budget_truncated_due_to_budget-}" = false ] || return 75
-  printf '{"total_bytes":%s,"reserved_metadata_bytes":%s,"metadata_used_bytes":%s,"streams":{"build":{"stdout":{"cap_bytes":%s,"used_bytes":%s,"truncated":false},"stderr":{"cap_bytes":%s,"used_bytes":%s,"truncated":false}},"vet":{"stdout":{"cap_bytes":%s,"used_bytes":%s,"truncated":false},"stderr":{"cap_bytes":%s,"used_bytes":%s,"truncated":false}},"unit":{"stdout":{"cap_bytes":%s,"used_bytes":%s,"truncated":false},"stderr":{"cap_bytes":%s,"used_bytes":%s,"truncated":false}},"race":{"stdout":{"cap_bytes":%s,"used_bytes":%s,"truncated":false},"stderr":{"cap_bytes":%s,"used_bytes":%s,"truncated":false}}},"total_used_bytes":%s,"truncated_due_to_budget":false,"raw_output_partial":false}' "$REPORT_BUDGET_BYTES" "$REPORT_METADATA_BUDGET_BYTES" "$receipt_metadata_used" "$BUILD_STDOUT_CAP_BYTES" "$build_stdout_size" "$BUILD_STDERR_CAP_BYTES" "$build_stderr_size" "$VET_STDOUT_CAP_BYTES" "$vet_stdout_size" "$VET_STDERR_CAP_BYTES" "$vet_stderr_size" "$UNIT_STDOUT_CAP_BYTES" "$unit_stdout_size" "$UNIT_STDERR_CAP_BYTES" "$unit_stderr_size" "$RACE_STDOUT_CAP_BYTES" "$race_stdout_size" "$RACE_STDERR_CAP_BYTES" "$race_stderr_size" "$receipt_total_used"
+  printf '{"metadata_used_bytes":%s,"raw_output_partial":false,"reserved_metadata_bytes":%s,"streams":{"build":{"stderr":{"cap_bytes":%s,"truncated":false,"used_bytes":%s},"stdout":{"cap_bytes":%s,"truncated":false,"used_bytes":%s}},"race":{"stderr":{"cap_bytes":%s,"truncated":false,"used_bytes":%s},"stdout":{"cap_bytes":%s,"truncated":false,"used_bytes":%s}},"unit":{"stderr":{"cap_bytes":%s,"truncated":false,"used_bytes":%s},"stdout":{"cap_bytes":%s,"truncated":false,"used_bytes":%s}},"vet":{"stderr":{"cap_bytes":%s,"truncated":false,"used_bytes":%s},"stdout":{"cap_bytes":%s,"truncated":false,"used_bytes":%s}}},"total_bytes":%s,"total_used_bytes":%s,"truncated_due_to_budget":false}' "$receipt_metadata_used" "$REPORT_METADATA_BUDGET_BYTES" "$BUILD_STDERR_CAP_BYTES" "$build_stderr_size" "$BUILD_STDOUT_CAP_BYTES" "$build_stdout_size" "$RACE_STDERR_CAP_BYTES" "$race_stderr_size" "$RACE_STDOUT_CAP_BYTES" "$race_stdout_size" "$UNIT_STDERR_CAP_BYTES" "$unit_stderr_size" "$UNIT_STDOUT_CAP_BYTES" "$unit_stdout_size" "$VET_STDERR_CAP_BYTES" "$vet_stderr_size" "$VET_STDOUT_CAP_BYTES" "$vet_stdout_size" "$REPORT_BUDGET_BYTES" "$receipt_total_used"
+}
+
+_receipt_container_payload_is_canonical() {
+  [ "$#" -eq 0 ] || return 64
+  case "$receipt" in *'
+') ;; *) return 75 ;; esac
+  receipt_payload_body=${receipt%?}
+  [ "$receipt_payload_body" != "$receipt" ] || return 75
+  case "$receipt_payload_body" in *'
+'*) return 75 ;; esac
+  case "$receipt_payload_body" in
+    '{"artifact_inventory":['*',"terminal":{"exit_code":*',"signal":null}}") return 0 ;;
+    *) return 75 ;;
+  esac
 }
 
 _receipt_build_container_json() {
   [ "$#" -eq 2 ] || return 64
   receipt_budget_json="$1"
-  receipt_cgroup_json="{\"family\":\"$cgroup_family\",\"baseline\":$container_cgroup_baseline_json,\"final\":$container_cgroup_final_json}"
-  receipt="{\"schema\":\"$RECEIPT_SCHEMA\",\"target\":\"$RECEIPT_TARGET\",\"run_id\":\"$run_id\",\"owner_nonce\":\"$owner_nonce\",\"container_hostname\":\"$container_hostname\",\"launcher_sha256\":\"$launcher_sha256\",\"command_profile_sha256\":\"$command_profile_sha256\",\"source_manifest_before_sha256\":\"$source_manifest_before_sha256\",\"source_manifest_after_sha256\":\"$source_manifest_after_sha256\",\"cgroup\":$receipt_cgroup_json,\"go_environment\":$go_environment,\"package_plan_sha256\":{\"build\":\"$build_plan_sha256\",\"vet\":\"$vet_plan_sha256\",\"unit\":\"$unit_plan_sha256\",\"race\":\"$race_plan_sha256\"},\"stage_receipt_sha256\":{\"build\":\"$build_stage_sha256\",\"vet\":\"$vet_stage_sha256\",\"unit\":\"$unit_stage_sha256\",\"race\":\"$race_stage_sha256\"},\"artifact_inventory\":[$receipt_inventory_json],\"artifact_inventory_sha256\":\"$receipt_inventory_sha256\",\"report_budget\":$receipt_budget_json,\"terminal\":{\"signal\":null,\"exit_code\":$receipt_first_stage_exit},\"state\":\"CONTAINER_COMPLETE\"}"
+  receipt_cgroup_json="{\"baseline\":$container_cgroup_baseline_json,\"family\":\"$cgroup_family\",\"final\":$container_cgroup_final_json}"
+  receipt="{\"artifact_inventory\":[$receipt_inventory_json],\"artifact_inventory_sha256\":\"$receipt_inventory_sha256\",\"cgroup\":$receipt_cgroup_json,\"command_profile_sha256\":\"$command_profile_sha256\",\"container_hostname\":\"$container_hostname\",\"go_environment\":$go_environment,\"launcher_sha256\":\"$launcher_sha256\",\"owner_nonce\":\"$owner_nonce\",\"package_plan_sha256\":{\"build\":\"$build_plan_sha256\",\"race\":\"$race_plan_sha256\",\"unit\":\"$unit_plan_sha256\",\"vet\":\"$vet_plan_sha256\"},\"report_budget\":$receipt_budget_json,\"run_id\":\"$run_id\",\"schema\":\"$RECEIPT_SCHEMA\",\"source_manifest_after_sha256\":\"$source_manifest_after_sha256\",\"source_manifest_before_sha256\":\"$source_manifest_before_sha256\",\"stage_receipt_sha256\":{\"build\":\"$build_stage_sha256\",\"race\":\"$race_stage_sha256\",\"unit\":\"$unit_stage_sha256\",\"vet\":\"$vet_stage_sha256\"},\"state\":\"CONTAINER_COMPLETE\",\"target\":\"$RECEIPT_TARGET\",\"terminal\":{\"exit_code\":$receipt_first_stage_exit,\"signal\":null}}"
+  receipt="$receipt
+"
+  _receipt_container_payload_is_canonical
 }
 
 _receipt_converge_budget() {
