@@ -164,6 +164,119 @@ def _schema_for(family: str) -> Mapping[str, object]:
     return _schema(family)
 
 
+def _bind_review_abort_budget(document: dict[str, object]) -> None:
+    inventory = document["artifact_inventory"]
+    abort = document["abort"]
+    assert type(inventory) is list and type(abort) is dict
+    sizes = {record["path"]: record["size"] for record in inventory}
+    assert all(type(path) is str and type(size) is int for path, size in sizes.items())
+    completed = abort["completed_stages"]
+    assert type(completed) is list and all(type(stage) is str for stage in completed)
+    caps = {
+        "build": (2097152, 2097152), "vet": (2097152, 2097152),
+        "unit": (16777216, 4194304), "race": (25165824, 4194304),
+    }
+    streams: dict[str, object] = {}
+    for stage, (stdout_cap, stderr_cap) in caps.items():
+        streams[stage] = {
+            "stdout": {"cap_bytes": stdout_cap, "used_bytes": sizes[f"{stage}.stdout.log"] if stage in completed else 0, "truncated": False},
+            "stderr": {"cap_bytes": stderr_cap, "used_bytes": sizes[f"{stage}.stderr.log"] if stage in completed else 0, "truncated": False},
+        }
+    document["report_budget"] = {
+        "total_bytes": 67108864, "reserved_metadata_bytes": 8388608,
+        "metadata_used_bytes": 0, "streams": streams, "total_used_bytes": 0,
+        "truncated_due_to_budget": False, "raw_output_partial": False,
+    }
+    metadata_inventory = sum(
+        size for path, size in sizes.items()
+        if not (path.endswith(".stdout.log") or path.endswith(".stderr.log"))
+    )
+    inventory_total = sum(sizes.values())
+    budget = document["report_budget"]
+    assert type(budget) is dict
+    for _ in range(16):
+        receipt_size = len(json.dumps(
+            document, allow_nan=False, ensure_ascii=False, separators=(",", ":"), sort_keys=True,
+        ).encode("utf-8") + b"\n")
+        expected_metadata = metadata_inventory + receipt_size
+        expected_total = inventory_total + receipt_size
+        if budget["metadata_used_bytes"] == expected_metadata and budget["total_used_bytes"] == expected_total:
+            return
+        budget["metadata_used_bytes"] = expected_metadata
+        budget["total_used_bytes"] = expected_total
+    raise AssertionError("abort report budget fixed point did not converge")
+
+
+def _review_abort_execution_document() -> dict[str, object]:
+    complete = json.loads(json.dumps(_fixture_json("valid/container-receipt.json")))
+    prefix = (
+        "schema", "target", "run_id", "owner_nonce", "container_hostname",
+        "launcher_sha256", "command_profile_sha256",
+        "source_manifest_before_sha256", "source_manifest_after_sha256",
+        "cgroup", "go_environment",
+    )
+    document = {key: complete[key] for key in prefix}
+    document["abort"] = {
+        "signal": "TERM", "phase": "execution", "active_stage": "vet",
+        "planned_stages": ["build", "vet", "unit", "race"],
+        "completed_stages": ["build"],
+        "child_group_reaped": True, "stdout_reader_reaped": True,
+        "stderr_reader_reaped": True, "unpublished_stage_rolled_back": True,
+    }
+    paths = (
+        "CONTAINER_ABORTED", "build.stderr.log", "build.stdout.log", "owner.json",
+        "package-plan.build.json", "package-plan.race.json", "package-plan.unit.json", "package-plan.vet.json",
+        "package-results.build.jsonl", "stage-build.json",
+    )
+    inventory = [
+        {
+            "path": path,
+            "sha256": "sha256:" + hashlib.sha256(path.encode("utf-8")).hexdigest(),
+            "size": len(path),
+        }
+        for path in paths
+    ]
+    payload = b"".join(
+        (
+            str(record["path"]) + "\t" + str(record["sha256"])
+            + "\t" + str(record["size"]) + "\n"
+        ).encode("ascii")
+        for record in inventory
+    )
+    document["artifact_inventory"] = inventory
+    document["artifact_inventory_sha256"] = "sha256:" + hashlib.sha256(payload).hexdigest()
+    document["report_budget"] = complete["report_budget"]
+    document["terminal"] = {"signal": "TERM", "exit_code": 143}
+    document["state"] = "CONTAINER_ABORTED"
+    _bind_review_abort_budget(document)
+    return document
+
+
+def test_review_contract_requires_exact_inline_aborted_execution_inventory() -> None:
+    document = _review_abort_execution_document()
+
+    Draft202012Validator(_schema("container_receipt")).validate(document)
+    validate_container_receipt(document)
+    document["artifact_inventory"].append({
+        "path": "temp-output",
+        "sha256": "sha256:" + "a" * 64,
+        "size": 0,
+    })
+    document["artifact_inventory"].sort(key=lambda record: str(record["path"]))
+    payload = b"".join(
+        (
+            str(record["path"]) + "\t" + str(record["sha256"])
+            + "\t" + str(record["size"]) + "\n"
+        ).encode("ascii")
+        for record in document["artifact_inventory"]
+    )
+    document["artifact_inventory_sha256"] = "sha256:" + hashlib.sha256(payload).hexdigest()
+
+    Draft202012Validator(_schema("container_receipt")).validate(document)
+    with pytest.raises(ReceiptContractError, match="exactly derive"):
+        validate_container_receipt(document)
+
+
 def test_complete_valid_seal_rejects_only_the_crlf_mutation() -> None:
     valid_seal = _fixture_bytes("valid/SEAL")
 

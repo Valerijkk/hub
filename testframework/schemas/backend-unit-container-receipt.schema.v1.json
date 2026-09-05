@@ -8,8 +8,7 @@
     "schema", "target", "run_id", "owner_nonce", "container_hostname",
     "launcher_sha256", "command_profile_sha256",
     "source_manifest_before_sha256", "source_manifest_after_sha256",
-    "cgroup", "go_environment", "package_plan_sha256",
-    "stage_receipt_sha256", "artifact_inventory",
+    "cgroup", "go_environment", "artifact_inventory",
     "artifact_inventory_sha256", "report_budget", "terminal", "state"
   ],
   "properties": {
@@ -75,6 +74,7 @@
     },
     "package_plan_sha256": { "$ref": "#/$defs/stageDigestMap" },
     "stage_receipt_sha256": { "$ref": "#/$defs/stageDigestMap" },
+    "abort": { "$ref": "#/$defs/abort" },
     "artifact_inventory": {
       "type": "array",
       "items": { "$ref": "#/$defs/artifact" }
@@ -117,8 +117,36 @@
         "exit_code": { "type": ["integer", "null"], "minimum": 0 }
       }
     },
-    "state": { "const": "CONTAINER_COMPLETE" }
+    "state": { "type": "string" }
   },
+  "oneOf": [
+    {
+      "required": ["package_plan_sha256", "stage_receipt_sha256"],
+      "not": { "required": ["abort"] },
+      "properties": { "state": { "const": "CONTAINER_COMPLETE" } }
+    },
+    {
+      "required": ["abort"],
+      "not": {
+        "anyOf": [
+          { "required": ["package_plan_sha256"] },
+          { "required": ["stage_receipt_sha256"] }
+        ]
+      },
+      "properties": {
+        "state": { "const": "CONTAINER_ABORTED" },
+        "terminal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["signal", "exit_code"],
+          "properties": {
+            "signal": { "const": "TERM" },
+            "exit_code": { "const": 143 }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "nonce": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
@@ -188,6 +216,98 @@
         "unit": { "$ref": "#/$defs/sha256" },
         "race": { "$ref": "#/$defs/sha256" }
       }
+    },
+    "abort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal", "phase", "active_stage", "planned_stages", "completed_stages",
+        "child_group_reaped", "stdout_reader_reaped", "stderr_reader_reaped",
+        "unpublished_stage_rolled_back"
+      ],
+      "properties": {
+        "signal": { "const": "TERM" },
+        "phase": { "enum": ["bootstrap", "planning", "execution"] },
+        "active_stage": {
+          "oneOf": [
+            { "type": "null" },
+            { "enum": ["build", "vet", "unit", "race"] }
+          ]
+        },
+        "planned_stages": {
+          "type": "array",
+          "items": { "enum": ["build", "vet", "unit", "race"] }
+        },
+        "completed_stages": {
+          "type": "array",
+          "items": { "enum": ["build", "vet", "unit", "race"] }
+        },
+        "child_group_reaped": { "const": true },
+        "stdout_reader_reaped": { "const": true },
+        "stderr_reader_reaped": { "const": true },
+        "unpublished_stage_rolled_back": { "const": true }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "phase": { "const": "bootstrap" } } },
+          "then": {
+            "properties": {
+              "active_stage": { "const": null },
+              "planned_stages": { "const": [] },
+              "completed_stages": { "const": [] }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "phase": { "const": "planning" } } },
+          "then": {
+            "properties": {
+              "active_stage": { "const": null },
+              "planned_stages": { "maxItems": 3 },
+              "completed_stages": { "const": [] }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "phase": { "const": "execution" } } },
+          "then": {
+            "properties": {
+              "planned_stages": { "const": ["build", "vet", "unit", "race"] },
+              "completed_stages": {
+                "oneOf": [
+                  { "const": [] },
+                  { "const": ["build"] },
+                  { "const": ["build", "vet"] },
+                  { "const": ["build", "vet", "unit"] },
+                  { "const": ["build", "vet", "unit", "race"] }
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "completed_stages": { "const": [] } } },
+                "then": { "properties": { "active_stage": { "const": "build" } } }
+              },
+              {
+                "if": { "properties": { "completed_stages": { "const": ["build"] } } },
+                "then": { "properties": { "active_stage": { "const": "vet" } } }
+              },
+              {
+                "if": { "properties": { "completed_stages": { "const": ["build", "vet"] } } },
+                "then": { "properties": { "active_stage": { "const": "unit" } } }
+              },
+              {
+                "if": { "properties": { "completed_stages": { "const": ["build", "vet", "unit"] } } },
+                "then": { "properties": { "active_stage": { "const": "race" } } }
+              },
+              {
+                "if": { "properties": { "completed_stages": { "const": ["build", "vet", "unit", "race"] } } },
+                "then": { "properties": { "active_stage": { "const": null } } }
+              }
+            ]
+          }
+        }
+      ]
     },
     "artifact": {
       "type": "object",

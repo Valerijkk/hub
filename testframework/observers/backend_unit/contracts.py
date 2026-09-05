@@ -8,6 +8,7 @@ file, starting a process, or calling Docker.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections.abc import Mapping, Sequence
 from functools import wraps
@@ -129,6 +130,30 @@ _STREAM_CAPS: Final = {
     "unit": (16777216, 4194304),
     "race": (25165824, 4194304),
 }
+_CONTAINER_STAGES: Final = ("build", "vet", "unit", "race")
+_CONTAINER_COMMON_KEYS: Final = (
+    "schema", "target", "run_id", "owner_nonce", "container_hostname",
+    "launcher_sha256", "command_profile_sha256",
+    "source_manifest_before_sha256", "source_manifest_after_sha256",
+    "cgroup", "go_environment",
+)
+_CONTAINER_COMPLETE_KEYS: Final = (
+    *_CONTAINER_COMMON_KEYS, "package_plan_sha256", "stage_receipt_sha256",
+    "artifact_inventory", "artifact_inventory_sha256", "report_budget", "terminal", "state",
+)
+_CONTAINER_ABORTED_KEYS: Final = (
+    *_CONTAINER_COMMON_KEYS, "abort", "artifact_inventory", "artifact_inventory_sha256",
+    "report_budget", "terminal", "state",
+)
+_ABORT_KEYS: Final = (
+    "signal", "phase", "active_stage", "planned_stages", "completed_stages",
+    "child_group_reaped", "stdout_reader_reaped", "stderr_reader_reaped",
+    "unpublished_stage_rolled_back",
+)
+_ABORT_REAP_KEYS: Final = (
+    "child_group_reaped", "stdout_reader_reaped", "stderr_reader_reaped",
+    "unpublished_stage_rolled_back",
+)
 _FIXED_HOST_CONFIG: Final = {
     "memory": 2147483648,
     "memory_swap": 2147483648,
@@ -318,16 +343,289 @@ def validate_package_plan(document: Mapping[str, object]) -> None:
 
 @_contract_boundary
 def validate_container_receipt(document: Mapping[str, object]) -> None:
-    """Validate the container-owned artifact inventory and immutable identity fields."""
+    """Validate one closed COMPLETE or sealed ABORTED container receipt branch."""
 
     document = _require_mapping(document, "container receipt")
+    state = _field(document, "state")
+    if state == "CONTAINER_COMPLETE":
+        if tuple(document) != _CONTAINER_COMPLETE_KEYS:
+            _fail("complete container receipt keys are not closed and canonical")
+        _validate_container_common(document)
+        _validate_stage_digest_map(_field(document, "package_plan_sha256"), "package_plan_sha256")
+        _validate_stage_digest_map(_field(document, "stage_receipt_sha256"), "stage_receipt_sha256")
+        records = _validate_artifact_inventory(document, "container receipt")
+        _validate_complete_container_inventory(records)
+        _validate_terminal(_field(document, "terminal"), aborted=False)
+        return
+    if state == "CONTAINER_ABORTED":
+        if tuple(document) != _CONTAINER_ABORTED_KEYS:
+            _fail("aborted container receipt keys are not closed and canonical")
+        _validate_container_common(document)
+        planned, completed = _validate_abort(_field(document, "abort"))
+        records = _validate_artifact_inventory(document, "container receipt")
+        _validate_aborted_container_inventory(records, planned, completed)
+        _validate_aborted_container_budget(document, records, completed)
+        _validate_terminal(_field(document, "terminal"), aborted=True)
+        return
+    _fail("container receipt state must select COMPLETE or ABORTED branch")
+
+
+def _validate_container_common(document: Mapping[str, object]) -> None:
     _require_exact(document, "schema", "hub.qa.backend-unit-container-receipt/v1")
     _require_exact(document, "target", "backend-unit")
     _require_run_id(_require_string(_field(document, "run_id"), "run_id"), "run_id")
     _require_nonce(_require_string(_field(document, "owner_nonce"), "owner_nonce"), "owner_nonce")
     _require_hostname(_require_string(_field(document, "container_hostname"), "container_hostname"), "container_hostname")
-    _validate_artifact_inventory(document, "container receipt")
+    _require_sha256(_field(document, "launcher_sha256"), "launcher_sha256")
+    _require_sha256(_field(document, "command_profile_sha256"), "command_profile_sha256")
+    source_before = _require_sha256(
+        _field(document, "source_manifest_before_sha256"), "source_manifest_before_sha256"
+    )
+    source_after = _require_sha256(
+        _field(document, "source_manifest_after_sha256"), "source_manifest_after_sha256"
+    )
+    if source_before != source_after:
+        _fail("container source manifests must be equal")
+    _validate_container_cgroup(_field(document, "cgroup"))
+    _validate_container_environment(_field(document, "go_environment"))
     _validate_report_budget(document)
+
+
+def _validate_container_cgroup(value: object) -> None:
+    cgroup = _require_mapping(value, "cgroup")
+    if tuple(cgroup) != ("family", "baseline", "final"):
+        _fail("cgroup keys are not closed and canonical")
+    family = _require_string(_field(cgroup, "family"), "cgroup.family")
+    if family == "v2":
+        for label in ("baseline", "final"):
+            snapshot = _require_mapping(_field(cgroup, label), f"cgroup.{label}")
+            if tuple(snapshot) != ("memory.max", "memory.swap.max", "memory.events"):
+                _fail(f"cgroup.{label} keys are not closed and canonical")
+            for field in ("memory.max", "memory.swap.max"):
+                number = _require_string(_field(snapshot, field), f"cgroup.{label}.{field}")
+                if re.fullmatch(r"(?:0|[1-9][0-9]*)", number) is None:
+                    _fail(f"cgroup.{label}.{field} is not a canonical nonnegative integer")
+            events = _require_mapping(_field(snapshot, "memory.events"), f"cgroup.{label}.memory.events")
+            if tuple(events) != ("oom", "oom_kill"):
+                _fail(f"cgroup.{label}.memory.events keys are not closed and canonical")
+            for field in ("oom", "oom_kill"):
+                if _require_integer(_field(events, field), f"cgroup.{label}.memory.events.{field}") < 0:
+                    _fail(f"cgroup.{label}.memory.events.{field} is negative")
+        return
+    if family == "v1":
+        for label in ("baseline", "final"):
+            snapshot = _require_mapping(_field(cgroup, label), f"cgroup.{label}")
+            if tuple(snapshot) != (
+                "memory.limit_in_bytes", "memory.memsw.limit_in_bytes", "memory.failcnt", "memory.oom_control",
+            ):
+                _fail(f"cgroup.{label} keys are not closed and canonical")
+            for field in ("memory.limit_in_bytes", "memory.memsw.limit_in_bytes"):
+                number = _require_string(_field(snapshot, field), f"cgroup.{label}.{field}")
+                if re.fullmatch(r"(?:0|[1-9][0-9]*)", number) is None:
+                    _fail(f"cgroup.{label}.{field} is not a canonical nonnegative integer")
+            if _require_integer(_field(snapshot, "memory.failcnt"), f"cgroup.{label}.memory.failcnt") < 0:
+                _fail(f"cgroup.{label}.memory.failcnt is negative")
+            control = _require_mapping(_field(snapshot, "memory.oom_control"), f"cgroup.{label}.memory.oom_control")
+            if tuple(control) not in (("oom_kill_disable", "under_oom"), ("oom_kill_disable", "under_oom", "oom_kill")):
+                _fail(f"cgroup.{label}.memory.oom_control keys are not closed and canonical")
+            for field in control:
+                if _require_integer(_field(control, field), f"cgroup.{label}.memory.oom_control.{field}") < 0:
+                    _fail(f"cgroup.{label}.memory.oom_control.{field} is negative")
+        return
+    _fail("cgroup.family must be v1 or v2")
+
+
+def _validate_container_environment(value: object) -> None:
+    environment = _require_mapping(value, "go_environment")
+    expected = (
+        "go_version", "GOFLAGS", "GOENV", "GOWORK", "GOTOOLCHAIN", "GOPROXY",
+        "GOMAXPROCS", "CGO_ENABLED", "GOOS", "GOARCH", "GOCACHE", "GOTMPDIR",
+        "runtime_affecting_environment",
+    )
+    if tuple(environment) != expected:
+        _fail("go_environment keys are not closed and canonical")
+    for field in ("go_version", "CGO_ENABLED", "GOOS", "GOARCH", "GOCACHE", "GOTMPDIR"):
+        if not _require_string(_field(environment, field), f"go_environment.{field}"):
+            _fail(f"go_environment.{field} must be nonempty")
+    for field, expected_value in (
+        ("GOFLAGS", "-p=1"), ("GOENV", "off"), ("GOWORK", "off"),
+        ("GOTOOLCHAIN", "local"), ("GOPROXY", "off"), ("GOMAXPROCS", None),
+    ):
+        if _field(environment, field) != expected_value:
+            _fail(f"go_environment.{field} differs from the sealed container policy")
+    observations = _require_sequence(
+        _field(environment, "runtime_affecting_environment"), "go_environment.runtime_affecting_environment"
+    )
+    names: set[str] = set()
+    for index, raw in enumerate(observations):
+        observation = _require_mapping(raw, f"go_environment.runtime_affecting_environment[{index}]")
+        if tuple(observation) != ("name", "present", "value"):
+            _fail("runtime_affecting_environment observation keys are not closed and canonical")
+        name = _require_string(_field(observation, "name"), "runtime_affecting_environment.name")
+        if re.fullmatch(r"(?:GO[A-Z0-9_]+|CGO_ENABLED)", name) is None or name in names:
+            _fail("runtime_affecting_environment names are malformed or duplicated")
+        names.add(name)
+        present = _field(observation, "present")
+        observed_value = _field(observation, "value")
+        if type(present) is not bool or (present and type(observed_value) is not str) or (not present and observed_value is not None):
+            _fail("runtime_affecting_environment presence and value do not bind")
+
+
+def _validate_stage_digest_map(value: object, label: str) -> None:
+    digests = _require_mapping(value, label)
+    if tuple(digests) != _CONTAINER_STAGES:
+        _fail(f"{label} keys are not the complete frozen stage order")
+    for stage in _CONTAINER_STAGES:
+        _require_sha256(_field(digests, stage), f"{label}.{stage}")
+
+
+def _validate_terminal(value: object, *, aborted: bool) -> None:
+    terminal = _require_mapping(value, "terminal")
+    if tuple(terminal) != ("signal", "exit_code"):
+        _fail("terminal keys are not closed and canonical")
+    signal = _field(terminal, "signal")
+    exit_code = _field(terminal, "exit_code")
+    if aborted:
+        if signal != "TERM" or exit_code != 143:
+            _fail("aborted container terminal must be TERM/143")
+        return
+    if signal is not None and type(signal) is not str:
+        _fail("complete container terminal signal is malformed")
+    if exit_code is not None and (type(exit_code) is not int or exit_code < 0):
+        _fail("complete container terminal exit_code is malformed")
+
+
+def _stage_prefix(value: object, label: str) -> tuple[str, ...]:
+    stages = tuple(_require_string(stage, f"{label}[{index}]") for index, stage in enumerate(_require_sequence(value, label)))
+    if stages != _CONTAINER_STAGES[:len(stages)]:
+        _fail(f"{label} must be an ordered frozen stage prefix")
+    return stages
+
+
+def _validate_abort(value: object) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    abort = _require_mapping(value, "abort")
+    if tuple(abort) != _ABORT_KEYS:
+        _fail("abort keys are not closed and canonical")
+    _require_exact(abort, "signal", "TERM")
+    phase = _require_string(_field(abort, "phase"), "abort.phase")
+    if phase not in ("bootstrap", "planning", "execution"):
+        _fail("abort.phase is not frozen")
+    active_stage = _field(abort, "active_stage")
+    if active_stage is not None and (type(active_stage) is not str or active_stage not in _CONTAINER_STAGES):
+        _fail("abort.active_stage is not a frozen stage or null")
+    planned = _stage_prefix(_field(abort, "planned_stages"), "abort.planned_stages")
+    completed = _stage_prefix(_field(abort, "completed_stages"), "abort.completed_stages")
+    if len(completed) > len(planned) or completed != planned[:len(completed)]:
+        _fail("abort.completed_stages must be an ordered prefix of abort.planned_stages")
+    for field in _ABORT_REAP_KEYS:
+        if _field(abort, field) is not True:
+            _fail(f"abort.{field} must prove reaping or rollback")
+    if phase == "bootstrap":
+        if planned or completed or active_stage is not None:
+            _fail("bootstrap abort must have no planned or completed stages and no active stage")
+    elif phase == "planning":
+        if completed or active_stage is not None or len(planned) >= len(_CONTAINER_STAGES):
+            _fail("planning abort must have an incomplete plan, no completed stages, and no active stage")
+    else:
+        if planned != _CONTAINER_STAGES:
+            _fail("execution abort must plan the complete frozen stage order")
+        expected_active = (
+            _CONTAINER_STAGES[len(completed)]
+            if len(completed) < len(_CONTAINER_STAGES)
+            else None
+        )
+        if active_stage != expected_active:
+            _fail("execution abort active_stage must be the first unfinished stage or null")
+    return planned, completed
+
+
+def _inventory_paths(records: Sequence[Mapping[str, object]]) -> tuple[str, ...]:
+    return tuple(_require_string(_field(record, "path"), "artifact_inventory.path") for record in records)
+
+
+def _validate_complete_container_inventory(records: Sequence[Mapping[str, object]]) -> None:
+    paths = _inventory_paths(records)
+    if "container-receipt.json" in paths:
+        _fail("complete container inventory must exclude its receipt bytes")
+    if "CONTAINER_COMPLETE" not in paths or "CONTAINER_ABORTED" in paths:
+        _fail("complete container inventory does not bind its terminal marker")
+
+
+def _validate_aborted_container_inventory(
+    records: Sequence[Mapping[str, object]], planned: tuple[str, ...], completed: tuple[str, ...]
+) -> None:
+    expected = {"CONTAINER_ABORTED", "owner.json"}
+    for stage in planned:
+        expected.add(f"package-plan.{stage}.json")
+    for stage in completed:
+        expected.update((
+            f"{stage}.stderr.log", f"{stage}.stdout.log",
+            f"package-results.{stage}.jsonl", f"stage-{stage}.json",
+        ))
+    paths = _inventory_paths(records)
+    if paths != tuple(sorted(expected)):
+        _fail("aborted container inventory does not exactly derive from abort stages")
+
+
+def _canonical_container_receipt_bytes(document: Mapping[str, object]) -> bytes:
+    return json.dumps(
+        document,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8") + b"\n"
+
+
+def _validate_aborted_container_budget(
+    document: Mapping[str, object], records: Sequence[Mapping[str, object]], completed: tuple[str, ...]
+) -> None:
+    budget = _require_mapping(_field(document, "report_budget"), "report_budget")
+    streams = _require_mapping(_field(budget, "streams"), "report_budget.streams")
+    sizes: dict[str, int] = {}
+    metadata_inventory_bytes = 0
+    inventory_total_bytes = 0
+    for record in records:
+        path = _require_string(_field(record, "path"), "artifact_inventory.path")
+        size = _require_integer(_field(record, "size"), "artifact_inventory.size")
+        sizes[path] = size
+        inventory_total_bytes += size
+        if not (path.endswith(".stdout.log") or path.endswith(".stderr.log")):
+            metadata_inventory_bytes += size
+
+    stream_total_bytes = 0
+    completed_set = frozenset(completed)
+    for stage in _CONTAINER_STAGES:
+        stage_streams = _require_mapping(_field(streams, stage), f"report_budget.streams.{stage}")
+        for name in ("stdout", "stderr"):
+            usage = _require_mapping(
+                _field(stage_streams, name), f"report_budget.streams.{stage}.{name}"
+            )
+            used = _require_integer(
+                _field(usage, "used_bytes"), f"report_budget.streams.{stage}.{name}.used_bytes"
+            )
+            truncated = _field(usage, "truncated")
+            if stage in completed_set:
+                expected_size = sizes[f"{stage}.{name}.log"]
+                if used != expected_size:
+                    _fail("aborted report budget stream use does not bind its completed artifact size")
+                if truncated is not False:
+                    _fail("aborted report budget must not truncate completed stream artifacts")
+                stream_total_bytes += expected_size
+            elif used != 0 or truncated is not False:
+                _fail("aborted report budget unfinished streams must be zero and untruncated")
+
+    if _field(budget, "truncated_due_to_budget") is not False or _field(budget, "raw_output_partial") is not False:
+        _fail("aborted report budget truncation flags must be false for sealed artifacts")
+    receipt_bytes = _canonical_container_receipt_bytes(document)
+    expected_metadata = metadata_inventory_bytes + len(receipt_bytes)
+    expected_total = inventory_total_bytes + len(receipt_bytes)
+    if _require_integer(_field(budget, "metadata_used_bytes"), "report_budget.metadata_used_bytes") != expected_metadata:
+        _fail("aborted report budget metadata must include inventory metadata and canonical receipt bytes")
+    if _require_integer(_field(budget, "total_used_bytes"), "report_budget.total_used_bytes") != expected_total:
+        _fail("aborted report budget total must be the canonical inventory-and-receipt fixed point")
+    if expected_total != expected_metadata + stream_total_bytes:
+        _fail("aborted report budget inventory accounting is not internally exact")
 
 
 @_contract_boundary
