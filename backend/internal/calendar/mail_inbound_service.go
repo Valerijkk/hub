@@ -133,12 +133,13 @@ func (service *CalendarInboundMessageService) ProcessCalendarInboundMessage(
 }
 
 type calendarInboundMessagePreparation struct {
-	completion     CalendarInboundMessageCompletion
-	failed         bool
-	ownerID        uuid.UUID
-	sender         string
-	message        ITIPMessage
-	authentication CalendarInboundAuthenticationClass
+	completion      CalendarInboundMessageCompletion
+	failed          bool
+	ownerID         uuid.UUID
+	sender          string
+	message         ITIPMessage
+	authentication  CalendarInboundAuthenticationClass
+	receiptSnapshot calendarInboundMessageReceiptSnapshot
 }
 
 func (service *CalendarInboundMessageService) prepareCalendarInboundMessage(
@@ -240,12 +241,28 @@ func calendarInboundMessagePreparationFromSource(
 			)
 		}
 	}
+	identity, identityErr := CanonicalITIPIdentity(message)
+	if identityErr != nil {
+		return calendarInboundMessageFailurePreparation(
+			NewCalendarInboundQuarantinedCompletion(CalendarInboundMessageErrorMalformedITIP),
+		)
+	}
+	receiptSnapshot, snapshotErr := newCalendarInboundMessageReceiptSnapshot(
+		identity.HasRecurrenceID,
+		identity.RecurrenceID,
+	)
+	if snapshotErr != nil {
+		return calendarInboundMessageFailurePreparation(
+			NewCalendarInboundQuarantinedCompletion(CalendarInboundMessageErrorMalformedITIP),
+		)
+	}
 
 	return calendarInboundMessagePreparation{
-		ownerID:        result.OwnerID(),
-		sender:         sender,
-		message:        message,
-		authentication: authentication,
+		ownerID:         result.OwnerID(),
+		sender:          sender,
+		message:         message,
+		authentication:  authentication,
+		receiptSnapshot: cloneCalendarInboundMessageReceiptSnapshot(receiptSnapshot),
 	}, nil
 }
 
@@ -259,6 +276,7 @@ func (service *CalendarInboundMessageService) completePreparedCalendarInboundMes
 		return cloneCalendarInboundMessageCompletion(prepared.completion), nil
 	}
 
+	var completion CalendarInboundMessageCompletion
 	switch prepared.message.Method {
 	case ITIPMethodRequest, ITIPMethodCancel:
 		request, err := NewCalendarInboundInviteRequest(prepared.message, prepared.authentication)
@@ -269,11 +287,10 @@ func (service *CalendarInboundMessageService) completePreparedCalendarInboundMes
 		if err != nil {
 			return CalendarInboundMessageCompletion{}, err
 		}
-		completion := result.Completion()
+		completion = result.Completion()
 		if !completion.valid() {
 			return CalendarInboundMessageCompletion{}, ErrEventInvalid
 		}
-		return completion, nil
 	case ITIPMethodReply:
 		result, err := service.eventService.applyInboundITIPReplyInTransaction(ctx, transaction, CalendarInboundReplyInput{
 			OwnerID: prepared.ownerID,
@@ -283,10 +300,18 @@ func (service *CalendarInboundMessageService) completePreparedCalendarInboundMes
 		if err != nil {
 			return CalendarInboundMessageCompletion{}, err
 		}
-		return result.calendarInboundMessageCompletion()
+		completion, err = result.calendarInboundMessageCompletion()
+		if err != nil {
+			return CalendarInboundMessageCompletion{}, err
+		}
 	default:
-		return NewCalendarInboundQuarantinedCompletion(CalendarInboundMessageErrorUnsupportedMethod)
+		var err error
+		completion, err = NewCalendarInboundQuarantinedCompletion(CalendarInboundMessageErrorUnsupportedMethod)
+		if err != nil {
+			return CalendarInboundMessageCompletion{}, ErrEventInvalid
+		}
 	}
+	return calendarInboundMessageCompletionWithReceiptSnapshot(completion, prepared.receiptSnapshot)
 }
 
 func calendarInboundMessageFailurePreparation(

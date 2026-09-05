@@ -1232,7 +1232,6 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCancellationAndBoundedPrecedence
 		mutate func(*calendar.CalendarEventExceptionCommandInput)
 	}{
 		{name: "zero exception id", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.ExceptionID = uuid.Nil }},
-		{name: "future exception sequence", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Sequence = 7 }},
 		{name: "live cancelled status", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Status = calendar.CalendarEventStatusCancelled }},
 		{name: "cancelled confirmed status", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Cancelled = true }},
 		{name: "malformed live temporal", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Temporal = &calendar.CalendarEvent{} }},
@@ -1249,6 +1248,24 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCancellationAndBoundedPrecedence
 			}
 		})
 	}
+
+	t.Run("live detached exception sequence may exceed master", func(t *testing.T) {
+		backend := newOccurrenceRSVPRepositoryBackend()
+		backend.authorization.Exception.Sequence = 7
+
+		authorization, err := resolve(t, backend)
+		if err != nil {
+			t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v", err)
+		}
+		if authorization.Current.Sequence != 6 {
+			t.Fatalf("current sequence = %d, want 6", authorization.Current.Sequence)
+		}
+		if authorization.Exception == nil || authorization.Exception.EventID != rsvpRepositoryEventID ||
+			authorization.Exception.RecurrenceID != request.RecurrenceID || authorization.Exception.Status != calendar.CalendarEventStatusConfirmed ||
+			authorization.Exception.Cancelled || authorization.Exception.Sequence != 7 {
+			t.Fatalf("live detached exception = %#v, want event %s recurrence %q confirmed sequence 7", authorization.Exception, rsvpRepositoryEventID, request.RecurrenceID)
+		}
+	})
 }
 
 func TestEventTransactionOccurrenceRSVP_PersistsOnlyExactActorBoundEcho(t *testing.T) {

@@ -74,6 +74,14 @@ func (CalendarInboundMessageReceipt) Fields() []ent.Field {
 		field.Time("deferred_expires_at").
 			Optional().
 			Nillable(),
+		field.Enum("calendar_component_scope").
+			Values("series", "occurrence").
+			Optional().
+			Nillable(),
+		field.String("recurrence_id").
+			MaxLen(255).
+			Optional().
+			Nillable(),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -95,6 +103,7 @@ func (CalendarInboundMessageReceipt) Annotations() []schema.Annotation {
 			"calendar_inbound_message_receipts_deferred_expiry_second":   "deferred_expires_at IS NULL OR date_trunc('second', deferred_expires_at) = deferred_expires_at",
 			"calendar_inbound_message_receipts_deferred_state":           "state <> 'deferred_missing_master' OR (deferred_object_state_id IS NOT NULL AND deferred_expires_at IS NOT NULL)",
 			"calendar_inbound_message_receipts_deferred_retry":           "deferred_object_state_id IS NULL OR next_attempt_at IS NULL OR next_attempt_at <= deferred_expires_at",
+			"calendar_inbound_message_receipts_component_scope_shape":    "(calendar_component_scope IS NULL AND recurrence_id IS NULL) OR (calendar_component_scope = 'series' AND recurrence_id IS NULL) OR (calendar_component_scope = 'occurrence' AND recurrence_id IS NOT NULL AND recurrence_id <> '' AND char_length(recurrence_id) <= 255)",
 			"calendar_inbound_message_receipts_state_shape":              "COALESCE((state = 'pending' AND lease_token IS NULL AND lease_until IS NULL AND ((attempts = 0 AND next_attempt_at IS NULL) OR (attempts > 0 AND next_attempt_at IS NOT NULL))) OR (state = 'processing' AND lease_token IS NOT NULL AND lease_until IS NOT NULL AND lease_generation >= 1 AND attempts >= 1 AND next_attempt_at IS NULL AND error_code IS NULL) OR (state IN ('applied','ignored_stale','duplicate','quarantined','dead_letter') AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NULL) OR (state = 'deferred_missing_master' AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NOT NULL), FALSE)",
 		}),
 	}

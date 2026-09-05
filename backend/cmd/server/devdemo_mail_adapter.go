@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	devMailDemoDatasetVersion = 1
+	devMailDemoDatasetVersion = 2
 	devMailDemoObserveTimeout = 2 * time.Minute
 	devMailDemoObservePoll    = 5 * time.Second
 
@@ -128,15 +128,15 @@ type devMailDemoPrepared struct {
 // and the production-owned Mail/Calendar projection workers. It only observes
 // public read services after first-load; it never advances a worker itself.
 type devMailDemoAdapter struct {
-	client         *appent.Client
-	engine         *mailmod.FakeMailEngine
-	mailboxSvc     *mailmod.MailboxService
-	mailboxRepo    *mailmod.MailboxEntRepository
-	messageSvc     *mailmod.MailboxMessageService
-	eventReadSvc   *calendarmod.EventReadService
-	startRuntime   func() error
-	projectionSvc  *mailmod.MailboxFolderProjectionService
-	now            func() time.Time
+	client        *appent.Client
+	engine        *mailmod.FakeMailEngine
+	mailboxSvc    *mailmod.MailboxService
+	mailboxRepo   *mailmod.MailboxEntRepository
+	messageSvc    *mailmod.MailboxMessageService
+	eventReadSvc  *calendarmod.EventReadService
+	startRuntime  func() error
+	projectionSvc *mailmod.MailboxFolderProjectionService
+	now           func() time.Time
 
 	guard             sync.Mutex
 	prepared          *devMailDemoPrepared
@@ -253,7 +253,8 @@ func (adapter *devMailDemoAdapter) PrepareMailDemo(ctx context.Context, input de
 
 // ReconcileMailDemo observes the production projection path until the seeded
 // Calendar invitation has an outbound PM message and an independent inbound
-// dev1 receipt. It deliberately does not call worker step/run APIs.
+// dev1 receipt. Occurrence work remains bound to the dev1 owner event, not
+// the PM master event. It deliberately does not call worker step/run APIs.
 func (adapter *devMailDemoAdapter) ReconcileMailDemo(ctx context.Context, input devdemo.MailDemoInput) (devdemo.MailDemoResult, error) {
 	if adapter == nil || !adapter.ready() || !validDevMailControlContext(ctx) || input.CalendarEvent.Key != devdemo.MailInvitationEventKey || input.CalendarEvent.EventID == uuid.Nil {
 		return devdemo.MailDemoResult{}, errDevMailDemoInvalid
@@ -274,7 +275,17 @@ func (adapter *devMailDemoAdapter) ReconcileMailDemo(ctx context.Context, input 
 	if err := adapter.recoverCalendarInviteBeforeObserve(ctx, *adapter.prepared, input.CalendarEvent.EventID); err != nil {
 		return devdemo.MailDemoResult{}, err
 	}
-	if err := adapter.observe(ctx, *adapter.prepared, input.CalendarEvent.EventID); err != nil {
+	dev1EventID, err := adapter.observe(ctx, *adapter.prepared, input.CalendarEvent.EventID)
+	if err != nil {
+		return devdemo.MailDemoResult{}, err
+	}
+	if dev1EventID == uuid.Nil || dev1EventID == input.CalendarEvent.EventID {
+		return devdemo.MailDemoResult{}, errDevMailDemoUnavailable
+	}
+	if err := seedDevMailDemoInvitationOccurrence(ctx, adapter.engine, *adapter.prepared, input.CalendarEvent.EventID); err != nil {
+		return devdemo.MailDemoResult{}, err
+	}
+	if err := adapter.observeOccurrence(ctx, *adapter.prepared, dev1EventID); err != nil {
 		return devdemo.MailDemoResult{}, err
 	}
 	if err := adapter.recoverDevMailDemoBrandKitAttachment(ctx, *adapter.prepared); err != nil {
@@ -282,7 +293,7 @@ func (adapter *devMailDemoAdapter) ReconcileMailDemo(ctx context.Context, input 
 	}
 	replayed := 0
 	if adapter.observedPMEventID == input.CalendarEvent.EventID {
-		replayed = 1
+		replayed = 2
 	} else {
 		adapter.observedPMEventID = input.CalendarEvent.EventID
 	}
@@ -470,7 +481,7 @@ func devMailDemoSeededInvitationAttendeeID(prepared devMailDemoPrepared, eventID
 	endsAt := time.Date(2026, time.September, 3, 10, 30, 0, 0, time.UTC)
 	if eventID == uuid.Nil || event.ID != eventID || event.Title != devMailDemoInvitationTitle || event.Description != devMailDemoInvitationDescription || event.Location != devMailDemoInvitationLocation ||
 		event.AllDay || event.Timezone != devMailDemoInvitationTimezone || event.StartsAt == nil || event.EndsAt == nil || event.StartDate != nil || event.EndDateExclusive != nil ||
-		event.StartsAt.Location() != time.UTC || event.EndsAt.Location() != time.UTC || !event.StartsAt.Equal(startsAt) || !event.EndsAt.Equal(endsAt) || event.RRULE != nil || len(event.Exdates) != 0 ||
+		event.StartsAt.Location() != time.UTC || event.EndsAt.Location() != time.UTC || !event.StartsAt.Equal(startsAt) || !event.EndsAt.Equal(endsAt) || event.RRULE == nil || *event.RRULE != devMailDemoInvitationRRULE || len(event.Exdates) != 0 ||
 		event.Status != calendarmod.CalendarEventStatusConfirmed || event.Version != 1 || event.OrganizerID == nil || *event.OrganizerID != prepared.pmUserID || event.OrganizerEmail != devMailSourcePMEmail || len(event.Attendees) != 2 {
 		return uuid.Nil, false
 	}
@@ -499,28 +510,31 @@ func devMailDemoSeededInvitationAttendeeID(prepared devMailDemoPrepared, eventID
 	return attendeeID, organizerCount == 1 && attendeeID != uuid.Nil
 }
 
-func (adapter *devMailDemoAdapter) observe(ctx context.Context, prepared devMailDemoPrepared, pmEventID uuid.UUID) error {
+func (adapter *devMailDemoAdapter) observe(ctx context.Context, prepared devMailDemoPrepared, pmEventID uuid.UUID) (uuid.UUID, error) {
 	if ctx == nil {
-		return errDevMailDemoUnavailable
+		return uuid.Nil, errDevMailDemoUnavailable
 	}
 	if err := ctx.Err(); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	deadlineCtx, cancel := context.WithTimeout(ctx, devMailDemoObserveTimeout)
 	defer cancel()
 	for {
-		err := adapter.observeOnce(deadlineCtx, prepared, pmEventID)
+		dev1EventID, err := adapter.observeOnce(deadlineCtx, prepared, pmEventID)
 		if err == nil {
-			return nil
+			if dev1EventID == uuid.Nil || dev1EventID == pmEventID {
+				return uuid.Nil, errDevMailDemoUnavailable
+			}
+			return dev1EventID, nil
 		}
 		if contextErr := ctx.Err(); contextErr != nil {
-			return contextErr
+			return uuid.Nil, contextErr
 		}
 		if deadlineErr := deadlineCtx.Err(); deadlineErr != nil {
-			return deadlineErr
+			return uuid.Nil, deadlineErr
 		}
 		if !errors.Is(err, errDevMailDemoPending) {
-			return errDevMailDemoUnavailable
+			return uuid.Nil, errDevMailDemoUnavailable
 		}
 		timer := time.NewTimer(devMailDemoObservePoll)
 		select {
@@ -531,7 +545,7 @@ func (adapter *devMailDemoAdapter) observe(ctx context.Context, prepared devMail
 				default:
 				}
 			}
-			return deadlineCtx.Err()
+			return uuid.Nil, deadlineCtx.Err()
 		case <-timer.C:
 		}
 	}
@@ -539,19 +553,19 @@ func (adapter *devMailDemoAdapter) observe(ctx context.Context, prepared devMail
 
 func devMailDemoResult(prepared devMailDemoPrepared, replayed int) (devdemo.MailDemoResult, error) {
 	source := prepared.source
-	if replayed < 0 || replayed > 1 || !validDevMailSourceResult(source) ||
+	if (replayed != 0 && replayed != 2) || !validDevMailSourceResult(source) ||
 		source.accountsTotal != 2 || source.foldersTotal != 12 || source.threadsTotal != 3 ||
 		source.messagesTotal != 4 || source.attachmentsTotal != 1 {
 		return devdemo.MailDemoResult{}, errDevMailDemoUnavailable
 	}
 	return devdemo.MailDemoResult{
-		DatasetVersion:       devMailDemoDatasetVersion,
-		AccountsTotal:        source.accountsTotal,
-		FoldersTotal:         source.foldersTotal,
-		ThreadsTotal:         source.threadsTotal,
-		MessagesTotal:        source.messagesTotal,
-		AttachmentsTotal:     source.attachmentsTotal,
-		InvitationsTotal:     1,
+		DatasetVersion:      devMailDemoDatasetVersion,
+		AccountsTotal:       source.accountsTotal,
+		FoldersTotal:        source.foldersTotal,
+		ThreadsTotal:        source.threadsTotal,
+		MessagesTotal:       source.messagesTotal,
+		AttachmentsTotal:    source.attachmentsTotal,
+		InvitationsTotal:    2,
 		InvitationsReplayed: replayed,
 	}, nil
 }

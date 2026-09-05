@@ -162,7 +162,7 @@ type devMailDemoOwner struct {
 	accountID uuid.UUID
 }
 
-func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared devMailDemoPrepared, pmEventID uuid.UUID) (resultErr error) {
+func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared devMailDemoPrepared, pmEventID uuid.UUID) (dev1EventID uuid.UUID, resultErr error) {
 	stage := devMailDemoObserveStagePMOwner
 	defer func() {
 		if errors.Is(resultErr, errDevMailDemoPending) {
@@ -171,67 +171,70 @@ func (adapter *devMailDemoAdapter) observeOnce(ctx context.Context, prepared dev
 	}()
 
 	if ctx == nil {
-		return errDevMailDemoUnavailable
+		return uuid.Nil, errDevMailDemoUnavailable
 	}
 	if err := ctx.Err(); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	if pmEventID == uuid.Nil || !validDevMailControlResult(prepared.control) || !validDevMailSourceResult(prepared.source) {
-		return errDevMailDemoUnavailable
+		return uuid.Nil, errDevMailDemoUnavailable
 	}
 	plan, err := newDevMailSourcePlan(prepared.control)
 	if err != nil || !validDevMailSourcePlan(plan) || !devMailDemoSourceResultEqual(plan.result, prepared.source) {
-		return errDevMailDemoUnavailable
+		return uuid.Nil, errDevMailDemoUnavailable
 	}
 	pmOwner, err := adapter.observeOwner(ctx, prepared, devMailSourcePMEmail, prepared.pmUserID)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	stage = devMailDemoObserveStageDev1Owner
 	dev1Owner, err := adapter.observeOwner(ctx, prepared, devMailSourceDev1Email, prepared.dev1UserID)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	if pmOwner.accountID == dev1Owner.accountID {
-		return errDevMailDemoUnavailable
+		return uuid.Nil, errDevMailDemoUnavailable
 	}
 	stage = devMailDemoObserveStagePMFolders
 	if _, err := adapter.observeFolders(ctx, pmOwner.userID); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	stage = devMailDemoObserveStageDev1Folders
 	dev1Folders, err := adapter.observeFolders(ctx, dev1Owner.userID)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	stage = devMailDemoObserveStageStaticSource
 	if err := adapter.observeStaticSource(ctx, prepared, plan, dev1Owner, dev1Folders); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	stage = devMailDemoObserveStagePMEvent
 	pmEvent, err := adapter.readPMEvent(ctx, prepared, pmEventID)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	stage = devMailDemoObserveStagePMInvitation
 	pmMessageID, err := adapter.observePMInvitation(ctx, prepared, pmOwner, pmEventID)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	stage = devMailDemoObserveStageDev1Invitation
 	dev1EventID, dev1MessageID, err := adapter.observeDev1Invitation(ctx, prepared, dev1Owner, pmEvent)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	if pmMessageID == dev1MessageID || pmEventID == dev1EventID {
-		return errDevMailDemoUnavailable
+		return uuid.Nil, errDevMailDemoUnavailable
 	}
 	stage = devMailDemoObserveStageInvitationSemantics
 	if err := adapter.observeInvitationSemantics(ctx, prepared, pmEvent, dev1EventID); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	stage = devMailDemoObserveStageInvitationBodies
-	return adapter.observeInvitationBodies(ctx, pmOwner, pmMessageID, pmEventID, dev1Owner, dev1MessageID, dev1EventID)
+	if err := adapter.observeInvitationBodies(ctx, pmOwner, pmMessageID, pmEventID, dev1Owner, dev1MessageID, dev1EventID); err != nil {
+		return uuid.Nil, err
+	}
+	return dev1EventID, nil
 }
 
 func (adapter *devMailDemoAdapter) observeOwner(ctx context.Context, prepared devMailDemoPrepared, email string, userID uuid.UUID) (devMailDemoOwner, error) {
@@ -511,14 +514,15 @@ func (adapter *devMailDemoAdapter) observePMInvitation(ctx context.Context, prep
 		devMailDemoLogCorrelationPending(devMailDemoCorrelationDirectionPMForward, err)
 		return uuid.Nil, devMailDemoCorrelationError(err)
 	}
-	if !forward.Matches(forwardRequest) || forward.CalendarEventID() != eventID || forward.Path() != mailmod.MailboxCalendarCorrelationPathOutboundInvite {
+	if !forward.Matches(forwardRequest) || forward.CalendarEventID() != eventID || forward.Path() != mailmod.MailboxCalendarCorrelationPathOutboundInvite || forward.CalendarRSVPTarget() != nil {
 		return uuid.Nil, errDevMailDemoUnavailable
 	}
 	return reverse.MessageID(), nil
 }
 
 func (adapter *devMailDemoAdapter) observeDev1Invitation(ctx context.Context, prepared devMailDemoPrepared, owner devMailDemoOwner, pmEvent calendarmod.CalendarEventDetail) (uuid.UUID, uuid.UUID, error) {
-	search, ok := devMailDemoProjectionSearch(pmEvent.Title)
+	expectedSubject := "Invitation: " + pmEvent.Title
+	search, ok := devMailDemoProjectionSearch(expectedSubject)
 	if !ok {
 		return uuid.Nil, uuid.Nil, errDevMailDemoUnavailable
 	}
@@ -537,6 +541,9 @@ func (adapter *devMailDemoAdapter) observeDev1Invitation(ctx context.Context, pr
 			if message.CalendarMethod == nil || *message.CalendarMethod != mailmod.MailCalendarMethodRequest {
 				continue
 			}
+			if message.Subject != expectedSubject {
+				continue
+			}
 			request, err := mailmod.NewMailboxCalendarCorrelationRequest(owner.userID, prepared.organizationID, owner.accountID, message.ID)
 			if err != nil {
 				return uuid.Nil, uuid.Nil, errDevMailDemoUnavailable
@@ -546,7 +553,7 @@ func (adapter *devMailDemoAdapter) observeDev1Invitation(ctx context.Context, pr
 				devMailDemoLogCorrelationPending(devMailDemoCorrelationDirectionDev1Forward, err)
 				return uuid.Nil, uuid.Nil, devMailDemoCorrelationError(err)
 			}
-			if !forward.Matches(request) || forward.Path() != mailmod.MailboxCalendarCorrelationPathInboundReceipt || forward.CalendarEventID() == uuid.Nil || eventID != uuid.Nil {
+			if !forward.Matches(request) || forward.Path() != mailmod.MailboxCalendarCorrelationPathInboundReceipt || forward.CalendarEventID() == uuid.Nil || eventID != uuid.Nil || !devMailDemoSeriesRSVPTargetMatches(forward.CalendarRSVPTarget(), forward.CalendarEventID()) {
 				return uuid.Nil, uuid.Nil, errDevMailDemoUnavailable
 			}
 			reverseRequest, err := mailmod.NewCalendarMailboxCorrelationRequest(owner.userID, prepared.organizationID, forward.CalendarEventID())
@@ -621,19 +628,19 @@ func (adapter *devMailDemoAdapter) observeInvitationBody(ctx context.Context, ac
 		return errDevMailDemoUnavailable
 	}
 	if direction == devMailDemoInvitationBodyDirectionPMOutbound {
-		if detail.CalendarMethod != nil {
+		if detail.CalendarMethod != nil || detail.CalendarRSVPTarget != nil {
 			return errDevMailDemoUnavailable
 		}
 		return nil
 	}
-	if detail.CalendarMethod == nil || *detail.CalendarMethod != mailmod.MailCalendarMethodRequest {
+	if detail.CalendarMethod == nil || *detail.CalendarMethod != mailmod.MailCalendarMethodRequest || !devMailDemoSeriesRSVPTargetDTO(detail.CalendarRSVPTarget, eventID) {
 		return errDevMailDemoUnavailable
 	}
 	return nil
 }
 
 func devMailDemoInvitationEqual(pmEvent, dev1Event calendarmod.CalendarEventDetail) bool {
-	if pmEvent.ID == uuid.Nil || dev1Event.ID == uuid.Nil || pmEvent.ID == dev1Event.ID || pmEvent.Title != dev1Event.Title || pmEvent.Description != dev1Event.Description || pmEvent.Location != dev1Event.Location || pmEvent.AllDay != dev1Event.AllDay || pmEvent.Timezone != dev1Event.Timezone || pmEvent.OrganizerEmail != dev1Event.OrganizerEmail || pmEvent.OrganizerEmail != devMailSourcePMEmail || pmEvent.AllDay || pmEvent.StartsAt == nil || pmEvent.EndsAt == nil || dev1Event.StartsAt == nil || dev1Event.EndsAt == nil {
+	if pmEvent.ID == uuid.Nil || dev1Event.ID == uuid.Nil || pmEvent.ID == dev1Event.ID || pmEvent.Title != dev1Event.Title || pmEvent.Description != dev1Event.Description || pmEvent.Location != dev1Event.Location || pmEvent.AllDay != dev1Event.AllDay || pmEvent.Timezone != dev1Event.Timezone || pmEvent.OrganizerEmail != dev1Event.OrganizerEmail || pmEvent.OrganizerEmail != devMailSourcePMEmail || pmEvent.AllDay || pmEvent.StartsAt == nil || pmEvent.EndsAt == nil || dev1Event.StartsAt == nil || dev1Event.EndsAt == nil || pmEvent.RRULE == nil || dev1Event.RRULE == nil || *pmEvent.RRULE != devMailDemoInvitationRRULE || *dev1Event.RRULE != devMailDemoInvitationRRULE {
 		return false
 	}
 	return pmEvent.StartsAt.Location() == time.UTC && pmEvent.EndsAt.Location() == time.UTC && dev1Event.StartsAt.Location() == time.UTC && dev1Event.EndsAt.Location() == time.UTC && pmEvent.StartsAt.Equal(*dev1Event.StartsAt) && pmEvent.EndsAt.Equal(*dev1Event.EndsAt)

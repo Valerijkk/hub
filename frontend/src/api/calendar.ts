@@ -1,6 +1,11 @@
 import { api, type ApiRequestOptions } from "./client";
 
-export type CalendarEventKind = "call" | "event" | "sprint" | "deadline" | "leave";
+export type CalendarEventKind =
+	| "call"
+	| "event"
+	| "sprint"
+	| "deadline"
+	| "leave";
 
 export interface CalendarEventDTO {
 	id: string;
@@ -201,14 +206,14 @@ export type CalendarEventCreateRequest =
 			ends_at: string;
 			start_date: null;
 			end_date_exclusive: null;
-		})
+	  })
 	| (CalendarEventCreateRequestBase & {
 			all_day: true;
 			starts_at: null;
 			ends_at: null;
 			start_date: string;
 			end_date_exclusive: string;
-		});
+	  });
 
 interface CalendarEventCreateResponseBase {
 	id: string;
@@ -237,14 +242,14 @@ export type CalendarEventCreateResponse =
 			ends_at: string;
 			start_date: null;
 			end_date_exclusive: null;
-		})
+	  })
 	| (CalendarEventCreateResponseBase & {
 			all_day: true;
 			starts_at: null;
 			ends_at: null;
 			start_date: string;
 			end_date_exclusive: string;
-		});
+	  });
 
 interface CalendarEventUpdateRequestBase {
 	title?: string;
@@ -264,42 +269,42 @@ type CalendarEventUpdateTemporalFields =
 			ends_at?: never;
 			start_date?: never;
 			end_date_exclusive?: never;
-		}
+	  }
 	| {
 			all_day?: never;
 			starts_at: string | null;
 			ends_at: string | null;
 			start_date?: never;
 			end_date_exclusive?: never;
-		}
+	  }
 	| {
 			all_day?: never;
 			starts_at?: never;
 			ends_at?: never;
 			start_date: string | null;
 			end_date_exclusive: string | null;
-		}
+	  }
 	| {
 			all_day?: never;
 			starts_at: string | null;
 			ends_at: string | null;
 			start_date: string | null;
 			end_date_exclusive: string | null;
-		}
+	  }
 	| {
 			all_day: false;
 			starts_at: string;
 			ends_at: string;
 			start_date: null;
 			end_date_exclusive: null;
-		}
+	  }
 	| {
 			all_day: true;
 			starts_at: null;
 			ends_at: null;
 			start_date: string;
 			end_date_exclusive: string;
-		};
+	  };
 
 export type CalendarEventUpdateRequest = CalendarEventUpdateRequestBase &
 	CalendarEventUpdateTemporalFields;
@@ -396,18 +401,27 @@ function calendarEventPath(eventId: string): string {
 	return `/calendar/v2/events/${encodeURIComponent(eventId)}`;
 }
 
+function calendarOccurrencePathSegment(recurrenceId: string): string {
+	return globalThis
+		.btoa(recurrenceId)
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
+}
+
 const CALENDAR_EVENT_ID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CALENDAR_NIL_EVENT_ID = "00000000-0000-0000-0000-000000000000";
 
 export function isCanonicalCalendarEventID(eventId: string): boolean {
 	return (
-		CALENDAR_EVENT_ID_PATTERN.test(eventId) &&
-		eventId !== CALENDAR_NIL_EVENT_ID
+		CALENDAR_EVENT_ID_PATTERN.test(eventId) && eventId !== CALENDAR_NIL_EVENT_ID
 	);
 }
 
-export function getCalendarEvent(eventId: string): Promise<CalendarEventDetail> {
+export function getCalendarEvent(
+	eventId: string,
+): Promise<CalendarEventDetail> {
 	if (!isCanonicalCalendarEventID(eventId)) {
 		return Promise.reject(new Error("Invalid calendar event ID"));
 	}
@@ -456,7 +470,10 @@ export function cancelCalendarEvent(
 	eventId: string,
 	options: CalendarVersionRequestOptions,
 ): Promise<CalendarEventMutationResult> {
-	return api.delete<CalendarEventMutationResult>(calendarEventPath(eventId), options);
+	return api.delete<CalendarEventMutationResult>(
+		calendarEventPath(eventId),
+		options,
+	);
 }
 
 export function respondToCalendarSeries(
@@ -478,7 +495,7 @@ export function respondToCalendarOccurrence(
 	options: CalendarIdempotencyRequestOptions,
 ): Promise<CalendarEventAttendeeResponse> {
 	return api.post<CalendarEventAttendeeResponse>(
-		`${calendarEventPath(eventId)}/instances/${encodeURIComponent(recurrenceId)}/rsvp`,
+		`${calendarEventPath(eventId)}/instances/${calendarOccurrencePathSegment(recurrenceId)}/rsvp`,
 		request,
 		options,
 	);
@@ -490,7 +507,7 @@ export function cancelCalendarOccurrence(
 	options: CalendarVersionRequestOptions,
 ): Promise<CalendarOccurrenceCancellation> {
 	return api.delete<CalendarOccurrenceCancellation>(
-		`${calendarEventPath(eventId)}/instances/${encodeURIComponent(recurrenceId)}`,
+		`${calendarEventPath(eventId)}/instances/${calendarOccurrencePathSegment(recurrenceId)}`,
 		options,
 	);
 }

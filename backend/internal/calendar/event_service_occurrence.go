@@ -354,7 +354,7 @@ func validateCalendarEventOccurrenceRSVPAuthorization(scope EventMutationScope, 
 		return nil
 	}
 	exception := *authorization.Exception
-	if exception.EventID != current.EventID || exception.RecurrenceID != command.input.RecurrenceID || exception.ExceptionID == uuid.Nil || exception.Sequence > current.Sequence {
+	if exception.EventID != current.EventID || exception.RecurrenceID != command.input.RecurrenceID || exception.ExceptionID == uuid.Nil {
 		return ErrEventInvalid
 	}
 	if exception.Cancelled {

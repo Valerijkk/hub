@@ -62,9 +62,33 @@ func (repository *MailboxEntRepository) ResolveCalendarEventForMessage(ctx conte
 }
 
 type mailboxEntCalendarCorrelationCandidates struct {
-	inbound  []uuid.UUID
-	outbound []uuid.UUID
-	stale    bool
+	inbound            []uuid.UUID
+	outbound           []uuid.UUID
+	inboundRSVPTargets []mailboxEntCalendarCorrelationInboundRSVPTargetCandidate
+	stale              bool
+}
+
+// mailboxEntCalendarCorrelationInboundRSVPTargetCandidate is the durable
+// receipt identity only. Effective attendee status/version is resolved in the
+// same Ent read snapshot after tenant and actor visibility are established.
+type mailboxEntCalendarCorrelationInboundRSVPTargetCandidate struct {
+	calendarEventID uuid.UUID
+	scope           MailboxCalendarRSVPTargetScope
+	recurrenceID    *string
+}
+
+func (candidate mailboxEntCalendarCorrelationInboundRSVPTargetCandidate) valid() bool {
+	if candidate.calendarEventID == uuid.Nil || !candidate.scope.valid() {
+		return false
+	}
+	switch candidate.scope {
+	case MailboxCalendarRSVPTargetScopeSeries:
+		return candidate.recurrenceID == nil
+	case MailboxCalendarRSVPTargetScopeOccurrence:
+		return candidate.recurrenceID != nil && validMailboxCalendarRSVPTargetRecurrenceID(*candidate.recurrenceID)
+	default:
+		return false
+	}
 }
 
 func mailboxEntResolveCalendarEventForMessage(ctx context.Context, transaction *ent.Tx, request MailboxCalendarCorrelationRequest) (MailboxCalendarCorrelationResult, error) {
@@ -203,6 +227,9 @@ func mailboxEntCalendarCorrelationInboundCandidates(ctx context.Context, transac
 			if !appended {
 				return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 			}
+			if err := mailboxEntCalendarCorrelationAppendInboundRSVPTarget(row, candidates); err != nil {
+				return err
+			}
 		case "quarantined", "dead_letter":
 			// Terminal quarantine and dead-letter receipts never authorize a link.
 		default:
@@ -219,6 +246,57 @@ func mailboxEntCalendarCorrelationInboundRowValid(row *ent.CalendarInboundMessag
 	return row.CalendarEventID == nil || *row.CalendarEventID != uuid.Nil
 }
 
+func mailboxEntCalendarCorrelationAppendInboundRSVPTarget(row *ent.CalendarInboundMessageReceipt, candidates *mailboxEntCalendarCorrelationCandidates) error {
+	if row == nil || candidates == nil || row.CalendarEventID == nil || *row.CalendarEventID == uuid.Nil {
+		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	candidate, actionable, err := mailboxEntCalendarCorrelationInboundRSVPTarget(row)
+	if err != nil {
+		return err
+	}
+	if !actionable {
+		// A fully unknown legacy snapshot remains navigation-only. Partial or
+		// malformed snapshots fail closed above rather than being guessed.
+		return nil
+	}
+	if len(candidates.inboundRSVPTargets) >= mailboxEntCalendarCorrelationCandidateLimit {
+		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	candidates.inboundRSVPTargets = append(candidates.inboundRSVPTargets, candidate)
+	if len(candidates.inboundRSVPTargets) != 1 {
+		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	return nil
+}
+
+func mailboxEntCalendarCorrelationInboundRSVPTarget(row *ent.CalendarInboundMessageReceipt) (mailboxEntCalendarCorrelationInboundRSVPTargetCandidate, bool, error) {
+	if row == nil || row.CalendarEventID == nil || *row.CalendarEventID == uuid.Nil {
+		return mailboxEntCalendarCorrelationInboundRSVPTargetCandidate{}, false, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	if row.CalendarComponentScope == nil && row.RecurrenceID == nil {
+		return mailboxEntCalendarCorrelationInboundRSVPTargetCandidate{}, false, nil
+	}
+	if row.CalendarComponentScope == nil {
+		return mailboxEntCalendarCorrelationInboundRSVPTargetCandidate{}, false, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+
+	candidate := mailboxEntCalendarCorrelationInboundRSVPTargetCandidate{
+		calendarEventID: *row.CalendarEventID,
+		recurrenceID:    cloneMailboxCalendarRSVPTargetRecurrenceID(row.RecurrenceID),
+	}
+	switch string(*row.CalendarComponentScope) {
+	case string(MailboxCalendarRSVPTargetScopeSeries):
+		candidate.scope = MailboxCalendarRSVPTargetScopeSeries
+	case string(MailboxCalendarRSVPTargetScopeOccurrence):
+		candidate.scope = MailboxCalendarRSVPTargetScopeOccurrence
+	default:
+		return mailboxEntCalendarCorrelationInboundRSVPTargetCandidate{}, false, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	if !candidate.valid() {
+		return mailboxEntCalendarCorrelationInboundRSVPTargetCandidate{}, false, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	return candidate, true, nil
+}
 func mailboxEntCalendarCorrelationOutboundCandidates(ctx context.Context, transaction *ent.Tx, request MailboxCalendarCorrelationRequest, message *ent.MailMessage, candidates *mailboxEntCalendarCorrelationCandidates) error {
 	if ctx == nil || transaction == nil || message == nil || candidates == nil || message.IsDraft || string(message.ProjectionOrigin) != "confirmed_owner_submission" {
 		return newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
@@ -413,13 +491,130 @@ func mailboxEntCalendarCorrelationArbitrate(ctx context.Context, transaction *en
 	if mailboxEntCalendarCorrelationContains(candidates.inbound, visible[0]) {
 		path = MailboxCalendarCorrelationPathInboundReceipt
 	}
-	result, err := NewMailboxCalendarCorrelationResult(request, visible[0], path)
+	var target *MailboxCalendarRSVPTarget
+	if path == MailboxCalendarCorrelationPathInboundReceipt {
+		target, err = mailboxEntCalendarCorrelationInboundRSVPTargetForEvent(ctx, transaction, request, candidates.inboundRSVPTargets, visible[0])
+		if err != nil {
+			return MailboxCalendarCorrelationResult{}, err
+		}
+	}
+	result, err := NewMailboxCalendarCorrelationResultWithRSVPTarget(request, visible[0], path, target)
 	if err != nil {
 		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
 	}
 	return result, nil
 }
 
+func mailboxEntCalendarCorrelationInboundRSVPTargetForEvent(
+	ctx context.Context,
+	transaction *ent.Tx,
+	request MailboxCalendarCorrelationRequest,
+	candidates []mailboxEntCalendarCorrelationInboundRSVPTargetCandidate,
+	eventID uuid.UUID,
+) (*MailboxCalendarRSVPTarget, error) {
+	if ctx == nil || transaction == nil || !request.valid() || eventID == uuid.Nil {
+		return nil, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	if len(candidates) == 0 {
+		return nil, nil
+	}
+	if len(candidates) != 1 || !candidates[0].valid() || candidates[0].calendarEventID != eventID {
+		return nil, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	return mailboxEntCalendarCorrelationEffectiveRSVPTarget(ctx, transaction, request, candidates[0])
+}
+
+func mailboxEntCalendarCorrelationEffectiveRSVPTarget(
+	ctx context.Context,
+	transaction *ent.Tx,
+	request MailboxCalendarCorrelationRequest,
+	candidate mailboxEntCalendarCorrelationInboundRSVPTargetCandidate,
+) (*MailboxCalendarRSVPTarget, error) {
+	if ctx == nil || transaction == nil || !request.valid() || !candidate.valid() {
+		return nil, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+
+	seriesRows, err := transaction.CalendarAttendee.Query().
+		Where(
+			calendarattendee.CalendarEventIDEQ(candidate.calendarEventID),
+			calendarattendee.UserIDEQ(request.actorID),
+			calendarattendee.RemovedAtIsNil(),
+			calendarattendee.RecurrenceIDIsNil(),
+		).
+		Order(ent.Asc(calendarattendee.FieldID)).
+		Limit(mailboxEntCalendarCorrelationCandidateLimit).
+		All(ctx)
+	if err != nil {
+		return nil, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	if len(seriesRows) != 1 {
+		return nil, nil
+	}
+	seriesVersion, seriesStatus, valid := mailboxEntCalendarCorrelationEffectiveAttendeeState(seriesRows[0], request.actorID, candidate.calendarEventID, nil)
+	if !valid {
+		return nil, nil
+	}
+	if candidate.scope == MailboxCalendarRSVPTargetScopeSeries {
+		target, targetErr := NewMailboxCalendarRSVPTarget(candidate.calendarEventID, candidate.scope, nil, seriesVersion, seriesStatus)
+		if targetErr != nil {
+			return nil, nil
+		}
+		return &target, nil
+	}
+
+	occurrenceRows, err := transaction.CalendarAttendee.Query().
+		Where(
+			calendarattendee.CalendarEventIDEQ(candidate.calendarEventID),
+			calendarattendee.UserIDEQ(request.actorID),
+			calendarattendee.RemovedAtIsNil(),
+			calendarattendee.RecurrenceIDEQ(*candidate.recurrenceID),
+		).
+		Order(ent.Asc(calendarattendee.FieldID)).
+		Limit(mailboxEntCalendarCorrelationCandidateLimit).
+		All(ctx)
+	if err != nil {
+		return nil, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindUnavailable)
+	}
+	if len(occurrenceRows) > 1 {
+		return nil, nil
+	}
+	version, status := seriesVersion, seriesStatus
+	if len(occurrenceRows) == 1 {
+		version, status, valid = mailboxEntCalendarCorrelationEffectiveAttendeeState(occurrenceRows[0], request.actorID, candidate.calendarEventID, candidate.recurrenceID)
+		if !valid {
+			return nil, nil
+		}
+	}
+	target, targetErr := NewMailboxCalendarRSVPTarget(candidate.calendarEventID, candidate.scope, candidate.recurrenceID, version, status)
+	if targetErr != nil {
+		return nil, nil
+	}
+	return &target, nil
+}
+
+func mailboxEntCalendarCorrelationEffectiveAttendeeState(
+	attendee *ent.CalendarAttendee,
+	actorID uuid.UUID,
+	eventID uuid.UUID,
+	recurrenceID *string,
+) (uint, MailboxCalendarRSVPStatus, bool) {
+	if attendee == nil || attendee.ID == uuid.Nil || attendee.CalendarEventID != eventID || attendee.UserID == nil || *attendee.UserID != actorID || attendee.RemovedAt != nil || attendee.Version < 1 || attendee.RecurrenceID == nil && recurrenceID != nil || attendee.RecurrenceID != nil && recurrenceID == nil || attendee.RecurrenceID != nil && recurrenceID != nil && *attendee.RecurrenceID != *recurrenceID {
+		return 0, "", false
+	}
+	if attendee.RecurrenceID != nil && !validMailboxCalendarRSVPTargetRecurrenceID(*attendee.RecurrenceID) {
+		return 0, "", false
+	}
+	switch attendee.Role {
+	case calendarattendee.RoleRequired, calendarattendee.RoleOptional:
+	default:
+		return 0, "", false
+	}
+	status := MailboxCalendarRSVPStatus(attendee.RsvpStatus)
+	if !status.valid() {
+		return 0, "", false
+	}
+	return uint(attendee.Version), status, true
+}
 func mailboxEntCalendarCorrelationEventIDs(candidates mailboxEntCalendarCorrelationCandidates) []uuid.UUID {
 	result := make([]uuid.UUID, 0, len(candidates.inbound)+len(candidates.outbound))
 	for _, candidate := range candidates.inbound {

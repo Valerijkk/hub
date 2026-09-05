@@ -1256,6 +1256,16 @@ cursor `sync:7`; PM had 7 messages / 7 threads with cursor `sync:14`. The post-r
 was clean. This is narrow dev-demo runtime evidence only: production Stalwart/JMAP external
 delivery, the full suite, and release/merge readiness remain `NOT_RUN` / `NOT_CLAIMED`.
 
+### 2026-09-05 occurrence RSVP packet status
+
+The Mail target is now a closed typed projection carrying `event_id`, `scope`, `recurrence_id`, required positive `attendee_version`, and required `rsvp_status`. A recurring occurrence resolves the effective active occurrence attendee first and then the active series attendee; no target is emitted for invalid, nonterminal, legacy, outbound, ambiguous, removed, or invisible receipt state. The UI validates the whole object fail-closed, passes its canonical recurrence ID to Calendar's existing raw-base64url route encoder, keeps returned effective occurrence state local, and invalidates canonical Mail/Calendar caches without writing occurrence state into the master-event cache. Independent backend review passed after the target-event/detail-event equality correction; independent frontend review passed after the undefined-target case retained Open event and hid all RSVP buttons.
+
+Schema-maintenance is PASS for 13 migrations / 591 statements at `20260905000000`, pending 0, root-FK 82/82 and empty expected semantic diffs. The broad canonical `backend-unit` run is acceptance `PENDING/REJECT` because 16 unrelated dirty leaf failures prevent a broad-green claim; the named packet tests passed. The private Ent receipt path is deliberately proven through autoseed/runtime rather than a widened production API for an isolated unit.
+
+**Final occurrence dev-demo runtime: PASS (bounded).** A clean tmpfs stack seeded on attempt one in 72.186s with frontend/backend/hub-mail/PostgreSQL/Mongo/Redis/NATS healthy. API requests through the actual nginx frontend at `localhost:8088` showed series and occurrence messages linked to the same imported event; initial targets were `series/null/v1/needs_action` and `occurrence/2026-09-10T10:00:00Z/v1/needs_action`. Occurrence RSVP returned 200; same-key replay returned byte-identical 200; reload showed occurrence `accepted/v2` while series remained `needs_action/v1`. The PM outbound message retained nonnull `calendar_event_id` and null target. DB inspection confirmed applied occurrence receipt/exact recurrence, occurrence attendee accepted/v2 with unchanged series attendee, detached-exception reply delivery sequence 1 over master sequence 0 (`accepted/pending`), and completed/200 matching-SHA mutation receipt.
+
+The root cause was an invalid exception `Sequence <= master` bound in both RSVP validators; it was removed while identity, temporal, actor, and CAS checks remain. A regression test was added, but its Docker unit evidence is `NOT_RUN`. Frontend-unit (172 suites / 478 assertions), prior fresh production frontend image build, and backend production image build are PASS. In-app browser visual is `NOT_RUN`: Windows `node_repl` sandbox helper failed `apply deny-read ACLs`. External real Stalwart/JMAP remains `NOT_RUN`; no full-suite, commit, merge, or release claim is made.
+
 ## 144-02A/B/C/D future persistence and deletion oracles
 
 | Boundary | DB direct-write oracle | DB-only expected result |

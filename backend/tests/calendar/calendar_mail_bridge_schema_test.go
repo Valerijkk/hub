@@ -71,9 +71,9 @@ func TestCalendarInboundObjectState_SchemaContract(t *testing.T) {
 func TestCalendarInboundMessageReceipt_SchemaContract(t *testing.T) {
 	fields := mailBridgeFieldDescriptors((entschema.CalendarInboundMessageReceipt{}).Fields())
 	mailBridgeAssertExactNames(t, "CalendarInboundMessageReceipt fields", mailBridgeMapKeys(fields), []string{
-		"attempts", "calendar_event_id", "created_at", "deferred_expires_at", "deferred_object_state_id", "error_code",
+		"attempts", "calendar_component_scope", "calendar_event_id", "created_at", "deferred_expires_at", "deferred_object_state_id", "error_code",
 		"event_envelope_id", "id", "lease_generation", "lease_token", "lease_until", "mail_message_id", "mailbox_id",
-		"next_attempt_at", "organization_id", "part_locator_hash", "state", "updated_at",
+		"next_attempt_at", "organization_id", "part_locator_hash", "recurrence_id", "state", "updated_at",
 	})
 
 	for _, name := range []string{"id", "organization_id", "mailbox_id", "mail_message_id", "event_envelope_id"} {
@@ -90,11 +90,13 @@ func TestCalendarInboundMessageReceipt_SchemaContract(t *testing.T) {
 		"organizer_mismatch", "equal_sequence_conflict", "missing_master_expired", "resource_limit", "retry_exhausted",
 		"engine_unavailable", "database_unavailable", "internal_error",
 	})
+	mailBridgeAssertEnumValues(t, "calendar_component_scope", fields["calendar_component_scope"], []string{"series", "occurrence"})
+	mailBridgeAssertStringMax(t, "recurrence_id", fields["recurrence_id"], 255, true)
 	mailBridgeAssertIntBounds(t, "attempts", fields["attempts"], 0, 8)
 	mailBridgeAssertFieldType(t, "lease_generation", fields["lease_generation"], field.TypeInt64)
 	mailBridgeAssertInt64Minimum(t, "lease_generation", fields["lease_generation"], 0)
 	mailBridgeAssertDefault(t, "lease_generation", fields["lease_generation"], int64(0))
-	for _, name := range []string{"lease_token", "lease_until", "next_attempt_at", "error_code", "calendar_event_id", "deferred_object_state_id", "deferred_expires_at"} {
+	for _, name := range []string{"lease_token", "lease_until", "next_attempt_at", "error_code", "calendar_event_id", "deferred_object_state_id", "deferred_expires_at", "calendar_component_scope", "recurrence_id"} {
 		mailBridgeAssertOptionalNillable(t, name, fields[name])
 	}
 	mailBridgeAssertImmutable(t, "created_at", fields["created_at"])
@@ -108,6 +110,7 @@ func TestCalendarInboundMessageReceipt_SchemaContract(t *testing.T) {
 		"calendar_inbound_message_receipts_deferred_expiry_second": "deferred_expires_at IS NULL OR date_trunc('second', deferred_expires_at) = deferred_expires_at",
 		"calendar_inbound_message_receipts_deferred_state": "state <> 'deferred_missing_master' OR (deferred_object_state_id IS NOT NULL AND deferred_expires_at IS NOT NULL)",
 		"calendar_inbound_message_receipts_deferred_retry": "deferred_object_state_id IS NULL OR next_attempt_at IS NULL OR next_attempt_at <= deferred_expires_at",
+		"calendar_inbound_message_receipts_component_scope_shape": "(calendar_component_scope IS NULL AND recurrence_id IS NULL) OR (calendar_component_scope = 'series' AND recurrence_id IS NULL) OR (calendar_component_scope = 'occurrence' AND recurrence_id IS NOT NULL AND recurrence_id <> '' AND char_length(recurrence_id) <= 255)",
 		"calendar_inbound_message_receipts_state_shape": "COALESCE((state = 'pending' AND lease_token IS NULL AND lease_until IS NULL AND ((attempts = 0 AND next_attempt_at IS NULL) OR (attempts > 0 AND next_attempt_at IS NOT NULL))) OR (state = 'processing' AND lease_token IS NOT NULL AND lease_until IS NOT NULL AND lease_generation >= 1 AND attempts >= 1 AND next_attempt_at IS NULL AND error_code IS NULL) OR (state IN ('applied','ignored_stale','duplicate','quarantined','dead_letter') AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NULL) OR (state = 'deferred_missing_master' AND lease_token IS NULL AND lease_until IS NULL AND next_attempt_at IS NOT NULL), FALSE)",
 	})
 	indexes := (entschema.CalendarInboundMessageReceipt{}).Indexes()

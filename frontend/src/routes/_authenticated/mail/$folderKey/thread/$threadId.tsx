@@ -72,10 +72,13 @@ function formatTimestamp(value: string | null, language: string): string {
 	if (!value) return "";
 	const timestamp = new Date(value);
 	if (Number.isNaN(timestamp.getTime())) return "";
-	return timestamp.toLocaleString(language.startsWith("ru") ? "ru-RU" : "en-US", {
-		dateStyle: "medium",
-		timeStyle: "short",
-	});
+	return timestamp.toLocaleString(
+		language.startsWith("ru") ? "ru-RU" : "en-US",
+		{
+			dateStyle: "medium",
+			timeStyle: "short",
+		},
+	);
 }
 
 function formatBytes(value: number, language: string): string {
@@ -87,9 +90,12 @@ function formatBytes(value: number, language: string): string {
 		size /= 1024;
 		unit += 1;
 	}
-	return `${new Intl.NumberFormat(language.startsWith("ru") ? "ru-RU" : "en-US", {
-		maximumFractionDigits: unit === 0 ? 0 : 1,
-	}).format(size)} ${units[unit]}`;
+	return `${new Intl.NumberFormat(
+		language.startsWith("ru") ? "ru-RU" : "en-US",
+		{
+			maximumFractionDigits: unit === 0 ? 0 : 1,
+		},
+	).format(size)} ${units[unit]}`;
 }
 
 interface MessageCardProps {
@@ -211,8 +217,13 @@ function MessageCard({
 		bodyContent = (
 			<div className="space-y-4 py-4">
 				{bodyQuery.isError ? (
-					<div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--r2)] bg-[var(--amber)]/10 p-3" role="alert">
-						<p className="text-xs text-t2">{t("reader.body.partialUnavailable")}</p>
+					<div
+						className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--r2)] bg-[var(--amber)]/10 p-3"
+						role="alert"
+					>
+						<p className="text-xs text-t2">
+							{t("reader.body.partialUnavailable")}
+						</p>
 						<Button
 							variant="ghost"
 							size="sm"
@@ -231,7 +242,10 @@ function MessageCard({
 				) : null}
 				{detail.calendar_event_id !== null &&
 				isCanonicalCalendarEventID(detail.calendar_event_id) ? (
-					<MailCalendarInvitation eventId={detail.calendar_event_id} />
+					<MailCalendarInvitation
+						eventId={detail.calendar_event_id}
+						rsvpTarget={detail.calendar_rsvp_target}
+					/>
 				) : null}
 				<MailSafeContent
 					language={i18n.language}
@@ -243,8 +257,13 @@ function MessageCard({
 				/>
 				{detail.attachments.length > 0 ? (
 					<section aria-labelledby={attachmentsHeadingID}>
-						<h4 id={attachmentsHeadingID} className="text-xs font-semibold uppercase tracking-[0.06em] text-t3">
-							{t("reader.body.attachments", { count: detail.attachments.length })}
+						<h4
+							id={attachmentsHeadingID}
+							className="text-xs font-semibold uppercase tracking-[0.06em] text-t3"
+						>
+							{t("reader.body.attachments", {
+								count: detail.attachments.length,
+							})}
 						</h4>
 						<ul className="mt-2 space-y-2">
 							{detail.attachments.map((attachment) => {
@@ -254,14 +273,25 @@ function MessageCard({
 									attachment.id,
 								);
 								const isDownloading = pendingAttachmentIDs.has(attachmentKey);
-								const hasDownloadError = attachmentDownloadErrors.has(attachmentKey);
+								const hasDownloadError =
+									attachmentDownloadErrors.has(attachmentKey);
 								return (
-									<li key={attachment.id} className="flex flex-wrap items-center gap-3 rounded-[var(--r2)] border border-b1 bg-card px-3 py-3">
-										<Paperclip aria-hidden="true" className="h-4 w-4 shrink-0 text-t3" />
+									<li
+										key={attachment.id}
+										className="flex flex-wrap items-center gap-3 rounded-[var(--r2)] border border-b1 bg-card px-3 py-3"
+									>
+										<Paperclip
+											aria-hidden="true"
+											className="h-4 w-4 shrink-0 text-t3"
+										/>
 										<div className="min-w-0 flex-1">
-											<p className="break-words text-sm font-medium text-t1">{safeFilename}</p>
+											<p className="break-words text-sm font-medium text-t1">
+												{safeFilename}
+											</p>
 											<p className="mt-0.5 text-xs text-t3">
-												{attachment.media_type} · {formatBytes(attachment.size_bytes, i18n.language)} · {t(`reader.body.disposition.${attachment.disposition}`)}
+												{attachment.media_type} ·{" "}
+												{formatBytes(attachment.size_bytes, i18n.language)} ·{" "}
+												{t(`reader.body.disposition.${attachment.disposition}`)}
 											</p>
 										</div>
 										<Button
@@ -271,7 +301,10 @@ function MessageCard({
 											className="min-h-11 shrink-0"
 											disabled={isDownloading}
 											onClick={() =>
-												void handleAttachmentDownload(attachment.id, safeFilename)
+												void handleAttachmentDownload(
+													attachment.id,
+													safeFilename,
+												)
 											}
 										>
 											<Download aria-hidden="true" className="h-4 w-4" />
@@ -284,7 +317,10 @@ function MessageCard({
 											)}
 										</Button>
 										{hasDownloadError ? (
-											<p className="w-full text-xs text-[var(--red)]" role="alert">
+											<p
+												className="w-full text-xs text-[var(--red)]"
+												role="alert"
+											>
 												{t("reader.body.downloadFailed")}
 											</p>
 										) : null}
@@ -336,13 +372,21 @@ function MessageCard({
 							{t(expanded ? "reader.body.collapse" : "reader.body.expand")}
 							<ChevronDown
 								aria-hidden="true"
-								className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")}
+								className={cn(
+									"h-4 w-4 transition-transform",
+									expanded && "rotate-180",
+								)}
 							/>
 						</span>
 					</span>
 				</button>
 			</h3>
-			<div id={panelID} role="region" aria-labelledby={triggerID} hidden={!expanded}>
+			<div
+				id={panelID}
+				role="region"
+				aria-labelledby={triggerID}
+				hidden={!expanded}
+			>
 				{expanded ? (
 					<div className="px-4 pb-4">
 						<div className="border-t border-b1 pt-3">
@@ -363,9 +407,15 @@ function MessageCard({
 								</p>
 							) : null}
 							{badges.length > 0 ? (
-								<ul className="mt-3 flex flex-wrap gap-1" aria-label={t("reader.messageStatus")}>
+								<ul
+									className="mt-3 flex flex-wrap gap-1"
+									aria-label={t("reader.messageStatus")}
+								>
 									{badges.map((badge) => (
-										<li key={badge} className="rounded-full bg-raised px-2 py-0.5 text-[11px] text-t2">
+										<li
+											key={badge}
+											className="rounded-full bg-raised px-2 py-0.5 text-[11px] text-t2"
+										>
 											{badge}
 										</li>
 									))}
@@ -379,7 +429,11 @@ function MessageCard({
 									</span>
 								) : null}
 								{message.size_bytes > 0 ? (
-									<span>{t("reader.messageSize", { size: formatBytes(message.size_bytes, i18n.language) })}</span>
+									<span>
+										{t("reader.messageSize", {
+											size: formatBytes(message.size_bytes, i18n.language),
+										})}
+									</span>
 								) : null}
 								{message.calendar_method ? (
 									<span>{t(`reader.calendar.${message.calendar_method}`)}</span>
@@ -424,12 +478,7 @@ function ThreadReader({
 				cursor: pageParam,
 			}),
 		initialPageParam: undefined as string | undefined,
-		getNextPageParam: (
-			lastPage,
-			_allPages,
-			_lastPageParam,
-			allPageParams,
-		) => {
+		getNextPageParam: (lastPage, _allPages, _lastPageParam, allPageParams) => {
 			const nextCursor = lastPage.next_cursor ?? undefined;
 			return nextCursor && !allPageParams.includes(nextCursor)
 				? nextCursor
@@ -477,7 +526,12 @@ function ThreadReader({
 		content = (
 			<div className="space-y-3 p-6" role="alert">
 				<p className="text-sm text-t2">{t("reader.unavailable")}</p>
-				<Button variant="outline" size="sm" className="min-h-11" onClick={() => void detailQuery.refetch()}>
+				<Button
+					variant="outline"
+					size="sm"
+					className="min-h-11"
+					onClick={() => void detailQuery.refetch()}
+				>
 					{t("retry")}
 				</Button>
 			</div>
@@ -486,7 +540,12 @@ function ThreadReader({
 		content = (
 			<div className="space-y-3 bg-[var(--amber)]/10 p-6" role="alert">
 				<p className="text-sm text-t2">{t("reader.partialEmpty")}</p>
-				<Button variant="outline" size="sm" className="min-h-11" onClick={() => void detailQuery.refetch()}>
+				<Button
+					variant="outline"
+					size="sm"
+					className="min-h-11"
+					onClick={() => void detailQuery.refetch()}
+				>
 					{t("retry")}
 				</Button>
 			</div>
@@ -494,7 +553,9 @@ function ThreadReader({
 	} else if (messages.length === 0) {
 		content = (
 			<div className="p-8 text-center">
-				<p className="text-sm font-medium text-t2">{t("reader.noMessagesTitle")}</p>
+				<p className="text-sm font-medium text-t2">
+					{t("reader.noMessagesTitle")}
+				</p>
 				<p className="mt-1 text-xs leading-5 text-t3">
 					{t("reader.noMessagesDescription")}
 				</p>
@@ -504,9 +565,17 @@ function ThreadReader({
 		content = (
 			<div className="space-y-3 p-4">
 				{detailQuery.isError ? (
-					<div className="flex items-center justify-between gap-3 rounded-[var(--r2)] bg-[var(--amber)]/10 p-3" role="alert">
+					<div
+						className="flex items-center justify-between gap-3 rounded-[var(--r2)] bg-[var(--amber)]/10 p-3"
+						role="alert"
+					>
 						<p className="text-xs text-t2">{t("reader.partialUnavailable")}</p>
-						<Button variant="ghost" size="sm" className="min-h-11 shrink-0" onClick={() => void detailQuery.refetch()}>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="min-h-11 shrink-0"
+							onClick={() => void detailQuery.refetch()}
+						>
 							{t("retry")}
 						</Button>
 					</div>
@@ -520,7 +589,8 @@ function ThreadReader({
 							expanded={selectedMessageID === messageID}
 							onToggle={() =>
 								setSelection((current) =>
-									current?.threadId === threadId && current.messageId === messageID
+									current?.threadId === threadId &&
+									current.messageId === messageID
 										? null
 										: { threadId, messageId: messageID },
 								)
@@ -551,22 +621,35 @@ function ThreadReader({
 	}
 
 	return (
-		<section className="min-w-0 flex-1 bg-base/30" aria-labelledby="mail-thread-reader-heading">
+		<section
+			className="min-w-0 flex-1 bg-base/30"
+			aria-labelledby="mail-thread-reader-heading"
+		>
 			<header className="border-b border-b1 bg-card px-4 py-3">
-				<Button asChild variant="ghost" size="sm" className="mb-2 -ml-2 min-h-11 md:hidden">
+				<Button
+					asChild
+					variant="ghost"
+					size="sm"
+					className="mb-2 -ml-2 min-h-11 md:hidden"
+				>
 					<Link to="/mail/$folderKey" params={{ folderKey }}>
 						<ChevronLeft aria-hidden="true" className="h-4 w-4" />
 						{t("reader.back")}
 					</Link>
 				</Button>
-				<h2 id="mail-thread-reader-heading" className="truncate text-lg font-semibold text-t1">
+				<h2
+					id="mail-thread-reader-heading"
+					className="truncate text-lg font-semibold text-t1"
+				>
 					{thread
 						? thread.subject || t("threadList.noSubject")
 						: t("reader.title")}
 				</h2>
 				{thread ? (
 					<p className="mt-1 truncate text-xs text-t3">
-						{thread.participants.map((participant) => participant.email).join(", ")}
+						{thread.participants
+							.map((participant) => participant.email)
+							.join(", ")}
 					</p>
 				) : null}
 			</header>
@@ -578,10 +661,17 @@ function ThreadReader({
 function InvalidThread() {
 	const { t } = useTranslation("mail");
 	return (
-		<section className="flex min-h-[20rem] items-center justify-center rounded-[var(--r3)] border border-b1 bg-card p-6 text-center" role="alert">
+		<section
+			className="flex min-h-[20rem] items-center justify-center rounded-[var(--r3)] border border-b1 bg-card p-6 text-center"
+			role="alert"
+		>
 			<div className="max-w-sm">
-				<h2 className="text-lg font-semibold text-t1">{t("reader.invalidTitle")}</h2>
-				<p className="mt-2 text-sm leading-6 text-t2">{t("reader.invalidDescription")}</p>
+				<h2 className="text-lg font-semibold text-t1">
+					{t("reader.invalidTitle")}
+				</h2>
+				<p className="mt-2 text-sm leading-6 text-t2">
+					{t("reader.invalidDescription")}
+				</p>
 				<Button asChild variant="outline" className="mt-4 min-h-11">
 					<Link to="/mail">{t("folder.backToAll")}</Link>
 				</Button>
@@ -606,7 +696,10 @@ function ThreadRoute() {
 				selectedThreadId={normalizedThreadID}
 				className="hidden md:block"
 			/>
-			<ThreadReader folderKey={normalizedFolderKey} threadId={normalizedThreadID} />
+			<ThreadReader
+				folderKey={normalizedFolderKey}
+				threadId={normalizedThreadID}
+			/>
 		</div>
 	);
 }

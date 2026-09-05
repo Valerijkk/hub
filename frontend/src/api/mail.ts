@@ -253,8 +253,31 @@ export interface MailMessageAttachment {
 	sha256: string;
 }
 
+export type MailCalendarRSVPStatus =
+	| "needs_action"
+	| "accepted"
+	| "tentative"
+	| "declined";
+
+export type MailCalendarRSVPTarget =
+	| {
+			event_id: string;
+			scope: "series";
+			recurrence_id: null;
+			attendee_version: number;
+			rsvp_status: MailCalendarRSVPStatus;
+	  }
+	| {
+			event_id: string;
+			scope: "occurrence";
+			recurrence_id: string;
+			attendee_version: number;
+			rsvp_status: MailCalendarRSVPStatus;
+	  };
+
 export interface MailMessageDetail extends MailThreadMessageSummary {
 	calendar_event_id: string | null;
+	calendar_rsvp_target: MailCalendarRSVPTarget | null;
 	plain_body: string;
 	sanitized_html: string | null;
 	remote_images_blocked: boolean;
@@ -486,7 +509,6 @@ function normalizeMailIdentityCursor(value: string | undefined): string | null {
 	return value;
 }
 
-
 function normalizeMailThreadSearch(value: string | undefined): string | null {
 	if (typeof value !== "string" || MAIL_QUERY_CONTROL_CHARACTERS.test(value)) {
 		return null;
@@ -508,7 +530,9 @@ function normalizeMailThreadSearch(value: string | undefined): string | null {
 	return normalized;
 }
 
-function normalizeMailThreadBoolean(value: boolean | undefined): boolean | null {
+function normalizeMailThreadBoolean(
+	value: boolean | undefined,
+): boolean | null {
 	return typeof value === "boolean" ? value : null;
 }
 
@@ -702,7 +726,10 @@ export function getMailIdentities(
 	});
 	const cursor = normalizeMailIdentityCursor(params.cursor);
 	if (cursor !== null) query.set("cursor", cursor);
-	return api.get<MailIdentityPage>(`/mail/identities?${query.toString()}`, options);
+	return api.get<MailIdentityPage>(
+		`/mail/identities?${query.toString()}`,
+		options,
+	);
 }
 
 export async function getAllMailIdentities(
@@ -711,7 +738,9 @@ export async function getAllMailIdentities(
 	const items: MailIdentity[] = [];
 	let cursor: string | undefined;
 	const seenCursors = new Set<string>();
-	const maximumPages = Math.ceil(MAIL_IDENTITY_MAX_TOTAL / MAIL_IDENTITY_MAX_LIMIT);
+	const maximumPages = Math.ceil(
+		MAIL_IDENTITY_MAX_TOTAL / MAIL_IDENTITY_MAX_LIMIT,
+	);
 
 	for (
 		let page = 0;
@@ -1064,7 +1093,6 @@ export function getMailSubmission(
 	);
 }
 
-
 export function presignMailAttachment(
 	request: PresignMailAttachmentRequest,
 	options: ApiRequestOptions,
@@ -1251,7 +1279,11 @@ export function createMailThreadMutationIntent(
 	action: MailMessageMutationAction,
 	folderID?: string,
 ): MailThreadMutationIntent {
-	if (!Array.isArray(threadIDs) || threadIDs.length < 1 || threadIDs.length > 200) {
+	if (
+		!Array.isArray(threadIDs) ||
+		threadIDs.length < 1 ||
+		threadIDs.length > 200
+	) {
 		throw new Error("Invalid mail thread mutation target IDs");
 	}
 	if (!mailMessageMutationActionValid(action)) {
@@ -1286,7 +1318,9 @@ export function createMailThreadMutationIntent(
 	});
 }
 
-function isMailMutationRecord(value: unknown): value is Record<string, unknown> {
+function isMailMutationRecord(
+	value: unknown,
+): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -1418,7 +1452,11 @@ function mailMutationResponseMatches(
 		return null;
 	}
 	const targetCount = intent.targetIDs.length;
-	if (targetCount < 1 || targetCount > 200 || value.results.length !== targetCount) {
+	if (
+		targetCount < 1 ||
+		targetCount > 200 ||
+		value.results.length !== targetCount
+	) {
 		return null;
 	}
 
@@ -1480,11 +1518,7 @@ function mailMutationResponseMatches(
 			return null;
 		}
 		return {
-			outcome: allSucceeded
-				? "succeeded"
-				: allFailed
-					? "failed"
-					: "partial",
+			outcome: allSucceeded ? "succeeded" : allFailed ? "failed" : "partial",
 			targetCount,
 			affectedMessageCount,
 			succeededMessageCount,
@@ -1519,7 +1553,11 @@ async function mutateMailMutation(
 		{ idempotencyKey: intent.idempotencyKey },
 	);
 	if (response.status === 200 || response.status === 202) {
-		const match = mailMutationResponseMatches(response.data, intent, response.status);
+		const match = mailMutationResponseMatches(
+			response.data,
+			intent,
+			response.status,
+		);
 		if (match !== null) {
 			return match;
 		}

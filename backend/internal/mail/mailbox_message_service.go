@@ -100,6 +100,21 @@ func (service *MailboxMessageService) GetMailboxMessage(ctx context.Context, act
 	}
 	calendarEventID := correlation.CalendarEventID()
 	detail.CalendarEventID = &calendarEventID
+	if rsvpTarget := correlation.CalendarRSVPTarget(); rsvpTarget != nil {
+		if !rsvpTarget.valid() || rsvpTarget.CalendarEventID() != calendarEventID {
+			return MailboxMessageDetail{}, mailboxMessageReadError(MailboxMessageReadErrorUnavailable)
+		}
+		detail.CalendarRSVPTarget = &MailboxMessageCalendarRSVPTarget{
+			EventID:         rsvpTarget.CalendarEventID(),
+			Scope:           string(rsvpTarget.Scope()),
+			RecurrenceID:    rsvpTarget.RecurrenceID(),
+			AttendeeVersion: rsvpTarget.AttendeeVersion(),
+			RSVPStatus:      rsvpTarget.RSVPStatus(),
+		}
+	}
+	if !mailboxMessageDetailValid(detail) {
+		return MailboxMessageDetail{}, mailboxMessageReadError(MailboxMessageReadErrorUnavailable)
+	}
 	return mailboxMessageDetailCopy(detail), nil
 }
 
@@ -186,7 +201,7 @@ func mailboxMessageDetailFromSnapshot(snapshot MailboxMessageSnapshot, content M
 		Priority: summary.Priority, SizeBytes: summary.SizeBytes, HasAttachments: summary.HasAttachments,
 		IsDraft: summary.IsDraft, FolderIDs: summary.FolderIDs, Seen: summary.Seen, Flagged: summary.Flagged,
 		Answered: summary.Answered, Junk: summary.Junk, CalendarMethod: summary.CalendarMethod,
-		CalendarEventID: nil, PlainBody: content.PlainBody, SanitizedHTML: sanitizedHTML,
+		CalendarEventID: nil, CalendarRSVPTarget: nil, PlainBody: content.PlainBody, SanitizedHTML: sanitizedHTML,
 		RemoteImagesBlocked: true, Attachments: make([]MailboxMessageAttachment, len(snapshot.attachments)), Calendar: nil,
 	}
 	for index, attachment := range snapshot.attachments {

@@ -31,15 +31,18 @@ readonly CHECK_ROUNDTRIP_FLATTENING_FILENAME=20260829000001_mail_calendar_check_
 readonly PROJECT_OUTBOX_AUTHORITY_FILENAME=20260831000000_qa_project_outbox_authority.sql
 readonly OUTBOX_EVENT_ORIGIN_FILENAME=20260831000001_outbox_event_origin.sql
 readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME=20260901000000_mail_threads_live_subject_snippet_fts.sql
+readonly CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_FILENAME=20260905000000_calendar_inbound_message_receipt_rsvp_scope.sql
+readonly CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_MIGRATION_COMMENT='-- Modify "calendar_inbound_message_receipts" table'
+readonly CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_MIGRATION_SQL='ALTER TABLE "calendar_inbound_message_receipts" ADD COLUMN "calendar_component_scope" character varying NULL, ADD COLUMN "recurrence_id" character varying NULL, ADD CONSTRAINT "calendar_inbound_message_receipts_component_scope_shape" CHECK (((calendar_component_scope IS NULL) AND (recurrence_id IS NULL)) OR (((calendar_component_scope)::text = '"'"'series'"'"'::text) AND (recurrence_id IS NULL)) OR (((calendar_component_scope)::text = '"'"'occurrence'"'"'::text) AND (recurrence_id IS NOT NULL) AND ((recurrence_id)::text <> '"'"''"'"'::text) AND (char_length((recurrence_id)::text) <= 255)));'
 readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_INDEX_NAME=mail_threads_live_subject_snippet_fts_idx
 readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_CREATE_INDEX_SQL="CREATE INDEX \"mail_threads_live_subject_snippet_fts_idx\" ON \"mail_threads\" USING GIN (to_tsvector('simple'::regconfig, ((\"normalized_subject\")::text || ' '::text) || (\"snippet\")::text)) WHERE (\"deleted_at\" IS NULL);"
 readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_CANONICAL_COMMENT='-- Create index "mail_threads_live_subject_snippet_fts_idx" to table: "mail_threads"'
 readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_CANONICAL_CREATE_INDEX_SQL="CREATE INDEX \"mail_threads_live_subject_snippet_fts_idx\" ON \"mail_threads\" USING gin ((to_tsvector('simple'::regconfig, (((normalized_subject)::text || ' '::text) || (snippet)::text)))) WHERE (deleted_at IS NULL);"
 readonly MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_ATLAS_SCHEMA_EXCLUDE_SELECTOR='mail_threads[type=table].mail_threads_live_subject_snippet_fts_idx[type=index]'
-readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=12
-readonly EXPECTED_LINEAGE_ENTRY_COUNT=13
-readonly EXPECTED_LATEST_VERSION=20260901000000
-readonly SNAPSHOT_FILENAME=20260901000000_current_snapshot.sql
+readonly EXPECTED_LINEAGE_SQL_FILE_COUNT=13
+readonly EXPECTED_LINEAGE_ENTRY_COUNT=14
+readonly EXPECTED_LATEST_VERSION=20260905000000
+readonly SNAPSHOT_FILENAME=20260905000000_current_snapshot.sql
 readonly EXPECTED_DATABASE_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public'
 readonly EXPECTED_PREFEATURE_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_prefeature?sslmode=disable&search_path=hub_mail_calendar'
 readonly EXPECTED_CURRENT_SCHEMA_URL='postgres://schema@schema-maintenance-postgres:5432/hub_schema_current?sslmode=disable&search_path=hub_mail_calendar'
@@ -147,7 +150,7 @@ require_exact_files() {
   done
 }
 
-require_twelve_sql_lineage_inputs() {
+require_thirteen_sql_lineage_inputs() {
   require_exact_files "$EXPECTED_LINEAGE_ENTRY_COUNT" \
     "$BASELINE_FILENAME" \
     "$CORE_FILENAME" \
@@ -161,10 +164,11 @@ require_twelve_sql_lineage_inputs() {
     "$PROJECT_OUTBOX_AUTHORITY_FILENAME" \
     "$OUTBOX_EVENT_ORIGIN_FILENAME" \
     "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" \
+    "$CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_FILENAME" \
     atlas.sum
 }
 
-copy_twelve_sql_lineage_inputs() {
+copy_thirteen_sql_lineage_inputs() {
   destination="$1"
 
   cp "$LINEAGE_DIR/$BASELINE_FILENAME" "$destination/$BASELINE_FILENAME" ||
@@ -191,6 +195,8 @@ copy_twelve_sql_lineage_inputs() {
     fail 'schema-maintenance: cannot copy outbox event origin lineage input for hashing' "$EX_CONFIG"
   cp "$LINEAGE_DIR/$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" "$destination/$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" ||
     fail 'schema-maintenance: cannot copy Mail thread FTS lineage input for hashing' "$EX_CONFIG"
+  cp "$LINEAGE_DIR/$CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_FILENAME" "$destination/$CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_FILENAME" ||
+    fail 'schema-maintenance: cannot copy calendar inbound message receipt RSVP scope lineage input for hashing' "$EX_CONFIG"
 }
 
 require_exact_candidate_files() {
@@ -252,6 +258,31 @@ require_exact_mail_threads_live_subject_snippet_fts_migration() {
     }
   ' "$fts_migration"; then
     fail 'schema-maintenance: Mail thread FTS migration must contain exactly the frozen CREATE INDEX statement' "$EX_CONFIG"
+  fi
+}
+
+require_exact_calendar_inbound_message_receipt_rsvp_scope_migration() {
+  migration="$LINEAGE_DIR/$CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_FILENAME"
+
+  require_non_symlink "$migration"
+  [ -f "$migration" ] ||
+    fail 'schema-maintenance: calendar inbound message receipt RSVP scope migration is not regular' "$EX_CONFIG"
+  [ -s "$migration" ] ||
+    fail 'schema-maintenance: calendar inbound message receipt RSVP scope migration is empty' "$EX_CONFIG"
+  migration_size="$(wc -c < "$migration" | tr -d '[:space:]')"
+  [ "$migration_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
+    fail 'schema-maintenance: calendar inbound message receipt RSVP scope migration exceeds review size limit' "$EX_CONFIG"
+  if ! awk -v expected_comment="$CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_MIGRATION_COMMENT" -v expected_sql="$CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_MIGRATION_SQL" '
+    {
+      if (NR == 1 && $0 == expected_comment) next
+      if (NR == 2 && $0 == expected_sql) next
+      exit 1
+    }
+    END {
+      if (NR != 2) exit 1
+    }
+  ' "$migration"; then
+    fail 'schema-maintenance: calendar inbound message receipt RSVP scope migration does not match the reviewed SQL' "$EX_CONFIG"
   fi
 }
 
@@ -862,7 +893,8 @@ run_root_fk_desired_replay_gate() {
   require_exact_atlas_cli
   require_internal_database_urls
   require_root_fk_inputs
-  require_twelve_sql_lineage_inputs
+  require_thirteen_sql_lineage_inputs
+
   run_materializer materialize current ||
     fail 'schema-maintenance: cannot materialize current desired schema for root-FK verification' "$EX_CONFIG"
   write_bounded_schema_inspect "$CURRENT_SCHEMA_URL" "$root_fk_desired_schema" desired
@@ -945,10 +977,12 @@ run_diff() {
 
 run_hash() {
   require_exact_atlas_cli
-  require_internal_database_urls
-  require_twelve_sql_lineage_inputs
-  start_materializer_job
-  run_root_fk_desired_replay_gate
+  require_thirteen_sql_lineage_inputs
+
+  [ ! -e "$WORK_ROOT" ] && [ ! -L "$WORK_ROOT" ] ||
+    fail 'schema-maintenance: hash work root already exists' "$EX_CONFIG"
+  mkdir "$WORK_ROOT" ||
+    fail 'schema-maintenance: cannot create hash work root' "$EX_CONFIG"
 
   candidate_dir="$WORK_ROOT/lineage-hash"
   [ ! -e "$candidate_dir" ] && [ ! -L "$candidate_dir" ] ||
@@ -956,7 +990,7 @@ run_hash() {
   mkdir "$candidate_dir" ||
     fail 'schema-maintenance: cannot create hash candidate directory' "$EX_CONFIG"
 
-  copy_twelve_sql_lineage_inputs "$candidate_dir"
+  copy_thirteen_sql_lineage_inputs "$candidate_dir"
   "$ATLAS_CLI" migrate hash --dir "file://$candidate_dir" > /dev/null ||
     fail 'schema-maintenance: cannot hash reviewed Mail/Calendar lineage inputs' "$EX_CONFIG"
   require_exact_candidate_files "$candidate_dir" "$EXPECTED_LINEAGE_ENTRY_COUNT" \
@@ -972,6 +1006,7 @@ run_hash() {
     "$PROJECT_OUTBOX_AUTHORITY_FILENAME" \
     "$OUTBOX_EVENT_ORIGIN_FILENAME" \
     "$MAIL_THREADS_LIVE_SUBJECT_SNIPPET_FTS_FILENAME" \
+    "$CALENDAR_INBOUND_MESSAGE_RECEIPT_RSVP_SCOPE_FILENAME" \
     atlas.sum
 
   emit_review_file "$candidate_dir/atlas.sum"
@@ -980,7 +1015,7 @@ run_hash() {
 run_verify() {
   require_exact_atlas_cli
   require_internal_database_urls
-  require_twelve_sql_lineage_inputs
+  require_thirteen_sql_lineage_inputs
   start_materializer_job
 
   "$ATLAS_CLI" migrate validate \
@@ -1047,6 +1082,7 @@ run_verify() {
   [ "$materializer_current_schema_size" -le "$REVIEW_FILE_LIMIT_BYTES" ] ||
     fail 'schema-maintenance: current schema inspection exceeds review size limit' "$EX_CONFIG"
   require_exact_mail_threads_live_subject_snippet_fts_migration
+  require_exact_calendar_inbound_message_receipt_rsvp_scope_migration
   require_exact_mail_threads_live_subject_snippet_fts_schema_boundary \
     "$materializer_verification_schema" \
     "$materializer_current_schema"

@@ -55,8 +55,12 @@ function isMailMessageActionError(
 
 function retryAfterSeconds(error: unknown): number {
 	if (typeof error !== "object" || error === null) return 1;
-	const value = (error as { retry_after_seconds?: unknown }).retry_after_seconds;
-	return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 5
+	const value = (error as { retry_after_seconds?: unknown })
+		.retry_after_seconds;
+	return typeof value === "number" &&
+		Number.isInteger(value) &&
+		value >= 1 &&
+		value <= 5
 		? value
 		: 1;
 }
@@ -73,7 +77,8 @@ export function MailMessageActions({
 	const [trashConfirmationOpen, setTrashConfirmationOpen] = useState(false);
 	const [isMutating, setIsMutating] = useState(false);
 	const [notice, setNotice] = useState<MailMessageActionNotice | null>(null);
-	const [retryIntent, setRetryIntent] = useState<MailMessageMutationIntent | null>(null);
+	const [retryIntent, setRetryIntent] =
+		useState<MailMessageMutationIntent | null>(null);
 	const [retryAvailableAt, setRetryAvailableAt] = useState<number | null>(null);
 	const [retryClock, setRetryClock] = useState(() => Date.now());
 	const foldersQuery = useQuery({
@@ -91,7 +96,10 @@ export function MailMessageActions({
 			setRetryClock(Date.now());
 			return;
 		}
-		const timer = globalThis.setTimeout(() => setRetryClock(Date.now()), remaining);
+		const timer = globalThis.setTimeout(
+			() => setRetryClock(Date.now()),
+			remaining,
+		);
 		return () => globalThis.clearTimeout(timer);
 	}, [retryAvailableAt]);
 
@@ -112,8 +120,10 @@ export function MailMessageActions({
 	const invalidateMailMutation = async () => {
 		await Promise.all([
 			queryClient.invalidateQueries({ queryKey: mailKeys.message(message.id) }),
-			queryClient.invalidateQueries({ queryKey: mailKeys.thread(threadID) }),
-			queryClient.invalidateQueries({ queryKey: ["mail", "threads"] }),
+			queryClient.invalidateQueries({
+				queryKey: mailKeys.threadRoot(threadID),
+			}),
+			queryClient.invalidateQueries({ queryKey: mailKeys.threadsRoot() }),
 			queryClient.invalidateQueries({ queryKey: mailKeys.folders() }),
 		]);
 	};
@@ -164,7 +174,11 @@ export function MailMessageActions({
 	): Promise<void> => {
 		setRetryIntent(null);
 		setRetryAvailableAt(null);
-		const intent = createMailMessageMutationIntent(message.id, action, folderID);
+		const intent = createMailMessageMutationIntent(
+			message.id,
+			action,
+			folderID,
+		);
 		await execute(intent);
 	};
 
@@ -175,7 +189,10 @@ export function MailMessageActions({
 	const retryReady = retryIntent !== null && retrySeconds === 0 && !isMutating;
 
 	return (
-		<section className="mt-4 border-t border-b1 pt-3" aria-label={t("reader.actions.label")}>
+		<section
+			className="mt-4 border-t border-b1 pt-3"
+			aria-label={t("reader.actions.label")}
+		>
 			<div className="flex flex-wrap gap-2">
 				<Button
 					variant="outline"
@@ -183,10 +200,16 @@ export function MailMessageActions({
 					className="min-h-11"
 					disabled={isMutating}
 					onClick={() => {
-						void start(message.seen ? "mark_unread" : "mark_read").catch(() => undefined);
+						void start(message.seen ? "mark_unread" : "mark_read").catch(
+							() => undefined,
+						);
 					}}
 				>
-					{t(message.seen ? "reader.actions.markUnread" : "reader.actions.markRead")}
+					{t(
+						message.seen
+							? "reader.actions.markUnread"
+							: "reader.actions.markRead",
+					)}
 				</Button>
 				<Button
 					variant="outline"
@@ -194,7 +217,9 @@ export function MailMessageActions({
 					className="min-h-11"
 					disabled={isMutating}
 					onClick={() => {
-						void start(message.flagged ? "unflag" : "flag").catch(() => undefined);
+						void start(message.flagged ? "unflag" : "flag").catch(
+							() => undefined,
+						);
 					}}
 				>
 					{t(message.flagged ? "reader.actions.unflag" : "reader.actions.flag")}
@@ -230,9 +255,15 @@ export function MailMessageActions({
 						<p className="text-xs text-t3">{t("reader.actions.moveEmpty")}</p>
 					) : (
 						<>
-							<Select value={moveFolderID} onValueChange={setMoveFolderID} disabled={isMutating}>
+							<Select
+								value={moveFolderID}
+								onValueChange={setMoveFolderID}
+								disabled={isMutating}
+							>
 								<SelectTrigger className="min-h-11 w-[min(100%,18rem)]">
-									<SelectValue placeholder={t("reader.actions.movePlaceholder")} />
+									<SelectValue
+										placeholder={t("reader.actions.movePlaceholder")}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									{folders.map((folder) => (
@@ -259,17 +290,22 @@ export function MailMessageActions({
 				</div>
 			) : null}
 			{notice ? (
-				<div className="mt-3 flex flex-wrap items-center gap-2 rounded-[var(--r2)] bg-[var(--amber)]/10 p-3 text-xs text-t2" role="alert">
+				<div
+					className="mt-3 flex flex-wrap items-center gap-2 rounded-[var(--r2)] bg-[var(--amber)]/10 p-3 text-xs text-t2"
+					role="alert"
+				>
 					<p>
 						{notice === "unknown"
 							? t("reader.actions.unknown")
 							: notice === "busy"
-								? t("reader.actions.busy", { seconds: Math.max(1, retrySeconds) })
+								? t("reader.actions.busy", {
+										seconds: Math.max(1, retrySeconds),
+									})
 								: notice === "partial"
 									? t("reader.actions.partial")
-								: notice === "conflict"
-									? t("reader.actions.conflict")
-									: t("reader.actions.failed")}
+									: notice === "conflict"
+										? t("reader.actions.conflict")
+										: t("reader.actions.failed")}
 					</p>
 					{retryIntent ? (
 						<Button
@@ -284,7 +320,9 @@ export function MailMessageActions({
 						>
 							{retryReady
 								? t("reader.actions.retry")
-								: t("reader.actions.retryWait", { seconds: Math.max(1, retrySeconds) })}
+								: t("reader.actions.retryWait", {
+										seconds: Math.max(1, retrySeconds),
+									})}
 						</Button>
 					) : null}
 				</div>

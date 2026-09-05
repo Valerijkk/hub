@@ -204,6 +204,34 @@ func TestEventServiceRespondToCalendarOccurrence_ExternalReplyUsesLiveExceptionS
 	assertOccurrenceRSVPEnvelope(t, persisted.Outbox(), occurrenceRSVPApplication, now, calendar.RSVPNeedsAction, attendee, "pending")
 }
 
+func TestEventServiceRespondToCalendarOccurrence_AllowsDetachedExceptionSequence(t *testing.T) {
+	backend := newOccurrenceRSVPBackend(calendar.RSVPNeedsAction, false, true)
+	if backend.authorization.Current.Sequence != 0 {
+		t.Fatalf("master sequence = %d, want zero", backend.authorization.Current.Sequence)
+	}
+	temporal := backend.authorization.Current.Temporal
+	backend.authorization.Exception = &calendar.CalendarEventExceptionCommandInput{ExceptionID: occurrenceRSVPOtherID, EventID: occurrenceRSVPEventID, RecurrenceID: "2033-01-03", Temporal: &temporal, Sequence: 1, Status: calendar.CalendarEventStatusConfirmed, Cancelled: false}
+	seriesBefore := backend.authorization.SeriesAttendee
+	now := time.Date(2033, time.March, 4, 5, 6, 8, 0, time.UTC)
+	service := calendar.NewEventService(&occurrenceRSVPRepositoryFake{backend: backend}, &occurrenceRSVPClockFake{now: now, backend: backend}, &occurrenceRSVPIDGeneratorFake{ids: []uuid.UUID{occurrenceRSVPOverrideID, occurrenceRSVPApplication}, backend: backend}, occurrenceRSVPSerializerUnused{})
+
+	result, err := service.RespondToCalendarOccurrence(context.Background(), occurrenceRSVPActorID, mustOccurrenceRSVPCommand(t, occurrenceRSVPInput("2033-01-03", calendar.RSVPDeclined)))
+	if err != nil {
+		t.Fatalf("RespondToCalendarOccurrence() error = %v", err)
+	}
+	if len(backend.persisted) != 1 || !reflect.DeepEqual(seriesBefore, backend.authorization.SeriesAttendee) {
+		t.Fatalf("persisted:%d series before:%#v after:%#v", len(backend.persisted), seriesBefore, backend.authorization.SeriesAttendee)
+	}
+	persisted := backend.persisted[0]
+	attendee := persisted.Attendee()
+	reply, found := persisted.Reply()
+	if !found || persisted.EventSequence() != 1 || reply.EventSequence != 1 {
+		t.Fatalf("detached exception reply = %#v found:%t persisted sequence:%d", reply, found, persisted.EventSequence())
+	}
+	assertOccurrenceRSVPResponse(t, result.Response(), attendee, "pending")
+	assertOccurrenceRSVPEnvelope(t, persisted.Outbox(), occurrenceRSVPApplication, now, calendar.RSVPNeedsAction, attendee, "pending")
+}
+
 func TestEventServiceRespondToCalendarOccurrence_AllowsNilTemporalForLiveException(t *testing.T) {
 	for _, status := range []calendar.CalendarEventStatus{calendar.CalendarEventStatusConfirmed, calendar.CalendarEventStatusTentative} {
 		t.Run(string(status), func(t *testing.T) {
@@ -272,7 +300,6 @@ func TestEventServiceRespondToCalendarOccurrence_StaleAndPolicyFailuresMaskState
 		{name: "excluded recurrence", mutate: func(backend *occurrenceRSVPBackendFake) { backend.authorization.Current.Exdates = []string{"2033-01-03"} }, want: calendar.ErrEventNotFound},
 		{name: "cancelled exception", mutate: func(backend *occurrenceRSVPBackendFake) { backend.authorization.Exception = &calendar.CalendarEventExceptionCommandInput{ExceptionID: occurrenceRSVPOtherID, EventID: occurrenceRSVPEventID, RecurrenceID: "2033-01-03", Sequence: 0, Status: calendar.CalendarEventStatusCancelled, Cancelled: true} }, want: calendar.ErrEventNotFound},
 		{name: "cancelled exception with valid temporal", mutate: func(backend *occurrenceRSVPBackendFake) { temporal := backend.authorization.Current.Temporal; backend.authorization.Exception = &calendar.CalendarEventExceptionCommandInput{ExceptionID: occurrenceRSVPOtherID, EventID: occurrenceRSVPEventID, RecurrenceID: "2033-01-03", Temporal: &temporal, Sequence: 0, Status: calendar.CalendarEventStatusCancelled, Cancelled: true} }, want: calendar.ErrEventNotFound},
-		{name: "malformed live exception", mutate: func(backend *occurrenceRSVPBackendFake) { temporal := backend.authorization.Current.Temporal; backend.authorization.Exception = &calendar.CalendarEventExceptionCommandInput{ExceptionID: occurrenceRSVPOtherID, EventID: occurrenceRSVPEventID, RecurrenceID: "2033-01-03", Temporal: &temporal, Sequence: 99, Status: calendar.CalendarEventStatusTentative, Cancelled: false} }, want: calendar.ErrEventInvalid},
 		{name: "malformed live exception temporal", mutate: func(backend *occurrenceRSVPBackendFake) { temporal := calendar.CalendarEvent{}; backend.authorization.Exception = &calendar.CalendarEventExceptionCommandInput{ExceptionID: occurrenceRSVPOtherID, EventID: occurrenceRSVPEventID, RecurrenceID: "2033-01-03", Temporal: &temporal, Sequence: 0, Status: calendar.CalendarEventStatusTentative, Cancelled: false} }, want: calendar.ErrEventInvalid},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {

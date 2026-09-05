@@ -1074,6 +1074,18 @@ sync:7` versus PM `7 / 7 / sync:14` over 16 seconds. This does not alter persist
 the FakeMailEngine exception: production Stalwart/JMAP external delivery, full-suite execution,
 and release/merge readiness remain `NOT_RUN` / `NOT_CLAIMED`.
 
+### 2026-09-05 Calendar RSVP receipt and projection sync
+
+`calendar_inbound_message_receipts` now records an additive nullable identity pair: `calendar_component_scope` (`series|occurrence`) and `recurrence_id`. Unknown/unparsed receipts retain both null; series stores `series` plus null recurrence; occurrence stores `occurrence` plus a canonical non-empty recurrence ID. Completion preserves an equal pair and rejects contradiction; `deferred_missing_master` may persist a known occurrence identity for retry but remains non-actionable until terminal `applied|duplicate|ignored_stale` processing.
+
+Mail detail's nullable `calendar_rsvp_target` is fail-closed and requires matching `event_id`, scope/recurrence pair, positive `attendee_version`, and closed `rsvp_status`. For an occurrence, the values use the effective active occurrence attendee override, then the active series attendee fallback. Invalid, removed, ambiguous, nonterminal, legacy, outbound, or invisible data yields no target. The recurrence value remains canonical; Calendar's existing client API raw-base64url-encodes it only for the occurrence route segment, and clients do not derive it from Mail content. Private Ent receipt completion is intentionally not exposed through a new production API solely to make an isolated unit; its integration proof belongs to autoseed/runtime evidence.
+
+Schema maintenance is `PASS` for the disposable 13-migration / 591-statement lineage at `20260905000000` with zero pending, root-FK 82/82, empty expected semantic diffs, 79,671-byte identical generated manifest SHA-256 `51f14255590757512584a2905f162edb232436289c4d04228b6038ab75a6c3b8`, and 1,375-byte `atlas.sum` SHA-256 `d810480fcbfd8fed08d06d4bb1dfd0d598579e7d0c4ee30e8e96088516e04cf7`.
+
+Bounded final tmpfs dev-demo runtime is `PASS`: first automatic seed succeeded in 72.186s and all frontend/backend/hub-mail/PostgreSQL/Mongo/Redis/NATS health checks passed. The actual nginx frontend API path proved series and occurrence messages share the imported event; series initially had null recurrence/v1 `needs_action`, while occurrence had exact `2026-09-10T10:00:00Z`/v1 `needs_action`. Occurrence RSVP 200 and byte-identical same-key replay produced only occurrence accepted/v2; series remained `needs_action`/v1. The database confirmed the applied occurrence receipt and exact recurrence, effective occurrence attendee, unchanged series attendee, detached-exception reply sequence 1 over master 0, and matching-SHA completed/200 mutation receipt. The invalid exception `Sequence <= master` restriction was removed from both RSVP validators without loosening identity, temporal, actor, or CAS checks; a regression test exists but Docker unit evidence is `NOT_RUN`.
+
+This does not include browser visual verification (`NOT_RUN`: Windows `node_repl` sandbox helper failed `apply deny-read ACLs`), external real Stalwart/JMAP (`NOT_RUN`), full-suite, commit, merge, or release evidence.
+
 ### `MailDraft`
 
 Fields: UUID `id`/`mail_account_id`; required confirmed `from_identity_id`; required immutable

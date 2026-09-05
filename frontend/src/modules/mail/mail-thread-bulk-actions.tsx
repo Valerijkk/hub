@@ -130,7 +130,7 @@ export function MailThreadBulkActions({
 
 	const invalidateMailData = useCallback(async () => {
 		await Promise.all([
-			queryClient.invalidateQueries({ queryKey: ["mail", "threads"] }),
+			queryClient.invalidateQueries({ queryKey: mailKeys.threadsRoot() }),
 			queryClient.invalidateQueries({ queryKey: mailKeys.folders() }),
 		]);
 	}, [queryClient]);

@@ -278,8 +278,13 @@ services:
     command: ["generate"]
 
   schema-maintenance-hash:
-    <<: *schema-maintenance-tool
+    <<: *schema-maintenance-common
     command: ["hash"]
+    network_mode: none
+    mem_limit: 1g
+    tmpfs:
+      - "/work:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
+      - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"
 
   schema-maintenance-verify:
     <<: *schema-maintenance-tool

@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
+	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/internal/ical"
 )
 
 // MailboxCalendarCorrelationRequest identifies one mailbox message inside the
@@ -82,15 +86,161 @@ func (path MailboxCalendarCorrelationPath) valid() bool {
 	}
 }
 
+// MailboxCalendarRSVPTargetScope identifies the sole Calendar RSVP endpoint
+// that an actionable inbound receipt may use.
+type MailboxCalendarRSVPTargetScope string
+
+const (
+	MailboxCalendarRSVPTargetScopeSeries     MailboxCalendarRSVPTargetScope = "series"
+	MailboxCalendarRSVPTargetScopeOccurrence MailboxCalendarRSVPTargetScope = "occurrence"
+)
+
+func (scope MailboxCalendarRSVPTargetScope) valid() bool {
+	switch scope {
+	case MailboxCalendarRSVPTargetScopeSeries, MailboxCalendarRSVPTargetScopeOccurrence:
+		return true
+	default:
+		return false
+	}
+}
+
+// MailboxCalendarRSVPStatus is the closed effective attendee RSVP state that
+// Calendar will compare-and-swap for an actionable inbound Mail target.
+type MailboxCalendarRSVPStatus string
+
+const (
+	MailboxCalendarRSVPStatusNeedsAction MailboxCalendarRSVPStatus = "needs_action"
+	MailboxCalendarRSVPStatusAccepted    MailboxCalendarRSVPStatus = "accepted"
+	MailboxCalendarRSVPStatusTentative   MailboxCalendarRSVPStatus = "tentative"
+	MailboxCalendarRSVPStatusDeclined    MailboxCalendarRSVPStatus = "declined"
+)
+
+func (status MailboxCalendarRSVPStatus) valid() bool {
+	switch status {
+	case MailboxCalendarRSVPStatusNeedsAction,
+		MailboxCalendarRSVPStatusAccepted,
+		MailboxCalendarRSVPStatusTentative,
+		MailboxCalendarRSVPStatusDeclined:
+		return true
+	default:
+		return false
+	}
+}
+
+// MailboxCalendarRSVPTarget is an immutable, inbound-only Calendar RSVP
+// authority. It is deliberately distinct from event navigation.
+type MailboxCalendarRSVPTarget struct {
+	calendarEventID uuid.UUID
+	scope           MailboxCalendarRSVPTargetScope
+	recurrenceID    *string
+	attendeeVersion uint
+	rsvpStatus      MailboxCalendarRSVPStatus
+}
+
+// NewMailboxCalendarRSVPTarget creates a validated target from a durable,
+// normalized Calendar receipt snapshot. The recurrence pointer is copied.
+func NewMailboxCalendarRSVPTarget(
+	calendarEventID uuid.UUID,
+	scope MailboxCalendarRSVPTargetScope,
+	recurrenceID *string,
+	attendeeVersion uint,
+	rsvpStatus MailboxCalendarRSVPStatus,
+) (MailboxCalendarRSVPTarget, error) {
+	target := MailboxCalendarRSVPTarget{
+		calendarEventID: calendarEventID,
+		scope:           scope,
+		recurrenceID:    cloneMailboxCalendarRSVPTargetRecurrenceID(recurrenceID),
+		attendeeVersion: attendeeVersion,
+		rsvpStatus:      rsvpStatus,
+	}
+	if !target.valid() {
+		return MailboxCalendarRSVPTarget{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindInvalid)
+	}
+	return target, nil
+}
+
+// CalendarEventID returns the target's master Calendar event identifier.
+func (target MailboxCalendarRSVPTarget) CalendarEventID() uuid.UUID {
+	return target.calendarEventID
+}
+
+// Scope returns the target's authoritative RSVP scope.
+func (target MailboxCalendarRSVPTarget) Scope() MailboxCalendarRSVPTargetScope {
+	return target.scope
+}
+
+// RecurrenceID returns a defensive copy of the canonical occurrence identity,
+// or nil for a series target.
+func (target MailboxCalendarRSVPTarget) RecurrenceID() *string {
+	return cloneMailboxCalendarRSVPTargetRecurrenceID(target.recurrenceID)
+}
+
+// AttendeeVersion returns Calendar's positive effective attendee CAS version.
+func (target MailboxCalendarRSVPTarget) AttendeeVersion() uint {
+	return target.attendeeVersion
+}
+
+// RSVPStatus returns Calendar's closed effective attendee RSVP state.
+func (target MailboxCalendarRSVPTarget) RSVPStatus() MailboxCalendarRSVPStatus {
+	return target.rsvpStatus
+}
+
+func (target MailboxCalendarRSVPTarget) valid() bool {
+	if target.calendarEventID == uuid.Nil || !target.scope.valid() || target.attendeeVersion == 0 || !target.rsvpStatus.valid() {
+		return false
+	}
+	switch target.scope {
+	case MailboxCalendarRSVPTargetScopeSeries:
+		return target.recurrenceID == nil
+	case MailboxCalendarRSVPTargetScopeOccurrence:
+		return target.recurrenceID != nil && validMailboxCalendarRSVPTargetRecurrenceID(*target.recurrenceID)
+	default:
+		return false
+	}
+}
+
+func cloneMailboxCalendarRSVPTarget(target *MailboxCalendarRSVPTarget) *MailboxCalendarRSVPTarget {
+	if target == nil || !target.valid() {
+		return nil
+	}
+	result := *target
+	result.recurrenceID = cloneMailboxCalendarRSVPTargetRecurrenceID(target.recurrenceID)
+	return &result
+}
+
+func cloneMailboxCalendarRSVPTargetRecurrenceID(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	cloned := strings.Clone(*value)
+	return &cloned
+}
+
+// validMailboxCalendarRSVPTargetRecurrenceID mirrors Calendar's canonical
+// inbound recurrence contract. Calendar keeps that validator package-private,
+// so Mail validates only its persisted, normalized output without parsing text.
+func validMailboxCalendarRSVPTargetRecurrenceID(value string) bool {
+	if value == "" || len(value) > len(time.RFC3339) || !utf8.ValidString(value) || ical.HasITIPControl(value) || ical.HasLeadingOrTrailingASCIIWhitespace(value) {
+		return false
+	}
+	if len(value) == len(time.DateOnly) {
+		parsed, err := time.Parse(time.DateOnly, value)
+		return err == nil && parsed.Format(time.DateOnly) == value
+	}
+	parsed, err := time.Parse(time.RFC3339, value)
+	return err == nil && parsed.UTC().Format(time.RFC3339) == value
+}
+
 // MailboxCalendarCorrelationResult is a validated, immutable association
 // between a fully scoped mailbox message and a calendar event.
 type MailboxCalendarCorrelationResult struct {
-	actorID         uuid.UUID
-	organizationID  uuid.UUID
-	accountID       uuid.UUID
-	messageID       uuid.UUID
-	calendarEventID uuid.UUID
-	path            MailboxCalendarCorrelationPath
+	actorID            uuid.UUID
+	organizationID     uuid.UUID
+	accountID          uuid.UUID
+	messageID          uuid.UUID
+	calendarEventID    uuid.UUID
+	path               MailboxCalendarCorrelationPath
+	calendarRSVPTarget *MailboxCalendarRSVPTarget
 }
 
 // NewMailboxCalendarCorrelationResult creates a result bound to request's
@@ -100,13 +250,29 @@ func NewMailboxCalendarCorrelationResult(
 	calendarEventID uuid.UUID,
 	path MailboxCalendarCorrelationPath,
 ) (MailboxCalendarCorrelationResult, error) {
+	return NewMailboxCalendarCorrelationResultWithRSVPTarget(request, calendarEventID, path, nil)
+}
+
+// NewMailboxCalendarCorrelationResultWithRSVPTarget creates a result bound to
+// request's exact scope and, optionally, its sole actionable inbound RSVP
+// target. Navigation-only and outbound results must not carry a target.
+func NewMailboxCalendarCorrelationResultWithRSVPTarget(
+	request MailboxCalendarCorrelationRequest,
+	calendarEventID uuid.UUID,
+	path MailboxCalendarCorrelationPath,
+	calendarRSVPTarget *MailboxCalendarRSVPTarget,
+) (MailboxCalendarCorrelationResult, error) {
+	if calendarRSVPTarget != nil && !calendarRSVPTarget.valid() {
+		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindInvalid)
+	}
 	result := MailboxCalendarCorrelationResult{
-		actorID:         request.actorID,
-		organizationID:  request.organizationID,
-		accountID:       request.accountID,
-		messageID:       request.messageID,
-		calendarEventID: calendarEventID,
-		path:            path,
+		actorID:            request.actorID,
+		organizationID:     request.organizationID,
+		accountID:          request.accountID,
+		messageID:          request.messageID,
+		calendarEventID:    calendarEventID,
+		path:               path,
+		calendarRSVPTarget: cloneMailboxCalendarRSVPTarget(calendarRSVPTarget),
 	}
 	if !request.valid() || !result.valid() {
 		return MailboxCalendarCorrelationResult{}, newMailboxCalendarCorrelationError(MailboxCalendarCorrelationErrorKindInvalid)
@@ -144,6 +310,12 @@ func (result MailboxCalendarCorrelationResult) Path() MailboxCalendarCorrelation
 	return result.path
 }
 
+// CalendarRSVPTarget returns a defensive copy of the optional actionable
+// inbound RSVP target. A nil value means navigation is non-actionable.
+func (result MailboxCalendarCorrelationResult) CalendarRSVPTarget() *MailboxCalendarRSVPTarget {
+	return cloneMailboxCalendarRSVPTarget(result.calendarRSVPTarget)
+}
+
 // Matches reports whether result is valid and was resolved for the exact
 // validated mailbox scope in request.
 func (result MailboxCalendarCorrelationResult) Matches(request MailboxCalendarCorrelationRequest) bool {
@@ -160,7 +332,11 @@ func (result MailboxCalendarCorrelationResult) valid() bool {
 		result.accountID != uuid.Nil &&
 		result.messageID != uuid.Nil &&
 		result.calendarEventID != uuid.Nil &&
-		result.path.valid()
+		result.path.valid() &&
+		(result.calendarRSVPTarget == nil ||
+			(result.path == MailboxCalendarCorrelationPathInboundReceipt &&
+				result.calendarRSVPTarget.valid() &&
+				result.calendarRSVPTarget.calendarEventID == result.calendarEventID))
 }
 
 // MailboxCalendarCorrelationResolver resolves the authoritative Hub calendar

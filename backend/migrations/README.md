@@ -120,6 +120,16 @@ completed serially:
 - `backend-unit --build`: PASS; build, vet, unit, and race receipts all exited
   zero.
 
+## Occurrence RSVP schema-maintenance evidence (2026-09-05)
+
+The additive receipt-scope migration advances the bounded lineage to 13 SQL migrations and current version `20260905000000`. The Docker-only maintenance operations passed:
+
+- `schema-maintenance-generate --build`: two Ent generations matched; generated manifest was 79,671 bytes with SHA-256 `51f14255590757512584a2905f162edb232436289c4d04228b6038ab75a6c3b8`.
+- `schema-maintenance-hash`: candidate `atlas.sum` was 1,375 bytes with SHA-256 `d810480fcbfd8fed08d06d4bb1dfd0d598579e7d0c4ee30e8e96088516e04cf7`, header `h1:W7JFK6OA6prf9t/wJMApKbiDOeiaj9p2FdUp3Lk7fIs=`, and 13 SQL lines.
+- fresh `schema-maintenance-verify`: PASS; 13 migrations / 591 statements, current `20260905000000`, pending 0, desired and replay root-FK projections 82/82, and expected semantic diffs empty.
+
+This is bounded disposable schema-maintenance evidence only. It is not backend broad-suite, dev-demo/runtime, browser, shared/production apply, commit, merge, release, or external-delivery evidence.
+
 ## Historical seven-file checksum and partial replay evidence (2026-08-29)
 
 `schema-maintenance-hash` is an offline, no-database, pinned-Atlas candidate

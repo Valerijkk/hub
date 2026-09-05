@@ -48,6 +48,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { mailKeys } from "./mail-query-keys";
 
 const AUTOSAVE_DELAY_MS = 700;
 const MAX_RECIPIENTS_PER_FIELD = 100;
@@ -175,14 +176,15 @@ function newSession(draftClientId = createUUID()): ComposerSession {
 }
 
 function isAbortError(error: unknown): boolean {
-	return (
-		error instanceof DOMException
-			? error.name === "AbortError"
-			: (error as { name?: unknown } | null)?.name === "AbortError"
-	);
+	return error instanceof DOMException
+		? error.name === "AbortError"
+		: (error as { name?: unknown } | null)?.name === "AbortError";
 }
 
-function sleepWithSignal(milliseconds: number, signal: AbortSignal): Promise<void> {
+function sleepWithSignal(
+	milliseconds: number,
+	signal: AbortSignal,
+): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const timer = setTimeout(resolve, milliseconds);
 		const abort = () => {
@@ -251,11 +253,8 @@ function normalizedEmail(value: string): string | null {
 			return null;
 		}
 	}
-	const canonicalEmail =
-		`${localPart.toLowerCase()}@${canonicalDomain}`;
-	return utf8Bytes(canonicalEmail) <= MAX_EMAIL_BYTES
-		? canonicalEmail
-		: null;
+	const canonicalEmail = `${localPart.toLowerCase()}@${canonicalDomain}`;
+	return utf8Bytes(canonicalEmail) <= MAX_EMAIL_BYTES ? canonicalEmail : null;
 }
 
 function recipientParts(value: string): string[] {
@@ -292,8 +291,8 @@ function canonicalRecipientValue(
 	form: ComposerForm,
 	field: RecipientField,
 ): string {
-	return normalizeRecipients(form)[field]
-		.map(({ email }) => email)
+	return normalizeRecipients(form)
+		[field].map(({ email }) => email)
 		.join(", ");
 }
 
@@ -322,11 +321,7 @@ function buildDraftRequest(
 		throw new ComposerValidationError("compose.errors.identityUnavailable");
 	}
 	if (
-		!isWithinTextLimit(
-			form.subject,
-			MAX_SUBJECT_CHARACTERS,
-			MAX_SUBJECT_BYTES,
-		)
+		!isWithinTextLimit(form.subject, MAX_SUBJECT_CHARACTERS, MAX_SUBJECT_BYTES)
 	) {
 		throw new ComposerValidationError("compose.errors.subjectLimit");
 	}
@@ -365,7 +360,6 @@ function draftFingerprint(request: SaveMailDraftRequest): string {
 }
 
 function safeErrorKey(error: unknown, fallback: string): string {
-
 	const apiError = error as Partial<ApiError> | null;
 	const code =
 		apiError && typeof apiError.error_code === "string"
@@ -419,10 +413,7 @@ function isAuthoritativeSendFailure(error: unknown): boolean {
 }
 
 function draftRequestFromServer(draft: MailDraft): SaveMailDraftRequest {
-	if (
-		draft.status !== "active" ||
-		draft.body_format !== "plain"
-	) {
+	if (draft.status !== "active" || draft.body_format !== "plain") {
 		throw new ComposerValidationError("compose.errors.conflict");
 	}
 	const recipients = (addresses: MailDraft["to"]) =>
@@ -479,8 +470,11 @@ export function MailComposer({
 	const [isDiscarding, setIsDiscarding] = useState(false);
 	const [isRemovingAttachment, setIsRemovingAttachment] = useState(false);
 	const [initialSession] = useState<ComposerSession>(() => newSession());
-	const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
-	const [submissionIntent, setSubmissionIntent] = useState<SubmissionIntent | null>(null);
+	const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(
+		null,
+	);
+	const [submissionIntent, setSubmissionIntent] =
+		useState<SubmissionIntent | null>(null);
 	const [recoveryRequired, setRecoveryRequired] = useState(false);
 	const [isLinkedDraft, setIsLinkedDraft] = useState(false);
 	const sessionRef = useRef<ComposerSession>(initialSession);
@@ -502,8 +496,9 @@ export function MailComposer({
 	const linkedDraftRef = useRef(false);
 
 	const identitiesQuery = useQuery({
-		queryKey: ["mail", "identities"],
-		queryFn: () => getAllMailIdentities({ signal: sessionRef.current.controller.signal }),
+		queryKey: mailKeys.identities(),
+		queryFn: () =>
+			getAllMailIdentities({ signal: sessionRef.current.controller.signal }),
 		enabled: open,
 		retry: false,
 	});
@@ -517,14 +512,17 @@ export function MailComposer({
 
 	const senderIdentity = useMemo(
 		() =>
-			sendableIdentities.find((identity) => identity.id === selectedIdentityId) ??
-			null,
+			sendableIdentities.find(
+				(identity) => identity.id === selectedIdentityId,
+			) ?? null,
 		[sendableIdentities, selectedIdentityId],
 	);
 
 	useEffect(() => {
 		const next =
-			sendableIdentities.find((identity) => identity.id === selectedIdentityId) ??
+			sendableIdentities.find(
+				(identity) => identity.id === selectedIdentityId,
+			) ??
 			sendableIdentities.find((identity) => identity.is_default) ??
 			sendableIdentities[0] ??
 			null;
@@ -543,10 +541,13 @@ export function MailComposer({
 		setAttachments(next);
 	}, []);
 
-	const replaceSubmissionIntent = useCallback((next: SubmissionIntent | null) => {
-		submissionIntentRef.current = next;
-		setSubmissionIntent(next);
-	}, []);
+	const replaceSubmissionIntent = useCallback(
+		(next: SubmissionIntent | null) => {
+			submissionIntentRef.current = next;
+			setSubmissionIntent(next);
+		},
+		[],
+	);
 
 	const resetComposer = useCallback(() => {
 		if (autosaveTimerRef.current) {
@@ -658,7 +659,10 @@ export function MailComposer({
 					idempotencyKey: session.createKey,
 					signal: session.controller.signal,
 				});
-				if (session !== sessionRef.current || session.controller.signal.aborted) {
+				if (
+					session !== sessionRef.current ||
+					session.controller.signal.aborted
+				) {
 					throw new DOMException("Aborted", "AbortError");
 				}
 				applyDraft(recovered);
@@ -684,7 +688,9 @@ export function MailComposer({
 				attachmentsRef.current,
 				identityIdRef.current,
 			);
-			if (draftFingerprint(localSnapshot) !== draftFingerprint(serverSnapshot)) {
+			if (
+				draftFingerprint(localSnapshot) !== draftFingerprint(serverSnapshot)
+			) {
 				return false;
 			}
 			lastSavedFingerprintRef.current = draftFingerprint(serverSnapshot);
@@ -743,7 +749,10 @@ export function MailComposer({
 								signal: session.controller.signal,
 							},
 						);
-						if (session !== sessionRef.current || session.controller.signal.aborted) {
+						if (
+							session !== sessionRef.current ||
+							session.controller.signal.aborted
+						) {
 							return;
 						}
 						applyDraft(created);
@@ -769,7 +778,10 @@ export function MailComposer({
 							ifMatch: currentDraft.revision,
 							signal: session.controller.signal,
 						});
-						if (session !== sessionRef.current || session.controller.signal.aborted) {
+						if (
+							session !== sessionRef.current ||
+							session.controller.signal.aborted
+						) {
 							return;
 						}
 						applyDraft(updated);
@@ -851,7 +863,8 @@ export function MailComposer({
 			const authoritative = await getMailDraft(currentDraft.id, {
 				signal: session.controller.signal,
 			});
-			if (session !== sessionRef.current || session.controller.signal.aborted) return;
+			if (session !== sessionRef.current || session.controller.signal.aborted)
+				return;
 			if (authoritative.draft_client_id !== session.draftClientId) {
 				throw new ComposerValidationError("compose.errors.conflict");
 			}
@@ -870,7 +883,8 @@ export function MailComposer({
 					ifMatch: authoritative.revision,
 					signal: session.controller.signal,
 				});
-				if (session !== sessionRef.current || session.controller.signal.aborted) return;
+				if (session !== sessionRef.current || session.controller.signal.aborted)
+					return;
 				applyDraft(updated);
 				serverSnapshotRef.current = localSnapshot;
 			}
@@ -939,7 +953,7 @@ export function MailComposer({
 		[],
 	);
 
-	const updateField = <K extends keyof ComposerForm,>(
+	const updateField = <K extends keyof ComposerForm>(
 		field: K,
 		value: ComposerForm[K],
 	) => {
@@ -992,7 +1006,10 @@ export function MailComposer({
 			updateAttachment(item.localId, { state: "uploading" });
 			try {
 				await flushLatest(true);
-				if (session !== sessionRef.current || session.controller.signal.aborted) {
+				if (
+					session !== sessionRef.current ||
+					session.controller.signal.aborted
+				) {
 					return;
 				}
 				const bytes = await item.file.arrayBuffer();
@@ -1011,13 +1028,18 @@ export function MailComposer({
 						signal: session.controller.signal,
 					},
 				);
-				if (session !== sessionRef.current || session.controller.signal.aborted) {
+				if (
+					session !== sessionRef.current ||
+					session.controller.signal.aborted
+				) {
 					return;
 				}
 				updateAttachment(item.localId, {
 					attachmentId: presigned.attachment_id,
 				});
-				await putPresignedMailAttachment(presigned, bytes, { signal: session.controller.signal });
+				await putPresignedMailAttachment(presigned, bytes, {
+					signal: session.controller.signal,
+				});
 				let confirmed = await confirmMailAttachment(
 					presigned.attachment_id,
 					{ sha256, size_bytes: item.file.size },
@@ -1032,7 +1054,10 @@ export function MailComposer({
 						{ signal: session.controller.signal },
 					);
 				}
-				if (session !== sessionRef.current || session.controller.signal.aborted) {
+				if (
+					session !== sessionRef.current ||
+					session.controller.signal.aborted
+				) {
 					return;
 				}
 				updateAttachment(item.localId, {
@@ -1050,7 +1075,8 @@ export function MailComposer({
 					isAbortError(error) ||
 					session !== sessionRef.current ||
 					session.controller.signal.aborted
-				) return;
+				)
+					return;
 				updateAttachment(item.localId, { state: "failed" });
 				setErrorKey(safeErrorKey(error, "compose.errors.uploadFailed"));
 			}
@@ -1152,7 +1178,8 @@ export function MailComposer({
 				isAbortError(error) ||
 				session !== sessionRef.current ||
 				session.controller.signal.aborted
-			) return;
+			)
+				return;
 			if (!isAuthoritativelyDetached) {
 				const nextAttachments = [...attachmentsRef.current];
 				if (
@@ -1170,7 +1197,10 @@ export function MailComposer({
 			}
 			setErrorKey("compose.errors.removeFailed");
 		} finally {
-			if (session === sessionRef.current && !session.controller.signal.aborted) {
+			if (
+				session === sessionRef.current &&
+				!session.controller.signal.aborted
+			) {
 				attachmentRemovalInProgressRef.current = false;
 				setIsRemovingAttachment(false);
 			}
@@ -1178,7 +1208,12 @@ export function MailComposer({
 	};
 
 	const retryAttachment = (item: ComposerAttachment) => {
-		if (linkedDraftRef.current || isInteractionLocked || item.state !== "failed") return;
+		if (
+			linkedDraftRef.current ||
+			isInteractionLocked ||
+			item.state !== "failed"
+		)
+			return;
 		enqueueUpload(item);
 	};
 
@@ -1205,7 +1240,9 @@ export function MailComposer({
 				attachmentsRef.current,
 				identityIdRef.current,
 			);
-			if (draftFingerprint(localSnapshot) !== draftFingerprint(serverSnapshot)) {
+			if (
+				draftFingerprint(localSnapshot) !== draftFingerprint(serverSnapshot)
+			) {
 				saveRecoveryBlockedRef.current = true;
 				setRecoveryRequired(true);
 				setSaveState("error");
@@ -1225,9 +1262,9 @@ export function MailComposer({
 	const completeSentSubmission = useCallback(
 		async (session: ComposerSession): Promise<void> => {
 			await Promise.all([
-				queryClient.invalidateQueries({ queryKey: ["mail", "folders"] }),
-				queryClient.invalidateQueries({ queryKey: ["mail", "threads"] }),
-				queryClient.invalidateQueries({ queryKey: ["mail", "drafts"] }),
+				queryClient.invalidateQueries({ queryKey: mailKeys.folders() }),
+				queryClient.invalidateQueries({ queryKey: mailKeys.threadsRoot() }),
+				queryClient.invalidateQueries({ queryKey: mailKeys.drafts() }),
 			]);
 			if (session !== sessionRef.current || session.controller.signal.aborted) {
 				return;
@@ -1237,13 +1274,7 @@ export function MailComposer({
 			onOpenChange(false);
 			resetComposer();
 		},
-		[
-			onOpenChange,
-			queryClient,
-			replaceSubmissionIntent,
-			resetComposer,
-			t,
-		],
+		[onOpenChange, queryClient, replaceSubmissionIntent, resetComposer, t],
 	);
 
 	const handleSend = async () => {
@@ -1251,7 +1282,8 @@ export function MailComposer({
 			(item) => item.state !== "confirmed" || item.scanStatus !== "clean",
 		);
 		if (isSending || isDiscarding || hasUncleanAttachment) {
-			if (hasUncleanAttachment) setErrorKey("compose.errors.attachmentNotReady");
+			if (hasUncleanAttachment)
+				setErrorKey("compose.errors.attachmentNotReady");
 			return;
 		}
 		const session = sessionRef.current;
@@ -1266,7 +1298,8 @@ export function MailComposer({
 					throw new ComposerValidationError("compose.errors.toRequired");
 				}
 				await flushLatest(true);
-				if (session !== sessionRef.current || session.controller.signal.aborted) return;
+				if (session !== sessionRef.current || session.controller.signal.aborted)
+					return;
 				const currentDraft = draftRef.current;
 				if (currentDraft === null) throw new Error("Draft unavailable");
 				intent = {
@@ -1315,7 +1348,8 @@ export function MailComposer({
 					: await getMailSubmission(activeIntent.submissionId, {
 							signal: session.controller.signal,
 						});
-			if (session !== sessionRef.current || session.controller.signal.aborted) return;
+			if (session !== sessionRef.current || session.controller.signal.aborted)
+				return;
 
 			const recordSubmission = (candidate: MailSubmission) => {
 				if (candidate.status === "sent") return;
@@ -1335,7 +1369,8 @@ export function MailComposer({
 				submission = await getMailSubmission(submission.id, {
 					signal: session.controller.signal,
 				});
-				if (session !== sessionRef.current || session.controller.signal.aborted) return;
+				if (session !== sessionRef.current || session.controller.signal.aborted)
+					return;
 				recordSubmission(submission);
 			}
 			if (submission.status === "sent") {
@@ -1388,7 +1423,10 @@ export function MailComposer({
 					: safeErrorKey(error, "compose.errors.sendFailed");
 			setErrorKey(key);
 		} finally {
-			if (session === sessionRef.current && !session.controller.signal.aborted) {
+			if (
+				session === sessionRef.current &&
+				!session.controller.signal.aborted
+			) {
 				setIsSending(false);
 			}
 		}
@@ -1427,7 +1465,10 @@ export function MailComposer({
 							signal: session.controller.signal,
 						},
 					);
-					if (session !== sessionRef.current || session.controller.signal.aborted) {
+					if (
+						session !== sessionRef.current ||
+						session.controller.signal.aborted
+					) {
 						return;
 					}
 					applyDraft(recovered);
@@ -1463,7 +1504,10 @@ export function MailComposer({
 			}
 			setErrorKey(safeErrorKey(error, "compose.errors.discardFailed"));
 		} finally {
-			if (session === sessionRef.current && !session.controller.signal.aborted) {
+			if (
+				session === sessionRef.current &&
+				!session.controller.signal.aborted
+			) {
 				setIsDiscarding(false);
 			}
 		}
@@ -1483,9 +1527,7 @@ export function MailComposer({
 		}
 		try {
 			await uploadQueueRef.current;
-			if (
-				attachmentsRef.current.some((item) => item.state === "failed")
-			) {
+			if (attachmentsRef.current.some((item) => item.state === "failed")) {
 				setErrorKey("compose.errors.uploadFailed");
 				return;
 			}
@@ -1554,7 +1596,9 @@ export function MailComposer({
 								setSelectedIdentityId(value);
 							}}
 							disabled={
-								isInteractionLocked || identitiesQuery.isPending || identitiesQuery.isError
+								isInteractionLocked ||
+								identitiesQuery.isPending ||
+								identitiesQuery.isError
 							}
 						>
 							<SelectTrigger id="mail-compose-from" className="h-8 max-w-sm">
@@ -1613,7 +1657,10 @@ export function MailComposer({
 						</div>
 						{showCc ? (
 							<div className="flex items-start gap-3 py-2">
-								<Label htmlFor="mail-compose-cc" className="w-10 pt-2.5 text-t3">
+								<Label
+									htmlFor="mail-compose-cc"
+									className="w-10 pt-2.5 text-t3"
+								>
 									{t("compose.cc")}
 								</Label>
 								<Input
@@ -1630,7 +1677,10 @@ export function MailComposer({
 						) : null}
 						{showBcc ? (
 							<div className="flex items-start gap-3 py-2">
-								<Label htmlFor="mail-compose-bcc" className="w-10 pt-2.5 text-t3">
+								<Label
+									htmlFor="mail-compose-bcc"
+									className="w-10 pt-2.5 text-t3"
+								>
 									{t("compose.bcc")}
 								</Label>
 								<Input
@@ -1731,7 +1781,9 @@ export function MailComposer({
 										variant="ghost"
 										onClick={() => void removeAttachment(item)}
 										disabled={
-													isInteractionLocked || item.state === "uploading" || item.state === "removing"
+											isInteractionLocked ||
+											item.state === "uploading" ||
+											item.state === "removing"
 										}
 										aria-label={t("compose.removeAttachment", {
 											name: item.file.name,
@@ -1758,7 +1810,12 @@ export function MailComposer({
 							)}
 						</span>
 						{recoveryRequired ? (
-							<Button size="sm" variant="outline" onClick={() => void recoverDraft()} disabled={isBusy || isSubmissionFrozen}>
+							<Button
+								size="sm"
+								variant="outline"
+								onClick={() => void recoverDraft()}
+								disabled={isBusy || isSubmissionFrozen}
+							>
 								{t("retry")}
 							</Button>
 						) : null}
@@ -1809,7 +1866,10 @@ export function MailComposer({
 							<SelectItem value="high">{t("compose.priority.high")}</SelectItem>
 						</SelectContent>
 					</Select>
-					<p className="min-w-[120px] flex-1 text-xs text-t3" aria-live="polite">
+					<p
+						className="min-w-[120px] flex-1 text-xs text-t3"
+						aria-live="polite"
+					>
 						{t(saveStatusKey)}
 					</p>
 					<Button

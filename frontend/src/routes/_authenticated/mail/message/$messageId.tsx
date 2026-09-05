@@ -6,13 +6,14 @@ import { useTranslation } from "react-i18next";
 import { getMailMessage } from "@/api/mail";
 import { Button } from "@/components/ui/button";
 import { isValidMailEntityID } from "@/modules/mail/mail-thread-list";
+import { mailKeys } from "@/modules/mail/mail-query-keys";
 import { useAuthStore } from "@/stores/auth-store";
 
-export const Route = createFileRoute(
-	"/_authenticated/mail/message/$messageId",
-)({
-	component: DirectMailMessageRoute,
-});
+export const Route = createFileRoute("/_authenticated/mail/message/$messageId")(
+	{
+		component: DirectMailMessageRoute,
+	},
+);
 
 function canonicalID(value: unknown): string | null {
 	if (typeof value !== "string" || !isValidMailEntityID(value)) {
@@ -25,21 +26,14 @@ function canonicalID(value: unknown): string | null {
 function DirectMailMessageRoute() {
 	const { messageId } = Route.useParams();
 	const actorID = useAuthStore((state) => state.user?.id ?? null);
-	const canonicalActorID =
-		actorID === null ? null : canonicalID(actorID);
+	const canonicalActorID = actorID === null ? null : canonicalID(actorID);
 	const canonicalMessageID = canonicalID(messageId);
 	const navigate = useNavigate();
 	const { t } = useTranslation("mail");
 
 	const directMessageQuery = useQuery({
-		queryKey: [
-			"mail",
-			"direct-message",
-			canonicalActorID,
-			canonicalMessageID,
-		] as const,
-		enabled:
-			canonicalActorID !== null && canonicalMessageID !== null,
+		queryKey: mailKeys.directMessage(canonicalActorID, canonicalMessageID),
+		enabled: canonicalActorID !== null && canonicalMessageID !== null,
 		queryFn: ({ signal }) => {
 			if (canonicalMessageID === null) {
 				return Promise.reject(new Error("Invalid direct mail message query"));
@@ -62,8 +56,7 @@ function DirectMailMessageRoute() {
 			: canonicalID(directMessageQuery.data.thread_id);
 	const hasResponseMismatch =
 		directMessageQuery.data !== undefined &&
-		(responseMessageID !== canonicalMessageID ||
-			responseThreadID === null);
+		(responseMessageID !== canonicalMessageID || responseThreadID === null);
 
 	useEffect(() => {
 		if (
@@ -110,9 +103,7 @@ function DirectMailMessageRoute() {
 	}
 
 	if (actorID === null) {
-		return (
-			<DirectMessageOpeningPanel text={t("reader.direct.opening")} />
-		);
+		return <DirectMessageOpeningPanel text={t("reader.direct.opening")} />;
 	}
 
 	if (directMessageQuery.isError || hasResponseMismatch) {
@@ -132,11 +123,7 @@ function DirectMailMessageRoute() {
 	return <DirectMessageOpeningPanel text={t("reader.direct.opening")} />;
 }
 
-function DirectMessageOpeningPanel({
-	text,
-}: {
-	readonly text: string;
-}) {
+function DirectMessageOpeningPanel({ text }: { readonly text: string }) {
 	return (
 		<div className="mx-auto w-full max-w-xl p-4 sm:p-6">
 			<section

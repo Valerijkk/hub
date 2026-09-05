@@ -2667,7 +2667,7 @@ func calendarEventOccurrenceRSVPCancelledMasterAuthorization(authorization Calen
 }
 
 func validCalendarEventOccurrenceRSVPException(exception CalendarEventExceptionCommandInput, current CalendarEventCommandInput, request CalendarEventOccurrenceRSVPAuthorizationRequest) bool {
-	if exception.ExceptionID == uuid.Nil || exception.EventID != request.EventID || exception.Sequence > current.Sequence {
+	if exception.ExceptionID == uuid.Nil || exception.EventID != request.EventID {
 		return false
 	}
 	if exception.Cancelled {

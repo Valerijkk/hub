@@ -9,12 +9,13 @@ import (
 
 const (
 	calendarDemoDatasetVersion      = 1
-	calendarDemoMailDatasetVersion  = 2
-	calendarDemoTimezone        = "Europe/Moscow"
-	calendarDemoRequiredRole    = "required"
-	calendarDemoAcceptedStatus  = "accepted"
-	calendarDemoTentativeStatus = "tentative"
-	calendarDemoWeeklyReviewRRULE = "FREQ=WEEKLY;BYDAY=MO;COUNT=4"
+	calendarDemoMailDatasetVersion  = 3
+	calendarDemoTimezone            = "Europe/Moscow"
+	calendarDemoRequiredRole        = "required"
+	calendarDemoAcceptedStatus      = "accepted"
+	calendarDemoTentativeStatus     = "tentative"
+	calendarDemoWeeklyReviewRRULE   = "FREQ=WEEKLY;BYDAY=MO;COUNT=4"
+	calendarDemoMailInvitationRRULE = "FREQ=WEEKLY;BYDAY=TH;COUNT=4"
 )
 
 type calendarDemoDataset struct {
@@ -147,13 +148,14 @@ func newCalendarDemoDataset(userIDs map[string]uuid.UUID, includeMailInvitation 
 			key:     MailInvitationEventKey,
 			actorID: pm,
 			create: CalendarDemoCreateInput{
-				IdempotencyKey: "hub-devdemo-calendar-v2-create-mail-invitation",
+				IdempotencyKey: "hub-devdemo-calendar-v3-create-mail-invitation",
 				Title:          "Mail invitation",
 				Description:    "PM invitation for the dev1 Mail demo",
 				Location:       "Mail demo",
 				StartsAt:       time.Date(2026, time.September, 3, 10, 0, 0, 0, time.UTC),
 				EndsAt:         time.Date(2026, time.September, 3, 10, 30, 0, 0, time.UTC),
 				Timezone:       calendarDemoTimezone,
+				RRULE:          calendarDemoMailInvitationRRULE,
 				Attendees: []CalendarDemoAttendeeCandidate{
 					{UserID: dev1, Email: "dev1@hub.local", Role: calendarDemoRequiredRole},
 				},
@@ -222,7 +224,7 @@ func validateCalendarDemoDataset(dataset calendarDemoDataset) error {
 		if event.key == MailInvitationEventKey {
 			mailInvitationPlans++
 			if event.actorID == uuid.Nil || len(event.create.Attendees) != 1 || event.create.Attendees[0].Email != "dev1@hub.local" ||
-				event.create.Attendees[0].Role != calendarDemoRequiredRole || len(event.rsvps) != 0 {
+				event.create.Attendees[0].Role != calendarDemoRequiredRole || event.create.RRULE != calendarDemoMailInvitationRRULE || len(event.rsvps) != 0 {
 				return errors.New("calendar demo dataset: invalid mail invitation plan")
 			}
 		}

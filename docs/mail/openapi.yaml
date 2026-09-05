@@ -3035,12 +3035,34 @@ components:
       allOf:
         - {$ref: "#/components/schemas/MailMessageFields"}
         - type: object
-          required: [plain_body, remote_images_blocked, attachments, calendar_event_id]
+          required: [plain_body, remote_images_blocked, attachments, calendar_event_id, calendar_rsvp_target]
           properties:
             calendar_event_id:
               type: [string, "null"]
               format: uuid
               description: Authoritative derived link to the related Calendar event.
+            calendar_rsvp_target:
+              description: Inbound terminal authority only, not a capability; Calendar reauthorizes RSVP.
+              oneOf:
+                - type: "null"
+                - type: object
+                  additionalProperties: false
+                  required: [event_id, scope, recurrence_id, attendee_version, rsvp_status]
+                  properties:
+                    event_id: {type: string, format: uuid}
+                    scope: {const: series}
+                    recurrence_id: {type: "null"}
+                    attendee_version: {type: integer, minimum: 1}
+                    rsvp_status: {type: string, enum: [needs_action, accepted, tentative, declined]}
+                - type: object
+                  additionalProperties: false
+                  required: [event_id, scope, recurrence_id, attendee_version, rsvp_status]
+                  properties:
+                    event_id: {type: string, format: uuid}
+                    scope: {const: occurrence}
+                    recurrence_id: {type: string, minLength: 1, maxLength: 255, x-hub-max-utf8-bytes: 255}
+                    attendee_version: {type: integer, minimum: 1}
+                    rsvp_status: {type: string, enum: [needs_action, accepted, tentative, declined]}
             plain_body:
               type: string
               maxLength: 2000000

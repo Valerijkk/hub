@@ -22,12 +22,12 @@ const (
 type MailboxMessageReadErrorKind string
 
 const (
-	MailboxMessageReadErrorInvalid          MailboxMessageReadErrorKind = "invalid"
-	MailboxMessageReadErrorNotFound         MailboxMessageReadErrorKind = "not_found"
-	MailboxMessageReadErrorDeleting         MailboxMessageReadErrorKind = "deleting"
-	MailboxMessageReadErrorUnavailable      MailboxMessageReadErrorKind = "unavailable"
-	MailboxMessageReadErrorPayloadTooLarge  MailboxMessageReadErrorKind = "payload_too_large"
-	MailboxMessageReadErrorUnprocessable    MailboxMessageReadErrorKind = "unprocessable"
+	MailboxMessageReadErrorInvalid         MailboxMessageReadErrorKind = "invalid"
+	MailboxMessageReadErrorNotFound        MailboxMessageReadErrorKind = "not_found"
+	MailboxMessageReadErrorDeleting        MailboxMessageReadErrorKind = "deleting"
+	MailboxMessageReadErrorUnavailable     MailboxMessageReadErrorKind = "unavailable"
+	MailboxMessageReadErrorPayloadTooLarge MailboxMessageReadErrorKind = "payload_too_large"
+	MailboxMessageReadErrorUnprocessable   MailboxMessageReadErrorKind = "unprocessable"
 )
 
 const mailboxMessageReadErrorText = "mail message read error"
@@ -109,6 +109,16 @@ type MailboxMessageAttachment struct {
 
 type mailboxMessageCalendarProjection struct{}
 
+// MailboxMessageCalendarRSVPTarget is the closed public projection of the
+// inbound terminal Calendar RSVP authority for one message detail.
+type MailboxMessageCalendarRSVPTarget struct {
+	EventID         uuid.UUID                 `json:"event_id"`
+	Scope           string                    `json:"scope"`
+	RecurrenceID    *string                   `json:"recurrence_id"`
+	AttendeeVersion uint                      `json:"attendee_version"`
+	RSVPStatus      MailboxCalendarRSVPStatus `json:"rsvp_status"`
+}
+
 // MailboxMessageDetail is the closed public MailMessageDetail response model.
 type MailboxMessageDetail struct {
 	ID                  uuid.UUID                              `json:"id"`
@@ -131,6 +141,7 @@ type MailboxMessageDetail struct {
 	Junk                bool                                   `json:"junk"`
 	CalendarMethod      *MailCalendarMethod                    `json:"calendar_method"`
 	CalendarEventID     *uuid.UUID                             `json:"calendar_event_id"`
+	CalendarRSVPTarget  *MailboxMessageCalendarRSVPTarget      `json:"calendar_rsvp_target"`
 	PlainBody           string                                 `json:"plain_body"`
 	SanitizedHTML       *string                                `json:"sanitized_html"`
 	RemoteImagesBlocked bool                                   `json:"remote_images_blocked"`
@@ -422,6 +433,29 @@ func mailboxMessageCalendarMethodEqual(left, right *MailCalendarMethod) bool {
 	return *left == *right
 }
 
+func mailboxMessageCalendarRSVPTargetCopy(target *MailboxMessageCalendarRSVPTarget) *MailboxMessageCalendarRSVPTarget {
+	if target == nil {
+		return nil
+	}
+	result := *target
+	result.RecurrenceID = mailboxFolderProjectionStringPointer(target.RecurrenceID)
+	return &result
+}
+
+func mailboxMessageCalendarRSVPTargetValid(target *MailboxMessageCalendarRSVPTarget) bool {
+	if target == nil || target.EventID == uuid.Nil || target.AttendeeVersion == 0 || !target.RSVPStatus.valid() {
+		return false
+	}
+	switch target.Scope {
+	case string(MailboxCalendarRSVPTargetScopeSeries):
+		return target.RecurrenceID == nil
+	case string(MailboxCalendarRSVPTargetScopeOccurrence):
+		return target.RecurrenceID != nil && validMailboxCalendarRSVPTargetRecurrenceID(*target.RecurrenceID)
+	default:
+		return false
+	}
+}
+
 func mailboxMessageDetailCopy(detail MailboxMessageDetail) MailboxMessageDetail {
 	detail.From = mailboxThreadDetailProjectionAddressCopy(detail.From)
 	detail.To = mailboxThreadDetailProjectionAddressesCopy(detail.To)
@@ -431,6 +465,7 @@ func mailboxMessageDetailCopy(detail MailboxMessageDetail) MailboxMessageDetail 
 	detail.FolderIDs = append([]uuid.UUID(nil), detail.FolderIDs...)
 	detail.CalendarMethod = copyMailCalendarMethod(detail.CalendarMethod)
 	detail.CalendarEventID = mailboxFolderProjectionUUIDPointer(detail.CalendarEventID)
+	detail.CalendarRSVPTarget = mailboxMessageCalendarRSVPTargetCopy(detail.CalendarRSVPTarget)
 	detail.SanitizedHTML = mailboxFolderProjectionStringPointer(detail.SanitizedHTML)
 	attachments := make([]MailboxMessageAttachment, len(detail.Attachments))
 	for index, attachment := range detail.Attachments {
@@ -443,6 +478,12 @@ func mailboxMessageDetailCopy(detail MailboxMessageDetail) MailboxMessageDetail 
 
 func mailboxMessageDetailValid(detail MailboxMessageDetail) bool {
 	if detail.CalendarEventID != nil && *detail.CalendarEventID == uuid.Nil {
+		return false
+	}
+	if detail.CalendarRSVPTarget != nil &&
+		(!mailboxMessageCalendarRSVPTargetValid(detail.CalendarRSVPTarget) ||
+			detail.CalendarEventID == nil ||
+			detail.CalendarRSVPTarget.EventID != *detail.CalendarEventID) {
 		return false
 	}
 	summary := MailboxThreadDetailProjectionMessage{

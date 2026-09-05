@@ -553,6 +553,50 @@ func calendarInboundMessageTerminalizeReceipt(
 	return nil
 }
 
+func calendarInboundMessageReceiptSnapshotFromPersistedFields(
+	calendarComponentScope *calendarinboundmessagereceipt.CalendarComponentScope,
+	recurrenceID *string,
+) (calendarInboundMessageReceiptSnapshot, bool) {
+	if calendarComponentScope == nil {
+		if recurrenceID == nil {
+			return calendarInboundMessageReceiptSnapshot{}, true
+		}
+		return calendarInboundMessageReceiptSnapshot{}, false
+	}
+
+	switch string(*calendarComponentScope) {
+	case calendarInboundMessageReceiptSnapshotScopeSeries:
+		if recurrenceID != nil {
+			return calendarInboundMessageReceiptSnapshot{}, false
+		}
+		return calendarInboundMessageReceiptSnapshot{
+			calendarComponentScope: calendarInboundMessageReceiptSnapshotScopeSeries,
+		}, true
+	case calendarInboundMessageReceiptSnapshotScopeOccurrence:
+		if recurrenceID == nil || !validCalendarInboundRecurrenceID(*recurrenceID) {
+			return calendarInboundMessageReceiptSnapshot{}, false
+		}
+		return calendarInboundMessageReceiptSnapshot{
+			calendarComponentScope: calendarInboundMessageReceiptSnapshotScopeOccurrence,
+			recurrenceID:           cloneCalendarInboundMessageStringPointer(recurrenceID),
+		}, true
+	default:
+		return calendarInboundMessageReceiptSnapshot{}, false
+	}
+}
+
+func calendarInboundMessageReceiptSnapshotEqual(
+	left, right calendarInboundMessageReceiptSnapshot,
+) bool {
+	if !left.valid() || !right.valid() || left.calendarComponentScope != right.calendarComponentScope {
+		return false
+	}
+	if left.recurrenceID == nil || right.recurrenceID == nil {
+		return left.recurrenceID == nil && right.recurrenceID == nil
+	}
+	return *left.recurrenceID == *right.recurrenceID
+}
+
 func calendarInboundMessageCompleteReceipt(
 	ctx context.Context,
 	transaction *ent.Tx,
@@ -565,6 +609,52 @@ func calendarInboundMessageCompleteReceipt(
 		!calendarInboundMessageReceiptValid(receipt) || !calendarInboundMessageReceiptMatchesClaim(receipt, claim) ||
 		!receipt.LeaseUntil.After(clock) || !completion.valid() {
 		return ErrEventInvalid
+	}
+	persistedSnapshot, persistedSnapshotValid := calendarInboundMessageReceiptSnapshotFromPersistedFields(
+		receipt.CalendarComponentScope,
+		receipt.RecurrenceID,
+	)
+	if !persistedSnapshotValid {
+		return ErrEventInvalid
+	}
+	completionSnapshot := completion.receiptSnapshot
+	setReceiptSnapshot := completionSnapshot.calendarComponentScope != ""
+	var receiptSnapshotPredicate predicate.CalendarInboundMessageReceipt
+	if setReceiptSnapshot {
+		switch completionSnapshot.calendarComponentScope {
+		case calendarInboundMessageReceiptSnapshotScopeSeries:
+			receiptSnapshotPredicate = calendarinboundmessagereceipt.Or(
+				calendarinboundmessagereceipt.And(
+					calendarinboundmessagereceipt.CalendarComponentScopeIsNil(),
+					calendarinboundmessagereceipt.RecurrenceIDIsNil(),
+				),
+				calendarinboundmessagereceipt.And(
+					calendarinboundmessagereceipt.CalendarComponentScopeEQ(
+						calendarinboundmessagereceipt.CalendarComponentScope(calendarInboundMessageReceiptSnapshotScopeSeries),
+					),
+					calendarinboundmessagereceipt.RecurrenceIDIsNil(),
+				),
+			)
+		case calendarInboundMessageReceiptSnapshotScopeOccurrence:
+			receiptSnapshotPredicate = calendarinboundmessagereceipt.Or(
+				calendarinboundmessagereceipt.And(
+					calendarinboundmessagereceipt.CalendarComponentScopeIsNil(),
+					calendarinboundmessagereceipt.RecurrenceIDIsNil(),
+				),
+				calendarinboundmessagereceipt.And(
+					calendarinboundmessagereceipt.CalendarComponentScopeEQ(
+						calendarinboundmessagereceipt.CalendarComponentScope(calendarInboundMessageReceiptSnapshotScopeOccurrence),
+					),
+					calendarinboundmessagereceipt.RecurrenceIDEQ(*completionSnapshot.recurrenceID),
+				),
+			)
+		default:
+			return ErrEventInvalid
+		}
+		if persistedSnapshot.calendarComponentScope != "" &&
+			!calendarInboundMessageReceiptSnapshotEqual(persistedSnapshot, completionSnapshot) {
+			return ErrEventConflict
+		}
 	}
 
 	state := calendarinboundmessagereceipt.State("")
@@ -682,14 +772,18 @@ func calendarInboundMessageCompleteReceipt(
 		return ErrEventInvalid
 	}
 
+	receiptPredicates := []predicate.CalendarInboundMessageReceipt{
+		calendarinboundmessagereceipt.IDEQ(claim.ReceiptID),
+		calendarinboundmessagereceipt.StateEQ(calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateProcessing)),
+		calendarinboundmessagereceipt.LeaseTokenEQ(claim.LeaseToken),
+		calendarinboundmessagereceipt.LeaseGenerationEQ(claim.LeaseGeneration),
+		calendarinboundmessagereceipt.LeaseUntilGT(clock),
+	}
+	if setReceiptSnapshot {
+		receiptPredicates = append(receiptPredicates, receiptSnapshotPredicate)
+	}
 	update := transaction.CalendarInboundMessageReceipt.Update().
-		Where(
-			calendarinboundmessagereceipt.IDEQ(claim.ReceiptID),
-			calendarinboundmessagereceipt.StateEQ(calendarinboundmessagereceipt.State(calendarInboundMessageReceiptStateProcessing)),
-			calendarinboundmessagereceipt.LeaseTokenEQ(claim.LeaseToken),
-			calendarinboundmessagereceipt.LeaseGenerationEQ(claim.LeaseGeneration),
-			calendarinboundmessagereceipt.LeaseUntilGT(clock),
-		).
+		Where(receiptPredicates...).
 		SetState(state).
 		ClearLeaseToken().
 		ClearLeaseUntil().
@@ -712,6 +806,20 @@ func calendarInboundMessageCompleteReceipt(
 	if setDeferredPair {
 		update.SetDeferredObjectStateID(completion.deferredObjectStateID).
 			SetDeferredExpiresAt(deferredExpiresAt)
+	}
+	if setReceiptSnapshot {
+		switch completionSnapshot.calendarComponentScope {
+		case calendarInboundMessageReceiptSnapshotScopeSeries:
+			update.SetCalendarComponentScope(
+				calendarinboundmessagereceipt.CalendarComponentScope(calendarInboundMessageReceiptSnapshotScopeSeries),
+			).ClearRecurrenceID()
+		case calendarInboundMessageReceiptSnapshotScopeOccurrence:
+			update.SetCalendarComponentScope(
+				calendarinboundmessagereceipt.CalendarComponentScope(calendarInboundMessageReceiptSnapshotScopeOccurrence),
+			).SetRecurrenceID(*completionSnapshot.recurrenceID)
+		default:
+			return ErrEventInvalid
+		}
 	}
 	affected, err := update.Save(ctx)
 	if err != nil {
@@ -828,6 +936,12 @@ func calendarInboundMessageReceiptValid(receipt *ent.CalendarInboundMessageRecei
 		return false
 	}
 	if receipt.CalendarEventID != nil && *receipt.CalendarEventID == uuid.Nil {
+		return false
+	}
+	if _, ok := calendarInboundMessageReceiptSnapshotFromPersistedFields(
+		receipt.CalendarComponentScope,
+		receipt.RecurrenceID,
+	); !ok {
 		return false
 	}
 	if (receipt.LeaseToken == nil) != (receipt.LeaseUntil == nil) ||

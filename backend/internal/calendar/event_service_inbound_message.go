@@ -64,6 +64,19 @@ const (
 	calendarInboundMessageCompletionDeferred    calendarInboundMessageCompletionKind = "deferred_missing_master"
 )
 
+// calendarInboundMessageReceiptSnapshot carries the canonical component
+// identity that may be written when a receipt is completed. Its zero value is
+// unknown and preserves any existing durable snapshot.
+type calendarInboundMessageReceiptSnapshot struct {
+	calendarComponentScope string
+	recurrenceID           *string
+}
+
+const (
+	calendarInboundMessageReceiptSnapshotScopeSeries     = "series"
+	calendarInboundMessageReceiptSnapshotScopeOccurrence = "occurrence"
+)
+
 // CalendarInboundMessageCompletion is an opaque, constructor-only receipt
 // disposition. Its optional event identifier is copied at every boundary.
 type CalendarInboundMessageCompletion struct {
@@ -72,6 +85,7 @@ type CalendarInboundMessageCompletion struct {
 	errorCode             CalendarInboundMessageErrorCode
 	calendarEventID       *uuid.UUID
 	deferredObjectStateID uuid.UUID
+	receiptSnapshot       calendarInboundMessageReceiptSnapshot
 }
 
 // NewCalendarInboundAppliedCompletion constructs an applied receipt outcome
@@ -170,6 +184,9 @@ func (completion CalendarInboundMessageCompletion) valid() bool {
 	if !validCalendarInboundMessageUUIDPointer(completion.calendarEventID) {
 		return false
 	}
+	if !completion.receiptSnapshot.valid() {
+		return false
+	}
 	switch completion.kind {
 	case calendarInboundMessageCompletionApplied:
 		return completion.observedState == "" && completion.errorCode == "" && completion.calendarEventID != nil && completion.deferredObjectStateID == uuid.Nil
@@ -184,7 +201,12 @@ func (completion CalendarInboundMessageCompletion) valid() bool {
 	case calendarInboundMessageCompletionRetry:
 		return completion.observedState == "" && completion.calendarEventID == nil && validCalendarInboundRetryErrorCode(completion.errorCode) && completion.deferredObjectStateID == uuid.Nil
 	case calendarInboundMessageCompletionDeferred:
-		return completion.observedState == "" && completion.errorCode == "" && completion.calendarEventID == nil && completion.deferredObjectStateID != uuid.Nil
+		return completion.observedState == "" &&
+			completion.errorCode == "" &&
+			completion.calendarEventID == nil &&
+			completion.deferredObjectStateID != uuid.Nil &&
+			(completion.receiptSnapshot.calendarComponentScope == "" ||
+				completion.receiptSnapshot.calendarComponentScope == calendarInboundMessageReceiptSnapshotScopeOccurrence)
 	default:
 		return false
 	}
@@ -195,7 +217,70 @@ func cloneCalendarInboundMessageCompletion(completion CalendarInboundMessageComp
 		return CalendarInboundMessageCompletion{}
 	}
 	completion.calendarEventID = cloneCalendarInboundMessageUUIDPointer(completion.calendarEventID)
+	completion.receiptSnapshot = cloneCalendarInboundMessageReceiptSnapshot(completion.receiptSnapshot)
 	return completion
+}
+
+func newCalendarInboundMessageReceiptSnapshot(
+	hasRecurrenceID bool,
+	recurrenceID string,
+) (calendarInboundMessageReceiptSnapshot, error) {
+	if !hasRecurrenceID {
+		if recurrenceID != "" {
+			return calendarInboundMessageReceiptSnapshot{}, ErrEventInvalid
+		}
+		return calendarInboundMessageReceiptSnapshot{
+			calendarComponentScope: calendarInboundMessageReceiptSnapshotScopeSeries,
+		}, nil
+	}
+	if !validCalendarInboundRecurrenceID(recurrenceID) {
+		return calendarInboundMessageReceiptSnapshot{}, ErrEventInvalid
+	}
+	return calendarInboundMessageReceiptSnapshot{
+		calendarComponentScope: calendarInboundMessageReceiptSnapshotScopeOccurrence,
+		recurrenceID:           cloneCalendarInboundMessageStringPointer(&recurrenceID),
+	}, nil
+}
+
+func (snapshot calendarInboundMessageReceiptSnapshot) valid() bool {
+	switch snapshot.calendarComponentScope {
+	case "":
+		return snapshot.recurrenceID == nil
+	case calendarInboundMessageReceiptSnapshotScopeSeries:
+		return snapshot.recurrenceID == nil
+	case calendarInboundMessageReceiptSnapshotScopeOccurrence:
+		return snapshot.recurrenceID != nil && validCalendarInboundRecurrenceID(*snapshot.recurrenceID)
+	default:
+		return false
+	}
+}
+
+func cloneCalendarInboundMessageReceiptSnapshot(
+	snapshot calendarInboundMessageReceiptSnapshot,
+) calendarInboundMessageReceiptSnapshot {
+	if !snapshot.valid() {
+		return calendarInboundMessageReceiptSnapshot{}
+	}
+	snapshot.recurrenceID = cloneCalendarInboundMessageStringPointer(snapshot.recurrenceID)
+	return snapshot
+}
+
+func calendarInboundMessageCompletionWithReceiptSnapshot(
+	completion CalendarInboundMessageCompletion,
+	snapshot calendarInboundMessageReceiptSnapshot,
+) (CalendarInboundMessageCompletion, error) {
+	if !completion.valid() || !snapshot.valid() {
+		return CalendarInboundMessageCompletion{}, ErrEventInvalid
+	}
+	if completion.kind == calendarInboundMessageCompletionDeferred &&
+		snapshot.calendarComponentScope != calendarInboundMessageReceiptSnapshotScopeOccurrence {
+		return CalendarInboundMessageCompletion{}, ErrEventInvalid
+	}
+	completion.receiptSnapshot = cloneCalendarInboundMessageReceiptSnapshot(snapshot)
+	if !completion.valid() {
+		return CalendarInboundMessageCompletion{}, ErrEventInvalid
+	}
+	return completion, nil
 }
 
 func validCalendarInboundObservedState(state CalendarInboundObservedState) bool {
@@ -268,6 +353,14 @@ func validCalendarInboundRetryErrorCode(code CalendarInboundMessageErrorCode) bo
 }
 
 func cloneCalendarInboundMessageUUIDPointer(value *uuid.UUID) *uuid.UUID {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+func cloneCalendarInboundMessageStringPointer(value *string) *string {
 	if value == nil {
 		return nil
 	}
