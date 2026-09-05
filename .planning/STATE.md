@@ -1140,6 +1140,27 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
+**Current continuity (2026-09-05, supersedes the snapshots below):** branch
+`calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and
+static review are closed; the next work is the final executable sequence
+(Tasks 20-23). The earlier single `python-contract` RED has already been
+consumed and must not be repeated. Build, post-build GREEN, observer-sealed
+backend execution, and CALL-DUR-08C2 executable acceptance are still pending.
+Two Mail `backend-unit` containers overlapped the read-only preflight, so no
+heavy command was started. Messenger's next source atom is MPR-02 after the
+accepted MPR-01; Jitsi activation still requires the remaining durable Calls
+chain and image discovery. Neither module is accepted as product-ready.
+
+**Active continuity (2026-09-04, Phase 150):** resumed the structured handoff on
+`calls-feature-codex` at `e0cc0e1b`; Task 3/23 remains in progress. C01 and
+C03/C03R retain independent static PASS. C02-v10, C04 callable indirection,
+and C04 Docker COPY authority are the three bounded closure atoms now being
+executed. Docker/tests/build/lint/validators remain `NOT_RUN` until all three
+receive independent `C0/I0/M0`; then the only admitted command is the single
+full `python-contract` RED. Push authority remains limited to
+`origin/calls-feature-codex`.
+**Resume file:** `.planning/phases/150-self-hosted-jitsi-deployment-and-provider-foundation/.continue-here.md`.
+
 **Historical continuity snapshot (superseded by the 2026-08-31 notes below):** 2026-08-29 (Phase 151 - bounded Messenger hardening continues)
 **Stopped at:** bounded Phase 151 units are green through the passive recovery composition and the callable `Phase151PendingRecoveryOnceAdapter` capability. Production/cross-store recovery-scanner binding, scheduler, recovery-loop construction, executor installation, and all live writers remain unbound.
 **Resume:** the recovery-authority decision is closed: `Phase151PostCreateRecoveryServicePrincipal`, the pure `PGPhase151PendingRecoveryTargetReauthorizer`, and `EntRepository.ResolvePendingRecoveryTargetFacts` exist and are accepted. The narrow static-only `EntRepository.ListPendingRecoveryTargets` pager, in-memory scanner, interval gate, claimed coordinator, passive holder, and once adapter are bounded units only; do not start a scheduler, install an executor, or route live writers. Lease renewal, completion-versus-unread-publication loss, outbox, membership lifecycle, cross-store TOCTOU, and create/delete counter races remain separate.
