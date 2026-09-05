@@ -27,7 +27,7 @@ var _ calendar.CalendarInboundMessageRepository = calendarInboundReceiptCompleti
 var _ mail.MailboxCalendarPartReadEngine = (*calendarInboundReceiptCompletionEngine)(nil)
 
 func TestCalendarInboundMessageReceiptCompletionPersistsOccurrenceSnapshotWithCAS(t *testing.T) {
-	fixture := calendarInboundReceiptCompletionFixture(t)
+	fixture := newCalendarInboundReceiptCompletionFixture(t)
 	for _, testCase := range []struct {
 		name            string
 		scope           string
@@ -93,7 +93,7 @@ type calendarInboundReceiptCompletionFixture struct {
 	clock           time.Time
 }
 
-func calendarInboundReceiptCompletionFixture(t *testing.T) calendarInboundReceiptCompletionFixture {
+func newCalendarInboundReceiptCompletionFixture(t *testing.T) calendarInboundReceiptCompletionFixture {
 	t.Helper()
 	const wire = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:receipt-cas@example.test\r\nDTSTAMP:20260301T120000Z\r\nDTSTART;VALUE=DATE:20260402\r\nDTEND;VALUE=DATE:20260403\r\nRECURRENCE-ID;VALUE=DATE:20260402\r\nSEQUENCE:7\r\nSTATUS:CONFIRMED\r\nSUMMARY:Receipt CAS\r\nORGANIZER:mailto:owner@example.test\r\nATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;RSVP=FALSE:mailto:owner@example.test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 	message, err := calendar.ParseITIP([]byte(wire), calendar.DefaultITIPParseLimits())

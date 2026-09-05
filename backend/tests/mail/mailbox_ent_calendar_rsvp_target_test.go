@@ -34,7 +34,7 @@ func TestMailboxEntRepositoryResolveCalendarEventForMessageSuppressesTargetForMi
 	}
 
 	for _, testCase := range []struct {
-		name              string
+		name               string
 		attendeeQueryError bool
 	}{
 		{name: "missing active series attendee"},
@@ -42,7 +42,7 @@ func TestMailboxEntRepositoryResolveCalendarEventForMessageSuppressesTargetForMi
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			driver := &mailboxEntCalendarRSVPTargetDriver{
-				fixture:           fixture,
+				fixture:            fixture,
 				attendeeQueryError: testCase.attendeeQueryError,
 			}
 			repository, err := mail.NewMailboxEntRepository(
@@ -114,9 +114,9 @@ func (clock mailboxEntCalendarRSVPTargetClock) Now() time.Time {
 }
 
 type mailboxEntCalendarRSVPTargetDriver struct {
-	fixture           mailboxEntCalendarRSVPTargetFixture
+	fixture            mailboxEntCalendarRSVPTargetFixture
 	attendeeQueryError bool
-	queryOrder        []string
+	queryOrder         []string
 }
 
 func (*mailboxEntCalendarRSVPTargetDriver) Exec(context.Context, string, any, any) error {
@@ -309,6 +309,14 @@ func mailboxEntCalendarRSVPTargetSetScanValue(destination, value any) error {
 			return fmt.Errorf("scan string value = %T", value)
 		}
 		target.Set(reflect.ValueOf(sql.NullString{String: text, Valid: true}))
+		return nil
+	}
+	if target.Type() == reflect.TypeOf(sql.NullBool{}) {
+		enabled, ok := value.(bool)
+		if !ok {
+			return errors.New(reflect.TypeOf(value).String())
+		}
+		target.Set(reflect.ValueOf(sql.NullBool{Bool: enabled, Valid: true}))
 		return nil
 	}
 	source := reflect.ValueOf(value)
