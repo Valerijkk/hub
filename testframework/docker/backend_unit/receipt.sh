@@ -5,6 +5,13 @@ RECEIPT_SCHEMA=hub.qa.backend-unit-container-receipt/v1
 RECEIPT_TARGET=backend-unit
 RECEIPT_SOURCE_ROOT=/opt/hub/source/backend
 
+# The entrypoint installs the TERM trap only after every runner source file is
+# loaded. Until backend_unit_main has established a receipt-safe checkpoint,
+# a TERM is deliberately fail-closed: there is no authority to seal an abort.
+backend_unit_term_phase=cold
+backend_unit_term_safe=false
+backend_unit_term_handling=false
+
 _receipt_decimal() {
   [ "$#" -eq 1 ] || return 64
   case "$1" in ''|*[!0-9]*) return 75 ;; *) return 0 ;; esac
@@ -829,6 +836,60 @@ finalize_aborted_container() {
   return 75
 }
 
+_backend_unit_term_exact_plan_set_is_current() {
+  [ "$#" -eq 0 ] || return 64
+  _receipt_run_dir_current || return 75
+  _receipt_validate_owner || return 75
+  backend_unit_term_expected_tree=$(printf '%s\n' owner.json package-plan.build.json package-plan.race.json package-plan.unit.json package-plan.vet.json | LC_ALL=C sort) || return 75
+  backend_unit_term_actual_tree=$(find "$run_dir" -xdev -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort) || return 75
+  [ "$backend_unit_term_actual_tree" = "$backend_unit_term_expected_tree" ] || return 75
+  for backend_unit_term_stage in build vet unit race; do
+    backend_unit_term_rows="$(package_plan_rows_path "$backend_unit_term_stage")" || return 75
+    _plan_validate_rows "$backend_unit_term_rows" || return 75
+    _receipt_regular_is_owned "$run_dir/package-plan.$backend_unit_term_stage.json" || return 75
+    _execute_package_plan_is_bound "$backend_unit_term_stage" "$backend_unit_term_rows" || return 75
+  done
+  # _execute_package_plan_is_bound cleans its GOTMPDIR probe before success.
+  # Its path variables must be blank at the first quiescent checkpoint.
+  execute_file_path=
+  execute_file_identity=
+  return 0
+}
+
+_backend_unit_term_abort_progress_from_completed_identities() {
+  [ "$#" -eq 0 ] || return 64
+  case "$backend_unit_term_phase" in
+    bootstrap)
+      [ -z "${completed_build_final_identities-}" ] && [ -z "${completed_vet_final_identities-}" ] && [ -z "${completed_unit_final_identities-}" ] && [ -z "${completed_race_final_identities-}" ] || return 75
+      backend_unit_term_completed_prefix=
+      backend_unit_term_active_stage=null
+      ;;
+    execution)
+      if [ -z "${completed_build_final_identities-}" ]; then
+        [ -z "${completed_vet_final_identities-}" ] && [ -z "${completed_unit_final_identities-}" ] && [ -z "${completed_race_final_identities-}" ] || return 75
+        backend_unit_term_completed_prefix=
+        backend_unit_term_active_stage=build
+      elif [ -z "${completed_vet_final_identities-}" ]; then
+        [ -z "${completed_unit_final_identities-}" ] && [ -z "${completed_race_final_identities-}" ] || return 75
+        backend_unit_term_completed_prefix=build
+        backend_unit_term_active_stage=vet
+      elif [ -z "${completed_unit_final_identities-}" ]; then
+        [ -z "${completed_race_final_identities-}" ] || return 75
+        backend_unit_term_completed_prefix=build,vet
+        backend_unit_term_active_stage=unit
+      elif [ -z "${completed_race_final_identities-}" ]; then
+        backend_unit_term_completed_prefix=build,vet,unit
+        backend_unit_term_active_stage=race
+      else
+        backend_unit_term_completed_prefix=build,vet,unit,race
+        backend_unit_term_active_stage=null
+      fi
+      ;;
+    *) return 75 ;;
+  esac
+  return 0
+}
+
 finalize_container() {
   [ "$#" -eq 0 ] || return 64
   receipt_marker_path="$run_dir/CONTAINER_COMPLETE"
@@ -891,6 +952,34 @@ finalize_container() {
   return 75
 }
 
+backend_unit_handle_term() {
+  # This is intentionally the first handler action: repeated TERM/INT/HUP
+  # cannot interrupt rollback, receipt construction, or cleanup.
+  trap '' TERM INT HUP
+  case "$backend_unit_term_handling" in
+    false) backend_unit_term_handling=true ;;
+    *) exit 75 ;;
+  esac
+  case "$backend_unit_term_safe:$backend_unit_term_phase" in
+    true:bootstrap|true:execution) ;;
+    *) exit 75 ;;
+  esac
+  case "${active_stage_for_container_stop-}" in
+    true) abort_active_stage_for_container_stop || exit 75 ;;
+    false) prove_quiescent_for_container_stop || exit 75 ;;
+    *) exit 75 ;;
+  esac
+  [ "${child_group_reaped-}" = true ] && [ "${stdout_reader_reaped-}" = true ] && [ "${stderr_reader_reaped-}" = true ] && [ "${unpublished_stage_rolled_back-}" = true ] || exit 75
+  _backend_unit_term_abort_progress_from_completed_identities || exit 75
+  verify_cgroup_snapshot_unchanged "$container_cgroup_baseline" || exit 75
+  container_cgroup_final="$(capture_cgroup_snapshot)" || exit 75
+  [ "$container_cgroup_baseline" = "$container_cgroup_final" ] || exit 75
+  source_manifest_after_sha256="$(_receipt_source_manifest)" || exit 75
+  [ "$source_manifest_before_sha256" = "$source_manifest_after_sha256" ] || exit 75
+  finalize_aborted_container "$backend_unit_term_phase" "$backend_unit_term_completed_prefix" "$backend_unit_term_active_stage" || exit 75
+  exit 143
+}
+
 backend_unit_main() {
   [ "$#" -eq 0 ] || return 64
   assert_cgroup || return 75
@@ -902,7 +991,14 @@ backend_unit_main() {
   command_profile_sha256="$(_receipt_sha256_text "$command_profile")" || return 75
   source_manifest_before_sha256="$(_receipt_source_manifest)" || return 75
   container_cgroup_baseline="$(capture_cgroup_snapshot)" || return 75
+  backend_unit_term_phase=bootstrap
+  backend_unit_term_safe=true
+  backend_unit_term_phase=planning
+  backend_unit_term_safe=false
   prepare_package_plans || return 75
+  _backend_unit_term_exact_plan_set_is_current || return 75
+  backend_unit_term_phase=execution
+  backend_unit_term_safe=true
   backend_unit_first_exit=0
   for backend_unit_stage in build vet unit race; do
     backend_unit_rows="$(package_plan_rows_path "$backend_unit_stage")" || return 75
@@ -923,6 +1019,8 @@ backend_unit_main() {
   verify_cgroup_snapshot_unchanged "$container_cgroup_baseline" || return 75
   container_cgroup_final="$(capture_cgroup_snapshot)" || return 75
   source_manifest_after_sha256="$(_receipt_source_manifest)" || return 75
+  backend_unit_term_phase=finalizing
+  backend_unit_term_safe=false
   finalize_container || return 75
   return "$backend_unit_first_exit"
 }

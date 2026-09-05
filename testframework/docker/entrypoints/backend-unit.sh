@@ -7,4 +7,5 @@ unset GOMAXPROCS
 . /usr/local/lib/hub/backend-unit/plan.sh
 . /usr/local/lib/hub/backend-unit/execute.sh
 . /usr/local/lib/hub/backend-unit/receipt.sh
+trap 'backend_unit_handle_term' TERM
 backend_unit_main
