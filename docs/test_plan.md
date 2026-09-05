@@ -37,6 +37,17 @@ canonical Docker frontend-unit с 2 GiB/no-swap. Режимы/права, auth/r
 проверены; видимое прочтение, browser/API/storage/WS/media — отдельные gates.
 Результаты и source hashes: [контракт](superpowers/plans/2026-09-05-thread-follow-control.md).
 
+Дополнение2026-09-06: read-through UI покрыт36 новыми genuine unit-кейсами
+через реальные ThreadPanel/Query/hooks/stores и mock HTTP/IntersectionObserver.
+Курсор продвигается через старые ответы по видимому концу выбранного ответа;
+это не доказательство чтения каждого старого сообщения. Oracle проверяет
+focus/visibility, full-intersection, fresh gates, transport/refresh separation,
+single-flight/pending/watermark и устаревшие scope callbacks. Финальный Docker
+frontend-unit: TypeScript PASS,191 файлов/666 тестов PASS,58.20s,2GiB/no-swap.
+Геометрия настоящего браузера, backend/API/DB и пользовательские сценарии
+по-прежнему требуют отдельных Docker SUT-gates.
+[Контракт и triage](superpowers/plans/2026-09-05-thread-read-receipts.md).
+
 ```
         ┌─────────────┐
         │     E2E     │  pytest + playwright-python — критические user paths

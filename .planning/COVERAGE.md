@@ -30,7 +30,16 @@ capabilities, identity/revoke, single-flight, точные server-refetch клю
 RU/EN ошибки, фоновые гонки и focus-return регрессию. Docker frontend-unit:
 TypeScript PASS; 190 файлов / 630 тестов PASS, 54.44s, 2 GiB/no-swap. Это не процент
 готовности модуля или новый statement coverage; API/e2e/browser/media и
-visible-read receipt остаются NOT_RUN/UNBOUND. [Evidence](../docs/superpowers/plans/2026-09-05-thread-follow-control.md).
+real visible-read browser receipt остаются NOT_RUN/UNBOUND. [Evidence](../docs/superpowers/plans/2026-09-05-thread-follow-control.md).
+
+Дополнение 2026-09-06: MSG151-UNR read-through + FOL/CHN gates — автоматическая
+отметка по видимому концу ответа принята на unit-уровне. 36 новых genuine
+сценариев: геометрический witness, identity/root/revoke, follow/capabilities,
+ошибка/retry, pending coalescing и watermark, focus/refetch recovery, exact
+unread refresh без арифметики. Последний Docker frontend-unit: TypeScript PASS,
+191 файлов / 666 тестов PASS,58.20s,2GiB/no-swap; независимое review C/I/M0/0/0.
+Это не процент готовности продукта. Browser/API/storage/media NOT_RUN.
+[Evidence](../docs/superpowers/plans/2026-09-05-thread-read-receipts.md).
 
 | Колонка | Значения |
 |---------|----------|

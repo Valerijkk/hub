@@ -1,8 +1,20 @@
 # Hub — Тестовая документация
 
+## Messenger thread read-through: ветка calls-feature-codex, 2026-09-06
+
+Последний canonical Docker frontend-unit: TypeScript PASS;191 файлов /666
+тестов PASS,58.20s,2GiB/no-swap/6CPU/readonly, engine/Compose exit0, контейнер
+удалён.36 новых genuine случаев в thread-read-receipts.test.tsx проверяют
+видимый конец ответа, защиту scope/прав, дедупликацию, ошибки и явный retry.
+Предшествующий RED662PASS/4FAIL сохранён: два ROOT=code исправлены; два
+ROOT=test требовали дождаться нового наблюдателя после focus/refetch.
+Ассерты, таймауты и runner не ослаблялись. Независимое review C/I/M0/0/0.
+[Хеши, RED/GREEN и ограничения](superpowers/plans/2026-09-05-thread-read-receipts.md).
+Реальный browser/API/storage/media остаётся NOT_RUN; Jitsi не активирован.
+
 ## Messenger follow UI: ветка calls-feature-codex, 2026-09-05
 
-Текущий frontend-unit: TypeScript PASS, 190 файлов / 630 тестов PASS за 54.44s через
+Предыдущий frontend-unit: TypeScript PASS, 190 файлов / 630 тестов PASS за 54.44s через
 `docker compose -f docker-compose.local.yml run --rm frontend-unit`, 2 GiB
 без swap. 29 новых сценариев в `frontend/tests/messenger/thread-follow-control.test.tsx`;
 подробные RED/GREEN, hashes и границы — [в контракте](superpowers/plans/2026-09-05-thread-follow-control.md).

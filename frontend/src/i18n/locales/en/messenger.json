@@ -48,6 +48,10 @@
 		"updating": "Updating subscription…",
 		"error": "Unable to update thread subscription"
 	},
+	"threadRead": {
+		"error": "Unable to mark thread replies as read",
+		"retry": "Retry marking as read"
+	},
 	"mentions": {
 		"all": "All",
 		"online": "Online",

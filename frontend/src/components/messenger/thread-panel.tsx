@@ -11,6 +11,7 @@ import { MessageComposer } from "./message-composer";
 import { MessageItem } from "./message-item";
 import { ThreadFollowControl } from "./thread-follow-control";
 import { ThreadIssueLinks } from "./thread-issue-links";
+import { ThreadReadReceipts } from "./thread-read-receipts";
 
 /** Пропсы компонента ThreadPanel. */
 interface ThreadPanelProps {
@@ -59,6 +60,7 @@ export function ThreadPanel({
 	);
 	const returnFocusRef = useRef<HTMLElement | null>(null);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
+	const replyContainerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		returnFocusRef.current =
@@ -77,10 +79,19 @@ export function ThreadPanel({
 		queryFn: () => getThread(channelId, messageId),
 		enabled: !!channelId && !!messageId && !!userId && !isRevoked,
 	});
-	const {
-		messages: replies,
-		isLoading: isRepliesLoading,
-	} = useThreadMessages(channelId, messageId);
+	const threadMessagesQuery = useThreadMessages(channelId, messageId);
+	const replies = threadMessagesQuery.messages;
+	const isRepliesLoading = threadMessagesQuery.isLoading;
+	const detailReady =
+		parentQuery.isSuccess &&
+		!parentQuery.isError &&
+		!parentQuery.isFetching &&
+		Boolean(parentQuery.data);
+	const repliesReady =
+		threadMessagesQuery.isSuccess &&
+		!threadMessagesQuery.isError &&
+		!threadMessagesQuery.isFetching &&
+		Boolean(threadMessagesQuery.data);
 	const parentMessage =
 		userId && !isRevoked ? (parentQuery.data?.parent ?? null) : null;
 	const isLoading = userId && !isRevoked ? isRepliesLoading : false;
@@ -165,17 +176,39 @@ export function ThreadPanel({
 						<span className="text-sm text-t2">Нет ответов</span>
 					</div>
 				) : (
-					<div>
+					<div ref={replyContainerRef}>
 						{replies.map((reply) => (
-							<MessageItem
-								key={reply.id}
-								message={reply}
-								channelId={channelId}
-							/>
+							<div key={reply.id} className="relative">
+								<MessageItem message={reply} channelId={channelId} />
+								<span
+									aria-hidden="true"
+									className="pointer-events-none absolute bottom-0 left-0 h-px w-px"
+									data-thread-read-marker=""
+									data-message-id={reply.id}
+								/>
+							</div>
 						))}
 					</div>
 				)}
 			</ScrollArea>
+
+			{userId &&
+				!isRevoked &&
+				parentQuery.isSuccess &&
+				!parentQuery.isError &&
+				parentQuery.data && (
+					<ThreadReadReceipts
+						key={JSON.stringify([channelId, messageId, userId])}
+						channelId={channelId}
+						rootMessageId={messageId}
+						userId={userId}
+						replies={replies}
+						containerRef={replyContainerRef}
+						detail={parentQuery.data}
+						detailReady={detailReady}
+						repliesReady={repliesReady}
+					/>
+				)}
 
 			{/* Composer для ответа в тред */}
 			{userId && !isRevoked && (

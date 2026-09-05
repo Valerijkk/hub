@@ -1240,10 +1240,51 @@ Prior race RED 625 PASS / 5 FAIL included four unchanged 15s timeouts; all four 
 in the final run without test/profile changes. Their transient cause remains
 UNKNOWN; failing reports were retained. Exact contract, hashes and evidence:
 docs/superpowers/plans/2026-09-05-thread-follow-control.md.
-Next frontend gap is a separately scoped visible-thread markThreadRead
-integration: API exists with no production caller. Backend MPR-02 and Calls
-08C3 still wait for an executable Go gate; no more 2 GiB OOM retries. Jitsi is
-not activated; real call/media, browser and module acceptance remain NOT_RUN.
+The following visible-thread markThreadRead atom is now unit-accepted as
+recorded below. Backend MPR-02 and Calls08C3 still wait for an executable Go
+gate; no more2GiB OOM retries. Jitsi is not activated; real call/media, browser
+and module acceptance remain NOT_RUN.
+
+Active continuation (2026-09-06 local, source baseline f1691e34): visible
+thread read-through UI UNIT_ACCEPTED, publication pending. Independent final
+source review C/I/M0/0/0; canonical Docker frontend-unit engine
+c68613e366df5157482f6b65693457156387b4fc3e78229b320e7c4e83a8364e has
+TypeScriptPASS,191files/666tests PASS,58.20s,36newcases. Inspected2GiB/no-swap,
+6CPU/readonly; Compose/engineexit0,75s, lifecycle no OOM event, destroyed.
+The contract marks through a visible answer end including older unseen
+answers; it never chooses fetched-but-unseen newer answers or claims that
+each older answer was individually read. Exact code/oracle hashes, two REDs,
+ROOT=code versus ROOT=test triage, review and GREEN are saved in
+docs/superpowers/plans/2026-09-05-thread-read-receipts.md.
+Next unblocked atom: scoped SearchDialog error/empty/retry lifecycle, frozen
+in docs/superpowers/plans/2026-09-06-search-dialog-lifecycle.md; independent
+plan preflight C/I/M0/0/0, test-only payload being authored, production NOT_RUN.
+Founder requested autonomous overnight progress: record new blockers in the
+communications completion queue, continue independent tasks. No RAM/image/
+Git authority expansion inferred; Mail resources remain untouched.
+
+Independent next-flow discovery also found an open server JoinChannel gap:
+handler.go only applies authMw; handler_channels.go directly calls
+JoinChannel; service_channels.go:356 reads channel/type/membership and writes
+membership without the Phase151 fresh tenant/active-actor/project-membership
+proof used by Discover and ChannelAccess. A prior can_join DTO is not server
+authorization. Root confirmed the service body. No claim of live exploit or
+persistence-level guard absence is made; runtime is NOT_RUN. The planned
+Browse Join UI must wait for a separately tested backend authorization fix.
+No Join, Leave, Mail or Calls source was changed by this discovery. The
+requested temporary Go-only 4GiB/no-swap exception remains UNAPPROVED;
+backend retries at 2GiB remain prohibited after confirmed compiler OOM.
+
+Historical initial read-through RED: engine e740b18b114ea3a293fc3a116d9a9887c936a67cc2df1df540187190a86045e4,
+actual2GiB/no-swap/6CPU/readonly, TypeScriptPASS; Vitest638PASS23FAIL/661cases,
+73.70s. Seventeen new failures prove absent receipt behavior. One mixed-page
+fixture error was corrected without weakening real-hook empty-ID masking;
+five unchanged15s timeouts have prior nondeterministic reports, root cause
+UNKNOWN. No timeout/profile/source relaxation. Final32-case oracle reviewed
+C/I/M0/0/0; this initial checkpoint is superseded by the final GREEN above.
+Browser/API acceptance remains NOT_RUN; exact evidence/limitations
+are in the read-receipts plan. Whole completion dependency queue is saved at
+docs/superpowers/plans/2026-09-05-communications-completion-queue.md.
 
 **Previous checkpoint detail:** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and
