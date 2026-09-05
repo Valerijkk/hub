@@ -43,6 +43,9 @@ _FINAL_RECEIPT = "final-receipt.json"
 _OBSERVER_RECEIPT = "observer-receipt.json"
 _SEAL = "SEAL"
 _MAX_RECEIPT_BYTES = 64 * 1024 * 1024
+_OWNED_OUTPUTS = frozenset((_FINAL_RECEIPT, _OBSERVER_RECEIPT, _SEAL))
+_DescriptorIdentity = tuple[int, int, int, int, int, int, int]
+_TreeEvidence = tuple[_DescriptorIdentity, str, int]
 
 
 def _canonical_json_bytes(document: Mapping[str, object]) -> bytes:
@@ -294,6 +297,14 @@ class _SafePublicationWriter:
         except Exception as exc:
             raise PublicationError("terminal marker directory state is unavailable") from exc
 
+    def list_entries(self, run_dir: Path) -> tuple[str, ...]:
+        """Enumerate the retained run directory through its anchored descriptor."""
+
+        try:
+            return safe_paths.list_directory_relative(run_dir.parent, run_dir.name)
+        except Exception as exc:
+            raise PublicationError("run directory tree is unavailable") from exc
+
     def assert_terminal_and_stable(self, run_dir: Path) -> None:
         _read_regular_relative(run_dir, _CONTAINER_RECEIPT)
 
@@ -429,6 +440,149 @@ def _inventory_entry(observer: Mapping[str, object], path: str, payload: bytes) 
     record = matches[0]
     if record.get("sha256") != _digest(payload) or type(record.get("size")) is not int or record["size"] != len(payload):
         raise PublicationError(f"observer artifact inventory does not bind exact {path} bytes")
+
+
+def _container_tree_bindings(container: Mapping[str, object]) -> dict[str, tuple[str, int]]:
+    """Return the exact one-level artifact names declared by a valid container receipt."""
+
+    records = container.get("artifact_inventory")
+    if type(records) is not list:
+        raise PublicationError("container artifact inventory is malformed")
+    bindings: dict[str, tuple[str, int]] = {}
+    for record in records:
+        if not isinstance(record, Mapping):
+            raise PublicationError("container artifact inventory row is malformed")
+        path = record.get("path")
+        digest = record.get("sha256")
+        size = record.get("size")
+        if (
+            type(path) is not str
+            or not path
+            or "/" in path
+            or "\\" in path
+            or ":" in path
+            or path in (".", "..")
+            or type(digest) is not str
+            or type(size) is not int
+            or size < 0
+            or path in _OWNED_OUTPUTS
+            or path in bindings
+        ):
+            raise PublicationError("container artifact inventory is not a safe exact run tree")
+        bindings[path] = (digest, size)
+    if not bindings:
+        raise PublicationError("container artifact inventory is empty")
+    return bindings
+
+
+def _exact_tree_names(
+    lister: Callable[[Path], tuple[str, ...]],
+    run_dir: Path,
+    expected: frozenset[str],
+) -> None:
+    try:
+        actual = lister(run_dir)
+    except Exception as exc:
+        raise PublicationError("run directory tree is unavailable") from exc
+    if (
+        type(actual) is not tuple
+        or any(
+            type(name) is not str
+            or not name
+            or "/" in name
+            or "\\" in name
+            or ":" in name
+            or name in (".", "..")
+            for name in actual
+        )
+        or len(actual) != len(set(actual))
+        or frozenset(actual) != expected
+    ):
+        raise PublicationError("run directory tree does not exactly match its receipt inventory")
+
+
+def _capture_base_tree(
+    reader: Callable[[Path, str], tuple[bytes, _DescriptorIdentity]],
+    terminal_lister: Callable[[Path], tuple[str, ...]],
+    tree_lister: Callable[[Path], tuple[str, ...]],
+    run_dir: Path,
+    container: Mapping[str, object],
+    container_payload: bytes,
+    container_identity: _DescriptorIdentity,
+    expected_marker: str,
+) -> tuple[frozenset[str], dict[str, _TreeEvidence]]:
+    """Snapshot every container-declared regular file and the terminal marker."""
+
+    bindings = _container_tree_bindings(container)
+    expected = frozenset((*bindings, _CONTAINER_RECEIPT))
+    if expected_marker not in bindings:
+        raise PublicationError("container inventory does not bind its terminal marker")
+    _exact_tree_names(tree_lister, run_dir, expected)
+    evidence: dict[str, _TreeEvidence] = {}
+    for path in sorted(expected):
+        payload, identity = _read_payload(
+            reader,
+            run_dir,
+            path,
+            expected_identity=container_identity if path == _CONTAINER_RECEIPT else None,
+        )
+        if path == _CONTAINER_RECEIPT:
+            if payload != container_payload:
+                raise PublicationError("container receipt bytes changed before tree capture")
+        else:
+            digest, size = bindings[path]
+            if _digest(payload) != digest or len(payload) != size:
+                raise PublicationError(f"container inventory does not bind exact {path} bytes")
+        evidence[path] = (identity, _digest(payload), len(payload))
+    marker_identity = _assert_empty_terminal_marker(
+        reader,
+        terminal_lister,
+        run_dir,
+        expected_marker,
+        expected_identity=evidence[expected_marker][0],
+    )
+    if evidence[expected_marker][0] != marker_identity:
+        raise PublicationError("terminal marker identity changed during tree capture")
+    _exact_tree_names(tree_lister, run_dir, expected)
+    return expected, evidence
+
+
+def _revalidate_tree(
+    reader: Callable[[Path, str], tuple[bytes, _DescriptorIdentity]],
+    terminal_lister: Callable[[Path], tuple[str, ...]],
+    tree_lister: Callable[[Path], tuple[str, ...]],
+    run_dir: Path,
+    expected_marker: str,
+    expected: frozenset[str],
+    evidence: Mapping[str, _TreeEvidence],
+) -> None:
+    """Require the exact tree and every retained descriptor identity immediately at commit."""
+
+    if frozenset(evidence) != expected:
+        raise PublicationError("tree evidence does not cover the exact expected publication tree")
+    _exact_tree_names(tree_lister, run_dir, expected)
+    for path in sorted(expected):
+        expected_identity, expected_digest, expected_size = evidence[path]
+        payload, identity = _read_payload(
+            reader,
+            run_dir,
+            path,
+            expected_identity=expected_identity,
+        )
+        if (
+            identity != expected_identity
+            or _digest(payload) != expected_digest
+            or len(payload) != expected_size
+        ):
+            raise PublicationError(f"{path} changed across publication tree checks")
+    _assert_empty_terminal_marker(
+        reader,
+        terminal_lister,
+        run_dir,
+        expected_marker,
+        expected_identity=evidence[expected_marker][0],
+    )
+    _exact_tree_names(tree_lister, run_dir, expected)
 
 
 def _validate_container_bytes(
@@ -649,6 +803,7 @@ def publish(
     try:
         assert_terminal = active_writer.assert_terminal_and_stable
         list_terminal_markers = active_writer.list_terminal_markers
+        list_entries = active_writer.list_entries
         assert_absent = active_writer.assert_absent
         read = active_writer.read
         write = active_writer.write
@@ -656,7 +811,7 @@ def publish(
         rename = active_writer.rename_same_directory
     except Exception as exc:
         raise PublicationError("publication writer seam is incomplete") from exc
-    if not all(callable(call) for call in (assert_terminal, list_terminal_markers, assert_absent, read, write, remove, rename)):
+    if not all(callable(call) for call in (assert_terminal, list_terminal_markers, list_entries, assert_absent, read, write, remove, rename)):
         raise PublicationError("publication writer seam is incomplete")
 
     _normalize_prewrite(lambda: assert_terminal(run_dir))
@@ -691,6 +846,16 @@ def publish(
         expected_marker,
         expected_identity=marker_identity,
     )
+    base_names, base_evidence = _capture_base_tree(
+        read,
+        list_terminal_markers,
+        list_entries,
+        run_dir,
+        container,
+        container_payload,
+        container_identity,
+        expected_marker,
+    )
     final_payload = _canonical_json_bytes(final)
     _inventory_entry(observer, _FINAL_RECEIPT, final_payload)
     observer_payload = _canonical_json_bytes(observer)
@@ -699,6 +864,15 @@ def publish(
     seal_attempted = False
     final_owned = False
     try:
+        _revalidate_tree(
+            read,
+            list_terminal_markers,
+            list_entries,
+            run_dir,
+            expected_marker,
+            base_names,
+            base_evidence,
+        )
         _normalize_write(lambda: write(run_dir / _FINAL_RECEIPT, final_payload))
         _, final_identity = _read_exact(read, run_dir, _FINAL_RECEIPT, final_payload)
         _normalize_write(lambda: write(run_dir / _OBSERVER_RECEIPT, observer_payload))
@@ -751,12 +925,31 @@ def publish(
             or parsed_seal["observer_receipt_sha256"] != _digest(written_observer_payload)
         ):
             raise PublicationError("written SEAL does not bind exact written observer bytes")
-        _assert_empty_terminal_marker(
+        complete_tree = frozenset((*base_names, *_OWNED_OUTPUTS))
+        complete_evidence: dict[str, _TreeEvidence] = dict(base_evidence)
+        complete_evidence[_FINAL_RECEIPT] = (
+            final_identity,
+            _digest(final_payload),
+            len(final_payload),
+        )
+        complete_evidence[_OBSERVER_RECEIPT] = (
+            observer_identity,
+            _digest(observer_payload),
+            len(observer_payload),
+        )
+        complete_evidence[_SEAL] = (
+            seal_identity,
+            _digest(written_seal),
+            len(written_seal),
+        )
+        _revalidate_tree(
             read,
             list_terminal_markers,
+            list_entries,
             run_dir,
             expected_marker,
-            expected_identity=marker_identity,
+            complete_tree,
+            complete_evidence,
         )
         try:
             _rename_with_outcome(rename, run_dir, final_dir)
