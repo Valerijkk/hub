@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, X } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChannelCapabilities, ChannelCapability, Message } from "@/api/messenger";
 import {
 	addBookmark,
@@ -11,6 +12,7 @@ import {
 } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { messagesQueryKey } from "@/hooks/use-messages";
+import { toastApiError } from "@/lib/format-api-error";
 import { isSafeUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
 import { useAIStore } from "@/stores/ai-store";
@@ -47,6 +49,15 @@ interface MessageItemProps {
 	dateSeparatorText?: string;
 	/** Показать разделитель новых сообщений. */
 	showNewMessagesDivider?: boolean;
+}
+
+interface DeleteScope {
+	lifecycle: number;
+	mounted: boolean;
+	userId: string | undefined;
+	channelId: string;
+	messageId: string;
+	messageChannelId: string | undefined;
 }
 
 /** Форматирует время из ISO-строки в "ЧЧ:ММ". */
@@ -163,10 +174,12 @@ function MessageItemInner({
 	dateSeparatorText,
 	showNewMessagesDivider,
 }: MessageItemProps) {
+	const { t } = useTranslation("messenger");
 	const [showReactionPicker, setShowReactionPicker] = useState(false);
 	const [showForwardDialog, setShowForwardDialog] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editText, setEditText] = useState("");
+	const [deletePending, setDeletePending] = useState(false);
 	const queryClient = useQueryClient();
 	const openThread = useMessengerStore((s) => s.openThread);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
@@ -174,6 +187,18 @@ function MessageItemInner({
 		state.revokedChannelIds.has(channelId),
 	);
 	const currentUserId = useAuthStore((s) => s.user?.id);
+	const liveDeleteCapabilities = useMessengerStore((state) =>
+		state.channels.find((item) => item.id === channelId)?.capabilities,
+	);
+	const deleteScopeRef = useRef<DeleteScope>({
+		lifecycle: 0,
+		mounted: false,
+		userId: undefined,
+		channelId: "",
+		messageId: "",
+		messageChannelId: undefined,
+	});
+	const deleteRequestRef = useRef<object | null>(null);
 	const capabilitiesRef = useRef(capabilities);
 	capabilitiesRef.current = capabilities;
 	const loadBotInfo = useAIStore((s) => s.loadBotInfo);
@@ -193,6 +218,40 @@ function MessageItemInner({
 		message && typeof message.id === "string" ? message.id : "";
 	const messageContentText = message?.content_text;
 	const messageContentJson = message?.content_json;
+
+	useLayoutEffect(() => {
+		const lifecycle = deleteScopeRef.current.lifecycle + 1;
+		deleteScopeRef.current = {
+			lifecycle,
+			mounted: !channelRevoked,
+			userId: currentUserId,
+			channelId,
+			messageId: safeMessageId,
+			messageChannelId: message?.channel_id,
+		};
+		deleteRequestRef.current = null;
+		setDeletePending(false);
+		return () => {
+			if (deleteScopeRef.current.lifecycle !== lifecycle) return;
+			deleteScopeRef.current = {
+				...deleteScopeRef.current,
+				lifecycle: lifecycle + 1,
+				mounted: false,
+			};
+			deleteRequestRef.current = null;
+		};
+	}, [
+		capabilities?.can_delete_message,
+		capabilities?.is_member,
+		channelId,
+		channelRevoked,
+		currentUserId,
+		liveDeleteCapabilities?.can_delete_message,
+		liveDeleteCapabilities?.is_member,
+		message?.channel_id,
+		message?.sender_id,
+		safeMessageId,
+	]);
 
 	const canPinNow = useCallback(() => {
 		const state = useMessengerStore.getState();
@@ -239,6 +298,30 @@ function MessageItemInner({
 			currentCapabilities?.can_delete_message === true;
 		return canDeleteOwn || canDeleteAny;
 	}, [capabilities, channelId, isOwnMessage]);
+
+	const isCurrentDeleteScope = useCallback(
+		(
+			request: object,
+			lifecycle: number,
+			capturedUserId: string,
+			capturedChannelId: string,
+			capturedMessageId: string,
+		) => {
+			const scope = deleteScopeRef.current;
+			return (
+				deleteRequestRef.current === request &&
+				scope.lifecycle === lifecycle &&
+				scope.mounted &&
+				scope.userId === capturedUserId &&
+				scope.channelId === capturedChannelId &&
+				scope.messageId === capturedMessageId &&
+				scope.messageChannelId === capturedChannelId &&
+				useAuthStore.getState().user?.id === capturedUserId &&
+				!useMessengerStore.getState().isChannelRevoked(capturedChannelId)
+			);
+		},
+		[],
+	);
 
 	useEffect(() => {
 		if (channelRevoked || !canReact) setShowReactionPicker(false);
@@ -288,9 +371,48 @@ function MessageItemInner({
 	}, [messageContentText, messageContentJson]);
 
 	const handleDelete = useCallback(async () => {
-		if (!canDeleteMessage()) return;
-		await deleteMessage(channelId, safeMessageId);
-	}, [canDeleteMessage, channelId, safeMessageId]);
+		if (deleteRequestRef.current) return;
+		const capturedUserId = currentUserId;
+		const capturedChannelId = channelId;
+		const capturedMessageId = safeMessageId;
+		if (!capturedUserId || !capturedMessageId || message?.channel_id !== capturedChannelId) {
+			return;
+		}
+		const request = {};
+		const lifecycle = deleteScopeRef.current.lifecycle;
+		deleteRequestRef.current = request;
+		if (
+			!isCurrentDeleteScope(request, lifecycle, capturedUserId, capturedChannelId, capturedMessageId) ||
+			!canDeleteMessage()
+		) {
+			if (deleteRequestRef.current === request) deleteRequestRef.current = null;
+			return;
+		}
+		setDeletePending(true);
+		try {
+			await deleteMessage(capturedChannelId, capturedMessageId);
+		} catch (error) {
+			if (
+				isCurrentDeleteScope(request, lifecycle, capturedUserId, capturedChannelId, capturedMessageId) &&
+				canDeleteMessage()
+			) {
+				toastApiError(error, t("messageDelete.error"));
+			}
+		} finally {
+			if (isCurrentDeleteScope(request, lifecycle, capturedUserId, capturedChannelId, capturedMessageId)) {
+				deleteRequestRef.current = null;
+				setDeletePending(false);
+			}
+		}
+	}, [
+		canDeleteMessage,
+		channelId,
+		currentUserId,
+		isCurrentDeleteScope,
+		message?.channel_id,
+		safeMessageId,
+		t,
+	]);
 
 	const handlePin = useCallback(async () => {
 		const capturedUserId = currentUserId;
@@ -689,6 +811,7 @@ function MessageItemInner({
 							}}
 							onEdit={handleStartEdit}
 							onDelete={handleDelete}
+							deletePending={deletePending}
 						/>
 					</div>
 				)}

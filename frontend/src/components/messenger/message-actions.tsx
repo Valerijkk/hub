@@ -27,6 +27,7 @@ interface MessageActionsProps {
 	onForward: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
+	deletePending?: boolean;
 }
 
 function ActionButton({
@@ -34,14 +35,17 @@ function ActionButton({
 	onClick,
 	children,
 	destructive = false,
+	disabled = false,
 }: {
 	label: string;
 	onClick: () => void;
 	children: React.ReactNode;
 	destructive?: boolean;
+	disabled?: boolean;
 }) {
 	return (
 		<Button
+			type="button"
 			variant="ghost"
 			size="icon"
 			className={cn(
@@ -52,6 +56,7 @@ function ActionButton({
 			title={label}
 			aria-label={label}
 			onClick={onClick}
+			disabled={disabled}
 		>
 			{children}
 		</Button>
@@ -73,6 +78,7 @@ export function MessageActions({
 	onForward,
 	onEdit,
 	onDelete,
+	deletePending = false,
 }: MessageActionsProps) {
 	return (
 		<div
@@ -124,7 +130,12 @@ export function MessageActions({
 			)}
 			{((isOwn && capabilities?.is_member === true) ||
 			capabilities?.can_delete_message === true) && (
-				<ActionButton label="Удалить сообщение" onClick={onDelete} destructive>
+				<ActionButton
+					label="Удалить сообщение"
+					onClick={onDelete}
+					destructive
+					disabled={deletePending}
+				>
 					<Trash2 className="h-3.5 w-3.5" />
 				</ActionButton>
 			)}

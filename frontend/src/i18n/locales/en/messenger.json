@@ -52,6 +52,9 @@
 		"error": "Unable to mark thread replies as read",
 		"retry": "Retry marking as read"
 	},
+	"messageDelete": {
+		"error": "Unable to delete message"
+	},
 	"mentions": {
 		"all": "All",
 		"online": "Online",
