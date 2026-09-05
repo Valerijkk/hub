@@ -5,10 +5,14 @@ set -eu
 
 cd /opt/hub/testframework
 export PYTHONSAFEPATH=1
+export PYTHONPATH=/opt/hub/testframework/src:/opt/hub/testframework
 
 case "$1" in
   contract)
     exec /opt/hub/.venv/bin/pytest selftests --strict-markers
+    ;;
+  backend-unit-receipt)
+    exec /opt/hub/.venv/bin/python -m observers.backend_unit.container_packet
     ;;
   api)
     exec /opt/hub/.venv/bin/pytest -p hub_testkit.pytest_plugin.plugin tests/api --hub-case-root cases --hub-case-schema schemas/test-case.schema.json --hub-marker-policy policies/markers.toml --hub-redaction-policy policies/redaction.toml --strict-markers

@@ -633,7 +633,7 @@ def test_current_source_overlays_reject_writable_stale_and_undersized_mutations(
     python_contract_volumes = python_contract["volumes"]
     assert (
         type(python_contract_volumes) is tuple
-        and len(python_contract_volumes) == 5
+        and len(python_contract_volumes) == 9
     )
     selftests_bind = python_contract_volumes[2]
     assert isinstance(selftests_bind, Mapping)
@@ -660,16 +660,14 @@ def test_current_source_overlays_reject_writable_stale_and_undersized_mutations(
             "python-contract",
             {
                 "volumes": (
-                    python_contract_volumes[0],
-                    python_contract_volumes[1],
-                    python_contract_volumes[2],
-                    python_contract_volumes[4],
+                    *python_contract_volumes[:7],
+                    python_contract_volumes[8],
                 )
             },
         )
     )
 
-    phase_plan = python_contract_volumes[4]
+    phase_plan = python_contract_volumes[8]
     assert isinstance(phase_plan, Mapping)
     writable_phase_plan = dict(phase_plan)
     writable_phase_plan["read_only"] = False
@@ -679,7 +677,7 @@ def test_current_source_overlays_reject_writable_stale_and_undersized_mutations(
             "python-contract",
             {
                 "volumes": (
-                    *python_contract_volumes[:4],
+                    *python_contract_volumes[:8],
                     MappingProxyType(writable_phase_plan),
                 )
             },
@@ -4963,6 +4961,7 @@ def _public_service_overrides(name: str) -> Mapping[str, object]:
         ),
         "python-contract": MappingProxyType(
             {
+                "memswap_limit": "2g",
                 "volumes": (
                     _qa_reports_bind(),
                     _read_only_bind(
@@ -4974,6 +4973,22 @@ def _public_service_overrides(name: str) -> Mapping[str, object]:
                         "/opt/hub/testframework/selftests",
                     ),
                     _read_only_bind(
+                        "./testframework/observers",
+                        "/opt/hub/testframework/observers",
+                    ),
+                    _read_only_bind(
+                        "./testframework/schemas",
+                        "/opt/hub/testframework/schemas",
+                    ),
+                    _read_only_bind(
+                        "./testframework/policies",
+                        "/opt/hub/testframework/policies",
+                    ),
+                    _read_only_bind(
+                        "./testframework/docker",
+                        "/opt/hub/testframework/docker",
+                    ),
+                    _read_only_bind(
                         "./docker-compose.local.yml",
                         "/opt/hub/docker-compose.local.yml",
                     ),
@@ -4982,6 +4997,10 @@ def _public_service_overrides(name: str) -> Mapping[str, object]:
                         "/opt/hub/.planning/phases/"
                         "130-tf-traceability-gates/PLAN.md",
                     ),
+                ),
+                "entrypoint": (
+                    "/bin/sh",
+                    "/opt/hub/testframework/docker/entrypoints/python-qa.sh",
                 ),
             }
         ),
@@ -13032,9 +13051,14 @@ def _python_dispatcher_is_closed(text: object) -> bool:
             '[ "$#" -eq 1 ] || exit 64',
             "cd /opt/hub/testframework",
             "export PYTHONSAFEPATH=1",
+            "export PYTHONPATH=/opt/hub/testframework/src:/opt/hub/testframework",
             'case "$1" in',
             "contract)",
             "exec /opt/hub/.venv/bin/pytest selftests --strict-markers",
+            ";;",
+            "backend-unit-receipt)",
+            "exec /opt/hub/.venv/bin/python -m "
+            "observers.backend_unit.container_packet",
             ";;",
             "api)",
             "exec /opt/hub/.venv/bin/pytest -p "

@@ -1,6 +1,6 @@
 # Consolidated QA container assets
 
-This directory owns immutable execution assets consumed by the root Compose
+This directory owns execution assets consumed by the root Compose
 contract. It does not own a launcher, host fallback, service discovery, or
 runtime authority.
 
@@ -17,15 +17,17 @@ runtime authority.
 All public targets use pinned base digests and UID/GID 10001. Dependency
 resolution occurs only during image construction. Backend and frontend test
 sequences execute only from their fixed container entrypoints, while Python
-profiles dispatch only to literal pytest or Locust commands.
+profiles dispatch only to literal pytest, Locust or the fixed offline packet
+verifier command. Source-bound assets are not image-immutable inputs.
 
 ## `backend-unit` low-disk execution
 
-The legacy direct `docker compose ... run --rm backend-unit` spelling is not
-the current executable canon. The hard2g candidate below owns the exact
-observer choreography and remains **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN**;
-the dated direct-run topology, if retained in repository history, is
-historical evidence only.
+The September 5 Docker-only packet plan supersedes the Windows observer
+choreography. Run backend verification only through the exact `backend-unit`
+Compose service; inspect the completed packet through `python-contract`.
+The backend candidate remains **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN** until
+its actual build/vet/unit/race run is accepted. Packet integrity alone cannot
+close that gate.
 
 The authoritative candidate topology, resource envelope, rebuild boundary, and
 observer sequence are defined once in [hard2g `backend-unit`
@@ -68,25 +70,50 @@ docker compose -f docker-compose.local.yml run --rm python-contract
 ```
 
 The service uses an explicit writable `/reports` bind and read-only binds for
-current `testframework/src` and `testframework/selftests` at
-`/opt/hub/testframework/src` and `/opt/hub/testframework/selftests`. It also
+current `testframework/src`, `selftests`, `observers`, `schemas`,
+`policies` and `docker` at their matching `/opt/hub/testframework/` paths. It also
 binds the root Compose file at `/opt/hub/docker-compose.local.yml` and the
 Phase 130 plan at `/opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md`.
 These are the exact image targets used by the framework architecture selftests.
-The resolved virtual environment, package metadata/lock, policies, schemas,
-Docker assets, and other image-owned configuration remain in the image; no SUT
-product source is mounted.
+The resolved virtual environment, package metadata/lock and other non-overlaid
+configuration remain in the image; no SUT product source is mounted.
+The entrypoint is fixed to `/bin/sh` and the read-only current `python-qa.sh`.
+`PYTHONPATH` contains only the two fixed container package roots. Memory and
+memory-plus-swap are both capped at 2 GiB; no Docker socket is exposed.
 
 An explicit, separately authorized rebuild is required for
 `testframework/pyproject.toml`, `testframework/uv.lock`,
-`testframework/.python-version`, `testframework/policies/**`,
-`testframework/schemas/**`, `testframework/docker/**`, or another image-owned
-configuration change. Ordinary edits under `src` or `selftests` do not add
-`--build`. On 2026-08-24, the canonical `python-contract` command executed
+`testframework/.python-version` or another image-owned configuration change.
+Changes to overlaid Python helpers, policies, schemas and dispatcher bytes do
+not add `--build`; Dockerfile/dependency changes still require an image rebuild
+before claiming those image changes are executed. On 2026-08-24, the canonical
+`python-contract` command executed
 this exact partial overlay from an existing local image (no build, pull, or
 package install), exited 0, and passed 182 framework selftests in 9.53s. This
 is limited to the framework contract target and topology; it does not imply
 product-SUT, deployed-runtime, API/integration, or Jitsi evidence.
+
+### Offline backend packet check
+
+After the owning backend container exits, select its exact report directory:
+
+```text
+docker compose -f docker-compose.local.yml run --rm -e HUB_BACKEND_UNIT_RUN_DIR=backend-unit-0123456789ab.partial python-contract backend-unit-receipt
+```
+
+Replace the example hostname with the actual task-owned run. There is no
+latest-run discovery, arbitrary command or host helper. The fixed verifier
+checks schema/semantics, safe paths, exact inventory, artifact sizes/hashes and
+terminal marker under a 64 MiB unique-packet budget. It rejects extra arguments
+or missing input. `DOCKER_ARTIFACT_PACKET_PASS` means artifact integrity only:
+failed and aborted test runs can also have intact packets. It is not a passing
+Go gate, host seal, source/image attestation or product-readiness claim.
+
+September 5 evidence: all 17 new packet/launcher/shell selftests pass in Docker.
+The latest full framework run is **480 passed / 71 failed** (551 collected,
+19.94s); full framework acceptance remains **NOT_ACCEPTED**. The remaining
+observer API/fixture and lexical/AST contract failures are recorded in the
+[active plan](../../docs/superpowers/plans/2026-09-05-docker-only-backend-packet.md).
 
 ## hard2g `backend-unit` candidate
 
@@ -104,23 +131,12 @@ image-generated Ent packages and resolved Go module cache remain authoritative.
 Ordinary edits within those six roots do not add `--build`; `backend/go.mod`,
 `backend/go.sum`, generated Ent output (including a schema change requiring
 regeneration), and edits outside them require a separately authorized rebuild.
-The fixed observer command is:
-
-```text
-python testframework/observers/backend_unit/observe.py --compose-project worktree-master
-```
-
-The final choreography is root handoff `prebuild`, one authorized build,
-`python-contract` GREEN, root handoff `postgreen`, then start the observer as a
-separately managed process. The observer does **not** launch Compose. Wait for
-its `READY` signal, then separately issue exactly once `docker compose -f
-docker-compose.local.yml run --rm backend-unit`. The normal terminal receipt is
-`COMPLETE`. TERM is
-eligible for `ABORTED` only in safe `bootstrap` or `execution`; cold, planning,
-or uncertain paths exit `75` without a receipt. A terminal abort requires no
-more than one guarded stop plus the matching same-session `die` event showing
-exit `143`, no OOM, and no error. Do not manually stop, rename, or delete a
-candidate container or its reports.
+The old Windows `root_handoff.py` / `observe.py` choreography is superseded
+and is not an executable fallback. Historical observer receipts remain
+historical; do not fabricate their `SEAL` from an offline packet result.
+The current receipt states are `CONTAINER_COMPLETE` and `CONTAINER_ABORTED`.
+No automatic stop/cleanup authority is added by the packet verifier. Do not
+rename or delete candidate containers or existing reports to obtain a PASS.
 
 ## Retained files
 

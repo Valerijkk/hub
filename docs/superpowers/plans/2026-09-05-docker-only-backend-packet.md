@@ -19,7 +19,7 @@
 - Keep source read-only binds to avoid rebuilding the Go image for every source atom. Do not describe these mutable host-backed sources as image-immutable.
 - `validate_container_packet(reports_root: Path, run_dir: str) -> None` raises `ReceiptContractError` for an unusable packet. Select one explicit `backend-unit-[0-9a-f]{12,64}.partial` directory, never latest/glob discovery. Its hostname must match the receipt.
 - Use descriptor-based bounded reads and directory enumeration from `safe_paths.py`; reject traversal, symlinks, hardlinks, non-regular files, extra/missing entries, duplicate JSON keys, non-finite JSON and incorrect schema/semantics.
-- Require the exact flat inventory tree plus `container-receipt.json`; match every artifact's SHA-256 and size, the state-specific terminal marker, and the cumulative 64 MiB packet bound. Recheck receipt bytes and directory names after reads. Input must be quiescent after the owning container exits; this is not adversarial host attestation.
+- Require the exact flat inventory tree plus `container-receipt.json`; COMPLETE has exactly 22 non-receipt artifacts (owner, marker and five artifacts per stage). Match every artifact's SHA-256 and size, the state-specific terminal marker, and the cumulative 64 MiB unique-packet bound. Count the receipt once; its final reread is separately bounded by its original size. Recheck receipt bytes and directory names after reads. Input must be quiescent after the owning container exits; this is not adversarial host attestation.
 - The only new success label is `DOCKER_ARTIFACT_PACKET_PASS`. It proves packet integrity, not passing tests: a valid failed or aborted run can have an intact packet. It does not produce `SEAL`, `SEALED_*`, a Windows resource receipt, an image-identity claim or product readiness.
 - Actual backend acceptance still needs the matching Docker run's exit status, complete build/vet/unit/race results, enforced resource invariants and unchanged intended subject/oracle. Missing evidence remains `NOT_RUN` / `NOT_ACCEPTED`.
 
@@ -31,16 +31,16 @@
 
 **Produces:** The frozen `validate_container_packet` API above.
 
-- [ ] Write genuine temporary-directory selftests: intact COMPLETE/ABORTED packets; changed, missing and extra artifacts; mismatched marker/hostname; traversal/symlink; duplicate JSON and oversized reads.
-- [ ] Observe expected missing-module RED in the exact `python-contract` Docker service before implementation. Do not treat unrelated collection errors as the expected RED.
-- [ ] Implement bounded validation with existing primitives; valid packet returns `None`, any invalid input raises `ReceiptContractError`.
-- [ ] Run Docker GREEN and independent review. Source-only acceptance does not close this task.
+- [x] Write genuine temporary-directory selftests: intact COMPLETE/ABORTED packets; changed, missing and extra artifacts; mismatched marker/hostname; traversal/symlink; duplicate JSON and oversized reads.
+- [x] Observe expected missing-module RED in the exact `python-contract` Docker service before implementation. Unrelated collection and CRLF launch errors were not counted as the expected RED.
+- [x] Implement bounded validation with existing primitives; valid packet returns `None`, any invalid input raises `ReceiptContractError`.
+- [x] Run Docker GREEN (14 packet cases) and independent review (C/I/M 0/0/0).
 
 ## Task 2: Fixed container entrypoint
 
 **Files:** Modify `testframework/docker/entrypoints/python-qa.sh`; add the module CLI in `container_packet.py` and its selftests.
 
-**Source-bound launcher amendment:** The available Python image predates the observer code. Modify only `python-contract` in `docker-compose.local.yml`: add read-only binds for `testframework/observers`, `schemas`, `policies` and `docker` at their matching `/opt/hub/testframework/` paths; set `memswap_limit: 2g`; use fixed entrypoint `[/bin/sh, /opt/hub/testframework/docker/entrypoints/python-qa.sh]`. Keep existing limits, mounts, command and isolation. Add only `testframework/docker/entrypoints/python-qa.sh text eol=lf` to `.gitattributes` and preserve LF script bytes. Test this contract in `testframework/selftests/architecture/test_backend_unit_packet_launcher.py`. This avoids an uncapped image rebuild and does not claim image-baked source identity.
+**Source-bound launcher amendment:** The available Python image predates the observer code. Modify only `python-contract` in `docker-compose.local.yml`: add read-only binds for `testframework/observers`, `schemas`, `policies` and `docker` at their matching `/opt/hub/testframework/` paths; set `memswap_limit: 2g`; use fixed entrypoint `[/bin/sh, /opt/hub/testframework/docker/entrypoints/python-qa.sh]`. Keep existing limits, mounts, command and isolation. Preserve LF with exact `.gitattributes` rules for `python-qa.sh`, `frontend-unit.sh`, `backend_unit/receipt.sh`, `vitest.frontend-unit.config.ts`, `Dockerfile.qa` and `policies/root-compose-testframework.v1.json`. No wildcard or reader-side byte normalization. Test the launcher in `testframework/selftests/architecture/test_backend_unit_packet_launcher.py`; synchronize the existing root-Compose topology/dispatcher oracle without weakening negative mutations. This avoids an uncapped image rebuild and does not claim image-baked source identity.
 
 **Interface:** `backend-unit-receipt` mode reads required `HUB_BACKEND_UNIT_RUN_DIR`; no shell command or arbitrary path is evaluated. Reports root is fixed to `/reports`.
 
@@ -50,15 +50,54 @@ docker compose -f docker-compose.local.yml run --rm -e HUB_BACKEND_UNIT_RUN_DIR=
 
 The example ID must be replaced with the actual task-owned container hostname. Missing input, invalid packets or unsupported arguments fail nonzero. Print only `DOCKER_ARTIFACT_PACKET_PASS` after successful validation, with the explicit limitation that this is not a test verdict.
 
-- [ ] Add missing-input, rejected-packet and success-path CLI tests inside Docker.
-- [ ] Add the fixed shell case; keep ordinary `contract` mode unchanged.
-- [ ] Verify new behavior and existing framework regression in Docker, then independently review the diff.
+- [x] Add missing-input, rejected-packet and success-path CLI tests inside Docker.
+- [x] Add the fixed shell case; keep ordinary `contract` mode unchanged.
+- [x] Verify the new behavior in Docker and independently review the source diff.
+- [ ] Close full framework regression: the latest run is 480 passed / 71 failed, not GREEN.
 
 ## Task 3: Real execution and handoff
 
-- [ ] Check Docker running workloads; reserve one bounded QA slot. Build only changed task-owned images when needed; avoid repeated heavyweight builds.
-- [ ] Repair the independently confirmed COMPLETE-finalizer arity defect (`_receipt_build_container_json` requires two arguments but its sole caller passes one), with an actual Docker shell regression before any COMPLETE packet claim.
+- [x] Check Docker running workloads; use one bounded Python QA slot with no heavy build/pull. Mail/Calendar containers were not stopped or modified.
+- [x] Repair COMPLETE-finalizer arity and the shell quote defects exposed by real `/bin/sh` regressions; both shell tests pass inside Docker.
 - [ ] Run canonical `backend-unit`, record exact container/run identity and actual exit, then validate that exact report in `python-contract`.
 - [ ] Review actual stage results before any executable acceptance. A packet PASS alone cannot close CALL-DUR08C2 or authorize claiming Messenger/Jitsi complete.
-- [ ] Sync `.planning/STATE.md` and Phase 150 continuation with factual results and outstanding work.
+- [x] Sync `.planning/STATE.md`, Phase 150 continuation and QA READMEs with factual results and outstanding work.
 - [ ] Exact-path commit and push only `calls-feature-codex` to `origin https://github.com/Valerijkk/hub.git`; verify local/remote revision and clean status.
+
+## September 5 checkpoint evidence and remaining work
+
+- Planning checkpoint `f58476b0` is already pushed. This implementation is a
+  bounded source/runtime-selftest checkpoint, not an accepted full framework
+  baseline or a completed backend/product gate.
+- `docker-packet-final-green-20260905.xml`: 15 passed (14 packet + one launcher).
+  `docker-finalizer-green-20260905.xml`: two actual shell tests passed.
+  Reports are local under `testframework/reports/`; do not stage generated
+  report directories or replace them with a fabricated PASS.
+- The first broad source-bound run was 473 passed / 76 failed (549 cases).
+  After two review regressions, topology/dispatcher sync and exact LF repair,
+  `docker-only-framework-checkpoint-20260905.xml` is **480 passed / 71 failed**
+  (551 cases, 19.94s). All 17 new tests pass in this full run.
+- Docker resource inspection of the earlier full run recorded memory and
+  memory-plus-swap both `2147483648`, `NanoCpus=2000000000`, read-only rootfs
+  and `PidsLimit=256`; observed usage was 105.2 MiB. The later disposable
+  checkpoint container exited before a second inspect; do not invent its
+  container ID or a second resource sample. No host test/validator ran.
+- The real fixed `backend-unit-receipt` mode with missing run selection exited
+  1 and printed `DOCKER_ARTIFACT_PACKET_INVALID`. No stale report was selected.
+  Validation of an actual newly completed backend run remains **NOT_RUN**.
+- Remaining failures include historical observer adapter API mismatches,
+  publication/safe-path test doubles, observer identity fixtures and stale
+  seal expectations, and lexical/AST scanner contracts. Do not classify every
+  failure as pre-existing without before/after evidence or disable these tests.
+  The new packet path does not execute the Windows observer.
+- The identity-fixture repair should be a separate frozen atom: update the
+  valid observer and six named-invalid fixtures' hostname/run-ID baseline to
+  the full engine ID prefix, preserving each deliberate invalidity; then sync
+  the valid final receipt, seal digest and its direct test consumer. Do not
+  alter the schema-invalid nonce fixture or weaken the identity validator.
+- Next executable work: decompose remaining contract failures, close required
+  regression, bind the actual backend runner helpers to their reviewed bytes,
+  run build/vet/unit/race once in its capped container, and validate that exact
+  packet. Shell fixes in source are not evidence that an old backend image
+  already contains them. CALL-DUR08C2, Jitsi deployment/joining and Messenger
+  runtime acceptance remain unchanged.

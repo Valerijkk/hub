@@ -1146,8 +1146,15 @@ static review are historical evidence; executable acceptance remains pending.
 The founder explicitly rejected any host-validator exception. The active
 replacement is `docs/superpowers/plans/2026-09-05-docker-only-backend-packet.md`:
 keep capped `backend-unit`, validate its exact packet inside `python-contract`,
-without Windows helpers or Docker socket. New packet selftests need their own
-Docker RED/GREEN; this is not a repeat of the consumed September 1 RED.
+without Windows helpers or Docker socket. The new packet/launcher/shell tests
+now have Docker RED/GREEN: **17 passed**, with independent source review
+C/I/M **0/0/0**. The full source-bound framework run is **480 passed / 71 failed**
+(551 cases, 19.94s; `docker-only-framework-checkpoint-20260905.xml`), so overall
+acceptance remains **NOT_ACCEPTED**. Fixed source mounts, no-swap cap and exact
+LF assets replace the host exception; no build/pull or host validator ran.
+Remaining observer API/fixture and lexical/AST failures are decomposed in the
+active plan. Actual capped backend execution and its packet check are still
+`NOT_RUN`; old images do not automatically contain the new shell fixes.
 An intact packet alone is not a passing backend test run. Messenger's next
 source atom is MPR-02 after the
 accepted MPR-01; Jitsi activation still requires the remaining durable Calls

@@ -153,15 +153,15 @@ _receipt_parse_stage_json() {
   case "$receipt_stage_line" in "$receipt_stage_prefix"*) receipt_stage_remaining=${receipt_stage_line#"$receipt_stage_prefix"} ;; *) return 75 ;; esac
   receipt_stage_package_count=${receipt_stage_remaining%%,*}
   _receipt_decimal "$receipt_stage_package_count" || return 75
-  receipt_stage_after_count=${receipt_stage_remaining#"$receipt_stage_package_count,"package_result_count":}
+  receipt_stage_after_count=${receipt_stage_remaining#"$receipt_stage_package_count,\"package_result_count\":"}
   [ "$receipt_stage_after_count" != "$receipt_stage_remaining" ] || return 75
   receipt_stage_result_count=${receipt_stage_after_count%%,*}
   _receipt_decimal "$receipt_stage_result_count" || return 75
-  receipt_stage_after_results=${receipt_stage_after_count#"$receipt_stage_result_count,"first_exit":}
+  receipt_stage_after_results=${receipt_stage_after_count#"$receipt_stage_result_count,\"first_exit\":"}
   [ "$receipt_stage_after_results" != "$receipt_stage_after_count" ] || return 75
   receipt_stage_first_exit=${receipt_stage_after_results%%,*}
   _receipt_decimal "$receipt_stage_first_exit" || return 75
-  receipt_stage_after_exit=${receipt_stage_after_results#"$receipt_stage_first_exit,"status":"}
+  receipt_stage_after_exit=${receipt_stage_after_results#"$receipt_stage_first_exit,\"status\":\""}
   [ "$receipt_stage_after_exit" != "$receipt_stage_after_results" ] || return 75
   receipt_stage_status=${receipt_stage_after_exit%%\"*}
   case "$receipt_stage_status" in PASS|FAIL) ;; *) return 75 ;; esac
@@ -409,13 +409,13 @@ _receipt_container_payload_is_canonical() {
   case "$receipt_payload_body" in *'
 '*) return 75 ;; esac
   case "$receipt_payload_body" in
-    '{"artifact_inventory":['*',"terminal":{"exit_code":*',"signal":null}}") return 0 ;;
+    '{"artifact_inventory":['*',"terminal":{"exit_code":'*',"signal":null}}') return 0 ;;
     *) return 75 ;;
   esac
 }
 
 _receipt_build_container_json() {
-  [ "$#" -eq 2 ] || return 64
+  [ "$#" -eq 1 ] || return 64
   receipt_budget_json="$1"
   receipt_cgroup_json="{\"baseline\":$container_cgroup_baseline_json,\"family\":\"$cgroup_family\",\"final\":$container_cgroup_final_json}"
   receipt="{\"artifact_inventory\":[$receipt_inventory_json],\"artifact_inventory_sha256\":\"$receipt_inventory_sha256\",\"cgroup\":$receipt_cgroup_json,\"command_profile_sha256\":\"$command_profile_sha256\",\"container_hostname\":\"$container_hostname\",\"go_environment\":$go_environment,\"launcher_sha256\":\"$launcher_sha256\",\"owner_nonce\":\"$owner_nonce\",\"package_plan_sha256\":{\"build\":\"$build_plan_sha256\",\"race\":\"$race_plan_sha256\",\"unit\":\"$unit_plan_sha256\",\"vet\":\"$vet_plan_sha256\"},\"report_budget\":$receipt_budget_json,\"run_id\":\"$run_id\",\"schema\":\"$RECEIPT_SCHEMA\",\"source_manifest_after_sha256\":\"$source_manifest_after_sha256\",\"source_manifest_before_sha256\":\"$source_manifest_before_sha256\",\"stage_receipt_sha256\":{\"build\":\"$build_stage_sha256\",\"race\":\"$race_stage_sha256\",\"unit\":\"$unit_stage_sha256\",\"vet\":\"$vet_stage_sha256\"},\"state\":\"CONTAINER_COMPLETE\",\"target\":\"$RECEIPT_TARGET\",\"terminal\":{\"exit_code\":$receipt_first_stage_exit,\"signal\":null}}"
@@ -690,7 +690,7 @@ _receipt_aborted_payload_is_canonical() {
   case "$receipt_payload_body" in *'
 '*) return 75 ;; esac
   case "$receipt_payload_body" in
-    '{"abort":'*',"terminal":{"exit_code":143,"signal":"TERM"}}") return 0 ;;
+    '{"abort":'*',"terminal":{"exit_code":143,"signal":"TERM"}}') return 0 ;;
     *) return 75 ;;
   esac
 }

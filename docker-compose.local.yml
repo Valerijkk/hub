@@ -307,6 +307,7 @@ services:
       context: .
       dockerfile: testframework/docker/Dockerfile.qa
       target: python-tests
+    memswap_limit: 2g
     volumes:
       - type: bind
         source: ./testframework/reports
@@ -320,6 +321,22 @@ services:
         target: /opt/hub/testframework/selftests
         read_only: true
       - type: bind
+        source: ./testframework/observers
+        target: /opt/hub/testframework/observers
+        read_only: true
+      - type: bind
+        source: ./testframework/schemas
+        target: /opt/hub/testframework/schemas
+        read_only: true
+      - type: bind
+        source: ./testframework/policies
+        target: /opt/hub/testframework/policies
+        read_only: true
+      - type: bind
+        source: ./testframework/docker
+        target: /opt/hub/testframework/docker
+        read_only: true
+      - type: bind
         source: ./docker-compose.local.yml
         target: /opt/hub/docker-compose.local.yml
         read_only: true
@@ -327,6 +344,7 @@ services:
         source: ./.planning/phases/130-tf-traceability-gates/PLAN.md
         target: /opt/hub/.planning/phases/130-tf-traceability-gates/PLAN.md
         read_only: true
+    entrypoint: ["/bin/sh", "/opt/hub/testframework/docker/entrypoints/python-qa.sh"]
     command: [contract]
 
   python-api:

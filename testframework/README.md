@@ -192,9 +192,11 @@ read-only product inputs are `backend/cmd`, `backend/internal`, `backend/tests`,
 `backend/ent/schema`, `backend/migrations`, and `backend/testframework`; reports
 remain the sole writable bind.
 
-The ordinary terminal receipt is `COMPLETE`. A safe TERM from `bootstrap` or
-`execution` may become `ABORTED`; cold/planning/uncertain paths fail closed as
-`75` without a receipt. An abort requires at most one guarded stop and the
-matching `die` event in the same observer event session, with exit `143`, no
-OOM and no error. Root handoff stages are `prebuild` then `postgreen`; only the
-observer owns `observer_snapshot` and final receipt publication.
+The September 5 founder decision supersedes Windows `root_handoff.py` and
+`observe.py` execution. The current replacement checks the exact completed
+backend artifact packet inside the existing capped `python-contract` service;
+see [the fixed Docker-only interface](docker/README.md#offline-backend-packet-check).
+It never exposes the Docker socket or runs a host validator. An intact packet
+is not a passing test verdict and does not produce the historical host seal.
+The new 17 packet/launcher/shell selftests pass in Docker; the latest complete
+framework run is 480 passed / 71 failed, so its overall gate is not accepted.
