@@ -1,5 +1,22 @@
 # Hub — Тестовая документация
 
+## hard2g `backend-unit` candidate
+
+Status: **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN**. This is not a new `PASS` and
+does not replace historical baselines. The Docker-only candidate fixes 2 GiB
+with no swap, 6 CPU, `/tmp` 64 MiB, `GOCACHE` 768 MiB, `GOTMPDIR` 384 MiB, and a
+512 MiB clean threshold. Read-only source binds are exactly `backend/cmd`,
+`backend/internal`, `backend/tests`, `backend/ent/schema`,
+`backend/migrations`, and `backend/testframework`; reports are the only writable
+bind.
+
+Normal terminal evidence is `COMPLETE`. TERM can seal `ABORTED` only from safe
+`bootstrap` or `execution`; cold, planning, and uncertain paths return `75`
+without a receipt. The abort proof allows at most one guarded stop and requires
+the matching same-event-session `die` event with exit `143`, no OOM, and no
+error. Root handoff owns `prebuild` then `postgreen`; the observer alone adds
+`observer_snapshot` before its final run choreography.
+
 > **Обновлено:** 2026-08-24 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`
 > **Edge/Corner backlog:** [`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/archive/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
 >
@@ -38,11 +55,13 @@
 
 ### `backend-unit`: current-source, low-disk profile
 
-Use the canonical command exactly as declared above:
-
-```text
-docker compose -f docker-compose.local.yml run --rm backend-unit
-```
+For the current hard2g candidate, direct `docker compose ... run --rm
+backend-unit` is not an executable canon. Follow the exact observer
+choreography declared by the hard2g candidate above: root handoff `prebuild`,
+the one authorized build, `python-contract` GREEN, root handoff `postgreen`,
+then observer snapshot and its one final `backend-unit` run. Its status remains
+**STATIC_ACCEPTED / EXECUTABLE_NOT_RUN** until that choreography has produced
+new evidence.
 
 `backend-unit` uses a **partial source overlay**: exactly these current checkout
 roots are mounted read-only at matching `/opt/hub/source/backend/**` targets:
@@ -52,12 +71,13 @@ mount either the `backend/` or `backend/ent/` root, so generated Ent packages
 from the QA image remain authoritative while ordinary edits in those six roots
 are visible without rebuilding the image.
 
-The image retains the resolved Go module cache; `/reports` remains a host bind
-only for receipts and logs. Go build cache uses a per-run, `noexec` tmpfs at
-`/var/cache/hub-go` (3 GiB ceiling); Go temporary files use a separate,
-executable tmpfs at `/var/tmp/hub-go` (4 GiB ceiling). Both tmpfs mounts are
-owned by UID/GID 10001 with mode 1770. `backend-unit` has a 6.0 CPU and 10 GiB
-memory ceiling, and tmpfs use remains bounded by that cgroup.
+The image retains the resolved Go module cache; `/reports` remains the only
+writable bind for receipts and logs. The hard2g envelope uses a `noexec`
+`GOCACHE` tmpfs at `/var/cache/hub-go` capped at 768 MiB and an executable
+`GOTMPDIR` tmpfs at `/var/tmp/hub-go` capped at 384 MiB. Both are within a
+2 GiB, no-swap container limit (6 CPU); the required clean threshold is
+512 MiB. Earlier 3 GiB/4 GiB/10 GiB figures are historical topology evidence,
+not current candidate configuration or execution authority.
 
 An explicit, separately authorized rebuild is required for `backend/go.mod` or
 `backend/go.sum` changes, generated Ent output (including a schema change that

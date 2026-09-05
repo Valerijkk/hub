@@ -41,7 +41,7 @@
 
 | Уровень | Инструмент | Расположение | Gate |
 |---------|------------|--------------|------|
-| Unit (BE) | Go testing + testify; closed QA CLI contracts | genuine product units: `backend/tests/{domain}/`; QA-only `hubtest && qa`: `backend/cmd/qa-{secret-init,schema,backend}/` | local Docker `backend-unit` (`build`, `vet`, `unit`, `race` PASS) |
+| Unit (BE) | Go testing + testify; closed QA CLI contracts | genuine product units: `backend/tests/{domain}/`; QA-only `hubtest && qa`: `backend/cmd/qa-{secret-init,schema,backend}/` | historical Docker baseline `PASS`; hard2g candidate is `STATIC_ACCEPTED / EXECUTABLE_NOT_RUN` |
 | Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/`, support | local Docker `frontend-unit` PASS |
 | Framework selftests | pytest | `testframework/selftests/` | local Docker `python-contract` PASS |
 | API / Integration / Contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | `NOT_RUN`; not a minimal merge gate |
@@ -135,6 +135,10 @@ QA services disposable; integration/e2e используют изолирова�
 источник inventory; использовать их как fallback запрещено.
 
 ---
+
+For the hard2g `backend-unit` candidate, the observer is managed separately
+and does **not** launch Compose: start it, wait for `READY`, then separately
+issue exactly once `docker compose -f docker-compose.local.yml run --rm backend-unit`.
 
 ## Current minimal merge gate
 
@@ -267,7 +271,8 @@ Python QA project без parity/dual-run gate.*
 
 ## Phase 151 bounded Messenger evidence (2026-08-26)
 
-The following Docker-only gates are accepted for the current bounded slice:
+The following Docker-only gates are historical accepted baselines for this
+bounded slice; they are not the executable canon of the hard2g candidate:
 
 - `docker compose -f docker-compose.local.yml run --rm backend-unit` — overall `PASS`; build, vet, unit, and race receipts `PASS`.
 - `docker compose -f docker-compose.local.yml run --rm frontend-unit` — overall `PASS`; TypeScript `PASS`; Vitest `187/187` files and `577/577` tests `PASS`.
@@ -790,3 +795,22 @@ The sole external oracle SHA-256 `0AE525C86A75369BDB5790F26B1308F42574FB54588332
 Canonical RED `worktree-master-backend-unit-run-6d1badf07a01` failed only on absent 08C2 symbols. No post-implementation GREEN is accepted: `worktree-master-backend-unit-run-2fae431c8890` produced unrelated compiler kills and race `137`, while serialized attempts `6310a3f3cb18`, `a3d8cc4728bf`, and `28cae114b93b` were stopped after `OOMKilled=true` under the required 2 GiB ceiling. Parallelism and soft-heap experiments retained the full fixed build/vet/unit/race entrypoint but are resource diagnostics, not canonical receipts.
 
 Three final independent reviews are `C0/I0/M0`; commit `af20766b` is `STATIC_ACCEPTED`. Executable build/vet/unit/race remain `NOT_RUN / BLOCKED_INFRA_2GIB_OOM`, so no PASS, source/runtime GREEN, PostgreSQL, provider activation or deployment claim is made. 08C3 and Phase-150 completion remain blocked.
+
+## hard2g backend-unit observer candidate (2026-09-05)
+
+This follow-up is **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN**, not a new GREEN or
+replacement for the historical 2 GiB baselines above. The candidate fixes a
+Docker-only envelope of 2 GiB/no swap, 6 CPU, `/tmp` 64 MiB, `GOCACHE` 768 MiB,
+`GOTMPDIR` 384 MiB, and a 512 MiB clean threshold. Its only read-only source
+roots are `backend/cmd`, `backend/internal`, `backend/tests`,
+`backend/ent/schema`, `backend/migrations`, and `backend/testframework`; reports
+remain writable.
+
+The fixed observer invocation is `python testframework/observers/backend_unit/observe.py --compose-project worktree-master`. Final choreography is root
+handoff `prebuild`, the single authorized build, one `python-contract` GREEN,
+root handoff `postgreen`, then start the separately managed observer. It does
+**not** launch Compose: wait for `READY`, then separately issue exactly once
+`docker compose -f docker-compose.local.yml run --rm backend-unit`. Normal closure is `COMPLETE`. Only safe bootstrap/execution TERM handling
+may close `ABORTED`, with one guarded stop at most and a matching same-session
+`die` proving exit `143`, no OOM, and no error. Cold, planning, or uncertain
+interruption closes no receipt and returns `75`.

@@ -5,6 +5,25 @@
 > founder-locked Docker-only boundary. Для проблем продакшна используйте
 > [`runbooks/`](runbooks/README.md).
 
+## hard2g `backend-unit`: безопасное восстановление
+
+The candidate is **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN**, not a completed
+runtime PASS. Its fixed Docker envelope is 2 GiB/no swap, 6 CPU, `/tmp` 64 MiB,
+`GOCACHE` 768 MiB, `GOTMPDIR` 384 MiB, and a 512 MiB clean threshold. Use no
+host test or ad-hoc Docker fallback.
+
+`64` means malformed observer usage. `75` means no authoritative candidate,
+seal, or safe interrupt proof; do not manufacture a receipt. `130` means an
+interrupt before a bound candidate without a seal. Normal terminal evidence is
+`COMPLETE`; only safe bootstrap/execution TERM may become `ABORTED`. Cold,
+planning, uncertain, or identity-mismatched paths must exit `75` with no
+receipt. An abort needs at most one guarded stop and a matching same-session
+`die` event with exit `143`, `OOMKilled=false`, and empty error.
+
+Never manually stop, rename, or delete the candidate container, terminal marker,
+receipt, or report tree. Root handoff owns `prebuild` and `postgreen`; the
+observer owns `observer_snapshot` and final choreography.
+
 ## 1. Проверка сообщает `NOT_READY`
 
 Единственный QA API для test/build/lint/validator jobs —

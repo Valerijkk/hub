@@ -336,3 +336,22 @@ following are true on one exact revision:
 Until A1, R, immutable image evidence, the generated lock, and Docker-only
 evidence exist and are independently verified, the only valid package verdict
 is `NOT_READY` and the only valid runtime statement is `NOT_RUN`.
+
+## hard2g backend-unit candidate boundary
+
+The hard2g `backend-unit` candidate is a Docker-only, read-only source
+execution contract. It uses a 2 GiB memory and no-swap ceiling, 6 CPU, a
+64 MiB `/tmp` tmpfs, `GOCACHE` capped at 768 MiB, `GOTMPDIR` capped at 384 MiB,
+and a required clean threshold of 512 MiB. Exactly these source roots are
+read-only binds: `backend/cmd`, `backend/internal`, `backend/tests`,
+`backend/ent/schema`, `backend/migrations`, and `backend/testframework`.
+`testframework/reports` is the only writable bind.
+
+The normal path produces `COMPLETE`. A TERM can produce `ABORTED` only from a
+safe `bootstrap` or `execution` state after unchanged source/cgroup evidence,
+stage proof, one guarded stop at most, and one same-session matching `die`
+event with exited `143`, `OOMKilled=false`, and empty error. Cold, planning,
+or uncertain paths fail closed with `75` and no receipt. Root handoff owns only
+`prebuild` and `postgreen`; the observer adds `observer_snapshot`. This is
+**STATIC_ACCEPTED** design evidence, while executable evidence remains
+**EXECUTABLE_NOT_RUN**; it does not alter historical baseline results.

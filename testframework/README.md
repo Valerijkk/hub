@@ -181,3 +181,20 @@ Private runner source candidate:
 and required local dependency bytes are absent. There is no supported direct runner
 or fallback command. No file/source review promotes installation, execution, or
 runtime to `PASS`.
+
+## hard2g backend-unit candidate
+
+The candidate is documented as **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN**. It is
+not a replacement for historical Docker baselines and does not claim a new
+`PASS`. Its fixed resource envelope is 2 GiB with no swap, 6 CPU, `/tmp` 64 MiB,
+`GOCACHE` 768 MiB, `GOTMPDIR` 384 MiB, and a 512 MiB clean threshold. The only
+read-only product inputs are `backend/cmd`, `backend/internal`, `backend/tests`,
+`backend/ent/schema`, `backend/migrations`, and `backend/testframework`; reports
+remain the sole writable bind.
+
+The ordinary terminal receipt is `COMPLETE`. A safe TERM from `bootstrap` or
+`execution` may become `ABORTED`; cold/planning/uncertain paths fail closed as
+`75` without a receipt. An abort requires at most one guarded stop and the
+matching `die` event in the same observer event session, with exit `143`, no
+OOM and no error. Root handoff stages are `prebuild` then `postgreen`; only the
+observer owns `observer_snapshot` and final receipt publication.

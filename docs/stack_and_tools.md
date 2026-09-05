@@ -167,7 +167,10 @@ fail-closed до изменения checkout:
 
 **Current QA authority:** root Compose `run --rm <exact-service>`; this document
 does not claim a session result. QA services are disposable and integration/e2e
-infrastructure is isolated. Legacy jobs and scripts remain archival inventory only.
+infrastructure is isolated. The hard2g `backend-unit` candidate is the explicit
+exception to direct launch: its observer is managed separately and does not
+launch Compose; wait for `READY`, then issue the exact service once. Legacy jobs
+and scripts remain archival inventory only.
 
 ---
 
@@ -185,10 +188,12 @@ infrastructure is isolated. Legacy jobs and scripts remain archival inventory on
 
 Команды старого CI ниже — только инвентарный снимок, а не разрешённый fallback.
 Current authority is root Compose `run --rm <exact-service>`; host checks forbidden.
+For the hard2g `backend-unit` candidate, manage the observer separately: it
+does not launch Compose; after `READY`, issue the exact service once.
 
 | Целевой job | Область | Исполнение | Статус |
 |-------------|---------|------------|--------|
-| `backend-unit` | genuine Go units + backend static gates | root Compose exact service | PASS: build/vet/unit/race |
+| `backend-unit` | genuine Go units + backend static gates | historical root-Compose baseline; hard2g uses separately managed observer then one exact service | historical `PASS`; hard2g `STATIC_ACCEPTED / EXECUTABLE_NOT_RUN` |
 | `frontend-unit` | genuine Vitest/RTL units + TypeScript | root Compose exact service | PASS: 338/338 suites, 419/419 tests |
 | `python-contract` | install/package/framework contracts | root Compose exact service | PASS: 181/181 framework selftests; SUT product tests removed |
 | `python-api` | future/public API behavior | outside minimal merge gate | `NOT_RUN` |
@@ -259,7 +264,10 @@ hub/
 Structure/boundary scaffold в commit `22035c45` уже существует. Root Compose
 service definitions, Python QA image and package files are present.
 `backend-unit`, `frontend-unit` and framework-only `python-contract` have fresh
-Docker PASS evidence for the minimal slice. API/integration/e2e/load are
+historical Docker `PASS` evidence for the minimal slice. The hard2g
+`backend-unit` candidate remains `STATIC_ACCEPTED / EXECUTABLE_NOT_RUN` and
+uses its separately managed observer before its one exact service run.
+API/integration/e2e/load are
 `NOT_RUN` and are not merge gates for this slice. This does not claim product
 or production readiness.
 Reusable imports и suite roots физически разделены; direct root
@@ -282,6 +290,24 @@ refactor/move. После Phase 141
 legacy Go/Vitest/TS E2E и их entrypoints удаляются.
 
 ---
+
+## hard2g backend-unit execution contract
+
+The hard2g candidate is **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN** and leaves
+historical baseline evidence unchanged. It is Docker-only: 2 GiB memory and no
+swap, 6 CPU, `/tmp` 64 MiB, `GOCACHE` 768 MiB, `GOTMPDIR` 384 MiB, and a 512 MiB
+clean threshold. Its six read-only source roots are `backend/cmd`,
+`backend/internal`, `backend/tests`, `backend/ent/schema`, `backend/migrations`,
+and `backend/testframework`; `/reports` is the only writable bind.
+
+The exact observer invocation is `python testframework/observers/backend_unit/observe.py --compose-project worktree-master`. Root handoff stages are
+`prebuild` and `postgreen`; the observer's distinct third stage is
+`observer_snapshot`. It is managed separately and does **not** launch Compose:
+wait for `READY`, then separately issue exactly once `docker compose -f
+docker-compose.local.yml run --rm backend-unit`. Normal closure is `COMPLETE`. TERM may produce `ABORTED`
+only from safe bootstrap/execution after no more than one guarded stop and a
+matching same-session `die` showing exit `143`, no OOM, and no error. Cold,
+planning, and uncertain paths exit `75` with no receipt.
 
 ## Обоснование ключевых решений
 
