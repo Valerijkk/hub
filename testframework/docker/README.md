@@ -146,6 +146,11 @@ collision. The variable-only fix and correction of SHA-256 helper length
 checks have real shell/awk RED/GREEN (53 selected tests pass including
 previous launcher/packet regressions), with independent review. Only a new
 actual backend run can establish post-fix build/vet/unit/race results.
+The subsequent owner-publication attempt exposed rejection of GNU stat's
+empty regular-file label. The identity helper now retains the same strict
+ownership/mode/type guard and normalizes only that empty label, preserving
+identity through write/truncate. Its actual-file Docker RED/GREEN and the
+combined 56 selected passing checks do not replace the pending Go gate.
 The old Windows `root_handoff.py` / `observe.py` choreography is superseded
 and is not an executable fallback. Historical observer receipts remain
 historical; do not fabricate their `SEAL` from an offline packet result.

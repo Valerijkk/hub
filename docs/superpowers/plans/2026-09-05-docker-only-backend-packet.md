@@ -117,6 +117,38 @@ The root delayed these runs while the Mail worktree's Go QA was active,
 without stopping/modifying its container. These are source/runtime-selftest
 checkpoints; post-fix actual Go acceptance is still pending.
 
+Task 3D owned-file identity (frozen after the next actual attempt):
+`27c1ea8f` is pushed; outer Compose run `571296836765` exited 1 without
+Go output. The newly timestamped `backend-unit-c628d2ffa4cd.partial`
+contains one zero-byte `.backend-unit-publish.nRiiqhBf` and no owner.
+Outer Compose name suffix is not the container hostname. The partial is
+retained as failure evidence, not a validated packet. This narrows the failure
+to owner publication rather than the initial memory/tmpfs checks.
+
+`runtime.sh::_owned_regular_identity` currently admits only stat's
+`regular file` label. Hypothesis to reproduce in Docker: GNU stat calls an
+empty regular file `regular empty file`, so the just-created publication
+temporary fails its identity check. Ownership is that one function plus new
+`testframework/selftests/architecture/test_backend_unit_owned_regular_identity.py`.
+Require the same device/inode/10001:10001/0600 checks and regular-file guard;
+admit exactly the two regular labels and canonicalize the empty label to
+`regular file` in the returned identity. Identity must stay stable through
+write and truncate, because callers compare it before and after writing.
+Real shell/file tests first prove the failure, including wrong mode, symlink,
+directory, absent path and arity rejection. No mock stat or generalized type
+wildcard. The earlier speculative logging amendment was cancelled before any
+edits; no resource check or diagnostic API changes are owned by this atom.
+
+Task 3D actual evidence: `backend-owned-identity-red-20260905.xml` records
+1 failed / 2 passed in 0.67s; empty/nonempty/truncated file checks returned
+75/0/75. After the exact source change,
+`backend-owned-identity-green-20260905.xml` records 56 passed / 529
+deselected in 5.51s, exit 0 (three new identity cases plus 53 earlier checks).
+The fix normalizes only the admitted terminal GNU empty-file label; it does
+not weaken ownership/type/mode or link-count checks. The last full framework
+run predates Task 3D: 511 passed / 71 failed; it is not a post-3D full PASS.
+Independent final source review returned C/I/M 0/0/0; Task 3D source accepted.
+
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must
 pass before actual Go execution; obsolete Windows observer attestation is not

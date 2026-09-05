@@ -1155,7 +1155,12 @@ tests: 53 selected PASS, independent review C/I/M 0/0/0 for each atom.
 The new full framework result is 511 PASS / 71 FAIL (582 cases, 20.06s);
 framework acceptance remains NOT_ACCEPTED. Task 3C corrects both receipt
 SHA-256 helpers' erroneous 32-character acceptance to exactly 64 lowercase
-hex characters. Post-fix actual Go execution remains next.
+hex characters. The next actual backend attempt `571296836765` exited
+before publishing owner.json, leaving a fresh empty publication temporary.
+Task 3D fixes `_owned_regular_identity` rejecting GNU stat's empty regular
+file label and keeps identity stable through write/truncate. Its real-file
+Docker RED is 1 FAIL / 2 PASS; selected GREEN is 56 PASS. Post-3D actual Go
+execution remains next; the last full framework result predates this atom.
 Existing linked worktree is retained; no product-readiness claim is made.
 
 **Previous checkpoint detail:** branch

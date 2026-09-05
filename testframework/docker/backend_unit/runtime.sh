@@ -374,6 +374,9 @@ _owned_regular_identity() {
   owned_regular_identity="$(stat -c '%d:%i:%u:%g:%a:%F' -- "$owned_regular_path")" || return 75
   case "$owned_regular_identity" in
     [0-9]*:[0-9]*:10001:10001:600:'regular file') ;;
+    [0-9]*:[0-9]*:10001:10001:600:'regular empty file')
+      owned_regular_identity=${owned_regular_identity%'regular empty file'}'regular file'
+      ;;
     *) return 75 ;;
   esac
   printf '%s\n' "$owned_regular_identity"
