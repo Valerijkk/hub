@@ -358,9 +358,40 @@ def write_prebuild_handoff() -> dict[str, Any]:
         _release_lease(lease)
 
 
-def _read_open_descriptor(descriptor: int, max_bytes: int) -> tuple[bytes, dict[str, int | bool]]:
+def _descriptor_identity(snapshot: Any) -> tuple[int, int, int, int, int, int, int]:
+    """Return the full opaque identity of one stable regular descriptor."""
+
+    values = safe_paths._require_regular(snapshot)
+    try:
+        if isinstance(snapshot, dict):
+            mode = snapshot["mode"]
+            mtime_ns = snapshot["mtime_ns"]
+            ctime_ns = snapshot["ctime_ns"]
+        else:
+            mode = snapshot.st_mode
+            mtime_ns = snapshot.st_mtime_ns
+            ctime_ns = snapshot.st_ctime_ns
+        if any(type(value) is not int for value in (mode, mtime_ns, ctime_ns)):
+            raise TypeError("descriptor generation metadata is malformed")
+        return (
+            int(values["device"]),
+            int(values["inode"]),
+            mode,
+            int(values["nlink"]),
+            int(values["size"]),
+            mtime_ns,
+            ctime_ns,
+        )
+    except Exception as error:
+        raise RootHandoffError("Provisional handoff identity is malformed") from error
+
+
+def _read_open_descriptor(
+    descriptor: int, max_bytes: int
+) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
     before = safe_paths._fstat(None, descriptor)
     values = safe_paths._require_regular(before)
+    before_identity = _descriptor_identity(before)
     size = int(values["size"])
     if size > max_bytes:
         raise RootHandoffError("Provisional handoff exceeds its byte contract")
@@ -373,14 +404,62 @@ def _read_open_descriptor(descriptor: int, max_bytes: int) -> tuple[bytes, dict[
         )
         after = safe_paths._fstat(None, descriptor)
         safe_paths._require_stable(before, after)
+        after_identity = _descriptor_identity(after)
+    except RootHandoffError:
+        raise
     except Exception as error:
         raise RootHandoffError("Provisional handoff changed while opened") from error
-    if len(payload) != size:
+    if len(payload) != size or before_identity != after_identity:
         raise RootHandoffError("Provisional handoff changed while opened")
-    return payload, values
+    return payload, after_identity
 
 
-def _remove_provisional(repo_root: Path, expected_payload: bytes) -> None:
+def _read_provisional(
+    repo_root: Path,
+) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
+    """Read the provisional handoff and retain its full descriptor identity."""
+
+    reports = _fixed_path(repo_root, _REPORTS_RELATIVE)
+    parent = -1
+    descriptor = -1
+    ancestors: tuple[int, ...] = ()
+    try:
+        if os.name == "nt":
+            parent, ancestors, device = safe_paths._nt_open_absolute_directory(reports)
+            descriptor = safe_paths._nt_open_relative(
+                parent, Path(_PROVISIONAL_RELATIVE).name, False
+            )
+        else:
+            if safe_paths.O_NOFOLLOW == 0:
+                raise RootHandoffError("POSIX provisional read requires O_NOFOLLOW")
+            parent, device = safe_paths._posix_open_directory(reports)
+            flags = os.O_RDONLY | safe_paths.O_NOFOLLOW | safe_paths._O_CLOEXEC | safe_paths._O_NONBLOCK
+            descriptor = safe_paths._posix_openat(
+                parent, Path(_PROVISIONAL_RELATIVE).name, flags
+            )
+        payload, identity = _read_open_descriptor(descriptor, _MAX_HANDOFF_BYTES)
+        if identity[0] != device:
+            raise RootHandoffError("Provisional handoff crossed a device boundary")
+        return payload, identity
+    except RootHandoffError:
+        raise
+    except Exception as error:
+        raise RootHandoffError("Provisional handoff is absent or unsafe") from error
+    finally:
+        if descriptor >= 0:
+            safe_paths._close(None, descriptor)
+        if parent >= 0:
+            safe_paths._close(None, parent)
+        for ancestor in reversed(ancestors):
+            if ancestor != parent:
+                safe_paths._close(None, ancestor)
+
+
+def _remove_provisional(
+    repo_root: Path,
+    expected_payload: bytes,
+    expected_identity: tuple[int, int, int, int, int, int, int],
+) -> None:
     """Remove only the descriptor-verified provisional file after final reread."""
 
     reports = _fixed_path(repo_root, _REPORTS_RELATIVE)
@@ -397,8 +476,8 @@ def _remove_provisional(repo_root: Path, expected_payload: bytes) -> None:
                 False,
                 write=True,
             )
-            payload, values = _read_open_descriptor(descriptor, _MAX_HANDOFF_BYTES)
-            if int(values["device"]) != device or payload != expected_payload:
+            payload, identity = _read_open_descriptor(descriptor, _MAX_HANDOFF_BYTES)
+            if identity[0] != device or payload != expected_payload or identity != expected_identity:
                 raise RootHandoffError("Provisional handoff identity does not match")
             safe_paths._windows_delete_handle(descriptor)
             safe_paths._close(None, descriptor)
@@ -422,8 +501,8 @@ def _remove_provisional(repo_root: Path, expected_payload: bytes) -> None:
             Path(_PROVISIONAL_RELATIVE).name,
             flags,
         )
-        payload, values = _read_open_descriptor(descriptor, _MAX_HANDOFF_BYTES)
-        if int(values["device"]) != device or payload != expected_payload:
+        payload, identity = _read_open_descriptor(descriptor, _MAX_HANDOFF_BYTES)
+        if identity[0] != device or payload != expected_payload or identity != expected_identity:
             raise RootHandoffError("Provisional handoff identity does not match")
         library = ctypes.CDLL(None, use_errno=True)
         unlink = library.unlinkat
@@ -446,7 +525,8 @@ def _remove_provisional(repo_root: Path, expected_payload: bytes) -> None:
         if parent >= 0:
             safe_paths._close(None, parent)
         for ancestor in reversed(ancestors):
-            safe_paths._close(None, ancestor)
+            if ancestor != parent:
+                safe_paths._close(None, ancestor)
 
 
 def finalize_postgreen_handoff() -> dict[str, Any]:
@@ -455,7 +535,7 @@ def finalize_postgreen_handoff() -> dict[str, Any]:
     root = _module_repository_root()
     lease = _acquire_lease(root)
     try:
-        provisional_payload = _read_relative(root, _PROVISIONAL_RELATIVE)
+        provisional_payload, provisional_identity = _read_provisional(root)
         provisional = _parse_provisional(provisional_payload)
         postgreen, manifest, digest = _capture_clean_source(lease)
         try:
@@ -487,7 +567,7 @@ def finalize_postgreen_handoff() -> dict[str, Any]:
         _write_new(_fixed_path(root, _HANDOFF_RELATIVE), payload)
         if read_root_handoff_bytes() != payload:
             raise RootHandoffError("Final handoff reread did not match written bytes")
-        _remove_provisional(root, provisional_payload)
+        _remove_provisional(root, provisional_payload, provisional_identity)
         return document
     finally:
         _release_lease(lease)
