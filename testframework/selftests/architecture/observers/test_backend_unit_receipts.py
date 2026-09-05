@@ -62,6 +62,32 @@ _SEMANTIC_INVALID_FIXTURES: tuple[
     ),
     ("invalid/timeout-outcome-final-receipt.json", validate_final_receipt),
 )
+_OBSERVER_SEMANTIC_FAILURES = (
+    (
+        "invalid/foreign-run-observer-receipt.json",
+        "final receipt run_id does not exactly bind observer receipt",
+    ),
+    (
+        "invalid/engine-id-observer-receipt.json",
+        "final receipt container_id does not exactly bind observer receipt",
+    ),
+    (
+        "invalid/fixed-image-id-observer-receipt.json",
+        "container image and bound backend image must equal the fixed backend image ID",
+    ),
+    (
+        "invalid/bound-backend-image-observer-receipt.json",
+        "container image and bound backend image must equal the fixed backend image ID",
+    ),
+    (
+        "invalid/build-input-manifest-observer-receipt.json",
+        "canonical build-input manifest paths or order differ from frozen policy",
+    ),
+    (
+        "invalid/build-input-hash-observer-receipt.json",
+        "canonical build-input manifest hash does not bind its exact bytes",
+    ),
+)
 _INVALID_LF_SEAL_BYTES = (
     (
         "missing required observer receipt hash",
@@ -131,6 +157,18 @@ def test_valid_fixture_bytes_cover_all_receipt_families_and_final_receipt() -> N
 
     assert observer["final_receipt"] == final
     assert "observer_receipt_sha256" not in final
+    assert observer["root_handoff_sha256"].startswith("sha256:")
+    assert observer["concurrency_observation_scope"] == (
+        "docker-ps-visible-containers-only"
+    )
+    for snapshot in observer["source_snapshots"].values():
+        assert set(snapshot) == {
+            "head",
+            "status",
+            "source_root_sha256",
+            "frozen_subjects",
+            "canonical_build_input_manifest_sha256",
+        }
     final_artifact = next(
         artifact
         for artifact in observer["artifact_inventory"]
@@ -152,12 +190,46 @@ def test_closed_schemas_reject_single_shape_mutations(
         Draft202012Validator(_schema(family)).validate(_fixture_json(fixture))
 
 
+@pytest.mark.parametrize(
+    "field", ("root_handoff_sha256", "concurrency_observation_scope")
+)
+def test_observer_schema_requires_root_handoff_and_concurrency_scope(field: str) -> None:
+    document = dict(_fixture_json("valid/observer-receipt.json"))
+    document.pop(field)
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_schema("observer_receipt")).validate(document)
+
+
+def test_observer_schema_rejects_image_ids_nested_in_source_snapshots() -> None:
+    document = json.loads(
+        json.dumps(_fixture_json("valid/observer-receipt.json"))
+    )
+    document["source_snapshots"]["prebuild"]["fixed_image_ids"] = {
+        "python_contract": "sha256:" + "c" * 64,
+        "backend_unit": "sha256:" + "d" * 64,
+    }
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_schema("observer_receipt")).validate(document)
+
+
 @pytest.mark.parametrize(("fixture", "validator"), _SEMANTIC_INVALID_FIXTURES)
 def test_receipt_semantics_reject_cross_field_mutations(
     fixture: str, validator: Callable[[Mapping[str, object]], None]
 ) -> None:
     with pytest.raises(ReceiptContractError):
         validator(_fixture_json(fixture))
+
+
+@pytest.mark.parametrize(("fixture", "expected_message"), _OBSERVER_SEMANTIC_FAILURES)
+def test_observer_semantic_invalid_fixtures_fail_for_their_named_rule(
+    fixture: str, expected_message: str
+) -> None:
+    with pytest.raises(ReceiptContractError) as raised:
+        validate_observer_receipt(_fixture_json(fixture))
+
+    assert str(raised.value) == expected_message
 
 
 def test_timeout_outcome_is_accepted_only_with_its_frozen_sealed_classification() -> None:
@@ -174,7 +246,7 @@ def test_parse_seal_accepts_only_canonical_lf_finalized_bytes() -> None:
         "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
         "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
         "observer_receipt_sha256": (
-            "sha256:376653f504ca197fb49cdccc0f5b42a090c79d546352e3a12dea173d0df56d47"
+            "sha256:b77de46321d41915ed279dacfcb8acdf3d9002d4d3e418bf2629fbab0be416fe"
         ),
     }
     assert parsed["observer_receipt_sha256"] == (

@@ -336,6 +336,12 @@ def validate_observer_receipt(document: Mapping[str, object]) -> None:
     document = _require_mapping(document, "observer receipt")
     _require_exact(document, "schema", "hub.qa.backend-unit-observer-receipt/v1")
     _require_exact(document, "target", "backend-unit")
+    _require_sha256(_field(document, "root_handoff_sha256"), "root_handoff_sha256")
+    _require_exact(
+        document,
+        "concurrency_observation_scope",
+        "docker-ps-visible-containers-only",
+    )
 
     run_id = _require_string(_field(document, "run_id"), "run_id")
     nonce = _require_string(_field(document, "owner_nonce"), "owner_nonce")
@@ -369,7 +375,7 @@ def validate_observer_receipt(document: Mapping[str, object]) -> None:
         _fail("compose_sha256 must bind the docker-compose.local.yml manifest row")
     _validate_fixed_host_config(document)
     facts = _validate_classification_facts(document, container_id)
-    _validate_source_snapshots(document, manifest_sha256, fixed_image_ids, facts)
+    _validate_source_snapshots(document, manifest_sha256, facts)
 
     records = _validate_artifact_inventory(document, "observer receipt")
     paths = tuple(_require_string(_field(record, "path"), "artifact_inventory.path") for record in records)
@@ -590,7 +596,6 @@ def _require_frozen_subjects(value: object, label: str) -> Mapping[str, object]:
 def _validate_source_snapshots(
     document: Mapping[str, object],
     manifest_sha256: str,
-    fixed_image_ids: Mapping[str, object],
     facts: Mapping[str, object],
 ) -> None:
     git = _require_mapping(_field(document, "git"), "git")
@@ -626,19 +631,8 @@ def _validate_source_snapshots(
             _field(snapshot, "canonical_build_input_manifest_sha256"),
             f"source_snapshots.{stage}.canonical_build_input_manifest_sha256",
         )
-        snapshot_images = _require_mapping(
-            _field(snapshot, "fixed_image_ids"), f"source_snapshots.{stage}.fixed_image_ids"
-        )
-        _require_sha256(
-            _field(snapshot_images, "python_contract"),
-            f"source_snapshots.{stage}.fixed_image_ids.python_contract",
-        )
-        _require_sha256(
-            _field(snapshot_images, "backend_unit"),
-            f"source_snapshots.{stage}.fixed_image_ids.backend_unit",
-        )
         snapshot_values.append(
-            (head, status, source_roots, snapshot_subjects, snapshot_manifest, snapshot_images)
+            (head, status, source_roots, snapshot_subjects, snapshot_manifest)
         )
 
     prebuild, postgreen, observer_snapshot = ordered_snapshots
@@ -650,8 +644,6 @@ def _validate_source_snapshots(
         _fail("observer snapshot must bind top-level frozen subjects")
     if _field(observer_snapshot, "canonical_build_input_manifest_sha256") != manifest_sha256:
         _fail("observer snapshot must bind top-level canonical manifest")
-    if _field(observer_snapshot, "fixed_image_ids") != fixed_image_ids:
-        _fail("observer snapshot must bind top-level fixed image IDs")
 
     source_changed = head_before != head_after or status_before != status_after or bool(status_before) or bool(status_after)
     source_changed = source_changed or any(

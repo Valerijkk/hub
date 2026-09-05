@@ -8,6 +8,7 @@
     "schema", "target", "run_id", "owner_nonce", "container_id",
     "container_image", "container_hostname", "container_receipt_sha256",
     "compose_sha256", "git", "frozen_subjects", "source_snapshots",
+    "root_handoff_sha256", "concurrency_observation_scope",
     "canonical_build_input_manifest_bytes",
     "canonical_build_input_manifest_sha256", "fixed_image_ids",
     "bound_backend_image_id", "host_config", "resource_samples",
@@ -51,6 +52,10 @@
         "postgreen": { "$ref": "#/$defs/sourceSnapshot" },
         "observer_snapshot": { "$ref": "#/$defs/sourceSnapshot" }
       }
+    },
+    "root_handoff_sha256": { "$ref": "#/$defs/sha256" },
+    "concurrency_observation_scope": {
+      "const": "docker-ps-visible-containers-only"
     },
     "canonical_build_input_manifest_bytes": { "type": "string", "minLength": 1 },
     "canonical_build_input_manifest_sha256": { "$ref": "#/$defs/sha256" },
@@ -197,14 +202,13 @@
     "sourceSnapshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["head", "status", "source_root_sha256", "frozen_subjects", "canonical_build_input_manifest_sha256", "fixed_image_ids"],
+      "required": ["head", "status", "source_root_sha256", "frozen_subjects", "canonical_build_input_manifest_sha256"],
       "properties": {
         "head": { "$ref": "#/$defs/gitSha" },
         "status": { "type": "string" },
         "source_root_sha256": { "$ref": "#/$defs/sourceRootDigests" },
         "frozen_subjects": { "$ref": "#/$defs/frozenSubjects" },
-        "canonical_build_input_manifest_sha256": { "$ref": "#/$defs/sha256" },
-        "fixed_image_ids": { "$ref": "#/$defs/fixedImageIds" }
+        "canonical_build_input_manifest_sha256": { "$ref": "#/$defs/sha256" }
       }
     },
     "mount": {

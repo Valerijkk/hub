@@ -6,7 +6,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, ValidationError
 
 from observers.backend_unit.contracts import (
     ReceiptContractError,
@@ -103,6 +103,32 @@ _SEMANTIC_INVALID_FIXTURES: tuple[
         validate_final_receipt,
     ),
 )
+_OBSERVER_SEMANTIC_FAILURES = (
+    (
+        "invalid/foreign-run-observer-receipt.json",
+        "final receipt run_id does not exactly bind observer receipt",
+    ),
+    (
+        "invalid/engine-id-observer-receipt.json",
+        "final receipt container_id does not exactly bind observer receipt",
+    ),
+    (
+        "invalid/fixed-image-id-observer-receipt.json",
+        "container image and bound backend image must equal the fixed backend image ID",
+    ),
+    (
+        "invalid/bound-backend-image-observer-receipt.json",
+        "container image and bound backend image must equal the fixed backend image ID",
+    ),
+    (
+        "invalid/build-input-manifest-observer-receipt.json",
+        "canonical build-input manifest paths or order differ from frozen policy",
+    ),
+    (
+        "invalid/build-input-hash-observer-receipt.json",
+        "canonical build-input manifest hash does not bind its exact bytes",
+    ),
+)
 
 
 def _fixture_bytes(relative_path: str) -> bytes:
@@ -179,6 +205,39 @@ def test_semantic_invalid_fixtures_pass_shape_then_fail_matching_semantics(
     Draft202012Validator(_schema_for(family)).validate(document)
     with pytest.raises(ReceiptContractError):
         validator(document)
+
+
+@pytest.mark.parametrize(("fixture", "expected_message"), _OBSERVER_SEMANTIC_FAILURES)
+def test_observer_semantic_invalid_fixtures_fail_for_their_named_rule(
+    fixture: str, expected_message: str
+) -> None:
+    document = _fixture_json(fixture)
+
+    Draft202012Validator(_schema("observer_receipt")).validate(document)
+    with pytest.raises(ReceiptContractError) as raised:
+        validate_observer_receipt(document)
+
+    assert str(raised.value) == expected_message
+
+
+@pytest.mark.parametrize("field", ("root_handoff_sha256", "concurrency_observation_scope"))
+def test_observer_schema_rejects_missing_root_handoff_bindings(field: str) -> None:
+    document = dict(_fixture_json("valid/observer-receipt.json"))
+    document.pop(field)
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_schema("observer_receipt")).validate(document)
+
+
+def test_observer_schema_rejects_image_binding_inside_source_snapshot() -> None:
+    document = json.loads(json.dumps(_fixture_json("valid/observer-receipt.json")))
+    document["source_snapshots"]["observer_snapshot"]["fixed_image_ids"] = {
+        "python_contract": "sha256:" + "c" * 64,
+        "backend_unit": "sha256:" + "d" * 64,
+    }
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_schema("observer_receipt")).validate(document)
 
 
 def test_valid_final_receipt_preserves_sealed_timeout_outcome_pair() -> None:
