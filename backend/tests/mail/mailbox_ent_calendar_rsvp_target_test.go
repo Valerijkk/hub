@@ -85,6 +85,7 @@ type mailboxEntCalendarRSVPTargetFixture struct {
 	accountID       uuid.UUID
 	messageID       uuid.UUID
 	calendarEventID uuid.UUID
+	eventEnvelopeID uuid.UUID
 	receiptID       uuid.UUID
 	partLocatorHash []byte
 }
@@ -100,7 +101,8 @@ func mailboxEntCalendarRSVPTargetFixtureValues() mailboxEntCalendarRSVPTargetFix
 		accountID:       uuid.MustParse("33333333-3333-4333-8333-333333333333"),
 		messageID:       uuid.MustParse("44444444-4444-4444-8444-444444444444"),
 		calendarEventID: uuid.MustParse("55555555-5555-4555-8555-555555555555"),
-		receiptID:       uuid.MustParse("66666666-6666-4666-8666-666666666666"),
+		eventEnvelopeID: uuid.MustParse("66666666-6666-4666-8666-666666666666"),
+		receiptID:       uuid.MustParse("77777777-7777-4777-8777-777777777777"),
 		partLocatorHash: partLocatorHash,
 	}
 }
@@ -170,9 +172,10 @@ func (driver *mailboxEntCalendarRSVPTargetDriver) rows(queryKind string) *mailbo
 			values:  [][]any{{driver.fixture.messageID, driver.fixture.accountID, false, "inbound_or_unknown", "request", driver.fixture.partLocatorHash, nil}},
 		}
 	case "calendar_inbound_message_receipts":
+		receiptTime := time.Date(2032, time.February, 4, 4, 5, 6, 0, time.UTC)
 		return &mailboxEntCalendarRSVPTargetRows{
-			columns: []string{"id", "organization_id", "mailbox_id", "mail_message_id", "part_locator_hash", "calendar_event_id", "state", "calendar_component_scope", "recurrence_id"},
-			values:  [][]any{{driver.fixture.receiptID, driver.fixture.organizationID, driver.fixture.accountID, driver.fixture.messageID, driver.fixture.partLocatorHash, driver.fixture.calendarEventID, "applied", "series", nil}},
+			columns: []string{"id", "organization_id", "mailbox_id", "mail_message_id", "part_locator_hash", "event_envelope_id", "state", "attempts", "lease_token", "lease_generation", "lease_until", "next_attempt_at", "error_code", "calendar_event_id", "deferred_object_state_id", "deferred_expires_at", "calendar_component_scope", "recurrence_id", "created_at", "updated_at"},
+			values:  [][]any{{driver.fixture.receiptID, driver.fixture.organizationID, driver.fixture.accountID, driver.fixture.messageID, driver.fixture.partLocatorHash, driver.fixture.eventEnvelopeID, "applied", 1, nil, int64(1), nil, nil, nil, driver.fixture.calendarEventID, nil, nil, "series", nil, receiptTime, receiptTime}},
 		}
 	case "calendar_events":
 		return &mailboxEntCalendarRSVPTargetRows{
@@ -298,6 +301,19 @@ func mailboxEntCalendarRSVPTargetSetScanValue(destination, value any) error {
 	if value == nil {
 		return nil
 	}
+	if scanner, ok := destination.(*entsql.NullScanner); ok {
+		id, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("scan UUID value = %T", value)
+		}
+		output, ok := scanner.S.(*uuid.UUID)
+		if !ok || output == nil {
+			return errors.New("invalid UUID null scanner")
+		}
+		*output = id
+		scanner.Valid = true
+		return nil
+	}
 	if target.Type() == reflect.TypeOf(sql.NullString{}) {
 		var text string
 		switch typed := value.(type) {
@@ -317,6 +333,27 @@ func mailboxEntCalendarRSVPTargetSetScanValue(destination, value any) error {
 			return errors.New(reflect.TypeOf(value).String())
 		}
 		target.Set(reflect.ValueOf(sql.NullBool{Bool: enabled, Valid: true}))
+		return nil
+	}
+	if target.Type() == reflect.TypeOf(sql.NullInt64{}) {
+		var number int64
+		switch typed := value.(type) {
+		case int:
+			number = int64(typed)
+		case int64:
+			number = typed
+		default:
+			return fmt.Errorf("scan null int value = %T", value)
+		}
+		target.Set(reflect.ValueOf(sql.NullInt64{Int64: number, Valid: true}))
+		return nil
+	}
+	if target.Type() == reflect.TypeOf(sql.NullTime{}) {
+		instant, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("scan null time value = %T", value)
+		}
+		target.Set(reflect.ValueOf(sql.NullTime{Time: instant, Valid: true}))
 		return nil
 	}
 	source := reflect.ValueOf(value)
