@@ -243,10 +243,6 @@ services:
         target: /opt/hub/source/backend/internal
         read_only: true
       - type: bind
-        source: ./backend/docs
-        target: /opt/hub/source/backend/docs
-        read_only: true
-      - type: bind
         source: ./backend/tests
         target: /opt/hub/source/backend/tests
         read_only: true
@@ -264,13 +260,19 @@ services:
         read_only: true
     environment:
       GOCACHE: /var/cache/hub-go
+      GOENV: "off"
+      GOFLAGS: "-p=1"
+      GOPROXY: "off"
+      GOTOOLCHAIN: "local"
       GOTMPDIR: /var/tmp/hub-go
+      GOWORK: "off"
     cpus: 6.0
-    mem_limit: 10g
+    mem_limit: 2g
+    memswap_limit: 2g
     tmpfs:
       - "/tmp:rw,noexec,nosuid,nodev,size=64m"
-      - "/var/cache/hub-go:rw,noexec,nosuid,nodev,size=3g,uid=10001,gid=10001,mode=1770"
-      - "/var/tmp/hub-go:rw,nosuid,nodev,exec,size=4g,uid=10001,gid=10001,mode=1770"
+      - "/var/cache/hub-go:rw,noexec,nosuid,nodev,size=768m,uid=10001,gid=10001,mode=1770"
+      - "/var/tmp/hub-go:rw,nosuid,nodev,exec,size=384m,uid=10001,gid=10001,mode=1770"
     command: []
 
   frontend-unit:
