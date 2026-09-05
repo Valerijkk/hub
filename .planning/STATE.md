@@ -1194,6 +1194,13 @@ no new mount/privilege. An accidentally broader selector also ran the full
 topology file: 84 PASS / 21 FAIL, retained as a separate failing report.
 It is not a green framework claim. Next frozen atom 3I handles the separately
 observed shell auto-reap missing:none lifecycle, then actual backend gate.
+Task 3I is now source-accepted: only monitor/reaper terminal-state guards
+changed. Docker RED 3 FAIL / 2 PASS, focused GREEN 6 PASS, current launcher
+regression 71 PASS / 529 deselected (6.44s). Independent review C/I/M 0/0/1,
+nonblocking fixed-RAM present-marker runtime coverage limit; exact branch
+binding is statically checked. Latest full framework run is 529 PASS /
+71 FAIL (600 cases, 21.26s), NOT_ACCEPTED; no test was suppressed. Actual
+backend build/vet/unit/race and product acceptance remain the next step.
 
 **Previous checkpoint detail:** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and

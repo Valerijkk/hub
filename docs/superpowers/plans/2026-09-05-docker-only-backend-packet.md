@@ -275,6 +275,22 @@ patch and Docker GREEN plus current runner regressions, independent review.
 This is a latent defect evidenced by Task 3F, not the cause of the actual
 Task 3G MONITOR abort. Test authoring can run separately; production edits
 must wait until 3H is committed. Root owns docs and Docker execution.
+Task 3H checkpoint 86371418e60a8eb80ab8b639cac347b23c3a1599 is pushed.
+Task 3I actual first Docker RED: backend-reaped-child-red-20260905.xml,
+3 failed / 2 passed in 0.89s. Failures are exactly absent monitor terminal
+acceptance, its source-bound marker branch, and reaper cached wait=17.
+The two-case production patch is now applied only in the named functions;
+test refinement and independent final review precede executable acceptance.
+All 21 failing case identities in the earlier broader topology selector
+also occur in backend-runtime-full-framework-20260905.xml; this comparison
+establishes prior failure identity, not a resolved cause or full-suite PASS.
+Task 3I final evidence: refined focused GREEN 6 passed (0.84s), regression
+backend-reaped-child-regression-20260905.xml 71 passed / 529 deselected
+(6.44s). Independent review C/I/M 0/0/1; only the explicit nonblocking
+fixed-RAM present-marker runtime coverage limit remains. Root accepts the
+bounded repair, not a Go process-group or product verdict. The full run
+backend-lifecycle-full-framework-20260905.xml is 529 passed / 71 failed,
+600 cases, 21.26s, exit 1: full framework NOT_ACCEPTED.
 
 The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
 or suppressed. Current-launcher security and shared packet regressions must

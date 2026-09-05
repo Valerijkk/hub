@@ -162,6 +162,20 @@ dynamic data or changing cleanup. Their source-contract and the earlier
 targeted regression total 63 passing checks. The shell-child diagnostic
 confirms possible auto-reaping before explicit wait in its test topology;
 it is not proof of the actual Go abort cause.
+The next actual run identified the MONITOR branch. Its stop-marker guard
+incorrectly required the reports root despite the marker living in RAM.
+The guard now checks the exact current stage scratch directory and marker,
+retaining identity, owner, mode and non-symlink checks. Focused Docker
+RED/GREEN passed, and 65 current-launcher regressions pass. Independent
+review recorded one nonblocking coverage limit: an actual symlink in the
+fixed RAM path is NOT_RUN in the read-only Python unit topology. The separately
+observed shell auto-reap lifecycle is now repaired in monitor/reaper only:
+an already-captured missing leader with no remaining group proceeds to the
+real parent wait; all inconsistent states still fail closed. Six isolated
+shell tests pass, including cached exit 17 and negative states; the current
+launcher regression is 71 passed. Independent review retains only the known
+nonblocking fixed-RAM marker coverage limit. The full framework result is
+529 passed / 71 failed, NOT_ACCEPTED. These are not backend Go-stage verdicts.
 The old Windows `root_handoff.py` / `observe.py` choreography is superseded
 and is not an executable fallback. Historical observer receipts remain
 historical; do not fabricate their `SEAL` from an offline packet result.

@@ -787,7 +787,7 @@ monitor_owned_budget_stop() {
         [ ! -e "$budget_stop_marker" ] || return 1
         sleep 1
         ;;
-      valid-zombie:valid-zombie)
+      valid-zombie:valid-zombie|missing:none)
         [ ! -e "$budget_stop_marker" ] || return 1
         return 0
         ;;
@@ -950,7 +950,10 @@ reap_owned_go_child_group() {
   fi
   leader_state="$(_owned_go_leader_state)" || return 75
   group_state="$(_owned_go_group_state)" || return 75
-  [ "$leader_state:$group_state" = valid-zombie:valid-zombie ] || return 75
+  case "$leader_state:$group_state" in
+    valid-zombie:valid-zombie|missing:none) ;;
+    *) return 75 ;;
+  esac
   if wait "$go_child_pid"; then
     go_child_exit=0
   else
