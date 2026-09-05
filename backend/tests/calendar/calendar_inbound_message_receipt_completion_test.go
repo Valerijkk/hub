@@ -258,7 +258,7 @@ func (driver *calendarInboundReceiptCompletionDriver) rows(kind string, event bo
 		}
 		return calendarInboundReceiptCompletionRowsOf(
 			[]string{"id", "organization_id", "user_id", "engine_account_id", "desired_enabled", "status", "control_generation", "deployed_generation", "deployed_hash_version", "deployed_hash", "projection_state", "sync_cursor", "last_synced_at", "rebuild_checkpoint", "rebuild_base_cursor", "sync_error_code"},
-			[]any{fixture.mailboxID, fixture.organizationID, fixture.ownerID, "engine-account", true, "active", int64(1), int64(1), int32(1), hash, "ready", "cursor", fixture.clock, nil, nil, nil},
+			[]any{fixture.mailboxID, fixture.organizationID, fixture.ownerID, "engine-account", true, "active", int64(1), int64(1), int64(1), hash, "ready", "cursor", fixture.clock, nil, nil, nil},
 		)
 	case "users":
 		return calendarInboundReceiptCompletionRowsOf([]string{"id", "status"}, []any{fixture.ownerID, "active"})
@@ -288,7 +288,7 @@ func (driver *calendarInboundReceiptCompletionDriver) rows(kind string, event bo
 		}
 		return calendarInboundReceiptCompletionRowsOf(
 			[]string{"id", "organization_id", "calendar_owner_id", "uid", "recurrence_id", "organizer_email", "sequence", "method", "payload_hash_version", "payload_hash", "state", "calendar_event_id", "expires_at"},
-			[]any{fixture.objectStateID, fixture.organizationID, fixture.ownerID, fixture.identity.UID, fixture.identity.RecurrenceID, "owner@example.test", fixture.identity.Sequence, "request", fixture.identity.CanonicalVersion, fixture.identity.PayloadHash[:], "applied", fixture.calendarEventID, nil},
+			[]any{fixture.objectStateID, fixture.organizationID, fixture.ownerID, fixture.identity.UID, fixture.identity.RecurrenceID, "owner@example.test", fixture.identity.Sequence, "request", int64(fixture.identity.CanonicalVersion), fixture.identity.PayloadHash[:], "applied", fixture.calendarEventID, nil},
 		)
 	default:
 		panic(fmt.Sprintf("unsupported query kind %q", kind))
@@ -461,6 +461,19 @@ func calendarInboundReceiptCompletionSetScanValue(destination, value any) error 
 	if value == nil {
 		return nil
 	}
+	if scanner, ok := destination.(*entsql.NullScanner); ok {
+		id, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("scan null UUID value = %T", value)
+		}
+		output, ok := scanner.S.(*uuid.UUID)
+		if !ok || output == nil {
+			return errors.New("invalid UUID null scanner")
+		}
+		*output = id
+		scanner.Valid = true
+		return nil
+	}
 	switch target.Type() {
 	case reflect.TypeOf(sql.NullString{}):
 		switch typed := value.(type) {
@@ -471,6 +484,13 @@ func calendarInboundReceiptCompletionSetScanValue(destination, value any) error 
 		default:
 			return fmt.Errorf("scan null string value = %T", value)
 		}
+		return nil
+	case reflect.TypeOf(sql.NullBool{}):
+		enabled, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("scan null bool value = %T", value)
+		}
+		target.Set(reflect.ValueOf(sql.NullBool{Bool: enabled, Valid: true}))
 		return nil
 	case reflect.TypeOf(sql.NullTime{}):
 		instant, ok := value.(time.Time)
@@ -485,6 +505,10 @@ func calendarInboundReceiptCompletionSetScanValue(destination, value any) error 
 			target.Set(reflect.ValueOf(sql.NullInt64{Int64: int64(typed), Valid: true}))
 		case int64:
 			target.Set(reflect.ValueOf(sql.NullInt64{Int64: typed, Valid: true}))
+		case int32:
+			target.Set(reflect.ValueOf(sql.NullInt64{Int64: int64(typed), Valid: true}))
+		case uint8:
+			target.Set(reflect.ValueOf(sql.NullInt64{Int64: int64(typed), Valid: true}))
 		default:
 			return fmt.Errorf("scan null int value = %T", value)
 		}
