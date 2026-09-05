@@ -820,6 +820,94 @@ terminate_owned_go_child_group() {
   return 0
 }
 
+_owned_go_group_reaches_reapable_state_for_container_stop() {
+  [ "$#" -eq 1 ] || return 64
+  container_stop_grace_remaining="$1"
+  case "$container_stop_grace_remaining" in
+    1) ;;
+    *) return 64 ;;
+  esac
+  while :; do
+    container_stop_leader_state="$(_owned_go_leader_state)" || return 75
+    container_stop_group_state="$(_owned_go_group_state)" || return 75
+    case "$container_stop_leader_state:$container_stop_group_state" in
+      valid-zombie:valid-zombie) return 0 ;;
+      valid-live:valid-live|valid-zombie:valid-live)
+        [ "$container_stop_grace_remaining" -eq 1 ] || return 1
+        sleep 1
+        container_stop_grace_remaining=0
+        ;;
+      *) return 75 ;;
+    esac
+  done
+}
+
+abort_owned_go_child_group_for_container_stop() {
+  [ "$#" -eq 0 ] || return 64
+  case "${go_child_reaped-false}" in
+    true)
+      [ -z "${go_child_pid-}" ] && [ -z "${go_child_pgid-}" ] && [ -z "${go_child_session-}" ] && [ -z "${go_child_starttime-}" ] && [ -z "${go_child_identity-}" ] || return 75
+      case "${go_child_exit-}" in ''|*[!0-9]*) return 75 ;; *) return 0 ;; esac
+      ;;
+    false) ;;
+    *) return 75 ;;
+  esac
+  case "${go_child_pid-}" in ''|*[!0-9]*) return 75 ;; *) ;; esac
+  case "${go_child_pgid-}" in ''|*[!0-9]*) return 75 ;; *) ;; esac
+  case "${go_child_session-}" in ''|*[!0-9]*) return 75 ;; *) ;; esac
+  case "${go_child_starttime-}" in ''|*[!0-9]*) return 75 ;; *) ;; esac
+  case "$go_child_pid:$go_child_pgid:$go_child_session:$go_child_starttime" in
+    "$go_child_pid:$go_child_pid:$go_child_pid:"[0-9]*) ;;
+    *) return 75 ;;
+  esac
+  case "$go_child_identity" in
+    "$go_child_pid:$go_child_pgid:$go_child_session:$go_child_starttime:go") ;;
+    *) return 75 ;;
+  esac
+  container_stop_leader_state="$(_owned_go_leader_state)" || return 75
+  container_stop_group_state="$(_owned_go_group_state)" || return 75
+  case "$container_stop_leader_state:$container_stop_group_state" in
+    valid-zombie:valid-zombie) ;;
+    valid-live:valid-live|valid-zombie:valid-live)
+      _assert_owned_signal_identity || return 75
+      kill -TERM -- "-$go_child_pgid" || return 75
+      if _owned_go_group_reaches_reapable_state_for_container_stop 1; then
+        :
+      else
+        container_stop_wait_status=$?
+        [ "$container_stop_wait_status" -eq 1 ] || return 75
+        container_stop_leader_state="$(_owned_go_leader_state)" || return 75
+        container_stop_group_state="$(_owned_go_group_state)" || return 75
+        case "$container_stop_leader_state:$container_stop_group_state" in
+          valid-live:valid-live|valid-zombie:valid-live) ;;
+          *) return 75 ;;
+        esac
+        _assert_owned_signal_identity || return 75
+        kill -KILL -- "-$go_child_pgid" || return 75
+        _owned_go_group_reaches_reapable_state_for_container_stop 1 || return 75
+      fi
+      ;;
+    *) return 75 ;;
+  esac
+  container_stop_leader_state="$(_owned_go_leader_state)" || return 75
+  container_stop_group_state="$(_owned_go_group_state)" || return 75
+  [ "$container_stop_leader_state:$container_stop_group_state" = valid-zombie:valid-zombie ] || return 75
+  if wait "$go_child_pid"; then
+    go_child_exit=0
+  else
+    go_child_exit=$?
+  fi
+  go_child_pid=
+  go_child_reaped=true
+  container_stop_group_state="$(_owned_go_group_state)" || return 75
+  [ "$container_stop_group_state" = none ] || return 75
+  go_child_session=
+  go_child_starttime=
+  go_child_pgid=
+  go_child_identity=
+  return 0
+}
+
 _post_reaped_gocache_cleanup() {
   [ "$#" -eq 0 ] || return 64
   [ "${go_child_reaped-}" = true ] && [ -z "${go_child_pid-}" ] || return 75
