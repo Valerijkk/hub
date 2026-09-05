@@ -484,6 +484,351 @@ _receipt_cleanup_terminal() {
   [ "$receipt_cleanup_failed" = false ] || return 75
 }
 
+_receipt_abort_stage_is_completed() {
+  [ "$#" -eq 1 ] || return 64
+  case "$1" in
+    build) [ "$receipt_abort_completed_count" -ge 1 ] ;;
+    vet) [ "$receipt_abort_completed_count" -ge 2 ] ;;
+    unit) [ "$receipt_abort_completed_count" -ge 3 ] ;;
+    race) [ "$receipt_abort_completed_count" -ge 4 ] ;;
+    *) return 64 ;;
+  esac
+}
+
+_receipt_abort_name_is_required() {
+  [ "$#" -eq 1 ] || return 64
+  case "$1" in
+    owner.json) return 0 ;;
+    package-plan.build.json|package-plan.vet.json|package-plan.unit.json|package-plan.race.json)
+      [ "$receipt_abort_phase" = execution ]
+      ;;
+    build.stderr.log|build.stdout.log|package-results.build.jsonl|stage-build.json) _receipt_abort_stage_is_completed build ;;
+    vet.stderr.log|vet.stdout.log|package-results.vet.jsonl|stage-vet.json) _receipt_abort_stage_is_completed vet ;;
+    unit.stderr.log|unit.stdout.log|package-results.unit.jsonl|stage-unit.json) _receipt_abort_stage_is_completed unit ;;
+    race.stderr.log|race.stdout.log|package-results.race.jsonl|stage-race.json) _receipt_abort_stage_is_completed race ;;
+    *) return 64 ;;
+  esac
+}
+
+_receipt_abort_expected_tree() {
+  [ "$#" -eq 2 ] || return 64
+  case "$1:$2" in false:false|true:false|true:true) ;; *) return 64 ;; esac
+  receipt_abort_marker_expected="$1"
+  receipt_abort_final_expected="$2"
+  receipt_abort_expected_tree=$(for receipt_abort_name in CONTAINER_ABORTED build.stderr.log build.stdout.log container-receipt.json owner.json package-plan.build.json package-plan.race.json package-plan.unit.json package-plan.vet.json package-results.build.jsonl package-results.race.jsonl package-results.unit.jsonl package-results.vet.jsonl race.stderr.log race.stdout.log stage-build.json stage-race.json stage-unit.json stage-vet.json unit.stderr.log unit.stdout.log vet.stderr.log vet.stdout.log; do
+    case "$receipt_abort_name" in
+      CONTAINER_ABORTED) [ "$receipt_abort_marker_expected" = true ] || continue ;;
+      container-receipt.json) [ "$receipt_abort_final_expected" = true ] || continue ;;
+      *) _receipt_abort_name_is_required "$receipt_abort_name" || continue ;;
+    esac
+    printf '%s\tf\t1\n' "$receipt_abort_name"
+  done | LC_ALL=C sort) || return 75
+  receipt_abort_actual_tree="$(find "$run_dir" -xdev -mindepth 1 -maxdepth 1 -printf '%f\t%y\t%n\n' | LC_ALL=C sort)" || return 75
+  [ "$receipt_abort_actual_tree" = "$receipt_abort_expected_tree" ] || return 75
+}
+
+_receipt_create_aborted_marker() {
+  [ "$#" -eq 0 ] || return 64
+  receipt_marker_path="$run_dir/CONTAINER_ABORTED"
+  _receipt_run_dir_current || return 75
+  _run_dir_target_is_safe "$receipt_marker_path" || return 75
+  [ ! -e "$receipt_marker_path" ] && [ ! -L "$receipt_marker_path" ] || return 75
+  ( umask 077; set -C; : > "$receipt_marker_path" ) || return 75
+  receipt_marker_identity="$(_owned_regular_identity "$receipt_marker_path")" || return 75
+  receipt_marker_links="$(_owned_regular_links "$receipt_marker_path")" || return 75
+  [ "$receipt_marker_links" = 1 ] || return 75
+  receipt_marker_size="$(_receipt_file_size "$receipt_marker_path")" || return 75
+  [ "$receipt_marker_size" = 0 ] || return 75
+}
+
+_receipt_abort_inventory() {
+  [ "$#" -eq 0 ] || return 64
+  receipt_inventory_json=
+  receipt_inventory_lines=
+  receipt_abort_inventory_identities=
+  receipt_inventory_first=true
+  for receipt_abort_name in CONTAINER_ABORTED build.stderr.log build.stdout.log owner.json package-plan.build.json package-plan.race.json package-plan.unit.json package-plan.vet.json package-results.build.jsonl package-results.race.jsonl package-results.unit.jsonl package-results.vet.jsonl race.stderr.log race.stdout.log stage-build.json stage-race.json stage-unit.json stage-vet.json unit.stderr.log unit.stdout.log vet.stderr.log vet.stdout.log; do
+    case "$receipt_abort_name" in
+      CONTAINER_ABORTED) ;;
+      *) _receipt_abort_name_is_required "$receipt_abort_name" || continue ;;
+    esac
+    receipt_inventory_path="$run_dir/$receipt_abort_name"
+    _receipt_regular_is_owned "$receipt_inventory_path" || return 75
+    receipt_inventory_identity="$(_owned_regular_identity "$receipt_inventory_path")" || return 75
+    receipt_inventory_links="$(_owned_regular_links "$receipt_inventory_path")" || return 75
+    [ "$receipt_inventory_links" = 1 ] || return 75
+    receipt_inventory_sha="$(_receipt_sha256_file "$receipt_inventory_path")" || return 75
+    receipt_inventory_size="$(_receipt_file_size "$receipt_inventory_path")" || return 75
+    if [ "$receipt_inventory_first" = true ]; then
+      receipt_inventory_json="{\"path\":\"$receipt_abort_name\",\"sha256\":\"$receipt_inventory_sha\",\"size\":$receipt_inventory_size}"
+      receipt_inventory_first=false
+    else
+      receipt_inventory_json="$receipt_inventory_json,{\"path\":\"$receipt_abort_name\",\"sha256\":\"$receipt_inventory_sha\",\"size\":$receipt_inventory_size}"
+    fi
+    receipt_inventory_lines="${receipt_inventory_lines}${receipt_abort_name}	${receipt_inventory_sha}	${receipt_inventory_size}
+"
+    receipt_abort_inventory_identities="${receipt_abort_inventory_identities}${receipt_abort_name}	${receipt_inventory_identity}	${receipt_inventory_sha}	${receipt_inventory_size}
+"
+  done
+  receipt_inventory_sha256="$(_receipt_sha256_text "$receipt_inventory_lines")" || return 75
+}
+
+_receipt_abort_inventory_is_current() {
+  [ "$#" -eq 0 ] || return 64
+  [ -n "${receipt_abort_inventory_captured_identities-}" ] || return 75
+  [ -n "${receipt_abort_inventory_captured_json-}" ] || return 75
+  [ -n "${receipt_abort_inventory_captured_lines-}" ] || return 75
+  [ -n "${receipt_abort_inventory_captured_sha256-}" ] || return 75
+  _receipt_abort_inventory || return 75
+  [ "$receipt_abort_inventory_identities" = "$receipt_abort_inventory_captured_identities" ] || return 75
+  [ "$receipt_inventory_json" = "$receipt_abort_inventory_captured_json" ] || return 75
+  [ "$receipt_inventory_lines" = "$receipt_abort_inventory_captured_lines" ] || return 75
+  [ "$receipt_inventory_sha256" = "$receipt_abort_inventory_captured_sha256" ] || return 75
+}
+
+_receipt_abort_capture_stream_sizes() {
+  [ "$#" -eq 0 ] || return 64
+  build_stdout_size=0; build_stderr_size=0
+  vet_stdout_size=0; vet_stderr_size=0
+  unit_stdout_size=0; unit_stderr_size=0
+  race_stdout_size=0; race_stderr_size=0
+  for receipt_abort_stage in build vet unit race; do
+    _receipt_abort_stage_is_completed "$receipt_abort_stage" || continue
+    receipt_abort_stdout_path="$run_dir/$receipt_abort_stage.stdout.log"
+    receipt_abort_stderr_path="$run_dir/$receipt_abort_stage.stderr.log"
+    _receipt_regular_is_owned "$receipt_abort_stdout_path" || return 75
+    _receipt_regular_is_owned "$receipt_abort_stderr_path" || return 75
+    receipt_abort_stdout_size="$(_receipt_file_size "$receipt_abort_stdout_path")" || return 75
+    receipt_abort_stderr_size="$(_receipt_file_size "$receipt_abort_stderr_path")" || return 75
+    receipt_abort_stdout_cap="$(stage_stream_cap "$receipt_abort_stage" stdout)" || return 75
+    receipt_abort_stderr_cap="$(stage_stream_cap "$receipt_abort_stage" stderr)" || return 75
+    [ "$receipt_abort_stdout_size" -le "$receipt_abort_stdout_cap" ] || return 75
+    [ "$receipt_abort_stderr_size" -le "$receipt_abort_stderr_cap" ] || return 75
+    case "$receipt_abort_stage" in
+      build) build_stdout_size="$receipt_abort_stdout_size"; build_stderr_size="$receipt_abort_stderr_size" ;;
+      vet) vet_stdout_size="$receipt_abort_stdout_size"; vet_stderr_size="$receipt_abort_stderr_size" ;;
+      unit) unit_stdout_size="$receipt_abort_stdout_size"; unit_stderr_size="$receipt_abort_stderr_size" ;;
+      race) race_stdout_size="$receipt_abort_stdout_size"; race_stderr_size="$receipt_abort_stderr_size" ;;
+    esac
+  done
+}
+
+_receipt_abort_progress() {
+  [ "$#" -eq 3 ] || return 64
+  receipt_abort_phase="$1"
+  receipt_abort_completed_prefix="$2"
+  receipt_abort_active_stage="$3"
+  case "$receipt_abort_phase:$receipt_abort_completed_prefix:$receipt_abort_active_stage" in
+    bootstrap::null)
+      receipt_abort_completed_count=0
+      receipt_abort_completed_json='[]'
+      receipt_abort_planned_json='[]'
+      receipt_abort_active_json=null
+      [ -z "${completed_build_final_identities-}" ] && [ -z "${completed_vet_final_identities-}" ] && [ -z "${completed_unit_final_identities-}" ] && [ -z "${completed_race_final_identities-}" ] || return 75
+      ;;
+    execution::build)
+      receipt_abort_completed_count=0
+      receipt_abort_completed_json='[]'
+      receipt_abort_planned_json='["build","vet","unit","race"]'
+      receipt_abort_active_json='"build"'
+      [ -z "${completed_build_final_identities-}" ] && [ -z "${completed_vet_final_identities-}" ] && [ -z "${completed_unit_final_identities-}" ] && [ -z "${completed_race_final_identities-}" ] || return 75
+      ;;
+    execution:build:vet)
+      _execute_completed_stage_final_identities_are_current build "${completed_build_final_identities-}" || return 75
+      [ -z "${completed_vet_final_identities-}" ] && [ -z "${completed_unit_final_identities-}" ] && [ -z "${completed_race_final_identities-}" ] || return 75
+      receipt_abort_completed_count=1
+      receipt_abort_completed_json='["build"]'
+      receipt_abort_planned_json='["build","vet","unit","race"]'
+      receipt_abort_active_json='"vet"'
+      ;;
+    execution:build,vet:unit)
+      _execute_completed_stage_final_identities_are_current build "${completed_build_final_identities-}" || return 75
+      _execute_completed_stage_final_identities_are_current vet "${completed_vet_final_identities-}" || return 75
+      [ -z "${completed_unit_final_identities-}" ] && [ -z "${completed_race_final_identities-}" ] || return 75
+      receipt_abort_completed_count=2
+      receipt_abort_completed_json='["build","vet"]'
+      receipt_abort_planned_json='["build","vet","unit","race"]'
+      receipt_abort_active_json='"unit"'
+      ;;
+    execution:build,vet,unit:race)
+      _execute_completed_stage_final_identities_are_current build "${completed_build_final_identities-}" || return 75
+      _execute_completed_stage_final_identities_are_current vet "${completed_vet_final_identities-}" || return 75
+      _execute_completed_stage_final_identities_are_current unit "${completed_unit_final_identities-}" || return 75
+      [ -z "${completed_race_final_identities-}" ] || return 75
+      receipt_abort_completed_count=3
+      receipt_abort_completed_json='["build","vet","unit"]'
+      receipt_abort_planned_json='["build","vet","unit","race"]'
+      receipt_abort_active_json='"race"'
+      ;;
+    execution:build,vet,unit,race:null)
+      _execute_completed_stage_final_identities_are_current build "${completed_build_final_identities-}" || return 75
+      _execute_completed_stage_final_identities_are_current vet "${completed_vet_final_identities-}" || return 75
+      _execute_completed_stage_final_identities_are_current unit "${completed_unit_final_identities-}" || return 75
+      _execute_completed_stage_final_identities_are_current race "${completed_race_final_identities-}" || return 75
+      receipt_abort_completed_count=4
+      receipt_abort_completed_json='["build","vet","unit","race"]'
+      receipt_abort_planned_json='["build","vet","unit","race"]'
+      receipt_abort_active_json=null
+      ;;
+    *) return 75 ;;
+  esac
+}
+
+_receipt_aborted_payload_is_canonical() {
+  [ "$#" -eq 0 ] || return 64
+  case "$receipt" in *'
+') ;; *) return 75 ;; esac
+  receipt_payload_body=${receipt%?}
+  [ "$receipt_payload_body" != "$receipt" ] || return 75
+  case "$receipt_payload_body" in *'
+'*) return 75 ;; esac
+  case "$receipt_payload_body" in
+    '{"abort":'*',"terminal":{"exit_code":143,"signal":"TERM"}}") return 0 ;;
+    *) return 75 ;;
+  esac
+}
+
+_receipt_build_aborted_container_json() {
+  [ "$#" -eq 1 ] || return 64
+  receipt_budget_json="$1"
+  [ "$child_group_reaped" = true ] && [ "$stdout_reader_reaped" = true ] && [ "$stderr_reader_reaped" = true ] && [ "$unpublished_stage_rolled_back" = true ] || return 75
+  receipt_abort_object="{\"active_stage\":$receipt_abort_active_json,\"child_group_reaped\":true,\"completed_stages\":$receipt_abort_completed_json,\"phase\":\"$receipt_abort_phase\",\"planned_stages\":$receipt_abort_planned_json,\"signal\":\"TERM\",\"stderr_reader_reaped\":true,\"stdout_reader_reaped\":true,\"unpublished_stage_rolled_back\":true}"
+  receipt_cgroup_json="{\"baseline\":$container_cgroup_baseline_json,\"family\":\"$cgroup_family\",\"final\":$container_cgroup_final_json}"
+  receipt="{\"abort\":$receipt_abort_object,\"artifact_inventory\":[$receipt_inventory_json],\"artifact_inventory_sha256\":\"$receipt_inventory_sha256\",\"cgroup\":$receipt_cgroup_json,\"command_profile_sha256\":\"$command_profile_sha256\",\"container_hostname\":\"$container_hostname\",\"go_environment\":$go_environment,\"launcher_sha256\":\"$launcher_sha256\",\"owner_nonce\":\"$owner_nonce\",\"report_budget\":$receipt_budget_json,\"run_id\":\"$run_id\",\"schema\":\"$RECEIPT_SCHEMA\",\"source_manifest_after_sha256\":\"$source_manifest_after_sha256\",\"source_manifest_before_sha256\":\"$source_manifest_before_sha256\",\"state\":\"CONTAINER_ABORTED\",\"target\":\"$RECEIPT_TARGET\",\"terminal\":{\"exit_code\":143,\"signal\":\"TERM\"}}"
+  receipt="$receipt
+"
+  _receipt_aborted_payload_is_canonical
+}
+
+_receipt_converge_aborted_budget() {
+  [ "$#" -eq 0 ] || return 64
+  receipt_regular_before="$(report_regular_file_bytes)" || return 75
+  receipt_metadata_before="$(report_metadata_bytes)" || return 75
+  receipt_metadata_used="$receipt_metadata_before"
+  receipt_total_used="$receipt_regular_before"
+  receipt_iteration=0
+  while [ "$receipt_iteration" -lt 16 ]; do
+    receipt_iteration=$((receipt_iteration + 1))
+    receipt_budget="$(_receipt_budget_json "$receipt_metadata_used" "$receipt_total_used")" || return 75
+    _receipt_build_aborted_container_json "$receipt_budget" || return 75
+    receipt_size="$(printf '%s' "$receipt" | wc -c)" || return 75
+    _receipt_decimal "$receipt_size" || return 75
+    receipt_next_metadata=$((receipt_metadata_before + receipt_size))
+    receipt_next_total=$((receipt_regular_before + receipt_size))
+    [ "$receipt_next_metadata" -le "$REPORT_METADATA_BUDGET_BYTES" ] || return 75
+    [ "$receipt_next_total" -le "$REPORT_BUDGET_BYTES" ] || return 75
+    if [ "$receipt_next_metadata" = "$receipt_metadata_used" ] && [ "$receipt_next_total" = "$receipt_total_used" ]; then
+      return 0
+    fi
+    receipt_metadata_used="$receipt_next_metadata"
+    receipt_total_used="$receipt_next_total"
+  done
+  return 75
+}
+
+_receipt_abort_common_evidence_is_current() {
+  [ "$#" -eq 0 ] || return 64
+  printf '%s\n' "${run_id-}" | grep -Eq '^backend-unit-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12,64}-[0-9a-f]{8}$' || return 75
+  printf '%s\n' "${owner_nonce-}" | grep -Eq '^[0-9a-f]{32}$' || return 75
+  printf '%s\n' "${container_hostname-}" | grep -Eq '^[0-9a-f]{12,64}$' || return 75
+  for receipt_abort_hash in "${launcher_sha256-}" "${command_profile_sha256-}" "${go_environment_sha256-}"; do
+    printf '%s\n' "$receipt_abort_hash" | grep -Eq '^sha256:[0-9a-f]{64}$' || return 75
+  done
+  [ "$(_receipt_sha256_file /usr/local/bin/backend-unit)" = "$launcher_sha256" ] || return 75
+  [ "$(_receipt_sha256_text "$command_profile")" = "$command_profile_sha256" ] || return 75
+  [ "$(_receipt_sha256_text "$go_environment")" = "$go_environment_sha256" ] || return 75
+}
+
+_receipt_abort_terminal_evidence_is_current() {
+  [ "$#" -eq 0 ] || return 64
+  _receipt_run_dir_current || return 75
+  _owned_temp_is_current "$receipt_marker_path" "$receipt_marker_identity" 1 || return 75
+  receipt_marker_size="$(_receipt_file_size "$receipt_marker_path")" || return 75
+  [ "$receipt_marker_size" = 0 ] || return 75
+  _receipt_abort_inventory_is_current || return 75
+  _owned_temp_is_current "$receipt_final_path" "$receipt_final_identity" 1 || return 75
+  receipt_abort_final_size="$(_receipt_file_size "$receipt_final_path")" || return 75
+  [ "$receipt_abort_final_size" = "$receipt_abort_final_expected_size" ] || return 75
+  [ "$(_receipt_sha256_file "$receipt_final_path")" = "$receipt_abort_final_expected_sha256" ] || return 75
+}
+
+finalize_aborted_container() {
+  [ "$#" -eq 3 ] || return 64
+  receipt_marker_path="$run_dir/CONTAINER_ABORTED"
+  receipt_marker_identity=
+  receipt_final_path="$run_dir/container-receipt.json"
+  receipt_final_identity=
+  _receipt_run_dir_current || return 75
+  [ ! -e "$receipt_marker_path" ] && [ ! -L "$receipt_marker_path" ] || return 75
+  [ ! -e "$receipt_final_path" ] && [ ! -L "$receipt_final_path" ] || return 75
+  _receipt_validate_owner || return 75
+  _receipt_abort_common_evidence_is_current || return 75
+  [ "${child_group_reaped-}" = true ] && [ "${stdout_reader_reaped-}" = true ] && [ "${stderr_reader_reaped-}" = true ] && [ "${unpublished_stage_rolled_back-}" = true ] || return 75
+  printf '%s\n' "${source_manifest_before_sha256-}" | grep -Eq '^sha256:[0-9a-f]{64}$' || return 75
+  [ "$source_manifest_before_sha256" = "${source_manifest_after_sha256-}" ] || return 75
+  _cgroup_snapshot_is_canonical "$container_cgroup_baseline" || return 75
+  _cgroup_snapshot_is_canonical "$container_cgroup_final" || return 75
+  [ "$container_cgroup_baseline" = "$container_cgroup_final" ] || return 75
+  container_cgroup_baseline_json="$(_receipt_snapshot_object "$container_cgroup_baseline")" || return 75
+  container_cgroup_final_json="$(_receipt_snapshot_object "$container_cgroup_final")" || return 75
+  _receipt_abort_progress "$1" "$2" "$3" || return 75
+  _receipt_abort_capture_stream_sizes || return 75
+  _receipt_abort_expected_tree false false || return 75
+  if _receipt_create_aborted_marker; then :; else _receipt_cleanup_terminal || return 75; return 75; fi
+  if _receipt_abort_expected_tree true false && _receipt_abort_inventory && _receipt_converge_aborted_budget; then
+    :
+  else
+    _receipt_cleanup_terminal || return 75
+    return 75
+  fi
+  receipt_abort_inventory_captured_identities="$receipt_abort_inventory_identities"
+  receipt_abort_inventory_captured_json="$receipt_inventory_json"
+  receipt_abort_inventory_captured_lines="$receipt_inventory_lines"
+  receipt_abort_inventory_captured_sha256="$receipt_inventory_sha256"
+  receipt_abort_final_expected_size="$receipt_size"
+  _receipt_decimal "$receipt_abort_final_expected_size" || {
+    _receipt_cleanup_terminal || return 75
+    return 75
+  }
+  receipt_abort_final_expected_sha256="$(_receipt_sha256_text "$receipt")" || {
+    _receipt_cleanup_terminal || return 75
+    return 75
+  }
+  if write_atomic "$receipt_final_path" "$receipt"; then
+    :
+  else
+    _receipt_cleanup_terminal || return 75
+    return 75
+  fi
+  receipt_final_identity="$(_owned_regular_identity "$receipt_final_path")" || {
+    _receipt_cleanup_terminal || return 75
+    return 75
+  }
+  receipt_final_links="$(_owned_regular_links "$receipt_final_path")" || {
+    _receipt_cleanup_terminal || return 75
+    return 75
+  }
+  if [ "$receipt_final_links" = 1 ] && _receipt_abort_terminal_evidence_is_current && _receipt_abort_expected_tree true true && check_budget; then
+    :
+  else
+    _receipt_cleanup_terminal || return 75
+    return 75
+  fi
+  receipt_final_total="$(report_regular_file_bytes)" || {
+    _receipt_cleanup_terminal || return 75
+    return 75
+  }
+  receipt_final_metadata="$(report_metadata_bytes)" || {
+    _receipt_cleanup_terminal || return 75
+    return 75
+  }
+  if [ "$receipt_final_total" = "$receipt_total_used" ] && [ "$receipt_final_metadata" = "$receipt_metadata_used" ] && _receipt_abort_expected_tree true true && check_budget && _receipt_abort_terminal_evidence_is_current; then
+    return 0
+  fi
+  _receipt_cleanup_terminal || return 75
+  return 75
+}
+
 finalize_container() {
   [ "$#" -eq 0 ] || return 64
   receipt_marker_path="$run_dir/CONTAINER_COMPLETE"
