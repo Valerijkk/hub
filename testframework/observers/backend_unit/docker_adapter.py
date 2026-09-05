@@ -1,56 +1,76 @@
-"""Fail-closed, read-only Docker evidence adapter for the backend-unit observer.
+"""Fail-closed Docker evidence adapter for one bound backend-unit container.
 
-The adapter deliberately exposes a very small command surface.  It never
-constructs Compose commands and it accepts dynamic values only after checking
-their frozen types.  A caller must bind the one candidate container before a
-stop can be issued.
+This is observer infrastructure, never a Docker/Compose launcher.  It binds a
+single candidate before exposing either inspection, statistics, or event
+evidence, and invalid evidence burns that authority.
 """
 
 from __future__ import annotations
 
+import calendar
 import datetime as _datetime
 import json
+import os
 import re
+import select
 import subprocess
-import threading
 import time
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from typing import Final, Protocol, runtime_checkable
 
 
 class DockerReadError(RuntimeError):
-    """Raised when Docker evidence cannot be accepted as authoritative."""
+    """Docker evidence was unavailable or did not meet its read contract."""
 
 
-__all__ = ("DockerReadAdapter", "DockerReadError")
+class InvalidEvidence(DockerReadError):
+    """Fail-closed observer evidence failure; callers map it to exit status 75."""
+
+    exit_status: Final[int] = 75
+    exit_code: Final[int] = 75
+
+
+__all__ = (
+    "BoundEventSession",
+    "DockerReadAdapter",
+    "DockerReadError",
+    "InvalidEvidence",
+)
 
 
 _PROJECT_RE: Final = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}\Z")
 _CONTAINER_ID_RE: Final = re.compile(r"[0-9a-f]{64}\Z")
+_HOSTNAME_RE: Final = re.compile(r"[0-9a-f]{12,64}\Z")
 _IMAGE_ID_RE: Final = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _RFC3339_NANO_RE: Final = re.compile(
     r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{9}Z\Z"
 )
 
-_TIMEOUT_SECONDS: Final = 10
+_ONE_SHOT_TIMEOUT_SECONDS: Final = 10
 _ONE_SHOT_OUTPUT_CAP_BYTES: Final = 1024 * 1024
+_BIND_POLL_SECONDS: Final = 5
+_BIND_WINDOW_SECONDS: Final = 120
+_EVENT_POLL_SECONDS: Final = 5
+_DIE_GRACE_SECONDS: Final = 30
 _EVENT_RECORDS_MAX: Final = 16
 _EVENT_BYTES_MAX: Final = 64 * 1024
 _EVENT_ACTIONS: Final = frozenset({"create", "start", "die", "destroy"})
 _SERVICE: Final = "backend-unit"
+_SESSION_FACTORY_TOKEN: Final = object()
 _FIXED_IMAGES: Final = (
     ("python_contract", "worktree-master-python-contract"),
     ("backend_unit", "worktree-master-backend-unit"),
 )
+_PS_ARGV: Final = ("docker", "ps", "--no-trunc", "--format", "{{json .}}")
 
 
 class _StrictJsonError(ValueError):
-    """Internal sentinel for a JSON representation that is not canonical."""
+    """Internal sentinel for duplicate, trailing, or non-finite JSON."""
 
 
 @runtime_checkable
 class _EventProcess(Protocol):
-    def __iter__(self) -> Iterable[bytes]: ...
+    def poll_line(self, timeout_seconds: int) -> bytes | None: ...
 
     def terminate(self) -> None: ...
 
@@ -61,15 +81,39 @@ Runner = Callable[..., object]
 
 
 class _SubprocessEventProcess:
-    """Small process wrapper whose explicit cleanup is safe after early refusal."""
+    """Incremental, no-thread event-stream wrapper with a bounded line buffer."""
 
     def __init__(self, process: subprocess.Popen[bytes]) -> None:
         self._process = process
+        self._pending = bytearray()
 
-    def __iter__(self) -> Iterable[bytes]:
+    def poll_line(self, timeout_seconds: int) -> bytes | None:
+        if type(timeout_seconds) is not int or timeout_seconds != _EVENT_POLL_SECONDS:
+            raise DockerReadError("Docker event poll timeout is not frozen")
         if self._process.stdout is None:
             raise DockerReadError("Docker event stream has no stdout")
-        return iter(self._process.stdout)
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            newline = self._pending.find(b"\n")
+            if newline >= 0:
+                line = bytes(self._pending[: newline + 1])
+                del self._pending[: newline + 1]
+                return line
+            if len(self._pending) > _EVENT_BYTES_MAX:
+                raise DockerReadError("Docker event stream exceeded its byte cap")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None
+            chunk = _read_pipe_chunk(
+                self._process,
+                min(remaining, _EVENT_POLL_SECONDS),
+                _EVENT_BYTES_MAX - len(self._pending) + 1,
+            )
+            if chunk is None:
+                return None
+            if chunk == b"":
+                raise DockerReadError("Docker event stream ended before closure")
+            self._pending.extend(chunk)
 
     def terminate(self) -> None:
         if self._process.poll() is None:
@@ -77,26 +121,89 @@ class _SubprocessEventProcess:
 
     def reap(self) -> None:
         try:
-            self._process.wait(timeout=_TIMEOUT_SECONDS)
+            self._process.wait(timeout=_ONE_SHOT_TIMEOUT_SECONDS)
         except subprocess.TimeoutExpired:
             self.terminate()
-            self._process.wait(timeout=_TIMEOUT_SECONDS)
+            self._process.wait(timeout=_ONE_SHOT_TIMEOUT_SECONDS)
+
+
+def _read_pipe_chunk(
+    process: subprocess.Popen[bytes], timeout_seconds: float, max_bytes: int
+) -> bytes | None:
+    """Read one available pipe chunk without a reader thread or unbounded buffer."""
+
+    if max_bytes < 1 or process.stdout is None:
+        raise DockerReadError("Docker process pipe is unavailable")
+    descriptor = process.stdout.fileno()
+    if os.name != "nt":
+        try:
+            readable, _, _ = select.select((descriptor,), (), (), timeout_seconds)
+        except Exception as error:
+            raise DockerReadError("Docker process pipe could not be polled") from error
+        if not readable:
+            return None
+        try:
+            return os.read(descriptor, min(65_536, max_bytes))
+        except Exception as error:
+            raise DockerReadError("Docker process pipe could not be read") from error
+
+    try:
+        import msvcrt
+        import ctypes
+
+        handle = msvcrt.get_osfhandle(descriptor)
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            available = ctypes.c_uint32()
+            peek = ctypes.windll.kernel32.PeekNamedPipe
+            peek.argtypes = (
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_uint32,
+                ctypes.c_void_p,
+                ctypes.POINTER(ctypes.c_uint32),
+                ctypes.c_void_p,
+            )
+            peek.restype = ctypes.c_int
+            if not peek(
+                ctypes.c_void_p(handle),
+                None,
+                0,
+                None,
+                ctypes.byref(available),
+                None,
+            ):
+                if process.poll() is not None:
+                    return b""
+                raise OSError(ctypes.get_last_error(), "PeekNamedPipe failed")
+            if available.value:
+                return os.read(descriptor, min(int(available.value), 65_536, max_bytes))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None
+            if process.poll() is not None:
+                return b""
+            time.sleep(min(0.05, remaining))
+    except DockerReadError:
+        raise
+    except Exception as error:
+        raise DockerReadError("Docker process pipe could not be polled") from error
 
 
 def _terminate_and_wait(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is None:
         process.terminate()
     try:
-        process.wait(timeout=_TIMEOUT_SECONDS)
+        process.wait(timeout=_ONE_SHOT_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         process.kill()
-        process.wait(timeout=_TIMEOUT_SECONDS)
+        process.wait(timeout=_ONE_SHOT_TIMEOUT_SECONDS)
 
 
 def _bounded_subprocess_output(
     argv: tuple[str, ...], *, timeout_seconds: int, output_cap_bytes: int
 ) -> bytes:
-    """Read at most one cap plus one byte and fail before retaining more."""
+    """Collect a one-shot result under fixed time and byte caps without threads."""
 
     try:
         process = subprocess.Popen(
@@ -108,53 +215,37 @@ def _bounded_subprocess_output(
         )
     except Exception as error:
         raise DockerReadError("Docker command could not be started") from error
-
     payload = bytearray()
-    reader_failure: list[Exception] = []
-    overflow = threading.Event()
-
-    def read_stdout() -> None:
-        try:
-            if process.stdout is None:
-                raise DockerReadError("Docker command has no stdout")
-            while True:
-                remaining_plus_probe = output_cap_bytes - len(payload) + 1
-                chunk = process.stdout.read(remaining_plus_probe)
-                if not chunk:
-                    return
-                if len(chunk) > output_cap_bytes - len(payload):
-                    overflow.set()
-                    return
-                payload.extend(chunk)
-        except Exception as error:  # normalize at the adapter boundary
-            reader_failure.append(error)
-
-    reader = threading.Thread(target=read_stdout, daemon=True)
     deadline = time.monotonic() + timeout_seconds
-    reader.start()
-    reader.join(timeout_seconds)
     try:
-        if reader.is_alive():
-            _terminate_and_wait(process)
-            reader.join(timeout_seconds)
-            raise DockerReadError("Docker command exceeded the fixed timeout")
-        if reader_failure:
-            raise DockerReadError("Docker command output could not be read") from reader_failure[0]
-        if overflow.is_set():
-            _terminate_and_wait(process)
-            raise DockerReadError("Docker command exceeded the fixed output cap")
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise DockerReadError("Docker command exceeded the fixed timeout")
+            chunk = _read_pipe_chunk(
+                process,
+                remaining,
+                output_cap_bytes - len(payload) + 1,
+            )
+            if chunk is None:
+                if process.poll() is None:
+                    raise DockerReadError("Docker command exceeded the fixed timeout")
+                continue
+            if chunk == b"":
+                break
+            if len(chunk) > output_cap_bytes - len(payload):
+                raise DockerReadError("Docker command exceeded the fixed output cap")
+            payload.extend(chunk)
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            _terminate_and_wait(process)
             raise DockerReadError("Docker command exceeded the fixed timeout")
-        try:
-            return_code = process.wait(timeout=remaining)
-        except subprocess.TimeoutExpired as error:
-            _terminate_and_wait(process)
-            raise DockerReadError("Docker command exceeded the fixed timeout") from error
-        if return_code != 0:
+        if process.wait(timeout=remaining) != 0:
             raise DockerReadError("Docker command exited unsuccessfully")
         return bytes(payload)
+    except DockerReadError:
+        raise
+    except Exception as error:
+        raise DockerReadError("Docker command output could not be read") from error
     finally:
         if process.poll() is None:
             _terminate_and_wait(process)
@@ -189,8 +280,88 @@ def _default_runner(
     )
 
 
+class BoundEventSession:
+    """Incremental local event evidence for the adapter's already bound ID."""
+
+    def __init__(
+        self,
+        adapter: DockerReadAdapter,
+        stream: _EventProcess,
+        since_nanos: int,
+        *,
+        _token: object,
+        _capability: object,
+    ) -> None:
+        if (
+            _token is not _SESSION_FACTORY_TOKEN
+            or not isinstance(adapter, DockerReadAdapter)
+            or not adapter._accept_session_issuance(_capability, stream, since_nanos)
+        ):
+            raise DockerReadError("Bound event sessions may only be issued by their adapter")
+        self._adapter = adapter
+        self._stream = stream
+        self._since_nanos = since_nanos
+        self._records = 0
+        self._bytes = 0
+        self._die_deadline: float | None = None
+        self._closed = False
+
+    def poll(self) -> dict[str, object] | None:
+        """Poll exactly once for a line, using the frozen five-second timeout."""
+
+        if self._closed:
+            raise DockerReadError("Bound Docker event session is closed")
+        if self._die_deadline is not None and time.monotonic() >= self._die_deadline:
+            self.close()
+            return None
+        try:
+            line = self._stream.poll_line(_EVENT_POLL_SECONDS)
+        except Exception as error:
+            self._fail("Docker event stream could not be polled", error)
+        if line is None:
+            if self._die_deadline is not None and time.monotonic() >= self._die_deadline:
+                self.close()
+            return None
+        if type(line) is not bytes or not line:
+            self._fail("Docker event stream ended or returned a malformed record")
+        self._bytes += len(line)
+        if self._bytes > _EVENT_BYTES_MAX or self._records >= _EVENT_RECORDS_MAX:
+            self._fail("Docker event stream exceeded its fixed evidence cap")
+        try:
+            record = _decode_json_mapping(line)
+            self._adapter._validate_bound_event(record, self._since_nanos)
+        except Exception as error:
+            self._fail("Docker event stream contains foreign or malformed evidence", error)
+        self._records += 1
+        if record["status"] == "die":
+            self._die_deadline = time.monotonic() + _DIE_GRACE_SECONDS
+        elif record["status"] == "destroy":
+            self.close()
+        return record
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            self._adapter._close_event_stream(self._stream)
+        except Exception as error:
+            self._adapter._invalidate()
+            raise InvalidEvidence("INVALID_EVIDENCE: event stream reap is uncertain") from error
+
+    def _fail(self, message: str, cause: Exception | None = None) -> None:
+        self._adapter._invalidate()
+        try:
+            self.close()
+        except InvalidEvidence as cleanup_error:
+            raise cleanup_error from cause
+        if cause is None:
+            raise InvalidEvidence(f"INVALID_EVIDENCE: {message}")
+        raise InvalidEvidence(f"INVALID_EVIDENCE: {message}") from cause
+
+
 class DockerReadAdapter:
-    """The frozen Docker read surface used by the backend-unit observer."""
+    """Frozen Docker read surface; only one complete candidate may be bound."""
 
     def __init__(self, project: str, *, runner: Runner | None = None) -> None:
         if type(project) is not str or _PROJECT_RE.fullmatch(project) is None:
@@ -200,83 +371,125 @@ class DockerReadAdapter:
         self._project = project
         self._runner: Runner = _default_runner if runner is None else runner
         self._bound_container_id: str | None = None
+        self._bound_backend_image_id: str | None = None
+        self._invalid = False
+        self._session_issued = False
+        self._session_capability: object | None = None
         self._stop_used = False
 
-    def events(self, since: str) -> tuple[dict[str, object], ...]:
-        _require_rfc3339_nano(since)
-        stream = self._invoke(
-            (
-                "docker",
-                "events",
-                "--since",
-                since,
-                "--filter",
-                "type=container",
-                "--filter",
-                "event=create",
-                "--filter",
-                "event=start",
-                "--filter",
-                "event=die",
-                "--filter",
-                "event=destroy",
-                "--format",
-                "{{json .}}",
-            ),
-            stream=True,
-        )
+    def bind_unique_candidate_since(
+        self, since: str, fixed_backend_image_id: str
+    ) -> str:
+        """Poll exact ``docker ps`` and bind the one inspected complete candidate."""
+
+        since_nanos = _rfc3339_nanos(since)
+        if type(fixed_backend_image_id) is not str or _IMAGE_ID_RE.fullmatch(
+            fixed_backend_image_id
+        ) is None:
+            raise DockerReadError("fixed backend image ID is not canonical")
+        if self._invalid or self._bound_container_id is not None:
+            raise DockerReadError("candidate binding is no longer available")
+        deadline = time.monotonic() + _BIND_WINDOW_SECONDS
+        while True:
+            self._require_bind_time(deadline)
+            try:
+                candidates = self._local_ps_candidates(fixed_backend_image_id)
+            except Exception as error:
+                self._candidate_fail("docker ps evidence is malformed", error)
+            self._require_bind_time(deadline)
+            if len(candidates) > 1:
+                self._candidate_fail("multiple local backend-unit candidates exist")
+            if len(candidates) == 1:
+                container_id = candidates[0]
+                self._require_bind_time(deadline)
+                try:
+                    document = self._inspect_provisional(container_id)
+                    self._require_bind_time(deadline)
+                    self._validate_candidate_inspection(
+                        document,
+                        container_id,
+                        since_nanos,
+                        fixed_backend_image_id,
+                    )
+                except Exception as error:
+                    self._candidate_fail("candidate is foreign or incomplete", error)
+                self._require_bind_time(deadline)
+                self._bound_container_id = container_id
+                self._bound_backend_image_id = fixed_backend_image_id
+                self._require_bind_time(deadline)
+                return container_id
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                self._candidate_fail("unique backend-unit candidate did not appear")
+            try:
+                time.sleep(min(_BIND_POLL_SECONDS, remaining))
+            except Exception as error:
+                self._candidate_fail("candidate polling could not continue", error)
+
+    def open_bound_events(self, since: str) -> BoundEventSession:
+        """Open the frozen event stream only after a successful unique bind."""
+
+        since_nanos = _rfc3339_nanos(since)
+        if self._invalid or self._bound_container_id is None or self._session_issued:
+            raise DockerReadError("bound Docker event stream is unavailable")
         try:
-            return self._read_events(stream)
+            stream = self._invoke(
+                (
+                    "docker",
+                    "events",
+                    "--since",
+                    since,
+                    "--filter",
+                    "type=container",
+                    "--filter",
+                    "event=create",
+                    "--filter",
+                    "event=start",
+                    "--filter",
+                    "event=die",
+                    "--filter",
+                    "event=destroy",
+                    "--format",
+                    "{{json .}}",
+                ),
+                stream=True,
+            )
+        except Exception as error:
+            self._invalidate()
+            raise InvalidEvidence("INVALID_EVIDENCE: Docker event stream could not open") from error
+        if not isinstance(stream, _EventProcess):
+            self._invalidate()
+            raise InvalidEvidence("INVALID_EVIDENCE: Docker event stream is malformed")
+        capability = object()
+        self._session_capability = capability
+        try:
+            session = BoundEventSession(
+                self,
+                stream,
+                since_nanos,
+                _token=_SESSION_FACTORY_TOKEN,
+                _capability=capability,
+            )
+        except Exception as error:
+            self._invalidate()
+            raise InvalidEvidence("INVALID_EVIDENCE: bound event session could not issue") from error
         finally:
-            self._close_event_stream(stream)
+            self._session_capability = None
+        self._session_issued = True
+        return session
 
     def inspect(self, container_id: str) -> dict[str, object]:
         canonical_id = self._require_bound_container_id(container_id)
-        document = _decode_json_mapping(
-            self._one_shot(
-                (
-                    "docker",
-                    "inspect",
-                    "--type",
-                    "container",
-                    "--format",
-                    "{{json .}}",
-                    canonical_id,
-                )
-            )
-        )
-        if document.get("Id") != canonical_id:
-            raise DockerReadError("Docker inspect returned a foreign container")
-        image_id = document.get("Image")
-        if type(image_id) is not str or _IMAGE_ID_RE.fullmatch(image_id) is None:
-            raise DockerReadError("Docker inspect has no canonical image ID")
+        document = self._inspect_provisional(canonical_id)
+        expected_image = self._bound_backend_image_id
+        if document.get("Image") != expected_image:
+            self._invalidate()
+            raise InvalidEvidence("INVALID_EVIDENCE: bound container image changed")
         self._validate_inspected_container_locality(document, canonical_id)
         return document
 
     def ps(self) -> tuple[dict[str, object], ...]:
-        payload = self._one_shot(
-            ("docker", "ps", "--no-trunc", "--format", "{{json .}}")
-        )
-        text = _decode_utf8(payload)
-        stripped = text.strip()
-        if not stripped:
-            return ()
-        try:
-            whole = _strict_json_loads(stripped)
-        except DockerReadError:
-            whole = None
-        if whole == []:
-            return ()
-        if isinstance(whole, Mapping):
-            return (_require_json_mapping(whole),)
-        if whole is not None:
-            raise DockerReadError("Docker ps did not return line-delimited objects")
-        records: list[dict[str, object]] = []
-        for line in text.splitlines():
-            if not line.strip():
-                raise DockerReadError("Docker ps has a blank record")
-            records.append(_decode_json_mapping(line.encode("utf-8")))
-        return tuple(records)
+        return self._ps_records()
 
     def stats(self, container_id: str) -> dict[str, object]:
         canonical_id = self._require_bound_container_id(container_id)
@@ -307,37 +520,51 @@ class DockerReadAdapter:
             image_ids[name] = image_id
         return image_ids
 
-    def bind_candidate(self, container_id: str) -> None:
-        canonical_id = _require_container_id(container_id)
-        if self._bound_container_id is None:
-            self._bound_container_id = canonical_id
-            return
-        if self._bound_container_id != canonical_id:
-            raise DockerReadError("a different container is already bound")
-
     def stop_bound_once(self, container_id: str) -> dict[str, str]:
-        canonical_id = _require_container_id(container_id)
-        if self._bound_container_id != canonical_id:
-            raise DockerReadError("only the bound container may be stopped")
+        canonical_id = self._require_bound_container_id(container_id)
         if self._stop_used:
             raise DockerReadError("the guarded Docker stop was already used")
-        # A runner failure may happen after Docker accepted the command.  Burn
-        # the single-use capability before invoking it so a retry cannot stop
-        # a container twice under an ambiguous outcome.
         self._stop_used = True
-        output = self._one_shot(
-            ("docker", "stop", "--timeout", "5", canonical_id)
-        )
+        output = self._one_shot(("docker", "stop", "--timeout", "5", canonical_id))
         if not _decode_utf8(output).strip():
             raise DockerReadError("Docker stop returned no confirmation")
         return {"result": "stopped"}
+
+    def _candidate_fail(self, message: str, cause: Exception | None = None) -> None:
+        self._invalidate()
+        if cause is None:
+            raise InvalidEvidence(f"INVALID_EVIDENCE: {message}")
+        raise InvalidEvidence(f"INVALID_EVIDENCE: {message}") from cause
+
+    def _invalidate(self) -> None:
+        self._invalid = True
+        self._bound_container_id = None
+        self._bound_backend_image_id = None
+        self._session_capability = None
+
+    def _require_bind_time(self, deadline: float) -> None:
+        if time.monotonic() >= deadline:
+            self._candidate_fail("unique backend-unit candidate exceeded the fixed bind deadline")
+
+    def _accept_session_issuance(
+        self, capability: object, stream: object, since_nanos: object
+    ) -> bool:
+        return (
+            capability is self._session_capability
+            and self._session_issued is False
+            and self._invalid is False
+            and self._bound_container_id is not None
+            and isinstance(stream, _EventProcess)
+            and type(since_nanos) is int
+            and since_nanos >= 0
+        )
 
     def _invoke(self, argv: tuple[str, ...], *, stream: bool) -> object:
         try:
             return self._runner(
                 argv,
                 shell=False,
-                timeout_seconds=_TIMEOUT_SECONDS,
+                timeout_seconds=_ONE_SHOT_TIMEOUT_SECONDS,
                 output_cap_bytes=_ONE_SHOT_OUTPUT_CAP_BYTES,
                 stream=stream,
             )
@@ -354,59 +581,99 @@ class DockerReadAdapter:
             raise DockerReadError("Docker one-shot output exceeds its fixed cap")
         return output
 
-    def _read_events(self, stream: object) -> tuple[dict[str, object], ...]:
-        if not isinstance(stream, _EventProcess):
-            raise DockerReadError("Docker runner returned a malformed event stream")
-        records: list[dict[str, object]] = []
-        bytes_seen = 0
+    def _ps_records(self) -> tuple[dict[str, object], ...]:
+        payload = self._one_shot(_PS_ARGV)
+        text = _decode_utf8(payload)
+        stripped = text.strip()
+        if not stripped:
+            return ()
         try:
-            iterator = iter(stream)
-            for line in iterator:
-                if type(line) is not bytes:
-                    raise DockerReadError("Docker event stream contains a non-byte record")
-                bytes_seen += len(line)
-                if bytes_seen > _EVENT_BYTES_MAX:
-                    raise DockerReadError("Docker event stream exceeded its byte cap")
-                if len(records) >= _EVENT_RECORDS_MAX:
-                    raise DockerReadError("Docker event stream exceeded its record cap")
-                record = _decode_json_mapping(line)
-                self._validate_event_locality(record)
-                records.append(record)
+            whole = _strict_json_loads(stripped)
         except DockerReadError:
-            raise
-        except Exception as error:
-            raise DockerReadError("Docker event stream could not be read") from error
+            whole = None
+        if whole == []:
+            return ()
+        if isinstance(whole, Mapping):
+            return (_require_json_mapping(whole),)
+        if whole is not None:
+            raise DockerReadError("Docker ps did not return line-delimited objects")
+        records: list[dict[str, object]] = []
+        for line in text.splitlines():
+            if not line.strip():
+                raise DockerReadError("Docker ps has a blank record")
+            records.append(_decode_json_mapping(line.encode("utf-8")))
         return tuple(records)
 
-    def _close_event_stream(self, stream: object) -> None:
-        failures: list[Exception] = []
-        for operation_name in ("terminate", "reap"):
-            try:
-                operation = getattr(stream, operation_name)
-                if not callable(operation):
-                    raise TypeError(f"event stream has no {operation_name} method")
-                operation()
-            except Exception as error:
-                failures.append(error)
-        if failures:
-            raise DockerReadError(
-                "Docker event stream could not be terminated and reaped"
-            ) from failures[0]
+    def _local_ps_candidates(self, fixed_backend_image_id: str) -> tuple[str, ...]:
+        candidates: list[str] = []
+        for record in self._ps_records():
+            labels = _ps_labels(record.get("Labels"))
+            project = labels.get("com.docker.compose.project")
+            service = labels.get("com.docker.compose.service")
+            if project != self._project or service != _SERVICE:
+                continue
+            container_id = record.get("ID")
+            image = record.get("Image")
+            if (
+                type(container_id) is not str
+                or _CONTAINER_ID_RE.fullmatch(container_id) is None
+                or image != fixed_backend_image_id
+            ):
+                raise DockerReadError("local docker ps candidate is malformed or foreign")
+            candidates.append(container_id)
+        if len(candidates) != len(set(candidates)):
+            raise DockerReadError("docker ps repeats a local candidate")
+        return tuple(candidates)
 
-    def _require_bound_container_id(self, container_id: str) -> str:
-        canonical_id = _require_container_id(container_id)
-        if self._bound_container_id != canonical_id:
-            raise DockerReadError("only the uniquely bound container may be read")
-        return canonical_id
+    def _inspect_provisional(self, container_id: str) -> dict[str, object]:
+        document = _decode_json_mapping(
+            self._one_shot(
+                (
+                    "docker",
+                    "inspect",
+                    "--type",
+                    "container",
+                    "--format",
+                    "{{json .}}",
+                    container_id,
+                )
+            )
+        )
+        if document.get("Id") != container_id:
+            raise DockerReadError("Docker inspect returned a foreign container")
+        return document
 
-    def _validate_event_locality(self, record: Mapping[str, object]) -> None:
+    def _validate_candidate_inspection(
+        self,
+        document: Mapping[str, object],
+        container_id: str,
+        since_nanos: int,
+        fixed_backend_image_id: str,
+    ) -> None:
+        if document.get("Image") != fixed_backend_image_id:
+            raise DockerReadError("candidate image does not equal the fixed image")
+        self._validate_inspected_container_locality(document, container_id)
+        state = document.get("State")
+        if not isinstance(state, Mapping):
+            raise DockerReadError("candidate has no state")
+        started_at = state.get("StartedAt")
+        started_nanos = _rfc3339_nanos(started_at)
+        if not since_nanos <= started_nanos < since_nanos + _BIND_WINDOW_SECONDS * 1_000_000_000:
+            raise DockerReadError("candidate start is outside the fixed bind window")
+
+    def _validate_bound_event(
+        self, record: Mapping[str, object], since_nanos: int
+    ) -> None:
+        bound = self._bound_container_id
+        if self._invalid or bound is None:
+            raise DockerReadError("bound event authority is unavailable")
         container_id = record.get("id")
-        if type(container_id) is not str or _CONTAINER_ID_RE.fullmatch(container_id) is None:
-            raise DockerReadError("Docker event has a noncanonical container ID")
+        if container_id != bound or not isinstance(container_id, str) or _CONTAINER_ID_RE.fullmatch(container_id) is None:
+            raise DockerReadError("Docker event belongs to a foreign container")
         if record.get("status") not in _EVENT_ACTIONS:
             raise DockerReadError("Docker event has an unexpected action")
         time_nano = record.get("timeNano")
-        if type(time_nano) is not int or time_nano < 0:
+        if type(time_nano) is not int or time_nano < since_nanos:
             raise DockerReadError("Docker event has an invalid timestamp")
         actor = record.get("Actor")
         if not isinstance(actor, Mapping):
@@ -427,11 +694,10 @@ class DockerReadAdapter:
         if not isinstance(config, Mapping):
             raise DockerReadError("Docker inspect has no container config")
         hostname = config.get("Hostname")
-        if type(hostname) is not str or not re.fullmatch(r"[0-9a-f]{12,64}", hostname):
+        if type(hostname) is not str or _HOSTNAME_RE.fullmatch(hostname) is None:
             raise DockerReadError("Docker inspect has no canonical hostname marker")
         if not container_id.startswith(hostname):
             raise DockerReadError("Docker inspect hostname is not the container prefix")
-
         labels: list[Mapping[str, object]] = []
         config_labels = document.get("ConfigLabels")
         if config_labels is not None:
@@ -452,20 +718,63 @@ class DockerReadAdapter:
             ):
                 raise DockerReadError("Docker inspect is not local backend-unit evidence")
 
+    def _close_event_stream(self, stream: _EventProcess) -> None:
+        failures: list[Exception] = []
+        for operation_name in ("terminate", "reap"):
+            try:
+                operation = getattr(stream, operation_name)
+                if not callable(operation):
+                    raise TypeError(f"event stream has no {operation_name} method")
+                operation()
+            except Exception as error:
+                failures.append(error)
+        if failures:
+            raise DockerReadError("Docker event stream could not be terminated and reaped") from failures[0]
 
-def _require_rfc3339_nano(value: str) -> None:
+    def _require_bound_container_id(self, container_id: str) -> str:
+        if self._invalid:
+            raise DockerReadError("invalid evidence burned bound container authority")
+        canonical_id = _require_container_id(container_id)
+        if self._bound_container_id != canonical_id:
+            raise DockerReadError("only the uniquely bound container may be read")
+        return canonical_id
+
+
+def _rfc3339_nanos(value: object) -> int:
     if type(value) is not str or _RFC3339_NANO_RE.fullmatch(value) is None:
-        raise DockerReadError("Docker event start must be canonical RFC3339Nano")
+        raise DockerReadError("timestamp must be canonical RFC3339Nano")
     try:
-        _datetime.datetime.strptime(value[:19], "%Y-%m-%dT%H:%M:%S")
+        parsed = _datetime.datetime.strptime(value[:19], "%Y-%m-%dT%H:%M:%S")
+        seconds = calendar.timegm(parsed.timetuple())
+        return seconds * 1_000_000_000 + int(value[20:29])
     except ValueError as error:
-        raise DockerReadError("Docker event start has an invalid calendar timestamp") from error
+        raise DockerReadError("timestamp has an invalid calendar value") from error
 
 
-def _require_container_id(value: str) -> str:
+def _require_container_id(value: object) -> str:
     if type(value) is not str or _CONTAINER_ID_RE.fullmatch(value) is None:
         raise DockerReadError("container ID must be a full lowercase engine ID")
     return value
+
+
+def _ps_labels(value: object) -> dict[str, str]:
+    if isinstance(value, Mapping):
+        if not all(type(key) is str and type(item) is str for key, item in value.items()):
+            raise DockerReadError("Docker ps labels are malformed")
+        return dict(value)
+    if type(value) is not str:
+        raise DockerReadError("Docker ps labels are malformed")
+    labels: dict[str, str] = {}
+    if not value:
+        return labels
+    for entry in value.split(","):
+        if entry.count("=") != 1:
+            raise DockerReadError("Docker ps labels are malformed")
+        key, item = entry.split("=", 1)
+        if not key or not item or key in labels:
+            raise DockerReadError("Docker ps labels are malformed")
+        labels[key] = item
+    return labels
 
 
 def _decode_utf8(payload: bytes) -> str:
@@ -476,8 +785,7 @@ def _decode_utf8(payload: bytes) -> str:
 
 
 def _decode_json_mapping(payload: bytes) -> dict[str, object]:
-    document = _strict_json_loads(_decode_utf8(payload))
-    return _require_json_mapping(document)
+    return _require_json_mapping(_strict_json_loads(_decode_utf8(payload)))
 
 
 def _strict_json_loads(text: str) -> object:
