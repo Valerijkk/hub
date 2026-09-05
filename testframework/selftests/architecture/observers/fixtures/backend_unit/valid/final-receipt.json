@@ -6,7 +6,7 @@
   "container_receipt_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "container_id": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "backend_image_id": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-  "canonical_build_input_manifest_sha256": "sha256:8f05f8d4fd2e503f961755e5c80a3c1acfe78ab41aa61cc6aa5d51cc9b07f83e",
+  "canonical_build_input_manifest_sha256": "sha256:d93e9baafb50192b1c5079e9e64ad7769995a2c875fcab8a5f6962151af59c44",
   "classification": "SEALED_TIMEOUT_UNTRIAGED",
   "immutable_outcome": "TIMEOUT_UNTRIAGED",
   "seal_timestamp": "2026-09-01T18:00:00Z"

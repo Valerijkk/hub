@@ -57,6 +57,7 @@ _MANIFEST_PATHS = (
     "testframework/observers/backend_unit/resources.py",
     "testframework/observers/backend_unit/docker_adapter.py",
     "testframework/observers/backend_unit/publication.py",
+    "testframework/observers/backend_unit/root_handoff.py",
     "testframework/observers/backend_unit/observe.py",
     "testframework/schemas/backend-unit-package-plan.schema.v1.json",
     "testframework/schemas/backend-unit-container-receipt.schema.v1.json",
