@@ -520,6 +520,23 @@ class DockerReadAdapter:
             image_ids[name] = image_id
         return image_ids
 
+    def recoverable_bound_container_id(self) -> str | None:
+        """Expose the retained bound ID without consuming stop authority or I/O."""
+
+        if self._invalid:
+            raise DockerReadError("invalid evidence burned bound container authority")
+        container_id = self._bound_container_id
+        image_id = self._bound_backend_image_id
+        if container_id is None:
+            if image_id is not None:
+                raise DockerReadError("retained bound backend image ID has no container ID")
+            return None
+        if type(container_id) is not str or _CONTAINER_ID_RE.fullmatch(container_id) is None:
+            raise DockerReadError("retained bound container ID is not canonical")
+        if type(image_id) is not str or _IMAGE_ID_RE.fullmatch(image_id) is None:
+            raise DockerReadError("retained bound backend image ID is not canonical")
+        return container_id
+
     def stop_bound_once(self, container_id: str) -> dict[str, str]:
         canonical_id = self._require_bound_container_id(container_id)
         if self._stop_used:
