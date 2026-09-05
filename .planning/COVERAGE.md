@@ -22,6 +22,16 @@
 
 ## Методология
 
+### Дополнение ветки calls-feature-codex — 2026-09-05
+
+MSG151-FOL-01/02 + MSG151-CHN-02: управление подпиской в ThreadPanel принято
+на unit-уровне. 29 новых изолированных RTL/Vitest сценариев покрывают режимы,
+capabilities, identity/revoke, single-flight, точные server-refetch ключи,
+RU/EN ошибки, фоновые гонки и focus-return регрессию. Docker frontend-unit:
+TypeScript PASS; 190 файлов / 630 тестов PASS, 54.44s, 2 GiB/no-swap. Это не процент
+готовности модуля или новый statement coverage; API/e2e/browser/media и
+visible-read receipt остаются NOT_RUN/UNBOUND. [Evidence](../docs/superpowers/plans/2026-09-05-thread-follow-control.md).
+
 | Колонка | Значения |
 |---------|----------|
 | **Code** | ✅ Implemented · ⚠️ Partial · ❌ Missing · 🔧 Fixed post-audit |

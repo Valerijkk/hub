@@ -8,12 +8,14 @@ import { useAuthStore } from "@/stores/auth-store";
 
 const getThread = vi.fn();
 const getThreadReplies = vi.fn();
+const getChannels = vi.fn();
 const legacyTimelineFetch = vi.fn();
 
 vi.mock("@/api/messenger", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@/api/messenger")>();
 	return {
 		...actual,
+		getChannels: (...args: unknown[]) => getChannels(...args),
 		getThread: (...args: unknown[]) => getThread(...args),
 		getThreadReplies: (...args: unknown[]) => getThreadReplies(...args),
 		getMessages: (...args: unknown[]) => legacyTimelineFetch(...args),
@@ -68,6 +70,7 @@ describe("Phase 151 exact thread panel", () => {
 		};
 		getThread.mockResolvedValue(response);
 		getThreadReplies.mockResolvedValue([message("reply-1", "root-1")]);
+		getChannels.mockResolvedValue([]);
 		legacyTimelineFetch.mockRejectedValue(
 			new Error("timeline fallback is forbidden"),
 		);

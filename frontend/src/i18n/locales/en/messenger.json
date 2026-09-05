@@ -42,6 +42,12 @@
 	"offline": "Offline",
 	"typing": "typing...",
 	"readOnly": "Read-only",
+	"threadFollow": {
+		"follow": "Follow",
+		"unfollow": "Unfollow",
+		"updating": "Updating subscription…",
+		"error": "Unable to update thread subscription"
+	},
 	"mentions": {
 		"all": "All",
 		"online": "Online",

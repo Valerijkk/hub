@@ -1226,9 +1226,24 @@ to2GiB/no-swap; Docker RED2FAIL then GREEN72PASS, reviewC/I/M0/0/0.
 Actual frontend enginee257a9d80f4582a125c99a5cafb3569431027407d7c76005aeb3a5ba96bed970
 ran from existingimage with verified2GiB/no-swap/6CPU/readonly limits:
 TypeScriptPASS, Vitest189files/601testsPASS62.73s; engineexit0 after79s,
-no OOM in closed events. Next independent product atom is ThreadPanel
-follow/unfollow controls; API exists but UI is still absent. No Jitsi
-activation, real call/media, browser or module-readiness acceptance.
+no OOM in closed events. FE-QA-2G checkpoint 914df3d2 is pushed.
+ThreadPanel follow/unfollow UI is now UNIT_ACCEPTED: full recipient detail,
+identity-bound channel capabilities, exact supported modes, single-flight,
+scope/revoke guards, RU/EN labels, and exact detail/unread refetch without
+optimistic mode or local unread arithmetic. Independent review found and
+closed the post-dispatch/background-refetch race through a new RED oracle.
+Final source/spec/oracle review C/I/M 0/0/0; canonical frontend-unit engine
+ec2497fbfc5041c2cc404047654c2aa5d30bbbf69fa49bae62f32c2e66888087 has
+TypeScript PASS and 190 files / 630 tests PASS, 54.44s, including 29 new cases.
+Verified 2 GiB/no-swap/6 CPU/readonly, engine exit 0 after 71s, no OOM, destroyed.
+Prior race RED 625 PASS / 5 FAIL included four unchanged 15s timeouts; all four pass
+in the final run without test/profile changes. Their transient cause remains
+UNKNOWN; failing reports were retained. Exact contract, hashes and evidence:
+docs/superpowers/plans/2026-09-05-thread-follow-control.md.
+Next frontend gap is a separately scoped visible-thread markThreadRead
+integration: API exists with no production caller. Backend MPR-02 and Calls
+08C3 still wait for an executable Go gate; no more 2 GiB OOM retries. Jitsi is
+not activated; real call/media, browser and module acceptance remain NOT_RUN.
 
 **Previous checkpoint detail:** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and

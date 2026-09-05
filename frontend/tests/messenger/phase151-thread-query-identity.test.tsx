@@ -19,6 +19,7 @@ import { useMessengerStore } from "@/stores/messenger-store";
 import { useWsStore } from "@/stores/ws-store";
 
 const api = vi.hoisted(() => ({
+	getChannels: vi.fn(),
 	getThread: vi.fn(),
 	getThreadReplies: vi.fn(),
 }));
@@ -27,6 +28,7 @@ vi.mock("@/api/messenger", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@/api/messenger")>();
 	return {
 		...actual,
+		getChannels: api.getChannels,
 		getThread: api.getThread,
 		getThreadReplies: api.getThreadReplies,
 	};
@@ -95,6 +97,8 @@ describe("Phase 151 thread query identity boundary", () => {
 		});
 		api.getThread.mockReset();
 		api.getThreadReplies.mockReset();
+		api.getChannels.mockReset();
+		api.getChannels.mockResolvedValue([]);
 		useAuthStore.setState({ user: userA });
 		useMessengerStore.getState().reset();
 		useWsStore.setState({ connected: false, socket: null, listeners: new Set() });

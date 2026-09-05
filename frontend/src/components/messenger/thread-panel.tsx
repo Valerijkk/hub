@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { MessageComposer } from "./message-composer";
 import { MessageItem } from "./message-item";
+import { ThreadFollowControl } from "./thread-follow-control";
 import { ThreadIssueLinks } from "./thread-issue-links";
 
 /** Пропсы компонента ThreadPanel. */
@@ -73,14 +74,15 @@ export function ThreadPanel({
 			messageId,
 			userId ?? "__no-user__",
 		),
-		queryFn: async () => (await getThread(channelId, messageId)).parent,
+		queryFn: () => getThread(channelId, messageId),
 		enabled: !!channelId && !!messageId && !!userId && !isRevoked,
 	});
 	const {
 		messages: replies,
 		isLoading: isRepliesLoading,
 	} = useThreadMessages(channelId, messageId);
-	const parentMessage = userId && !isRevoked ? (parentQuery.data ?? null) : null;
+	const parentMessage =
+		userId && !isRevoked ? (parentQuery.data?.parent ?? null) : null;
 	const isLoading = userId && !isRevoked ? isRepliesLoading : false;
 
 	const handleClose = () => {
@@ -93,7 +95,25 @@ export function ThreadPanel({
 		<div className="flex h-full flex-col">
 			{/* Заголовок */}
 			<div className="flex h-12 shrink-0 items-center justify-between border-b px-4">
-				<span className="text-sm font-semibold">Тред</span>
+				<div className="flex items-center gap-2">
+					<span className="text-sm font-semibold">Тред</span>
+					{userId &&
+						!isRevoked &&
+						parentQuery.isSuccess &&
+						!parentQuery.isError &&
+						parentQuery.data && (
+							<ThreadFollowControl
+								key={JSON.stringify([channelId, messageId, userId])}
+								channelId={channelId}
+								rootMessageId={messageId}
+								userId={userId}
+								thread={parentQuery.data}
+								detailIsSuccess={parentQuery.isSuccess}
+								detailIsError={parentQuery.isError}
+								detailIsFetching={parentQuery.isFetching}
+							/>
+						)}
+				</div>
 				<Button
 					ref={closeButtonRef}
 					variant="ghost"

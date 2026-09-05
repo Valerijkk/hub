@@ -1,5 +1,19 @@
 # Hub — Тестовая документация
 
+## Messenger follow UI: ветка calls-feature-codex, 2026-09-05
+
+Текущий frontend-unit: TypeScript PASS, 190 файлов / 630 тестов PASS за 54.44s через
+`docker compose -f docker-compose.local.yml run --rm frontend-unit`, 2 GiB
+без swap. 29 новых сценариев в `frontend/tests/messenger/thread-follow-control.test.tsx`;
+подробные RED/GREEN, hashes и границы — [в контракте](superpowers/plans/2026-09-05-thread-follow-control.md).
+Четыре таймаута по 15s предыдущего RED не повторились без изменения тестов или
+профиля; тот отчёт сохранён. Browser/API/media не проверялись этим target.
+Backend ниже — исторический candidate: актуальные Docker-only изменения
+runner и подтверждённый Ent compiler OOM при 2 GiB описаны в
+[backend continuation](superpowers/plans/2026-09-05-docker-only-backend-packet.md).
+Полный framework snapshot 529 PASS / 71 FAIL остаётся NOT_ACCEPTED; frontend GREEN
+не делает backend/framework или модули готовыми.
+
 ## hard2g `backend-unit` candidate
 
 Status: **STATIC_ACCEPTED / EXECUTABLE_NOT_RUN**. This is not a new `PASS` and

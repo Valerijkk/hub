@@ -29,6 +29,14 @@
 
 ## Пирамида тестирования
 
+Дополнение `calls-feature-codex` (2026-09-05): MSG151-FOL-01/02 и CHN-02
+имеют 29 изолированных ThreadPanel follow-control сценариев с реальным QueryClient
+и mock HTTP-границами. Приёмка: TypeScript PASS, 190 файлов / 630 тестов PASS в
+canonical Docker frontend-unit с 2 GiB/no-swap. Режимы/права, auth/revoke,
+дубликаты, changed=false, RU/EN error/retry и post-dispatch refetch race
+проверены; видимое прочтение, browser/API/storage/WS/media — отдельные gates.
+Результаты и source hashes: [контракт](superpowers/plans/2026-09-05-thread-follow-control.md).
+
 ```
         ┌─────────────┐
         │     E2E     │  pytest + playwright-python — критические user paths
