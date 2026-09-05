@@ -258,6 +258,14 @@ services:
         source: ./backend/testframework
         target: /opt/hub/source/backend/testframework
         read_only: true
+      - type: bind
+        source: ./testframework/docker/backend_unit
+        target: /usr/local/lib/hub/backend-unit
+        read_only: true
+      - type: bind
+        source: ./testframework/docker/entrypoints/backend-unit.sh
+        target: /usr/local/bin/backend-unit
+        read_only: true
     environment:
       GOCACHE: /var/cache/hub-go
       GOENV: "off"
@@ -273,6 +281,7 @@ services:
       - "/tmp:rw,noexec,nosuid,nodev,size=64m"
       - "/var/cache/hub-go:rw,noexec,nosuid,nodev,size=768m,uid=10001,gid=10001,mode=1770"
       - "/var/tmp/hub-go:rw,nosuid,nodev,exec,size=384m,uid=10001,gid=10001,mode=1770"
+    entrypoint: ["/bin/sh", "/usr/local/bin/backend-unit"]
     command: []
 
   frontend-unit:

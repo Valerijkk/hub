@@ -57,6 +57,33 @@ The example ID must be replaced with the actual task-owned container hostname. M
 
 ## Task 3: Real execution and handoff
 
+**Task 3A source-binding contract (September 5 product continuation):** mount
+current `testframework/docker/backend_unit` read-only at
+`/usr/local/lib/hub/backend-unit` and current
+`testframework/docker/entrypoints/backend-unit.sh` read-only at
+`/usr/local/bin/backend-unit`. Use literal entrypoint
+`[/bin/sh, /usr/local/bin/backend-unit]`; the target stays where the receipt
+hashes it. Retain the seven existing mounts, empty argv and every resource/
+security field. Add exact LF attributes for the newly bound entrypoint and
+runtime/plan/execute helpers. One focused Python launcher test goes RED before
+Compose changes; synchronize the existing topology oracle, then GREEN/review.
+No rebuild, Go implementation, generated source or Windows observer changes.
+
+Task 3A executable evidence: the focused test first failed on the two missing
+mounts (1 failed, 0.73s), then passed after the frozen patch (1 passed, 0.76s).
+`backend-source-runner-regression-20260905.xml` records 23 passed / 529
+deselected in 5.44s, exit 0, covering the new launcher, packet/dispatcher,
+shell finalizer and five current Compose/security tests. This focused result
+does not close the previous full-framework 71 failures or prove a Go PASS.
+Independent source/contract/security review: C/I/M 0/0/0. Task 3A accepted;
+actual Go execution and exact-packet verification remain the next steps.
+
+The prior 71 framework failures stay recorded as `NOT_ACCEPTED`, not deleted
+or suppressed. Current-launcher security and shared packet regressions must
+pass before actual Go execution; obsolete Windows observer attestation is not
+an active prerequisite of this Docker-only path. Any shared-code failure still
+needs intent review. A passing Go run does not turn the full Python suite green.
+
 - [x] Check Docker running workloads; use one bounded Python QA slot with no heavy build/pull. Mail/Calendar containers were not stopped or modified.
 - [x] Repair COMPLETE-finalizer arity and the shell quote defects exposed by real `/bin/sh` regressions; both shell tests pass inside Docker.
 - [ ] Run canonical `backend-unit`, record exact container/run identity and actual exit, then validate that exact report in `python-contract`.

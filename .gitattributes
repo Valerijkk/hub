@@ -4,3 +4,7 @@ testframework/docker/entrypoints/frontend-unit.sh text eol=lf
 testframework/docker/vitest.frontend-unit.config.ts text eol=lf
 testframework/policies/root-compose-testframework.v1.json text eol=lf
 testframework/docker/Dockerfile.qa text eol=lf
+testframework/docker/entrypoints/backend-unit.sh text eol=lf
+testframework/docker/backend_unit/runtime.sh text eol=lf
+testframework/docker/backend_unit/plan.sh text eol=lf
+testframework/docker/backend_unit/execute.sh text eol=lf

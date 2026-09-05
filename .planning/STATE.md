@@ -1141,6 +1141,15 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Current continuity (2026-09-05, supersedes the snapshots below):** branch
+`calls-feature-codex` resumed from pushed `fee06bb6` for full Messenger/Calls
+continuation. Task 3A source-bound backend runner is source-accepted after
+independent review C/I/M 0/0/0 and Docker RED/GREEN (focused 1 PASS; relevant
+launcher/packet/security regression 23 PASS). Current helpers and entrypoint
+are read-only overlays; no image rebuild was needed. Next is the actual Go
+build/vet/unit/race gate, then MPR-02 in its own reserved RED/GREEN slot.
+Existing linked worktree is retained; no product-readiness claim is made.
+
+**Previous checkpoint detail:** branch
 `calls-feature-codex`, source checkpoint `f1f97bef`. HARD2G implementation and
 static review are historical evidence; executable acceptance remains pending.
 The founder explicitly rejected any host-validator exception. The active

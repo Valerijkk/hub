@@ -123,14 +123,24 @@ historical. Its fixed container envelope is 2 GiB memory with `MemorySwap` also
 2 GiB (no swap), 6 CPU, read-only rootfs, `/tmp` tmpfs 64 MiB, `GOCACHE` tmpfs
 768 MiB, `GOTMPDIR` tmpfs 384 MiB, and a required 512 MiB clean threshold.
 
-It binds exactly six current source roots read-only:
+It binds exactly six current product source roots read-only:
 `backend/cmd`, `backend/internal`, `backend/tests`, `backend/ent/schema`,
 `backend/migrations`, and `backend/testframework`; `/reports` is the only
 writable bind. It does not bind the `backend/` or `backend/ent/` root, so the
 image-generated Ent packages and resolved Go module cache remain authoritative.
 Ordinary edits within those six roots do not add `--build`; `backend/go.mod`,
 `backend/go.sum`, generated Ent output (including a schema change requiring
-regeneration), and edits outside them require a separately authorized rebuild.
+regeneration), and edits outside the documented source overlays require a
+separately authorized rebuild.
+Two additional read-only binds supply current runner helpers:
+`testframework/docker/backend_unit` at `/usr/local/lib/hub/backend-unit`
+and `testframework/docker/entrypoints/backend-unit.sh` at
+`/usr/local/bin/backend-unit`. The fixed Compose entrypoint is
+`[/bin/sh, /usr/local/bin/backend-unit]`, matching the launcher path hashed
+by the receipt. These nine mounts (one report, eight read-only) let reviewed
+shell fixes execute without rebuilding the image; they do not attest
+image-immutable source identity. The September 5 focused launcher test has
+Docker RED/GREEN; its current-launcher/packet regression is 23 passed.
 The old Windows `root_handoff.py` / `observe.py` choreography is superseded
 and is not an executable fallback. Historical observer receipts remain
 historical; do not fabricate their `SEAL` from an offline packet result.

@@ -787,7 +787,7 @@ def test_hard2g_backend_unit_compose_contract_rejects_authority_mutations() -> N
     volumes = backend["volumes"]
     environment = backend["environment"]
     tmpfs = backend["tmpfs"]
-    assert type(volumes) is tuple and len(volumes) == 7
+    assert type(volumes) is tuple and len(volumes) == 9
     assert isinstance(environment, Mapping)
     assert type(tmpfs) is tuple and len(tmpfs) == 3
     cache_tmpfs = tmpfs[1]
@@ -4911,7 +4911,16 @@ def _public_service_overrides(name: str) -> Mapping[str, object]:
                         "./backend/testframework",
                         "/opt/hub/source/backend/testframework",
                     ),
+                    _read_only_bind(
+                        "./testframework/docker/backend_unit",
+                        "/usr/local/lib/hub/backend-unit",
+                    ),
+                    _read_only_bind(
+                        "./testframework/docker/entrypoints/backend-unit.sh",
+                        "/usr/local/bin/backend-unit",
+                    ),
                 ),
+                "entrypoint": ("/bin/sh", "/usr/local/bin/backend-unit"),
                 "environment": MappingProxyType(
                     {
                         "GOCACHE": "/var/cache/hub-go",
