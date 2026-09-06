@@ -1,11 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	getChannelPins,
 	type ChannelCapabilities,
 	type Message,
 	type PinnedMessage,
-	togglePin,
 } from "@/api/messenger";
 import { QueryErrorAlert, QueryStateView } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { messagesQueryKey } from "@/hooks/use-messages";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
+import { usePanelUnpinCommand } from "./use-panel-unpin-command";
 
 /** Пропсы компонента PinnedMessages. */
 interface PinnedMessagesProps {
@@ -66,14 +66,18 @@ export function PinnedMessages({
 	const [open, setOpen] = useState(false);
 	const queryClient = useQueryClient();
 	const userId = useAuthStore((state) => state.user?.id ?? null);
-	const capabilitiesRef = useRef(capabilities);
-	capabilitiesRef.current = capabilities;
 	const channelRevoked = useMessengerStore((state) =>
 		state.revokedChannelIds.has(channelId),
 	);
 	const canListPins =
 		capabilities?.can_list_pins === true && !channelRevoked;
 	const canPin = canListPins && capabilities?.can_pin === true;
+	const { pending: unpinPending, submit: submitUnpin } = usePanelUnpinCommand({
+		open,
+		channelId,
+		canListPins,
+		canPin,
+	});
 	const queryKey = pinsQueryKey(channelId, userId ?? "__no-user__");
 
 	const pinsQuery = useQuery({
@@ -91,57 +95,6 @@ export function PinnedMessages({
 				messagesQueryKey(channelId, userId),
 			)
 		: undefined;
-
-	const canUnpinNow = useCallback(() => {
-		const currentSnapshot = capabilitiesRef.current;
-		if (
-			currentSnapshot?.can_list_pins !== true ||
-			currentSnapshot.can_pin !== true
-		) {
-			return false;
-		}
-		const state = useMessengerStore.getState();
-		if (state.isChannelRevoked(channelId)) return false;
-		const currentCapabilities = state.channels.find(
-			(item) => item.id === channelId,
-		)?.capabilities;
-		return (
-			currentCapabilities?.can_list_pins === true &&
-			currentCapabilities.can_pin === true
-		);
-	}, [channelId]);
-
-	const handleUnpin = useCallback(
-		async (pin: PinnedMessage) => {
-			const capturedUserId = userId;
-			const capturedChannelId = channelId;
-			const capturedQueryKey = pinsQueryKey(
-				capturedChannelId,
-				capturedUserId ?? "__no-user__",
-			);
-			if (
-				!capturedUserId ||
-				!canUnpinNow() ||
-				pin.channel_id !== capturedChannelId ||
-				useAuthStore.getState().user?.id !== capturedUserId
-			) {
-				return;
-			}
-
-			await togglePin(capturedChannelId, pin.message_id);
-			if (
-				useAuthStore.getState().user?.id !== capturedUserId ||
-				!canUnpinNow()
-			) {
-				return;
-			}
-			await queryClient.invalidateQueries({
-				queryKey: capturedQueryKey,
-				exact: true,
-			});
-		},
-		[canUnpinNow, channelId, queryClient, userId],
-	);
 
 	if (!canListPins) return null;
 
@@ -237,7 +190,8 @@ export function PinnedMessages({
 														variant="ghost"
 														size="sm"
 														className="shrink-0"
-														onClick={() => void handleUnpin(pin)}
+														disabled={unpinPending}
+														onClick={() => void submitUnpin(pin)}
 													>
 														Открепить
 													</Button>

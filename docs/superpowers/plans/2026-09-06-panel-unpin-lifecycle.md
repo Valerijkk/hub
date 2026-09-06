@@ -10,10 +10,17 @@
 
 **Spec:** docs/TECHNICAL.md POST pin/GET pins, docs/system_specification.md channel_removed barrier, source-confirmed panel-unpin entry in the completion queue. No new server roles or permission vocabulary.
 
-Status: ROOT_CONTRACT_FROZEN; independent review C/I/M 0/0/0,
-READY_FOR_ORACLE only after exact forward publication/rebinding. Forward
-oracle/source owns current executable queue. Panel oracle/code remains
-NOT_WRITTEN and must not enter that gate.
+Status: UNIT_ACCEPTED / READY_FOR_PUBLICATION; independent source and final
+receipt review C/I/M0/0/0. Exact publication remains pending.
+The following prerequisite/oracle-stage notes are historical.
+Forward prerequisite published as 74c5c492a41998213fcf7cf1556fdf6333c7ee42,
+immediate push and exact remote SHA equality verified on 2026-09-06.
+READY_FOR_ORACLE at that clean base: TypeScript + 201 files / 871 tests PASS.
+Panel production remains unchanged until accepted RED. Root batching ruling:
+the independent bookmark-removal oracle may share the same canonical full
+RED/GREEN run; disjoint ownership and per-file failure triage remain mandatory.
+If both frozen oracles are present, collection is 203 files / 915 tests.
+No tests change during a running gate; no broader product acceptance follows.
 
 Discovery baseline ac918830e2aa0d7082297d9913be0fd750013fb5. Bind exact published forward prerequisite HEAD before this oracle is applied. Forward acceptance is not presumed.
 
@@ -106,12 +113,87 @@ Local window unhandled spies are supplemental; full Vitest exit/raw headings are
 
 ## Task 1: Panel command
 
-- [ ] Independent contract review C/I clear; bind actual forward prerequisite publication.
-- [ ] One Terra/xhigh oracle author, root full read/hash and independent review.
-- [ ] Root full canonical RED, preserve eight receipts and triage source vs fixture/runtime.
-- [ ] One Terra/xhigh source writer for only two production paths within budget.
-- [ ] Independent source/oracle review; no weakened assertions or oracle drift.
-- [ ] Root full canonical GREEN, exact provenance/resource evidence and final independent review.
+- [x] Independent contract review C/I clear; bind actual forward prerequisite publication.
+- [x] One Terra/xhigh oracle author, root full read/hash and independent review.
+- [x] Root full canonical RED, preserve eight receipts and triage source vs fixture/runtime.
+- [x] One Terra/xhigh source writer for only two production paths within budget (234/250).
+- [x] Independent source/oracle review; no weakened assertions or oracle drift (C/I/M0/0/0).
+- [x] Root full canonical GREEN, exact provenance/resource evidence (final independent receipt review recorded below).
 - [ ] Docs sync, exact commit/immediate authorized push/remote equality; continue unblocked work.
 
 Every dispatch max20minutes, depth/fanout0, max3 fixes/root cause /5 review rounds /1 transient retry. If bounds or authority do not fit, return BLOCKED for root decomposition. No full Messenger/API/storage/browser or Jitsi readiness claim from these units.
+
+## Canonical combined RED — 2026-09-06
+
+Panel oracle34cases/440physical lines,
+SHA21CE66893687CB7C40C8B1B94A6B015487E031F9FDE422C7DB3EC4A14F7B73C8;
+root full read and two fixture-only corrections before independent
+READY_FOR_RED. No old tests or production changed. Canonical TypeScript
+PASS;203files201PASS/2FAIL,915tests887PASS/28FAIL,0pending/todo;exit1,
+126.19s,start11:13:25UTC. Panel14PASS/20FAIL, bookmark2PASS/8FAIL;
+all201oldfilesPASS. Nine raw unhandled rejections are the uncaught panel
+handler's currentEN/RU, prop/live list/pin, revoke, unmount and batched actor
+failures. Independent triage agrees ROOT=code per command, C/I0/0,
+READY_FOR_SOURCE; this is source-stage authority, not product acceptance.
+
+Panel20:2formatter,1duplicate,3emptyIDs,6ABA pending witnesses,4permission
+restore-success invalidations,1revoke-success invalidation,1unmount-success
+invalidation,1real-refetch pending,1batched-actor-success invalidation.
+SixABA cases dispatchrequest2, then fail disabled BEFORE old settlement;
+later isolation assertions NOT_EXECUTED. Real QueryObserver invalidation
+starts, but its disabled failure precedes the later ABA/finally witness.
+Prop/live test title omits outcome display; third-column row data actually
+runs both outcomes. No post-RED test changes are authorized by this note.
+
+Eight receipts: `testframework/reports/frontend-unit-panel-actions-red-20260906/`
+(result.json,typescript.result.json,typescript.stdout.log,typescript.stderr.log,
+vitest.result.json,vitest.report.json,vitest.stdout.log,vitest.stderr.log).
+One permission-review timeout occurred before execution; one allowed retry
+launched the sole runner `worktree-master-frontend-unit-run-872844fdca3b`,
+engine07542988fd019512e18a53dc366cc3964facfe6a88a4e1dfea6e31899ad8b496,
+started2026-09-06T11:13:07.778600029Z. Actual2GiB/no-swap6CPUreadonly,
+two workers; image sha256:286783701fc3ef3cf25b7960eb14b6eb50e80adbbbb5c0d22e5c0799e68ce218.
+Samples365.1/474.6MiB,CPU170.97/215.86%,IO0B; not peaks. Host disk second
+sample0%/queue0; freeRAM3,839,812KiB at first runtime sample. Mail QA stack
+untouched. Disposable container absent after exit; engine completion/OOM
+NOT_CAPTURED. Build/lint/API/browser/storage NOT_RUN. Oracle/source/Compose
+hashes match before/after; raw RED retained without overwrite.
+
+## Canonical composed GREEN — 2026-09-06
+
+At base74c5c492 plus both reviewed panel/bookmark atoms, root ran exactly
+`docker compose -f docker-compose.local.yml run --rm frontend-unit`.
+TypeScript PASS;203 files /915 tests PASS, including34 panel and10 bookmark
+cases; exit0,136.52s,start11:37:40UTC. Failed/pending/todo and whole-run
+unhandled0; JSON423 nested suites is not the file count. All later ABA and
+refetch assertions unreached in RED now passed. Existing act/DialogContent/
+mock warnings remain; build/lint/API/browser/storage/media NOT_RUN.
+
+Panel production +178/-56=234/250, hook168 physical lines. Source review
+Terra/high C/I/M0/0/0, spec and quality compliant. Author Terra/xhigh; actual
+runtimes UNKNOWN. Hook SHA EF2DF7F657B8A728DA614A696AC3B4124182F433B22DA127CFAC795D34108BB5;
+adapter ED7CFFF80838C46B039FEB1B54F0607A12AFEF3DC7D0F3ACDDF05FC3E5D52C81.
+Frozen oracle, all four old panel/bookmark fixtures and Compose hashes match
+before/after. No source/test/config changes during execution.
+
+Eight preserved receipts at
+`testframework/reports/frontend-unit-panel-actions-green-20260906/`:
+result.json,typescript.result.json,typescript.stdout.log,typescript.stderr.log,
+vitest.result.json,vitest.report.json,vitest.stdout.log,vitest.stderr.log.
+RED retained separately. Root detailed provenance/reviews are in
+`.superpowers/sdd/2026-09-06-panel-actions/green-receipt.md` and source-review.md.
+Separate source commits use this composed candidate evidence; intermediate
+single-atom commits are not independently executed.
+
+Runner `worktree-master-frontend-unit-run-ceb04593a18b`, engine
+1c862c2fb437daaa680b4dcb7b9947be589d13afdaf5048802de15193bcd7066,
+started2026-09-06T11:37:22.127807906Z; same existing image286783701fc3….
+Actual2GiB/no-swap6CPUreadonly, two workers; samples511.6/288.8MiB,
+CPU233.84/182.49%,IO0B; host disk3%/4%,queue0. Samples are not peaks.
+Final independent receipt review: UNIT_ACCEPTED / READY_FOR_PUBLICATION,
+C/I/M0/0/0; raw counts and absence of whole-run unhandled confirmed.
+Disposable runner absent after exit; engine completion/OOM NOT_CAPTURED.
+No root build/pull/install or Mail container changes. Preflight11:36:43 had
+no active Mail build and4297192KiB freeRAM. Mail independently began a
+python-tests build11:39:14-11:39:53 during the tail; continuous exclusivity
+is not claimed. Later Mail builds were active; root starts no further QA.
