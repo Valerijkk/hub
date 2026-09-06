@@ -1,5 +1,17 @@
 # Hub — Тестовая документация
 
+## Messenger: общий owner реакций — 2026-09-06
+
+25 новых genuine units проверяют picker/pill, точный emoji payload, общий
+single-flight, RU/EN fallback аргументы formatter, явный retry, actor/channel
+binding и prop/live/revoke admission, committed A-B-A, поздний reject/unmount,
+close/reopen picker и независимые строки. Оракул не изменён между intended
+RED и составным GREEN: TypeScript и199файлов/809тестов PASS за118.81s.
+Whole-run unhandled gate прошёл по exit0 и отсутствию error headings; JSON
+не имеет поля numUnhandledErrors. Предупреждения в stderr сохранены.
+Набор включал отдельный кандидат закладок; промежуточные коммиты по одному
+не исполнялись. [Контракт, hashes и receipts](superpowers/plans/2026-09-06-message-reaction-lifecycle.md).
+
 ## Messenger: жизненный цикл правки — 2026-09-06
 
 24 новых genuine MessageItem/MessageActions units: точный PUT и optimistic

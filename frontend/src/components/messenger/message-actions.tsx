@@ -20,6 +20,8 @@ interface MessageActionsProps {
 	capabilities?: ChannelCapabilities;
 	showReactionPicker: boolean;
 	onReactionPickerChange: (open: boolean) => void;
+	onToggleReaction: (emoji: string) => Promise<boolean>;
+	reactionPending: boolean;
 	onReply: () => void;
 	onOpenThread: () => void;
 	onPin: () => void;
@@ -72,6 +74,8 @@ export function MessageActions({
 	capabilities,
 	showReactionPicker,
 	onReactionPickerChange,
+	onToggleReaction,
+	reactionPending,
 	onReply,
 	onOpenThread,
 	onPin,
@@ -103,6 +107,8 @@ export function MessageActions({
 					canReact
 					open={showReactionPicker}
 					onOpenChange={onReactionPickerChange}
+					onToggleReaction={onToggleReaction}
+					pending={reactionPending}
 				/>
 			)}
 			{capabilities?.can_read === true && (

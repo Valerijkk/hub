@@ -7,7 +7,6 @@ import {
 	addBookmark,
 	deleteMessage,
 	editMessage,
-	toggleReaction,
 	togglePin,
 } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,6 +25,7 @@ import { MessageAttachments } from "./message-attachments";
 import { pinsQueryKey } from "./pinned-messages";
 import { PollMessage } from "./poll-message";
 import { RenderContent } from "./render-content";
+import { useMessageReactionCommand } from "./use-message-reaction-command";
 
 /**
  * Регулярное выражение для обнаружения URL в тексте сообщения.
@@ -325,6 +325,13 @@ function MessageItemInner({
 		currentUserId !== undefined && currentUserId === message?.sender_id;
 	const canReact = capabilities?.can_react === true && !channelRevoked;
 	const canForward = capabilities?.can_forward === true && !channelRevoked;
+	const { pending: reactionPending, submit: handleReaction } =
+		useMessageReactionCommand({
+			channelId,
+			messageId: safeMessageId,
+			messageChannelId: message?.channel_id,
+			canReact: capabilities?.can_react === true,
+		});
 	const canEdit =
 		capabilities?.can_edit === true &&
 		liveDeleteCapabilities?.can_edit === true &&
@@ -528,14 +535,6 @@ function MessageItemInner({
 	const handleOpenThread = useCallback(() => {
 		if (canAct("can_read")) openThread(channelId, safeMessageId);
 	}, [canAct, channelId, openThread, safeMessageId]);
-
-	const handleReaction = useCallback(
-		async (emoji: string) => {
-			if (!canAct("can_react")) return;
-			await toggleReaction(channelId, safeMessageId, emoji);
-		},
-		[canAct, channelId, safeMessageId],
-	);
 
 	/** Начать редактирование сообщения. */
 	const handleStartEdit = useCallback(() => {
@@ -823,7 +822,7 @@ function MessageItemInner({
 												hasReacted &&
 													"border-[color-mix(in_srgb,var(--green)_20%,transparent)] bg-[var(--gG)]",
 											)}
-											disabled={!canReact || channelRevoked}
+											disabled={!canReact || channelRevoked || reactionPending}
 											onClick={() => void handleReaction(reaction.emoji)}
 										>
 											<span>{reaction.emoji}</span>
@@ -883,6 +882,8 @@ function MessageItemInner({
 							capabilities={capabilities}
 							showReactionPicker={showReactionPicker}
 							onReactionPickerChange={setShowReactionPicker}
+							onToggleReaction={handleReaction}
+							reactionPending={reactionPending}
 							onReply={handleReply}
 							onOpenThread={handleOpenThread}
 							onPin={handlePin}

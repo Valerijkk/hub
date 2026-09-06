@@ -58,6 +58,9 @@
 	"messageEdit": {
 		"error": "Unable to edit message"
 	},
+	"messageReaction": {
+		"error": "Unable to update reaction"
+	},
 	"mentions": {
 		"all": "All",
 		"online": "Online",

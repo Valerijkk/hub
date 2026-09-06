@@ -10,6 +10,20 @@
 
 ## CI и контроль качества
 
+### Messenger: реакции сообщения — calls-feature-codex, 2026-09-06
+
+Плашки реакций и picker используют один command owner на строку сообщения.
+Повторный клик во время запроса не отправляет второй toggle; блокируются
+только emoji/pills, сам picker можно закрыть и открыть. Проверяются текущие
+actor, prop/live can_react, revoke и message-channel binding. Ошибка текущей
+попытки обрабатывается через canonical toastApiError с RU/EN fallback;
+устаревший ответ после смены scope или unmount не уведомляет и не снимает
+новый pending. Старый успех не закрывает повторно открытый picker. Счётчики
+и cache не меняются оптимистично; сервер/WS остаются источником состояния.
+25 genuine units прошли в составном Docker gate199files/809tests; это не
+browser/API acceptance и не отмена уже отправленного HTTP.
+[Контракт и точный receipt](superpowers/plans/2026-09-06-message-reaction-lifecycle.md).
+
 ### Messenger: сохранение правки — calls-feature-codex, 2026-09-06
 
 Редактирование проверяет текущего автора, prop/store `can_edit`, revoke

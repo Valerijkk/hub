@@ -29,6 +29,14 @@
 
 ## Пирамида тестирования
 
+Reaction lifecycle (2026-09-06):25 genuine UI cases связывают prop/live rights
+и текущий scope с одним HTTP toggle, canonical failure и picker open-session.
+Полный составной frontend-unit:TypeScript+199files/809testsPASS,118.81s,
+без skipped/todo/failures или whole-run unhandled errors. Window rejection
+spy не является самостоятельным Node gate; сохранены реальные RED receipts.
+Browser/API/WS остаются NOT_RUN.
+[Контракт](superpowers/plans/2026-09-06-message-reaction-lifecycle.md).
+
 Edit lifecycle (2026-09-06): 24 новых genuine UI units проверяют admission,
 single-flight, optimistic key, current failure и stale/ABA settlement,
 сброс draft при потере scope. Принято только на unit-уровне в составе

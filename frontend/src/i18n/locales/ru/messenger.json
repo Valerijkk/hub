@@ -58,6 +58,9 @@
 	"messageEdit": {
 		"error": "Не удалось изменить сообщение"
 	},
+	"messageReaction": {
+		"error": "Не удалось изменить реакцию"
+	},
 	"mentions": {
 		"all": "Все",
 		"online": "В сети",

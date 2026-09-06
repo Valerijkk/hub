@@ -1,5 +1,4 @@
-import { useCallback, useEffect } from "react";
-import { toggleReaction } from "@/api/messenger";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Popover,
@@ -38,6 +37,8 @@ interface ReactionPickerProps {
 	canReact: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onToggleReaction: (emoji: string) => Promise<boolean>;
+	pending: boolean;
 }
 
 /** Emoji picker с прямым capability/revoke barrier перед сетевым вызовом. */
@@ -47,6 +48,8 @@ export function ReactionPicker({
 	canReact,
 	open,
 	onOpenChange,
+	onToggleReaction,
+	pending,
 }: ReactionPickerProps) {
 	const channelRevoked = useMessengerStore((state) =>
 		state.revokedChannelIds.has(channelId),
@@ -58,16 +61,43 @@ export function ReactionPicker({
 		const channel = state.channels.find((item) => item.id === channelId);
 		return channel?.capabilities?.can_react === true;
 	}, [canReact, channelId]);
+	const openSessionRef = useRef<object | null>(null);
+
+	useLayoutEffect(() => {
+		if (!open || disabled) {
+			openSessionRef.current = null;
+			return;
+		}
+		const session = {};
+		openSessionRef.current = session;
+		return () => {
+			if (openSessionRef.current === session) openSessionRef.current = null;
+		};
+	}, [channelId, disabled, messageId, open]);
 
 	useEffect(() => {
 		if (disabled && open) onOpenChange(false);
 	}, [disabled, onOpenChange, open]);
 
 	const handleSelect = async (emoji: string) => {
-		if (disabled || !canReactNow()) return;
-		await toggleReaction(channelId, messageId, emoji);
-		if (!canReactNow()) return;
-		onOpenChange(false);
+		const session = openSessionRef.current;
+		if (
+			!session ||
+			openSessionRef.current !== session ||
+			disabled ||
+			pending ||
+			!canReactNow()
+		) {
+			return;
+		}
+		const succeeded = await onToggleReaction(emoji);
+		if (
+			succeeded &&
+			openSessionRef.current === session &&
+			canReactNow()
+		) {
+			onOpenChange(false);
+		}
 	};
 
 	return (
@@ -111,7 +141,7 @@ export function ReactionPicker({
 							type="button"
 							aria-label={emoji}
 							className="flex h-8 w-8 items-center justify-center rounded text-lg transition-colors hover:bg-accent"
-							disabled={disabled}
+							disabled={disabled || pending}
 							onClick={() => void handleSelect(emoji)}
 						>
 							{emoji}

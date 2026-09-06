@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Resource and composer published; edit UNIT_ACCEPTED and publishing; reaction lifecycle contract next
+stopped_at: Composed reaction and bookmark GREEN809PASS UNIT_ACCEPTED; separate exact-path publication in progress
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - resource75dcdb27 and composer5057c54d pushed with remote equality; edit24-case oracle shares full758PASS composed receipt; reaction discovery confirmed; Jitsi remains UNBOUND
+last_activity: 2026-09-06 - TypeScript and199files809testsPASS118.81s;8receipts preserved;2GiB/no-swap/two workers observed; reaction-only9pathindex frozen; no new commit yet; pin payload remains unapplied
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -132,6 +132,16 @@ spec_coverage:
 ---
 
 ## Session note — 2026-09-06 bounded frontend verification
+
+Reaction/bookmark composed RED completed against unchanged c0900e62 source:
+TypeScript PASS, 199 files (197 pass / 2 fail), 809 tests (781 pass / 28 fail),
+14 unhandled rejections, exit1, Vitest122.25s. All failing tests are in the
+two new oracles; independent triage is pending before production writes.
+Exact receipts: testframework/reports/frontend-unit-reaction-bookmark-red-20260906/.
+Actual live per-run limits/top/stats were NOT_CAPTURED because the disposable
+container had already exited. Unchanged accepted service declares2GiB/no-swap,
+6CPU/two workers; engine events confirm exit1 and no OOM event, not observed
+resource usage. Detailed provenance and failure map are in both atom plans.
 
 2026-09-06 canonical resource checkpoint: frontend-unit now declares MAX2/
 MIN1 for both Vitest worker pool families, service-local only. Same image,

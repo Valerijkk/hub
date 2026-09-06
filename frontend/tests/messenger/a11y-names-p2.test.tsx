@@ -51,6 +51,8 @@ describe("P2-FE-03 · accessible names (TASK-049)", () => {
 					canReact
 					open
 					onOpenChange={() => undefined}
+					onToggleReaction={async () => false}
+					pending={false}
 				/>
 			</TooltipProvider>,
 		);

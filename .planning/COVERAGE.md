@@ -22,6 +22,13 @@
 
 ## Методология
 
+Reaction lifecycle,2026-09-06:25новых genuine units. Трассировка: текущие
+actor/channel/message+can_react → общий picker/pill command → single-flight,
+handled failure, stale/ABA и open-session fences. TypeScript+199files/809tests
+PASS в составном Docker gate с кандидатом закладок; не новое statement
+coverage и не процент готовности Messenger.
+[Оракул и evidence](../docs/superpowers/plans/2026-09-06-message-reaction-lifecycle.md).
+
 Edit lifecycle, 2026-09-06: 24 новых genuine units, трассировка от текущего
 автора/can_edit и message-channel binding к единственному pending PUT,
 localized error и stale/ABA fences. Принято в составном Docker gate

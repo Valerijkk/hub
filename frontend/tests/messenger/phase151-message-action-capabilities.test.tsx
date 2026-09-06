@@ -69,6 +69,8 @@ const message: Message = {
 
 const actionCallbacks = {
 	onReactionPickerChange: vi.fn(),
+	onToggleReaction: async () => false,
+	reactionPending: false,
 	onReply: vi.fn(),
 	onOpenThread: vi.fn(),
 	onPin: vi.fn(),
