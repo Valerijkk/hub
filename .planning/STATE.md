@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: communications-in-progress
-stopped_at: Pin canonical GREEN complete; final independent receipt review and exact publication pending
+status: communications-paused-for-workflow-refresh
+stopped_at: Rules imported through PR38; ForwardDialog RED complete, source not implemented; see Astra refresh checkpoint
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - pin TypeScript and 200 files / 835 tests PASS in 117.97s; 26 new cases and unchanged hashes; ForwardDialog bounded contract received; Jitsi/Go blockers unchanged
+last_activity: 2026-09-06 - master c08b8036 imported as c84fd980; official Astra guidance reviewed; Messenger WIP preserved; no product tests or builds for rules refresh
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -130,6 +130,29 @@ spec_coverage:
     measured: "2026-07-27"
     source: .planning/audits/planning-audit-2026-07/SPEC-COVERAGE.md
 ---
+
+## Session note — 2026-09-06 обновление правил Astra
+
+По текущему запросу пользователя работа над коммуникациями приостановлена.
+PR [#38](https://github.com/Valerijkk/hub/pull/38) перенёс единственный отсутствующий
+коммит master `c08b80366ee62447059d66e47e97b5f65727ee91` в `calls-feature-codex`;
+merge `c84fd980e35cb101da28815335233cd40c3fd8ba`. Все семь dirty/untracked
+Messenger-файлов пережили fast-forward с прежними SHA256. Master не изменён.
+Дополнение правил и остаточные runtime оговорки:
+`.planning/audits/agent-workflow/ASTRA-REFRESH-2026-09-06.md`.
+
+Последний принятый продуктовый коммит — pin `ac918830`: Docker frontend-unit
+200 файлов / 835 тестов PASS. Следующий ForwardDialog находится на RED:
+201 файл (200 pass / 1 fail), 871 тест (848 pass / 23 fail), 8 unhandled rejections,
+TypeScript PASS, exit1, 122.11s. Все 23 FAIL только в новом 36-case oracle;
+старые 200 файлов PASS. Receipts:
+`testframework/reports/frontend-unit-forward-red-20260906/`.
+Production writer остановился с usage-limit error до изменения source.
+После возобновления нужен новый explicit dispatch по актуальному model-routing
+и rebind accepted forward contract к текущему HEAD; GREEN ещё не выполнялся.
+Panel unpin ждёт publication forward. Jitsi/Go blockers прежние; LiveKit активен.
+
+Следующая запись сохраняет более ранние RED-наблюдения, не текущий verdict.
 
 ## Session note — 2026-09-06 bounded frontend verification
 

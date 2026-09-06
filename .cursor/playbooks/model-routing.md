@@ -21,3 +21,29 @@ subagent dispatch использует bounded/no-history fork: model и effort 
 
 Исторические model ADR описывают прошлые решения и не переопределяют этот файл
 или текущую founder-инструкцию.
+
+## Конфигурация и параллельная работа
+
+Project defaults находятся в `.codex/config.toml`: root Astra/Max, стандартный
+service tier, downstream default Terra/Medium, максимум три субагента плюс root.
+Лимит применяется совместно с фактически доступными слотами. Только root
+создаёт субагентов; downstream не запускает вложенную волну.
+
+Делегируй независимую bounded-задачу, когда это ускоряет работу или даёт нужное
+независимое review. Не заполняй слоты дублирующим поиском или формальными задачами.
+Разводи ownership; тяжёлые Docker-проверки выполняй последовательно с согласованными
+CPU/RAM limits и учётом соседних веток. Число агентов не разрешает параллельные сборки.
+
+`model_profile: "inherit"` в `.planning/config.json` — selector GSD, а не разрешение
+наследовать runtime при dispatch. Defaults клиента и ответы GSD resolver не
+заменяют явные `model` + `reasoning_effort` из текущего routing contract.
+Если adapter возвращает `inherit` или устаревшую модель, root задаёт разрешённый
+точный runtime через tool override до запуска. Недоступный runtime даёт
+`BLOCKED`; смена модели требует нового явного routing, не silent fallback.
+
+Область действия defaults и приоритет explicit spawn описаны в
+[Codex Config Reference](https://learn.chatgpt.com/docs/config-file/config-reference).
+Наличие TOML не доказывает, что работающая сессия его загрузила: для этого нужна
+отдельная telemetry. Project config применяется только в trusted project;
+явные launch overrides имеют приоритет над ним. См.
+[Config basics](https://learn.chatgpt.com/docs/config-file/config-basic).

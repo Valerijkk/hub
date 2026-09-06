@@ -94,14 +94,16 @@ Playbook описывает **единый способ работы** для п
 
 | Агент | Роль | Основной артефакт | Маршрутизация | Режим |
 |-------|------|-------------------|---------------|-------|
-| `ba1` | Business Analyst (поток A) | `docs/vision_and_scope.md` (разделы A) | `inherit` | readonly-анализ |
-| `ba2` | Business Analyst (поток B) | `docs/vision_and_scope.md` (разделы B) | `inherit` | readonly-анализ |
-| `sa1` | System Analyst (модули A) | `docs/system_specification.md` (модули A) | `inherit` | readonly-анализ |
-| `sa2` | System Analyst (модули B) | `docs/system_specification.md` (модули B) | `inherit` | readonly-анализ |
-| `arch` | Architect | `docs/architecture.md`, `docs/stack_and_tools.md` | `inherit` | readonly-анализ |
-| `ba-ver` | Верификатор BA | проверка vision_and_scope | `inherit` | readonly |
-| `sa-ver` | Верификатор SA | проверка system_specification | `inherit` | readonly |
-| `arch-ver` | Верификатор ARCH | проверка architecture | `inherit` | readonly |
+| `ba1` | Business Analyst (поток A) | `docs/vision_and_scope.md` (разделы A) | Выбирает оркестратор | readonly-анализ |
+| `ba2` | Business Analyst (поток B) | `docs/vision_and_scope.md` (разделы B) | Выбирает оркестратор | readonly-анализ |
+| `sa1` | System Analyst (модули A) | `docs/system_specification.md` (модули A) | Выбирает оркестратор | readonly-анализ |
+| `sa2` | System Analyst (модули B) | `docs/system_specification.md` (модули B) | Выбирает оркестратор | readonly-анализ |
+| `arch` | Architect | `docs/architecture.md`, `docs/stack_and_tools.md` | Выбирает оркестратор | readonly-анализ |
+| `ba-ver` | Верификатор BA | проверка vision_and_scope | Выбирает оркестратор | readonly |
+| `sa-ver` | Верификатор SA | проверка system_specification | Выбирает оркестратор | readonly |
+| `arch-ver` | Верификатор ARCH | проверка architecture | Выбирает оркестратор | readonly |
+
+В каждом dispatch явно передавай model и effort по [`model-routing.md`](model-routing.md).
 
 `ba1`/`ba2` и `sa1`/`sa2` — это **две параллельные инстанции одной роли**, работающие над
 разными доменами/эпиками одновременно, чтобы ускорить анализ крупного milestone. `arch`
