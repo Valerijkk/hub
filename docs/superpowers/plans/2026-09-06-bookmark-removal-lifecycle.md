@@ -12,11 +12,41 @@
 
 ## Global constraints
 
+Current execution: UNIT_ACCEPTED / READY_FOR_PUBLICATION; composed Docker
+GREEN below. Independent source and final receipt review C/I/M0/0/0;
+publication pending. Runtime assignment paragraphs below are chronology,
+not instructions to repeat failed dispatches or rewrite the frozen oracle.
+
+Current assignment decision: after the panel oracle correction finishes,
+root will reuse that available Terra/xhigh writer in a separate turn for
+this disjoint oracle. This supersedes the unsuccessful Astra reuse below;
+no concurrent dispatch retries. Root reviews both oracles before the shared
+RED. Source and independent review routes remain Terra/xhigh and Terra/high.
+
+Runtime rebind 2026-09-06: the new Terra/xhigh oracle dispatch was rejected
+by the live agent-thread limit before any work. Root explicitly assigns
+only oracle authoring to the existing idle Astra/high worker under current
+model-routing; this supersedes the oracle route in historical text below,
+not the frozen behavior. Source remains separately gated Terra/xhigh;
+independent review remains Terra/high. No unavailable runtime is claimed
+to have run; observed runtimes remain UNKNOWN. This is an explicit root
+dispatch decision, not an inherited/silent fallback.
+
+Live outcome: the explicit Astra/high reuse was also rejected by the same
+thread limit before work. Bookmark oracle is NOT_WRITTEN / WAITING_FOR_SLOT;
+no runtime fallback was executed. Only the panel oracle writer is dispatched.
+Retry assignment only after capacity changes; do not poll/spawn-loop.
+
 Root freeze 2026-09-06: behavior accepted. Independent plan review found one
 stale runtime reference in the final handoff; it is now reconciled with the
 global routing (oracle/source Terra/xhigh; reviewer Terra/high). C/I remaining:
-0/0. Oracle application waits for exact forward publication and root base
-binding. The current ForwardDialog GREEN must remain an isolated candidate.
+0/0. Forward prerequisite published as 74c5c492a41998213fcf7cf1556fdf6333c7ee42,
+immediate push and exact remote SHA equality verified on 2026-09-06. Oracle
+application is bound to this clean base (201 files / 871 tests PASS).
+Root batching ruling: this independent oracle and panel-unpin's 34-case oracle
+may share canonical RED/GREEN; each keeps disjoint ownership and per-file
+triage. Both oracles yield expected 203 files / 915 tests. No editing tests
+during a running gate. Source still waits for reviewed oracle and accepted RED.
 
 - This is one frontend removal lifecycle only. Do not change role/channel authority, `removeBookmark` API shape, backend cancellation/idempotency, automatic retry, cache-key shape, query policy, or server behavior.
 - Production ownership is only `frontend/src/components/messenger/bookmarks-panel.tsx`; production sum of added plus deleted lines must be at most 150. Preserve all existing tests and fixtures.
@@ -118,7 +148,7 @@ Render `disabled={pendingIds.has(bm.id)}` on the existing remove `Button`; retai
 - Consumes: `removeBookmark(bookmarkId: string): Promise<void>`, `BookmarksPanel`, `bookmarksQueryKey(userId: string)`, `useAuthStore`, `QueryClient.invalidateQueries`, and `toastApiError(error, fallback)`.
 - Produces: no exported interface. The existing remove button is disabled iff its bookmark ID is in the current scope's pending `Set`.
 
-- [ ] **Step 1: Create a standalone failing oracle on the frozen baseline.**
+- [x] **Step 1: Create a standalone failing oracle on the frozen baseline.**
 
   Reuse the test setup idioms from `phase151-bookmark-identity-boundary.test.tsx`: `QueryClient` with retries disabled, real `renderWithProviders`, a `deferred<T>()`, two authenticated user fixtures, two bookmarks, and mocked `getBookmarks`, `removeBookmark`, router, and `toastApiError`. Do not import a future helper or add props to the panel.
 
@@ -154,7 +184,7 @@ Render `disabled={pendingIds.has(bm.id)}` on the existing remove `Button`; retai
   await waitFor(() => expect(removeBookmark).toHaveBeenCalledTimes(2));
   ```
 
-- [ ] **Step 2: Root runs the canonical RED, without editing production.**
+- [x] **Step 2: Root runs the canonical RED, without editing production.**
 
   Root command only:
 
@@ -164,15 +194,15 @@ Render `disabled={pendingIds.has(bm.id)}` on the existing remove `Button`; retai
 
   Expected: the new lifecycle cases fail because baseline permits duplicate same-ID deletes, lacks the new row-pending UI span, and can expose stale completion effects. Baseline already awaits exact current-user invalidation; the new oracle proves the additional requirement that visible pending remains through that awaited refetch. Type/fixture failures, old-suite failures, timeout changes, missing resources, and unhandled rejections are not intended RED; root classifies them before authorization to implement. Preserve receipts and mark execution `NOT_RUN` if the exact service cannot be started.
 
-- [ ] **Step 3: Have the designated single production writer implement only the frozen inline algorithm.**
+- [x] **Step 3: Have the designated single production writer implement only the frozen inline algorithm.**
 
   Add the committed scope, `Map`, pending `Set`, current predicate, and guarded `finally` exactly at the panel boundary. Replace only `handleRemove`; add the row's `disabled` prop. Capture `bookmark.id` and `scope.actorId` before awaits. Await exact invalidation only after a current DELETE success. Keep literal current error fallback and let catch consume current invalidation rejection. Do not alter query enablement, navigation, labels, API/store contracts, authorities, existing error view/retry, or other files.
 
-- [ ] **Step 4: Independently review before GREEN.**
+- [x] **Step 4: Independently review before GREEN.**
 
   A read-only reviewer verifies the diff uses object identity for scope and request ownership, does not use user-ID comparison as the sole ABA test, only disables a matching row, awaits the exact actor key, preserves the formatter/Russian fallback, and remains within `<=150` production added+deleted lines. Review the new oracle for all ten cases, including both stale outcomes and both unmount outcomes; reject UI/internal-state mocking, weakened existing fixtures, broad invalidation, or speculative authority changes.
 
-- [ ] **Step 5: Root runs the canonical GREEN.**
+- [x] **Step 5: Root runs the canonical GREEN.**
 
   Run the same exact Docker command from Step 2. Expected only on successful execution: TypeScript and the complete `frontend-unit` suite pass, all ten new observed cases pass, and no whole-run unhandled errors/rejections are present. Do not claim GREEN from static review, a focused host run, or an earlier composed candidate; record Docker infrastructure failure as `NOT_RUN`/`BLOCKED_INFRA`.
 
@@ -192,8 +222,64 @@ Render `disabled={pendingIds.has(bm.id)}` on the existing remove `Button`; retai
 | No actor / empty ID fail closed | Cases 9-10; before-flight admission. |
 | No authority/API/retry/framework expansion | Global constraints and single-file implementation boundary. |
 
-Placeholder/type scan: complete. `RemovalScope`, `RemovalRequest`, `isCurrent`, all external calls, exact key, error fallback, tests, limits, and Docker command are defined above. No production work, test execution, docs-sync, commit, or push has occurred under this plan.
+Original plan self-review: `RemovalScope`, `RemovalRequest`, `isCurrent`, all external calls, exact key, error fallback, tests, limits, and Docker command were defined before implementation. Current execution evidence follows.
+
+## Canonical combined RED — 2026-09-06
+
+Actual oracle author: sequential reuse of Terra/xhigh panel writer, not the
+unsuccessfully requested Astra reuse.10cases/252physical lines,
+SHA83350B577F43E039A98BFC40E19E21F5B2618016D3DBBA21C590B00237368AAB.
+Root full read and independent READY_FOR_RED. Canonical TypeScript PASS;
+203files201PASS/2FAIL,915tests887PASS/28FAIL,0pending/todo,126.19s,exit1;
+bookmark2PASS/8FAIL, panel14PASS/20FAIL. All201oldfilesPASS. Eight bookmark
+failures:duplicate DELETE,distinct-row pending,real-refetch pending,2ABA
+pending witnesses,unmounted success invalidation,unmounted error toast,
+emptyID admission. TwoABA cases sendrequest2 then fail disabled BEFORE old
+settlement; later isolation assertions NOT_EXECUTED. Current error/retry
+and noactor baseline protections pass. All9runner unhandled rejections
+belong to the separate panel handler, not bookmarks. Source remains unchanged;
+independent triage accepts ROOT=code, C/I0/0 READY_FOR_SOURCE. Only the frozen
+single-file source stage is authorized, not product acceptance.
+
+Shared eight receipts and full inspected2GiB/no-swap6CPU/two-worker provenance:
+`testframework/reports/frontend-unit-panel-actions-red-20260906/` and the
+panel-unpin plan's Canonical combined RED section. Same source/oracle/Compose
+hashes after run; no build/pull/install or adjacent Mail changes. One approval
+timeout occurred before execution, then one allowed retry launched the only
+runner. Container absent after exit; peak/OOM NOT_CAPTURED. No claim of
+API/browser/storage/build/lint acceptance.
 
 ## Execution handoff
 
-Plan saved at `docs/superpowers/plans/2026-09-06-bookmark-removal-lifecycle.md`. Root behavior acceptance and plan review are recorded above; exact prerequisite publication binding is still required before oracle application. Use a Terra/xhigh oracle writer for the new test path, then a separately dispatched Terra/xhigh source writer for the single panel path after accepted RED; Terra/high owns independent read-only review. Root retains RED/GREEN/docs/Git; actual runtime remains UNKNOWN without telemetry.
+Oracle and source stages are complete; do not repeat them. Root retains
+docs/Git/publication. Author requested Terra/xhigh; independent reviewer
+Terra/high; actual runtime UNKNOWN without telemetry.
+
+## Canonical composed GREEN — 2026-09-06
+
+Base74c5c492 plus both panel/bookmark atoms; root exact
+`docker compose -f docker-compose.local.yml run --rm frontend-unit`:
+TypeScript PASS,203 files /915 tests PASS, all10 bookmark and34 panel cases,
+exit0,136.52s,start11:37:40UTC. Failed/pending/todo/whole-run unhandled0.
+Both previously unreached ABA settlement tails and actual refetch pending
+now pass. No oracle or old-fixture edits; this does not extend the contract
+to batched/noncommitted actor ABA, API/browser or server cancellation.
+
+Single-file production +67/-22=89/150; source SHA
+BD9558EE0E2210AE8D24708C2D4BC890A4BA81A234FE34E6C7D0214C8A95AB71.
+Frozen10case/252line oracle SHA83350B577F43E039A98BFC40E19E21F5B2618016D3DBBA21C590B00237368AAB.
+All source/oracle/old-fixture/Compose hashes match before/after GREEN.
+Independent source review spec/quality compliant, C/I/M0/0/0. Final receipt
+review UNIT_ACCEPTED / READY_FOR_PUBLICATION, C/I/M0/0/0; counts and absence
+of whole-run unhandled confirmed directly from raw receipts.
+
+Eight raw files preserved without overwrite at
+`testframework/reports/frontend-unit-panel-actions-green-20260906/`;
+RED remains alongside. Full names/resource/runner provenance and observed
+late Mail build overlap are in the panel-unpin plan's GREEN section and
+`.superpowers/sdd/2026-09-06-panel-actions/green-receipt.md`.
+Actual2GiB/no-swap6CPUreadonlytwo workers; no root build/pull/install or
+Mail changes. Existing act/DialogContent/mock warnings remain; build/lint/
+API/browser/storage NOT_RUN. Samples are not peaks and continuous workload
+exclusivity is not claimed. Separate commits use composed-candidate evidence,
+not independently executed intermediate revisions.
