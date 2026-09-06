@@ -55,6 +55,9 @@
 	"messageDelete": {
 		"error": "Unable to delete message"
 	},
+	"messageEdit": {
+		"error": "Unable to edit message"
+	},
 	"mentions": {
 		"all": "All",
 		"online": "Online",

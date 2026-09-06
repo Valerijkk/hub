@@ -27,6 +27,7 @@ interface MessageActionsProps {
 	onForward: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
+	editPending?: boolean;
 	deletePending?: boolean;
 }
 
@@ -78,6 +79,7 @@ export function MessageActions({
 	onForward,
 	onEdit,
 	onDelete,
+	editPending = false,
 	deletePending = false,
 }: MessageActionsProps) {
 	return (
@@ -124,7 +126,11 @@ export function MessageActions({
 				</ActionButton>
 			)}
 			{isOwn && capabilities?.can_edit === true && (
-				<ActionButton label="Редактировать сообщение" onClick={onEdit}>
+				<ActionButton
+					label="Редактировать сообщение"
+					onClick={onEdit}
+					disabled={editPending}
+				>
 					<Pencil className="h-3.5 w-3.5" />
 				</ActionButton>
 			)}

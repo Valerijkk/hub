@@ -55,6 +55,9 @@
 	"messageDelete": {
 		"error": "Не удалось удалить сообщение"
 	},
+	"messageEdit": {
+		"error": "Не удалось изменить сообщение"
+	},
 	"mentions": {
 		"all": "Все",
 		"online": "В сети",

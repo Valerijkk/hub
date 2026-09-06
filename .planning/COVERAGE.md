@@ -22,6 +22,12 @@
 
 ## Методология
 
+Edit lifecycle, 2026-09-06: 24 новых genuine units, трассировка от текущего
+автора/can_edit и message-channel binding к единственному pending PUT,
+localized error и stale/ABA fences. Принято в составном Docker gate
+TypeScript + 758 tests PASS, не как backend/browser или module acceptance.
+[Контракт и oracle](../docs/superpowers/plans/2026-09-06-message-edit-lifecycle.md).
+
 SEND recovery, 2026-09-06: шесть новых genuine units (два mock-boundary,
 четыре с REAL-Toaster), всего 15 в двух recovery-файлах. Составной gate
 TypeScript + 758 tests PASS. Трассировка: immutable SEND/nonce → single-flight

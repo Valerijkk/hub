@@ -60,6 +60,15 @@ interface DeleteScope {
 	messageChannelId: string | undefined;
 }
 
+interface EditScope {
+	lifecycle: number;
+	mounted: boolean;
+	userId: string;
+	channelId: string;
+	messageId: string;
+	messageChannelId: string | undefined;
+}
+
 /** Форматирует время из ISO-строки в "ЧЧ:ММ". */
 function formatTime(iso: string | undefined | null): string {
 	if (!iso || typeof iso !== "string") return "";
@@ -179,6 +188,7 @@ function MessageItemInner({
 	const [showForwardDialog, setShowForwardDialog] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editText, setEditText] = useState("");
+	const [editPending, setEditPending] = useState(false);
 	const [deletePending, setDeletePending] = useState(false);
 	const queryClient = useQueryClient();
 	const openThread = useMessengerStore((s) => s.openThread);
@@ -199,6 +209,9 @@ function MessageItemInner({
 		messageChannelId: undefined,
 	});
 	const deleteRequestRef = useRef<object | null>(null);
+	const editScopeRef = useRef<EditScope | null>(null);
+	const editLifecycleRef = useRef(0);
+	const editRequestRef = useRef<EditScope | null>(null);
 	const capabilitiesRef = useRef(capabilities);
 	capabilitiesRef.current = capabilities;
 	const loadBotInfo = useAIStore((s) => s.loadBotInfo);
@@ -253,6 +266,37 @@ function MessageItemInner({
 		safeMessageId,
 	]);
 
+	useLayoutEffect(() => {
+		const scope: EditScope = {
+			lifecycle: editLifecycleRef.current + 1,
+			mounted: !channelRevoked,
+			userId: currentUserId ?? "",
+			channelId,
+			messageId: safeMessageId,
+			messageChannelId: message?.channel_id,
+		};
+		editLifecycleRef.current = scope.lifecycle;
+		editScopeRef.current = scope;
+		editRequestRef.current = null;
+		setEditPending(false);
+		setIsEditing(false);
+		setEditText("");
+		return () => {
+			if (editScopeRef.current !== scope) return;
+			editScopeRef.current = { ...scope, mounted: false };
+			editRequestRef.current = null;
+		};
+	}, [
+		capabilities?.can_edit,
+		channelId,
+		channelRevoked,
+		currentUserId,
+		liveDeleteCapabilities?.can_edit,
+		message?.channel_id,
+		message?.sender_id,
+		safeMessageId,
+	]);
+
 	const canPinNow = useCallback(() => {
 		const state = useMessengerStore.getState();
 		if (state.isChannelRevoked(channelId)) return false;
@@ -282,7 +326,11 @@ function MessageItemInner({
 	const canReact = capabilities?.can_react === true && !channelRevoked;
 	const canForward = capabilities?.can_forward === true && !channelRevoked;
 	const canEdit =
-		capabilities?.can_edit === true && !channelRevoked && isOwnMessage;
+		capabilities?.can_edit === true &&
+		liveDeleteCapabilities?.can_edit === true &&
+		!channelRevoked &&
+		isOwnMessage &&
+		message?.channel_id === channelId;
 	const canDeleteMessage = useCallback(() => {
 		const state = useMessengerStore.getState();
 		if (state.isChannelRevoked(channelId)) return false;
@@ -328,6 +376,29 @@ function MessageItemInner({
 		if (channelRevoked || !canForward) setShowForwardDialog(false);
 		if (channelRevoked || !canEdit) setIsEditing(false);
 	}, [canEdit, canForward, canReact, channelRevoked]);
+
+	const isCurrentEditScope = useCallback(
+		(scope: EditScope) => {
+			const state = useMessengerStore.getState();
+			return (
+				editScopeRef.current === scope &&
+				scope.mounted &&
+				editLifecycleRef.current === scope.lifecycle &&
+				scope.userId.length > 0 &&
+				scope.messageId.length > 0 &&
+				scope.userId === (currentUserId ?? "") &&
+				scope.channelId === channelId &&
+				scope.messageId === safeMessageId &&
+				scope.messageChannelId === scope.channelId &&
+				useAuthStore.getState().user?.id === scope.userId &&
+				!state.isChannelRevoked(scope.channelId) &&
+				capabilities?.can_edit === true &&
+				state.channels.find((item) => item.id === scope.channelId)?.capabilities
+					?.can_edit === true
+			);
+		},
+		[capabilities, channelId, currentUserId, safeMessageId],
+	);
 
 	/**
 	 * Извлекает уникальные URL из текста сообщения.
@@ -468,19 +539,21 @@ function MessageItemInner({
 
 	/** Начать редактирование сообщения. */
 	const handleStartEdit = useCallback(() => {
-		if (!isOwnMessage || !canAct("can_edit")) return;
+		const scope = editScopeRef.current;
+		if (editRequestRef.current || isEditing || !scope) return;
+		if (!canEdit || !isCurrentEditScope(scope)) return;
 		setEditText(messageContentText ?? "");
 		setIsEditing(true);
-	}, [canAct, isOwnMessage, messageContentText]);
+	}, [canEdit, isCurrentEditScope, isEditing, messageContentText]);
 	/** Сохранить отредактированное сообщение. */
 	const handleSaveEdit = useCallback(
 		async (newText?: string) => {
-			const capturedUserId = currentUserId;
+			const scope = editScopeRef.current;
 			if (
-				!capturedUserId ||
-				useAuthStore.getState().user?.id !== capturedUserId ||
-				!isOwnMessage ||
-				!canAct("can_edit")
+				!scope ||
+				editRequestRef.current ||
+				!canEdit ||
+				!isCurrentEditScope(scope)
 			) {
 				setIsEditing(false);
 				return;
@@ -490,12 +563,15 @@ function MessageItemInner({
 				setIsEditing(false);
 				return;
 			}
-			const queryKey = messagesQueryKey(channelId, capturedUserId);
+			const queryKey = messagesQueryKey(scope.channelId, scope.userId);
+			const contentJson = {
+				type: "doc",
+				children: [{ type: "p", children: [{ text: trimmed }] }],
+			};
+			editRequestRef.current = scope;
+			setEditPending(true);
+			setIsEditing(false);
 			try {
-				const contentJson = {
-					type: "doc",
-					children: [{ type: "p", children: [{ text: trimmed }] }],
-				};
 				queryClient.setQueryData(queryKey, (old: unknown) => {
 					if (!old) return old;
 					const typed = old as { pages: Message[][]; pageParams: unknown[] };
@@ -503,7 +579,7 @@ function MessageItemInner({
 						...typed,
 						pages: typed.pages.map((page) =>
 							page.map((msg) =>
-								msg.id === safeMessageId
+								msg.id === scope.messageId
 									? {
 											...msg,
 											content_json: contentJson,
@@ -515,31 +591,36 @@ function MessageItemInner({
 						),
 					};
 				});
-				setIsEditing(false);
-				if (
-					useAuthStore.getState().user?.id !== capturedUserId ||
-					!canAct("can_edit")
-				) {
-					void queryClient.invalidateQueries({ queryKey, exact: true });
-					return;
-				}
-				await editMessage(channelId, safeMessageId, {
+				if (!isCurrentEditScope(scope)) return;
+				await editMessage(scope.channelId, scope.messageId, {
 					content_json: contentJson,
 					content_text: trimmed,
 				});
-			} catch {
-				void queryClient.invalidateQueries({ queryKey, exact: true });
+			} catch (error) {
+				if (
+					editRequestRef.current === scope &&
+					isCurrentEditScope(scope)
+				) {
+					void queryClient.invalidateQueries({ queryKey, exact: true });
+					toastApiError(error, t("messageEdit.error"));
+				}
+			} finally {
+				if (
+					editRequestRef.current === scope &&
+					isCurrentEditScope(scope)
+				) {
+					editRequestRef.current = null;
+					setEditPending(false);
+				}
 			}
 		},
 		[
+			canEdit,
 			editText,
+			isCurrentEditScope,
 			messageContentText,
-			safeMessageId,
-			channelId,
-			currentUserId,
 			queryClient,
-			canAct,
-			isOwnMessage,
+			t,
 		],
 	);
 
@@ -811,6 +892,7 @@ function MessageItemInner({
 							}}
 							onEdit={handleStartEdit}
 							onDelete={handleDelete}
+							editPending={editPending}
 							deletePending={deletePending}
 						/>
 					</div>

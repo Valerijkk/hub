@@ -1,5 +1,15 @@
 # Hub — Тестовая документация
 
+## Messenger: жизненный цикл правки — 2026-09-06
+
+24 новых genuine MessageItem/MessageActions units: точный PUT и optimistic
+key, trim/no-op, текущие права/автор/channel binding, запрет повторного Edit,
+RU/EN ошибка и явная повторная правка, actor/channel/message A-B-A, revoke,
+потеря capability, unmount и сброс несохранённого черновика. Старый ответ не
+может разблокировать новую попытку. TypeScript и весь составной набор
+197 файлов / 758 тестов PASS; отдельный промежуточный коммит не прогонялся.
+[RED, GREEN и границы](superpowers/plans/2026-09-06-message-edit-lifecycle.md).
+
 ## Messenger: Retry/Cancel отправки — 2026-09-06
 
 UNIT_ACCEPTED: 11 mock-boundary случаев (включая два новых single-flight)

@@ -23,7 +23,8 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Messenger navigation | Exact result navigation to message/thread | Route/API locator contract remains UNBOUND; current search only opens channel |
 | Messenger delete | Single-flight, handled failure and stale-completion isolation | UNIT_ACCEPTED:20 new cases in same composed gate; existing own/delete-any policy preserved |
 | Messenger thread actions | Current capabilities passed from ChatView through ThreadPanel to root and replies | UNIT_ACCEPTED:7 new boundary cases in same composed gate; no new rights |
-| Messenger edit | Matched channel admission, pending/re-entry and current-scope error feedback | Confirmed read-only gaps; independent exact contract/oracle next, source/runtime NOT_RUN |
+| Messenger edit | Matched channel admission, pending/re-entry and current-scope error feedback | Frozen2026-09-06-message-edit-lifecycle.md;24-case oracle applied and reviewed C/I/M0/0/0; source/RED NOT_RUN |
+| Messenger failed-send recovery | Per-nonce Retry single-flight, retained real Retry and working explicit Cancel | Frozen2026-09-06-composer-retry-lifecycle.md;2new mock plus4real-Toaster cases applied/reviewed C/I/M0/0/0; source/RED NOT_RUN |
 | Messenger links | Thread issue-link create/unlink | Actor policy, target proof and capabilities UNBOUND; read list acceptance does not authorize mutation |
 | Final acceptance | Reconnect/revoke/unread isolation, file/message/thread user journeys; Jitsi media/rollback/load; docs | Real Docker SUT/browser/API/storage evidence required; no full module PASS yet |
 | Legacy cutover | Drain then remove LiveKit by exact manifest | Only after replacement runtime/rollback exit gates, not before |
@@ -40,7 +41,27 @@ The next backend contract must preserve authorized idempotency while denying
 stale/foreign/inactive authority before effects, and define the legacy nil-
 resolver branch explicitly. It must not silently reuse an unscoped fallback.
 
+Follow-up root source review: ChannelActionJoin does not yet exist in the
+closed vocabulary. Public nonmember facts currently allow only ReadTimeline
+and project CanJoin=true; an existing member normally has CanJoin=false.
+Therefore checking CanJoin alone would break authorized idempotent Join.
+Future decomposition must separate the closed fact/action contract from
+the JoinChannel production binding. Root security direction is fail-closed
+for missing Join authority, not a silent legacy nil fallback; other actions'
+legacy behavior is outside that atom. Preserve a freshly authorized public
+existing-member no-write/no-event result without setting the UI CanJoin flag
+for existing members. Exact error/result contract and affected old nil-
+constructor test manifest still need freezing before implementation.
+No code or Go tests have been changed/run for this discovery.
+
 ## Operating constraints
+
+Resource checkpoint2026-09-06T00:56UTC: adjacent Mail builder again has
+active qa-runtime/backend-unit builds. Our combined edit/composer RED is
+deferred; no competing run/build/pull was started. Free RAM14818716KiB,
+disk1%/queue0 do not override the no-concurrent-heavy-build boundary.
+Continue read-only reaction-flow discovery and durable bookkeeping while
+waiting. Production edit/composer sources remain at published d10f1dda.
 
 ### Autonomous continuation instruction (2026-09-06 local time)
 
@@ -61,6 +82,31 @@ Mail builds finished before the accepted gate; root did not stop/change them.
 
 ## Next-flow discoveries (read-only,2026-09-06)
 
+### Accepted checkpoint — 2026-09-06
+
+Resource budget 75dcdb27 and composer recovery 5057c54d are committed,
+pushed and exact remote SHA verified. Edit lifecycle is UNIT_ACCEPTED and
+publishing next. The composed canonical frontend-unit gate passed TypeScript
+and 197 files / 758 tests in 114.95s under 2 GiB/no-swap with two observed
+Vitest workers. All 24 edit, 11 mock-composer and four real-Toaster cases
+pass. Earlier RED and first post-source failures remain archived, not
+relabeled. Exact receipts and source hashes are in the three 2026-09-06
+edit/composer/worker-budget plans. Intermediate commits were not tested
+individually. Next unblocked atom: shared per-row reaction request ownership.
+Jitsi selected-image discovery and Go compilation remain separately blocked;
+this frontend acceptance does not cover either.
+
+Reaction request failure is source-confirmed in two production entrypoints:
+ReactionPicker.handleSelect awaits toggleReaction without catch and its
+emoji button discards the promise; MessageItem.handleReaction does the same
+for an existing reaction pill. Existing pre/post picker capability/revoke
+checks and WS delta validation do not consume rejected HTTP promises.
+Runtime rejection/notification acceptance is NOT_RUN. Freeze a separate
+request-owner/error-feedback contract after the current edit/composer atoms;
+do not change those active files or infer new backend reaction rights.
+Duplicate non-idempotent toggles also lack a current single-flight guard;
+this is a separate scope decision, not yet an implemented reaction fix.
+
 Exact search-result locator remains UNBOUND: current Messenger route has no
 validated message/thread search params; no public channel-scoped get-message/
 context/around API exists. Existing getThread validates a live root and returns
@@ -80,7 +126,8 @@ Search/delete/thread wire now UNIT_ACCEPTED in one composed canonical
 frontend-unit gate:195files/728tests PASS,TypeScriptPASS,64.12s,
 2GiB/no-swap,6CPU,readonly,Compose exit0. Detailed RED/GREEN, hashes and
 uncaptured post-run lifecycle events are in the three2026-09-06 atom plans.
-Thread wire1db4ad3f and deleteb78ddafc published and remote SHA verified.
+Thread wire1db4ad3f, deleteb78ddafc and searchd10f1dda published and remote
+SHA verified. Tree clean before the next independent edit-save plan.
 No browser/backend/full-product acceptance is inferred.
 
 Jitsi D1 constraint rechecked against the frozen150 plan: selected-image
@@ -89,6 +136,25 @@ build, overlay or activation attempted. Latest read-only C: free sample
 268353069056bytes is also below its250GiB floor. No cleanup of user/Mail
 data is authorized by that observation. Go-only4GiB exception remains
 UNAPPROVED; no further2GiB Ent-compile OOM retry.
+
+Resource refresh2026-09-06T00:21UTC: no Mail service/test containers listed;
+only its existing BuildKit daemon remains. Root did not stop anything.
+Builder history contains completed jobs; free RAM12692528KiB, disk0%/queue0,
+but C: free262325129216bytes is below the Jitsi250GiB floor. No image pull,
+render, build or container start was attempted for Jitsi.
+An initial jitsi/* inventory was insufficient because pins use ghcr.io.
+Follow-up local image inspect of all four exact150-RESEARCH.md ghcr.io
+digests returned No such image. This read-only command downloads nothing.
+One permission-review deadline timed out before execution; its single
+read-only retry succeeded. D1 remains NOT_RUN, not a completed image audit.
+
+SEND discovery: existing immutable nonce/snapshot and scope guards are
+retained, but repeated Retry can run concurrent HTTP. Root also verified
+Sonner2.0.7 upstream: current mock-object cancellation does not prove that
+the real non-dismissible toast's Cancel works, and action dismissal loses
+Retry after another failure. Exact root-frozen recovery contract and primary
+source are in2026-09-06-composer-retry-lifecycle.md. Do not equate callback
+mock acceptance with real notification-control acceptance.
 
 Thread action wiring gap confirmed by scoped source review: ChatView passes
 the server channel capabilities to timeline MessageItem but not ThreadPanel;

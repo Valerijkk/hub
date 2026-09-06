@@ -29,6 +29,12 @@
 
 ## Пирамида тестирования
 
+Edit lifecycle (2026-09-06): 24 новых genuine UI units проверяют admission,
+single-flight, optimistic key, current failure и stale/ABA settlement,
+сброс draft при потере scope. Принято только на unit-уровне в составе
+TypeScript + 758 tests PASS; серверный порядок/rollback и browser NOT_RUN.
+[Контракт](superpowers/plans/2026-09-06-message-edit-lifecycle.md).
+
 SEND recovery (2026-09-06): два новых single-flight сценария и четыре
 REAL-Toaster сценария дополняют nonce/snapshot oracle; callback mock сам по
 себе не подтверждает настоящие Retry/Cancel. Принято в составе TypeScript +

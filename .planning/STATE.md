@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Resource budget published; composer recovery UNIT_ACCEPTED and publishing; edit publication next
+stopped_at: Resource and composer published; edit UNIT_ACCEPTED and publishing; reaction lifecycle contract next
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - resource75dcdb27 pushed with remote equality; composer Retry/Cancel and edit share TypeScript plus758PASS composed receipt; no new runtime claim
+last_activity: 2026-09-06 - resource75dcdb27 and composer5057c54d pushed with remote equality; edit24-case oracle shares full758PASS composed receipt; reaction discovery confirmed; Jitsi remains UNBOUND
 progress:
     total_phases: 125
     tasks_completed: 125
