@@ -6,6 +6,8 @@
 > **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. `/task-packet`, `/context-selector`, `/evidence-verifier`, `/workflow-eval` и обязательные ворота `/test-triage`, root Compose service, `/handoff-sync`, `/style-check`, `/coverage-audit`).
 >
 > **Локальный Codex:** канонический standard GSD profile достигается per-skill switches; файлы всех skills сохранены. Текущие tool model overrides имеют приоритет над устаревшим adapter prose. После GSD install/update проверь, что top-level model/effort headers не вернулись.
+>
+> Если GSD resolver вернул `inherit` или пустое model/effort, root выбирает конкретные значения по [`model-routing.md`](playbooks/model-routing.md) и явно передаёт оба в dispatch. Upstream-совет опустить их не применяется к Hub.
 
 *Обновлено: 2026-08-08 — live install: 71 GSD skills + 34 typed agents; Superpowers installed as a workflow source, not a role/authority · historical port inventory remains dated 2026-07-22.*
 
