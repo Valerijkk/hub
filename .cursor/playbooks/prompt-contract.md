@@ -121,11 +121,11 @@ GSD lifecycle используется для substantial phase/multi-step work.
 
 - Не вставляй в текст задачи числовые `temperature`, `Top-P` или `Top-K`, если launcher/API фактически не даёт ими управлять. Такие строки создают ложный контроль и раздувают prompt.
 - Описывай нужное поведение словами: **точно по evidence**, **предложить несколько вариантов**, **глубоко проверить высокий риск**, **сохранить совместимость**.
-- `team-lead` работает на **GPT-5.6 Sol / Max**. Каждый downstream явно получает Terra с task-routed effort; atomic code по frozen contract всегда Terra / XHigh. Название модели не подменяет completion bar и проверки.
-- Каждый dispatch и frontmatter содержит literal model; `inherit`, omission и silent fallback запрещены founder lock.
+- `team-lead` работает на **GPT-6 Astra / Max**; `ultra` не используется. Для каждой bounded-подзадачи он выбирает модель и effort по [`model-routing.md`](model-routing.md). Название модели не подменяет completion bar и проверки.
+- Role frontmatter не фиксирует downstream runtime. Delegation фиксирует выбранные оркестратором model и effort; silent substitution запрещена.
 - Явные sampling-параметры допустимы только в конфигурации launcher-а, который документированно их применяет; они не являются частью task contract.
 - В delegation фиксируй `requested_model`; в handoff — наблюдённый `actual_model` и evidence. Нет надёжной telemetry → `actual_model: UNKNOWN`; **никогда не выводи actual runtime из requested/frontmatter/названия роли**.
-- Provider, reasoning effort, workflow, skills, plugins и MCP servers передаются с наблюдаемыми revisions/capability scope либо `UNKNOWN`, по формату [`model-routing.md`](model-routing.md) §5.
+- Provider, reasoning effort, workflow, skills, plugins и MCP servers передаются с наблюдаемыми revisions/capability scope либо `UNKNOWN`, по [`model-routing.md`](model-routing.md).
 - Для CRITICAL observed mismatch `requested_model != actual_model` — STOP до повторного routing/approval. `UNKNOWN` остаётся честным provenance gap; если известный runtime входит в approval/completion bar, это missing evidence и тоже STOP.
 
 ---

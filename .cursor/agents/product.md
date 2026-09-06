@@ -1,7 +1,6 @@
 ---
 name: product
-description: Product Owner Hub. GPT-5.6 Terra/High–XHigh формирует scope, KPI, roadmap и MoSCoW; финальное product decision принимает root Sol/Max.
-model: gpt-5.6-terra
+description: Product Owner Hub. Формирует scope, KPI, roadmap и MoSCoW; финальное product decision принимает root.
 readonly: false
 ---
 

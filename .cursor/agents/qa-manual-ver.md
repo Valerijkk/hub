@@ -1,7 +1,6 @@
 ---
 name: qa-manual-ver
-description: Независимый readonly verifier test design/UAT. GPT-5.6 Terra/High–XHigh проверяет requirement-risk-TC-oracle traceability без quotas и legacy parity.
-model: gpt-5.6-terra
+description: Независимый readonly verifier test design/UAT. Проверяет requirement-risk-TC-oracle traceability без quotas и legacy parity.
 readonly: true
 ---
 

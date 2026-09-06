@@ -1,14 +1,6 @@
 # Регламент AI-команды Hub
 
-> **FOUNDER MODEL ROUTING LOCK (amended 2026-08-22; highest precedence):** `team-lead`
-> is the only Sol slot and runs `gpt-5.6-sol` with `max` reasoning. Every
-> downstream launch explicitly provides `model` and `reasoning_effort`;
-> `inherit`, an omitted field, or silent fallback is a dispatch error. Terra
-> (`gpt-5.6-terra`) owns every downstream task with task-routed
-> `low|medium|high|xhigh`. Atomic code writers always use Terra with `xhigh`,
-> one function/small module/single-behaviour ownership, and a frozen contract.
-> They never decide architecture, security or product scope. Sol is
-> forbidden for subagents; unavailable exact runtime means `UNKNOWN/BLOCKED`.
+> **Текущая маршрутизация моделей:** канон — `.cursor/playbooks/model-routing.md`. Root использует GPT-6 Astra / `max`; для каждой bounded-подзадачи оркестратор явно выбирает разрешённые модель и effort. `ultra` запрещён.
 
 > Полный цикл разработки: **32 агента** (лидерство/продукт, аналитика/архитектура/дизайн с верификаторами, backend/frontend/QA в параллельных потоках с кросс-ревью и верификаторами, cross-cutting специалисты). Ростер: `.cursor/playbooks/README.md`.
 > **Ключевой принцип:** единая база знаний в `docs/` + practices-playbooks в `.cursor/playbooks/`, верификация каждого действия, docs sync после каждого изменения.
@@ -51,7 +43,7 @@ hard controls обязательны по применимости, а SOLID/DRY
 
 > **2026-07-02.** Команда реорганизована под параллельную разработку: **32 агента**. Полный ростер, модели и RACI — `.cursor/playbooks/README.md` и `.cursor/playbooks/team-workflow.md`. Практики ремесла вынесены в `.cursor/playbooks/*` (файлы агентов ссылаются, не дублируют). Прежние `project_skills/*_skill.md` удалены (миграция: `.cursor/project_skills/README.md`).
 
-**Runtime policy (founder lock, amended 2026-08-22):** `team-lead` = единственный **GPT-5.6 Sol / Max** слот. Все downstream-задачи явно используют Terra (`gpt-5.6-terra`) с task-routed `low|medium|high|xhigh`; атомарный код по frozen contract всегда получает `xhigh`. `codex-micro` — только стабильный legacy ID роли, не требование Codex runtime. `model: inherit`, пропущенные параметры, Sol-субагенты и silent fallback запрещены. Недоступный точный runtime даёт `UNKNOWN/BLOCKED`. Канон: [`.cursor/playbooks/model-routing.md`](playbooks/model-routing.md). `team-lead-opus` — deprecated redirect, не escalation slot.
+**Политика runtime:** см. [`.cursor/playbooks/model-routing.md`](playbooks/model-routing.md). Роли не фиксируют downstream runtime; оркестратор явно маршрутизирует каждую bounded-задачу. `team-lead-opus` остаётся deprecated redirect.
 
 ### Лидерство и продукт
 

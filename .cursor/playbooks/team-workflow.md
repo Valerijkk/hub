@@ -26,81 +26,16 @@
 
 ## 1.1 Модельная политика
 
-> **FOUNDER MODEL ROUTING LOCK (2026-08-22; overrides legacy routing below):**
-> only `team-lead` uses `gpt-5.6-sol`, with `max` effort. Every subagent
-> dispatch hard-codes both fields and never inherits. Terra
-> (`gpt-5.6-terra`) performs analysis, decomposition, coordination and review
-> with task-routed `low|medium|high|xhigh`. Atomic code writers use Terra with
-> `xhigh`, one bounded code outcome after Terra/root freezes the contract. Missing
-> model/effort, `inherit`, full-history inheritance, silent fallback, or a Sol
-> subagent makes the dispatch invalid.
+Канон: [`model-routing.md`](model-routing.md). `team-lead`/root работает на GPT-6 Astra / Max; `ultra` не используется.
+Для каждой bounded-подзадачи оркестратор явно выбирает доступную модель и effort по риску, объёму и нужным evidence.
+Роли определяют ответственность, а не runtime. Контракт сохраняет requested model/effort и observed runtime или `UNKNOWN`.
+Для docs/config-изменений без product behavior достаточно scoped diff/review и подходящего evidence; не требуй feature-wave, полного test cycle или product suites.
 
-> **Model policy (founder lock, amended 2026-08-22):** `team-lead` = `gpt-5.6-sol` / `max`; every downstream dispatch = `gpt-5.6-terra` with task-routed effort; atomic code = Terra / `xhigh` after a frozen contract. Каждый downstream dispatch явно задаёт точные model+effort. `inherit`, пропуск полей и Sol-субагенты запрещены. Канон: [`model-routing.md`](model-routing.md).
->
-> Workflow evidence/limits: [`22-ai-workflow-decisioning.md`](../knowledge/code-practices/22-ai-workflow-decisioning.md). Приоритет: founder locks → Hub safety/authority → GSD lifecycle → совместимые Superpowers 6.2.0 patterns → local heuristics. Нижний уровень не расширяет permissions.
-
-| Слот | Frontmatter | Runtime | Политика |
-|---|---|---|---|
-| Оркестратор | `gpt-5.6-sol` | **GPT-5.6 Sol / Max** | Единственный Sol-слот; цель, волны, риски и финальная приёмка |
-| Анализ/декомпозиция/ревью | explicit | **GPT-5.6 Terra / Low–XHigh** | Model и effort обязательны; Terra замораживает контракт до передачи кода |
-| Atomic code | `gpt-5.6-terra` | **Terra / XHigh** | Одна функция/малый модуль/одно поведение по frozen contract; exact-path bounded; не принимает architecture/security/product решения |
-| Portable agents | explicit | Launcher validates | Role prompt содержит literal model slug и effort; `inherit` запрещён |
-
-**Политика выбора:**
-
-- Модель выбирают по требуемой способности, цене ошибки, стоимости и доступности, а не по статичному соответствию «роль → модель».
-- Критичные security/auth, миграции и prod/deploy требуют сильного исполнителя **и независимого verifier**; имя модели не заменяет evidence и ворота.
-- Задача субагенту описывает outcome, constraints, completion bar и evidence. Sampling-параметры не пишутся в prompt, если launcher ими не управляет.
-- Requested runtime не считается фактическим: handoff фиксирует `actual_model` по telemetry/evidence либо `UNKNOWN`, не выводит его из frontmatter.
-- `team-lead-opus` — исторический deprecated-профиль; обязательного отдельного escalation slot больше нет.
-- Только `team-lead` запускает волну и принимает фазу целиком. Terra дробит code backlog до атомарных Terra/XHigh-задач; исполнитель не превращает микрозадачу в волну и возвращает `BLOCKED`, если контракт не помещается в границы.
-- `pro-qa-ai/**` не входит в scope внутренних волн: это эксклюзивная зона Claude Code Opus 5; только явный founder handoff конкретного артефакта.
 ## 1.2 Полный ростер (32 роли)
 
-> В таблице ниже указана **маршрутизация**, а не жёсткий frontmatter. Точные model/effort defaults всех ролей — `model-routing.md` §3.
+`team-lead` оркестрирует и принимает работу. `tech-lead`, product, аналитики, implementers и verifiers получают только нужную задаче роль; один writer владеет пересекающейся границей, verifier остаётся независимым и read-only.
+`team-lead-opus` — deprecated compatibility profile. `pro-qa-ai/**` не входит во внутренние волны.
 
-### Оркестрация и продукт
-
-| Агент | Маршрутизация | Роль | Верификатор |
-|---|---|---|---|
-| `team-lead` | **GPT-5.6 Sol / Max** | Оркестратор волн, финальная приёмка | — (сам финальная инстанция) |
-| `team-lead-opus` | deprecated | Исторический профиль эскалации | — |
-| `tech-lead` | Terra / High–XHigh | Декомпозиция на фазы/планы | (ревью `team-lead`) |
-| `product` | Terra / High–XHigh | Приоритеты, scope, MoSCoW | `product-ver` (Terra / High) |
-| `codex-micro` | Terra / XHigh | Атомарная реализация функции/малого модуля/одного поведения по замороженному контракту; legacy role ID, не runtime requirement | Ролевой Terra verifier |
-
-### Аналитика и архитектура
-
-| Роль (исполнители) | Маршрутизация | Артефакт | Верификатор |
-|---|---|---|---|
-| `ba1`, `ba2` | Terra / Medium | User Stories, AC, `vision_and_scope.md` | `ba-ver` (Terra / High) |
-| `sa1`, `sa2` | Terra / High | FR/NFR, ERD, API-контракты, `system_specification.md` | `sa-ver` (Terra / High) |
-| `arch` | Terra / XHigh | C4, deployment, стек, паттерны, `architecture.md` | `arch-ver` (Terra / XHigh) |
-| `designer` | Terra / High | Дизайн-система, DESIGN-SPEC, токены | `designer-ver` (Terra / High) |
-
-### Реализация
-
-| Роль (исполнители) | Маршрутизация | Артефакт | Верификатор |
-|---|---|---|---|
-| `be1`, `be2` | Terra / Medium | Go backend (handler/service/repository, Ent, тесты) | `be-ver` (Terra / High) |
-| `fe1`, `fe2` | Terra / Medium | React/TS UI (компоненты, Shadcn className) | `fe-ver` (Terra / High) |
-
-### Качество
-
-| Роль | Маршрутизация | Артефакт | Верификатор |
-|---|---|---|---|
-| `qa-manual` | Terra / Medium | Тест-кейсы (TC), ручная приёмка, test_plan | `qa-manual-ver` (Terra / High) |
-| `qa-auto1`, `qa-auto2` | Terra / Medium | Автотесты (unit/integration/e2e), coverage | `qa-auto-ver` (Terra / High) |
-
-### Support (вне основного цикла)
-
-| Агент | Маршрутизация | Назначение |
-|---|---|---|
-| `devops-engineer` | Terra / High–XHigh | Docker, CI/CD, K3s, Caddy, compose, деплой |
-| `security-auditor` | Terra / XHigh | OWASP, ASVS L2, security-review, secrets |
-| `debugger` | Terra / High | Root cause analysis по traceback/логам |
-| `code-reviewer` | Terra / High–XHigh | Pre-merge review diff |
-| `docs-writer` | Terra / Low–Medium | README, wiki, Swagger, phase docs |
 ## 1.3 Принцип «исполнитель + верификатор»
 
 Каждая производящая роль имеет **независимого** верификатора: отдельный запуск/контекст, который не
@@ -113,9 +48,9 @@
 
 ### Чек-лист состава (§1)
 
-- [ ] `team-lead` = GPT-5.6 Sol / Max, единственный Sol-слот, оркестратор и финальная приёмка.
+- [ ] `team-lead` = GPT-6 Astra / Max, оркестратор и финальная приёмка.
 - [ ] Downstream-модели выбраны по capability/cost/risk из реально доступных Cursor runtimes.
-- [ ] Каждый downstream launch содержит explicit `gpt-5.6-terra` + task-routed effort; atomic code после frozen contract всегда `xhigh`; `inherit` запрещён.
+- [ ] Для каждой bounded-подзадачи указан выбор модели и effort оркестратора, scope, acceptance и evidence.
 - [ ] У каждой производящей роли есть персональный верификатор.
 - [ ] Параллельные исполнители разведены по файлам/модулям.
 
@@ -338,7 +273,7 @@ Wave 4 (приёмка):
 # 5. Оркестрация `team-lead`
 ## 5.1 Обязанности
 
-`team-lead` (GPT-5.6 Sol / Max) — дирижёр. Он:
+`team-lead` (GPT-6 Astra / Max) — дирижёр. Он:
 
 1. Принимает задачу/фазу, загружает контекст (`docs/`, `STATE.md`, `ROADMAP.md`, план `tech-lead`).
 2. Разбивает на волны и делегирует субагентам (см. §4).
@@ -413,7 +348,7 @@ Wave 4 (приёмка):
 - max_retries_per_failure: <N|NOT_SET>; max_fix_attempts_per_root_cause: <N<=3|NOT_SET>
 - max_re_review_rounds: <N<=5|NOT_SET>
 - wall_clock_limit: <duration|NOT_SET>
-- requested_model: gpt-5.6-terra (REQUIRED and explicit); reasoning_effort: <low|medium|high|xhigh, REQUIRED; atomic=xhigh>
+- requested_model: <selected by orchestrator>; reasoning_effort: <selected by orchestrator>; reason: <risk, scope, evidence>
 - actual_model: UNKNOWN при dispatch; provider: <observed|UNKNOWN>; actual_model_evidence: <telemetry/ref|none>
 - workflow: <name@revision|UNKNOWN>; skills: <name@revision|none|UNKNOWN>
 - plugins: <name@revision|none|UNKNOWN>; MCP: <server@revision + capability scope|none|UNKNOWN>

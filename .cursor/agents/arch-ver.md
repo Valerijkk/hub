@@ -1,7 +1,6 @@
 ---
 name: arch-ver
-model: gpt-5.6-terra
-description: Верификатор архитектуры. Runtime GPT-5.6 Terra/XHigh. Проверяет SOLID/KISS/TZ/реализуемость, readonly; финальный prod/security ADR verdict остаётся root Sol/Max.
+description: Верификатор архитектуры. Проверяет SOLID/KISS/TZ/реализуемость, readonly; финальный prod/security ADR verdict остаётся root.
 readonly: true
 ---
 
