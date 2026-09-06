@@ -26,6 +26,7 @@ interface MessageActionsProps {
 	onOpenThread: () => void;
 	onPin: () => void;
 	onBookmark: () => void;
+	bookmarkPending?: boolean;
 	onForward: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
@@ -80,6 +81,7 @@ export function MessageActions({
 	onOpenThread,
 	onPin,
 	onBookmark,
+	bookmarkPending = false,
 	onForward,
 	onEdit,
 	onDelete,
@@ -122,7 +124,11 @@ export function MessageActions({
 				</ActionButton>
 			)}
 			{capabilities?.can_bookmark === true && (
-				<ActionButton label="Сохранить в закладки" onClick={onBookmark}>
+				<ActionButton
+					label="Сохранить в закладки"
+					onClick={onBookmark}
+					disabled={bookmarkPending}
+				>
 					<Bookmark className="h-3.5 w-3.5" />
 				</ActionButton>
 			)}

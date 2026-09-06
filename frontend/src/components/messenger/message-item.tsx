@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { useTranslation } from "react-i18next";
 import type { ChannelCapabilities, ChannelCapability, Message } from "@/api/messenger";
 import {
-	addBookmark,
 	deleteMessage,
 	editMessage,
 	togglePin,
@@ -25,6 +24,7 @@ import { MessageAttachments } from "./message-attachments";
 import { pinsQueryKey } from "./pinned-messages";
 import { PollMessage } from "./poll-message";
 import { RenderContent } from "./render-content";
+import { useMessageBookmarkCommand } from "./use-message-bookmark-command";
 import { useMessageReactionCommand } from "./use-message-reaction-command";
 
 /**
@@ -325,6 +325,13 @@ function MessageItemInner({
 		currentUserId !== undefined && currentUserId === message?.sender_id;
 	const canReact = capabilities?.can_react === true && !channelRevoked;
 	const canForward = capabilities?.can_forward === true && !channelRevoked;
+	const { pending: bookmarkPending, submit: handleBookmark } =
+		useMessageBookmarkCommand({
+			channelId,
+			messageId: safeMessageId,
+			messageChannelId: message?.channel_id,
+			canBookmark: capabilities?.can_bookmark === true,
+		});
 	const { pending: reactionPending, submit: handleReaction } =
 		useMessageReactionCommand({
 			channelId,
@@ -523,10 +530,6 @@ function MessageItemInner({
 		safeMessageId,
 	]);
 
-	const handleBookmark = useCallback(async () => {
-		if (!canAct("can_bookmark")) return;
-		await addBookmark(safeMessageId, channelId);
-	}, [canAct, channelId, safeMessageId]);
 	/** Ответить на сообщение (установить reply-to). */
 	const handleReply = useCallback(() => {
 		if (message && canAct("can_reply")) setReplyTo(message);
@@ -888,6 +891,7 @@ function MessageItemInner({
 							onOpenThread={handleOpenThread}
 							onPin={handlePin}
 							onBookmark={handleBookmark}
+							bookmarkPending={bookmarkPending}
 							onForward={() => {
 								if (canAct("can_forward")) setShowForwardDialog(true);
 							}}

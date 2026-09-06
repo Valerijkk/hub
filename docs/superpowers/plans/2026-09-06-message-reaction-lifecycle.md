@@ -184,7 +184,7 @@ Do not mock the command owner or force internal pending/state.
 - [x] Independent source + oracle review; unchanged old behavior must survive.
 - [x] Root full canonical GREEN, unchanged assertions/timeouts/tests; whole
       run unhandled errors and missing cases preclude acceptance.
-- [ ] Root docs sync, exact-path commit/push/remote equality; continue queue.
+- [x] Root docs sync, exact-path commit/push/remote equality; continue queue.
 
 Required executable cases (parameterization allowed, each observed case
 must be concrete; trim redundant cases to stay at or below 30):
@@ -331,6 +331,11 @@ module readiness are NOT_RUN/UNBOUND. Independent final receipt review
 C/I/M0/0/2 UNIT_ACCEPTED for genuine frontend units. The minor notes retain
 the explicit non-existent JSON count and sampled/not-captured telemetry
 limitations above; they are not source/runtime failures. Publication pending.
+Publication completed:0d562ee855abfe1180646fe81a5a1ab8008cd475 committed,
+immediately pushed to authorized calls-feature-codex/origin and exact remote
+SHA equality verified. It contains only the frozen reaction source snapshot,
+25-case oracle, two fixture props and reaction/root docs, not bookmark source.
+The disclosed composed GREEN remains the runtime provenance.
 
 
 Canonical prior GREEN is baseline evidence, not this atom's acceptance.

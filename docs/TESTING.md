@@ -1,5 +1,16 @@
 # Hub — Тестовая документация
 
+## Messenger: команда добавления закладки — 2026-09-06
+
+26 новых genuine units проверяют exact POST/current-user invalidation,
+независимые cache snapshots, другого автора, RU/EN failure+explicit retry,
+single-flight и независимые строки, denied admission, committed A-B-A,
+prop/live loss+restore, revoke/unmount и настоящий QueryObserver с pending
+refetch. Оракул неизменен между RED и GREEN. TypeScript и весь составной
+набор199files/809tests PASS,118.81s,без failed/pending/todo и unhandled gate
+failure. Проверены обе команды вместе; промежуточные коммиты по одному
+не запускались. [Границы и evidence](superpowers/plans/2026-09-06-message-bookmark-lifecycle.md).
+
 ## Messenger: общий owner реакций — 2026-09-06
 
 25 новых genuine units проверяют picker/pill, точный emoji payload, общий

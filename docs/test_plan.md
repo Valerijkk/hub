@@ -29,6 +29,13 @@
 
 ## Пирамида тестирования
 
+Bookmark command (2026-09-06):26 genuine UI cases связывают actor/binding/
+can_bookmark с одним POST и exact user-key refetch, current failure,
+stale/ABA fencing и pending до настоящего QueryObserver settlement.
+TypeScript+199files/809testsPASS в составном Docker gate с реакциями;
+серверная идемпотентность/API/storage/browser acceptance не подтверждены.
+[Контракт](superpowers/plans/2026-09-06-message-bookmark-lifecycle.md).
+
 Reaction lifecycle (2026-09-06):25 genuine UI cases связывают prop/live rights
 и текущий scope с одним HTTP toggle, canonical failure и picker open-session.
 Полный составной frontend-unit:TypeScript+199files/809testsPASS,118.81s,

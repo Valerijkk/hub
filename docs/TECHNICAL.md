@@ -10,6 +10,20 @@
 
 ## CI и контроль качества
 
+### Messenger: сохранение закладки — calls-feature-codex, 2026-09-06
+
+AddBookmark получил отдельный per-row command owner: nonempty actor/IDs,
+message-channel binding, prop/live can_bookmark и revoke проверяются до POST.
+Блокируется только Bookmark до завершения запроса и exact-инвалидации
+bookmarksQueryKey текущего пользователя. Список не дополняется оптимистично;
+серверный refetch остаётся авторитетным. Текущая ошибка обрабатывается
+canonical formatter с RU/EN fallback, явный повтор доступен после завершения.
+Смена scope, включая A-B-A, или unmount лишает старую попытку права уведомлять,
+инвалидировать и снимать новый pending. Другие строки и авторы не блокируются.
+26 genuine units прошли в составном199file/809test Docker gate; это не
+серверная идемпотентность и не browser/API acceptance.
+[Контракт и receipt](superpowers/plans/2026-09-06-message-bookmark-lifecycle.md).
+
 ### Messenger: реакции сообщения — calls-feature-codex, 2026-09-06
 
 Плашки реакций и picker используют один command owner на строку сообщения.

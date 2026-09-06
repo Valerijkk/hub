@@ -25,7 +25,7 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Messenger thread actions | Current capabilities passed from ChatView through ThreadPanel to root and replies | UNIT_ACCEPTED:7 new boundary cases in same composed gate; no new rights |
 | Messenger edit | Matched channel admission, pending/re-entry and current-scope error feedback | UNIT_ACCEPTED:24newcases in composed197file/758testPASS; c0900e62 pushed and remote-verified |
 | Messenger failed-send recovery | Per-nonce Retry single-flight, retained real Retry and working explicit Cancel | UNIT_ACCEPTED:2new mock plus4real-Toaster cases in same composed gate;5057c54d pushed and remote-verified |
-| Messenger reactions | Per-row shared picker/pill request ownership, current errors and stale-session isolation | UNIT_ACCEPTED:25newcases in composed199files/809testsPASS; exact-path publication next |
+| Messenger reactions | Per-row shared picker/pill request ownership, current errors and stale-session isolation | UNIT_ACCEPTED:25newcases in composed199files/809testsPASS;0d562ee8 pushed and remote-verified |
 | Messenger bookmarks | Scoped add single-flight/error and exact current-user list refresh | UNIT_ACCEPTED:26newcases in same composedGREEN; separate publication after reaction-only index |
 | Messenger row pin | Scoped toggle/error and exact current-user/channel pins refresh |2026-09-06-message-pin-lifecycle.md root-frozen; independent plan review, no source/oracle yet |
 | Messenger links | Thread issue-link create/unlink | Actor policy, target proof and capabilities UNBOUND; read list acceptance does not authorize mutation |
@@ -106,6 +106,13 @@ Mail builds finished before the accepted gate; root did not stop/change them.
 ## Next-flow discoveries (read-only,2026-09-06)
 
 ### Accepted checkpoint — 2026-09-06
+
+Reaction0d562ee855abfe1180646fe81a5a1ab8008cd475 published and exact remote
+verified. Bookmark160-line source/26-case oracle now publishing separately,
+without changing the accepted composed source/test tree. Next unblocked
+runtime atom is row-pin; its reviewed plan and corrected draft oracle are
+not yet part of any executable gate. Do not apply that oracle before this
+publication finishes and its own exact prerequisite HEAD is bound.
 
 Latest composed GREEN:TypeScript PASS,199files/809testsPASS,118.81s,
 all25reaction+26bookmark cases; independent final review C/I/M0/0/2

@@ -22,6 +22,14 @@
 
 ## Методология
 
+Bookmark command,2026-09-06:26новых genuine units. Трассировка: actor/
+message-channel/can_bookmark → single-flight AddBookmark → exact captured
+user-key refresh/current error/stale+ABA fences. Включён реальный pending
+QueryObserver, независимые cache snapshots и other-author admission.
+Принято в составном TypeScript+199files/809testsPASS; не новое statement
+coverage и не готовность API/модуля.
+[Оракул и evidence](../docs/superpowers/plans/2026-09-06-message-bookmark-lifecycle.md).
+
 Reaction lifecycle,2026-09-06:25новых genuine units. Трассировка: текущие
 actor/channel/message+can_react → общий picker/pill command → single-flight,
 handled failure, stale/ABA и open-session fences. TypeScript+199files/809tests
