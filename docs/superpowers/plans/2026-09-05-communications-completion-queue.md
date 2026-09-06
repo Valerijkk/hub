@@ -8,7 +8,7 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Order / lane | Concrete remaining deliverable | Current gate |
 |---|---|---|
 | Messenger accepted atom | Visible reply-end read-through receipts in ThreadPanel | UNIT_ACCEPTED:36newcases, canonical TypeScript/666tests PASS; browser/API NOT_RUN |
-| Shared Go gate | Complete canonical backend-unit after confirmed Ent compile OOM at 2GiB | Requested temporary Go-only 4GiB/no-swap exception UNAPPROVED; no further 2GiB retry |
+| Shared Go gate | Complete canonical backend-unit after confirmed Ent compile OOM at 2GiB | One temporary4GiB/no-swap attempt APPROVED2026-09-06; waits resource window; existing observer seals2GiB so diagnostic only, not canonical acceptance; no2GiB retry |
 | Messenger security | JoinChannel consumes fresh tenant/active-actor/project authority before membership effect | Source gap confirmed; separate atomic backend contract/test required |
 | Messenger membership | Bind accepted membership lifecycle/baseline coordinator into production entrypoints | Pure coordinator unit evidence does not bind Join/Leave; no UI join acceptance before server gate |
 | Messenger recovery | MPR-02 scheduler then remaining MPR production recovery chain | Accepted draft and prior reviews retained; executable RED waits on Go gate |

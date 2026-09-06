@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Panel25c58baa and bookmark49b0f133 published and remote-verified; Docker203files915testsPASS; next backend gate needs explicit Go-only4GiB approval
+stopped_at: Founder approved one temporary4GiB/no-swap backend attempt; waiting resource window; observer still seals2GiB so diagnostic only
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - Two source atoms committed with immediate authorized pushes and remote SHA verification;44newcasesPASS; docs/recovery saved; no further2GiB Go retry or Jitsi infra activation
+last_activity: 2026-09-06 - Recorded explicit4GiB approval; independent review identified canonical observer2GiB boundary; Mail frontend QA active and host freeRAM3.46GiB; backend attempt NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -165,7 +165,11 @@ Briefs/reports: `.superpowers/sdd/2026-09-06-panel-actions/`.
 Full Messenger SUT/API/browser NOT_READY/NOT_RUN: нет Messenger API suite
 и `testframework/tests/e2e/`. Exact-message navigation ждёт bounded anchor
 API/route contract; discovery записан в completion queue. Go2GiB Ent OOM
-не повторять; Go-only4GiB exception UNAPPROVED. Jitsi deployment/media
+не повторять. Founder теперь разрешил одну временную Go-only4GiB/no-swap
+попытку; она ждёт безопасного окна нагрузки. Observer по-прежнему фиксирует
+2GiB, поэтому попытка диагностическая, не canonical acceptance. План:
+`docs/superpowers/plans/2026-09-06-backend-unit-4g-exception.md`.
+Jitsi deployment/media
 не приняты, LiveKit остаётся активным. Проценты исторических фаз выше не
 означают готовность Messenger/Calls. Более ранние записи ниже — история.
 
