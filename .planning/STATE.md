@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: test-rebase-minimal-merge-candidate
-stopped_at: final Git audit and remote fast-forward publication
-last_updated: "2026-09-01T00:00:00.000+03:00"
-last_activity: 2026-09-01 - CALL-DUR-03 neutral participant identity accepted at 73adb82c; provider/runtime binding remains NOT_RUN
+status: communications-in-progress
+stopped_at: Composed search/delete/thread-capability Docker GREEN; atomic publication and next edit lifecycle contract
+last_updated: "2026-09-06"
+last_activity: 2026-09-06 - frontend TypeScript and 728 tests PASS; thread wiring 1db4ad3f and delete b78ddafc published; search publication next; Jitsi activation NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -1246,7 +1246,8 @@ gate; no more2GiB OOM retries. Jitsi is not activated; real call/media, browser
 and module acceptance remain NOT_RUN.
 
 Active continuation (2026-09-06 local, source baseline f1691e34): visible
-thread read-through UI UNIT_ACCEPTED, publication pending. Independent final
+thread read-through UI UNIT_ACCEPTED and published at d65da37d; remote SHA
+matched d65da37da94c97702be18fed351a0f9294fd4b34. Independent final
 source review C/I/M0/0/0; canonical Docker frontend-unit engine
 c68613e366df5157482f6b65693457156387b4fc3e78229b320e7c4e83a8364e has
 TypeScriptPASS,191files/666tests PASS,58.20s,36newcases. Inspected2GiB/no-swap,
@@ -1258,7 +1259,39 @@ ROOT=code versus ROOT=test triage, review and GREEN are saved in
 docs/superpowers/plans/2026-09-05-thread-read-receipts.md.
 Next unblocked atom: scoped SearchDialog error/empty/retry lifecycle, frozen
 in docs/superpowers/plans/2026-09-06-search-dialog-lifecycle.md; independent
-plan preflight C/I/M0/0/0, test-only payload being authored, production NOT_RUN.
+plan/oracle preflight C/I/M0/0/0. Initial missing user-event import was an
+oracle collection error, ROOT=test, repaired using installed RTL fireEvent.
+Canonical intended RED now observed: TypeScriptPASS,671PASS18FAIL/689tests;
+all old666PASS and all18failures new missing search lifecycle. Production
+writer dispatched; source/GREEN not accepted. Oracle SHA256
+70E4899F92BC1560D57BAC754BF8B27C207159F1C509A8BCF24B21F9CA73D7EA.
+Exact engines, limits, report paths and triage are in the search plan.
+Two whole-file search payloads were rejected and never applied (contract/UI/
+field/cleanup violations); the writer stopped at the two-fix bound. Root and
+independent Terra/high froze a component-local session hook plus minimal
+unchanged-markup owner integration. Local hook+12 regressions applied and
+source-reviewed C/I/M0/0/0; final UI adapter is now composed-GREEN accepted.
+Delete20-case oracle and7 new thread capability wiring cases produced a
+combined Docker RED:684PASS32FAIL/716, TypeScriptPASS,3 uncaught DELETE
+rejections. All prior666 assertions passed; that RED remains NOT_ACCEPTED.
+Delete and capability source patches are now applied and independently
+source-reviewed C/I/M0/0/0, and now pass the full composed GREEN. Thread capability propagation
+is a confirmed missing wire, not a new permission policy. Plans are adjacent
+2026-09-06-message-delete-lifecycle.md and thread-capability-wiring.md.
+Latest gate: TypeScript PASS,195files/728tests PASS,64.12s,Compose exit0.
+Observed engine61238c7ed829fb461c15326296f38aa946cb1ebc330b4d99305b3a749a05536d,
+start2026-09-05T23:44:23.616980053Z, existing image286783...218,
+2GiB/no-swap,6CPU,readonly. Eight receipts preserved under
+testframework/reports/frontend-unit-messenger-lifecycle-green-20260906/.
+Source/oracle pre/post hashes match; no whole-run unhandled-error failure.
+Container absent; separate post-run die/OOM events NOT_CAPTURED.
+Thread wiring1db4ad3f and deleteb78ddafc committed/pushed to the sole
+authorized origin branch with exact remote equality; search publishes next.
+Gate provenance is the composed source tree, not isolated intermediate commits.
+Next discovery: edit can optimistically update a mismatched route channel,
+does not prevent re-entry while PUT is pending and reports failure only via
+silent invalidation. Freeze an independent edit lifecycle atom before writes;
+no new permission/backend/shared cache architecture is authorized by discovery.
 Founder requested autonomous overnight progress: record new blockers in the
 communications completion queue, continue independent tasks. No RAM/image/
 Git authority expansion inferred; Mail resources remain untouched.

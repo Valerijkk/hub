@@ -32,6 +32,13 @@
 - **v4 super-app** — intranet, calendar, CRM-lite, HR, accounting, bases
 - **Wiki (продукт, spaces/pages)** — **planned** (Волны 5/8); G-07 = Partial — см. `docs/vision_and_scope.md`. Эта страница (`docs/wiki/`) — документация репозитория, не продуктовый wiki-модуль.
 
+Ветка calls-feature-codex,2026-09-06: поиск с отдельными error/empty/retry,
+защита удаления от повторов/устаревших ответов и передача действий в треды
+приняты на unit-уровне (TypeScript +728 Docker tests PASS).
+Это не готовность мессенджера «как Slack». Jitsi остаётся неактивированным,
+реальные два пользователя/медиа и backend acceptance ещё не приняты.
+[Точный статус и ограничения](../superpowers/plans/2026-09-05-communications-completion-queue.md).
+
 ### Для администраторов
 
 | Страница | Описание |

@@ -135,7 +135,7 @@ initial detail loading/error. Readiness false disables observation rather
 than dropping existing rendered replies. Reuse useChannels() deduplicated
 identity query, never add a separate endpoint or use unscoped store channels.
 
-- [ ] Write behavioural tests first. Existing ThreadPanel imports must resolve;
+- [x] Write behavioural tests first. Existing ThreadPanel imports must resolve;
   expected RED is absent markThreadRead after a visible reply, not an absent
   new-module import. A minimal representative assertion is:
 
@@ -162,10 +162,10 @@ identity query, never add a separate endpoint or use unscoped store channels.
   auth/root A-B-A/unmount/revoke ignore late completion; error pause,
   localized explicit retry and no unread-store arithmetic. Isolated test
   clients cleaned up, real timers, no network or live server.
-- [ ] Independent preflight of plan/oracle; root rules on any contradiction.
-- [ ] Root runs docker compose -f docker-compose.local.yml run --rm frontend-unit
+- [x] Independent preflight of plan/oracle; root rules on any contradiction.
+- [x] Root runs docker compose -f docker-compose.local.yml run --rm frontend-unit
   after fresh workload check. Preserve only small current report files.
-- [ ] Only after observed intended RED, implement minimal controller and parent
+- [x] Only after observed intended RED, implement minimal controller and parent
   glue. Protocol sketch (not an additional public abstraction):
 
   ```text
@@ -177,11 +177,11 @@ identity query, never add a separate endpoint or use unscoped store channels.
   cleanup -> increment lifecycle, disconnect, clear unsent work/listeners
   ```
 
-- [ ] Independent spec-aware/conclusion-blind Terra/high review, bounded fixes.
-- [ ] Canonical Docker GREEN for TypeScript and full genuine Vitest suite.
+- [x] Independent spec-aware/conclusion-blind Terra/high review, bounded fixes.
+- [x] Canonical Docker GREEN for TypeScript and full genuine Vitest suite.
   Browser layout/visibility and backend/API/storage remain NOT_RUN until their
   separate real Docker SUT gates; unit simulation is not E2E acceptance.
-- [ ] Root updates this plan, STATE, COVERAGE, system specification, test plan,
+- [x] Root updates this plan, STATE, COVERAGE, system specification, test plan,
   TESTING and affected QUICKSTART/SHORTCUTS in the same session; exact commit
   and immediate authorized push, verify remote equality.
 
@@ -203,7 +203,9 @@ are not an exception to Docker-only. User already selected autonomous SDD;
 no repeated execution-choice approval is needed.
 
 Status: UNIT_ACCEPTED after independent review and canonical Docker GREEN;
-publication pending. Browser/API/storage/product acceptance NOT_RUN.
+published d65da37da94c97702be18fed351a0f9294fd4b34 to the authorized origin
+calls-feature-codex with remote equality verified. Browser/API/storage/product
+acceptance NOT_RUN.
 
 Independent Terra/high preflight C/I/M0/2/0: root accepted I-01 exact marker
 registration and current-reply lookup, and I-02 separating fulfilled receipt

@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-import { type Message, searchMessages } from "@/api/messenger";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { Message } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -11,11 +12,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuthStore } from "@/stores/auth-store";
+import { useSearchDialogSession } from "./search-dialog-session";
 
 /** Пропсы компонента SearchDialog. */
 interface SearchDialogProps {
 	/** ID текущего канала для фильтрации (опционально). */
 	channelId?: string;
+}
+
+interface ScopedDialogProps extends SearchDialogProps {
+	userId: string | null;
+}
+
+interface OpenSearchSessionProps extends ScopedDialogProps {
+	onClose: () => void;
 }
 
 /** Форматирование даты для результатов поиска. */
@@ -30,52 +41,120 @@ function formatDate(iso: string): string {
 	});
 }
 
-/**
- * SearchDialog -- диалог полнотекстового поиска по сообщениям.
- * Поддерживает поиск в текущем канале и глобально.
- */
-export function SearchDialog({ channelId }: SearchDialogProps) {
-	const [open, setOpen] = useState(false);
-	const [query, setQuery] = useState("");
-	const [scope, setScope] = useState<"channel" | "global">("channel");
-	const [results, setResults] = useState<Message[]>([]);
-	const [isSearching, setIsSearching] = useState(false);
+/** Состояние одной открытой сессии поиска, изолированное от следующих открытий. */
+function OpenSearchSession({
+	userId,
+	channelId,
+	onClose,
+}: OpenSearchSessionProps) {
+	const { t } = useTranslation("common");
+	const {
+		draft,
+		scope,
+		setDraft,
+		setScope,
+		submit,
+		retry,
+		pending,
+		successEmpty,
+		error,
+		results,
+		currentSelectionGuard,
+	} = useSearchDialogSession({ userId, channelId });
 	const navigate = useNavigate();
 
-	const handleSearch = useCallback(async () => {
-		if (!query.trim()) return;
-		setIsSearching(true);
-		try {
-			const scopeChannelId =
-				scope === "channel" && channelId ? channelId : undefined;
-			const data = await searchMessages(query.trim(), scopeChannelId);
-			setResults(data);
-		} catch {
-			setResults([]);
-		} finally {
-			setIsSearching(false);
+	const handleNavigate = (msg: Message) => {
+		if (!currentSelectionGuard?.(msg)) return;
+		onClose();
+		void navigate({
+			to: "/messenger/$channelId",
+			params: { channelId: msg.channel_id },
+		});
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") {
+			submit();
 		}
-	}, [query, scope, channelId]);
+	};
 
-	const handleNavigate = useCallback(
-		(msg: Message) => {
-			setOpen(false);
-			void navigate({
-				to: "/messenger/$channelId",
-				params: { channelId: msg.channel_id },
-			});
-		},
-		[navigate],
-	);
+	return (
+		<div className="space-y-3 pt-2">
+			<div className="flex gap-2">
+				<Input
+					placeholder="Введите запрос..."
+					value={draft}
+					onChange={(e) => setDraft(e.target.value)}
+					onKeyDown={handleKeyDown}
+				/>
+				<Button onClick={submit} disabled={pending}>
+					{pending ? "..." : "Найти"}
+				</Button>
+			</div>
 
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
-			if (e.key === "Enter") {
-				void handleSearch();
-			}
-		},
-		[handleSearch],
+			{channelId && (
+				<div className="flex gap-2">
+					<Button
+						variant={scope === "channel" ? "default" : "outline"}
+						size="sm"
+						onClick={() => setScope("channel")}
+					>
+						В текущем канале
+					</Button>
+					<Button
+						variant={scope === "global" ? "default" : "outline"}
+						size="sm"
+						onClick={() => setScope("global")}
+					>
+						Во всех каналах
+					</Button>
+				</div>
+			)}
+
+			<ScrollArea className="max-h-80">
+				{error ? (
+					<div role="alert" className="py-4 text-center text-sm text-t2">
+						<p>{t("search.error")}</p>
+						<p>{t("search.errorHint")}</p>
+						<Button type="button" onClick={retry}>
+							{t("btn.retry")}
+						</Button>
+					</div>
+				) : results.length > 0 ? (
+					<div className="space-y-2">
+						{results.map((msg) => (
+							<button
+								key={msg.id}
+								type="button"
+								className="w-full rounded-md border p-3 text-left transition-colors hover:bg-accent"
+								onClick={() => handleNavigate(msg)}
+							>
+								<div className="flex items-center justify-between">
+									<span className="text-sm font-medium">
+										{msg.sender_id}
+									</span>
+									<span className="text-xs text-t2">
+										{formatDate(msg.created_at)}
+									</span>
+								</div>
+								<p className="mt-1 line-clamp-2 text-sm text-t2">
+									{msg.content_text || "---"}
+								</p>
+							</button>
+						))}
+					</div>
+				) : successEmpty ? (
+					<p className="py-4 text-center text-sm text-t2">
+						Ничего не найдено
+					</p>
+				) : null}
+			</ScrollArea>
+		</div>
 	);
+}
+
+function ScopedDialog({ userId, channelId }: ScopedDialogProps) {
+	const [open, setOpen] = useState(false);
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -103,74 +182,33 @@ export function SearchDialog({ channelId }: SearchDialogProps) {
 					</svg>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Поиск сообщений</DialogTitle>
-				</DialogHeader>
-				<div className="space-y-3 pt-2">
-					<div className="flex gap-2">
-						<Input
-							placeholder="Введите запрос..."
-							value={query}
-							onChange={(e) => setQuery(e.target.value)}
-							onKeyDown={handleKeyDown}
-						/>
-						<Button onClick={() => void handleSearch()} disabled={isSearching}>
-							{isSearching ? "..." : "Найти"}
-						</Button>
-					</div>
-
-					{channelId && (
-						<div className="flex gap-2">
-							<Button
-								variant={scope === "channel" ? "default" : "outline"}
-								size="sm"
-								onClick={() => setScope("channel")}
-							>
-								В текущем канале
-							</Button>
-							<Button
-								variant={scope === "global" ? "default" : "outline"}
-								size="sm"
-								onClick={() => setScope("global")}
-							>
-								Во всех каналах
-							</Button>
-						</div>
-					)}
-
-					<ScrollArea className="max-h-80">
-						{results.length > 0 ? (
-							<div className="space-y-2">
-								{results.map((msg) => (
-									<button
-										key={msg.id}
-										type="button"
-										className="w-full rounded-md border p-3 text-left transition-colors hover:bg-accent"
-										onClick={() => handleNavigate(msg)}
-									>
-										<div className="flex items-center justify-between">
-											<span className="text-sm font-medium">
-												{msg.sender_id}
-											</span>
-											<span className="text-xs text-t2">
-												{formatDate(msg.created_at)}
-											</span>
-										</div>
-										<p className="mt-1 line-clamp-2 text-sm text-t2">
-											{msg.content_text || "---"}
-										</p>
-									</button>
-								))}
-							</div>
-						) : query && !isSearching ? (
-							<p className="py-4 text-center text-sm text-t2">
-								Ничего не найдено
-							</p>
-						) : null}
-					</ScrollArea>
-				</div>
-			</DialogContent>
+			{open && (
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Поиск сообщений</DialogTitle>
+					</DialogHeader>
+					<OpenSearchSession
+						userId={userId}
+						channelId={channelId}
+						onClose={() => setOpen(false)}
+					/>
+				</DialogContent>
+			)}
 		</Dialog>
+	);
+}
+
+/** Диалог полнотекстового поиска в текущем канале или во всех доступных каналах. */
+export function SearchDialog({ channelId }: SearchDialogProps) {
+	const userId = useAuthStore((state) =>
+		state.isAuthenticated ? (state.user?.id ?? null) : null,
+	);
+
+	return (
+		<ScopedDialog
+			key={JSON.stringify([userId, channelId])}
+			userId={userId}
+			channelId={channelId}
+		/>
 	);
 }

@@ -48,6 +48,19 @@ frontend-unit: TypeScript PASS,191 файлов/666 тестов PASS,58.20s,2Gi
 по-прежнему требуют отдельных Docker SUT-gates.
 [Контракт и triage](superpowers/plans/2026-09-05-thread-read-receipts.md).
 
+Следующий принятый составной gate2026-09-06: TypeScript PASS,
+195 файлов/728 тестов PASS,64.12s,2GiB/no-swap. Добавлены35 genuine search
+случаев (real Dialog/Query + local session hook),20 delete lifecycle
+(real MessageItem/Actions + HTTP/toast boundaries),7 thread capability
+propagation (real owner or panel, не mock тестируемой границы).
+Отрицательные и ABA/late-completion случаи входят в эти62 tests.
+RED684/32 с3 uncaught DELETE errors сохранён; GREEN не ослабляет oracle.
+Это unit acceptance составного дерева, не runtime proof промежуточных
+коммитов, browser keyboard, API прав, хранилищ или полной готовности.
+[Search evidence](superpowers/plans/2026-09-06-search-dialog-lifecycle.md),
+[delete](superpowers/plans/2026-09-06-message-delete-lifecycle.md),
+[thread wire](superpowers/plans/2026-09-06-thread-capability-wiring.md).
+
 ```
         ┌─────────────┐
         │     E2E     │  pytest + playwright-python — критические user paths

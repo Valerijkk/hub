@@ -1,8 +1,25 @@
 # Hub — Тестовая документация
 
+## Messenger: поиск, удаление и действия в тредах — 2026-09-06
+
+Принятый составной Docker frontend-unit: TypeScript PASS;195 файлов,
+728/728 тестов PASS за64.12s;2GiB/no-swap,6CPU,readonly,Compose exit0.
+62 новых genuine unit-случая:35 поиск,20 удаление,7 передача capabilities.
+Независимые source reviews C/I/M0/0/0; исходники/oracles не менялись в прогоне.
+Предыдущий RED684PASS/32FAIL из716 и3 uncaught DELETE errors сохранён,
+ошибки исправлены без ослабления assertions. В GREEN нет whole-run
+unhandled-error failure, но остаются прежние React act/description warnings.
+Отчёты: testframework/reports/frontend-unit-messenger-lifecycle-green-20260906/.
+Start/image/resource limits наблюдались; post-run Docker event history
+не вернул события, поэтому отдельные die/OOM timestamps NOT_CAPTURED.
+Browser/API/storage/media и готовность модулей этим прогоном не подтверждены.
+Предыдущая ошибка загрузки oracle из-за отсутствующего user-event исправлена
+через установленный RTL fireEvent и не считается поведенческим RED.
+[Контракт и точные отчёты](superpowers/plans/2026-09-06-search-dialog-lifecycle.md).
+
 ## Messenger thread read-through: ветка calls-feature-codex, 2026-09-06
 
-Последний canonical Docker frontend-unit: TypeScript PASS;191 файлов /666
+Последний принятый для этого атома Docker frontend-unit: TypeScript PASS;191 файлов /666
 тестов PASS,58.20s,2GiB/no-swap/6CPU/readonly, engine/Compose exit0, контейнер
 удалён.36 новых genuine случаев в thread-read-receipts.test.tsx проверяют
 видимый конец ответа, защиту scope/прав, дедупликацию, ошибки и явный retry.

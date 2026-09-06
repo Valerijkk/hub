@@ -36,10 +36,18 @@ real visible-read browser receipt остаются NOT_RUN/UNBOUND. [Evidence](.
 отметка по видимому концу ответа принята на unit-уровне. 36 новых genuine
 сценариев: геометрический witness, identity/root/revoke, follow/capabilities,
 ошибка/retry, pending coalescing и watermark, focus/refetch recovery, exact
-unread refresh без арифметики. Последний Docker frontend-unit: TypeScript PASS,
+unread refresh без арифметики. Принятый Docker gate этого атома: TypeScript PASS,
 191 файлов / 666 тестов PASS,58.20s,2GiB/no-swap; независимое review C/I/M0/0/0.
 Это не процент готовности продукта. Browser/API/storage/media NOT_RUN.
 [Evidence](../docs/superpowers/plans/2026-09-05-thread-read-receipts.md).
+
+Следующий составной gate2026-09-06: поиск35, удаление20 и thread capability
+wiring7 новых genuine units. TypeScript PASS,195 файлов/728 тестов PASS,
+64.12s,2GiB/no-swap; source reviews C/I/M0/0/0. Приняты только scoped
+search/error/retry, delete pending/stale-completion UX и передача текущей
+server projection в root/reply. Это не statement coverage и не процент
+готовности модулей. Реальные права/API/browser/storage/media NOT_RUN.
+[Составное evidence и ограничения](../docs/superpowers/plans/2026-09-06-search-dialog-lifecycle.md).
 
 | Колонка | Значения |
 |---------|----------|

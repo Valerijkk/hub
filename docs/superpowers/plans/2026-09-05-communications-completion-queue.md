@@ -19,7 +19,11 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Jitsi durable events | Separate provider PostgreSQL spool; Prosody durable append/retry, mTLS ingress/replay, crash matrix | D1 and B0 precede B1/B2/C1/C2/D; no memory-only spool or at-least-once claim before durable enqueue |
 | Calls product | Authenticated public join, native Hub embed, task-owned containers and real two-user audio/video | Internal provider/credential/embed units are not this runtime gate |
 | Messenger next UI | Explicit Browse Join, then Leave; owner metadata/read-only/member management | Join auth fix first; manage/delete capabilities must be server-defined, not role-inferred |
-| Messenger navigation | Search successful-empty/error separation, identity-safe result navigation to message/thread | Exact error/locator/thread contract must be frozen before code; current search only opens channel |
+| Messenger search lifecycle | Current-only explicit search, successful-empty/error separation and scoped retry/navigation | UNIT_ACCEPTED:35 new cases in composed TypeScript/728-test Docker PASS; channel-only navigation |
+| Messenger navigation | Exact result navigation to message/thread | Route/API locator contract remains UNBOUND; current search only opens channel |
+| Messenger delete | Single-flight, handled failure and stale-completion isolation | UNIT_ACCEPTED:20 new cases in same composed gate; existing own/delete-any policy preserved |
+| Messenger thread actions | Current capabilities passed from ChatView through ThreadPanel to root and replies | UNIT_ACCEPTED:7 new boundary cases in same composed gate; no new rights |
+| Messenger edit | Matched channel admission, pending/re-entry and current-scope error feedback | Confirmed read-only gaps; independent exact contract/oracle next, source/runtime NOT_RUN |
 | Messenger links | Thread issue-link create/unlink | Actor policy, target proof and capabilities UNBOUND; read list acceptance does not authorize mutation |
 | Final acceptance | Reconnect/revoke/unread isolation, file/message/thread user journeys; Jitsi media/rollback/load; docs | Real Docker SUT/browser/API/storage evidence required; no full module PASS yet |
 | Legacy cutover | Drain then remove LiveKit by exact manifest | Only after replacement runtime/rollback exit gates, not before |
@@ -48,11 +52,51 @@ Go compilation. No architecture re-questionnaire is required for bounded
 implementation decisions inside the already agreed product contract.
 
 Read-through source and36-case oracle now UNIT_ACCEPTED after review and
-canonical Docker666/666GREEN; publication pending. Next unblocked source
+canonical Docker666/666GREEN; committed/pushed d65da37d with remote equality
+verified. Next unblocked source
 contract: SearchDialog successful-empty/error separation and scoped request
 lifecycle, preserving channel-only result navigation. Frozen plan:
 2026-09-06-search-dialog-lifecycle.md; oracle payload in progress. The adjacent
 Mail builds finished before the accepted gate; root did not stop/change them.
+
+## Next-flow discoveries (read-only,2026-09-06)
+
+Exact search-result locator remains UNBOUND: current Messenger route has no
+validated message/thread search params; no public channel-scoped get-message/
+context/around API exists. Existing getThread validates a live root and returns
+only a bounded initial reply page. Opening that root is not proof of visibility
+of an old target reply; unbounded timeline pagination is not a locator. Freeze
+a separate route/API contract before claiming exact-message search navigation.
+
+Delete-action discovery corrected a previous broad suspicion: hover-toolbar
+visibility matches current own-member versus delete-any moderator semantics.
+can_delete_message is delete-any, not the author's own-message permission.
+The concrete UI gap is no pending guard or handled rejection in handleDelete
+(message-item.tsx), not a license to broaden/narrow server rights. A future
+frontend-only single-flight/error UX atom can preserve the existing gate.
+Runtime/backend authorization acceptance was not performed by this discovery.
+
+Search/delete/thread wire now UNIT_ACCEPTED in one composed canonical
+frontend-unit gate:195files/728tests PASS,TypeScriptPASS,64.12s,
+2GiB/no-swap,6CPU,readonly,Compose exit0. Detailed RED/GREEN, hashes and
+uncaptured post-run lifecycle events are in the three2026-09-06 atom plans.
+Thread wire1db4ad3f and deleteb78ddafc published and remote SHA verified.
+No browser/backend/full-product acceptance is inferred.
+
+Jitsi D1 constraint rechecked against the frozen150 plan: selected-image
+inspection is blocked while adjacent Mail services/builder exist; no pull,
+build, overlay or activation attempted. Latest read-only C: free sample
+268353069056bytes is also below its250GiB floor. No cleanup of user/Mail
+data is authorized by that observation. Go-only4GiB exception remains
+UNAPPROVED; no further2GiB Ent-compile OOM retry.
+
+Thread action wiring gap confirmed by scoped source review: ChatView passes
+the server channel capabilities to timeline MessageItem but not ThreadPanel;
+the latter renders both root and replies with undefined capabilities. The
+existing fail-closed MessageItem guards then suppress available actions.
+Separate prop-only contract: 2026-09-06-thread-capability-wiring.md. No new
+permission/query/role policy; unknown and revoked remain denied. Runtime
+NOT_RUN; discovery is not acceptance of action/server behavior.
 
 - Root owns serial canonical Docker QA; keep FE at2GiB/no-swap and no host QA.
 - Recheck Mail build/test workload before a run; do not stop its containers.
