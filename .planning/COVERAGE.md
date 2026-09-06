@@ -22,6 +22,13 @@
 
 ## Методология
 
+Row pin command, 2026-09-06: 26 genuine units связывают actor/message-channel/
+can_pin с одним toggle, exact user/channel invalidation, current failure и
+stale/ABA fencing. Реальный QueryObserver проверяет pending refetch.
+TypeScript + 200 files / 835 tests PASS; это unit acceptance, не statement
+coverage и не готовность Messenger или backend.
+[Контракт и receipts](../docs/superpowers/plans/2026-09-06-message-pin-lifecycle.md).
+
 Bookmark command,2026-09-06:26новых genuine units. Трассировка: actor/
 message-channel/can_bookmark → single-flight AddBookmark → exact captured
 user-key refresh/current error/stale+ABA fences. Включён реальный pending

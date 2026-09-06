@@ -6,7 +6,6 @@ import type { ChannelCapabilities, ChannelCapability, Message } from "@/api/mess
 import {
 	deleteMessage,
 	editMessage,
-	togglePin,
 } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { messagesQueryKey } from "@/hooks/use-messages";
@@ -21,10 +20,10 @@ import { ForwardDialog } from "./forward-dialog";
 import { LinkPreview } from "./link-preview";
 import { MessageActions } from "./message-actions";
 import { MessageAttachments } from "./message-attachments";
-import { pinsQueryKey } from "./pinned-messages";
 import { PollMessage } from "./poll-message";
 import { RenderContent } from "./render-content";
 import { useMessageBookmarkCommand } from "./use-message-bookmark-command";
+import { useMessagePinCommand } from "./use-message-pin-command";
 import { useMessageReactionCommand } from "./use-message-reaction-command";
 
 /**
@@ -212,8 +211,6 @@ function MessageItemInner({
 	const editScopeRef = useRef<EditScope | null>(null);
 	const editLifecycleRef = useRef(0);
 	const editRequestRef = useRef<EditScope | null>(null);
-	const capabilitiesRef = useRef(capabilities);
-	capabilitiesRef.current = capabilities;
 	const loadBotInfo = useAIStore((s) => s.loadBotInfo);
 	const isBotMessage = useAIStore((s) => s.isBotMessage);
 	const botDisplayName = useAIStore((s) => s.botDisplayName);
@@ -297,18 +294,6 @@ function MessageItemInner({
 		safeMessageId,
 	]);
 
-	const canPinNow = useCallback(() => {
-		const state = useMessengerStore.getState();
-		if (state.isChannelRevoked(channelId)) return false;
-		const currentCapabilities = state.channels.find(
-			(item) => item.id === channelId,
-		)?.capabilities;
-		return (
-			capabilitiesRef.current?.can_pin === true &&
-			currentCapabilities?.can_pin === true
-		);
-	}, [channelId]);
-
 	const canAct = useCallback(
 		(capability: ChannelCapability) => {
 			const state = useMessengerStore.getState();
@@ -332,6 +317,12 @@ function MessageItemInner({
 			messageChannelId: message?.channel_id,
 			canBookmark: capabilities?.can_bookmark === true,
 		});
+	const { pending: pinPending, submit: handlePin } = useMessagePinCommand({
+		channelId,
+		messageId: safeMessageId,
+		messageChannelId: message?.channel_id,
+		canPin: capabilities?.can_pin === true,
+	});
 	const { pending: reactionPending, submit: handleReaction } =
 		useMessageReactionCommand({
 			channelId,
@@ -497,37 +488,6 @@ function MessageItemInner({
 		message?.channel_id,
 		safeMessageId,
 		t,
-	]);
-
-	const handlePin = useCallback(async () => {
-		const capturedUserId = currentUserId;
-		const capturedChannelId = channelId;
-		if (
-			!capturedUserId ||
-			safeMessageId.length === 0 ||
-			useAuthStore.getState().user?.id !== capturedUserId ||
-			!canPinNow()
-		) {
-			return;
-		}
-
-		await togglePin(capturedChannelId, safeMessageId);
-		if (
-			useAuthStore.getState().user?.id !== capturedUserId ||
-			!canPinNow()
-		) {
-			return;
-		}
-		await queryClient.invalidateQueries({
-			queryKey: pinsQueryKey(capturedChannelId, capturedUserId),
-			exact: true,
-		});
-	}, [
-		canPinNow,
-		channelId,
-		currentUserId,
-		queryClient,
-		safeMessageId,
 	]);
 
 	/** Ответить на сообщение (установить reply-to). */
@@ -890,6 +850,7 @@ function MessageItemInner({
 							onReply={handleReply}
 							onOpenThread={handleOpenThread}
 							onPin={handlePin}
+							pinPending={pinPending}
 							onBookmark={handleBookmark}
 							bookmarkPending={bookmarkPending}
 							onForward={() => {

@@ -31,6 +31,12 @@ is committed/pushed/remote-verified. This bookmark160-line candidate and26-case
 oracle are UNIT_ACCEPTED in the disclosed composed809PASS gate; root docs
 synced, exact bookmark commit/push next. No new runtime execution is inferred.
 
+Publication completed:1877984e15462a4cc05ecb8cead2ca5810ac8ce2 committed,
+immediately pushed to origin/calls-feature-codex and exact remote SHA
+equality verified. Product/test tree remains the composed809PASS snapshot;
+only the next pin plan was untracked after publication. No source acceptance
+or branch mutation is inferred for that future pin atom.
+
 ## Global constraints
 
 - This is ADD bookmark only. No removal, toggle state, new bookmark panel UX,
@@ -183,7 +189,7 @@ are mandatory. If the contract cannot fit, return BLOCKED for decomposition.
 - [x] Independent oracle/source review C/I clear before GREEN.
 - [x] Root full canonical GREEN, all tests and no unhandled errors. No
       exclusions/timeouts/assertion relaxation. Preserve failures honestly.
-- [ ] Root docs sync, exact commit/push/remote equality; continue unblocked work.
+- [x] Root docs sync, exact commit/push/remote equality; continue unblocked work.
 
 Oracle cases:
 - Current successful add exact argument order and one exact captured-user

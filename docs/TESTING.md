@@ -1,5 +1,17 @@
 # Hub — Тестовая документация
 
+## Messenger: закрепление из строки — 2026-09-06
+
+26 genuine units: exact POST/key и независимые cache snapshots, RU/EN error
+и явный retry, same-tick single-flight, независимые строки, denied admission,
+actor/channel/message ABA, prop/live loss+restore, revoke/unmount и реальный
+QueryObserver. Оракул неизменен между RED и GREEN. Canonical frontend-unit:
+TypeScript PASS, 200 files / 835 tests PASS, 117.97s; exit 0, без failed,
+pending/todo или whole-run unhandled error headings. JSON не содержит поля
+numUnhandledErrors; существующие предупреждения stderr сохранены.
+Фактически проверены 2 GiB/no-swap, 6 CPU, readonly и два Vitest worker.
+[Границы и восемь receipts](superpowers/plans/2026-09-06-message-pin-lifecycle.md).
+
 ## Messenger: команда добавления закладки — 2026-09-06
 
 26 новых genuine units проверяют exact POST/current-user invalidation,

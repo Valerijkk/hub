@@ -26,8 +26,9 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Messenger edit | Matched channel admission, pending/re-entry and current-scope error feedback | UNIT_ACCEPTED:24newcases in composed197file/758testPASS; c0900e62 pushed and remote-verified |
 | Messenger failed-send recovery | Per-nonce Retry single-flight, retained real Retry and working explicit Cancel | UNIT_ACCEPTED:2new mock plus4real-Toaster cases in same composed gate;5057c54d pushed and remote-verified |
 | Messenger reactions | Per-row shared picker/pill request ownership, current errors and stale-session isolation | UNIT_ACCEPTED:25newcases in composed199files/809testsPASS;0d562ee8 pushed and remote-verified |
-| Messenger bookmarks | Scoped add single-flight/error and exact current-user list refresh | UNIT_ACCEPTED:26newcases in same composedGREEN; separate publication after reaction-only index |
-| Messenger row pin | Scoped toggle/error and exact current-user/channel pins refresh |2026-09-06-message-pin-lifecycle.md root-frozen; independent plan review, no source/oracle yet |
+| Messenger bookmarks | Scoped add single-flight/error and exact current-user list refresh | UNIT_ACCEPTED:26newcases in same composedGREEN;1877984e pushed and remote-verified |
+| Messenger row pin | Scoped toggle/error and exact current-user/channel pins refresh | UNIT_ACCEPTED: 26 new cases; TypeScript + 200 files / 835 tests PASS; independent C0/I0/M0; publication pending |
+| Messenger forward | One request per open session; current error/retry; source and captured-target authority fences | Source gap confirmed; bounded contract proposal received, root freeze/review precedes oracle and code |
 | Messenger links | Thread issue-link create/unlink | Actor policy, target proof and capabilities UNBOUND; read list acceptance does not authorize mutation |
 | Final acceptance | Reconnect/revoke/unread isolation, file/message/thread user journeys; Jitsi media/rollback/load; docs | Real Docker SUT/browser/API/storage evidence required; no full module PASS yet |
 | Legacy cutover | Drain then remove LiveKit by exact manifest | Only after replacement runtime/rollback exit gates, not before |
@@ -106,6 +107,34 @@ Mail builds finished before the accepted gate; root did not stop/change them.
 ## Next-flow discoveries (read-only,2026-09-06)
 
 ### Accepted checkpoint — 2026-09-06
+
+Latest checkpoint: row pin UNIT_ACCEPTED, TypeScript + 200 files / 835 tests
+PASS in 117.97s; all 26 new pin cases, unchanged oracle/source/Compose hashes.
+Independent final review C/I/M 0/0/0. Exact receipts are preserved under
+testframework/reports/frontend-unit-pin-green-20260906/. Actual 2 GiB/no-swap,
+6 CPU, readonly, two Vitest workers observed; samples are not peaks and
+engine completion/OOM events NOT_CAPTURED. Exact publication pending.
+
+ForwardDialog confirmed gap: state-only duplicate guard, bare try/finally
+without current-error feedback, no committed actor/message/open-session
+token; late close/finally can affect a later dialog. Existing fresh source
+can_forward and target can_post/revoke checks must remain. A request-specific
+target authority subscription can retain any loss/restore invalidation
+without resetting on unrelated channel-list updates. Root must freeze this
+separate command contract and tests before any implementation.
+
+Earlier chronological checkpoints below are historical, not current state:
+
+Both atoms published and remote-verified: reaction0d562ee8,bookmark1877984e.
+Pin RED completed:TypeScriptPASS,200files199pass1fail,835tests821pass14fail,
+6unhandled; only new pin oracle failed. Independent triage C/I/M0/0/0
+opens the frozen production writer. Source remains unchanged until root
+applies its reviewed bounded payload. In parallel, a read-only analyst
+checks ForwardDialog command lifecycle for the next independent queue item;
+that is discovery only, not authorization to implement or change permissions.
+Pin baseline now1877984e15462a4cc05ecb8cead2ca5810ac8ce2; author authorized to
+apply only the corrected26-case oracle. Root independent review/hash/RED
+will precede pin source. Preserve the accepted809-case receipt separately.
 
 Reaction0d562ee855abfe1180646fe81a5a1ab8008cd475 published and exact remote
 verified. Bookmark160-line source/26-case oracle now publishing separately,

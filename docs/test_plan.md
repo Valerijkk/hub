@@ -29,6 +29,14 @@
 
 ## Пирамида тестирования
 
+Row pin command (2026-09-06): 26 genuine UI cases связывают actor/binding/
+can_pin с single-flight, exact user/channel refetch, current error и stale
+settlement. Pending проверяется до настоящего QueryObserver refetch.
+TypeScript + 200 files / 835 tests PASS в полном Docker frontend-unit;
+шесть прежних row-cache cases и panel suites сохранены. Panel-unpin command,
+API/storage/browser и готовность Messenger этим gate не подтверждаются.
+[Контракт](superpowers/plans/2026-09-06-message-pin-lifecycle.md).
+
 Bookmark command (2026-09-06):26 genuine UI cases связывают actor/binding/
 can_bookmark с одним POST и exact user-key refetch, current failure,
 stale/ABA fencing и pending до настоящего QueryObserver settlement.

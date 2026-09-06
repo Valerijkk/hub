@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Reaction0d562ee8 published and remote-verified; accepted bookmark160-line atom publishing next
+stopped_at: Pin canonical GREEN complete; final independent receipt review and exact publication pending
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - reaction0d562ee855abfe1180646fe81a5a1ab8008cd475 pushed; bookmarkdocs synced fromsame809PASSgate; nextpinplanC0I0,correctedoraclepayloadunapplied; Jitsi/Go blockers unchanged
+last_activity: 2026-09-06 - pin TypeScript and 200 files / 835 tests PASS in 117.97s; 26 new cases and unchanged hashes; ForwardDialog bounded contract received; Jitsi/Go blockers unchanged
 progress:
     total_phases: 125
     tasks_completed: 125

@@ -64,6 +64,9 @@
 	"messageBookmark": {
 		"error": "Unable to save bookmark"
 	},
+	"messagePin": {
+		"error": "Unable to update pinned message"
+	},
 	"mentions": {
 		"all": "All",
 		"online": "Online",

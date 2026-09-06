@@ -10,6 +10,20 @@
 
 ## CI и контроль качества
 
+### Messenger: закрепление из строки — calls-feature-codex, 2026-09-06
+
+Локальная команда проверяет actor, message-channel binding, prop/live can_pin
+и revoke; can_list_pins не является новым условием закрепления из строки.
+Синхронный guard блокирует повторный toggle только этой строки. Pending
+длится до завершения exact pinsQueryKey(channelId, userId) invalidation.
+Текущая ошибка обрабатывается canonical formatter с RU/EN fallback и допускает
+явный retry. Устаревшие ответы после committed scope/ABA либо unmount не
+уведомляют, не инвалидируют cache и не снимают pending новой попытки.
+Нет optimistic pin list, серверной идемпотентности или отмены HTTP.
+Отдельный PinnedMessages unpin handler не менялся. 26 новых genuine units
+приняты в Docker gate 200 files / 835 tests PASS; API/browser NOT_RUN.
+[Контракт и receipt](superpowers/plans/2026-09-06-message-pin-lifecycle.md).
+
 ### Messenger: сохранение закладки — calls-feature-codex, 2026-09-06
 
 AddBookmark получил отдельный per-row command owner: nonempty actor/IDs,

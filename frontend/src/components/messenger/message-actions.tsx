@@ -25,6 +25,7 @@ interface MessageActionsProps {
 	onReply: () => void;
 	onOpenThread: () => void;
 	onPin: () => void;
+	pinPending?: boolean;
 	onBookmark: () => void;
 	bookmarkPending?: boolean;
 	onForward: () => void;
@@ -80,6 +81,7 @@ export function MessageActions({
 	onReply,
 	onOpenThread,
 	onPin,
+	pinPending = false,
 	onBookmark,
 	bookmarkPending = false,
 	onForward,
@@ -119,7 +121,11 @@ export function MessageActions({
 				</ActionButton>
 			)}
 			{capabilities?.can_pin === true && (
-				<ActionButton label="Закрепить сообщение" onClick={onPin}>
+				<ActionButton
+					label="Закрепить сообщение"
+					onClick={onPin}
+					disabled={pinPending}
+				>
 					<Pin className="h-3.5 w-3.5" />
 				</ActionButton>
 			)}
