@@ -26,6 +26,25 @@ observer owns `observer_snapshot` and final choreography.
 
 ## 1. Проверка сообщает `NOT_READY`
 
+### Диагностика 4 GiB — 2026-09-06, не новый default
+
+После явного временного разрешения выполнены два последовательных опыта
+`backend-unit` на существующем образе: 4 GiB/no-swap со scratch 384 MiB, затем
+с 1 GiB. Оба закончились `BACKEND_UNIT_ABORT_MONITOR` / exit 75 из-за ENOSPC
+в RAM scratch. Во втором сохранились только два успешных build-пакета;
+полный build, vet, unit и race не приняты. Вывод и exit code `cmd/server`
+во втором прогоне не захвачены; наличие ошибки самого Go не установлено.
+Исходные Compose/runtime восстановлены побайтно; все временные контейнеры
+удалились автоматически, уникальные partial reports сохранены.
+
+Не повторяйте запуск, не увеличивайте tmpfs вслепую и не переносите scratch
+на SSD. Следующий отдельный QA-контракт должен описать bounded byte/inode
+наблюдение scratch до teardown и canonical profile/observer acceptance.
+Текущий observer остаётся 2 GiB; разовое разрешение 4 GiB не меняет его seal и
+не делает diagnostic run каноническим. [Точные границы и результаты](superpowers/plans/2026-09-06-backend-unit-4g-exception.md).
+
+### Canonical command boundary
+
 Единственный QA API для test/build/lint/validator jobs —
 `docker compose -f docker-compose.local.yml run --rm <exact-service>`.
 Допустимы только `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,

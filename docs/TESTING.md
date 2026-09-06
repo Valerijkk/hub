@@ -1,5 +1,17 @@
 # Hub — Тестовая документация
 
+## Backend: разрешённая 4 GiB диагностика — 2026-09-06
+
+Два последовательных resource experiments не дали test PASS. На прежнем
+образе и exact `backend-unit` scratch 384 MiB, затем 1 GiB закончились infra
+ENOSPC/monitor abort. Во втором сохранены только cmd/hub-mail и
+cmd/meilisearch-indexer PASS, exit 0; полный build-stage receipt отсутствует,
+vet/unit/race NOT_RUN. Отсутствие наблюдаемого OOM не доказывает пригодность 4 GiB для
+ещё не выполненных стадий. Оба partial reports сохранены, Compose/runtime
+вернулись к точным исходным hashes. Canonical observer по-прежнему 2 GiB;
+CALL-DUR-08C2 остаётся STATIC_ACCEPTED без executable acceptance.
+[Evidence и запрет третьего повтора](superpowers/plans/2026-09-06-backend-unit-4g-exception.md).
+
 ## Messenger: действия в панелях закреплений и закладок — 2026-09-06
 
 34 panel-unpin cases и 10 bookmark-removal cases используют реальные UI,

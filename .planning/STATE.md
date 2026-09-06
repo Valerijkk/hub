@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Founder approved one temporary4GiB/no-swap backend attempt; waiting resource window; observer still seals2GiB so diagnostic only
+stopped_at: Two bounded4GiB backend diagnostics infra-aborted; defaults restored and independently reviewed; next QA scratch/abort-record contract remains open
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - Recorded explicit4GiB approval; independent review identified canonical observer2GiB boundary; Mail frontend QA active and host freeRAM3.46GiB; backend attempt NOT_RUN
+last_activity: 2026-09-06 - Memory-only then1GiB scratch diagnostics completed as infra aborts; first two packages pass in attempt2; vet/unit/race NOT_RUN; no third attempt
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -165,9 +165,16 @@ Briefs/reports: `.superpowers/sdd/2026-09-06-panel-actions/`.
 Full Messenger SUT/API/browser NOT_READY/NOT_RUN: нет Messenger API suite
 и `testframework/tests/e2e/`. Exact-message navigation ждёт bounded anchor
 API/route contract; discovery записан в completion queue. Go2GiB Ent OOM
-не повторять. Founder теперь разрешил одну временную Go-only4GiB/no-swap
-попытку; она ждёт безопасного окна нагрузки. Observer по-прежнему фиксирует
-2GiB, поэтому попытка диагностическая, не canonical acceptance. План:
+не повторять. В разрешённых временных Go-only4GiB/no-swap выполнены два
+отдельно ограниченных диагностических опыта: scratch384MiB и1GiB. Оба
+завершились infra ENOSPC; во втором первые два build-пакета PASS, cmd/server
+без сохранённого результата. Build-stage receipt отсутствует; vet/unit/race
+NOT_RUN. В наблюдаемых Docker events нет OOM, но это не гарантия памяти
+для последующих стадий. Оба контейнера удалились автоматически; все пять
+временных scalar-правок восстановлены, исходные hashes совпали. Третьей
+попытки нет. Нужен отдельный QA-контракт диагностики scratch и приёмки
+ресурсного профиля; observer по-прежнему фиксирует2GiB. Canonical backend
+acceptance и CALL-DUR-08C2 executable acceptance не получены. План:
 `docs/superpowers/plans/2026-09-06-backend-unit-4g-exception.md`.
 Jitsi deployment/media
 не приняты, LiveKit остаётся активным. Проценты исторических фаз выше не
