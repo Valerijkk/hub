@@ -156,6 +156,7 @@ interface MessageSendSnapshot {
 interface PendingMessageSend {
 	snapshot: MessageSendSnapshot;
 	failureMessage: string;
+	inFlight: boolean;
 	toastId?: string | number;
 }
 
@@ -353,6 +354,8 @@ export function MessageComposer({
 				discardPendingSend(pending);
 				return;
 			}
+			if (pending.inFlight) return;
+			pending.inFlight = true;
 			if (isInitialAttempt) {
 				activeInitialNonceRef.current = pending.snapshot.nonce;
 				setIsSending(true);
@@ -398,7 +401,8 @@ export function MessageComposer({
 					dismissible: false,
 					action: {
 						label: "Повторить",
-						onClick: () => {
+						onClick: (event) => {
+							event?.preventDefault();
 							const current = pendingSendsRef.current.get(
 								pending.snapshot.nonce,
 							);
@@ -407,12 +411,19 @@ export function MessageComposer({
 							}
 						},
 					},
-					cancel: {
-						label: "Отменить отправку",
-						onClick: () => discardPendingSend(pending),
-					},
+					cancel: (
+						<button
+							type="button"
+							data-button
+							data-cancel
+							onClick={() => discardPendingSend(pending)}
+						>
+							Отменить отправку
+						</button>
+					),
 				});
 			} finally {
+				pending.inFlight = false;
 				if (
 					isInitialAttempt &&
 					activeInitialNonceRef.current === pending.snapshot.nonce
@@ -460,7 +471,11 @@ export function MessageComposer({
 					client_nonce: nonce,
 				}),
 			});
-			const pending: PendingMessageSend = { snapshot, failureMessage };
+			const pending: PendingMessageSend = {
+				snapshot,
+				failureMessage,
+				inFlight: false,
+			};
 			pendingSendsRef.current.set(nonce, pending);
 			void attemptPendingSend(pending, true);
 			setAlsoSendToChannel(false);

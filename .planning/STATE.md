@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Bounded canonical frontend-unit758PASS; resource/edit/composer accepted in composed tree; atomic publication pending
+stopped_at: Resource budget published; composer recovery UNIT_ACCEPTED and publishing; edit publication next
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - TypeScript and197files758testsPASS114.95s with2workers under2GiB; composed acceptance C/I/M0/0/0; exact receipts preserved; publishing resource then feature atoms
+last_activity: 2026-09-06 - resource75dcdb27 pushed with remote equality; composer Retry/Cancel and edit share TypeScript plus758PASS composed receipt; no new runtime claim
 progress:
     total_phases: 125
     tasks_completed: 125

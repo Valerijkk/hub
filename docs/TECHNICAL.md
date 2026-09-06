@@ -10,6 +10,18 @@
 
 ## CI и контроль качества
 
+### Messenger: восстановление отправки — calls-feature-codex, 2026-09-06
+
+Для каждого неизменяемого pending SEND действует собственный synchronous
+single-flight guard. Повторный Retry не создаёт конкурентный HTTP с тем же
+nonce; завершение старой попытки не разблокирует другую запись. Retry сохраняет
+недисмиссибельное уведомление до успеха или явной отмены. Cancel реализован
+нативной кнопкой в поддерживаемом слоте Sonner: действие доступно и при
+`dismissible: false`. Отмена удаляет только свою pending-запись; поздний ответ
+не восстанавливает её. Новые черновики, payload, nonce и текущие auth/revoke
+guards сохранены. Отправленный HTTP не отменяется этим UI-механизмом.
+[Контракт и составной Docker gate](superpowers/plans/2026-09-06-composer-retry-lifecycle.md).
+
 | Target | Authority | Current status |
 |-----|-------------------|---|
 | `backend-unit` | root Compose exact service | PASS: build/vet/unit/race |

@@ -29,6 +29,12 @@
 
 ## Пирамида тестирования
 
+SEND recovery (2026-09-06): два новых single-flight сценария и четыре
+REAL-Toaster сценария дополняют nonce/snapshot oracle; callback mock сам по
+себе не подтверждает настоящие Retry/Cancel. Принято в составе TypeScript +
+758 unit tests PASS; API/storage/browser gate этим не заменяется.
+[Контракт](superpowers/plans/2026-09-06-composer-retry-lifecycle.md).
+
 Resource envelope2026-09-06: максимум2/minimum1 worker в обеих Vitest pool
 families задаётся только в canonical frontend-unit service. При прежних
 2GiB/no-swap/6CPU и неизменных assertions/таймаутах составное дерево

@@ -1,5 +1,15 @@
 # Hub — Тестовая документация
 
+## Messenger: Retry/Cancel отправки — 2026-09-06
+
+UNIT_ACCEPTED: 11 mock-boundary случаев (включая два новых single-flight)
+и четыре новых сценария с настоящим Sonner Toaster. Проверены повторный Retry,
+сохранение recovery-кнопок после ошибки, явная отмена и позднее завершение
+отменённой попытки. Старые assertions для nonce, снимка, черновика и identity
+сохранены. Общий Docker gate с edit и worker-budget: TypeScript PASS,
+197 файлов / 758 тестов PASS; отдельный промежуточный коммит не прогонялся.
+[Oracle и RED/GREEN receipts](superpowers/plans/2026-09-06-composer-retry-lifecycle.md).
+
 ## Canonical frontend-unit: предел workers — 2026-09-06
 
 В service-local environment зафиксированы MAX=2/MIN=1 для Vitest threads

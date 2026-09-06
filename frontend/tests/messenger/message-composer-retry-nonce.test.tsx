@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { isValidElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message, SendMessageRequest } from "@/api/messenger";
 import { MessageComposer } from "@/components/messenger/message-composer";
@@ -154,10 +154,27 @@ interface Deferred<T> {
 	reject: (reason?: unknown) => void;
 }
 
-interface RetryToastOptions {
+interface RetryActionEvent {
+	preventDefault: () => void;
+}
+
+interface CapturedRetryToastOptions {
 	duration: number;
 	dismissible: boolean;
-	action: { label: string; onClick: () => void };
+	action: { label: string; onClick: (event?: RetryActionEvent) => void };
+	cancel: ReactNode;
+}
+
+interface NativeCancelProps {
+	children?: ReactNode;
+	onClick?: () => void;
+	type?: string;
+	"data-button"?: boolean;
+	"data-cancel"?: boolean;
+}
+
+interface RetryToastOptions {
+	action: { label: string; onClick: (event?: RetryActionEvent) => void };
 	cancel: { label: string; onClick: () => void };
 }
 
@@ -180,15 +197,35 @@ function retryToastAt(callIndex: number): OwnedRetryToast {
 	expect(toastError).toHaveBeenCalledTimes(callIndex + 1);
 	const [, options] = toastError.mock.calls[callIndex] as [
 		unknown,
-		RetryToastOptions,
+		CapturedRetryToastOptions,
 	];
 	expect(options).toMatchObject({
 		duration: Number.POSITIVE_INFINITY,
 		dismissible: false,
 		action: { label: "Повторить" },
-		cancel: { label: "Отменить отправку" },
 	});
-	return { id: toastError.mock.results[callIndex]?.value, options };
+	const cancel = options.cancel;
+	expect(isValidElement(cancel)).toBe(true);
+	if (
+		!isValidElement<NativeCancelProps>(cancel) ||
+		cancel.type !== "button" ||
+		typeof cancel.props.onClick !== "function"
+	) {
+		throw new Error("Retry toast cancel must be a native button");
+	}
+	expect(cancel.props).toMatchObject({
+		children: "Отменить отправку",
+		type: "button",
+		"data-button": true,
+		"data-cancel": true,
+	});
+	return {
+		id: toastError.mock.results[callIndex]?.value,
+		options: {
+			action: options.action,
+			cancel: { label: "Отменить отправку", onClick: cancel.props.onClick },
+		},
+	};
 }
 
 function sendButton() {
@@ -537,5 +574,80 @@ describe("FE-P149-MESSENGER · retry nonce and optimistic recovery", () => {
 
 		unmount();
 		expect(toastDismiss).toHaveBeenCalledWith(retryToast.id);
+	});
+
+	it("keeps Retry open and admits one deferred retry transport per nonce", async () => {
+		const deferredRetry = deferred<unknown>();
+		sendMessage
+			.mockRejectedValueOnce(new Error("initial send failed"))
+			.mockReturnValueOnce(deferredRetry.promise)
+			.mockResolvedValueOnce({ id: "recovered-send" });
+		renderWithProviders(
+			<MessageComposer canSend channelId="channel-retry" threadId="retry-scope" />,
+		);
+		fireEvent.change(composerInput(), { target: { value: "one nonce retry" } });
+		fireEvent.click(sendButton());
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+		const [, initialPayload] = sendMessage.mock.calls[0] as [string, SendMessageRequest];
+		const retryToast = await waitFor(() => retryToastAt(0));
+		const firstActionEvent = { preventDefault: vi.fn() };
+		const duplicateActionEvent = { preventDefault: vi.fn() };
+		retryToast.options.action.onClick(firstActionEvent);
+		retryToast.options.action.onClick(duplicateActionEvent);
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
+		expect(firstActionEvent.preventDefault).toHaveBeenCalledTimes(1);
+		expect(duplicateActionEvent.preventDefault).toHaveBeenCalledTimes(1);
+		const [, retryPayload] = sendMessage.mock.calls[1] as [string, SendMessageRequest];
+		expect(retryPayload).toEqual(initialPayload);
+		expect(retryPayload.client_nonce).toBe(initialPayload.client_nonce);
+		expect(randomUUID).toHaveBeenCalledTimes(1);
+		expect(() => retryToast.options.action.onClick()).not.toThrow();
+		expect(sendMessage).toHaveBeenCalledTimes(2);
+		await act(async () => {
+			deferredRetry.reject(new Error("retry failed"));
+			await deferredRetry.promise.catch(() => undefined);
+		});
+		const recoveryActionEvent = { preventDefault: vi.fn() };
+		retryToast.options.action.onClick(recoveryActionEvent);
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(3));
+		expect(recoveryActionEvent.preventDefault).toHaveBeenCalledTimes(1);
+		const [, recoveredPayload] = sendMessage.mock.calls[2] as [string, SendMessageRequest];
+		expect(recoveredPayload).toEqual(initialPayload);
+		expect(toastError).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(invalidateMessages).toHaveBeenCalledWith("retry-scope"));
+	});
+
+	it("keeps a new logical send independent after an old retry is cancelled and settles late", async () => {
+		const oldRetry = deferred<unknown>();
+		const newerSend = deferred<unknown>();
+		sendMessage
+			.mockRejectedValueOnce(new Error("old initial failure"))
+			.mockReturnValueOnce(oldRetry.promise)
+			.mockReturnValueOnce(newerSend.promise);
+		const { rerender } = renderWithProviders(
+			<MessageComposer canSend channelId="channel-retry" threadId="old-scope" />,
+		);
+		fireEvent.change(composerInput(), { target: { value: "old logical send" } });
+		fireEvent.click(sendButton());
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+		const retryToast = await waitFor(() => retryToastAt(0));
+		retryToast.options.action.onClick({ preventDefault: vi.fn() });
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
+		rerender(<MessageComposer canSend channelId="channel-retry" threadId="newer-scope" />);
+		fireEvent.change(composerInput(), { target: { value: "new logical send" } });
+		fireEvent.click(sendButton());
+		await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(3));
+		retryToast.options.cancel.onClick();
+		expect(toastDismiss).toHaveBeenCalledWith(retryToast.id);
+		await act(async () => {
+			oldRetry.reject(new Error("late old retry failure"));
+			await oldRetry.promise.catch(() => undefined);
+		});
+		expect(toastError).toHaveBeenCalledTimes(1);
+		newerSend.resolve({ id: "new logical send" });
+		await waitFor(() => {
+			expect(invalidateMessages).toHaveBeenCalledTimes(1);
+			expect(invalidateMessages).toHaveBeenCalledWith("newer-scope");
+		});
 	});
 });

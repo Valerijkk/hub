@@ -22,6 +22,12 @@
 
 ## Методология
 
+SEND recovery, 2026-09-06: шесть новых genuine units (два mock-boundary,
+четыре с REAL-Toaster), всего 15 в двух recovery-файлах. Составной gate
+TypeScript + 758 tests PASS. Трассировка: immutable SEND/nonce → single-flight
+Retry и явный Cancel → [контракт и oracle](../docs/superpowers/plans/2026-09-06-composer-retry-lifecycle.md).
+Это не новое измерение statement coverage или готовности модуля.
+
 Resource-gate дополнение2026-09-06: canonical frontend-unit использует
 service-local MAX2/MIN1 workers при прежних2GiB/no-swap. Составной прогон
 с ожидающими публикации edit/composer кандидатами: TypeScriptPASS,
