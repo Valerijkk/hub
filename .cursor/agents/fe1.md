@@ -1,7 +1,6 @@
 ---
 name: fe1
-description: Frontend owner Hub, поток A. GPT-5.6 Terra/Medium–High фиксирует UI contract, декомпозирует и интегрирует; atomic React/TS code выполняется Terra/XHigh по замороженному контракту.
-model: gpt-5.6-terra
+description: Frontend owner Hub, поток A. Фиксирует UI contract, декомпозирует и интегрирует bounded React/TS-изменения по явному контракту.
 readonly: false
 ---
 

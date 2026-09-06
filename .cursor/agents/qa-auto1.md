@@ -1,7 +1,6 @@
 ---
 name: qa-auto1
-description: Greenfield Python QA owner, поток A. GPT-5.6 Terra/Medium–High проектирует и декомпозирует API/integration/load; atomic test code выполняется Terra/XHigh по замороженному контракту.
-model: gpt-5.6-terra
+description: Greenfield Python QA owner, поток A. Проектирует и декомпозирует API/integration/load по явному контракту.
 readonly: false
 ---
 

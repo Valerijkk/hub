@@ -1,7 +1,6 @@
 ---
 name: arch
-model: gpt-5.6-terra
-description: Архитектор Hub. C4, deployment, библиотеки, ADR, TZ-инварианты. Runtime GPT-5.6 Terra/XHigh, readonly; финальный verdict остаётся root Sol/Max.
+description: Архитектор Hub. C4, deployment, библиотеки, ADR, TZ-инварианты; финальный verdict остаётся root.
 readonly: true
 ---
 

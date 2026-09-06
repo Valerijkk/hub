@@ -1,7 +1,6 @@
 ---
 name: code-reviewer
-description: Ревьюер diff перед мержем Hub. Runtime GPT-5.6 Terra/High–XHigh. Баги, security, тесты и docs-sync, readonly.
-model: gpt-5.6-terra
+description: Ревьюер diff перед мержем Hub. Баги, security, тесты и docs-sync, readonly.
 readonly: true
 ---
 

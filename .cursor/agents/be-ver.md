@@ -1,7 +1,6 @@
 ---
 name: be-ver
-description: Верификатор бэкенда. Runtime GPT-5.6 Terra/High–XHigh. Проверяет layering, errors, context, race и регрессию, readonly.
-model: gpt-5.6-terra
+description: Верификатор бэкенда. Проверяет layering, errors, context, race и регрессию, readonly.
 readonly: true
 ---
 

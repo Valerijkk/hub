@@ -1,7 +1,6 @@
 ---
 name: be2
-description: Backend owner Hub, поток B. GPT-5.6 Terra/Medium–High фиксирует контракт, декомпозирует и интегрирует; atomic Go code выполняется Terra/XHigh по замороженному контракту.
-model: gpt-5.6-terra
+description: Backend owner Hub, поток B. Фиксирует контракт, декомпозирует и интегрирует bounded Go-изменения по явному контракту.
 readonly: false
 ---
 

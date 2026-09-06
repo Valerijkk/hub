@@ -1,7 +1,6 @@
 ---
 name: fe-ver
-description: Верификатор фронтенда. GPT-5.6 Terra/High–XHigh проверяет Hooks, WCAG, дизайн-систему, типы и регрессию, readonly.
-model: gpt-5.6-terra
+description: Верификатор фронтенда. Проверяет Hooks, WCAG, дизайн-систему, типы и регрессию, readonly.
 readonly: true
 ---
 
