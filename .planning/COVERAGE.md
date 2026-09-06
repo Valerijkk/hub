@@ -22,6 +22,13 @@
 
 ## Методология
 
+Resource-gate дополнение2026-09-06: canonical frontend-unit использует
+service-local MAX2/MIN1 workers при прежних2GiB/no-swap. Составной прогон
+с ожидающими публикации edit/composer кандидатами: TypeScriptPASS,
+197files/758testsPASS,114.95s,без skips/todo/unhandled errors. Это не новый
+statement coverage и не процент готовности продукта. Прежние failed
+receipts сохранены; [точные границы](../docs/superpowers/plans/2026-09-06-frontend-unit-worker-budget.md).
+
 ### Дополнение ветки calls-feature-codex — 2026-09-05
 
 MSG151-FOL-01/02 + MSG151-CHN-02: управление подпиской в ThreadPanel принято

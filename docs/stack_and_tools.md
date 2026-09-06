@@ -148,6 +148,14 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 
 ## QA and deploy (local Docker canonical)
 
+Ветка calls-feature-codex,2026-09-06: frontend-unit имеет service-local
+VITEST_MAX_THREADS/VITEST_MAX_FORKS="2" и MIN-аналоги="1" для locked
+Vitest3.2.4. Это внутренний неизменяемый бюджет сервиса, не новая настройка
+пользовательского .env и не CLI override. Image/command/6CPU/2GiB/no-swap/
+readonly и все tests/timeouts сохранены; пересборка не требуется.
+Составной197-file/758-test receipt и границы:
+docs/superpowers/plans/2026-09-06-frontend-unit-worker-budget.md.
+
 GitHub CI и PR Guard доступны только вручную: автоматические запуски на
 `push`/`pull_request` отключены, чтобы не расходовать GitHub Actions minutes.
 GitLab pipelines отключены. Каноническая проверка выполняется только через

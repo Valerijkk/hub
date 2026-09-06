@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Composed search/delete/thread-capability Docker GREEN; atomic publication and next edit lifecycle contract
+stopped_at: Bounded canonical frontend-unit758PASS; resource/edit/composer accepted in composed tree; atomic publication pending
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - frontend TypeScript and 728 tests PASS; thread wiring 1db4ad3f and delete b78ddafc published; search publication next; Jitsi activation NOT_RUN
+last_activity: 2026-09-06 - TypeScript and197files758testsPASS114.95s with2workers under2GiB; composed acceptance C/I/M0/0/0; exact receipts preserved; publishing resource then feature atoms
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -130,6 +130,17 @@ spec_coverage:
     measured: "2026-07-27"
     source: .planning/audits/planning-audit-2026-07/SPEC-COVERAGE.md
 ---
+
+## Session note — 2026-09-06 bounded frontend verification
+
+2026-09-06 canonical resource checkpoint: frontend-unit now declares MAX2/
+MIN1 for both Vitest worker pool families, service-local only. Same image,
+6CPU,2GiB/no-swap,readonly and full197-file/758-test scope pass with zero
+failed/pending/todo or unhandled-error result. Earlier failed runs remain
+recorded; their universal cause is not asserted. Evidence is a composed
+working tree including pending edit/composer publication, not an isolated
+intermediate commit. Exact resource plan:
+docs/superpowers/plans/2026-09-06-frontend-unit-worker-budget.md.
 
 ## Current test-rebase override — 2026-08-23
 
@@ -1286,12 +1297,17 @@ testframework/reports/frontend-unit-messenger-lifecycle-green-20260906/.
 Source/oracle pre/post hashes match; no whole-run unhandled-error failure.
 Container absent; separate post-run die/OOM events NOT_CAPTURED.
 Thread wiring1db4ad3f and deleteb78ddafc committed/pushed to the sole
-authorized origin branch with exact remote equality; search publishes next.
+authorized origin branch with exact remote equality; searchd10f1dda also
+published with exact remote equality and clean tree before the next plan.
 Gate provenance is the composed source tree, not isolated intermediate commits.
 Next discovery: edit can optimistically update a mismatched route channel,
 does not prevent re-entry while PUT is pending and reports failure only via
 silent invalidation. Freeze an independent edit lifecycle atom before writes;
 no new permission/backend/shared cache architecture is authorized by discovery.
+The independent edit contract is now frozen and plan-reviewed C/I/M0/0/0:
+docs/superpowers/plans/2026-09-06-message-edit-lifecycle.md. A Terra/xhigh
+writer owns only a new real MessageItem/Actions oracle first; production
+implementation and canonical RED remain NOT_RUN at this checkpoint.
 Founder requested autonomous overnight progress: record new blockers in the
 communications completion queue, continue independent tasks. No RAM/image/
 Git authority expansion inferred; Mail resources remain untouched.

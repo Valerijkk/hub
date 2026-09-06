@@ -190,6 +190,12 @@ curl -X POST http://localhost:3000/api/dev/seed
 Канонический minimal merge gate запускается локально через три exact root-Compose
 service: `backend-unit`, `frontend-unit`, `python-contract`. `python-api`, `python-integration`, e2e и load остаются `NOT_RUN` и не блокируют этот merge.
 
+Ветка calls-feature-codex,2026-09-06: локальный frontend-unit ограничивает
+Vitest двумя workers (MIN1/MAX2 для threads/forks), сохраняя2GiB/no-swap
+и точную canonical command. Пользовательские .env ключи не добавляются;
+production deploy и другие QA services эта настройка не меняет.
+Полная unit-проверка не заменяет API/e2e/media или production gates.
+
 ### Deploy — `.github/workflows/deploy.yml`
 
 - Запуск: только ручной `workflow_dispatch` на текущем `master` с `confirm_production`, после локального Docker evidence для выбранного SHA, `FA-06/PG-03` и CTO sign-off

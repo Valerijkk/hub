@@ -29,6 +29,15 @@
 
 ## Пирамида тестирования
 
+Resource envelope2026-09-06: максимум2/minimum1 worker в обеих Vitest pool
+families задаётся только в canonical frontend-unit service. При прежних
+2GiB/no-swap/6CPU и неизменных assertions/таймаутах составное дерево
+resource+edit+composer прошло TypeScript и197files/758tests за114.95s.
+Тесты не исключались, skipped/todo/failed0, unhandled errors отсутствуют.
+Это composed-tree receipt, не проверка промежуточных коммитов по отдельности.
+Исторические смешанные failures и worker errors остаются в отчётах.
+[Resource contract](superpowers/plans/2026-09-06-frontend-unit-worker-budget.md).
+
 Дополнение `calls-feature-codex` (2026-09-05): MSG151-FOL-01/02 и CHN-02
 имеют 29 изолированных ThreadPanel follow-control сценариев с реальным QueryClient
 и mock HTTP-границами. Приёмка: TypeScript PASS, 190 файлов / 630 тестов PASS в

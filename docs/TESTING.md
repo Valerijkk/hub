@@ -1,5 +1,17 @@
 # Hub — Тестовая документация
 
+## Canonical frontend-unit: предел workers — 2026-09-06
+
+В service-local environment зафиксированы MAX=2/MIN=1 для Vitest threads
+и forks. Память остаётся2GiB/no-swap, CPU6, image и exact Compose command
+не изменены. Набор/assertions/таймауты сохранены. Составное дерево с edit/
+composer кандидатами прошло TypeScript и197файлов/758тестов за114.95s,
+без failed/pending/todo и whole-run unhandled errors. Это не runtime
+доказательство каждого промежуточного коммита. Два фактических workers и
+engine exit0 наблюдались; все8 receipts сохранены отдельно. Ошибочные ранние
+прогоны не удалены и не переименованы в PASS.
+[Контракт, provenance и ограничения](superpowers/plans/2026-09-06-frontend-unit-worker-budget.md).
+
 ## Messenger: поиск, удаление и действия в тредах — 2026-09-06
 
 Принятый составной Docker frontend-unit: TypeScript PASS;195 файлов,
