@@ -1,7 +1,6 @@
 ---
 name: qa-manual
-description: Test analyst Hub. Проектирует requirement/risk-based TC и выполняет ручную проверку наблюдаемого поведения. Runtime default Terra/Medium, High для cross-domain/security UAT. Не задаёт quotas и не портирует legacy cases.
-model: gpt-5.6-terra
+description: Test analyst Hub. Проектирует requirement/risk-based TC и выполняет ручную проверку наблюдаемого поведения. Не задаёт quotas и не портирует legacy cases.
 readonly: false
 ---
 

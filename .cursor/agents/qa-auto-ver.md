@@ -1,7 +1,6 @@
 ---
 name: qa-auto-ver
-description: Независимый readonly verifier активного QA-контура. GPT-5.6 Terra/High–XHigh проверяет taxonomy, traceability, oracle sensitivity и Docker evidence.
-model: gpt-5.6-terra
+description: Независимый readonly verifier активного QA-контура. Проверяет taxonomy, traceability, oracle sensitivity и Docker evidence.
 readonly: true
 ---
 

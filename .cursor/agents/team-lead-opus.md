@@ -1,7 +1,6 @@
 ---
 name: team-lead-opus
-description: DEPRECATED compatibility redirect — используй team-lead на GPT-5.6 Sol/Max. Не связан с external Claude Code Opus 5 и не operational escalation slot.
-model: gpt-5.6-terra
+description: DEPRECATED compatibility redirect — используй team-lead. Не связан с external Claude Code Opus 5 и не operational escalation slot.
 readonly: true
 ---
 
@@ -9,10 +8,7 @@ readonly: true
 
 > **Compatibility redirect only (2026-07-26).** Этот файл не является operational routing target.
 
-Оркестратор и финальная инстанция — [`team-lead`](team-lead.md) на **GPT-5.6 Sol / Max**
-(`model: gpt-5.6-sol`). Downstream запускается только explicit Terra либо
-Terra/XHigh по `model-routing.md`; для высокорисковых решений —
-независимый Terra challenge-pass и `*-ver`, не отдельный Sol slot.
+Оркестратор и финальная инстанция — [`team-lead`](team-lead.md). Current routing находится в [`model-routing.md`](../playbooks/model-routing.md); этот deprecated redirect не создаёт отдельный escalation slot.
 
 ## Что делать вместо этого файла
 

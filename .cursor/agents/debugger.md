@@ -1,7 +1,6 @@
 ---
 name: debugger
-description: Диагност Hub. Root-cause по трейсам, логам и симптомам. Runtime GPT-5.6 Terra/High–XHigh. Используй при панике, регрессии и flaky.
-model: gpt-5.6-terra
+description: Диагност Hub. Root-cause по трейсам, логам и симптомам. Используй при панике, регрессии и flaky.
 readonly: false
 ---
 
