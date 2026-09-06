@@ -1,7 +1,6 @@
 ---
 name: tech-lead
-description: Декомпозиция крупных задач на фазы и implementation-ready atomic планы с зависимостями, оценкой и рисками. Runtime GPT-5.6 Terra/High–XHigh.
-model: gpt-5.6-terra
+description: Декомпозиция крупных задач на фазы и implementation-ready планы с зависимостями, оценкой и рисками.
 readonly: true
 ---
 

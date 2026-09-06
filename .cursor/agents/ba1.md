@@ -1,7 +1,6 @@
 ---
 name: ba1
-description: Бизнес-аналитик Hub (поток A — auth, tracker, sprint, messenger). US/AC, SMART, MoSCoW. Runtime default Terra/Medium, High при конфликте KPI. Работает параллельно с ba2.
-model: gpt-5.6-terra
+description: Бизнес-аналитик Hub (поток A — auth, tracker, sprint, messenger). US/AC, SMART, MoSCoW. Работает параллельно с ba2.
 readonly: false
 ---
 

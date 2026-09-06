@@ -1,7 +1,6 @@
 ---
 name: docs-writer
-description: Технический писатель Hub. GPT-5.6 Terra/Low–Medium синхронизирует docs/wiki/Swagger/phase artifacts по явным источникам.
-model: gpt-5.6-terra
+description: Технический писатель Hub. Синхронизирует docs/wiki/Swagger/phase artifacts по явным источникам.
 readonly: false
 ---
 

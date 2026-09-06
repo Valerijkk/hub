@@ -34,14 +34,13 @@ product / ba / sa           designer            designer-ver          fe1 / fe2 
 
 | Агент | Маршрутизация | Роль | Артефакт | Читает | Пишет |
 |-------|---------------|------|----------|--------|-------|
-| `designer` | Terra/High | Дизайн-система, макеты, UX-спеки, токены | Дизайн-спека (Markdown), обновления `app.css`-токенов | `vision_and_scope.md`, `30-frontend.mdc`, `app.css`, US/AC от `ba`/`sa` | `.cursor/playbooks/`-совместимые спеки, DESIGN-SPEC.md фазы |
-| `designer-ver` | Terra/High | Независимая верификация дизайна | Отчёт верификации `verified: true/false` + лог | Спека `designer`, `app.css`, реализацию `fe` | Verification report |
-| `fe1`, `fe2` | Terra/Medium owner → Terra/XHigh atomic code | Декомпозиция и интеграция UI по спеке | React-компоненты, `className`-расширения Shadcn | DESIGN-SPEC, `30-frontend.mdc`, Shadcn `components/ui/*` | `frontend/src/**` |
-| `fe-ver` | Terra/High | Верификация реализации UI | Отчёт: a11y (axe), Lighthouse, visual, регрессия | Реализацию `fe`, спеку `designer` | Verification report |
+| `designer` | Выбирает оркестратор | Дизайн-система, макеты, UX-спеки, токены | Дизайн-спека (Markdown), обновления `app.css`-токенов | `vision_and_scope.md`, `30-frontend.mdc`, `app.css`, US/AC от `ba`/`sa` | `.cursor/playbooks/`-совместимые спеки, DESIGN-SPEC.md фазы |
+| `designer-ver` | Выбирает оркестратор | Независимая верификация дизайна | Отчёт верификации `verified: true/false` + лог | Спека `designer`, `app.css`, реализацию `fe` | Verification report |
+| `fe1`, `fe2` | Выбирает оркестратор | Декомпозиция и интеграция UI по спеке | React-компоненты, `className`-расширения Shadcn | DESIGN-SPEC, `30-frontend.mdc`, Shadcn `components/ui/*` | `frontend/src/**` |
+| `fe-ver` | Выбирает оркестратор | Верификация реализации UI | Отчёт: a11y (axe), Lighthouse, visual, регрессия | Реализацию `fe`, спеку `designer` | Verification report |
 
-> `team-lead` (GPT-5.6 Sol / Max; downstream — explicit Terra из
-> `model-routing.md` + catalog-backed routing по
-> `team-workflow.md` §1.1) — оркестратор и финальная инстанция приёмки. Он не рисует, но принимает
+> `team-lead` (GPT-6 Astra / Max; downstream model и effort явно выбираются по
+> `model-routing.md` и `team-workflow.md` §1.1) — оркестратор и финальная инстанция приёмки. Он не рисует, но принимает
 > дизайн-артефакт целиком после `designer-ver` и `fe-ver`. См. `.cursor/playbooks/team-workflow.md`.
 ## 1.2 Когда включается `designer`
 

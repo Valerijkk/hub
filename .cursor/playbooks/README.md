@@ -30,32 +30,9 @@
 
 ## 0. Runtime routing моделей
 
-> **Policy (ADR-MODELS-GPT56, amended 2026-08-22):** root `team-lead` — единственный **GPT-5.6 Sol / Max**. Каждый downstream явно использует `gpt-5.6-terra` с task-routed effort; atomic code по frozen contract всегда Terra / XHigh. Все model frontmatter и каждый dispatch explicit; `inherit` и silent fallback запрещены. Канон: [`model-routing.md`](model-routing.md).
-
-| Слот | Frontmatter | Runtime policy |
-|------|-------------|----------------|
-| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol / Max**; единственный Sol runtime |
-| Ролевые исполнители и `*-ver` | `gpt-5.6-terra` | Analysis/decomposition/review; explicit Low–XHigh |
-| Atomic code `codex-micro` | `gpt-5.6-terra` | **Terra / XHigh** по frozen contract; legacy role ID, не runtime requirement |
-| `team-lead-opus` | `gpt-5.6-terra` | Deprecated compatibility redirect; not an escalation slot |
-
-Runtime mismatch не лечится automatic override: root создаёт новый explicit route либо останавливает задачу `UNKNOWN/BLOCKED`.
-
-`pro-qa-ai/**` — внешняя защищённая зона Claude Code Opus 5. Агенты Hub её не сканируют и не меняют; конкретный артефакт принимается только через явный founder handoff.
-
-### 0.1 Фактический исполняемый ростер
-
-| Слой | Live-инвентарь | Как используется |
-|---|---:|---|
-| Hub role profiles | **32 файла** в `.cursor/agents/`: **31 operational** + `team-lead-opus` deprecated redirect | `team-lead` выбирает только нужные роли; все 31 одновременно не запускаются |
-| Typed GSD specialists | **34** профиля в `~/.codex/agents/gsd-*.toml` | Planner/checker/executor/verifier/research/audit роли запускаются по конкретному GSD workflow, а не считаются дублями Hub-ролей |
-| Installed GSD skills | **71** каталог в `~/.agents/skills/gsd-*` | Lifecycle и quality gates; точная маршрутизация — `.cursor/GSD-INTEGRATION.md` |
-| Superpowers | установленный Codex workflow plugin | Источник совместимых практик discovery/spec/planning/review; не агент, не authority и не второй lifecycle-канон |
-| External Claude Code Opus 5 | отдельный founder-operated worker | Только `pro-qa-ai/**`; не downstream-слот `team-lead` и не входит в число Hub/GSD агентов |
-
-Приоритет конфликтов: founder locks → Hub safety/authority rules → GSD lifecycle →
-совместимые Superpowers practices → локальные эвристики. Live-статус конкретной
-волны хранится в `.planning/STATE.md`, а не в этом постоянном ростере.
+Канон: [`model-routing.md`](model-routing.md). Root `team-lead` — GPT-6 Astra / Max; `ultra` запрещён.
+Оркестратор явно выбирает модель и effort каждой bounded-подзадачи. Роли не фиксируют downstream runtime.
+`team-lead-opus` остаётся deprecated compatibility redirect; `pro-qa-ai/**` — отдельная founder-зона.
 
 ---
 
@@ -146,15 +123,15 @@ Evidence-aware примеры, hard controls, review warnings, negative sentinel
 
 ## 3. Ростер команды (32 файла агентов)
 
-**Runtime:** `team-lead` — GPT-5.6 Sol / Max; downstream explicit Terra, atomic code explicit Terra / XHigh (§0).
+**Runtime:** current routing lives in [`model-routing.md`](model-routing.md); role profiles do not lock downstream runtime.
 
 ### Тир 1 — Лидерство
 | Агент | Файл | Runtime | Роль |
 |-------|------|-----------------|------|
-| Team Lead | `team-lead.md` | **Sol / Max** | Оркестратор волн, делегирование, финальная приёмка |
+| Team Lead | `team-lead.md` | **Astra / Max** | Оркестратор волн, делегирование, финальная приёмка |
 | Team Lead (esc.) | `team-lead-opus.md` | deprecated | Исторический профиль; routing теперь внутри `team-lead` |
 | Tech Lead | `tech-lead.md` | routed | Декомпозиция на фазы/планы, зависимости, риски |
-| Codex Micro | `codex-micro.md` | **Terra / XHigh** | Атомарный код по frozen contract (не волны); legacy role ID |
+| Codex Micro | `codex-micro.md` | routed | Bounded implementation by an explicit task contract; legacy role ID |
 
 ### Тир 2 — Продукт
 | Агент | Файл | Роль |
