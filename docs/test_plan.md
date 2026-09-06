@@ -29,6 +29,13 @@
 
 ## Пирамида тестирования
 
+Forward command (2026-09-06): 36 genuine UI cases покрывают single-flight,
+message/source/target admission, текущую ошибку/retry, committed и batched
+authority loss, unmount и callback re-entry. Полный Docker frontend-unit:
+TypeScript + 201 files / 871 tests PASS, 123.07s. Все 36 новых и пять прежних
+capability cases проходят; API/browser/server cancellation не подтверждены.
+[Контракт](superpowers/plans/2026-09-06-message-forward-lifecycle.md).
+
 Row pin command (2026-09-06): 26 genuine UI cases связывают actor/binding/
 can_pin с single-flight, exact user/channel refetch, current error и stale
 settlement. Pending проверяется до настоящего QueryObserver refetch.

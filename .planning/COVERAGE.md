@@ -22,6 +22,13 @@
 
 ## Методология
 
+Forward command, 2026-09-06: 36 genuine units связывают actor/source/target
+authority, message binding, single-flight, текущую ошибку и явный retry с
+committed/batched ABA, unmount и callback re-entry. Полный Docker gate:
+TypeScript + 201 files / 871 tests PASS, 123.07s; тесты и fixtures сохранены.
+Это unit evidence, не statement coverage или API/browser acceptance.
+[Контракт и receipts](../docs/superpowers/plans/2026-09-06-message-forward-lifecycle.md).
+
 Row pin command, 2026-09-06: 26 genuine units связывают actor/message-channel/
 can_pin с одним toggle, exact user/channel invalidation, current failure и
 stale/ABA fencing. Реальный QueryObserver проверяет pending refetch.

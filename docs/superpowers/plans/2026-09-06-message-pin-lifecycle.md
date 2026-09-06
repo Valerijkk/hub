@@ -12,7 +12,8 @@
 
 Status: UNIT_ACCEPTED; independent final review C/I/M 0/0/0. Canonical
 TypeScript + 200 files / 835 tests PASS, 26 pin cases, exit 0, 117.97s.
-Exact-path commit and authorized push pending. API/browser/full module
+Published ac918830e2aa0d7082297d9913be0fd750013fb5 with immediate authorized
+push and exact remote SHA equality verified. API/browser/full module
 acceptance remains NOT_RUN. The earlier checkpoints below are chronological
 history, superseded by the final GREEN receipt at the end of this file.
 
@@ -196,7 +197,7 @@ docs/TECHNICAL.md,docs/TESTING.md,docs/test_plan.md,docs/wiki/HOME.md.
 - [x] Independent source+oracle review; fix C/I within bounds, no weakened tests.
 - [x] Root full canonical GREEN, no missing/failed/pending/unhandled cases;
       inspect resource metadata immediately while the container is alive.
-- [ ] Docs sync, exact-path commit and immediate authorized push; verify SHA
+- [x] Docs sync, exact-path commit and immediate authorized push; verify SHA
       and continue the separate panel/unblocked queue.
 
 Concrete oracle inventory (26 cases max):

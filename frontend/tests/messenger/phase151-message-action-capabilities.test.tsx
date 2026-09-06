@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Channel, ChannelCapabilities, Message } from "@/api/messenger";
 import { ForwardDialog } from "@/components/messenger/forward-dialog";
 import { MessageActions } from "@/components/messenger/message-actions";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 
 const api = vi.hoisted(() => ({
@@ -66,6 +67,14 @@ const message: Message = {
 	reply_count: 0,
 	created_at: "2026-08-26T00:00:00Z",
 };
+const forwardActor = {
+	id: "forward-capabilities-user",
+	email: "forward-capabilities@example.test",
+	timezone: "UTC",
+	language: "en",
+	system_role: "member",
+	onboarding_completed: true,
+};
 
 const actionCallbacks = {
 	onReactionPickerChange: vi.fn(),
@@ -85,12 +94,24 @@ describe("P151 message action capabilities", () => {
 		api.forwardMessage.mockReset();
 		api.forwardMessage.mockResolvedValue(message);
 		useMessengerStore.getState().reset();
+		useAuthStore.setState({
+			accessToken: null,
+			refreshToken: null,
+			isAuthenticated: true,
+			user: forwardActor,
+		});
 		vi.clearAllMocks();
 	});
 
 	afterEach(() => {
 		cleanup();
 		useMessengerStore.getState().reset();
+		useAuthStore.setState({
+			accessToken: null,
+			refreshToken: null,
+			isAuthenticated: false,
+			user: null,
+		});
 	});
 
 	it("fails closed when the server capability snapshot denies every action", () => {

@@ -1,5 +1,19 @@
 # Hub — Тестовая документация
 
+## Messenger: пересылка — 2026-09-06
+
+Новый lifecycle oracle: 36 genuine UI cases, включая same-tick два target,
+source/target authority loss+restore, committed и batched actor ABA,
+unmount, ошибку/retry и реальный flushSync callback re-entry. Пять прежних
+capability cases сохранены; fixture получил только явного actor.
+Canonical RED: 23 новых FAIL / 8 unhandled rejections, старые 200 файлов PASS.
+Canonical GREEN после source: TypeScript + 201 files / 871 tests PASS,
+123.07s, exit0; failed/pending/todo/whole-run unhandled0. Восемь ABA RED
+останавливались до newer-request preconditions; поздние assertions прошли
+только в GREEN. Docker: 2GiB/no-swap, 6CPU, два worker, existing image.
+Build/lint/API/browser/storage NOT_RUN; старые mock/act warnings остаются.
+[Точные границы и receipts](superpowers/plans/2026-09-06-message-forward-lifecycle.md).
+
 ## Messenger: закрепление из строки — 2026-09-06
 
 26 genuine units: exact POST/key и независимые cache snapshots, RU/EN error

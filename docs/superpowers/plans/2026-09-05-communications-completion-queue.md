@@ -27,11 +27,27 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Messenger failed-send recovery | Per-nonce Retry single-flight, retained real Retry and working explicit Cancel | UNIT_ACCEPTED:2new mock plus4real-Toaster cases in same composed gate;5057c54d pushed and remote-verified |
 | Messenger reactions | Per-row shared picker/pill request ownership, current errors and stale-session isolation | UNIT_ACCEPTED:25newcases in composed199files/809testsPASS;0d562ee8 pushed and remote-verified |
 | Messenger bookmarks | Scoped add single-flight/error and exact current-user list refresh | UNIT_ACCEPTED:26newcases in same composedGREEN;1877984e pushed and remote-verified |
-| Messenger row pin | Scoped toggle/error and exact current-user/channel pins refresh | UNIT_ACCEPTED: 26 new cases; TypeScript + 200 files / 835 tests PASS; independent C0/I0/M0; publication pending |
-| Messenger forward | One request per open session; current error/retry; source and captured-target authority fences | Source gap confirmed; bounded contract proposal received, root freeze/review precedes oracle and code |
+| Messenger row pin | Scoped toggle/error and exact current-user/channel pins refresh | UNIT_ACCEPTED: 26 new cases; TypeScript + 200 files / 835 tests PASS; independent C0/I0/M0; ac918830 pushed and remote-verified |
+| Messenger forward | One request per open session; current error/retry; source and captured-target authority fences | UNIT_ACCEPTED: TypeScript + 201 files / 871 tests PASS,36new; independent source/final receipt C0/I0; publication pending |
+| Messenger panel unpin | Panel-owned single-flight, handled failure and exact pins refresh through invalidation | Separate 34-case plan frozen and independent C0/I0/M0; oracle application waits for exact forward publication; no implementation |
+| Messenger bookmark removal | Prevent same-bookmark duplicate DELETE and preserve current error/retry | Ten-case single-file contract frozen; independent plan review corrected one stale runtime reference; exact forward publication binding before oracle |
 | Messenger links | Thread issue-link create/unlink | Actor policy, target proof and capabilities UNBOUND; read list acceptance does not authorize mutation |
 | Final acceptance | Reconnect/revoke/unread isolation, file/message/thread user journeys; Jitsi media/rollback/load; docs | Real Docker SUT/browser/API/storage evidence required; no full module PASS yet |
 | Legacy cutover | Drain then remove LiveKit by exact manifest | Only after replacement runtime/rollback exit gates, not before |
+
+## Current Messenger SUT QA boundary — 2026-09-06
+
+Read-only discovery at c1990858: `testframework/tests/api/` currently contains
+authz, files, health, identity and platform suites, but no Messenger suite;
+`testframework/tests/e2e/` does not exist. The canonical Python entrypoint and
+Compose service names exist, which is not evidence of a working two-user
+channel/message/thread journey. The e2e services declare isolated QA storage
+dependencies, not a bound task-owned Hub backend/frontend pair. Messenger
+SUT acceptance is therefore NOT_READY / NOT_RUN. A separate bounded contract
+must bind the SUT lifecycle, actor fixtures, verified cases and resource budget
+before writing/running these journeys. No host or legacy-runner workaround,
+unowned container startup, or unrelated Python-suite repair is authorized by
+this discovery. Frontend unit acceptance remains useful but narrower.
 
 ## Confirmed Join gap and boundary
 
@@ -113,7 +129,8 @@ PASS in 117.97s; all 26 new pin cases, unchanged oracle/source/Compose hashes.
 Independent final review C/I/M 0/0/0. Exact receipts are preserved under
 testframework/reports/frontend-unit-pin-green-20260906/. Actual 2 GiB/no-swap,
 6 CPU, readonly, two Vitest workers observed; samples are not peaks and
-engine completion/OOM events NOT_CAPTURED. Exact publication pending.
+engine completion/OOM events NOT_CAPTURED. Published ac918830e2aa0d7082297d9913be0fd750013fb5,
+immediately pushed to the authorized origin branch; exact remote SHA verified.
 
 ForwardDialog confirmed gap: state-only duplicate guard, bare try/finally
 without current-error feedback, no committed actor/message/open-session
@@ -124,6 +141,41 @@ without resetting on unrelated channel-list updates. Root must freeze this
 separate command contract and tests before any implementation.
 
 Earlier chronological checkpoints below are historical, not current state:
+
+Panel-unpin follow-up: root read PinnedMessages.handleUnpin and confirmed
+bare await togglePin with no catch/synchronous request guard. Preserve both
+prop/live can_list_pins AND can_pin, actor/channel and pin.channel_id binding,
+exact current-user/channel key and existing query loading/error/empty UI.
+Separate local panel hook proposal is appropriate; row hook only can_pin
+must not silently acquire panel policy. One pending request per open panel
+is the bounded candidate because every unpin refreshes the same pins query.
+Future root freeze must separately cover list and pin authority loss, panel
+channel/open ABA, unmount and pending through actual query invalidation.
+Analyst's 18-case proposal is not yet an accepted test inventory; no panel
+source or oracle edits and no executable panel-command claim.
+
+Root has now frozen the separate 34-case panel plan (2026-09-06-panel-unpin-lifecycle.md)
+and independent review returned C/I/M 0/0/0. Row hook remains unchanged;
+only two production paths are authorized after its own RED. The current
+forward publication must finish before panel oracle application. Existing
+panel test counts are 5+4+3=12; identity/query-state API mocks export only
+getChannelPins/togglePin, so the future hook uses direct capability fields.
+Current frontend exposes togglePin only: lost-response retry ambiguity is
+a separate backend product risk, not solved by the local single-flight guard.
+
+Bookmark removal discovery (read-only Terra/medium): BookmarksPanel.handleRemove
+already catches current-user errors and exact-invalidates bookmarksQueryKey
+after success, but has no request lock or disabled control. Two same-tick
+clicks can dispatch duplicate removeBookmark DELETE calls; the second may
+produce a misleading error after first success. Source anchors panel:50-73,
+140 and api/messenger.ts:510-511. Existing identity-boundary:174-211 covers
+one A-to-B removal case; bookmarks-error:26-49 is GET error, not mutation.
+Minimal next candidate is per-bookmark-ID dedupe plus explicit retry, no
+query-wide blocking. A-to-B-to-A ID equality may refresh a valid current A
+cache; whether additional generation fencing is required needs root contract
+decision, not an assumed bug. No source/test changes or runtime proof yet.
+Initial agent default read hit helper ACL failure; scoped escalated read
+succeeded without ACL mutation. No broader access or model fallback used.
 
 Both atoms published and remote-verified: reaction0d562ee8,bookmark1877984e.
 Pin RED completed:TypeScriptPASS,200files199pass1fail,835tests821pass14fail,

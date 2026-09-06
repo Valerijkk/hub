@@ -1,10 +1,4 @@
-import { useCallback, useState } from "react";
-import {
-	canChannel,
-	type Channel,
-	forwardMessage,
-	type Message,
-} from "@/api/messenger";
+import { canChannel, type Message } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -14,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessengerStore } from "@/stores/messenger-store";
+import { useMessageForwardCommand } from "./use-message-forward-command";
 
 interface ForwardDialogProps {
 	message: Message;
@@ -35,53 +30,15 @@ export function ForwardDialog({
 	const revokedChannelIds = useMessengerStore(
 		(state) => state.revokedChannelIds,
 	);
-	const [isForwarding, setIsForwarding] = useState(false);
+	const { pending, submit } = useMessageForwardCommand({
+		open,
+		onOpenChange,
+		channelId,
+		messageId: message.id,
+		messageChannelId: message.channel_id,
+		canForward,
+	});
 	const sourceRevoked = revokedChannelIds.has(channelId);
-
-	const canForwardNow = useCallback(
-		(targetChannelId: string) => {
-			const state = useMessengerStore.getState();
-			if (
-				!canForward ||
-				state.isChannelRevoked(channelId) ||
-				state.isChannelRevoked(targetChannelId)
-			) {
-				return false;
-			}
-			const source = state.channels.find((item) => item.id === channelId);
-			const target = state.channels.find(
-				(item) => item.id === targetChannelId,
-			);
-			return (
-				source !== undefined &&
-				target !== undefined &&
-				canChannel(source, "can_forward") &&
-				canChannel(target, "can_post")
-			);
-		},
-		[canForward, channelId],
-	);
-
-	const handleForward = useCallback(
-		async (targetChannel: Channel) => {
-			if (isForwarding || !canForwardNow(targetChannel.id)) return;
-			setIsForwarding(true);
-			try {
-				await forwardMessage(channelId, message.id, targetChannel.id);
-				if (!canForwardNow(targetChannel.id)) return;
-				onOpenChange(false);
-			} finally {
-				setIsForwarding(false);
-			}
-		},
-		[
-			canForwardNow,
-			channelId,
-			isForwarding,
-			message.id,
-			onOpenChange,
-		],
-	);
 
 	const targetChannels = channels.filter(
 		(channel) =>
@@ -117,8 +74,8 @@ export function ForwardDialog({
 									key={channel.id}
 									variant="ghost"
 									className="w-full justify-start text-sm"
-									disabled={isForwarding}
-									onClick={() => void handleForward(channel)}
+									disabled={pending}
+									onClick={() => void submit(channel.id)}
 								>
 									{channel.name || "DM"}
 								</Button>

@@ -67,6 +67,9 @@
 	"messagePin": {
 		"error": "Unable to update pinned message"
 	},
+	"messageForward": {
+		"error": "Unable to forward message"
+	},
 	"mentions": {
 		"all": "All",
 		"online": "Online",

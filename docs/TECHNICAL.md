@@ -10,6 +10,20 @@
 
 ## CI и контроль качества
 
+### Messenger: пересылка — calls-feature-codex, 2026-09-06
+
+ForwardDialog использует локальную single-flight команду: проверяет actor,
+message-channel binding, source can_forward и target can_post с revoke.
+Потеря прав во время запроса запоминается даже при быстром восстановлении;
+устаревший ответ не закрывает новый диалог и не снимает чужой pending.
+Текущая ошибка показывается canonical formatter с RU/EN fallback и допускает
+явный retry. Запрос освобождается до latest onOpenChange callback, поэтому
+повторный вход не разблокируется старым finally. API/payload и фильтры UI
+сохранены; отмена уже отправленного HTTP и серверная идемпотентность не
+обещаются. TypeScript + 201 files / 871 tests PASS, 36 новых genuine units.
+API/browser остаются NOT_RUN.
+[Контракт и receipt](superpowers/plans/2026-09-06-message-forward-lifecycle.md).
+
 ### Messenger: закрепление из строки — calls-feature-codex, 2026-09-06
 
 Локальная команда проверяет actor, message-channel binding, prop/live can_pin

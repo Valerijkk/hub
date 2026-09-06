@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: communications-paused-for-workflow-refresh
-stopped_at: Rules imported through PR38; ForwardDialog RED complete, source not implemented; see Astra refresh checkpoint
+status: communications-in-progress
+stopped_at: ForwardDialog UNIT_ACCEPTED with independent receipt review; publication pending; next panel unpin
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - master c08b8036 imported as c84fd980; official Astra guidance reviewed; Messenger WIP preserved; no product tests or builds for rules refresh
+last_activity: 2026-09-06 - ForwardDialog TypeScript and 201 files / 871 tests PASS; 36 new cases; 2GiB Docker; independent source and final receipt C0/I0; publication pending
 progress:
     total_phases: 125
     tasks_completed: 125
