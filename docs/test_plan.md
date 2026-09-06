@@ -29,6 +29,24 @@
 
 ## Пирамида тестирования
 
+QA infrastructure, 2026-09-06: runner captures/FIFO/stop markers отделяются
+от Go WORK на существующий 64 MiB RAM tmpfs. Проверка — dynamic shell oracles
+в exact Docker `python-contract`, без Go compile, disk fill и host QA.
+После source и reviewed fixture-правок общий Docker-прогон: 38 FAIL / 566 PASS
+за 28.44s вместо 81 FAIL / 523 PASS; все scratch-сценарии проходят, новых failing
+IDs нет. Полный framework остаётся FAIL; backend PASS из этого не следует.
+[Текущий протокол и результаты](superpowers/plans/2026-09-06-backend-runner-scratch-isolation.md).
+
+Позднейший составной прогон дал674tests41FAIL/633PASS39.29s: все observer,
+scratch/identity cases проходят после независимого review. Подтверждены
+numeric grammar и глубокая копия terminal evidence, реальные tmpfs race cases.
+Provenance-name/newline/miniature-source cases проходят, как и shell I1b/docstring/
+plain parameter. Bounded depth65, fixture escape и terminal AST ownership проходят.
+Receipt guard8cases, streammutation и event-driven child diagnostic проходят.
+Из41failures32 — новые intentional RED (30missing-helper,2 lifecycle canonical),
+9 — прежние ошибки;16 новых lifecycle denials PASS. Новые sourcepatches pending;
+full gate FAIL. Фактические лимиты неизменны:2GiB/no-swap,2CPU.
+
 Panel actions (2026-09-06): 34 unpin + 10 bookmark-removal genuine units
 связывают admission и captured identity с single-flight, scoped error/retry,
 ABA/unmount fencing и pending до реального exact refetch. Разные закладки

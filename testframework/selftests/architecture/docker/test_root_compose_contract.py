@@ -980,6 +980,48 @@ def test_hard2g_task2_provenance_oracle_requires_live_publish_binding() -> None:
     )
 
 
+@pytest.mark.parametrize("chain_kind", ("target", "binding"))
+def test_hard2g_task2_provenance_walks_are_finitely_bounded(
+    chain_kind: str,
+) -> None:
+    source = _required_asset_text(
+        _REPO_ROOT / _HARD2G_OBSERVER_SNAPSHOT_ASSERTION_SOURCE
+    )
+    anchor = '    assert final["classification"] == expected\n'
+    assert _hard2g_task2_provenance_oracle_chain_is_closed(source)
+    assert source.count(anchor) == 1
+
+    def target_chain(root: str, depth: int) -> str:
+        value = root
+        for index in range(depth):
+            value += ".node" if index % 2 == 0 else f'["target{index}"]'
+        return value
+
+    def binding_chain(depth: int) -> str:
+        return "foreign" + "".join(f'["binding{index}"]' for index in range(depth))
+
+    def inserted(statements: str) -> str:
+        mutated = source.replace(anchor, statements + anchor, 1)
+        assert mutated != source
+        return mutated
+
+    for depth, expected in ((1, True), (64, True), (65, False)):
+        statements = (
+            f"    {target_chain('foreign', depth)} = 0\n"
+            if chain_kind == "target"
+            else f"    assert {binding_chain(depth)} == {binding_chain(depth)}\n"
+        )
+        assert _hard2g_task2_provenance_oracle_chain_is_closed(
+            inserted(statements)
+        ) is expected
+
+    for root in ("observer", "runtime"):
+        for depth in (64, 65):
+            assert not _hard2g_task2_provenance_oracle_chain_is_closed(
+                inserted(f"    {target_chain(root, depth)} = 0\n")
+            )
+
+
 def test_hard2g_runner_rejects_permissive_authority() -> None:
     canonical_entrypoint = "\n".join(
         (
@@ -1062,14 +1104,105 @@ def test_hard2g_runtime_budget_contract_is_closed() -> None:
     for hostile in (
         runtime.replace("go_child_identity-", "unbound_identity-", 1),
         runtime.replace(
-            "valid-zombie:valid-zombie)",
-            "valid-zombie:valid-live)",
+            "valid-zombie:valid-zombie|missing:none)",
+            "valid-zombie:valid-live|missing:none)",
             1,
         ),
         runtime.replace("go_child_reaped=true", "go_child_reaped=false", 1),
     ):
         assert hostile != runtime
         assert not _hard2g_runtime_budget_contract_is_closed(hostile)
+
+
+@pytest.mark.parametrize(
+    ("owner_name", "case_name"),
+    (
+        ("monitor", "canonical"), ("monitor", "identity-corruption"),
+        ("monitor", "drop-zombie"),
+        ("monitor", "only-zombie"),
+        ("monitor", "live-invalid-success"),
+        ("monitor", "drop-marker"),
+        ("monitor", "return-one"),
+        ("monitor", "legacy-before"),
+        ("monitor", "live-before"),
+        ("reap", "canonical"), ("reap", "reaped-false"),
+        ("reap", "drop-missing"),
+        ("reap", "missing-only"),
+        ("reap", "add-live"),
+        ("reap", "drop-wildcard-return"),
+        ("reap", "wait-before-guard"),
+        ("reap", "legacy-before"),
+        ("reap", "live-before"),
+        ("reap", "remove-session"),
+        ("reap", "remove-starttime"),
+        ("reap", "remove-pgid"),
+        ("reap", "move-session-before-pid"),
+        ("reap", "move-starttime-before-pid"),
+        ("reap", "move-pgid-before-pid"),
+    ),
+)
+def test_hard2g_runtime_lifecycle_current_terminals_are_closed(owner_name: str, case_name: str) -> None:
+    runtime = _required_asset_text(_REPO_ROOT / "testframework/docker/backend_unit/runtime.sh")
+    lines = tuple(runtime.splitlines())
+    monitor = _shell_function_body(lines, "monitor_owned_budget_stop")
+    reap = _shell_function_body(lines, "reap_owned_go_child_group")
+    assert type(monitor) is tuple and type(reap) is tuple
+    owner = "\n".join({"monitor": monitor, "reap": reap}[owner_name])
+    assert runtime.count(owner) == 1
+    monitor_terminal = (
+        "      valid-zombie:valid-zombie|missing:none)\n"
+        '        [ ! -e "$budget_stop_marker" ] || return 1\n'
+        "        return 0\n        ;;"
+    )
+    monitor_reject = "      valid-live:valid-zombie|valid-live:none|valid-zombie:none|invalid:*|missing:*|*:invalid) return 75 ;;"
+    reap_terminal = (
+        '  case "$leader_state:$group_state" in\n'
+        "    valid-zombie:valid-zombie|missing:none) ;;\n"
+        "    *) return 75 ;;\n  esac"
+    )
+    reap_wait = reap_terminal + '\n  if wait "$go_child_pid"; then'
+    move_resets = {
+        "move-session-before-pid": "go_child_session",
+        "move-starttime-before-pid": "go_child_starttime",
+        "move-pgid-before-pid": "go_child_pgid",
+    }
+    pid_line = "  go_child_pid=\n"
+    changes = {
+        ("monitor", "drop-zombie"): (monitor_terminal, monitor_terminal.replace("valid-zombie:valid-zombie|", "")),
+        ("monitor", "only-zombie"): (monitor_terminal, monitor_terminal.replace("|missing:none", "")),
+        ("monitor", "live-invalid-success"): (monitor_reject, monitor_reject.replace("return 75", "return 0")),
+        ("monitor", "drop-marker"): (monitor_terminal, monitor_terminal.replace('        [ ! -e "$budget_stop_marker" ] || return 1\n', "")),
+        ("monitor", "return-one"): (monitor_terminal, monitor_terminal.replace("return 0", "return 1")),
+        ("monitor", "legacy-before"): (monitor_terminal, "      valid-zombie:valid-zombie) return 0 ;;\n" + monitor_terminal),
+        ("monitor", "live-before"): (monitor_terminal, "      valid-live:valid-live) return 0 ;;\n" + monitor_terminal),
+        ("monitor", "identity-corruption"): ("go_child_identity-", "unbound_identity-"),
+        ("reap", "drop-missing"): (reap_terminal, reap_terminal.replace("|missing:none", "")),
+        ("reap", "missing-only"): (reap_terminal, reap_terminal.replace("valid-zombie:valid-zombie|", "")),
+        ("reap", "add-live"): (reap_terminal, reap_terminal.replace("|missing:none)", "|missing:none|valid-live:valid-live)")),
+        ("reap", "drop-wildcard-return"): (reap_terminal, reap_terminal.replace("*) return 75", "*)")),
+        ("reap", "wait-before-guard"): (reap_wait, '  if wait "$go_child_pid"; then\n' + reap_terminal),
+        ("reap", "legacy-before"): (reap_terminal, reap_terminal.replace("    valid-zombie:valid-zombie|missing:none) ;;", "    valid-zombie:valid-zombie) return 0 ;;\n    valid-zombie:valid-zombie|missing:none) ;;")),
+        ("reap", "live-before"): (reap_terminal, reap_terminal.replace("    valid-zombie:valid-zombie|missing:none) ;;", "    valid-live:valid-live) ;;\n    valid-zombie:valid-zombie|missing:none) ;;")),
+        ("reap", "reaped-false"): ("go_child_reaped=true", "go_child_reaped=false"),
+        ("reap", "remove-session"): ("  go_child_session=\n", ""),
+        ("reap", "remove-starttime"): ("  go_child_starttime=\n", ""),
+        ("reap", "remove-pgid"): ("  go_child_pgid=\n", ""),
+    }
+    candidate = runtime
+    if case_name != "canonical":
+        if case_name in move_resets:
+            reset_line = f"  {move_resets[case_name]}=\n"
+            assert owner.count(reset_line) == owner.count(pid_line) == 1
+            replacement = owner.replace(reset_line, "", 1).replace(
+                pid_line, reset_line + pid_line, 1
+            )
+            candidate = runtime.replace(owner, replacement, 1)
+        else:
+            needle, replacement = changes[(owner_name, case_name)]
+            assert owner.count(needle) == 1
+            candidate = runtime.replace(owner, owner.replace(needle, replacement, 1), 1)
+        assert candidate != runtime
+    assert _hard2g_runtime_child_lifecycle_is_closed(candidate) is (case_name == "canonical")
 
 
 def test_hard2g_execute_budget_bridge_is_closed() -> None:
@@ -1167,6 +1300,105 @@ def test_hard2g_execute_stage_current_source_is_closed() -> None:
         assert not _hard2g_execute_budget_bridge_is_closed(hostile)
 
 
+@pytest.mark.parametrize(
+    "case_name",
+    (
+        "canonical safe none eval shc printenv socket external arity unquoted callee "
+        "return75 duplicate missing moved conditional quoted heredoc command continued "
+        "prelude cr nofinal backtick alt-at alt-star alt-braced inject-at inject-star "
+        "inject-braced"
+    ).split(),
+)
+def test_hard2g_execute_forwarding_admission_is_closed(case_name: str) -> None:
+    execute = _required_asset_text(
+        _REPO_ROOT / "testframework/docker/backend_unit/execute.sh"
+    )
+    lines = tuple(execute.splitlines())
+    prelude = "\n".join(lines[:21])
+    ready_body = _shell_function_body(lines, "_execute_reader_is_ready_for_container_stop")
+    reap_body = _shell_function_body(lines, "_execute_reap_owned_reader_for_container_stop")
+    assert isinstance(ready_body, tuple) and isinstance(reap_body, tuple)
+    ready_header = "_execute_reader_is_ready_for_container_stop() {"
+    reap_header = "_execute_reap_owned_reader_for_container_stop() {"
+    ready = ready_header + "\n" + "\n".join(ready_body) + "\n}"
+    reap = reap_header + "\n" + "\n".join(reap_body) + "\n}"
+    owners = ready + "\n\n" + reap
+    guard = '  [ "$#" -eq 7 ] || return 64'
+    forward = '  execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75'
+    assert ready_body[0] == reap_body[0] == guard
+    assert execute.count(prelude) == execute.count(ready) == execute.count(reap) == execute.count(owners) == 1
+    assert execute.count("$@") == 3 and execute.endswith("\n")
+
+    def mutate(owner: str, needle: str, replacement: str) -> str:
+        assert owner.count(needle) == 1
+        candidate = execute.replace(owner, owner.replace(needle, replacement, 1), 1)
+        assert candidate != execute
+        return candidate
+
+    safe = "#!/bin/sh\nset -eu\n"
+    other = "_execute_identity_is_exact() {\n"
+    assert execute.count(other) == 1
+    cases: dict[str, object] = {
+        "canonical": execute,
+        "safe": safe,
+        "none": None,
+        "eval": "eval command\n",
+        "shc": "sh -c command\n",
+        "printenv": "printenv\n",
+        "socket": "cat /var/run/docker.sock\n",
+        "external": mutate(execute, "\n\n_execute_abort_child() {", '\n"$@"\n\n_execute_abort_child() {'),
+        "arity": mutate(ready, guard, '  [ "$#" -eq 6 ] || return 64'),
+        "unquoted": mutate(ready, '"$@"', "$@"),
+        "callee": mutate(ready, "_execute_owned_reader_state_for_container_stop", "_execute_other_reader_state_for_container_stop"),
+        "return75": mutate(ready, " || return 75", ""),
+        "duplicate": mutate(execute, owners, owners + "\n\n" + ready),
+        "missing": mutate(execute, ready, ""),
+        "moved": mutate(ready, guard + "\n" + forward, forward + "\n" + guard),
+        "conditional": mutate(execute, ready, "if :; then\n" + ready + "\nfi"),
+        "quoted": mutate(execute, owners, "'\n" + owners + "\n'"),
+        "heredoc": mutate(execute, owners, "cat <<'DECOY'\n" + owners + "\nDECOY"),
+        "command": mutate(execute, owners, ":\n" + owners),
+        "continued": mutate(prelude, "active_stage_for_container_stop=false", "active_stage_for_container_stop=" + "\\" + "\nfalse"),
+        "prelude": mutate(prelude, "active_stage_for_container_stop=false", "active_stage_for_container_stop=true"),
+        "cr": mutate(execute, "set -eu\n", "set -eu\r\n"),
+        "nofinal": execute.removesuffix("\n"),
+        "backtick": mutate(execute, owners, "`true`\n" + owners),
+        "alt-at": "${@}\n",
+        "alt-star": "$*\n",
+        "alt-braced": "${*}\n",
+        "inject-at": mutate(execute, other, other + '  : "${@}"\n'),
+        "inject-star": mutate(execute, other, other + '  : "$*"\n'),
+        "inject-braced": mutate(execute, other, other + '  : "${*}"\n'),
+    }
+    assert not _shell_source_is_safe(execute) and _shell_source_is_safe(safe)
+    assert all(not _shell_source_is_safe(cases[name]) for name in "eval shc printenv socket".split())
+    assert all(candidate != execute for name, candidate in cases.items() if name != "canonical")
+    assert all(cases[name].count("$@") == execute.count("$@") for name in "moved conditional quoted heredoc command backtick".split())
+    assert cases["external"].count("$@") == execute.count("$@") + 1
+    assert not any(token in execute for token in ("${@", "$*", "${*}", "`", "<<"))
+    assert _hard2g_execute_forwarding_source_is_safe(cases[case_name]) is (
+        case_name in {"canonical", "safe"}
+    )
+
+
+def test_hard2g_execute_fixture_preserves_printf_format_escape() -> None:
+    inventory = _hard2g_c02_function_inventory(
+        _hard2g_execute_budget_bridge_fixture()
+    )
+    if inventory is None:
+        raise AssertionError("execute fixture inventory unavailable")
+    reader = inventory["read_bounded_stage_stream"]
+    expected = "printf '%s\\n' \"$stream_used\" > \"$stream_used_path\""
+    assert reader.count(expected) == 1
+    assert "printf '%s" not in reader
+    assert "' \"$stream_used\" > \"$stream_used_path\"" not in reader
+    assert _shell_words(expected) == (
+        "printf", "%s\\n", "$stream_used", ">", "$stream_used_path"
+    )
+    assert _hard2g_c02_shell_body_lexically_closed(reader)
+    assert _hard2g_c02_shell_control_flow_is_closed(reader)
+
+
 def test_hard2g_read_bounded_stage_stream_automaton_is_closed() -> None:
     execute = _hard2g_c02_durable_budget_execute_fixture()
     assert _hard2g_read_bounded_stage_stream_automaton_is_closed(execute)
@@ -1179,6 +1411,12 @@ def test_hard2g_read_bounded_stage_stream_automaton_is_closed() -> None:
         '  fi\n'
     )
     account_line = "  stream_used=$((stream_used + stream_bytes))\n"
+    reader_tail = (
+        "  fi\n"
+        '  : > "$budget_stop_marker"\n'
+        "  return 75\n}\n\nrun_stage() {"
+    )
+    assert execute.count(reader_tail) == 1
     for hostile in (
         execute.replace(
             'stream_tmp="$GOTMPDIR/stream-capture/$stage.$stream.$package_ordinal.tmp"',
@@ -1207,9 +1445,11 @@ def test_hard2g_read_bounded_stage_stream_automaton_is_closed() -> None:
             1,
         ),
         execute.replace(
-            '  return 0\n}\n\nrun_stage() {',
+            reader_tail,
+            '  fi\n'
             '  cat -- "$fifo_path" >> "$stream_path"\n'
-            '  return 0\n}\n\nrun_stage() {',
+            '  : > "$budget_stop_marker"\n'
+            "  return 75\n}\n\nrun_stage() {",
             1,
         ),
         execute.replace(
@@ -1462,10 +1702,9 @@ def test_hard2g_c02_shell_body_lexically_closes_only_supported_forms() -> None:
     )
     assert runtime is not None
     assert execute is not None
-    assert all(
-        _hard2g_c02_shell_body_lexically_closed(body)
-        for body in (*runtime.values(), *execute.values())
-    )
+    for owner, inventory in (("runtime", runtime), ("execute", execute)):
+        for name, body in inventory.items():
+            assert _hard2g_c02_shell_body_lexically_closed(body), (owner, name, body)
 
     for accepted in (
         ('printf \'%s\\n\' "${SAFE}"',),
@@ -1542,6 +1781,163 @@ def test_hard2g_c02_shell_body_lexically_closes_only_supported_forms() -> None:
         assert not _hard2g_c02_shell_body_lexically_closed(hostile)
 
 
+def test_hard2g_c02_case_arm_parameters_are_quoted_and_exact() -> None:
+    assignments = _hard2g_runtime_budget_assignments()
+    assert isinstance(assignments, tuple)
+    plain = _hard2g_runtime_stage_stream_cap_body(assignments)
+    assert isinstance(plain, tuple)
+    braced = tuple(
+        re.sub(r'"\$([A-Z_][A-Z0-9_]*)"', r'"${\1}"', line)
+        for line in plain
+    )
+    plain_arm = 'build:stdout) printf \'%s\\n\' "$BUILD_STDOUT_CAP_BYTES" ;;'
+    assert plain.count(plain_arm) == 1
+    suffix_name = tuple(
+        line.replace(
+            '"$BUILD_STDOUT_CAP_BYTES"', '"$BUILD_STDOUT_CAP_BYTESsuffix"'
+        )
+        for line in plain
+    )
+    for accepted in (plain, braced, suffix_name):
+        assert _hard2g_c02_shell_body_lexically_closed(accepted)
+        assert _hard2g_c02_shell_control_flow_is_closed(accepted)
+
+    for hostile_arm in (
+        plain_arm.replace('"$BUILD_STDOUT_CAP_BYTES"', "$BUILD_STDOUT_CAP_BYTES"),
+        plain_arm.replace(
+            '"$BUILD_STDOUT_CAP_BYTES"', '"${BUILD_STDOUT_CAP_BYTES-default}"'
+        ),
+        plain_arm.replace('"$BUILD_STDOUT_CAP_BYTES"', '"$(printf 1)"'),
+        plain_arm.replace('"$BUILD_STDOUT_CAP_BYTES"', '"$BUILD_STDOUT_CAP_BYTES"suffix'),
+        plain_arm.replace(" ;;", " ; true ;;"),
+        plain_arm.replace(" ;;", " | cat ;;"),
+        plain_arm.replace("printf '%s\\n'", "echo"),
+    ):
+        hostile = tuple(hostile_arm if line == plain_arm else line for line in plain)
+        assert not _hard2g_c02_shell_body_lexically_closed(hostile)
+        assert not _hard2g_c02_shell_control_flow_is_closed(hostile)
+
+
+def test_shell_function_body_extracts_runtime_awk_and_receipt_finalizer() -> None:
+    runtime_lines = _shell_active_lines(
+        (_REPO_ROOT / "testframework/docker/backend_unit/runtime.sh").read_text(
+            encoding="utf-8"
+        )
+    )
+    receipt_lines = _shell_active_lines(
+        (_REPO_ROOT / "testframework/docker/backend_unit/receipt.sh").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert isinstance(runtime_lines, tuple)
+    assert isinstance(receipt_lines, tuple)
+
+    runtime_body = _shell_function_body(
+        runtime_lines, "_cgroup_v2_oom_snapshot_fields"
+    )
+    receipt_body = _shell_function_body(receipt_lines, "finalize_container")
+
+    assert isinstance(runtime_body, tuple)
+    assert isinstance(receipt_body, tuple)
+    assert "awk '" in runtime_body
+    assert 'END {' in runtime_body
+    assert runtime_body[-1] == "' \"$cgroup_events_snapshot_file\" || return 75"
+    assert 'if write_atomic "$run_dir/container-receipt.json" "$receipt"; then' in receipt_body
+    assert 'receipt_final_metadata="$(report_metadata_bytes)" || {' in receipt_body
+    assert receipt_body.count("_receipt_cleanup_terminal || return 75") == 8
+    assert receipt_body[-2:] == ("_receipt_cleanup_terminal || return 75", "return 75")
+    assert "backend_unit_handle_term() {" not in receipt_body
+
+
+def test_shell_function_body_tracks_groups_without_counting_quoted_braces() -> None:
+    lines = (
+        "extract() {",
+        "single='{ literal }'",
+        'double="{ literal }"',
+        'printf "%s %s\\n" "${name}" "${name-default}"',
+        "awk '",
+        '$1 == "oom" {',
+        "if (NF != 2) invalid = 1",
+        "}",
+        "' \"$events\" || return 75",
+        "first || {",
+        "nested || {",
+        'cleanup "first"',
+        "}",
+        "}",
+        "second || {",
+        'cleanup "second"',
+        "}",
+        "}",
+        "unrelated() {",
+        ":",
+        "}",
+    )
+
+    assert _shell_function_body(lines, "extract") == lines[1:17]
+
+
+def test_shell_function_body_preserves_simple_cases_and_rejects_ambiguity() -> None:
+    assert _shell_function_body(("empty() {", "}"), "empty") == ()
+    assert _shell_function_body(
+        ("simple() {", "printf '%s\\n' ok", "}"), "simple"
+    ) == ("printf '%s\\n' ok",)
+
+    for lines, name in (
+        (("other() {", "}"), "missing"),
+        (("duplicate() {", ":", "}", "duplicate() {", ":", "}"), "duplicate"),
+        (("group() {", "false || {", ":", "}"), "group"),
+        (("quote() {", "printf '%s' 'unterminated", "}"), "quote"),
+        (("ambiguous() {", "{", ":", "}", "}"), "ambiguous"),
+    ):
+        assert _shell_function_body(lines, name) is _INVALID
+
+
+def test_shell_function_body_i1_preserves_continuations_and_rejects_bad_grammar() -> None:
+    execute_lines = _shell_active_lines(
+        (_REPO_ROOT / "testframework/docker/backend_unit/execute.sh").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert isinstance(execute_lines, tuple)
+    quiescent = _shell_function_body(
+        execute_lines, "prove_quiescent_for_container_stop"
+    )
+    assert isinstance(quiescent, tuple)
+    assert "for execute_quiescent_value in \\" in quiescent
+    assert (
+        '_execute_completed_stage_final_identities_are_current race '
+        '"$completed_race_final_identities" || return 75' in quiescent
+    )
+    assert quiescent[-5:] == (
+        "child_group_reaped=true",
+        "stdout_reader_reaped=true",
+        "stderr_reader_reaped=true",
+        "unpublished_stage_rolled_back=true",
+        "return 0",
+    )
+    parameters = (
+        "parameters() {",
+        "simple=${name}",
+        "default=${name-default}",
+        "length=${#name}",
+        "prefix=${name#prefix}",
+        "}",
+    )
+    assert _shell_function_body(parameters, "parameters") == parameters[1:-1]
+    for lines, name in (
+        (("dangling() {", "|| {", ":", "}", "}"), "dangling"),
+        (("adjacent() {", "false && || {", ":", "}", "}"), "adjacent"),
+        (("empty_parameter() {", "value=${}", "}"), "empty_parameter"),
+        (("continued() {", "printf ok \\", "}"), "continued"),
+        (("opaque() {", "false || {", ":", "; } # opaque", "}"), "opaque"),
+        (("nested_parameter() {", "value=${name-${nested}}", "}"), "nested_parameter"),
+        (("escaped_parameter() {", "value=${name\\}", "}"), "escaped_parameter"),
+        (("commented_opener() {", "false # comment || {", ":", "}", "}"), "commented_opener"),
+    ):
+        assert _shell_function_body(lines, name) is _INVALID
+
+
 def test_hard2g_c02_shell_control_flow_is_closed() -> None:
     runtime = _hard2g_c02_function_inventory(
         _hard2g_runtime_budget_fixture(_hard2g_runtime_budget_assignments())
@@ -1551,10 +1947,9 @@ def test_hard2g_c02_shell_control_flow_is_closed() -> None:
     )
     assert runtime is not None
     assert execute is not None
-    assert all(
-        _hard2g_c02_shell_control_flow_is_closed(body)
-        for body in (*runtime.values(), *execute.values())
-    )
+    for owner, inventory in (("runtime", runtime), ("execute", execute)):
+        for name, body in inventory.items():
+            assert _hard2g_c02_shell_control_flow_is_closed(body), (owner, name, body)
 
     for accepted in (
         ("if ! true; then", "fi"),
@@ -1983,35 +2378,35 @@ def test_hard2g_lease_manifest_constants_are_ast_bound_and_fail_closed() -> None
 
     hostile_sources = (
         source.replace(
-            '_CANONICAL_BUILD_INPUT_PATHS = (\\n    "docker-compose.local.yml",',
-            '_CANONICAL_BUILD_INPUT_PATHS = (\\n    "hostile-compose.yml",',
+            '_CANONICAL_BUILD_INPUT_PATHS = (\n    "docker-compose.local.yml",',
+            '_CANONICAL_BUILD_INPUT_PATHS = (\n    "hostile-compose.yml",',
             1,
         ),
-        source.replace('    "testframework/observers/**",\\n', "", 1),
+        source.replace('    "testframework/observers/**",\n', "", 1),
         source.replace(
-            '    "docker-compose.local.yml",\\n'
-            '    "testframework/docker/Dockerfile.qa",\\n',
-            '    "testframework/docker/Dockerfile.qa",\\n'
-            '    "docker-compose.local.yml",\\n',
-            1,
-        ),
-        source.replace(
-            '_MANIFEST_PATHS = (\\n    "docker-compose.local.yml",',
-            '_MANIFEST_PATHS = (\\n    "hostile-compose.yml",',
+            '    "docker-compose.local.yml",\n'
+            '    "testframework/docker/Dockerfile.qa",\n',
+            '    "testframework/docker/Dockerfile.qa",\n'
+            '    "docker-compose.local.yml",\n',
             1,
         ),
         source.replace(
-            '    "testframework/observers/backend_unit/lease.py",\\n',
+            '_MANIFEST_PATHS = (\n    "docker-compose.local.yml",',
+            '_MANIFEST_PATHS = (\n    "hostile-compose.yml",',
+            1,
+        ),
+        source.replace(
+            '    "testframework/observers/backend_unit/lease.py",\n',
             "",
             1,
         ),
         source.replace(
-            '_MANIFEST_PATHS = (\\n'
-            '    "docker-compose.local.yml",\\n'
-            '    "testframework/docker/Dockerfile.qa",\\n',
-            '_MANIFEST_PATHS = (\\n'
-            '    "testframework/docker/Dockerfile.qa",\\n'
-            '    "docker-compose.local.yml",\\n',
+            '_MANIFEST_PATHS = (\n'
+            '    "docker-compose.local.yml",\n'
+            '    "testframework/docker/Dockerfile.qa",\n',
+            '_MANIFEST_PATHS = (\n'
+            '    "testframework/docker/Dockerfile.qa",\n'
+            '    "docker-compose.local.yml",\n',
             1,
         ),
     )
@@ -2430,6 +2825,45 @@ def test_hard2g_container_receipt_current_source_is_closed() -> None:
         assert not _hard2g_container_publication_is_closed(hostile)
 
 
+@pytest.mark.parametrize(
+    ("case_name", "expected"),
+    (
+        ("canonical", True),
+        ("bare", False),
+        ("removed", False),
+        ("colon", False),
+        ("return74", False),
+        ("hash", False),
+        ("input", False),
+        ("duplicate", False),
+    ),
+)
+def test_hard2g_receipt_inventory_digest_guard_is_exact(
+    case_name: str, expected: bool
+) -> None:
+    receipt = _required_asset_text(_REPO_ROOT / "testframework/docker/backend_unit/receipt.sh")
+    start = "_receipt_inventory() {\n"
+    end = "\n}\n\n_receipt_source_manifest()"
+    guarded = '  receipt_inventory_sha256="$(_receipt_sha256_text "$receipt_inventory_lines")" || return 75\n'
+    assert receipt.count(start) == receipt.count(end) == 1
+    owner = receipt[receipt.index(start) : receipt.index(end) + 2]
+    assert receipt.count(owner) == owner.count(guarded) == 1
+    variants = {
+        "canonical": guarded,
+        "bare": guarded.removesuffix(" || return 75\n") + "\n",
+        "removed": "",
+        "colon": guarded.replace("return 75", ":"),
+        "return74": guarded.replace("return 75", "return 74"),
+        "hash": guarded.replace("_receipt_sha256_text", "_receipt_sha256_file"),
+        "input": guarded.replace("receipt_inventory_lines", "receipt_inventory_json"),
+        "duplicate": guarded * 2,
+    }
+    mutated_owner = owner.replace(guarded, variants[case_name], 1)
+    candidate = receipt.replace(owner, mutated_owner, 1)
+    assert case_name == "canonical" or (mutated_owner != owner and candidate != receipt)
+    assert _hard2g_container_publication_is_closed(candidate) is expected, case_name
+
+
 def test_hard2g_publication_and_adapter_current_sources_are_closed() -> None:
     publication = _required_asset_text(
         _REPO_ROOT / "testframework/observers/backend_unit/publication.py"
@@ -2626,14 +3060,14 @@ def test_hard2g_root_handoff_ast_source_is_closed() -> None:
         ),
         source.replace(
             (
-                "_PROVISIONAL_RELATIVE = (\\n"
-                f'    "{_HARD2G_ROOT_HANDOFF_PROVISIONAL_REPORT_PATH}"\\n'
+                "_PROVISIONAL_RELATIVE = (\n"
+                f'    "{_HARD2G_ROOT_HANDOFF_PROVISIONAL_REPORT_PATH}"\n'
                 ")"
             ),
             (
-                "_PROVISIONAL_RELATIVE = (\\n"
-                '    "testframework/reports/other.json"\\n'
-                ")\\n"
+                "_PROVISIONAL_RELATIVE = (\n"
+                '    "testframework/reports/other.json"\n'
+                ")\n"
                 "_UNUSED_PROVISIONAL_LITERAL = "
                 f'"{_HARD2G_ROOT_HANDOFF_PROVISIONAL_REPORT_PATH}"'
             ),
@@ -2646,46 +3080,46 @@ def test_hard2g_root_handoff_ast_source_is_closed() -> None:
         ),
         source.replace(
             (
-                '    if arguments[1] == "prebuild":\\n'
-                "        write_prebuild_handoff()\\n"
-                "    else:\\n"
+                '    if arguments[1] == "prebuild":\n'
+                "        write_prebuild_handoff()\n"
+                "    else:\n"
                 "        finalize_postgreen_handoff()"
             ),
             (
-                '    if arguments[1] == "prebuild":\\n'
-                "        finalize_postgreen_handoff()\\n"
-                "    else:\\n"
+                '    if arguments[1] == "prebuild":\n'
+                "        finalize_postgreen_handoff()\n"
+                "    else:\n"
                 "        write_prebuild_handoff()"
             ),
             1,
         ),
         source.replace(
             (
-                '    if arguments[1] == "prebuild":\\n'
-                "        write_prebuild_handoff()\\n"
-                "    else:\\n"
+                '    if arguments[1] == "prebuild":\n'
+                "        write_prebuild_handoff()\n"
+                "    else:\n"
                 "        finalize_postgreen_handoff()"
             ),
             (
-                '    if arguments[1] == "prebuild":\\n'
-                "        finalize_postgreen_handoff()\\n"
-                "    else:\\n"
+                '    if arguments[1] == "prebuild":\n'
+                "        finalize_postgreen_handoff()\n"
+                "    else:\n"
                 "        finalize_postgreen_handoff()"
             ),
             1,
         ),
         source.replace(
             (
-                '    if arguments[1] == "prebuild":\\n'
-                "        write_prebuild_handoff()\\n"
-                "    else:\\n"
+                '    if arguments[1] == "prebuild":\n'
+                "        write_prebuild_handoff()\n"
+                "    else:\n"
                 "        finalize_postgreen_handoff()"
             ),
             (
-                '    if arguments[1] == "prebuild":\\n'
-                "        write_prebuild_handoff()\\n"
-                "    else:\\n"
-                "        write_prebuild_handoff()\\n"
+                '    if arguments[1] == "prebuild":\n'
+                "        write_prebuild_handoff()\n"
+                "    else:\n"
+                "        write_prebuild_handoff()\n"
                 "        finalize_postgreen_handoff()"
             ),
             1,
@@ -2922,68 +3356,78 @@ def test_hard2g_observe_contract_closes_terminal_lifecycle_and_rejects_mutations
         source,
     )
     retry_guard = (
-        "        if self._stop_evidence is not None:\\n"
-        "            self._validated_stop_evidence(selected=selected, candidate=candidate)\\n"
-        "            return\\n"
+        "        if self._stop_evidence is not None:\n"
+        "            self._validated_stop_evidence(selected=selected, candidate=candidate)\n"
+        "            return\n"
     )
     complete_only_abort_return = (
-        '        if receipt_state == "CONTAINER_ABORTED":\\n'
+        '        if receipt_state == "CONTAINER_ABORTED":\n'
         "            return confirmed_stop"
     )
     recovered_terminal = (
-        "            record = _settled_record(tuple((*runtime._preflight, *monitored)), raw)\\n"
+        "            record = _settled_record(tuple((*runtime._preflight, *monitored)), raw)\n"
         "            runtime.terminal_verify(candidate, record)"
     )
     moved_die_inspect = (
-        '                if status != "die":\\n'
-        "                    continue\\n"
-        "                if not after_guarded_stop:\\n"
-        '                    raise InvalidEvidence("INVALID_EVIDENCE: interrupted terminal die preceded the guarded stop")\\n'
-        "                self._terminal = dict(adapter.inspect(container_id))\\n"
+        '                if status != "die":\n'
+        "                    continue\n"
+        "                if not after_guarded_stop:\n"
+        '                    raise InvalidEvidence("INVALID_EVIDENCE: interrupted terminal die preceded the guarded stop")\n'
+        "                self._terminal = deepcopy(dict(adapter.inspect(container_id)))\n"
     )
     special_facts = (
         'self._raw[key] if key in ("tmpfs", "discovery_failure") '
         "else self._raw.get(key, False)"
     )
-    for hostile in (
+    normal_terminal_capture = "self._terminal = deepcopy(dict(terminal_inspect))"
+    recovery_terminal_capture = (
+        "self._terminal = deepcopy(dict(adapter.inspect(container_id)))"
+    )
+    assert source.count(normal_terminal_capture) == 1
+    assert source.count(recovery_terminal_capture) == 1
+    for mutation_index, hostile in enumerate((
         source.replace("self._event_session = session", "self._event_session = None", 1),
         source.replace(
-            "        session = self._event_session\\n",
-            "        session = self._original_event_session\\n",
+            "        session = self._event_session\n",
+            "        session = self._original_event_session\n",
             1,
         ),
         source.replace(
-            "                self._terminal_die_session = session\\n"
+            "                self._terminal_die_session = session\n"
             "                return self._runtime_samples",
-            "                self._terminal_die_session = object()\\n"
+            "                self._terminal_die_session = object()\n"
             "                return self._runtime_samples",
             1,
         ),
         source.replace('if status != "die":', 'if status != "destroy":', 1),
         source.replace(
             moved_die_inspect,
-            '                if status != "die":\\n'
-            "                    self._terminal = dict(adapter.inspect(container_id))\\n"
-            "                    continue\\n"
-            "                if not after_guarded_stop:\\n"
-            '                    raise InvalidEvidence("INVALID_EVIDENCE: interrupted terminal die preceded the guarded stop")\\n',
+            '                if status != "die":\n'
+            "                    self._terminal = deepcopy(dict(adapter.inspect(container_id)))\n"
+            "                    continue\n"
+            "                if not after_guarded_stop:\n"
+            '                    raise InvalidEvidence("INVALID_EVIDENCE: interrupted terminal die preceded the guarded stop")\n',
             1,
         ),
         source.replace(
-            "                self._terminal = dict(adapter.inspect(container_id))\\n"
+            "                self._terminal = deepcopy(dict(adapter.inspect(container_id)))\n"
             "                self._terminal_die_time_nano = timestamp",
-            "                self._terminal = dict(adapter.inspect(container_id))\\n"
-            "                poll()\\n"
+            "                self._terminal = deepcopy(dict(adapter.inspect(container_id)))\n"
+            "                poll()\n"
             "                self._terminal_die_time_nano = timestamp",
             1,
         ),
         source.replace(
-            "self._terminal = dict(adapter.inspect(container_id))",
+            normal_terminal_capture,
             "self._terminal = {}",
-            2,
+            1,
+        ).replace(
+            recovery_terminal_capture,
+            "self._terminal = {}",
+            1,
         ),
         source.replace('"state": "in_flight"', '"state": "confirmed"', 1),
-        source.replace(retry_guard, "        if False:\\n            return\\n", 1),
+        source.replace(retry_guard, "        if False:\n            return\n", 1),
         source.replace(
             '        if earlier is not None and record.get("selected_stop") != earlier:',
             '        if earlier is not None and record.get("selected_stop") == earlier:',
@@ -3005,11 +3449,11 @@ def test_hard2g_observe_contract_closes_terminal_lifecycle_and_rejects_mutations
             1,
         ),
         source.replace(
-            '        elif receipt_state == "CONTAINER_ABORTED":\\n'
-            "            if selected is None:\\n"
+            '        elif receipt_state == "CONTAINER_ABORTED":\n'
+            "            if selected is None:\n"
             '                raise InvalidEvidence("INVALID_EVIDENCE: aborted receipt lacks a selected stop")',
-            '        elif receipt_state == "CONTAINER_ABORTED":\\n'
-            "            if selected is not None:\\n"
+            '        elif receipt_state == "CONTAINER_ABORTED":\n'
+            "            if selected is not None:\n"
             '                raise InvalidEvidence("INVALID_EVIDENCE: aborted receipt lacks a selected stop")',
             1,
         ),
@@ -3024,27 +3468,134 @@ def test_hard2g_observe_contract_closes_terminal_lifecycle_and_rejects_mutations
         source.replace('state.get("ExitCode") != 143', 'state.get("ExitCode") == 143', 1),
         source.replace('state.get("OOMKilled") is not False', 'state.get("OOMKilled") is False', 1),
         source.replace('state.get("Error") not in (None, "")', 'state.get("Error") in (None, "")', 1),
-        source.replace(complete_only_abort_return, "        if False:\\n            return confirmed_stop", 1),
+        source.replace(complete_only_abort_return, "        if False:\n            return confirmed_stop", 1),
         source.replace(special_facts, "self._raw.get(key, False)", 1),
         source.replace(
             "        host_config = self._host_config(inspected)",
-            '        self._raw["tmpfs"] = False\\n'
+            '        self._raw["tmpfs"] = False\n'
             "        host_config = self._host_config(inspected)",
             1,
         ),
         source.replace(
             recovered_terminal,
-            "            record = _settled_record(tuple((*runtime._preflight, *monitored)), raw)\\n"
-            '            if record["classification"] == "SEALED_INTERRUPTED":\\n'
-            '                raise InvalidEvidence("INVALID_EVIDENCE: sealed interrupt bypass")\\n'
+            "            record = _settled_record(tuple((*runtime._preflight, *monitored)), raw)\n"
+            '            if record["classification"] == "SEALED_INTERRUPTED":\n'
+            '                raise InvalidEvidence("INVALID_EVIDENCE: sealed interrupt bypass")\n'
             "            runtime.terminal_verify(candidate, record)",
             1,
         ),
-    ):
-        assert hostile != source
+    )):
+        assert hostile != source, f"mutation_index={mutation_index}"
         assert not _hard2g_observer_source_has_closed_read_authority(
             _HARD2G_OBSERVER_OBSERVE_SOURCE_PATH,
             hostile,
+        ), f"mutation_index={mutation_index}"
+
+
+def test_hard2g_v4_observe_closure_names_failed_conjuncts() -> None:
+    source = _required_asset_text(_REPO_ROOT / _HARD2G_OBSERVER_OBSERVE_SOURCE_PATH)
+    tree = ast.parse(source)
+    runtime = _hard2g_v4_observe_unique_runtime(tree)
+    main = _hard2g_v4_observe_unique_module_function(tree, "main")
+    assert runtime is not None
+    assert main is not None
+    methods = _hard2g_v4_observe_methods(runtime)
+    conjuncts = (
+        ("session_lifecycle", _hard2g_v4_observe_session_lifecycle_is_closed(methods, runtime)),
+        ("stop_lifecycle", _hard2g_v4_observe_stop_lifecycle_is_closed(methods, runtime)),
+        ("terminal_branches", _hard2g_v4_observe_terminal_branches_are_closed(methods)),
+        ("measured_facts", _hard2g_v4_observe_measured_facts_are_closed(methods)),
+        ("main_lifecycle", _hard2g_v4_observe_main_lifecycle_is_closed(tree, main)),
+    )
+    assert all(result for _, result in conjuncts), tuple(
+        name for name, result in conjuncts if not result
+    )
+
+
+def test_hard2g_v4_observe_methods_accepts_only_optional_first_literal_docstring() -> None:
+    tree = ast.parse(
+        "class Documented:\n"
+        '    "literal docstring"\n'
+        "    def first(self):\n"
+        "        pass\n"
+        "    def second(self):\n"
+        "        pass\n"
+        "class Bare:\n"
+        "    def first(self):\n"
+        "        pass\n"
+        "    def second(self):\n"
+        "        pass\n"
+    )
+    documented, bare = tree.body
+    assert isinstance(documented, ast.ClassDef)
+    assert isinstance(bare, ast.ClassDef)
+    documented_methods = _hard2g_v4_observe_methods(documented)
+    assert tuple(documented_methods) == ("first", "second")
+    assert documented_methods["first"] is documented.body[1]
+    assert documented_methods["second"] is documented.body[2]
+    bare_methods = _hard2g_v4_observe_methods(bare)
+    assert tuple(bare_methods) == ("first", "second")
+    assert bare_methods["first"] is bare.body[0]
+    assert bare_methods["second"] is bare.body[1]
+
+    for hostile in (
+        "class C:\n    42\n    def first(self): pass\n    def second(self): pass\n",
+        "class C:\n    b'bytes'\n    def first(self): pass\n    def second(self): pass\n",
+        "class C:\n    marker()\n    def first(self): pass\n    def second(self): pass\n",
+        "class C:\n    value = 1\n    def first(self): pass\n    def second(self): pass\n",
+        "class C:\n    def first(self): pass\n    'late'\n    def second(self): pass\n",
+        "class C:\n    async def first(self): pass\n    def second(self): pass\n",
+        "class C:\n    def first(self): pass\n    def first(self): pass\n",
+        "class C:\n    pass\n    def first(self): pass\n    def second(self): pass\n",
+    ):
+        candidate = ast.parse(hostile).body[0]
+        assert isinstance(candidate, ast.ClassDef)
+        assert _hard2g_v4_observe_methods(candidate) == {}
+
+
+def test_hard2g_v4_observe_terminal_checks_own_lower_aborted_branch() -> None:
+    source = _required_asset_text(_REPO_ROOT / _HARD2G_OBSERVER_OBSERVE_SOURCE_PATH)
+    runtime = _hard2g_v4_observe_unique_runtime(ast.parse(source))
+    assert runtime is not None
+    methods = _hard2g_v4_observe_methods(runtime)
+    assert _hard2g_v4_observe_terminal_branches_are_closed(methods)
+    bindings = methods["_validate_container_bindings"]
+    pair = _hard2g_v4_observe_terminal_branch_pair(bindings)
+    assert pair is not None
+    branch = ast.get_source_segment(source, pair[1])
+    binding_source = ast.get_source_segment(source, bindings)
+    assert branch is not None and binding_source is not None
+    assert source.count(branch) == source.count(binding_source) == 1
+    die = "confirmed_stop = self._validated_aborted_terminal_die(candidate, selected)"
+    early = (
+        '        if receipt_state == "CONTAINER_ABORTED":\n'
+        "            return confirmed_stop\n"
+    )
+    hostiles = (
+        (branch, die, "confirmed_stop = None"),
+        (branch, 'terminal.get("signal") != "TERM"', 'terminal.get("signal") == "TERM"'),
+        (branch, 'terminal.get("exit_code") != 143', 'terminal.get("exit_code") == 143'),
+        (branch, 'state.get("Status") != "exited"', 'state.get("Status") == "exited"'),
+        (branch, 'state.get("ExitCode") != 143', 'state.get("ExitCode") == 143'),
+        (branch, 'state.get("OOMKilled") is not False', 'state.get("OOMKilled") is False'),
+        (branch, 'state.get("Error") not in (None, "")', 'state.get("Error") in (None, "")'),
+        (binding_source, early, '        if receipt_state == "CONTAINER_ABORTED":\n            pass\n'),
+        (
+            binding_source,
+            early,
+            '        if receipt_state == "CONTAINER_ABORTED":\n'
+            '            plans = receipt.get("package_plan_sha256")\n'
+            "            return confirmed_stop\n",
+        ),
+    )
+    for owner, needle, replacement in hostiles:
+        assert owner.count(needle) == 1
+        candidate_source = source.replace(owner, owner.replace(needle, replacement, 1), 1)
+        assert candidate_source != source
+        candidate_runtime = _hard2g_v4_observe_unique_runtime(ast.parse(candidate_source))
+        assert candidate_runtime is not None
+        assert not _hard2g_v4_observe_terminal_branches_are_closed(
+            _hard2g_v4_observe_methods(candidate_runtime)
         )
 
 
@@ -3406,13 +3957,23 @@ def test_hard2g_observer_scope_gate_closes_classes_nested_functions_and_imports(
 
 def test_hard2g_docker_adapter_allows_only_its_nested_bounded_pipe_read() -> None:
     valid = (
-        "def _bounded_subprocess_output(argv, *, timeout_seconds, output_cap_bytes):\n"
-        "    process = None\n"
-        "    payload = bytearray()\n"
-        "    def read_stdout():\n"
-        "        remaining_plus_probe = output_cap_bytes - len(payload) + 1\n"
-        "        return process.stdout.read(remaining_plus_probe)\n"
-        "    return read_stdout()\n"
+        "import os\n"
+        "import time\n"
+        "def _read_pipe_chunk(process, timeout_seconds, max_bytes):\n"
+        "    descriptor = process.stdout.fileno()\n"
+        '    if os.name != "nt":\n'
+        "        return os.read(descriptor, min(65_536, max_bytes))\n"
+        "    return os.read(descriptor, min(65_536, max_bytes))\n"
+        "class DockerReadAdapter:\n"
+        "    def __init__(self, project, *, runner=None):\n"
+        "        self._runner = _default_runner if runner is None else runner\n"
+        "    def bind_unique_candidate_since(self):\n"
+        "        deadline = time.monotonic() + _BIND_WINDOW_SECONDS\n"
+        "        self._require_bind_time(deadline)\n"
+        "        self._require_bind_time(deadline)\n"
+        "        self._require_bind_time(deadline)\n"
+        "        self._require_bind_time(deadline)\n"
+        "        self._require_bind_time(deadline)\n"
     )
     assert _hard2g_observer_source_has_closed_read_authority(
         _HARD2G_OBSERVER_DOCKER_ADAPTER_SOURCE_PATH,
@@ -3420,35 +3981,58 @@ def test_hard2g_docker_adapter_allows_only_its_nested_bounded_pipe_read() -> Non
     )
     hostile = (
         valid.replace(
-            "process.stdout.read(remaining_plus_probe)",
-            "process.stderr.read(remaining_plus_probe)",
+            "os.read(descriptor, min(65_536, max_bytes))",
+            "os.read(foreign, min(65_536, max_bytes))",
             1,
         ),
         valid.replace(
-            "process.stdout.read(remaining_plus_probe)",
-            "process.stdout.read(output_cap_bytes)",
+            "min(65_536, max_bytes)",
+            "min(65_536)",
             1,
         ),
         valid.replace(
-            "return read_stdout()\n",
-            "    process.stdout.read(remaining_plus_probe)\n"
-            "    return read_stdout()\n",
+            "    return os.read(descriptor, min(65_536, max_bytes))\n",
+            "    os.read(descriptor, min(65_536, max_bytes))\n"
+            "    return os.read(descriptor, min(65_536, max_bytes))\n",
+            1,
+        ),
+        valid.replace(
+            "    return os.read(descriptor, min(65_536, max_bytes))\n",
+            "    return None\n",
+            1,
+        )
+        + "os.read(descriptor, min(65_536, max_bytes))\n",
+        valid
+        + "def _read_pipe_chunk(process, timeout_seconds, max_bytes):\n"
+        "    return None\n",
+        valid.replace(
+            "time.monotonic() + _BIND_WINDOW_SECONDS",
+            "time.monotonic()",
+            1,
+        ),
+        valid.replace("        self._require_bind_time(deadline)\n", "", 1),
+        valid.replace(
+            "self._runner = _default_runner if runner is None else runner",
+            "self._runner = runner",
             1,
         ),
     )
-    assert all(
-        not _hard2g_observer_source_has_closed_read_authority(
+    for source in hostile:
+        assert source != valid
+        assert not _hard2g_observer_source_has_closed_read_authority(
             _HARD2G_OBSERVER_DOCKER_ADAPTER_SOURCE_PATH,
             source,
         )
-        for source in hostile
-    )
 
 
 def test_hard2g_publication_allows_only_descriptor_anchored_os_read() -> None:
     valid = (
+        "import json\n"
         "import os\n"
         "from . import safe_paths\n"
+        'def _canonical_json_bytes(document):\n'
+        '    rendered = json.dumps(document, allow_nan=False, ensure_ascii=False, separators=(",", ":"), sort_keys=True)\n'
+        '    return rendered.encode("utf-8") + b"\\n"\n'
         "def _read_regular_relative(run_dir, relative):\n"
         "    descriptor = safe_paths.open_regular_relative(run_dir, relative)\n"
         "    before = safe_paths._require_regular(safe_paths._fstat(None, descriptor))\n"
@@ -3484,14 +4068,22 @@ def test_hard2g_publication_allows_only_descriptor_anchored_os_read() -> None:
             "    descriptor = os.open(run_dir / relative, 0)\n",
             1,
         ),
+        valid.replace("sort_keys=True", "sort_keys=False", 1),
+        valid.replace(", sort_keys=True", "", 1),
+        valid.replace("allow_nan=False", "allow_nan=True", 1),
+        valid.replace("allow_nan=False, ", "", 1),
+        valid.replace("ensure_ascii=False", "ensure_ascii=True", 1),
+        valid.replace("ensure_ascii=False, ", "", 1),
+        valid.replace('separators=(",", ":")', 'separators=(":", ",")', 1),
+        valid.replace(' + b"\\n"', "", 1),
+        valid + 'def _canonical_json_bytes(document):\n    return b"{}\\n"\n',
     )
-    assert all(
-        not _hard2g_observer_source_has_closed_read_authority(
+    for source in hostile:
+        assert source != valid
+        assert not _hard2g_observer_source_has_closed_read_authority(
             _HARD2G_OBSERVER_PUBLICATION_SOURCE_PATH,
             source,
         )
-        for source in hostile
-    )
 
 
 def test_hard2g_lease_source_allows_only_descriptor_rooted_authority() -> None:
@@ -4973,6 +5565,14 @@ def _public_service_overrides(name: str) -> Mapping[str, object]:
                         "/opt/hub/source/frontend/tests",
                     ),
                 ),
+                "environment": MappingProxyType(
+                    {
+                        "VITEST_MAX_THREADS": "2",
+                        "VITEST_MIN_THREADS": "1",
+                        "VITEST_MAX_FORKS": "2",
+                        "VITEST_MIN_FORKS": "1",
+                    }
+                ),
                 "cpus": 6.0,
                 "mem_limit": "2g",
                 "memswap_limit": "2g",
@@ -5643,8 +6243,8 @@ def _hard2g_runtime_budget_assignments() -> tuple[str, ...] | object:
         budget = _HARD2G_REPORT_BUDGET
         if not _hard2g_report_budget_is_closed(budget):
             return _INVALID
-        total = _mapping_value(budget, "total_bytes")
-        metadata = _mapping_value(budget, "reserved_metadata_bytes")
+        total = budget["total_bytes"]
+        metadata = budget["reserved_metadata_bytes"]
         streams = _mapping_value(budget, "streams")
         if (
             type(total) is not int
@@ -5661,7 +6261,7 @@ def _hard2g_runtime_budget_assignments() -> tuple[str, ...] | object:
             if not isinstance(stage_budget, Mapping):
                 return _INVALID
             for stream in ("stdout", "stderr"):
-                cap = _mapping_value(stage_budget, stream)
+                cap = stage_budget[stream]
                 if type(cap) is not int:
                     return _INVALID
                 assignments.append(
@@ -5792,6 +6392,18 @@ def _hard2g_runtime_child_lifecycle_is_closed(text: str) -> bool:
     terminate = bodies["terminate_owned_go_child_group"]
     reap = bodies["reap_owned_go_child_group"]
     identity = bodies["_capture_owned_go_child_identity"]
+    case_header = 'case "$leader_state:$group_state" in'
+    if monitor.count(case_header) != 1 or reap.count(case_header) != 1:
+        return False
+    try:
+        monitor_start = monitor.index(case_header)
+        monitor_end = monitor.index("esac", monitor_start) + 1
+        reap_start = reap.index(case_header)
+        reap_end = reap.index("esac", reap_start) + 1
+    except ValueError:
+        return False
+    monitor_case = monitor[monitor_start:monitor_end]
+    reap_case = reap[reap_start:reap_end]
     return (
         _hard2g_shell_body_contains_in_order(
             start,
@@ -5813,39 +6425,36 @@ def _hard2g_runtime_child_lifecycle_is_closed(text: str) -> bool:
                 "go_child_starttime=",
             ),
         )
-        and _hard2g_shell_body_contains_in_order(
-            monitor,
-            (
-                "go_child_identity-",
-                "if _capture_owned_go_child_identity; then",
-                "else",
-                "return 75",
-                "valid-live:valid-live)",
-                "valid-zombie:valid-zombie)",
-                '[ ! -e "$budget_stop_marker" ] || return 1',
-                "return 0",
-                "valid-zombie:valid-live) return 75",
-            ),
+        and _hard2g_shell_body_contains_in_order(monitor, ("go_child_identity-", "if _capture_owned_go_child_identity; then", "else", "return 75"))
+        and monitor_case
+        == (
+            'case "$leader_state:$group_state" in', "valid-live:valid-live)",
+            '[ ! -e "$budget_stop_marker" ] || return 1', "sleep 1", ";;",
+            "valid-zombie:valid-zombie|missing:none)",
+            '[ ! -e "$budget_stop_marker" ] || return 1', "return 0", ";;",
+            "valid-zombie:valid-live) return 75 ;;",
+            "valid-live:valid-zombie|valid-live:none|valid-zombie:none|invalid:*|missing:*|*:invalid) return 75 ;;",
+            "*) return 75 ;;", "esac",
         )
         and _hard2g_shell_body_contains_in_order(
             terminate,
             (
                 "_assert_owned_signal_identity || return 75",
-                'kill -TERM -- "-$go_child_pgid"',
+                'kill -TERM "-$go_child_pgid"',
                 "_assert_owned_signal_identity || return 75",
-                'kill -KILL -- "-$go_child_pgid"',
+                'kill -KILL "-$go_child_pgid"',
                 '[ "$leader_state:$group_state" = valid-zombie:valid-zombie ] || return 75',
             ),
         )
+        and reap_case
+        == (
+            'case "$leader_state:$group_state" in',
+            "valid-zombie:valid-zombie|missing:none) ;;", "*) return 75 ;;", "esac",
+        )
+        and reap_end < len(reap)
+        and reap[reap_end] == 'if wait "$go_child_pid"; then'
         and _hard2g_shell_body_contains_in_order(
-            reap,
-            (
-                '[ "$leader_state:$group_state" = valid-zombie:valid-zombie ] || return 75',
-                'if wait "$go_child_pid"; then',
-                "go_child_pid=",
-                "go_child_reaped=true",
-                "go_child_identity=",
-            ),
+            reap, ('if wait "$go_child_pid"; then', "go_child_pid=", "go_child_reaped=true", "go_child_identity=")
         )
     )
 
@@ -5976,7 +6585,7 @@ read_bounded_stage_stream() {
     return 75
   fi
   if check_budget; then
-    printf '%s\n' "$stream_used" > "$stream_used_path"
+    printf '%s\\n' "$stream_used" > "$stream_used_path"
     rm -f -- "$stream_tmp"
     return 0
   fi
@@ -6853,7 +7462,14 @@ def _hard2g_v4_observe_methods(
     runtime: ast.ClassDef,
 ) -> dict[str, ast.FunctionDef]:
     methods: dict[str, ast.FunctionDef] = {}
-    for node in runtime.body:
+    for index, node in enumerate(runtime.body):
+        if (
+            index == 0
+            and isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Constant)
+            and type(node.value.value) is str
+        ):
+            continue
         if not isinstance(node, ast.FunctionDef) or node.name in methods:
             return {}
         methods[node.name] = node
@@ -7398,7 +8014,7 @@ def _hard2g_v4_observe_terminal_branches_are_closed(
     ]
     validated_dies = [
         node
-        for node in aborted.body
+        for node in bound_aborted.body
         if isinstance(node, ast.Assign)
         and len(node.targets) == 1
         and isinstance(node.targets[0], ast.Name)
@@ -7417,7 +8033,7 @@ def _hard2g_v4_observe_terminal_branches_are_closed(
     ]
     aborted_docker_rejections = [
         node
-        for node in aborted.body
+        for node in bound_aborted.body
         if isinstance(node, ast.If)
         and isinstance(node.test, ast.BoolOp)
         and isinstance(node.test.op, ast.Or)
@@ -7443,7 +8059,7 @@ def _hard2g_v4_observe_terminal_branches_are_closed(
     ]
     bound_returns = [
         node
-        for node in bindings.body
+        for node in methods["_validate_container_bindings"].body
         if isinstance(node, ast.If)
         and _hard2g_v4_observe_state_comparison(node.test, "CONTAINER_ABORTED")
         and len(node.body) == 1
@@ -10529,7 +11145,14 @@ def _hard2g_container_publication_is_closed(text: object) -> bool:
             )
             and finalizer.count("_receipt_cleanup_terminal || return 75") >= 4
             and "_receipt_container_payload_is_canonical" in builder
-            and 'receipt_inventory_sha256="$(_receipt_sha256_text "$receipt_inventory_lines")"' in inventory_body
+            and tuple(
+                line
+                for line in inventory_body
+                if line.startswith("receipt_inventory_sha256=")
+            )
+            == (
+                'receipt_inventory_sha256="$(_receipt_sha256_text "$receipt_inventory_lines")" || return 75',
+            )
         )
     except Exception:
         return False
@@ -11623,7 +12246,7 @@ def _hard2g_c02_shell_body_lexically_closed(body: object) -> bool:
         )
         canonical_live_case = '"$go_child_pid (go) "*) return 0 ;;'
         ordinary_case_arm = re.compile(
-            rf"(?:[A-Za-z0-9_:-]+|\*)\) (?:printf '%s\\n' \"\$\{{{name}\}}\"|return [0-9]+) ;;"
+            rf"(?:[A-Za-z0-9_:-]+|\*)\) (?:printf '%s\\n' \"\$(?:{name}|\{{{name}\}})\"|return [0-9]+) ;;"
         )
         forbidden_words = {
             ".",
@@ -11752,7 +12375,7 @@ def _hard2g_c02_shell_control_flow_is_closed(body: object) -> bool:
         )
         canonical_live_case = '"$go_child_pid (go) "*) return 0 ;;'
         ordinary_case_arm = re.compile(
-            rf"(?:[A-Za-z0-9_:-]+|\*)\) (?:printf '%s\\n' \"\$\{{{name}\}}\"|return [0-9]+) ;;"
+            rf"(?:[A-Za-z0-9_:-]+|\*)\) (?:printf '%s\\n' \"\$(?:{name}|\{{{name}\}})\"|return [0-9]+) ;;"
         )
         reserved_control_words = {
             "if",
@@ -12153,9 +12776,63 @@ def _shell_function_body(
         if lines.count(header) != 1:
             return _INVALID
         start = lines.index(header)
+        depth = 1
+        quote, continued = "", False
         for end in range(start + 1, len(lines)):
-            if lines[end] == "}":
-                return lines[start + 1 : end]
+            line = lines[end]
+            if type(line) is not str:
+                return _INVALID
+            if continued and line == "}":
+                return _INVALID
+            continued = False
+            index = 0
+            while index < len(line):
+                character = line[index]
+                if quote:
+                    if quote == '"' and character == "\\":
+                        index += 2
+                        continue
+                    if character == quote:
+                        quote = ""
+                elif character in "'\"":
+                    quote = character
+                elif character == "\\":
+                    if index + 1 == len(line):
+                        continued = True
+                        break
+                    index += 1
+                elif character == "$" and line[index + 1 : index + 2] == "{":
+                    closing = line.find("}", index + 2)
+                    parameter = line[index + 2 : closing]
+                    if closing < 0 or not re.fullmatch(
+                        r"(?:#[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*(?:(?:[-+]|%%?|##?)[^{}\\]*)?)",
+                        parameter,
+                    ):
+                        return _INVALID
+                    index = closing
+                elif character == "#":
+                    return _INVALID
+                elif character == "{":
+                    opener = re.fullmatch(r"(.+)\s(?:&&|\|\|)\s", line[:index])
+                    if (
+                        opener is None
+                        or opener.group(1).rstrip().endswith(("&&", "||", ";"))
+                        or line[index + 1 : index + 2] not in ("", " ", "\t")
+                    ):
+                        return _INVALID
+                    depth += 1
+                elif character == "}":
+                    if depth == 1:
+                        if line != "}":
+                            return _INVALID
+                        return lines[start + 1 : end]
+                    if line != "}" and (
+                        not line[:index].rstrip().endswith(";")
+                        or line[index + 1 :] not in ("", "; then")
+                    ):
+                        return _INVALID
+                    depth -= 1
+                index += 1
         return _INVALID
     except Exception:
         return _INVALID
@@ -12529,8 +13206,12 @@ def _hard2g_task2_provenance_oracle_chain_is_closed(text: str) -> bool:
             target: ast.expr,
             names: frozenset[str],
         ) -> bool:
-            while isinstance(target, (ast.Attribute, ast.Subscript)):
+            remaining = 64
+            while remaining > 0 and isinstance(target, (ast.Attribute, ast.Subscript)):
                 target = target.value
+                remaining -= 1
+            if isinstance(target, (ast.Attribute, ast.Subscript)):
+                raise ValueError
             return isinstance(target, ast.Name) and target.id in names
 
         def statement_writes_names_or_alias_roots(
@@ -12589,11 +13270,15 @@ def _hard2g_task2_provenance_oracle_chain_is_closed(text: str) -> bool:
 
         def binding_path(value: ast.AST) -> tuple[str, tuple[str, ...]] | None:
             keys: list[str] = []
-            while isinstance(value, ast.Subscript):
+            remaining = 64
+            while remaining > 0 and isinstance(value, ast.Subscript):
                 if not isinstance(value.slice, ast.Constant) or type(value.slice.value) is not str:
                     return None
                 keys.append(value.slice.value)
                 value = value.value
+                remaining -= 1
+            if isinstance(value, ast.Subscript):
+                raise ValueError
             if not isinstance(value, ast.Name):
                 return None
             return value.id, tuple(reversed(keys))
@@ -12698,10 +13383,10 @@ def _hard2g_task2_provenance_oracle_chain_is_closed(text: str) -> bool:
             "test_candidate_binding_requires_hostname_exact_prefix_and_open_window"
         )
         snapshots = functions.get(
-            "test_lease_snapshots_bind_exact_manifest_images_and_no_acl_claim"
+            "test_lease_snapshots_bind_exact_source_snapshot_and_no_acl_claim"
         )
         publication = functions.get(
-            "test_publication_validates_before_write_then_hashes_seals_and_renames"
+            "test_publication_validates_canonical_container_before_write_then_rereads_seals_and_renames"
         )
         main_lifecycle = functions.get(
             "test_main_derives_every_sealed_classification_from_raw_observations"
@@ -13046,6 +13731,104 @@ def _canonical_fixed_unit_entrypoint(
         )
     )
     return "\n".join(lines) + "\n"
+
+
+_HARD2G_EXECUTE_FORWARDING_PRELUDE = (
+    "set -eu",
+    "active_stage_for_container_stop=false",
+    "active_stage_abort_state=idle",
+    "active_stage_artifacts_ready=false",
+    "active_stage_publish_in_progress=false",
+    "child_group_reaped=false",
+    "stdout_reader_reaped=false",
+    "stderr_reader_reaped=false",
+    "unpublished_stage_rolled_back=false",
+    "stdout_reader_started=false",
+    "stderr_reader_started=false",
+    "stdout_reader_pid=",
+    "stderr_reader_pid=",
+    "stdout_reader_identity=",
+    "stderr_reader_identity=",
+    "completed_build_final_identities=",
+    "completed_vet_final_identities=",
+    "completed_unit_final_identities=",
+    "completed_race_final_identities=",
+)
+_HARD2G_EXECUTE_FORWARDING_READY_BODY = (
+    '[ "$#" -eq 7 ] || return 64',
+    'execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75',
+    'case "$execute_stop_reader_state" in',
+    "absent|missing|zombie) printf '%s\\n' ready ;;",
+    "live|invalid) return 75 ;;",
+    "*) return 75 ;;",
+    "esac",
+)
+_HARD2G_EXECUTE_FORWARDING_REAP_BODY = (
+    '[ "$#" -eq 7 ] || return 64',
+    'execute_stop_reader_started="$1"',
+    'execute_stop_reader_pid="$2"',
+    'execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75',
+    'case "$execute_stop_reader_state" in',
+    "absent) return 0 ;;",
+    "missing|zombie) ;;",
+    "*) return 75 ;;",
+    "esac",
+    'if wait "$execute_stop_reader_pid"; then :; else :; fi',
+    'execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75',
+    '[ "$execute_stop_reader_state" = missing ] || return 75',
+    "return 0",
+)
+_HARD2G_EXECUTE_FORWARDING_LINE = (
+    'execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$@")" || return 75'
+)
+_HARD2G_EXECUTE_FIXED_FORWARDING_LINE = (
+    'execute_stop_reader_state="$(_execute_owned_reader_state_for_container_stop "$1" "$2" "$3" "$4" "$5" "$6" "$7")" || return 75'
+)
+
+
+def _hard2g_execute_forwarding_source_is_safe(text: object) -> bool:
+    try:
+        if type(text) is not str or any(token in text for token in ("${@", "$*", "${*}")):
+            return False
+        if "$@" not in text:
+            return _shell_source_is_safe(text)
+        if "\r" in text or not text.endswith("\n") or "<<" in text or "`" in text:
+            return False
+        lines = _shell_active_lines(text)
+        if (
+            not isinstance(lines, tuple)
+            or lines[: len(_HARD2G_EXECUTE_FORWARDING_PRELUDE)]
+            != _HARD2G_EXECUTE_FORWARDING_PRELUDE
+        ):
+            return False
+        index = len(_HARD2G_EXECUTE_FORWARDING_PRELUDE)
+        bodies: dict[str, tuple[str, ...]] = {}
+        while index < len(lines):
+            match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*)\(\) \{", lines[index])
+            if match is None or match.group(1) in bodies:
+                return False
+            name = match.group(1)
+            body = _shell_function_body(lines[index:], name)
+            if not isinstance(body, tuple):
+                return False
+            bodies[name] = body
+            index += len(body) + 2
+        if (
+            bodies.get("_execute_reader_is_ready_for_container_stop")
+            != _HARD2G_EXECUTE_FORWARDING_READY_BODY
+            or bodies.get("_execute_reap_owned_reader_for_container_stop")
+            != _HARD2G_EXECUTE_FORWARDING_REAP_BODY
+            or text.count("$@") != 3
+            or text.count(_HARD2G_EXECUTE_FORWARDING_LINE) != 3
+        ):
+            return False
+        sanitized = text.replace(
+            _HARD2G_EXECUTE_FORWARDING_LINE,
+            _HARD2G_EXECUTE_FIXED_FORWARDING_LINE,
+        )
+        return _shell_source_is_safe(sanitized)
+    except Exception:
+        return False
 
 
 def _shell_source_is_safe(text: object) -> bool:

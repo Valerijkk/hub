@@ -402,6 +402,7 @@ def test_container_receipt_rejects_abort_branch_crossovers_and_incomplete_proof(
             }
         elif mutation == "terminal_mismatch":
             document["terminal"] = {"signal": "TERM", "exit_code": 0}
+            _bind_abort_budget(document)
         elif mutation == "bootstrap_progress":
             document["abort"]["phase"] = "bootstrap"
             document["abort"]["planned_stages"] = ["build"]
@@ -597,7 +598,7 @@ def test_parse_seal_accepts_only_canonical_lf_finalized_bytes() -> None:
         "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
         "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
         "observer_receipt_sha256": (
-            "sha256:b77de46321d41915ed279dacfcb8acdf3d9002d4d3e418bf2629fbab0be416fe"
+            "sha256:937b8a013a814735ec4c45ad0e934f92b9e039c99282be850e0f0fc69fbfaa6f"
         ),
     }
     assert parsed["observer_receipt_sha256"] == (

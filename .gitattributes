@@ -8,3 +8,4 @@ testframework/docker/entrypoints/backend-unit.sh text eol=lf
 testframework/docker/backend_unit/runtime.sh text eol=lf
 testframework/docker/backend_unit/plan.sh text eol=lf
 testframework/docker/backend_unit/execute.sh text eol=lf
+testframework/selftests/architecture/observers/fixtures/backend_unit/** text eol=lf

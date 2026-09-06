@@ -1,34 +1,28 @@
 from __future__ import annotations
 
-import errno
 import os
 from pathlib import Path
+import select
 import signal
 import subprocess
 import time
 
 
-_POLL_SECONDS = 0.02
 _OBSERVATION_SECONDS = 1.5
 _SUBPROCESS_SECONDS = 5.0
 _PARENT_SCRIPT = """\
-identity_file="$1"
-release_fifo="$2"
-wait_sentinel="$3"
-status_file="$4"
+release_fifo="$1"
+wait_control_fifo="$2"
+status_file="$3"
+
+exec 3<> "$release_fifo"
+exec 4<> "$wait_control_fifo"
 
 /bin/sh -c 'IFS= read -r _ < "$1"; exit 17' backend-unit-owned-child "$release_fifo" &
 owned_pid=$!
-printf '%s %s\n' "$$" "$owned_pid" > "$identity_file"
+printf '%s %s\n' "$$" "$owned_pid"
 
-iteration=0
-while [ "$iteration" -lt 100 ]; do
-  [ -e "$wait_sentinel" ] && break
-  iteration=$((iteration + 1))
-  sleep 0.02
-done
-[ -e "$wait_sentinel" ] || exit 75
-
+IFS= read -r _ <&4
 wait "$owned_pid"
 owned_status=$?
 printf '%s\n' "$owned_status" > "$status_file"
@@ -50,53 +44,61 @@ def _read_proc_identity(pid: int) -> tuple[str, str, str] | None:
     return fields[0], fields[3], fields[19]
 
 
-def _wait_for_identity(path: Path, deadline: float) -> tuple[int, int]:
-    while time.monotonic() < deadline:
-        try:
-            fields = path.read_text(encoding="ascii").split()
-        except FileNotFoundError:
-            fields = []
-        if len(fields) == 2:
-            parent_pid, child_pid = (int(field) for field in fields)
-            if parent_pid > 1 and child_pid > 1:
-                return parent_pid, child_pid
-        time.sleep(_POLL_SECONDS)
-    raise AssertionError("owned child identity was not captured before timeout")
+def _read_readiness_record(descriptor: int, deadline: float) -> tuple[int, int]:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise AssertionError("owned child readiness deadline elapsed")
+    poller = select.poll()
+    poller.register(descriptor, select.POLLIN | select.POLLERR | select.POLLHUP)
+    if not any(
+        events & select.POLLIN
+        for _descriptor, events in poller.poll(int(remaining * 1000))
+    ):
+        raise AssertionError("owned child readiness was not readable before timeout")
+    record = os.read(descriptor, 128)
+    fields = record[:-1].split(b" ")
+    if (
+        not record.endswith(b"\n")
+        or record.count(b"\n") != 1
+        or len(record) == 128
+        or len(fields) != 2
+    ):
+        raise AssertionError("owned child readiness record was malformed")
+    try:
+        parent_pid, child_pid = (int(field) for field in fields)
+    except ValueError as error:
+        raise AssertionError("owned child readiness PIDs were invalid") from error
+    if (
+        parent_pid <= 1
+        or child_pid <= 1
+        or parent_pid == child_pid
+        or tuple(str(pid).encode("ascii") for pid in (parent_pid, child_pid))
+        != tuple(fields)
+    ):
+        raise AssertionError("owned child readiness PIDs were noncanonical")
+    return parent_pid, child_pid
 
 
-def _write_fifo(path: Path, payload: bytes, deadline: float) -> None:
-    while time.monotonic() < deadline:
-        try:
-            descriptor = os.open(path, os.O_WRONLY | os.O_NONBLOCK)
-        except OSError as error:
-            if error.errno != errno.ENXIO:
-                raise
-            time.sleep(_POLL_SECONDS)
-            continue
-        try:
-            written = os.write(descriptor, payload)
-            if written != len(payload):
-                raise AssertionError("short write to owned lifecycle fifo")
-            return
-        finally:
-            os.close(descriptor)
-    raise AssertionError("owned lifecycle fifo did not gain a reader before timeout")
+def _write_fifo(path: Path, payload: bytes) -> None:
+    descriptor = os.open(path, os.O_WRONLY | os.O_NONBLOCK)
+    try:
+        if os.write(descriptor, payload) != len(payload):
+            raise AssertionError("short write to owned lifecycle fifo")
+    finally:
+        os.close(descriptor)
 
 
-def _observe_prewait_state(
-    child_pid: int, deadline: float
-) -> tuple[str, str, str]:
-    final_zombie: tuple[str, str, str] | None = None
-    while time.monotonic() < deadline:
-        identity = _read_proc_identity(child_pid)
-        if identity is None:
-            return "absent", "", ""
-        if identity[0] == "Z":
-            final_zombie = identity
-        time.sleep(_POLL_SECONDS)
-    if final_zombie is not None:
-        return final_zombie
-    raise AssertionError("owned child was neither absent nor zombie before wait")
+def _await_pidfd_exit(descriptor: int, deadline: float) -> None:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise AssertionError("owned child exit deadline elapsed")
+    poller = select.poll()
+    poller.register(descriptor, select.POLLIN | select.POLLERR | select.POLLHUP)
+    if not any(
+        events & select.POLLIN
+        for _descriptor, events in poller.poll(int(remaining * 1000))
+    ):
+        raise AssertionError("owned child did not exit before the prewait deadline")
 
 
 def _owned_session_group(process: subprocess.Popen[str]) -> int | None:
@@ -134,11 +136,11 @@ def _reap_owned_session(process: subprocess.Popen[str]) -> None:
 
 
 def test_shell_child_is_absent_or_zombie_before_explicit_wait(tmp_path: Path) -> None:
-    identity_path = tmp_path / "identity"
     release_fifo = tmp_path / "release"
-    wait_sentinel = tmp_path / "wait"
+    wait_control_fifo = tmp_path / "wait-control"
     status_path = tmp_path / "wait-status"
     os.mkfifo(release_fifo, 0o600)
+    os.mkfifo(wait_control_fifo, 0o600)
 
     process = subprocess.Popen(
         [
@@ -147,9 +149,8 @@ def test_shell_child_is_absent_or_zombie_before_explicit_wait(tmp_path: Path) ->
             "-c",
             _PARENT_SCRIPT,
             "backend-unit-owned-parent",
-            str(identity_path),
             str(release_fifo),
-            str(wait_sentinel),
+            str(wait_control_fifo),
             str(status_path),
         ],
         stdout=subprocess.PIPE,
@@ -157,9 +158,12 @@ def test_shell_child_is_absent_or_zombie_before_explicit_wait(tmp_path: Path) ->
         text=True,
     )
     deadline = time.monotonic() + _SUBPROCESS_SECONDS
+    child_pidfd: int | None = None
     try:
-        parent_pid, child_pid = _wait_for_identity(
-            identity_path, min(deadline, time.monotonic() + _OBSERVATION_SECONDS)
+        assert process.stdout is not None
+        parent_pid, child_pid = _read_readiness_record(
+            process.stdout.fileno(),
+            min(deadline, time.monotonic() + _OBSERVATION_SECONDS),
         )
         assert parent_pid == process.pid > 1
         assert os.getpgid(parent_pid) == parent_pid
@@ -173,12 +177,23 @@ def test_shell_child_is_absent_or_zombie_before_explicit_wait(tmp_path: Path) ->
         assert child_state != "Z"
         assert child_session == parent_session == str(parent_pid)
 
-        _write_fifo(
-            release_fifo, b"release\n", min(deadline, time.monotonic() + _OBSERVATION_SECONDS)
+        try:
+            child_pidfd = os.pidfd_open(child_pid)
+        except AttributeError as error:
+            raise AssertionError("Linux pidfd support is unavailable") from error
+        except OSError as error:
+            raise AssertionError("owned child pidfd could not be opened") from error
+
+        _write_fifo(release_fifo, b"release\n")
+        _await_pidfd_exit(
+            child_pidfd, min(deadline, time.monotonic() + _OBSERVATION_SECONDS)
         )
-        prewait_state, observed_session, observed_starttime = _observe_prewait_state(
-            child_pid, min(deadline, time.monotonic() + _OBSERVATION_SECONDS)
-        )
+        prewait_identity = _read_proc_identity(child_pid)
+        if prewait_identity is None:
+            prewait_state, observed_session, observed_starttime = "absent", "", ""
+        else:
+            prewait_state, observed_session, observed_starttime = prewait_identity
+        assert prewait_state in {"Z", "absent"}
         print(
             "BACKEND_UNIT_SHELL_CHILD_PREWAIT "
             f"state={prewait_state} child_pid={child_pid} "
@@ -187,7 +202,7 @@ def test_shell_child_is_absent_or_zombie_before_explicit_wait(tmp_path: Path) ->
             f"parent_session={parent_session}"
         )
 
-        wait_sentinel.write_text("wait\n", encoding="ascii")
+        _write_fifo(wait_control_fifo, b"wait\n")
         remaining = deadline - time.monotonic()
         assert remaining > 0
         parent_stdout, parent_stderr = process.communicate(timeout=remaining)
@@ -197,4 +212,8 @@ def test_shell_child_is_absent_or_zombie_before_explicit_wait(tmp_path: Path) ->
         assert parent_stderr == ""
         assert status_path.read_text(encoding="ascii") == "17\n"
     finally:
-        _reap_owned_session(process)
+        try:
+            if child_pidfd is not None:
+                os.close(child_pidfd)
+        finally:
+            _reap_owned_session(process)

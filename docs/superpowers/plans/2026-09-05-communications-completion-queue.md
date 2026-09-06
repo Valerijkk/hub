@@ -35,6 +35,24 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Final acceptance | Reconnect/revoke/unread isolation, file/message/thread user journeys; Jitsi media/rollback/load; docs | Real Docker SUT/browser/API/storage evidence required; no full module PASS yet |
 | Legacy cutover | Drain then remove LiveKit by exact manifest | Only after replacement runtime/rollback exit gates, not before |
 
+## Shared QA repair update — 2026-09-06
+
+Runner scratch now uses the independent existing64MiB RAM tmpfs, preserving
+Go WORK location and all resource/security limits. Reviewed scratch/receipt/
+observer-test fixes reduced exact Docker python-contract failures81→38
+(604tests,566PASS,28.44s), no new failing IDs. Full framework remains FAIL.
+Numeric identity parsing, captured terminal deep-copy isolation and remaining
+test-helper drift are separate bounded follow-ups. No new Go attempt or Jitsi
+activation; checklist acceptance remains12/27, not a product-readiness score.
+[Evidence and limits](2026-09-06-backend-runner-scratch-isolation.md).
+
+Latest composed Python gate:674tests41FAIL/633PASS39.29s at inspected2GiB/no-swap,
+2CPU and readonly/tmp64MiB. All observer/numeric/scratch cases pass, including
+reviewed terminal deep-copy and canonical numeric grammar fixes. Remaining
+static helper/fixture failures are under narrow RED/review repair (32newintentional
+RED and9existingfailures); no product
+row promoted and no new Go/Jitsi run or resource-profile change.
+
 ## Exact message navigation discovery — 2026-09-06
 
 At published 74c5c492, SearchDialog.handleNavigate sends only channelId;

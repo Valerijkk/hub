@@ -15,6 +15,7 @@ import re
 import secrets
 import sys
 import time
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -739,7 +740,7 @@ class _SystemRuntime:
         self._concurrency = tuple(concurrency)
         self._events = tuple(events)
         self._stats = tuple(stats_samples)
-        self._terminal = dict(terminal_inspect)
+        self._terminal = deepcopy(dict(terminal_inspect))
         return self._runtime_samples
 
     def _stats_sample(self, value: object, bound_id: object) -> dict[str, object]:
@@ -959,7 +960,7 @@ class _SystemRuntime:
                     continue
                 if not after_guarded_stop:
                     raise InvalidEvidence("INVALID_EVIDENCE: interrupted terminal die preceded the guarded stop")
-                self._terminal = dict(adapter.inspect(container_id))
+                self._terminal = deepcopy(dict(adapter.inspect(container_id)))
                 self._terminal_die_time_nano = timestamp
                 self._terminal_die_session = session
                 return self._runtime_samples

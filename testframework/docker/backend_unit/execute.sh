@@ -33,7 +33,10 @@ _execute_identity_is_exact() {
       *:*) execute_identity_field=${execute_identity_tail%%:*}; execute_identity_tail=${execute_identity_tail#*:} ;;
       *) return 75 ;;
     esac
-    case "$execute_identity_field" in 0|[1-9][0-9]*) ;; *) return 75 ;; esac
+    case "$execute_identity_field" in
+      ''|*[!0-9]*|0[0-9]*) return 75 ;;
+      *) ;;
+    esac
     case "$execute_identity_index" in
       1) execute_identity_device="$execute_identity_field" ;;
       2) execute_identity_inode="$execute_identity_field" ;;
@@ -218,8 +221,8 @@ _execute_scratch_is_current() {
 _execute_create_scratch() {
   [ "$#" -eq 1 ] || return 64
   execute_stage="$1"
-  stage_scratch="$(umask 077; mktemp -d "$GOTMPDIR/.backend-unit-stage-$execute_stage.XXXXXXXX")" || return 75
-  case "$stage_scratch" in "$GOTMPDIR/.backend-unit-stage-$execute_stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;; *) return 75 ;; esac
+  stage_scratch="$(umask 077; mktemp -d "/tmp/.backend-unit-stage-$execute_stage.XXXXXXXX")" || return 75
+  case "$stage_scratch" in "/tmp/.backend-unit-stage-$execute_stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;; *) return 75 ;; esac
   stage_scratch_identity="$(_execute_scratch_identity "$stage_scratch")" || return 75
 }
 
@@ -1086,7 +1089,7 @@ prove_quiescent_for_container_stop() {
       _owned_temp_is_current "$stderr_path" "$stage_stderr_identity" 1 || return 75
       _owned_temp_is_current "$stage_json_path" "$stage_json_identity" 1 || return 75
       case "${stage_scratch-}" in
-        "$GOTMPDIR/.backend-unit-stage-$stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;;
+        "/tmp/.backend-unit-stage-$stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;;
         *) return 75 ;;
       esac
       _execute_identity_is_exact "${stage_scratch_identity-}" 10001 10001 700 directory || return 75

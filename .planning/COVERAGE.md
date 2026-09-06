@@ -22,6 +22,26 @@
 
 ## Методология
 
+Backend runner scratch, 2026-09-06: dynamic Python oracles покрывают создание
+RAM scratch для четырёх stages, completed-stage proof и monitor denials.
+RED-2: 604 tests, 81 FAIL / 523 PASS; все 7 scratch failures ожидаемы на старом
+source. После reviewed source/fixture-правок: 38 FAIL / 566 PASS, 28.44s;
+43 прежних падения устранены, новых failing IDs нет. Scratch-сценарии проходят,
+полный framework gate остаётся FAIL и требует triage. Это framework
+traceability, не рост продуктового покрытия. [Протокол](../docs/superpowers/plans/2026-09-06-backend-runner-scratch-isolation.md).
+
+Позднейший составной gate: 674 tests,41 FAIL/633 PASS,39.29s. Все observer,
+scratch и numeric-identity cases проходят, включая normal/recovery nested-copy
+регрессию; provenance-name, newline и miniature-source fixtures также проходят.
+I1b/comment, docstring и plain parameter проходят; оба bounded depth65 cases проходят.
+Исправленные printf escape, AST branch owner, все восемь receipt-guard cases,
+stream mutation и event-driven child diagnostic проходят Docker. Добавлены
+30 admission tests с намеренным missing-helper RED и18 lifecycle tests:
+2 canonical RED/16 denial PASS. Из41 failures32 — эти новые RED,9 — прежние.
+Остаются static failures. Ограничения короткого параллельного Python-прогона записаны
+в протоколе; профиль2GiB/no-swap не менялся, тяжёлые сборки не запускались.
+Ни один тест не исключён; full framework/backend/product acceptance отсутствует.
+
 Panel unpin / bookmark removal, 2026-09-06: 34 + 10 genuine UI cases.
 Трассировка: actor/binding/rights → синхронный owner → exact awaited refetch,
 current error/retry и stale/ABA/unmount isolation. Закрепления запоминают

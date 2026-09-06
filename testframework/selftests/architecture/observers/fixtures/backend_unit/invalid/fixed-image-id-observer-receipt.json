@@ -5,7 +5,7 @@
   "concurrency_observation_scope": "docker-ps-visible-containers-only",
   "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
   "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
-  "container_id": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "container_id": "a1b2c3d4e5f6cdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "container_image": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "container_hostname": "a1b2c3d4e5f6",
   "container_receipt_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
@@ -183,11 +183,11 @@
     },
     {
       "path": "final-receipt.json",
-      "sha256": "sha256:1acb17030dfec558d468cb15a0f15496d474bb15c70e8f878fb95846b9bd43ff",
+      "sha256": "sha256:df1f49f5ac900d780fcba26b095587ce1e3da18d2a4c9b60003355276914cefd",
       "size": 745
     }
   ],
-  "artifact_inventory_sha256": "sha256:d40228103f5a822d48b9eb62b365ddfbdba489212658eb6fa506f75bbd784d85",
+  "artifact_inventory_sha256": "sha256:cc04689663052bce8f5c2d5a6f6b95ad65b6268860b166359cbae01633fc5282",
   "cleanup": {
     "container_removed": true
   },
@@ -197,7 +197,7 @@
     "run_id": "backend-unit-20260901T120000Z-a1b2c3d4e5f6-a1b2c3d4",
     "owner_nonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
     "container_receipt_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    "container_id": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "container_id": "a1b2c3d4e5f6cdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "backend_image_id": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "canonical_build_input_manifest_sha256": "sha256:d93e9baafb50192b1c5079e9e64ad7769995a2c875fcab8a5f6962151af59c44",
     "classification": "SEALED_TIMEOUT_UNTRIAGED",

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: Two bounded4GiB backend diagnostics infra-aborted; defaults restored and independently reviewed; next QA scratch/abort-record contract remains open
+stopped_at: User-requested recovery checkpoint; forwarding/lifecycle Phase2 and six reset-order cases prepared; post-source Docker NOT_RUN; last framework41FAIL/633PASS
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - Memory-only then1GiB scratch diagnostics completed as infra aborts; first two packages pass in attempt2; vet/unit/race NOT_RUN; no third attempt
+last_activity: 2026-09-06 - Saving all26 scoped dirty paths as unfinished recovery checkpoint on calls-feature-codex; no new test run or product acceptance; exact continuation in docs/superpowers/plans/2026-09-06-backend-runner-scratch-isolation.md
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -132,6 +132,17 @@ spec_coverage:
 ---
 
 ## Session note — 2026-09-06 Messenger после обновления правил
+
+Current continuation after b32b4626: founder requested QA repair and autonomous
+work; questions may remain asynchronous for independent tasks. The immediate
+bounded fix separates runner stage captures/FIFOs/markers onto the already
+asserted /tmp64MiB RAM mount; Go WORK stays in GOTMPDIR. No cgroup/cap/receipt/
+observer change in this atom. Exact brief and ledger:
+`.superpowers/sdd/2026-09-06-backend-runner-scratch/`.
+Scratch, numeric and terminal-copy deltas have scoped Docker PASS; remaining
+framework helpers are under test-first correction. Only existing-image
+python-contract is in this regression scope, not a new heavy backend attempt.
+Permanent4GiB profile question is pending and does not block this atom.
 
 Previous accepted frontend checkpoint: `74c5c492a41998213fcf7cf1556fdf6333c7ee42`,
 ветка `calls-feature-codex`; commit, immediate push и exact remote SHA

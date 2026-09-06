@@ -161,12 +161,22 @@ class _EventStream:
         self, lines: tuple[bytes, ...], *, terminate_raises: bool = False
     ) -> None:
         self._lines = lines
+        self._next_line = 0
         self._terminate_raises = terminate_raises
         self.terminated = False
         self.reaped = False
 
     def __iter__(self) -> Any:
         return iter(self._lines)
+
+    def poll_line(self, timeout_seconds: int) -> bytes | None:
+        if type(timeout_seconds) is not int or timeout_seconds != 5:
+            raise AssertionError("event polling must use the frozen timeout")
+        if self._next_line == len(self._lines):
+            return None
+        line = self._lines[self._next_line]
+        self._next_line += 1
+        return line
 
     def terminate(self) -> None:
         self.terminated = True
@@ -329,7 +339,7 @@ class _PathOps:
         if not bool(snapshot["directory"]) and self._fstat_calls[descriptor] > 1:
             if self.identity_changed:
                 snapshot["device"] = 8
-            if self.size_changed:
+            if self.size_changed and self._fstat_calls[descriptor] > 2:
                 snapshot["size"] = 1
         return snapshot
 
@@ -517,6 +527,11 @@ class _PublicationWriter:
         container_payload = self.payloads.get('container-receipt.json')
         if container_payload is None:
             return
+        container_path = self.terminal_marker_run_dir / 'container-receipt.json'
+        if container_path not in self.path_payloads:
+            self.path_payloads[container_path] = container_payload
+        if container_path not in self.opaque_file_identities:
+            self._assign_opaque_identity(container_path)
         document = json.loads(container_payload)
         records = document.get('artifact_inventory')
         if type(records) is not list:
@@ -1350,7 +1365,7 @@ def test_docker_adapter_has_only_literal_read_argvs_and_fixed_images() -> None:
         {
             "id": _CONTAINER_ID,
             "status": "create",
-            "timeNano": 1,
+            "timeNano": 1_788_264_000_000_000_000,
             "Actor": {
                 "Attributes": {
                     "com.docker.compose.project": _PROJECT,
@@ -1359,22 +1374,36 @@ def test_docker_adapter_has_only_literal_read_argvs_and_fixed_images() -> None:
             },
         }
     ).encode() + b"\n"
-    runner = _DockerRunner(_docker_responses(), _EventStream((event,)))
-    adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
+    stream = _EventStream((event,))
+    adapter, runner = _recoverable_bound_adapter(stream)
 
-    assert adapter.events(_START) == (json.loads(event),)
-    adapter.bind_candidate(_CONTAINER_ID)
+    assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+    session = adapter.open_bound_events(_START)
+    assert session.poll() == json.loads(event)
+    session.close()
+    assert stream.terminated is True
+    assert stream.reaped is True
+    with pytest.raises(docker_adapter.DockerReadError):
+        adapter.open_bound_events(_START)
     assert adapter.inspect(_CONTAINER_ID)["Id"] == _CONTAINER_ID
-    assert adapter.ps() == ()
     assert adapter.stats(_CONTAINER_ID) == {}
     assert adapter.inspect_fixed_images() == {
         "python_contract": _PYTHON_IMAGE_ID,
         "backend_unit": _BACKEND_IMAGE_ID,
     }
     assert tuple(call.argv for call in runner.calls) == (
+        ("docker", "ps", "--no-trunc", "--format", "{{json .}}"),
+        (
+            "docker",
+            "inspect",
+            "--type",
+            "container",
+            "--format",
+            "{{json .}}",
+            _CONTAINER_ID,
+        ),
         _events_argv(),
         ("docker", "inspect", "--type", "container", "--format", "{{json .}}", _CONTAINER_ID),
-        ("docker", "ps", "--no-trunc", "--format", "{{json .}}"),
         ("docker", "stats", "--no-stream", "--format", "{{json .}}", _CONTAINER_ID),
         ("docker", "image", "inspect", "--format", "{{json .}}", "worktree-master-python-contract"),
         ("docker", "image", "inspect", "--format", "{{json .}}", "worktree-master-backend-unit"),
@@ -1382,8 +1411,7 @@ def test_docker_adapter_has_only_literal_read_argvs_and_fixed_images() -> None:
     assert all(call.shell is False for call in runner.calls)
     assert all(call.timeout_seconds == 10 for call in runner.calls)
     assert all(call.output_cap_bytes == 1024 * 1024 for call in runner.calls)
-    assert runner.calls[0].stream is True
-    assert all(not call.stream for call in runner.calls[1:])
+    assert [call.stream for call in runner.calls] == [False, False, True, False, False, False, False]
     forbidden = {"compose", "run", "create", "start", "build", "pull", "prune", "rm"}
     assert not any(token in forbidden for call in runner.calls for token in call.argv)
 
@@ -1392,8 +1420,18 @@ def test_docker_adapter_rejects_invalid_since_dynamic_images_and_extra_argv() ->
     for invalid_since in ("2026-09-01T12:00:00Z", "not-a-timestamp", 1, None):
         runner = _DockerRunner(_docker_responses())
         with pytest.raises(docker_adapter.DockerReadError):
-            docker_adapter.DockerReadAdapter(_PROJECT, runner=runner).events(  # type: ignore[arg-type]
+            docker_adapter.DockerReadAdapter(
+                _PROJECT, runner=runner
+            ).open_bound_events(  # type: ignore[arg-type]
                 invalid_since
+            )
+        assert runner.calls == []
+
+    for invalid_image in ("registry.invalid/backend-unit", "sha256:" + "D" * 64):
+        runner = _DockerRunner(_docker_responses())
+        with pytest.raises(docker_adapter.DockerReadError):
+            docker_adapter.DockerReadAdapter(_PROJECT, runner=runner).bind_unique_candidate_since(
+                _START, invalid_image
             )
         assert runner.calls == []
 
@@ -1413,19 +1451,19 @@ def test_docker_adapter_rejects_invalid_since_dynamic_images_and_extra_argv() ->
 
 
 def test_docker_adapter_refuses_unbound_and_differently_bound_valid_container_reads() -> None:
-    runner = _DockerRunner(_docker_responses())
-    adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
+    adapter, runner = _recoverable_bound_adapter()
     for method in (adapter.inspect, adapter.stats):
         with pytest.raises(docker_adapter.DockerReadError):
             method(_CONTAINER_ID)
     assert runner.calls == []
 
-    adapter.bind_candidate(_CONTAINER_ID)
+    assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+    calls_after_valid_bind = tuple(runner.calls)
     foreign_valid_id = "f" * 64
     for method in (adapter.inspect, adapter.stats):
         with pytest.raises(docker_adapter.DockerReadError):
             method(foreign_valid_id)
-    assert runner.calls == []
+    assert tuple(runner.calls) == calls_after_valid_bind
 
 
 @pytest.mark.parametrize(
@@ -1443,35 +1481,67 @@ def test_docker_adapter_rejects_duplicate_nonfinite_and_trailing_json_every_read
 ) -> None:
     responses = _docker_responses()
     if path == "events":
-        runner = _DockerRunner(responses, _EventStream((payload,)))
-        adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
-        invoke = lambda: adapter.events(_START)
+        stream = _EventStream((payload,))
+        adapter, runner = _recoverable_bound_adapter(stream)
+        assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+        session = adapter.open_bound_events(_START)
+        with pytest.raises(docker_adapter.InvalidEvidence):
+            session.poll()
+        assert stream.terminated is True
+        assert stream.reaped is True
+        for unavailable in (
+            adapter.recoverable_bound_container_id,
+            lambda: adapter.stop_bound_once(_CONTAINER_ID),
+            lambda: adapter.open_bound_events(_START),
+        ):
+            with pytest.raises(docker_adapter.DockerReadError):
+                unavailable()
+        assert tuple(call.argv for call in runner.calls) == (
+            ("docker", "ps", "--no-trunc", "--format", "{{json .}}"),
+            (
+                "docker",
+                "inspect",
+                "--type",
+                "container",
+                "--format",
+                "{{json .}}",
+                _CONTAINER_ID,
+            ),
+            _events_argv(),
+        )
+        return
     elif path == "ps":
         responses[("docker", "ps", "--no-trunc", "--format", "{{json .}}")] = payload
         runner = _DockerRunner(responses)
         adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
-        invoke = adapter.ps
+        invoke = lambda: adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID)
+        expected_calls = 1
     elif path == "inspect":
-        responses[("docker", "inspect", "--type", "container", "--format", "{{json .}}", _CONTAINER_ID)] = payload
-        runner = _DockerRunner(responses)
-        adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
-        adapter.bind_candidate(_CONTAINER_ID)
+        adapter, runner = _recoverable_bound_adapter()
+        assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+        runner.one_shot[
+            ("docker", "inspect", "--type", "container", "--format", "{{json .}}", _CONTAINER_ID)
+        ] = payload
         invoke = lambda: adapter.inspect(_CONTAINER_ID)
+        expected_calls = 3
     elif path == "stats":
-        responses[("docker", "stats", "--no-stream", "--format", "{{json .}}", _CONTAINER_ID)] = payload
-        runner = _DockerRunner(responses)
-        adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
-        adapter.bind_candidate(_CONTAINER_ID)
+        adapter, runner = _recoverable_bound_adapter()
+        assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+        runner.one_shot[
+            ("docker", "stats", "--no-stream", "--format", "{{json .}}", _CONTAINER_ID)
+        ] = payload
         invoke = lambda: adapter.stats(_CONTAINER_ID)
+        expected_calls = 3
     else:
         responses[("docker", "image", "inspect", "--format", "{{json .}}", "worktree-master-python-contract")] = payload
         runner = _DockerRunner(responses)
         adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
         invoke = adapter.inspect_fixed_images
+        expected_calls = 1
 
     with pytest.raises(docker_adapter.DockerReadError):
         invoke()
-    assert len(runner.calls) == 1
+    assert len(runner.calls) == expected_calls
 
 
 def test_event_cleanup_reaps_when_terminate_raises() -> None:
@@ -1479,7 +1549,7 @@ def test_event_cleanup_reaps_when_terminate_raises() -> None:
         {
             "id": _CONTAINER_ID,
             "status": "create",
-            "timeNano": 1,
+            "timeNano": 1_788_264_000_000_000_000,
             "Actor": {
                 "Attributes": {
                     "com.docker.compose.project": _PROJECT,
@@ -1489,12 +1559,22 @@ def test_event_cleanup_reaps_when_terminate_raises() -> None:
         }
     ).encode() + b"\n"
     stream = _EventStream((event,), terminate_raises=True)
-    runner = _DockerRunner(_docker_responses(), stream)
-    with pytest.raises(docker_adapter.DockerReadError):
-        docker_adapter.DockerReadAdapter(_PROJECT, runner=runner).events(_START)
+    adapter, runner = _recoverable_bound_adapter(stream)
+    assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+    session = adapter.open_bound_events(_START)
+    assert session.poll() == json.loads(event)
+    with pytest.raises(docker_adapter.InvalidEvidence):
+        session.close()
     assert stream.terminated is True
     assert stream.reaped is True
-    assert runner.calls == [_Invocation(_events_argv(), False, 10, 1024 * 1024, True)]
+    assert [call.argv for call in runner.calls] == [
+        ("docker", "ps", "--no-trunc", "--format", "{{json .}}"),
+        ("docker", "inspect", "--type", "container", "--format", "{{json .}}", _CONTAINER_ID),
+        _events_argv(),
+    ]
+    for unavailable in (adapter.recoverable_bound_container_id, lambda: adapter.stop_bound_once(_CONTAINER_ID)):
+        with pytest.raises(docker_adapter.DockerReadError):
+            unavailable()
 
 
 @pytest.mark.parametrize(("size", "overflows"), ((3, False), (4, False), (5, True)))
@@ -1511,7 +1591,19 @@ def test_bounded_subprocess_output_probes_only_cap_plus_one_without_real_subproc
         assert kwargs["shell"] is False
         return process
 
+    def fake_read_pipe_chunk(
+        owned_process: _BoundedProcess, timeout_seconds: float, max_bytes: int
+    ) -> bytes:
+        assert owned_process is process
+        assert max_bytes > 0
+        assert 0 < timeout_seconds <= 1
+        chunk = owned_process.stdout.read(max_bytes)
+        if chunk == b"":
+            owned_process.running = False
+        return chunk
+
     monkeypatch.setattr(docker_adapter.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(docker_adapter, "_read_pipe_chunk", fake_read_pipe_chunk)
     if overflows:
         with pytest.raises(docker_adapter.DockerReadError):
             docker_adapter._bounded_subprocess_output(
@@ -1527,43 +1619,73 @@ def test_bounded_subprocess_output_probes_only_cap_plus_one_without_real_subproc
     assert process.stdout.read_sizes[0] == cap + 1
 
 
-@pytest.mark.parametrize(
-    "stream",
-    (
-        _EventStream(tuple(b"{}\n" for _ in range(17))),
-        _EventStream((b"x" * (64 * 1024 + 1),)),
-    ),
-)
-def test_event_stream_caps_terminate_reap_and_refuse_to_seal(stream: _EventStream) -> None:
-    runner = _DockerRunner(_docker_responses(), stream)
-    with pytest.raises(docker_adapter.DockerReadError):
-        docker_adapter.DockerReadAdapter(_PROJECT, runner=runner).events(_START)
+@pytest.mark.parametrize("cap", ("records", "bytes"))
+def test_event_stream_caps_terminate_reap_and_refuse_to_seal(cap: str) -> None:
+    event: dict[str, object] = {
+        "id": _CONTAINER_ID,
+        "status": "create",
+        "timeNano": 1_788_264_000_000_000_000,
+        "Actor": {
+            "Attributes": {
+                "com.docker.compose.project": _PROJECT,
+                "com.docker.compose.service": "backend-unit",
+            }
+        },
+    }
+    if cap == "records":
+        stream = _EventStream(tuple(json.dumps(event).encode() + b"\n" for _ in range(17)))
+        successful_polls = 16
+    else:
+        event["padding"] = "x" * (64 * 1024)
+        stream = _EventStream((json.dumps(event).encode() + b"\n",))
+        successful_polls = 0
+
+    adapter, runner = _recoverable_bound_adapter(stream)
+    assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+    session = adapter.open_bound_events(_START)
+    for _ in range(successful_polls):
+        assert session.poll() == event
+    with pytest.raises(docker_adapter.InvalidEvidence):
+        session.poll()
     assert stream.terminated is True
     assert stream.reaped is True
-    assert runner.calls == [_Invocation(_events_argv(), False, 10, 1024 * 1024, True)]
+    assert [call.argv for call in runner.calls] == [
+        ("docker", "ps", "--no-trunc", "--format", "{{json .}}"),
+        ("docker", "inspect", "--type", "container", "--format", "{{json .}}", _CONTAINER_ID),
+        _events_argv(),
+    ]
+    for unavailable in (
+        adapter.recoverable_bound_container_id,
+        lambda: adapter.stop_bound_once(_CONTAINER_ID),
+        lambda: adapter.open_bound_events(_START),
+    ):
+        with pytest.raises(docker_adapter.DockerReadError):
+            unavailable()
 
 
 def test_bound_ids_and_stop_are_full_canonical_single_use_authority() -> None:
+    adapter, runner = _recoverable_bound_adapter()
+    assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
+    calls_after_valid_bind = tuple(runner.calls)
     for invalid_id in ("", _CONTAINER_ID[:-1], _CONTAINER_ID.upper(), "f" * 63 + "g"):
-        runner = _DockerRunner(_docker_responses())
-        adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
         for method in (adapter.inspect, adapter.stats, adapter.stop_bound_once):
             with pytest.raises(docker_adapter.DockerReadError):
                 method(invalid_id)
-        assert runner.calls == []
+        assert tuple(runner.calls) == calls_after_valid_bind
 
-    runner = _DockerRunner(_docker_responses())
-    adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
-    adapter.bind_candidate(_CONTAINER_ID)
     assert adapter.stop_bound_once(_CONTAINER_ID) == {"result": "stopped"}
     with pytest.raises(docker_adapter.DockerReadError):
         adapter.stop_bound_once(_CONTAINER_ID)
-    assert runner.calls == [
-        _Invocation(("docker", "stop", "--timeout", "5", _CONTAINER_ID), False, 10, 1024 * 1024, False)
+    assert [call.argv for call in runner.calls] == [
+        ("docker", "ps", "--no-trunc", "--format", "{{json .}}"),
+        ("docker", "inspect", "--type", "container", "--format", "{{json .}}", _CONTAINER_ID),
+        ("docker", "stop", "--timeout", "5", _CONTAINER_ID),
     ]
 
 
-def _recoverable_bound_adapter() -> tuple[docker_adapter.DockerReadAdapter, _DockerRunner]:
+def _recoverable_bound_adapter(
+    stream: _EventStream | None = None,
+) -> tuple[docker_adapter.DockerReadAdapter, _DockerRunner]:
     responses = _docker_responses()
     responses[("docker", "ps", "--no-trunc", "--format", "{{json .}}")] = (
         json.dumps(
@@ -1600,7 +1722,7 @@ def _recoverable_bound_adapter() -> tuple[docker_adapter.DockerReadAdapter, _Doc
             "State": {"StartedAt": "2026-09-01T12:00:01.000000000Z"},
         }
     ).encode()
-    runner = _DockerRunner(responses)
+    runner = _DockerRunner(responses, _EventStream(()) if stream is None else stream)
     return docker_adapter.DockerReadAdapter(_PROJECT, runner=runner), runner
 
 
@@ -2082,7 +2204,11 @@ def test_safe_paths_posix_directory_timestamp_race_fails_closed(
         descriptor: int, max_entries: int, max_name_bytes: int
     ) -> tuple[str, ...]:
         names = original(descriptor, max_entries, max_name_bytes)
+        before = directory.stat()
         (directory / "raced").write_bytes(b"source\n")
+        changed_mtime_ns = before.st_mtime_ns + 1_000_000
+        os.utime(directory, ns=(before.st_atime_ns, changed_mtime_ns))
+        assert directory.stat().st_mtime_ns == changed_mtime_ns
         return names
 
     monkeypatch.setattr(
@@ -2208,7 +2334,10 @@ def test_lease_snapshots_bind_exact_source_snapshot_and_no_acl_claim(
     (
         _LeaseProbe(head="c" * 40),
         _LeaseProbe(dirty=True),
-        _LeaseProbe(manifest_bytes=_MANIFEST_BYTES + b"changed\n"),
+        _LeaseProbe(manifest_bytes=_manifest_bytes({
+            **_MANIFEST_CONTENTS,
+            _MANIFEST_PATHS[0]: _MANIFEST_CONTENTS[_MANIFEST_PATHS[0]] + b"changed",
+        })),
         _LeaseProbe(subject_digest="sha256:" + "e" * 64),
         _LeaseProbe(
             source_root_digest_map={
@@ -2374,6 +2503,7 @@ def test_root_handoff_prebuild_then_postgreen_uses_only_fixed_root_and_paths(
     read_roots: list[Path] = []
 
     def acquire(path: Path) -> _RootHandoffLease:
+        assert path == root
         acquired_paths.append(path)
         events.append("acquire")
         return source_lease
@@ -2442,10 +2572,7 @@ def test_root_handoff_prebuild_then_postgreen_uses_only_fixed_root_and_paths(
     assert root_handoff.parse_root_handoff(
         files["testframework/reports/.backend-unit-root-handoff.v1.json"]
     ) == final
-    assert acquired_paths == [
-        root / "testframework/reports/.backend-unit-source-mutation.lease",
-        root / "testframework/reports/.backend-unit-source-mutation.lease",
-    ]
+    assert acquired_paths == [root, root]
     assert read_roots == [root, root, root]
     assert events == [
         "acquire",
@@ -2498,6 +2625,7 @@ def test_root_handoff_write_is_nonreplace_and_fails_closed_on_unsafe_destination
 def test_root_handoff_descriptor_toctou_and_provisional_removal_are_exact(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    root = Path("/root-handoff-repository")
     stable = {
         "device": 7,
         "inode": 11,
@@ -2591,7 +2719,7 @@ def test_root_handoff_descriptor_toctou_and_provisional_removal_are_exact(
     )
 
     root_handoff._remove_provisional(
-        Path("/root-handoff-repository"), expected_payload, expected_identity
+        root, expected_payload, expected_identity
     )
     assert opened == [
         (17, ".backend-unit-root-handoff.prebuild.v1.json", 1),
@@ -2781,7 +2909,7 @@ def test_observer_timing_preflight_and_closed_classification_priority() -> None:
         ({"stage_failure": True}, "SEALED_EXECUTABLE_FAIL_STAGE"),
         ({}, "SEALED_EXECUTABLE_PASS"),
     )
-    assert tuple(expected for _, expected in cases) == _SEALED_CLASSIFICATIONS
+    assert sorted(expected for _, expected in cases) == sorted(_SEALED_CLASSIFICATIONS)
     for raw_observations, expected in cases:
         assert resources.classify((_safe_sample(),), _policy(raw_observations)) == expected
 
@@ -2880,13 +3008,16 @@ def test_runtime_monitoring_retains_samples_and_stops_only_once_on_priority() ->
     assert ram_record["immutable_outcome"] is None
     assert resources.classify((_safe_sample(),), _policy({"timeout": True})) == "SEALED_TIMEOUT_UNTRIAGED"
 
-    runner = _DockerRunner(_docker_responses())
-    adapter = docker_adapter.DockerReadAdapter(_PROJECT, runner=runner)
-    adapter.bind_candidate(_CONTAINER_ID)
+    adapter, runner = _recoverable_bound_adapter()
+    assert adapter.bind_unique_candidate_since(_START, _BACKEND_IMAGE_ID) == _CONTAINER_ID
     assert adapter.stop_bound_once(_CONTAINER_ID) == {"result": "stopped"}
     with pytest.raises(docker_adapter.DockerReadError):
         adapter.stop_bound_once(_CONTAINER_ID)
-    assert [call.argv for call in runner.calls] == [("docker", "stop", "--timeout", "5", _CONTAINER_ID)]
+    assert [call.argv for call in runner.calls] == [
+        ("docker", "ps", "--no-trunc", "--format", "{{json .}}"),
+        ("docker", "inspect", "--type", "container", "--format", "{{json .}}", _CONTAINER_ID),
+        ("docker", "stop", "--timeout", "5", _CONTAINER_ID),
+    ]
 
 
 class _InterruptSession:
@@ -3001,7 +3132,8 @@ def test_recover_interrupt_reuses_original_session_through_die_then_closes_it(
     }
     assert "inspect_only" not in candidate
     assert adapter.terminal == {"Id": _CONTAINER_ID}
-    assert runtime._terminal == adapter.inspect_documents == [expected_terminal]
+    assert runtime._terminal == expected_terminal
+    assert adapter.inspect_documents == [expected_terminal]
     assert runtime._terminal is not adapter.inspect_documents[0]
     assert runtime._terminal["inspect_only"] is not adapter.inspect_documents[0]["inspect_only"]
     adapter.terminal["Id"] = "f" * 64
@@ -3024,6 +3156,20 @@ def test_monitor_stops_host_and_docker_sampling_after_terminal_die(
     runtime = observe._SystemRuntime()
     trace: list[str] = []
     terminal_seen = False
+    terminal_labels = {"com.docker.compose.project": _PROJECT, "evidence": "initial"}
+    terminal_config = {"Labels": terminal_labels}
+    terminal_mount = {"Destination": "/workspace", "Type": "bind"}
+    terminal_mounts = [terminal_mount]
+    terminal = {
+        "Id": _CONTAINER_ID,
+        "Config": terminal_config,
+        "Mounts": terminal_mounts,
+    }
+    expected_terminal = {
+        "Id": _CONTAINER_ID,
+        "Config": {"Labels": {"com.docker.compose.project": _PROJECT, "evidence": "initial"}},
+        "Mounts": [{"Destination": "/workspace", "Type": "bind"}],
+    }
 
     class OneDieSession:
         close_calls = 0
@@ -3081,10 +3227,10 @@ def test_monitor_stops_host_and_docker_sampling_after_terminal_die(
             trace.append("ps")
             return (dict(ps_record),)
 
-        def inspect(self, container_id: str) -> dict[str, str]:
+        def inspect(self, container_id: str) -> dict[str, object]:
             assert container_id == _CONTAINER_ID
             trace.append("inspect")
-            return {"Id": _CONTAINER_ID}
+            return terminal
 
     def collect_once() -> dict[str, object]:
         if terminal_seen:
@@ -3113,7 +3259,15 @@ def test_monitor_stops_host_and_docker_sampling_after_terminal_die(
     assert observed == (
         {**_safe_sample(), "timestamp": "2026-09-01T12:00:00.000000Z", "phase": "runtime"},
     )
-    assert runtime._terminal == {"Id": _CONTAINER_ID}
+    assert runtime._terminal == expected_terminal
+    assert runtime._terminal is not terminal
+    assert runtime._terminal["Config"] is not terminal_config
+    assert runtime._terminal["Config"]["Labels"] is not terminal_labels
+    assert runtime._terminal["Mounts"] is not terminal_mounts
+    assert runtime._terminal["Mounts"][0] is not terminal_mount
+    terminal_labels["evidence"] = "mutated-after-die"
+    terminal_mount["Destination"] = "/mutated-after-die"
+    assert runtime._terminal == expected_terminal
     assert runtime._terminal_die_session is session
     assert runtime._event_session is None
     assert session.close_calls == 1

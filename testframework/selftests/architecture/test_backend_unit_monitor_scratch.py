@@ -5,7 +5,8 @@ import subprocess
 
 
 _RUNTIME_PATH = "/opt/hub/testframework/docker/backend_unit/runtime.sh"
-_RAM_TMP = "/var/tmp/hub-go"
+_GOTMPDIR = "/var/tmp/hub-go"
+_SCRATCH_ROOT = "/tmp"
 _SCRATCH_IDENTITY = "11:12:10001:10001:700:directory"
 _SHELL_DRIVER = """\
 . "$0"
@@ -103,13 +104,13 @@ def _owned_report_dir(tmp_path: Path) -> Path:
     return report_dir
 
 
-def test_monitor_accepts_current_ram_scratch_stop_marker(tmp_path: Path) -> None:
+def test_monitor_accepts_current_tmp_scratch_stop_marker(tmp_path: Path) -> None:
     report_dir = _owned_report_dir(tmp_path)
-    scratch = f"{_RAM_TMP}/.backend-unit-stage-build.A1B2C3D4"
+    scratch = f"{_SCRATCH_ROOT}/.backend-unit-stage-build.A1B2C3D4"
     completed, probe_log, scratch_log = _run_monitor(
         tmp_path,
         "valid",
-        gotmpdir=_RAM_TMP,
+        gotmpdir=_GOTMPDIR,
         stage="build",
         stage_scratch=scratch,
         stage_scratch_identity=_SCRATCH_IDENTITY,
@@ -128,15 +129,15 @@ def test_monitor_accepts_current_ram_scratch_stop_marker(tmp_path: Path) -> None
     assert _log(probe_log) == "leader\ngroup\n"
 
 
-def test_monitor_rejects_noncurrent_or_nonram_markers_before_process_probes(
+def test_monitor_rejects_noncurrent_or_non_tmp_markers_before_process_probes(
     tmp_path: Path,
 ) -> None:
     report_dir = _owned_report_dir(tmp_path)
-    scratch = f"{_RAM_TMP}/.backend-unit-stage-build.A1B2C3D4"
+    scratch = f"{_SCRATCH_ROOT}/.backend-unit-stage-build.A1B2C3D4"
     cases = (
         (
             "report-root-marker",
-            _RAM_TMP,
+            _GOTMPDIR,
             "build",
             scratch,
             _SCRATCH_IDENTITY,
@@ -148,7 +149,7 @@ def test_monitor_rejects_noncurrent_or_nonram_markers_before_process_probes(
         ),
         (
             "traversal",
-            _RAM_TMP,
+            _GOTMPDIR,
             "build",
             f"{scratch}/../escape",
             _SCRATCH_IDENTITY,
@@ -160,7 +161,7 @@ def test_monitor_rejects_noncurrent_or_nonram_markers_before_process_probes(
         ),
         (
             "wrong-ordinal",
-            _RAM_TMP,
+            _GOTMPDIR,
             "build",
             scratch,
             _SCRATCH_IDENTITY,
@@ -172,31 +173,43 @@ def test_monitor_rejects_noncurrent_or_nonram_markers_before_process_probes(
         ),
         (
             "wrong-stage",
-            _RAM_TMP,
+            _GOTMPDIR,
             "lint",
-            f"{_RAM_TMP}/.backend-unit-stage-lint.A1B2C3D4",
+            f"{_SCRATCH_ROOT}/.backend-unit-stage-lint.A1B2C3D4",
             _SCRATCH_IDENTITY,
             "1",
-            f"{_RAM_TMP}/.backend-unit-stage-lint.A1B2C3D4/stop.1",
+            f"{_SCRATCH_ROOT}/.backend-unit-stage-lint.A1B2C3D4/stop.1",
             "4242",
-            f"{_RAM_TMP}/.backend-unit-stage-lint.A1B2C3D4",
+            f"{_SCRATCH_ROOT}/.backend-unit-stage-lint.A1B2C3D4",
             _SCRATCH_IDENTITY,
         ),
         (
             "wrong-gotmpdir",
             "/tmp/hub-go",
             "build",
-            "/tmp/hub-go/.backend-unit-stage-build.A1B2C3D4",
+            scratch,
             _SCRATCH_IDENTITY,
             "1",
-            "/tmp/hub-go/.backend-unit-stage-build.A1B2C3D4/stop.1",
+            f"{scratch}/stop.1",
             "4242",
-            "/tmp/hub-go/.backend-unit-stage-build.A1B2C3D4",
+            scratch,
+            _SCRATCH_IDENTITY,
+        ),
+        (
+            "legacy-gotmpdir-scratch-root",
+            _GOTMPDIR,
+            "build",
+            f"{_GOTMPDIR}/.backend-unit-stage-build.A1B2C3D4",
+            _SCRATCH_IDENTITY,
+            "1",
+            f"{_GOTMPDIR}/.backend-unit-stage-build.A1B2C3D4/stop.1",
+            "4242",
+            f"{_GOTMPDIR}/.backend-unit-stage-build.A1B2C3D4",
             _SCRATCH_IDENTITY,
         ),
         (
             "stale-scratch",
-            _RAM_TMP,
+            _GOTMPDIR,
             "build",
             scratch,
             "stale",
@@ -208,7 +221,7 @@ def test_monitor_rejects_noncurrent_or_nonram_markers_before_process_probes(
         ),
         (
             "mismatched-pid",
-            _RAM_TMP,
+            _GOTMPDIR,
             "build",
             scratch,
             _SCRATCH_IDENTITY,

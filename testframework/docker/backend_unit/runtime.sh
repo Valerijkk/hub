@@ -764,7 +764,7 @@ monitor_owned_budget_stop() {
   [ "${GOTMPDIR-}" = /var/tmp/hub-go ] || return 75
   case "${stage-}" in build|vet|unit|race) ;; *) return 75 ;; esac
   case "${stage_scratch-}" in
-    "$GOTMPDIR/.backend-unit-stage-$stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;;
+    "/tmp/.backend-unit-stage-$stage."[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) ;;
     *) return 75 ;;
   esac
   _execute_scratch_is_current "$stage_scratch" "${stage_scratch_identity-}" || return 75

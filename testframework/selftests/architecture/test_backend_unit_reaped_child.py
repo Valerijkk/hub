@@ -5,8 +5,8 @@ import subprocess
 
 
 _RUNTIME_PATH = "/opt/hub/testframework/docker/backend_unit/runtime.sh"
-_RAM_TMP = "/var/tmp/hub-go"
-_SCRATCH = f"{_RAM_TMP}/.backend-unit-stage-build.A1B2C3D4"
+_GOTMPDIR = "/var/tmp/hub-go"
+_SCRATCH = "/tmp/.backend-unit-stage-build.A1B2C3D4"
 _SCRATCH_IDENTITY = "11:12:10001:10001:700:directory"
 _SHELL_TIMEOUT_SECONDS = 5.0
 
@@ -164,7 +164,7 @@ def _run_monitor(
             leader_result,
             group_result,
             str(probe_log),
-            _RAM_TMP,
+            _GOTMPDIR,
             "build",
             _SCRATCH,
             _SCRATCH_IDENTITY,
