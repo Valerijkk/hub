@@ -10,6 +10,25 @@
 
 ## CI и контроль качества
 
+### Messenger: снятие закрепления и удаление закладки — 2026-09-06
+
+Открытая панель закреплений допускает один запрос одновременно; проверяет
+actor, pin/message/channel binding, prop/live can_list_pins и can_pin,
+revoke. Потеря live authority запоминается до завершения запроса, даже если
+права восстановились. Ошибки обрабатываются canonical formatter; pending
+длится до exact pinsQueryKey(channelId, userId) refetch. Старый ответ не
+меняет новую сессию панели. togglePin остаётся переключателем, не
+идемпотентным unpin: автоматического retry или отмены HTTP нет.
+
+Удаление закладок блокируется отдельно по bookmark ID; разные строки могут
+удаляться параллельно. Команда захватывает actor/id и ждёт exact user-key
+refetch, сохраняет текущую ошибку/retry; committed actor ABA и unmount
+изолируют поздние ответы. Batched/noncommitted actor ABA здесь не покрыт.
+GET/query policy, права, API, previews и навигация обеих панелей сохранены.
+44 новых genuine units приняты в TypeScript + 203 files / 915 tests PASS;
+API/browser NOT_RUN. [Закрепления](superpowers/plans/2026-09-06-panel-unpin-lifecycle.md),
+[закладки](superpowers/plans/2026-09-06-bookmark-removal-lifecycle.md).
+
 ### Messenger: пересылка — calls-feature-codex, 2026-09-06
 
 ForwardDialog использует локальную single-flight команду: проверяет actor,

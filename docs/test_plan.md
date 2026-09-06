@@ -29,6 +29,17 @@
 
 ## Пирамида тестирования
 
+Panel actions (2026-09-06): 34 unpin + 10 bookmark-removal genuine units
+связывают admission и captured identity с single-flight, scoped error/retry,
+ABA/unmount fencing и pending до реального exact refetch. Разные закладки
+проверяются параллельно; панель закреплений имеет одного request owner.
+Оба оракула фиксировались до source, прошли независимое review и canonical
+RED → GREEN без изменения assertions. Полный Docker frontend-unit:
+TypeScript + 203 files / 915 tests PASS, 136.52s. Это composed unit evidence,
+не отдельные intermediate-commit runs и не API/browser/module acceptance.
+[Unpin contract](superpowers/plans/2026-09-06-panel-unpin-lifecycle.md),
+[bookmark contract](superpowers/plans/2026-09-06-bookmark-removal-lifecycle.md).
+
 Forward command (2026-09-06): 36 genuine UI cases покрывают single-flight,
 message/source/target admission, текущую ошибку/retry, committed и batched
 authority loss, unmount и callback re-entry. Полный Docker frontend-unit:

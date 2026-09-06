@@ -10,8 +10,10 @@
 
 **Spec:** docs/TECHNICAL.md POST pin/GET pins, docs/system_specification.md channel_removed barrier, source-confirmed panel-unpin entry in the completion queue. No new server roles or permission vocabulary.
 
-Status: UNIT_ACCEPTED / READY_FOR_PUBLICATION; independent source and final
-receipt review C/I/M0/0/0. Exact publication remains pending.
+Status: UNIT_ACCEPTED / PUBLISHED; independent source and final receipt
+review C/I/M0/0/0. Commit25c58baaa001911c61f700e0cbfdb00dd99441d5 was
+immediately pushed to the approved origin calls-feature-codex; remote SHA
+equality verified on2026-09-06. This is not full-module acceptance.
 The following prerequisite/oracle-stage notes are historical.
 Forward prerequisite published as 74c5c492a41998213fcf7cf1556fdf6333c7ee42,
 immediate push and exact remote SHA equality verified on 2026-09-06.
@@ -119,7 +121,7 @@ Local window unhandled spies are supplemental; full Vitest exit/raw headings are
 - [x] One Terra/xhigh source writer for only two production paths within budget (234/250).
 - [x] Independent source/oracle review; no weakened assertions or oracle drift (C/I/M0/0/0).
 - [x] Root full canonical GREEN, exact provenance/resource evidence (final independent receipt review recorded below).
-- [ ] Docs sync, exact commit/immediate authorized push/remote equality; continue unblocked work.
+- [x] Docs sync, exact source commit/immediate authorized push/remote equality; remaining source work follows separate gates.
 
 Every dispatch max20minutes, depth/fanout0, max3 fixes/root cause /5 review rounds /1 transient retry. If bounds or authority do not fit, return BLOCKED for root decomposition. No full Messenger/API/storage/browser or Jitsi readiness claim from these units.
 

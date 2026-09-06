@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: communications-in-progress
-stopped_at: ForwardDialog UNIT_ACCEPTED with independent receipt review; publication pending; next panel unpin
+stopped_at: Panel25c58baa and bookmark49b0f133 published and remote-verified; Docker203files915testsPASS; next backend gate needs explicit Go-only4GiB approval
 last_updated: "2026-09-06"
-last_activity: 2026-09-06 - ForwardDialog TypeScript and 201 files / 871 tests PASS; 36 new cases; 2GiB Docker; independent source and final receipt C0/I0; publication pending
+last_activity: 2026-09-06 - Two source atoms committed with immediate authorized pushes and remote SHA verification;44newcasesPASS; docs/recovery saved; no further2GiB Go retry or Jitsi infra activation
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -131,7 +131,45 @@ spec_coverage:
     source: .planning/audits/planning-audit-2026-07/SPEC-COVERAGE.md
 ---
 
-## Session note — 2026-09-06 обновление правил Astra
+## Session note — 2026-09-06 Messenger после обновления правил
+
+Previous accepted frontend checkpoint: `74c5c492a41998213fcf7cf1556fdf6333c7ee42`,
+ветка `calls-feature-codex`; commit, immediate push и exact remote SHA
+проверены. ForwardDialog: bounded hook239added+deleted, oracle36cases,
+TypeScript + 201 files / 871 tests PASS, 123.07s. Independent source и final
+receipt review C/I0/0; старые DialogContent/act/mock warnings раскрыты.
+Eight GREEN receipts: `testframework/reports/frontend-unit-forward-green-20260906/`.
+RED сохранён рядом; oracle/fixture/source/Compose hashes совпали после GREEN.
+Docker2GiB/no-swap6CPUreadonlytwo workers; samples536.3/410.2MiB не peak;
+disposable runner удалён автоматически, соседний Mail builder не менялся.
+
+Новый принятый составной candidate: panel-unpin34cases (source234lines) и
+bookmark-removal10cases (source89lines) на base74c5c492. Canonical GREEN:
+TypeScript + 203 файла / 915 тестов PASS,136.52s,exit0; failed/pending/todo/
+whole-run unhandled0. Старый RED28FAIL/9panelUnhandled сохранён отдельно;
+оба оракула, старые fixtures, source и Compose hashes не менялись.
+Независимое source/final review обеих команд C/I/M0/0/0, UNIT_ACCEPTED.
+Восемь GREEN receipts: `testframework/reports/frontend-unit-panel-actions-green-20260906/`.
+Обе source-задачи последовательно выполнил Terra/xhigh; review Terra/high,
+actual UNKNOWN. Непрерывная эксклюзивность нагрузки не заявляется: Mail
+начал свою сборку в конце прогона; root Mail не менял и новые QA не запускает.
+2GiB/no-swap6CPUreadonlytwo workers подтверждены, samples511.6/288.8MiB
+не peaks, disk3%/4% queue0; engine completion/OOM NOT_CAPTURED.
+act/DialogContent/mock warnings раскрыты, build/lint/API/browser/storage
+NOT_RUN. Source-коммиты25c58baaa001911c61f700e0cbfdb00dd99441d5 и
+49b0f1330c9d365749aeea3f7824ca96f505f94f опубликованы немедленными push
+только в разрешённую origin/calls-feature-codex; оба remote SHA проверены.
+Промежуточные коммиты по одному не тестировались; принят составной candidate.
+Briefs/reports: `.superpowers/sdd/2026-09-06-panel-actions/`.
+
+Full Messenger SUT/API/browser NOT_READY/NOT_RUN: нет Messenger API suite
+и `testframework/tests/e2e/`. Exact-message navigation ждёт bounded anchor
+API/route contract; discovery записан в completion queue. Go2GiB Ent OOM
+не повторять; Go-only4GiB exception UNAPPROVED. Jitsi deployment/media
+не приняты, LiveKit остаётся активным. Проценты исторических фаз выше не
+означают готовность Messenger/Calls. Более ранние записи ниже — история.
+
+## Historical session note — 2026-09-06 обновление правил Astra
 
 По текущему запросу пользователя работа над коммуникациями приостановлена.
 PR [#38](https://github.com/Valerijkk/hub/pull/38) перенёс единственный отсутствующий
@@ -1184,7 +1222,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Current continuity (2026-09-05, supersedes the snapshots below):** branch
+**Historical continuity (2026-09-05; current state is the latest session note above):** branch
 `calls-feature-codex` resumed from pushed `fee06bb6` for full Messenger/Calls
 continuation. Task 3A source-bound backend runner is source-accepted after
 independent review C/I/M 0/0/0 and Docker RED/GREEN (focused 1 PASS; relevant

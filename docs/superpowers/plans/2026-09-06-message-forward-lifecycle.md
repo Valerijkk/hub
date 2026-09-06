@@ -14,7 +14,8 @@
 
 Current status: UNIT_ACCEPTED; TypeScript + 201 files / 871 tests PASS,
 36 forward cases, 123.07s. Independent source/final receipt C/I 0/0;
-minor existing warning disclosure retained. Exact commit/push pending.
+minor existing warning disclosure retained. Published 74c5c492a41998213fcf7cf1556fdf6333c7ee42;
+immediate push and exact remote SHA equality verified.
 API/browser/full module acceptance remains NOT_RUN. Earlier checkpoints
 below are chronological history, superseded by the final GREEN section.
 
@@ -183,7 +184,7 @@ try {
 - [x] Root/independent source review C/I clear; oracle hash unchanged.
 - [x] Root full canonical GREEN, exact receipts and pre/post hashes, actual runtime samples.
 - [x] Final independent receipt review and root docs sync; C/I0/0, warnings disclosed.
-- [ ] Exact commit/immediate push/remote SHA; continue unblocked queue.
+- [x] Exact commit/immediate push/remote SHA; continue unblocked queue.
 
 ## Bounds / handoff
 

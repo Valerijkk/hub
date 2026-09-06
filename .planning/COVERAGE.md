@@ -22,6 +22,15 @@
 
 ## Методология
 
+Panel unpin / bookmark removal, 2026-09-06: 34 + 10 genuine UI cases.
+Трассировка: actor/binding/rights → синхронный owner → exact awaited refetch,
+current error/retry и stale/ABA/unmount isolation. Закрепления запоминают
+transient authority loss; закладки покрывают committed actor ABA и допускают
+параллельные разные строки. Составной Docker gate: TypeScript + 203 файла /
+915 тестов PASS, 136.52s. Это unit evidence, не statement coverage или
+API/browser acceptance. [Закрепления](../docs/superpowers/plans/2026-09-06-panel-unpin-lifecycle.md),
+[закладки](../docs/superpowers/plans/2026-09-06-bookmark-removal-lifecycle.md).
+
 Forward command, 2026-09-06: 36 genuine units связывают actor/source/target
 authority, message binding, single-flight, текущую ошибку и явный retry с
 committed/batched ABA, unmount и callback re-entry. Полный Docker gate:

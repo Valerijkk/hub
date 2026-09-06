@@ -1,5 +1,24 @@
 # Hub — Тестовая документация
 
+## Messenger: действия в панелях закреплений и закладок — 2026-09-06
+
+34 panel-unpin cases и 10 bookmark-removal cases используют реальные UI,
+stores, QueryClient и отложенный QueryObserver refetch. Покрыты same-tick
+single-flight, точные ключи, current error/retry, committed ABA и unmount;
+для закреплений также transient rights/revoke/actor loss, для закладок —
+параллельные разные строки. API mocks не заменяют проверяемое поведение.
+
+Canonical RED: 28 новых FAIL, 9 panel unhandled; все 201 прежний файл PASS.
+Canonical GREEN: TypeScript + 203 files / 915 tests PASS, 136.52s, exit0;
+все 44 новых cases и ранее недостигнутые ABA/refetch assertions прошли.
+Оракулы, старые fixtures и Compose не менялись. Восемь RED/GREEN receipts
+сохранены отдельно. Фактически проверены 2GiB/no-swap, 6CPU, два worker.
+Соседняя Mail-сборка началась в конце прогона: performance/exclusivity не
+принимаются. Старые act/DialogContent/mock warnings остаются; build/lint/
+API/browser/storage NOT_RUN. Промежуточные коммиты отдельно не запускались.
+[Точные receipts](superpowers/plans/2026-09-06-panel-unpin-lifecycle.md),
+[bookmark contract](superpowers/plans/2026-09-06-bookmark-removal-lifecycle.md).
+
 ## Messenger: пересылка — 2026-09-06
 
 Новый lifecycle oracle: 36 genuine UI cases, включая same-tick два target,

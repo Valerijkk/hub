@@ -28,12 +28,33 @@ Historical unit PASS or milestone completion is not product acceptance.
 | Messenger reactions | Per-row shared picker/pill request ownership, current errors and stale-session isolation | UNIT_ACCEPTED:25newcases in composed199files/809testsPASS;0d562ee8 pushed and remote-verified |
 | Messenger bookmarks | Scoped add single-flight/error and exact current-user list refresh | UNIT_ACCEPTED:26newcases in same composedGREEN;1877984e pushed and remote-verified |
 | Messenger row pin | Scoped toggle/error and exact current-user/channel pins refresh | UNIT_ACCEPTED: 26 new cases; TypeScript + 200 files / 835 tests PASS; independent C0/I0/M0; ac918830 pushed and remote-verified |
-| Messenger forward | One request per open session; current error/retry; source and captured-target authority fences | UNIT_ACCEPTED: TypeScript + 201 files / 871 tests PASS,36new; independent source/final receipt C0/I0; publication pending |
-| Messenger panel unpin | Panel-owned single-flight, handled failure and exact pins refresh through invalidation | Separate 34-case plan frozen and independent C0/I0/M0; oracle application waits for exact forward publication; no implementation |
-| Messenger bookmark removal | Prevent same-bookmark duplicate DELETE and preserve current error/retry | Ten-case single-file contract frozen; independent plan review corrected one stale runtime reference; exact forward publication binding before oracle |
+| Messenger forward | One request per open session; current error/retry; source and captured-target authority fences | UNIT_ACCEPTED: TypeScript + 201 files / 871 tests PASS,36new; independent source/final receipt C0/I0; 74c5c492 pushed and remote-verified |
+| Messenger panel unpin | Panel-owned single-flight, handled failure and exact pins refresh through invalidation | UNIT_ACCEPTED:34new; composed TypeScript+203files/915testsPASS; independent C/I/M0/0/0;25c58baa pushed/remote-verified |
+| Messenger bookmark removal | Prevent same-bookmark duplicate DELETE and preserve current error/retry | UNIT_ACCEPTED:10new; per-ID lifecycle89lines; same composed GREEN and independent C/I/M0/0/0;49b0f133 pushed/remote-verified |
 | Messenger links | Thread issue-link create/unlink | Actor policy, target proof and capabilities UNBOUND; read list acceptance does not authorize mutation |
 | Final acceptance | Reconnect/revoke/unread isolation, file/message/thread user journeys; Jitsi media/rollback/load; docs | Real Docker SUT/browser/API/storage evidence required; no full module PASS yet |
 | Legacy cutover | Drain then remove LiveKit by exact manifest | Only after replacement runtime/rollback exit gates, not before |
+
+## Exact message navigation discovery — 2026-09-06
+
+At published 74c5c492, SearchDialog.handleNavigate sends only channelId;
+the channel route has no validateSearch/message locator and ChatView takes
+only channelId. Its initial/bottom auto-scroll cannot identify a search hit.
+Search returns full Message DTO including id/channel_id/thread_id/created_at,
+but these values alone do not guarantee the target is loaded in the virtual
+list. The current messages GET accepts before(timestamp)+limit, not an exact
+message anchor; no GET /messages/:messageId route is registered. GetThread
+accepts a root ID, not a general reply locator, and returns a paginated thread.
+
+Root direction for future decomposition: use an actor-authorized bounded
+anchor resource and explicit route locator, not unbounded history loading or
+injecting stale search DTOs into the live timeline. Define deleted/foreign/
+revoked concealment, root-versus-reply resolution, stable ordering including
+timestamp ties, forward/backward page continuity, current-actor query keys,
+and one-shot virtual scroll/highlight. First freeze the backend DTO/error/
+pagination contract and its test acceptance; then bind route/ChatView/thread.
+This is a discovery direction, not a new API implementation or security
+integration approval. Go/SUT gates remain blocked; no source was changed.
 
 ## Current Messenger SUT QA boundary — 2026-09-06
 
@@ -122,9 +143,9 @@ Mail builds finished before the accepted gate; root did not stop/change them.
 
 ## Next-flow discoveries (read-only,2026-09-06)
 
-### Accepted checkpoint — 2026-09-06
+### Historical row-pin checkpoint — 2026-09-06
 
-Latest checkpoint: row pin UNIT_ACCEPTED, TypeScript + 200 files / 835 tests
+Checkpoint at that stage: row pin UNIT_ACCEPTED, TypeScript + 200 files / 835 tests
 PASS in 117.97s; all 26 new pin cases, unchanged oracle/source/Compose hashes.
 Independent final review C/I/M 0/0/0. Exact receipts are preserved under
 testframework/reports/frontend-unit-pin-green-20260906/. Actual 2 GiB/no-swap,

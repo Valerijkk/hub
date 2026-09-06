@@ -12,9 +12,11 @@
 
 ## Global constraints
 
-Current execution: UNIT_ACCEPTED / READY_FOR_PUBLICATION; composed Docker
-GREEN below. Independent source and final receipt review C/I/M0/0/0;
-publication pending. Runtime assignment paragraphs below are chronology,
+Current execution: UNIT_ACCEPTED / PUBLISHED; composed Docker GREEN below.
+Commit49b0f1330c9d365749aeea3f7824ca96f505f94f immediately pushed to the
+approved origin calls-feature-codex; remote SHA equality verified2026-09-06.
+Independent source and final receipt review C/I/M0/0/0.
+Runtime assignment paragraphs below are chronology,
 not instructions to repeat failed dispatches or rewrite the frozen oracle.
 
 Current assignment decision: after the panel oracle correction finishes,
@@ -206,7 +208,7 @@ Render `disabled={pendingIds.has(bm.id)}` on the existing remove `Button`; retai
 
   Run the same exact Docker command from Step 2. Expected only on successful execution: TypeScript and the complete `frontend-unit` suite pass, all ten new observed cases pass, and no whole-run unhandled errors/rejections are present. Do not claim GREEN from static review, a focused host run, or an earlier composed candidate; record Docker infrastructure failure as `NOT_RUN`/`BLOCKED_INFRA`.
 
-- [ ] **Step 6: Root performs docs-sync and publication only after GREEN and review.**
+- [x] **Step 6: Root performs docs-sync and publication only after GREEN and review.**
 
   Root updates the completion queue/`STATE.md` and any required acceptance docs, preserving actual RED/GREEN receipts and limitations. Root alone measures the exact diff, stages exact owned paths, creates the authorized conventional commit without AI attribution trailers, pushes only the approved branch, and verifies remote SHA equality. This plan itself does not authorize Git mutation.
 
